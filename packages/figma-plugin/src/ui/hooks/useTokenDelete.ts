@@ -5,7 +5,7 @@ import type { UndoSlot } from './useUndo';
 import type { DeleteConfirm, AffectedRef } from '../components/tokenListTypes';
 import type { TokenGenerator } from './useGenerators';
 import type { ThemeDimension } from '@tokenmanager/core';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';

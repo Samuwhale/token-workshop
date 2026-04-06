@@ -16,7 +16,7 @@ export function useWindowExpand() {
     if (isExpanded) {
       parent.postMessage({ pluginMessage: { type: 'resize', width: MAX_WIDTH, height: MAX_HEIGHT } }, '*');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   // Safe: mount-only restore. `isExpanded` is intentionally omitted — `toggleExpand` already
   // sends the resize message on every toggle. Adding `isExpanded` here would double-fire on toggle.
   }, []);

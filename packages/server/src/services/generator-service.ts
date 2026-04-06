@@ -706,7 +706,7 @@ export class GeneratorService {
     const extensions = {
       'com.tokenmanager.generator': {
         generatorId: generator.id,
-        sourceToken: generator.sourceToken,
+        sourceToken: generator.sourceToken ?? '',
       },
     };
     let runError: unknown = undefined;
@@ -804,7 +804,7 @@ export class GeneratorService {
         const extensions = {
           'com.tokenmanager.generator': {
             generatorId: generator.id,
-            sourceToken: generator.sourceToken,
+            sourceToken: generator.sourceToken ?? '',
             brand: row.brand,
           },
         };
@@ -981,7 +981,7 @@ export class GeneratorService {
     config: TokenGenerator['config'],
     tokenStore: TokenStore,
   ): Promise<TokenGenerator['config']> {
-    const c = config as Record<string, unknown>;
+    const c = config as unknown as Record<string, unknown>;
     const refs = c.$tokenRefs;
     if (!refs || typeof refs !== 'object' || Array.isArray(refs)) return config;
 

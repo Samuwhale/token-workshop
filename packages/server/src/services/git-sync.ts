@@ -244,7 +244,7 @@ export class GitSync {
   }
 
   async init(): Promise<void> {
-    return this.lock.withLock(() => this.git.init());
+    await this.lock.withLock(() => this.git.init());
   }
 
   async status() {
@@ -265,7 +265,7 @@ export class GitSync {
   }
 
   async push(): Promise<void> {
-    return this.lock.withLock(() => wrapNetworkOp('push', this.git.push()));
+    await this.lock.withLock(() => wrapNetworkOp('push', this.git.push()));
   }
 
   async pull(): Promise<{ conflicts: string[] }> {
@@ -434,7 +434,7 @@ export class GitSync {
 
   /** Abort the current merge. */
   async abortMerge(): Promise<void> {
-    return this.lock.withLock(() => this.git.merge(['--abort']));
+    await this.lock.withLock(() => this.git.merge(['--abort']));
   }
 
   /** Finalize merge after all conflicts resolved — creates the merge commit. */
@@ -465,9 +465,9 @@ export class GitSync {
   }
 
   async checkout(branch: string): Promise<void> {
-    return this.lock.withLock(() => {
+    await this.lock.withLock(async () => {
       this.validateBranchName(branch);
-      return this.git.checkout(branch);
+      await this.git.checkout(branch);
     });
   }
 
@@ -573,7 +573,7 @@ export class GitSync {
   }
 
   async fetch(): Promise<void> {
-    return this.lock.withLock(() => wrapNetworkOp('fetch', this.git.fetch()));
+    await this.lock.withLock(() => wrapNetworkOp('fetch', this.git.fetch()));
   }
 
   /** Get token-level diffs for uncommitted changes in .tokens.json files.

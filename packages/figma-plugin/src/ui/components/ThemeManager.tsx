@@ -142,9 +142,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     showCreateDim, openCreateDim, closeCreateDim,
     createDimError,
     isCreatingDim, handleCreateDimension,
-    renameDim, renameValue, setRenameValue, renameError, isRenamingDim,
+    renameDim, renameValue, setRenameValue, renameError, isRenamingDim: _isRenamingDim,
     startRenameDim, cancelRenameDim, executeRenameDim,
-    dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, isDeletingDim,
+    dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, isDeletingDim: _isDeletingDim,
     executeDeleteDimension,
     isDuplicatingDim, handleDuplicateDimension,
   } = useThemeDimensions({ serverUrl, connected, sets, onPushUndo, onSuccess });
@@ -206,7 +206,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const {
     expandedCoverage, setExpandedCoverage,
     expandedStale, setExpandedStale,
-    showMissingOnly, setShowMissingOnly,
+    showMissingOnly: _showMissingOnly, setShowMissingOnly: _setShowMissingOnly,
     expandedMissingOverrides, setExpandedMissingOverrides,
     creatingMissingKeys, setCreatingMissingKeys,
     missingOverrideSearch, setMissingOverrideSearch,
@@ -449,7 +449,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   const renderSetRow = (dim: ThemeDimension, opt: ThemeOption, setName: string, status: string) => {
     const isSaving = savingKeys.has(`${dim.id}/${opt.name}/${setName}`);
-    const saveKey = `${dim.id}/${opt.name}/${setName}`;
+    const _saveKey = `${dim.id}/${opt.name}/${setName}`;
     const tokenCount = setTokenValues[setName] ? Object.keys(setTokenValues[setName]).length : null;
     const isEmptyOverride = status === 'enabled' && tokenCount !== null && tokenCount === 0;
     return (
@@ -556,6 +556,25 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     });
   }, [dimensions, dimSearch, showOnlyWithGaps, coverage]);
 
+  const modalContextValue = useMemo<ThemeManagerModalsState>(() => ({
+    dimensions,
+    autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy,
+    executeAutoFillAll, executeAutoFillAllOptions,
+    dimensionDeleteConfirm, setDimensionDeleteConfirm: openDeleteConfirm, closeDeleteConfirm,
+    executeDeleteDimension,
+    optionDeleteConfirm, setOptionDeleteConfirm: (v) => setOptionDeleteConfirm(v),
+    executeDeleteOption,
+    bulkMenu, setBulkMenu: (v) => setBulkMenu(v), bulkMenuRef,
+    handleBulkSetState,
+    createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
+  }), [
+    dimensions, autoFillPreview, autoFillStrategy, executeAutoFillAll, executeAutoFillAllOptions,
+    dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
+    optionDeleteConfirm, executeDeleteOption,
+    bulkMenu, bulkMenuRef, handleBulkSetState,
+    createOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
+  ]);
+
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
@@ -584,25 +603,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       </div>
     );
   }
-
-  const modalContextValue = useMemo<ThemeManagerModalsState>(() => ({
-    dimensions,
-    autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy,
-    executeAutoFillAll, executeAutoFillAllOptions,
-    dimensionDeleteConfirm, setDimensionDeleteConfirm: openDeleteConfirm, closeDeleteConfirm,
-    executeDeleteDimension,
-    optionDeleteConfirm, setOptionDeleteConfirm: (v) => setOptionDeleteConfirm(v),
-    executeDeleteOption,
-    bulkMenu, setBulkMenu: (v) => setBulkMenu(v), bulkMenuRef,
-    handleBulkSetState,
-    createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
-  }), [
-    dimensions, autoFillPreview, autoFillStrategy, executeAutoFillAll, executeAutoFillAllOptions,
-    dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
-    optionDeleteConfirm, executeDeleteOption,
-    bulkMenu, bulkMenuRef, handleBulkSetState,
-    createOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
-  ]);
 
   return (
     <ThemeManagerModalsProvider value={modalContextValue}>

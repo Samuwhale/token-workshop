@@ -312,10 +312,10 @@ export class TokenResolver {
       if (typeof resolvedValue === 'number' && ($type === 'dimension' || $type === 'duration')) {
         const isFormulaSrc = typeof token.$value === 'string' && isFormula(token.$value);
         if ($type === 'dimension') {
-          const unit = isFormulaSrc ? (this.extractFormulaUnit(token.$value) ?? 'px') : 'px';
+          const unit = isFormulaSrc ? (this.extractFormulaUnit(token.$value as string) ?? 'px') : 'px';
           resolvedValue = { value: resolvedValue, unit } as DimensionValue;
         } else {
-          const unit = isFormulaSrc ? (this.extractFormulaUnit(token.$value) ?? 'ms') : 'ms';
+          const unit = isFormulaSrc ? (this.extractFormulaUnit(token.$value as string) ?? 'ms') : 'ms';
           resolvedValue = { value: resolvedValue, unit } as DurationValue;
         }
       }
@@ -377,7 +377,7 @@ export class TokenResolver {
             ...token.$extensions,
             tokenmanager: {
               ...(token.$extensions?.tokenmanager ?? {}),
-              formula: token.$value,
+              formula: token.$value as string,
             },
           }
         : token.$extensions;

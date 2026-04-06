@@ -11,15 +11,12 @@ import { watch } from 'chokidar';
 import type {
   ResolverFile,
   ResolverInput,
-  ResolverModifier,
   ResolverSource,
-  Token,
   ResolverResult,
 } from '@tokenmanager/core';
 import {
   validateResolverFile,
   resolveResolverTokens,
-  getDefaultResolverInput,
 } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
 import { PromiseChainLock } from '../utils/promise-chain-lock.js';

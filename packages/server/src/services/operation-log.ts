@@ -29,7 +29,6 @@ export type RollbackStep =
  * Structurally compatible with DimensionsStore from routes/themes.ts.
  */
 export interface ThemesWriteLock {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   withLock<T>(fn: (dims: any[]) => Promise<{ dims: any[]; result: T }>): Promise<T>;
 }
 
@@ -49,7 +48,7 @@ export interface RollbackContext {
     delete(name: string): Promise<boolean>;
   };
   generatorService?: {
-    updateSetName(oldName: string, newName: string): Promise<void>;
+    updateSetName(oldName: string, newName: string): Promise<number | void>;
     getById(id: string): Promise<unknown>;
     restore(generator: unknown): Promise<void>;
     delete(id: string): Promise<boolean>;
@@ -74,6 +73,8 @@ export interface OperationEntry {
    * creating orphans when tokens are renamed on the server.
    */
   pathRenames?: Array<{ oldPath: string; newPath: string }>;
+  /** Arbitrary metadata for the operation (e.g. set-metadata before/after). */
+  metadata?: Record<string, unknown>;
 }
 
 /** Lightweight version returned by the list endpoint (no snapshot data). */
@@ -337,7 +338,7 @@ export class OperationLog {
           // serialise behind this rollback write and don't overwrite it.
           if (ctx.themesStore) {
             await ctx.themesStore.withLock(async () => ({
-              dims: step.dimensions as any[], // eslint-disable-line @typescript-eslint/no-explicit-any
+              dims: step.dimensions as any[],  
               result: undefined,
             }));
           } else {

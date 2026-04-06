@@ -5,6 +5,7 @@ import {
   type Token,
   type TokenGroup,
   type TokenSet,
+  type TokenType,
   type ResolvedToken,
   isFormula,
   isReference,
@@ -12,7 +13,6 @@ import {
   makeReferenceGlobalRegex,
   flattenTokenGroup,
   TokenResolver,
-  COMPOSITE_TOKEN_TYPES,
 } from '@tokenmanager/core';
 import { NotFoundError, ConflictError, BadRequestError } from '../errors.js';
 import { PromiseChainLock } from '../utils/promise-chain-lock.js';
@@ -933,7 +933,7 @@ export class TokenStore {
           // The set was created solely for this batch — roll back its creation entirely.
           const newSet = this.sets.get(setName);
           this.sets.delete(setName);
-          if (newSet) {
+          if (newSet?.filePath) {
             await fs.unlink(newSet.filePath).catch(() => {});
           }
         }
@@ -1541,7 +1541,7 @@ export class TokenStore {
     const set = this.sets.get(setName);
     if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     // Validate all renames upfront
-    for (const { oldPath, newPath } of renames) {
+    for (const { newPath } of renames) {
       validateTokenPath(newPath);
     }
     // Check that all source tokens exist and no target paths conflict
@@ -1867,7 +1867,7 @@ export class TokenStore {
     const snapshot = this.snapshotSets(setName);
     if ('$type' in meta) {
       if (meta.$type == null) delete group.$type;
-      else group.$type = meta.$type;
+      else group.$type = meta.$type as TokenType;
     }
     if ('$description' in meta) {
       if (meta.$description == null || meta.$description === '') delete group.$description;

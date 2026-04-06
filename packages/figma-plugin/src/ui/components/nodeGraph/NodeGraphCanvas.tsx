@@ -2,7 +2,7 @@ import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import type { TokenGenerator } from '../../hooks/useGenerators';
 import type { UndoSlot } from '../../hooks/useUndo';
 import type { TransformOp, PortDirection } from './nodeGraphTypes';
-import { portPosition, TRANSFORM_OPS, nodeHeight, isCompatiblePortType, computeDependencyEdges } from './nodeGraphTypes';
+import { portPosition, TRANSFORM_OPS, nodeHeight, computeDependencyEdges } from './nodeGraphTypes';
 import { useNodeGraph } from './useNodeGraph';
 import { NodeRenderer } from './NodeRenderer';
 import { edgePath } from '../../shared/graphUtils';
@@ -174,7 +174,7 @@ export function NodeGraphCanvas({
     addTransformNode,
     updateTransformParam,
     pushMoveUndo,
-    addEdge: addEdgeAction,
+    addEdge: _addEdgeAction,
     removeEdge,
     selectedNodeId,
     setSelectedNodeId,

@@ -1144,7 +1144,7 @@ function GitPreviewModal({
 
   useEffect(() => {
     fetchPreview();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   // Safe: mount-only fetch. `fetchPreview` is a prop that may be recreated by the parent on every
   // render; adding it to deps would re-fetch on every parent re-render instead of just once.
   }, []);
@@ -1379,7 +1379,7 @@ function CommitPreviewModal({
     if (tokenPreview === null && !tokenPreviewLoading) {
       fetchTokenPreview();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   // Safe: mount-only conditional fetch. `tokenPreview`, `tokenPreviewLoading`, and
   // `fetchTokenPreview` are intentionally omitted — adding them would re-run the effect
   // every time loading state changes and create a feedback loop.
@@ -1893,7 +1893,7 @@ function FileTokenDiffList({
     if (tokenPreview === null && !tokenPreviewLoading && allChanges.length > 0) {
       fetchTokenPreview();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   // Safe: only `allChanges.length` triggers a re-check. `tokenPreview`, `tokenPreviewLoading`,
   // and `fetchTokenPreview` are intentionally omitted — including them would create a feedback
   // loop (loading state change → effect fires again → guard re-evaluated endlessly).

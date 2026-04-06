@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
-import { isAlias, extractAliasPath, resolveTokenValue } from '../../shared/resolveAlias';
+import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 
 interface UseTokenAliasEditorParams {
   aliasMode: boolean;
@@ -28,7 +28,7 @@ export function useTokenAliasEditor({
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
 
-  const aliasHasCycle = (() => {
+  const _aliasHasCycle = (() => {
     // This is intentionally not a hook - computed inline each render
     // Moved to useTokenTypeParsing per plan
     return null;

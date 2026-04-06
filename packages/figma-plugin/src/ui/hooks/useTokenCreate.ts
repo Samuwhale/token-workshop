@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { SelectionNodeInfo } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
-import { getDefaultValue, nodeParentPath } from '../components/tokenListUtils';
+import { getDefaultValue } from '../components/tokenListUtils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { validateTokenPath } from '../shared/tokenParsers';
 import { apiFetch, ApiError } from '../shared/apiFetch';

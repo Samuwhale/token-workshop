@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from './useGenerators';
-import type { LintViolation } from './useLint';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
 
 export interface FilterPreset {
@@ -48,7 +47,7 @@ export interface UseTokenSearchParams {
 export function useTokenSearch({
   setName,
   tokens,
-  sets,
+  sets: _sets,
   serverUrl,
   onOpenCommandPaletteWithQuery,
   virtualScrollTopRef,
@@ -56,7 +55,7 @@ export function useTokenSearch({
   itemOffsetsRef,
   scrollAnchorPathRef,
   isFilterChangeRef,
-  expandedPaths,
+  expandedPaths: _expandedPaths,
   pinnedPaths,
   sortedTokens,
   recentlyTouched,

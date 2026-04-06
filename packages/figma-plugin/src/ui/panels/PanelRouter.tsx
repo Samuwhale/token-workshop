@@ -53,7 +53,7 @@ import type { OperationEntry } from '../hooks/useRecentOperations';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
 import type { CrossSetRecentsState } from '../hooks/useCrossSetRecents';
 import type { StarredTokensState } from '../hooks/useStarredTokens';
-import type { TopTab, SubTab, OverflowPanel } from '../shared/navigationTypes';
+import type { TopTab, SubTab } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
 // Props interface
@@ -233,7 +233,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   const { selectedNodes } = useSelectionContext();
   const {
     heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
-    heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
+    heatmapScope: _heatmapScope, setHeatmapScope: _setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan: _cancelHeatmapScan,
   } = useHeatmapContext();
   const { tokenUsageCounts } = useUsageContext();
 

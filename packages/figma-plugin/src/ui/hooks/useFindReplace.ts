@@ -122,7 +122,7 @@ function computeValueReplacements(
 }
 
 export function useFindReplace({
-  connected,
+  connected: _connected,
   serverUrl,
   setName,
   tokens,

@@ -412,8 +412,8 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       // Only set for generators that have run at least once and have a sourceToken.
       return await Promise.all(generators.map(async (gen) => {
         if (!gen.sourceToken || gen.lastRunAt === undefined) return gen;
-        const resolved = await fastify.tokenStore.resolveToken(gen.sourceToken).catch(() => null);
-        if (resolved === null) return gen;
+        const resolved = await fastify.tokenStore.resolveToken(gen.sourceToken).catch(() => undefined);
+        if (!resolved) return gen;
         const isStale = stableStringify(resolved.$value) !== stableStringify(gen.lastRunSourceValue);
         return { ...gen, isStale };
       }));
@@ -491,7 +491,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           targetSet,
           targetGroup,
           name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
-          config: configResult.validated,
+          config: configResult.validated!,
           overrides,
           inputTable: validatedInputTable,
           targetSetTemplate: targetSetTemplate ?? undefined,
@@ -539,7 +539,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           inlineValue: body.inlineValue,
           targetGroup: body.targetGroup ?? '',
           targetSet: body.targetSet ?? '',
-          config: configResult.validated,
+          config: configResult.validated!,
           overrides: body.overrides,
         },
         fastify.tokenStore,
@@ -622,7 +622,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         const targetSet = updates.targetSet ?? existing.targetSet ?? '';
         const targetGroup = updates.targetGroup ?? existing.targetGroup ?? '';
         const before = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
-        const generatorBefore = { ...existing };
+        const _generatorBefore = { ...existing };
         const generator = await fastify.generatorService.update(
           request.params.id,
           updates,

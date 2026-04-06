@@ -272,7 +272,7 @@ function nextPrefixSuffixPattern(siblingNames: string[]): { suggestion: string; 
         allMatch = false;
         break;
       }
-      const delim = name[prefix.length];
+      const _delim = name[prefix.length];
       suffixes.push(name.slice(prefix.length + 1));
       // Only consider single-segment suffixes
       if (splitByDelim(name.slice(prefix.length + 1)).length > 1) { allMatch = false; break; }

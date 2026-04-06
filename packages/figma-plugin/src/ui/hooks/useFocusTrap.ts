@@ -75,7 +75,7 @@ export function useFocusTrap(
       document.removeEventListener('keydown', handleKeyDown);
       previouslyFocused?.focus();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     // containerRef and initialFocusRef are refs — stable objects, intentionally omitted.
   }, []);
 }

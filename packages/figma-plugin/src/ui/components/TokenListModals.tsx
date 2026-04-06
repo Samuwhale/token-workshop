@@ -163,7 +163,7 @@ export interface TokenListModalsProps {
   handleBatchCopyToSet: () => void;
 }
 
-function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorImpacts, themeImpacts, onConfirm, onCancel }: {
+function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, generatorImpacts, themeImpacts, onConfirm, onCancel }: {
   kind: 'token' | 'group';
   oldPath: string;
   newPath: string;
@@ -447,8 +447,8 @@ export function TokenListModals() {
     setName,
     sets,
     onRefresh,
-    allTokensFlat,
-    connected,
+    allTokensFlat: _allTokensFlat,
+    connected: _connected,
     deleteConfirm,
     modalProps,
     executeDelete,

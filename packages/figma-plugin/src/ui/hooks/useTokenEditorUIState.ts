@@ -17,9 +17,9 @@ export function useTokenEditorUIState({
   setShowDiscardConfirm,
   tokenType,
   aliasMode,
-  value,
+  value: _value,
   tokenPath,
-  setName,
+  setName: _setName,
 }: UseTokenEditorUIStateParams) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);

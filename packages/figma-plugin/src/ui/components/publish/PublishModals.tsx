@@ -245,7 +245,7 @@ export function GitPreviewModal({
 
   useEffect(() => {
     fetchPreview();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   // Safe: mount-only fetch. `fetchPreview` is a prop that may be recreated by the parent on every
   // render; adding it to deps would re-fetch on every parent re-render instead of just once.
   }, []);
@@ -429,7 +429,7 @@ export function CommitPreviewModal({
     if (tokenPreview === null && !tokenPreviewLoading) {
       fetchTokenPreview();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   // Safe: mount-only conditional fetch. `tokenPreview`, `tokenPreviewLoading`, and
   // `fetchTokenPreview` are intentionally omitted — adding them would re-run the effect
   // every time loading state changes and create a feedback loop.

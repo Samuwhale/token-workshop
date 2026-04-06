@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
-import { inputClass } from '../../shared/editorClasses';
 import { resolveFormulaPreview } from './valueEditorShared';
 import { StepperInput } from './DimensionEditor';
 

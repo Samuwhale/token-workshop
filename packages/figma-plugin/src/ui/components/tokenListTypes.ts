@@ -1,6 +1,6 @@
 import type React from 'react';
 import type { TokenNode } from '../hooks/useTokens';
-import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
+import type { NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';

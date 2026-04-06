@@ -29,7 +29,7 @@ interface UseSetTabsParams {
 export function useSetTabs({
   serverUrl, connected, getDisconnectSignal,
   sets, setSets, activeSet,
-  addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected,
+  addSetToState, refreshTokens, setSuccessToast, setErrorToast: _setErrorToast, markDisconnected,
   perSetFlat, allTokensFlat, activeThemes,
   tokenDragFromSet, onTokenDropOnSet,
 }: UseSetTabsParams) {

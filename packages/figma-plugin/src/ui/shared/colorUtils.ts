@@ -17,7 +17,6 @@ import {
   normalizeHex,
   hexToRgb,
   rgbToHex,
-  rgbToLab,
   hexToLab,
   labToHex,
   hslToSrgb,

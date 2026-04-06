@@ -4,7 +4,7 @@ import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
-import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
+import type { ThemeDimension } from '@tokenmanager/core';
 
 export function useThemeSwitcher(
   serverUrl: string,

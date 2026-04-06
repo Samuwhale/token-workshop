@@ -18,7 +18,7 @@ interface UseSetDuplicateParams {
 
 export function useSetDuplicate({
   serverUrl, connected, getDisconnectSignal,
-  sets, tokenCounts, addSetToState, refreshTokens,
+  sets: _sets, tokenCounts, addSetToState, refreshTokens,
   setSuccessToast, setErrorToast, markDisconnected, pushUndo, setTabMenuOpen,
 }: UseSetDuplicateParams) {
 

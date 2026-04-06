@@ -21,7 +21,7 @@ export interface UseTokenPromotionParams {
 }
 
 export function useTokenPromotion({
-  connected,
+  connected: _connected,
   serverUrl,
   setName,
   tokens,

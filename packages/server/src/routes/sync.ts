@@ -258,7 +258,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const log = await fastify.gitSync.log(limit + 1, offset, search);
       const all = log.all;
       const hasMore = all.length > limit;
-      const data = all.slice(0, limit).map(entry => ({
+      const data = all.slice(0, limit).map((entry: any) => ({
         hash: entry.hash,
         date: entry.date,
         message: entry.message,

@@ -192,7 +192,7 @@ export function useReadinessChecks({
   useEffect(() => {
     if (!checksStale || !connected || !activeSet) return;
     runReadinessChecksRef.current();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [checksStale, connected, activeSet]);
 
   // Auto-rerun after Figma confirms variables were applied (from the "Push missing" fix button)

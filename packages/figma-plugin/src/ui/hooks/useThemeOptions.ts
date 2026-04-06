@@ -66,7 +66,7 @@ export function useThemeOptions({
   setDimensions,
   debouncedFetchDimensions,
   fetchDimensions,
-  selectedOptions,
+  selectedOptions: _selectedOptions,
   setSelectedOptions,
   optionSetOrders: _optionSetOrders,
   setOptionSetOrders,

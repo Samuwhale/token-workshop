@@ -88,7 +88,7 @@ function isDimensionLike(value: unknown): value is DimensionValue {
 
 function isDurationLike(value: unknown): value is DurationValue {
   if (!isDimensionLike(value)) return false;
-  const v = value as DurationValue;
+  const v = value as unknown as DurationValue;
   return v.unit === 'ms' || v.unit === 's';
 }
 

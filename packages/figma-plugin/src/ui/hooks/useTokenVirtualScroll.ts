@@ -1,7 +1,7 @@
-import { useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
+import { useState, useCallback, useMemo, useLayoutEffect } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
-import { flattenVisible, flattenLeafNodes } from '../components/tokenListUtils';
+import { flattenVisible } from '../components/tokenListUtils';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { VIRTUAL_CHAIN_EXPAND_HEIGHT } from '../components/tokenListTypes';
 
@@ -32,7 +32,7 @@ export function useTokenVirtualScroll({
   recentlyTouched,
   highlightedToken,
   virtualListRef,
-  virtualScrollTopRef,
+  virtualScrollTopRef: _virtualScrollTopRef,
   flatItemsRef,
   itemOffsetsRef,
   scrollAnchorPathRef,

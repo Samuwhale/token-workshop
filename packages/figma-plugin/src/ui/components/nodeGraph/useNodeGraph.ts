@@ -12,8 +12,6 @@ import type {
 import {
   generatorsToGraph,
   createTransformNode,
-  portPosition,
-  PORT_HIT_RADIUS,
   isCompatiblePortType,
 } from './nodeGraphTypes';
 

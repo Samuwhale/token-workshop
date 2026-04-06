@@ -249,7 +249,7 @@ export async function lintTokens(
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
       if (isPathExcluded(tokenPath, noRawColor.excludePaths)) continue;
       if (token.$type === 'color' && !isReference(token.$value)) {
-        const rawHex = token.$value as string;
+        const rawHex = String(token.$value);
         const nearest = findNearestColorAlias(rawHex, tokenPath, allFlatTokens);
         let suggestion: string | undefined;
         let hint = '';

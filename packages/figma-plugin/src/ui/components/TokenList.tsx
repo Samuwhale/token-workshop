@@ -672,7 +672,7 @@ export function TokenList({
   const {
     whereIsPath, setWhereIsPath,
     whereIsResults, setWhereIsResults,
-    whereIsLoading, setWhereIsLoading,
+    whereIsLoading, setWhereIsLoading: _setWhereIsLoading,
     whereIsAbortRef,
     handleFindInAllSets,
   } = tokenWhereIs;
@@ -686,7 +686,7 @@ export function TokenList({
   });
   const {
     expandedPaths, setExpandedPaths,
-    expandedChains, setExpandedChains,
+    expandedChains, setExpandedChains: _setExpandedChains,
     handleToggleExpand,
     handleExpandAll,
     handleCollapseAll,
@@ -758,13 +758,13 @@ export function TokenList({
     filterDrawerOpen, setFilterDrawerOpen,
     crossSetResults,
     crossSetTotal,
-    crossSetOffset, setCrossSetOffset,
+    crossSetOffset: _crossSetOffset, setCrossSetOffset,
     CROSS_SET_PAGE_SIZE,
     searchRef,
     qualifierHintsRef,
     qualifierHelpRef,
-    crossSetAbortRef,
-    saveScrollAnchor,
+    crossSetAbortRef: _crossSetAbortRef,
+    saveScrollAnchor: _saveScrollAnchor,
     setSearchQuery,
     setTypeFilter,
     setRefFilter,
@@ -901,8 +901,8 @@ export function TokenList({
     pendingRenameToken, setPendingRenameToken,
     movingToken, setMovingToken,
     copyingToken, setCopyingToken,
-    moveTokenTargetSet, setMoveTokenTargetSet,
-    copyTokenTargetSet, setCopyTokenTargetSet,
+    moveTokenTargetSet, setMoveTokenTargetSet: _setMoveTokenTargetSet,
+    copyTokenTargetSet, setCopyTokenTargetSet: _setCopyTokenTargetSet,
     moveConflict, copyConflict,
     moveConflictAction, setMoveConflictAction,
     copyConflictAction, setCopyConflictAction,
@@ -912,7 +912,7 @@ export function TokenList({
     requestDeleteToken, requestDeleteGroup,
     requestBulkDelete: requestBulkDeleteFromHook,
     executeDelete,
-    handleDuplicateToken, handleInlineSave, handleDescriptionSave,
+    handleDuplicateToken, handleInlineSave, handleDescriptionSave: _handleDescriptionSave,
     handleMultiModeInlineSave, handleDetachFromGenerator,
     handleRequestMoveToken, handleConfirmMoveToken, handleChangeMoveTokenTargetSet,
     handleRequestCopyToken, handleConfirmCopyToken, handleChangeCopyTokenTargetSet,
@@ -4030,7 +4030,6 @@ export function TokenList({
                       }}
                       data-table-name-input="true"
                       aria-label={`Token ${idx + 1} name`}
-                      // eslint-disable-next-line jsx-a11y/no-autofocus
                       autoFocus={idx === 0}
                       className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
                     />

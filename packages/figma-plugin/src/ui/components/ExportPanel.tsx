@@ -146,7 +146,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     if (!livePreviewHasResultsRef.current || !connected) return;
     const timer = setTimeout(() => livePreviewFnRef.current(), 250);
     return () => clearTimeout(timer);
-  }, [ // eslint-disable-line react-hooks/exhaustive-deps
+  }, [  
     platformConfig.selected,
     platformConfig.cssSelector,
     platformConfig.selectedSets,

@@ -191,7 +191,7 @@ export function TokenGeneratorDialog({
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   // handleClose is stable in practice; adding it would cause re-registration on every dirty state change.
   }, []);
 

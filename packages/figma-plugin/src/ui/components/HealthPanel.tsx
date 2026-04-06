@@ -225,7 +225,7 @@ export function HealthPanel({
         }
       })
       .catch(() => {/* suppressions are best-effort */});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [connected, serverUrl]);
 
   const handleSuppress = async (issue: ValidationIssue) => {
@@ -304,7 +304,7 @@ export function HealthPanel({
       }
       return typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v) ? v : null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [allTokensUnified]);
 
   // Non-alias color tokens sorted by luminance (for ContrastMatrixPanel)

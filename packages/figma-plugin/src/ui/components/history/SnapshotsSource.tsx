@@ -143,7 +143,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       handleCompare(initialComparingId);
     }
     return () => { singleCompareAbortRef.current?.abort(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     // Safe: mount-only. `initialComparingId` is an "initial value" prop.
   }, []);
 

@@ -350,7 +350,7 @@ function MultiModeCell({
 const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   const {
     node, depth, lintViolations = [],
-    isPinned, onMoveUp, onMoveDown,
+    isPinned: _isPinned, onMoveUp, onMoveDown,
   } = props;
 
   const ctx = useTokenTree();

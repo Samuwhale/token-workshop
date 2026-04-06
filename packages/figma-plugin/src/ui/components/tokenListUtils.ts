@@ -524,7 +524,7 @@ export function getDefaultValue(type: string): any {
 // ---------------------------------------------------------------------------
 
 import type { TableSortField, TableSortDir } from './tokenListTypes';
-import { resolveTokenValue } from '../../shared/resolveAlias';
+
 
 export function sortLeafNodes(
   nodes: TokenNode[],
