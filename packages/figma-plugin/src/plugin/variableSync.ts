@@ -169,7 +169,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
           []
         );
         if (scopeOverrides.length > 0) {
-          (variable as Variable & { scopes: string[] }).scopes = scopeOverrides;
+          variable.scopes = scopeOverrides as VariableScope[];
         }
 
         // Store mapping in shared plugin data
@@ -223,7 +223,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       try { v.name = snapshot.name; } catch (e) { errs.push(`name: ${getErrorMessage(e)}`); }
       try { v.description = snapshot.description; } catch (e) { errs.push(`description: ${getErrorMessage(e)}`); }
       try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { errs.push(`hiddenFromPublishing: ${getErrorMessage(e)}`); }
-      try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { errs.push(`scopes: ${getErrorMessage(e)}`); }
+      try { v.scopes = snapshot.scopes as VariableScope[]; } catch (e) { errs.push(`scopes: ${getErrorMessage(e)}`); }
       try {
         v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
         v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
@@ -306,7 +306,7 @@ export async function revertVariables(
     try { v.name = snapshot.name; } catch (e) { failures.push(`name(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
     try { v.description = snapshot.description; } catch (e) { failures.push(`description(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
     try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { failures.push(`hiddenFromPublishing(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
-    try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { failures.push(`scopes(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
+    try { v.scopes = snapshot.scopes as VariableScope[]; } catch (e) { failures.push(`scopes(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
     try {
       v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
       v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);

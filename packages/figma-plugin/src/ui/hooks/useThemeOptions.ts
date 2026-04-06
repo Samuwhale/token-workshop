@@ -47,6 +47,7 @@ export interface UseThemeOptionsReturn {
   renameOptionValue: string;
   setRenameOptionValue: React.Dispatch<React.SetStateAction<string>>;
   renameOptionError: string | null;
+  setRenameOptionError: React.Dispatch<React.SetStateAction<string | null>>;
   isRenamingOption: boolean;
   startRenameOption: (dimId: string, optionName: string) => void;
   cancelRenameOption: () => void;
@@ -283,6 +284,7 @@ export function useThemeOptions({
     renameOptionValue,
     setRenameOptionValue,
     renameOptionError,
+    setRenameOptionError,
     isRenamingOption,
     startRenameOption,
     cancelRenameOption,

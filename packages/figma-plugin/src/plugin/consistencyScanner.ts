@@ -225,7 +225,7 @@ export async function scanConsistency(
 
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-      const n = node as Record<string, unknown>;
+      const n = node as unknown as Record<string, unknown>;
 
       // Read existing bindings to skip already-tokenized properties
       const bound = new Set<string>();
@@ -234,7 +234,7 @@ export async function scanConsistency(
         if (val) bound.add(prop);
       }
       // Also consider Figma native variable bindings
-      const nativeBound = (node as Record<string, unknown>)['boundVariables'] as Record<string, unknown> | undefined;
+      const nativeBound = (node as unknown as Record<string, unknown>)['boundVariables'] as Record<string, unknown> | undefined;
       if (nativeBound) {
         for (const k of Object.keys(nativeBound)) {
           const v = nativeBound[k];

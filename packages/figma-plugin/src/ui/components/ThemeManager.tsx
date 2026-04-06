@@ -160,7 +160,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   } = useThemeDragDrop({ serverUrl, connected, dimensions, setDimensions, fetchDimensions });
 
   const {
-    showCompare,
+    showCompare, setShowCompare,
     compareMode, setCompareMode,
     compareTokenPath, setCompareTokenPath,
     compareTokenPaths, setCompareTokenPaths,
@@ -190,7 +190,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     addOptionInputRefs,
     handleAddOption,
     handleDuplicateOption,
-    renameOption, renameOptionValue, setRenameOptionValue, renameOptionError,
+    renameOption, renameOptionValue, setRenameOptionValue, renameOptionError, setRenameOptionError,
     startRenameOption, cancelRenameOption, executeRenameOption,
     optionDeleteConfirm, setOptionDeleteConfirm,
     executeDeleteOption,

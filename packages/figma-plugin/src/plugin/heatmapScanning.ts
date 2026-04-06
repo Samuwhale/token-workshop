@@ -28,7 +28,7 @@ export async function scanComponentCoverage(correlationId?: string, signal?: { a
       let hardcodedCount = 0;
       for (const prop of CHECKABLE_PROPS) {
         if (prop in node) {
-          const val = (node as Record<string, unknown>)[prop];
+          const val = (node as unknown as Record<string, unknown>)[prop];
           const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
           if (hasValue && !boundProps.has(prop)) hardcodedCount++;
         }
@@ -181,7 +181,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
       let figmaBoundMatchCount = 0;
       for (const prop of CHECKABLE_FIGMA_PROPS) {
         if (prop in node) {
-          const val = (node as Record<string, unknown>)[prop];
+          const val = (node as unknown as Record<string, unknown>)[prop];
           const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
           if (hasValue) {
             totalCheckable++;
@@ -211,7 +211,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
       const seenBindable = new Set<BindableProperty>();
       for (const prop of CHECKABLE_FIGMA_PROPS) {
         if (!(prop in node)) continue;
-        const val = (node as Record<string, unknown>)[prop];
+        const val = (node as unknown as Record<string, unknown>)[prop];
         const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
         if (!hasValue) continue;
         if (figmaBoundProps.has(prop)) continue;

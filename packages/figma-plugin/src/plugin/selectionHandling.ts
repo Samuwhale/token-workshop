@@ -30,10 +30,10 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
             strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
           }
           if ('strokeWeight' in node && borderVal.width != null) {
-            (node as Record<string, unknown>)['strokeWeight'] = parseDimValue(borderVal.width);
+            (node as unknown as Record<string, unknown>)['strokeWeight'] = parseDimValue(borderVal.width);
           }
           if ('dashPattern' in node && borderVal.style === 'dashed') {
-            (node as Record<string, unknown>)['dashPattern'] = [8, 8];
+            (node as unknown as Record<string, unknown>)['dashPattern'] = [8, 8];
           }
         } else {
           const colorVal = value as (Record<string, unknown> | string | null);
@@ -62,28 +62,28 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
       break;
 
     case 'paddingTop':
-      if ('paddingTop' in node) (node as Record<string, unknown>)['paddingTop'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('paddingTop' in node) (node as unknown as Record<string, unknown>)['paddingTop'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
     case 'paddingRight':
-      if ('paddingRight' in node) (node as Record<string, unknown>)['paddingRight'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('paddingRight' in node) (node as unknown as Record<string, unknown>)['paddingRight'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
     case 'paddingBottom':
-      if ('paddingBottom' in node) (node as Record<string, unknown>)['paddingBottom'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('paddingBottom' in node) (node as unknown as Record<string, unknown>)['paddingBottom'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
     case 'paddingLeft':
-      if ('paddingLeft' in node) (node as Record<string, unknown>)['paddingLeft'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('paddingLeft' in node) (node as unknown as Record<string, unknown>)['paddingLeft'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
 
     case 'itemSpacing':
-      if ('itemSpacing' in node) (node as Record<string, unknown>)['itemSpacing'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('itemSpacing' in node) (node as unknown as Record<string, unknown>)['itemSpacing'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
 
     case 'cornerRadius':
-      if ('cornerRadius' in node) (node as Record<string, unknown>)['cornerRadius'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('cornerRadius' in node) (node as unknown as Record<string, unknown>)['cornerRadius'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
 
     case 'strokeWeight':
-      if ('strokeWeight' in node) (node as Record<string, unknown>)['strokeWeight'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('strokeWeight' in node) (node as unknown as Record<string, unknown>)['strokeWeight'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
 
     case 'opacity':
@@ -93,7 +93,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
         // a percentage (0–100) — normalize to 0–1 to avoid silent clamping.
         if (!isNaN(num)) {
           if (num > 1) num = num / 100;
-          (node as Record<string, unknown>)['opacity'] = Math.max(0, Math.min(1, num));
+          (node as unknown as Record<string, unknown>)['opacity'] = Math.max(0, Math.min(1, num));
         }
       }
       break;
@@ -130,7 +130,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 
     case 'shadow':
       if ('effects' in node) {
-        (node as Record<string, unknown>)['effects'] = shadowTokenToEffects(value as ShadowTokenValue | ShadowTokenValue[]);
+        (node as unknown as Record<string, unknown>)['effects'] = shadowTokenToEffects(value as ShadowTokenValue | ShadowTokenValue[]);
       }
       break;
 
@@ -254,7 +254,7 @@ function getNodeCapabilities(node: SceneNode): NodeCapabilities {
 function readCurrentValues(node: SceneNode): NodeCurrentValues {
   const values: NodeCurrentValues = {};
 
-  const n = node as Record<string, unknown>;
+  const n = node as unknown as Record<string, unknown>;
   if ('fills' in node) {
     const fills = n['fills'];
     if (Array.isArray(fills) && fills.length > 0 && fills[0].type === 'SOLID') {
@@ -358,7 +358,7 @@ export async function extractTokensFromSelection() {
 
   for (const node of selection) {
     const slug = slugify(node.name);
-    const n = node as Record<string, unknown>;
+    const n = node as unknown as Record<string, unknown>;
 
     // Fill color
     if ('fills' in node) {
@@ -702,7 +702,7 @@ function captureNodeProps(node: SceneNode, bindingProps: string[]): Record<strin
     const figmaProps = BINDING_TO_FIGMA_PROPS[bindingProp] ?? [bindingProp];
     for (const prop of figmaProps) {
       try {
-        const val = (node as Record<string, unknown>)[prop];
+        const val = (node as unknown as Record<string, unknown>)[prop];
         if (val === undefined) continue;
         // figma.mixed is a Symbol — JSON.stringify silently drops Symbols, losing the value.
         // Store the reference directly so restoreNodeProps can assign it back.
@@ -726,7 +726,7 @@ async function restoreNodeProps(node: SceneNode, snap: Record<string, unknown>):
         if (prop === 'width') rn.resize(val as number, rn.height);
         else rn.resize(rn.width, val as number);
       } else {
-        (node as Record<string, unknown>)[prop] = val;
+        (node as unknown as Record<string, unknown>)[prop] = val;
       }
     } catch (e) { console.debug('[selectionHandling] restoreNodeProps: failed to restore property:', prop, e); }
   }

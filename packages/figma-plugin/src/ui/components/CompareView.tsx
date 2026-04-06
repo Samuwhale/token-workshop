@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import type { TokenMapEntry } from '../../shared/types';
-import type { ThemeDimension } from '@tokenmanager/core';
+import type { ThemeDimension, TokenValue } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';

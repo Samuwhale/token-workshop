@@ -59,7 +59,7 @@ export function convertToFigmaValue(value: ResolvedTokenValue, tokenType: string
       return Boolean(value);
     case 'string':
     case 'fontFamily':
-      return Array.isArray(value) ? value[0] : String(value);
+      return Array.isArray(value) ? String(value[0]) : String(value);
     default:
       return null;
   }

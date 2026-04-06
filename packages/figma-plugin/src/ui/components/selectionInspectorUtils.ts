@@ -21,7 +21,7 @@ export function getBindingForProperty(nodes: SelectionNodeInfo[], prop: Bindable
 
 export function getCurrentValue(nodes: SelectionNodeInfo[], prop: BindableProperty): any {
   if (nodes.length === 0) return undefined;
-  return nodes[0].currentValues[prop];
+  return (nodes[0].currentValues as Record<string, unknown>)[prop];
 }
 
 /** Returns the distinct binding values (or null for unbound) with layer counts, for a mixed-state property. */

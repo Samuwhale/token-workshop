@@ -2686,7 +2686,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
                     }}
                   >
                     <span className="text-[11px] text-[var(--color-figma-text)] truncate flex-1 min-w-0">{refPath}</span>
-                    {setLabel && setLabel !== setName && (
+                    {setLabel && setLabel !== _setName && (
                       <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)] px-1 py-px bg-[var(--color-figma-bg-secondary)] rounded">{setLabel}</span>
                     )}
                   </button>
