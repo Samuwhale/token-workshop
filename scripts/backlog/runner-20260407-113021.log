@@ -1,0 +1,8 @@
+Validating backlog runner setup for tool: qwen
+
+  ✓ qwen 0.14.0
+  ✓ jq installed
+  → Resolved model: claude-sonnet-4-6
+  ✓ backlog.md found
+  ✓ patterns.md found
+  ✓ models.json found

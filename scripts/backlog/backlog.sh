@@ -1,6 +1,6 @@
 #!/bin/bash
 # Backlog Runner - Long-running agent loop for backlog.md
-# Usage: ./backlog.sh [--tool amp|claude] [--model default|sonnet|opus|<model-id>] [--pass-model default|sonnet|opus|<model-id>] [--passes true|false] [--pass-frequency N] [--worktrees true|false]
+# Usage: ./backlog.sh [--tool claude|qwen|gemini|amp] [--model default|sonnet|opus|qwen-max|gemini-pro|<model-id>] [--pass-model default|sonnet|opus|qwen-max|gemini-pro|<model-id>] [--passes true|false] [--pass-frequency N] [--worktrees true|false] [--validate-only]
 #
 # --worktrees true  (default): parallel-safe mode — each agent runs in an isolated git worktree,
 #                              changes are cherry-picked back to main under a git lock.
@@ -13,6 +13,11 @@
 #   backlog.md      task state ([ ] / [~] / [x] / [!])
 #   patterns.md     reusable codebase patterns (injected into every session)
 #   progress.txt    full per-item log (human audit trail, not injected)
+#
+# Stopping the runner:
+#   Ctrl+C          graceful stop — finishes current item, then exits.
+#   touch backlog-stop  external stop signal — checked each iteration (useful
+#                       for sending SIGTERM from another terminal or script).
 
 set -eo pipefail
 
@@ -30,6 +35,7 @@ PASS_MODEL=""
 PASSES_ENABLED=1
 PASS_FREQUENCY=10
 WORKTREES_ENABLED=1
+VALIDATE_TOOL=0  # --validate-only: check tool CLI + auth, then exit
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -71,26 +77,154 @@ while [[ $# -gt 0 ]]; do
         *)            echo "Error: --worktrees must be true or false"; exit 1 ;;
       esac
       shift ;;
+    --validate-only)  VALIDATE_TOOL=1; shift ;;
     *)                  shift ;;
   esac
 done
 
-case "$MODEL" in
-  default) MODEL="claude-opus-4-6" ;;
-  sonnet)  MODEL="claude-sonnet-4-6" ;;
-  opus)    MODEL="claude-opus-4-6" ;;
-esac
-case "$PASS_MODEL" in
-  default) PASS_MODEL="claude-opus-4-6" ;;
-  sonnet)  PASS_MODEL="claude-sonnet-4-6" ;;
-  opus)    PASS_MODEL="claude-opus-4-6" ;;
-esac
+# ─── Model alias resolution ──────────────────────────────────────
+# Aliases are resolved per-tool using scripts/backlog/models.json so
+# each tool gets its best model for a given alias name.
+
+resolve_model_alias() {
+  local alias="$1" tool="$2"
+  local models_file="$SCRIPT_DIR/models.json"
+  if [ -f "$models_file" ]; then
+    # First try the aliases table (short names like "sonnet", "default")
+    local resolved
+    resolved=$(jq -r --arg a "$alias" --arg t "$tool" '.aliases[$a][$t] // empty' "$models_file" 2>/dev/null || true)
+    if [ -n "$resolved" ]; then
+      echo "$resolved"
+      return
+    fi
+    # If the alias looks like another tool's model ID, crosswalk it
+    # e.g. --tool qwen --model claude-sonnet-4-6 → qwen-coder-plus-latest
+    local crosswalk
+    crosswalk=$(jq -r --arg a "$alias" --arg t "$tool" '.model_crosswalk[$a][$t] // empty' "$models_file" 2>/dev/null || true)
+    if [ -n "$crosswalk" ]; then
+      echo "$crosswalk"
+      return
+    fi
+  fi
+  # Not an alias or crosswalk match — fall back to hardcoded defaults
+  case "$alias" in
+    default)      case "$tool" in claude) echo "claude-opus-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
+    sonnet)       case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
+    opus)         case "$tool" in claude) echo "claude-opus-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
+    qwen|qwen-max)  case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
+    gemini|gemini-pro) case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
+    # Crosswalk common literal model IDs when models.json is missing
+    claude-sonnet-4-6)  case "$tool" in qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; *) echo "$alias" ;; esac ;;
+    claude-opus-4-6)    case "$tool" in qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; *) echo "$alias" ;; esac ;;
+    qwen-coder-plus-latest) case "$tool" in claude) echo "claude-sonnet-4-6" ;; gemini) echo "gemini-2.5-pro" ;; *) echo "$alias" ;; esac ;;
+    gemini-2.5-pro)   case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; *) echo "$alias" ;; esac ;;
+    *) echo "$alias" ;;
+  esac
+}
+
+MODEL=$(resolve_model_alias "$MODEL" "$TOOL")
+[ -n "$PASS_MODEL" ] && PASS_MODEL=$(resolve_model_alias "$PASS_MODEL" "$TOOL")
 [ -z "$PASS_MODEL" ] && PASS_MODEL="$MODEL"
 
-if [[ "$TOOL" != "amp" && "$TOOL" != "claude" ]]; then
-  echo "Error: Invalid tool '$TOOL'. Must be 'amp' or 'claude'."
+if [[ "$TOOL" != "amp" && "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gemini" ]]; then
+  echo "Error: Invalid tool '$TOOL'. Must be 'amp', 'claude', 'qwen', or 'gemini'."
   exit 1
 fi
+
+# ─── Tool invocation helper ─────────────────────────────────────────
+# Abstracts the differences between AI CLI tools so the main loop
+# and pass logic can be tool-agnostic.
+#
+# Usage: run_ai_agent <tool> <model> <context_file> <prompt_file> <workdir> <output_file> <error_file>
+#        [json_schema] [max_turns]
+#
+# Flag differences per tool:
+#   Claude:  --dangerously-skip-permissions --print --no-session-persistence
+#            --max-turns N --output-format json --json-schema SCHEMA
+#            --model MODEL --append-system-prompt-file CONTEXT < PROMPT
+#   Qwen:    --yolo --prompt "…" --max-session-turns N --output-format json
+#            --model MODEL --append-system-prompt CONTEXT
+#            < PROMPT (stdin for main prompt, avoids ARG_MAX limit)
+#            (NO --json-schema, NO --dangerously-skip-permissions, NO --no-session-persistence)
+#   Gemini:  --yolo --prompt "…" --output-format json
+#            --model MODEL --policy CONTEXT
+#            < PROMPT (stdin for main prompt, avoids ARG_MAX limit)
+#            (NO --json-schema, NO --max-turns equivalent, NO --append-system-prompt)
+
+run_ai_agent() {
+  local tool="$1" model="$2" context_file="$3" prompt_file="$4" workdir="$5" output_file="$6" error_file="$7"
+  local schema="${8:-$JSON_SCHEMA}"
+  local max_turns="${9:-100}"
+
+  case "$tool" in
+    claude)
+      (cd "$workdir" && trap '' INT; claude \
+        --dangerously-skip-permissions \
+        --print \
+        --no-session-persistence \
+        --max-turns "$max_turns" \
+        --output-format json \
+        --json-schema "$schema" \
+        --model "$model" \
+        --append-system-prompt-file "$context_file" \
+        < "$prompt_file" > "$output_file" 2>"$error_file")
+      ;;
+    qwen)
+      # Qwen does not support --json-schema; the prompt instructs JSON output.
+      # Use stdin for the main prompt (avoids ARG_MAX shell limit of --prompt "$(cat …)").
+      # --prompt is kept to a short instruction so Qwen enters headless mode.
+      (cd "$workdir" && trap '' INT; qwen \
+        --yolo \
+        --prompt "Execute the instructions from stdin." \
+        --max-session-turns "$max_turns" \
+        --output-format json \
+        --model "$model" \
+        --append-system-prompt "$(cat "$context_file")" \
+        < "$prompt_file" > "$output_file" 2>"$error_file")
+      ;;
+    gemini)
+      # Gemini does not support --json-schema or --max-turns;
+      # the prompt instructs JSON output and --policy provides context.
+      # Use stdin for the main prompt (avoids ARG_MAX shell limit).
+      # NOTE: No max-turns support — Gemini may run many turns. Monitor output
+      # and cancel manually if needed. --max-session-turns is a Claude/Qwen flag.
+      (cd "$workdir" && trap '' INT; gemini \
+        --yolo \
+        --prompt "Execute the instructions from stdin." \
+        --output-format json \
+        --model "$model" \
+        --policy "$context_file" \
+        < "$prompt_file" > "$output_file" 2>"$error_file")
+      ;;
+    *)
+      echo "ERROR: run_ai_agent called with unsupported tool: $tool" >&2
+      return 1
+      ;;
+  esac
+}
+
+# Detect rate-limit / usage-limit errors across all providers.
+# Returns 0 (true) if the output indicates a rate-limit or capacity condition.
+# Does NOT match authentication/permission failures — use is_auth_failure() for those.
+is_rate_limited() {
+  local output="$1"
+  echo "$output" | grep -qiE 'usage limit|rate.?limit|out of credits|overloaded|capacity|too many requests|529|Claude\.ai/upgrade|quota exceeded|resource exhausted|429|model is (currently )?overloaded|exceeded rate limits|temporarily unavailable|service unavailable|server busy|model overloaded|try again later|request limit|maximum.*requests|insufficient balance|insufficient funds|account balance'
+}
+
+# Detect authentication / permission failures that indicate a config problem
+# (not a transient rate limit). These should cause an immediate exit, not a retry.
+is_auth_failure() {
+  local output="$1"
+  echo "$output" | grep -qiE 'authentication|permission denied|insufficient.*permission|forbidden|403|401|invalid.*token|invalid.*key|API_KEY|api.?key.*invalid|unauthorized|not authorized|access denied'
+}
+
+# Portable date formatting for "retry at HH:MM:SS" — 60 seconds from now.
+# macOS: date -v+60S; GNU: date -d '+60 seconds'.
+retry_time() {
+  if date -v+60S '+%H:%M:%S' 2>/dev/null; then return; fi
+  if date -d '+60 seconds' '+%H:%M:%S' 2>/dev/null; then return; fi
+  echo '~60s'
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -111,6 +245,82 @@ MAX_CONSECUTIVE_FAILURES=5
 # Runner log — persists operational output alongside progress.txt
 RUNNER_LOG="$SCRIPT_DIR/runner-$(date +%Y%m%d-%H%M%S).log"
 exec > >(trap '' INT; tee -a "$RUNNER_LOG") 2>&1
+
+# ─── Tool validation ─────────────────────────────────────────────
+# Checks that the selected CLI tool is installed and accessible.
+# Run with --validate-only to perform this check and exit.
+
+validate_tool_setup() {
+  local errors=0
+
+  case "$TOOL" in
+    claude)
+      if ! command -v claude &>/dev/null; then
+        echo "  ✗ 'claude' CLI not found — install from https://claude.ai/code"
+        errors=$((errors + 1))
+      else
+        local version
+        version=$(claude --version 2>/dev/null || echo "unknown")
+        echo "  ✓ claude $version"
+      fi
+      ;;
+    qwen)
+      if ! command -v qwen &>/dev/null; then
+        echo "  ✗ 'qwen' CLI not found — install via npm: npm install -g @qwen-code/qwen-code"
+        errors=$((errors + 1))
+      else
+        local version
+        version=$(qwen --version 2>/dev/null || echo "unknown")
+        echo "  ✓ qwen $version"
+      fi
+      ;;
+    gemini)
+      if ! command -v gemini &>/dev/null; then
+        echo "  ✗ 'gemini' CLI not found — install from https://ai.google.dev/gemini-api/docs/cli"
+        errors=$((errors + 1))
+      else
+        local version
+        version=$(gemini --version 2>/dev/null || echo "unknown")
+        echo "  ✓ gemini $version"
+      fi
+      ;;
+    amp)
+      if ! command -v amp &>/dev/null; then
+        echo "  ✗ 'amp' CLI not found"
+        errors=$((errors + 1))
+      else
+        echo "  ✓ amp installed"
+      fi
+      ;;
+  esac
+
+  # Check jq for model alias resolution
+  if ! command -v jq &>/dev/null; then
+    echo "  ⚠ 'jq' not found — model aliases will fall back to hardcoded defaults"
+  else
+    echo "  ✓ jq installed"
+  fi
+
+  # Validate model resolution
+  echo "  → Resolved model: $MODEL"
+  [ -n "$PASS_MODEL" ] && [ "$PASS_MODEL" != "$MODEL" ] && echo "  → Pass model: $PASS_MODEL"
+
+  # Check required files
+  [ -f "$BACKLOG_FILE" ] && echo "  ✓ backlog.md found" || { echo "  ✗ backlog.md not found"; errors=$((errors + 1)); }
+  [ -f "$PATTERNS_FILE" ] && echo "  ✓ patterns.md found" || { echo "  ✗ patterns.md not found"; errors=$((errors + 1)); }
+  [ -f "$SCRIPT_DIR/models.json" ] && echo "  ✓ models.json found" || echo "  ⚠ models.json not found — using hardcoded model defaults"
+
+  return $errors
+}
+
+if [ "$VALIDATE_TOOL" -eq 1 ]; then
+  echo "Validating backlog runner setup for tool: $TOOL"
+  echo ""
+  validate_tool_setup
+  exit $?
+fi
+
+# ─── Startup banner ─────────────────────────────────────────────
 
 if [ ! -f "$BACKLOG_FILE" ]; then
   echo "Error: backlog.md not found at $PROJECT_ROOT"
@@ -640,9 +850,9 @@ run_special_pass() {
   local pass_type="$1"  # "housekeeping" or "ux"
   local prompt_file="$SCRIPT_DIR/${pass_type}-pass.md"
 
-  # Special passes only support the claude tool
-  if [[ "$TOOL" != "claude" ]]; then
-    echo "  (skipping $pass_type pass — only supported with --tool claude)"
+  # Special passes only support tools with structured output + append-system-prompt-file
+  if [[ "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gemini" ]]; then
+    echo "  (skipping $pass_type pass — only supported with --tool claude, qwen, or gemini)"
     return 0
   fi
 
@@ -666,16 +876,7 @@ run_special_pass() {
       "$PROGRESS_FILE" >> "$context_file" 2>/dev/null || true
 
     agent_tmp=$(mktemp); agent_err=$(mktemp)
-    (cd "$PROJECT_ROOT" && trap '' INT; claude \
-      --dangerously-skip-permissions \
-      --print \
-      --no-session-persistence \
-      --max-turns 100 \
-      --output-format json \
-      --json-schema "$JSON_SCHEMA" \
-      --model "$PASS_MODEL" \
-      --append-system-prompt-file "$context_file" \
-      < "$prompt_file" > "$agent_tmp" 2>"$agent_err") &
+    (run_ai_agent "$TOOL" "$PASS_MODEL" "$context_file" "$prompt_file" "$PROJECT_ROOT" "$agent_tmp" "$agent_err") &
     local pass_pid=$!
     wait $pass_pid || true
     if [ "$STOP_REQUESTED" -eq 1 ] && kill -0 $pass_pid 2>/dev/null; then
@@ -688,15 +889,25 @@ run_special_pass() {
     pass_err_text=$(cat "$agent_err" 2>/dev/null || true)
     rm -f "$agent_tmp" "$agent_err"
 
-    if echo "$pass_output $pass_err_text" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
+    if is_rate_limited "$pass_output $pass_err_text"; then
       echo "  ⚠ Rate limit hit during $pass_type pass — skipping"
       return 0
     fi
 
     local pass_status pass_item pass_note
-    pass_status=$(echo "$pass_output" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
-    pass_item=$(echo "$pass_output" | jq -r '.structured_output.item // ""' 2>/dev/null || echo "")
-    pass_note=$(echo "$pass_output" | jq -r '.structured_output.note // ""' 2>/dev/null || echo "")
+    # Use unified JSON validation to handle Claude (.structured_output),
+    # Gemini (.response), and Qwen (raw JSON or text-embedded JSON)
+    local validated_json
+    validated_json=$(validate_agent_json "$pass_output" "$JSON_SCHEMA" 2>/dev/null || true)
+    if [ -n "$validated_json" ]; then
+      pass_status=$(echo "$validated_json" | jq -r '.status // ""' 2>/dev/null || echo "")
+      pass_item=$(echo "$validated_json" | jq -r '.item // ""' 2>/dev/null || echo "")
+      pass_note=$(echo "$validated_json" | jq -r '.note // ""' 2>/dev/null || echo "")
+    else
+      pass_status=""
+      pass_item=""
+      pass_note=""
+    fi
 
     if [ "$pass_status" = "done" ]; then
       echo "  ✓ $pass_type pass: ${pass_item:-done}"
@@ -742,16 +953,7 @@ run_special_pass() {
   agent_tmp=$(mktemp)
   agent_err=$(mktemp)
 
-  (cd "$pass_worktree" && trap '' INT; claude \
-    --dangerously-skip-permissions \
-    --print \
-    --no-session-persistence \
-    --max-turns 100 \
-    --output-format json \
-    --json-schema "$JSON_SCHEMA" \
-    --model "$PASS_MODEL" \
-    --append-system-prompt-file "$context_file" \
-    < "$prompt_file" > "$agent_tmp" 2>"$agent_err") &
+  (run_ai_agent "$TOOL" "$PASS_MODEL" "$context_file" "$prompt_file" "$pass_worktree" "$agent_tmp" "$agent_err") &
   local pass_pid=$!
   wait $pass_pid || true
   # If Ctrl+C interrupted wait but pass agent is still running, re-wait
@@ -768,7 +970,7 @@ run_special_pass() {
   rm -f "$agent_tmp" "$agent_err"
 
   # Rate-limit detection — warn and return so main loop can also detect on next item
-  if echo "$pass_output $pass_err_text" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
+  if is_rate_limited "$pass_output $pass_err_text"; then
     echo "  ⚠ Rate limit hit during $pass_type pass — skipping"
     # Clean up pass worktree
     WORKTREE_DIR="$pass_worktree"
@@ -778,9 +980,17 @@ run_special_pass() {
   fi
 
   local pass_status pass_item pass_note
-  pass_status=$(echo "$pass_output" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
-  pass_item=$(echo "$pass_output" | jq -r '.structured_output.item // ""' 2>/dev/null || echo "")
-  pass_note=$(echo "$pass_output" | jq -r '.structured_output.note // ""' 2>/dev/null || echo "")
+  local validated_json
+  validated_json=$(validate_agent_json "$pass_output" "$JSON_SCHEMA" 2>/dev/null || true)
+  if [ -n "$validated_json" ]; then
+    pass_status=$(echo "$validated_json" | jq -r '.status // ""' 2>/dev/null || echo "")
+    pass_item=$(echo "$validated_json" | jq -r '.item // ""' 2>/dev/null || echo "")
+    pass_note=$(echo "$validated_json" | jq -r '.note // ""' 2>/dev/null || echo "")
+  else
+    pass_status=""
+    pass_item=""
+    pass_note=""
+  fi
 
   if [ "$pass_status" = "done" ]; then
     echo "  ✓ $pass_type pass: ${pass_item:-done}"
@@ -810,6 +1020,62 @@ run_special_pass() {
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
+# Post-hoc JSON schema validation for tools that don't support --json-schema.
+# Extracts the JSON blob from agent output and validates required fields.
+# Returns the cleaned JSON on stdout, or empty string if invalid.
+validate_agent_json() {
+  local output="$1"
+
+  [ -z "$output" ] && return 1
+
+  # Try Claude's .structured_output first (native --json-schema output)
+  local result
+  result=$(echo "$output" | jq -c '.structured_output // empty' 2>/dev/null || true)
+
+  # Try Gemini's .response (may be a JSON string that needs fromjson, or already parsed)
+  if [ -z "$result" ]; then
+    local response_raw
+    response_raw=$(echo "$output" | jq -r '.response // empty' 2>/dev/null || true)
+    if [ -n "$response_raw" ]; then
+      # response might be a JSON string that needs re-parsing
+      result=$(echo "$response_raw" | jq -c '.' 2>/dev/null || echo "$response_raw")
+      # If it wasn't valid JSON, treat as empty
+      echo "$result" | jq -e '.' >/dev/null 2>&1 || result=""
+    fi
+  fi
+
+  # Try parsing the whole output as JSON (Qwen/Gemini may return raw JSON object)
+  if [ -z "$result" ]; then
+    result=$(echo "$output" | jq -c '.' 2>/dev/null || true)
+  fi
+
+  # Extract last JSON block from mixed text+JSON output (common with Qwen/Gemini
+  # when --output-format json is not fully respected or text wraps the JSON)
+  if [ -z "$result" ]; then
+    # Try to find a JSON object with a "status" field — more targeted than generic brace matching
+    local json_block
+    json_block=$(echo "$output" | grep -oE '\{[^{}]*"status"[^{}]*\}' | tail -1 || true)
+    if [ -z "$json_block" ]; then
+      # Fallback: last JSON-like object in output
+      json_block=$(echo "$output" | grep -oE '\{[^{}]+\}' | tail -1 || true)
+    fi
+    if [ -n "$json_block" ]; then
+      result=$(echo "$json_block" | jq -c '.' 2>/dev/null || true)
+    fi
+  fi
+
+  [ -z "$result" ] && return 1
+
+  # Validate required fields: status must be "done" or "failed"
+  local status
+  status=$(echo "$result" | jq -r '.status // empty' 2>/dev/null || true)
+  if [ "$status" != "done" ] && [ "$status" != "failed" ]; then
+    return 1
+  fi
+
+  echo "$result"
+}
+
 # Pass schedule (three passes evenly distributed across the cycle):
 #   product pass — offset 3 (fires at items 3, 13, 23…)
 #   ux pass      — offset 7 (fires at items 7, 17, 27…)
@@ -838,6 +1104,10 @@ if [ "$PASS_MODEL" != "$MODEL" ]; then
   echo "  Pass model: $PASS_MODEL"
 fi
 echo "  Mode:   $( [ "$WORKTREES_ENABLED" -eq 1 ] && echo "parallel (worktrees)" || echo "single (no worktrees)" )"
+# Show tool capabilities
+_has_schema=0; _has_max_turns=0
+case "$TOOL" in claude) _has_schema=1; _has_max_turns=1 ;; qwen) _has_max_turns=1 ;; esac
+echo "  Capabilities: structured_output=$([ "$_has_schema" -eq 1 ] && echo "yes" || echo "post-hoc") max_turns=$([ "$_has_max_turns" -eq 1 ] && echo "yes" || echo "no")"
 echo "  Log:    $RUNNER_LOG"
 if [ "$PASSES_ENABLED" -eq 1 ]; then
   echo "  Passes: enabled (every $PASS_FREQUENCY items)"
@@ -894,7 +1164,7 @@ while true; do
       if [[ "$PASSES_ENABLED" -eq 0 ]]; then
         echo "  Backlog empty and passes are disabled — stopping."
         break
-      elif [[ "$TOOL" == "claude" ]] && try_pass_lock; then
+      elif [[ "$TOOL" == "claude" || "$TOOL" == "qwen" || "$TOOL" == "gemini" ]] && try_pass_lock; then
         echo $$ > "$PASS_LOCKDIR/pid"
         echo "  No items found — running discovery passes to replenish backlog…"
         run_special_pass "product"
@@ -906,11 +1176,11 @@ while true; do
         rm -rf "$PASS_LOCKDIR"
         drain_inbox
         REMAINING=$(remaining)
-      elif [[ "$TOOL" == "claude" ]]; then
+      elif [[ "$TOOL" == "claude" || "$TOOL" == "qwen" || "$TOOL" == "gemini" ]]; then
         PASS_OWNER=$(cat "$PASS_LOCKDIR/pid" 2>/dev/null || echo "?")
         echo "  No items — another runner (PID $PASS_OWNER) is running a discovery pass. Waiting…"
       else
-        echo "  No items — discovery passes require --tool claude. Waiting…"
+        echo "  No items — discovery passes require --tool claude, qwen, or gemini. Waiting…"
       fi
       # Final drain — another runner may have filled the inbox since we last checked
       drain_inbox
@@ -954,7 +1224,7 @@ while true; do
   echo "  Running agent… (started $(date '+%H:%M:%S'))"
   if [[ "$TOOL" == "amp" ]]; then
     PROMPT_FILE=$(mktemp)
-    cat "$SCRIPT_DIR/CLAUDE.md" > "$PROMPT_FILE"
+    cat "$SCRIPT_DIR/agent.md" > "$PROMPT_FILE"
     printf '\n---\n\n## Assigned Item\n\nWork on this specific item (already marked [~] in backlog.md):\n\n%s\n\nDo NOT pick a different item. Do NOT modify backlog.md.\n' "$CLAIMED_ITEM" >> "$PROMPT_FILE"
     AGENT_WORKDIR="$( [ "$WORKTREES_ENABLED" -eq 1 ] && echo "$WORKTREE_DIR" || echo "$PROJECT_ROOT" )"
     OUTPUT=$(cat "$PROMPT_FILE" | (cd "$AGENT_WORKDIR" && amp --dangerously-allow-all) 2>&1 | tee /dev/stderr) || true
@@ -973,23 +1243,36 @@ while true; do
     AGENT_WORKDIR="$( [ "$WORKTREES_ENABLED" -eq 1 ] && echo "$WORKTREE_DIR" || echo "$PROJECT_ROOT" )"
     # Run agent in background so the parent's wait builtin is interruptible by
     # Ctrl+C (fires graceful_stop) without killing the agent process itself.
-    (cd "$AGENT_WORKDIR" && trap '' INT; claude \
-      --dangerously-skip-permissions \
-      --print \
-      --no-session-persistence \
-      --max-turns 100 \
-      --output-format json \
-      --json-schema "$JSON_SCHEMA" \
-      --model "$MODEL" \
-      --append-system-prompt-file "$CONTEXT_FILE" \
-      < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>"$AGENT_ERR") &
+    (run_ai_agent "$TOOL" "$MODEL" "$CONTEXT_FILE" "$SCRIPT_DIR/agent.md" "$AGENT_WORKDIR" "$AGENT_TMP" "$AGENT_ERR") &
     AGENT_PID=$!
     AGENT_EXIT=0
     wait $AGENT_PID || AGENT_EXIT=$?
-    # If Ctrl+C interrupted wait but agent is still running, re-wait for it to finish
+    # If Ctrl+C interrupted wait but agent is still running, re-wait for it to finish.
+    # If the agent doesn't exit within 30s, force-kill it (SIGTERM → 10s → SIGKILL).
     if [ "$STOP_REQUESTED" -eq 1 ] && kill -0 $AGENT_PID 2>/dev/null; then
-      echo "  → Waiting for agent to finish current work…"
-      wait $AGENT_PID 2>/dev/null || AGENT_EXIT=$?
+      echo "  → Waiting for agent to finish current work (up to 30s)…"
+      # Poll the agent process — wait returns when the process exits
+      local _force_kill_wait=0
+      while kill -0 $AGENT_PID 2>/dev/null && [ $_force_kill_wait -lt 30 ]; do
+        sleep 1
+        _force_kill_wait=$((_force_kill_wait + 1))
+        # Progress indicator every 10s
+        if [ $((_force_kill_wait % 10)) -eq 0 ]; then
+          echo "    … still running ($_force_kill_wait s)"
+        fi
+      done
+      if kill -0 $AGENT_PID 2>/dev/null; then
+        echo "  → Agent didn't exit after 30s — sending SIGTERM…"
+        kill -TERM $AGENT_PID 2>/dev/null || true
+        sleep 10
+        if kill -0 $AGENT_PID 2>/dev/null; then
+          echo "  → Still alive — sending SIGKILL"
+          kill -KILL $AGENT_PID 2>/dev/null || true
+        fi
+        wait $AGENT_PID 2>/dev/null || AGENT_EXIT=$?
+      else
+        wait $AGENT_PID 2>/dev/null || AGENT_EXIT=$?
+      fi
     fi
 
     rm -f "$CONTEXT_FILE"
@@ -997,16 +1280,24 @@ while true; do
     rm -f "$AGENT_TMP"
 
     # Detect usage/rate-limit errors before attempting to parse output.
-    # When Claude is out of usage the agent exits non-zero and emits an error
+    # When the AI is out of usage the agent exits non-zero and emits an error
     # on stderr rather than valid JSON — continuing the loop would just spin
     # through all remaining iterations unclaiming and reclaiming the same item.
     if [ $AGENT_EXIT -ne 0 ]; then
       AGENT_ERR_TEXT=$(cat "$AGENT_ERR" 2>/dev/null)
       COMBINED="$OUTPUT $AGENT_ERR_TEXT"
-      if echo "$COMBINED" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
+      if is_auth_failure "$COMBINED"; then
         rm -f "$AGENT_ERR"
         echo ""
-        echo "  ⚠ Rate limit hit — unclaiming item, retry at $(date -v+60S '+%H:%M:%S' 2>/dev/null || date -d '+60 seconds' '+%H:%M:%S' 2>/dev/null || echo '~60s')"
+        echo "  ✗ Authentication/permission error — check your API key and tool setup"
+        update_item_status " " "$CLAIMED_ITEM"
+        CLAIMED_ITEM=""
+        [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
+        exit 1
+      elif is_rate_limited "$COMBINED"; then
+        rm -f "$AGENT_ERR"
+        echo ""
+        echo "  ⚠ Rate limit hit — unclaiming item, retry at $(retry_time)"
         update_item_status " " "$CLAIMED_ITEM"
         CLAIMED_ITEM=""
         [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
@@ -1016,23 +1307,40 @@ while true; do
     fi
     rm -f "$AGENT_ERR"
 
-    # Human-readable agent summary
-    _S=$(echo "$OUTPUT" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
-    _ITEM=$(echo "$OUTPUT" | jq -r '.structured_output.item // ""' 2>/dev/null || echo "")
-    _NOTE=$(echo "$OUTPUT" | jq -r '.structured_output.note // ""' 2>/dev/null || echo "")
+    # Human-readable agent summary — uses unified JSON validation for all tools
+    VALIDATED_JSON=$(validate_agent_json "$OUTPUT" "$JSON_SCHEMA" 2>/dev/null || true)
+    if [ -n "$VALIDATED_JSON" ]; then
+      _S=$(echo "$VALIDATED_JSON" | jq -r '.status // ""' 2>/dev/null || echo "")
+      _ITEM=$(echo "$VALIDATED_JSON" | jq -r '.item // ""' 2>/dev/null || echo "")
+      _NOTE=$(echo "$VALIDATED_JSON" | jq -r '.note // ""' 2>/dev/null || echo "")
+    else
+      _S=""
+      _ITEM=""
+      _NOTE=""
+    fi
     _TURNS=$(echo "$OUTPUT" | jq -r '.num_turns // ""' 2>/dev/null || echo "")
+    # Gemini stats are deeper in .stats.models... but for now we'll stick to top-level if available
     _SECS=$(echo "$OUTPUT" | jq -r 'if .duration_ms then ((.duration_ms/1000)|floor|tostring)+"s" else "" end' 2>/dev/null || echo "")
     _COST=$(echo "$OUTPUT" | jq -r 'if .total_cost_usd then "$"+(.total_cost_usd*100|round/100|tostring) else "" end' 2>/dev/null || echo "")
     # If output looks like a usage/rate-limit error embedded in stdout JSON error field,
     # stop the runner rather than looping.
-    if [ -z "$_S" ] && echo "$OUTPUT" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|overloaded|capacity|too many requests|529'; then
-      echo ""
-      echo "  ⚠ Rate limit hit — unclaiming item, retry at $(date -v+60S '+%H:%M:%S' 2>/dev/null || date -d '+60 seconds' '+%H:%M:%S' 2>/dev/null || echo '~60s')"
-      update_item_status " " "$CLAIMED_ITEM"
-      CLAIMED_ITEM=""
-      [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
-      sleep 60 || true
-      continue
+    if [ -z "$_S" ]; then
+      if is_auth_failure "$OUTPUT"; then
+        echo ""
+        echo "  ✗ Authentication/permission error — check your API key and tool setup"
+        update_item_status " " "$CLAIMED_ITEM"
+        CLAIMED_ITEM=""
+        [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
+        exit 1
+      elif is_rate_limited "$OUTPUT"; then
+        echo ""
+        echo "  ⚠ Rate limit hit — unclaiming item, retry at $(retry_time)"
+        update_item_status " " "$CLAIMED_ITEM"
+        CLAIMED_ITEM=""
+        [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
+        sleep 60 || true
+        continue
+      fi
     fi
     case "$_S" in done) _ICON="✓" ;; failed) _ICON="✗" ;; *) _ICON="·" ;; esac
     echo ""
@@ -1043,8 +1351,8 @@ while true; do
   fi
 
   # ── Update backlog status based on agent result ──
-  STATUS=$(echo "$OUTPUT" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
-  ITEM_FROM_AGENT=$(echo "$OUTPUT" | jq -r '.structured_output.item // ""' 2>/dev/null || echo "")
+  STATUS="$_S"
+  ITEM_FROM_AGENT="$_ITEM"
 
   case "$STATUS" in
     done)

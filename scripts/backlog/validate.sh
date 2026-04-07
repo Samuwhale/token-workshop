@@ -66,11 +66,11 @@ ensure_pkg_node_modules
 
 # Gate 1: Unit/integration tests
 echo -e "${DIM}── Gate 1: Tests ──${RESET}"
-(cd packages/core && npx vitest run --reporter=dot) || fail "core tests"
+(cd packages/core && npx --no-install vitest run --reporter=dot) || fail "core tests"
 pass "core tests"
-(cd packages/figma-plugin && npx vitest run --passWithNoTests --reporter=dot) || fail "plugin tests"
+(cd packages/figma-plugin && npx --no-install vitest run --passWithNoTests --reporter=dot) || fail "plugin tests"
 pass "plugin tests"
-(cd packages/server && npx vitest run --passWithNoTests --reporter=dot) || fail "server tests"
+(cd packages/server && npx --no-install vitest run --passWithNoTests --reporter=dot) || fail "server tests"
 pass "server tests"
 
 # Gate 2: Build (plugin only — server has pre-existing type errors)
@@ -80,7 +80,7 @@ pass "plugin build"
 
 # Gate 3: Lint (errors only — warnings are acceptable)
 echo -e "${DIM}── Gate 3: Lint ──${RESET}"
-LINT_OUT=$(npx eslint packages/*/src/ 2>&1 || true)
+LINT_OUT=$(npx --no-install eslint packages/*/src/ 2>&1 || true)
 # Extract error count from eslint summary line like "✖ 102 problems (3 errors, 99 warnings)"
 ERROR_COUNT=$(echo "$LINT_OUT" | sed -n 's/.*(\([0-9]*\) error.*/\1/p' || echo "0")
 [ -z "$ERROR_COUNT" ] && ERROR_COUNT=0

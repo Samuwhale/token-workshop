@@ -1,0 +1,8 @@
+Validating backlog runner setup for tool: gemini
+
+  ✓ gemini 0.36.0
+  ✓ jq installed
+  → Resolved model: gemini-2.5-pro
+  ✓ backlog.md found
+  ✓ patterns.md found
+  ✓ models.json found

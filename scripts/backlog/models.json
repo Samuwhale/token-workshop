@@ -1,0 +1,29 @@
+{
+  "_comment": "Model ID mappings for backlog agents. Update when providers release new versions.",
+  "last_updated": "2026-04-07",
+  "aliases": {
+    "default":      { "claude": "claude-opus-4-6",       "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "sonnet":       { "claude": "claude-sonnet-4-6",     "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "opus":         { "claude": "claude-opus-4-6",       "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "qwen":         { "claude": "claude-sonnet-4-6",     "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "qwen-max":     { "claude": "claude-sonnet-4-6",     "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "gemini":       { "claude": "claude-sonnet-4-6",     "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "gemini-pro":   { "claude": "claude-sonnet-4-6",     "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" }
+  },
+  "model_crosswalk": {
+    "_comment": "When a literal model ID from one tool is used with a different tool, map to the closest equivalent.",
+    "claude-sonnet-4-6":  { "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "claude-opus-4-6":    { "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "claude-sonnet-4-20250514": { "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "claude-opus-4-20250514":   { "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "claude-3-5-sonnet-latest": { "qwen": "qwen-coder-plus-latest", "gemini": "gemini-2.5-pro" },
+    "qwen-coder-plus-latest": { "claude": "claude-sonnet-4-6", "gemini": "gemini-2.5-pro" },
+    "gemini-2.5-pro":       { "claude": "claude-sonnet-4-6", "qwen": "qwen-coder-plus-latest" },
+    "gemini-2.5-flash":     { "claude": "claude-sonnet-4-6", "qwen": "qwen-coder-plus-latest" }
+  },
+  "_notes": {
+    "claude": "See: claude --model <alias|name>. Aliases: sonnet, opus, haiku.",
+    "qwen": "See: qwen --model <name>. No built-in aliases — use full model IDs.",
+    "gemini": "See: gemini --model <name>. Common: gemini-2.5-pro, gemini-2.5-flash."
+  }
+}
