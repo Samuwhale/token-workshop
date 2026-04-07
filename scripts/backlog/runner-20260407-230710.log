@@ -83,3 +83,22 @@
     Inline create is now a strict name/type/value quick form, advanced creation stays in TokenEditor, and create-mode initial values are wired consistently across editor variants.
 
   Committing: Token creation entry points are inconsistent with each other
+[main fa5ed71c] chore(backlog): done – Token creation entry points are inconsistent with each other
+ 7 files changed, 64 insertions(+), 279 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-07 - Token creation entry points are inconsistent with each other
+- Reduced the inline TokenList create form to the quick-create fields only: it now keeps the group as read-only context, creates tokens with just name/type/value, and drops description, reference-mode, alias suggestions, and the "open advanced editor" affordance.
+- Kept the full TokenEditor as the canonical advanced create path and fixed the narrow-screen drawer wiring so create-mode editors receive `initialValue` just like the side-panel path.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L73, ~L191, ~L213; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L560, ~L3540, ~L3630; `packages/figma-plugin/src/ui/App.tsx` ~L2142
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  8 queued · 0 in-progress · last took 6m46s
+═══════════════════════════════════════════════════════════════
+  → Boolean tokens mutate on single-click with no confirmation — `boolean` is in `INLINE_SIMPLE_TYPES` (`tokenListTypes.ts:217`) meaning it uses the inline edit path, but the inline edit for booleans immediately toggles the value on click rather than opening a text input like other types in that set; this is the only token type that mutates on a single click, which is inconsistent and dangerous (fat-finger on a token row changes a value); fix: boolean inline editing should require the same double-click activation as other INLINE_SIMPLE_TYPES; on double-click activation, show a small inline toggle button (true/false) that the user explicitly commits with Enter or by clicking elsewhere — do not auto-save on the first click; the single-click on a token row should only select/focus the row, never mutate; files: `TokenTreeNode.tsx` (inline edit activation logic for booleans, search for INLINE_SIMPLE_TYPES usage), `tokenListTypes.ts` (line 217, INLINE_SIMPLE_TYPES constant)
+  Running agent… (started 23:40:07)
+
+  ✓ done: Boolean tokens mutate on single-click with no confirmation
+    Boolean inline editing now uses staged true/false activation with explicit commit, validation passed, and backlog notes were updated.
+
+  Committing: Boolean tokens mutate on single-click with no confirmation

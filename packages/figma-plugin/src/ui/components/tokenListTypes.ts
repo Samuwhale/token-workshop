@@ -217,7 +217,7 @@ export interface PromoteRow {
   accepted: boolean;
 }
 
-/** Types that can be edited inline in the list row (without opening the drawer). */
+/** Types that can be edited inline in the list row (without opening the drawer). Boolean uses a staged true/false toggle. */
 export const INLINE_SIMPLE_TYPES = new Set(['color', 'dimension', 'number', 'string', 'boolean', 'fontFamily', 'fontWeight', 'duration', 'asset']);
 
 /** Types that open the inline value popover on double-click (not handled by INLINE_SIMPLE_TYPES). */

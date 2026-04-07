@@ -26,6 +26,13 @@
   - When cross-set search mode returns an empty array `[]` vs `null`, these have different UI semantics (empty result vs "not in this mode"). Always use `null` as the "inactive" sentinel to show the default tree view.
   - Server-side search endpoints that support all structured qualifiers natively don't need client-side command palette delegation — if a search mode has its own backend, let the user use all qualifiers directly.
 ---
+## 2026-04-07 - Boolean tokens mutate on single-click with no confirmation
+- Changed boolean inline editing to use the same staged activation flow as other inline types: double-click/keyboard activation now opens an inline `true`/`false` chooser, and the value only saves on Enter, Tab, or blur outside the chooser.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1207, ~L1234, ~L1414, ~L1647, ~L1948; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L220
+- **Learnings for future iterations:**
+  - Inline controls that change persisted values should separate selection from commit; for boolean fields, treat the toggle state as draft UI state and save only on explicit commit events.
+  - If a tab-navigation effect activates inline editors, keep type-specific exclusions aligned with the actual editor behavior or keyboard navigation will diverge from mouse activation.
+---
 
 ## 2026-04-05 - ThemeManager coverage matrix and compare panel are powerful but hidden below the fold
 - Added a top-level 3-tab navigation bar ("Dimensions" | "Coverage" | "Compare") that renders above the scrollable content area as a `shrink-0` row, always visible without scrolling.
