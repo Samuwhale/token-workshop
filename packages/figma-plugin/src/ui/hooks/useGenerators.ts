@@ -261,6 +261,7 @@ interface UseGeneratorsResult {
   loading: boolean;
   refreshGenerators: () => void;
   generatorsBySource: Map<string, TokenGenerator[]>;
+  generatorsByTargetGroup: Map<string, TokenGenerator>;
   derivedTokenPaths: Map<string, TokenGenerator>;
 }
 
@@ -305,6 +306,14 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
     return map;
   }, [generators]);
 
+  const generatorsByTargetGroup = useMemo(() => {
+    const map = new Map<string, TokenGenerator>();
+    for (const gen of generators) {
+      if (gen.targetGroup) map.set(gen.targetGroup, gen);
+    }
+    return map;
+  }, [generators]);
+
   const derivedTokenPaths = useMemo(() => {
     const map = new Map<string, TokenGenerator>();
     for (const gen of generators) {
@@ -320,6 +329,7 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
     loading,
     refreshGenerators: fetchGenerators,
     generatorsBySource,
+    generatorsByTargetGroup,
     derivedTokenPaths,
   };
 }

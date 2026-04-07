@@ -68,6 +68,7 @@ export interface GeneratorContextValue {
   generatorsLoading: boolean;
   refreshGenerators: () => void;
   generatorsBySource: Map<string, TokenGenerator[]>;
+  generatorsByTargetGroup: Map<string, TokenGenerator>;
   derivedTokenPaths: Map<string, TokenGenerator>;
 }
 
@@ -180,14 +181,14 @@ function GeneratorProvider({ children, serverUrl, connected }: {
   serverUrl: string;
   connected: boolean;
 }) {
-  const { generators, loading: generatorsLoading, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(
+  const { generators, loading: generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths } = useGenerators(
     serverUrl,
     connected,
   );
 
   const value = useMemo<GeneratorContextValue>(
-    () => ({ generators, generatorsLoading, refreshGenerators, generatorsBySource, derivedTokenPaths }),
-    [generators, generatorsLoading, refreshGenerators, generatorsBySource, derivedTokenPaths],
+    () => ({ generators, generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths }),
+    [generators, generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths],
   );
 
   return (

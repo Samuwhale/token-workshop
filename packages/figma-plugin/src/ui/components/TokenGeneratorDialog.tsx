@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { MutableRefObject } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
 import { Collapsible } from './Collapsible';
@@ -37,6 +38,12 @@ export interface TokenGeneratorDialogProps {
   pathToSet?: Record<string, string>;
   /** Push an undo slot after a successful generator save */
   onPushUndo?: (slot: import('../hooks/useUndo').UndoSlot) => void;
+  /** When set to panel, render without the modal backdrop/chrome so the caller can host it in a drawer or side panel. */
+  presentation?: 'modal' | 'panel';
+  /** Mirrors the dialog dirty state to the host surface so navigation guards can reuse it. */
+  onDirtyChange?: (dirty: boolean) => void;
+  /** Allows the host surface to trigger the dialog's close flow, including discard confirmation. */
+  closeRef?: MutableRefObject<(() => void) | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,6 +67,9 @@ export function TokenGeneratorDialog({
   onInterceptSemanticMapping,
   pathToSet,
   onPushUndo,
+  presentation = 'modal',
+  onDirtyChange,
+  closeRef,
 }: TokenGeneratorDialogProps) {
   const dialog = useGeneratorDialog({
     serverUrl,
@@ -137,8 +147,28 @@ export function TokenGeneratorDialog({
     return () => document.removeEventListener('keydown', handler);
   }, [handleClose]);
 
+  useEffect(() => {
+    onDirtyChange?.(dialog.isDirtyRef.current);
+  });
+
+  useEffect(() => {
+    if (!closeRef) return;
+    closeRef.current = handleClose;
+    return () => {
+      if (closeRef.current === handleClose) closeRef.current = null;
+    };
+  }, [closeRef, handleClose]);
+
+  const isPanel = presentation === 'panel';
+  const shellClassName = isPanel
+    ? 'h-full flex flex-col'
+    : 'fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4';
+  const dialogClassName = isPanel
+    ? 'bg-[var(--color-figma-bg)] w-full h-full flex flex-col overflow-hidden'
+    : 'bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]';
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className={shellClassName}>
       {showDiscardConfirm && (
         <ConfirmModal
           title="Discard unsaved changes?"
@@ -150,7 +180,7 @@ export function TokenGeneratorDialog({
           onCancel={() => setShowDiscardConfirm(false)}
         />
       )}
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="token-generator-dialog-title" className="bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]">
+      <div ref={dialogRef} role="dialog" aria-modal={isPanel ? undefined : true} aria-labelledby="token-generator-dialog-title" className={dialogClassName}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-figma-border)] shrink-0">

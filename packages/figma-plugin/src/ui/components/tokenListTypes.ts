@@ -89,6 +89,7 @@ export interface TokenListData {
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
   generators?: TokenGenerator[];
+  generatorsByTargetGroup?: Map<string, TokenGenerator>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
   tokenUsageCounts?: Record<string, number>;
@@ -130,6 +131,7 @@ export interface TokenListActions {
   starredPaths?: Set<string>;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
+  onEditGenerator?: (generatorId: string) => void;
   onNavigateToGenerator?: (generatorId: string) => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
@@ -260,13 +262,8 @@ export interface TokenTreeContextType {
   syncSnapshot?: Record<string, string>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
   generatorsBySource?: Map<string, TokenGenerator[]>;
+  generatorsByTargetGroup?: Map<string, TokenGenerator>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
-  /** Maps generator target group paths to generator name — for ancestry badges on group headers */
-  generatorTargetGroups?: Map<string, string>;
-  /** Maps generator target group paths to generator id — for click-to-navigate */
-  generatorTargetGroupIds?: Map<string, string>;
-  /** Set of target group paths whose generator has isStale === true — for amber stale badge */
-  generatorStaleTargetGroups?: Set<string>;
   tokenUsageCounts?: Record<string, number>;
   /** Parsed highlight terms from search query */
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
@@ -312,6 +309,7 @@ export interface TokenTreeContextType {
   onInlineSave?: (path: string, type: string, newValue: any) => void;
   onRenameToken?: (oldPath: string, newPath: string) => void;
   onDetachFromGenerator?: (path: string) => void;
+  onEditGenerator?: (generatorId: string) => void;
   onToggleChain?: (path: string) => void;
   onTogglePin?: (path: string) => void;
   /** Toggle starred (cross-set favorites) for the current token */

@@ -76,8 +76,8 @@ function dispatchTokenListViewChanged(setName: string): void {
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
-  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onToggleStar, starredPaths, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, generatorsByTargetGroup, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onToggleStar, starredPaths, onError, onViewTokenHistory, onEditGenerator, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd },
   recentlyTouched,
   defaultCreateOpen,
   highlightedToken,
@@ -141,30 +141,6 @@ export function TokenList({
       map.set(gen.sourceToken, arr);
     }
     return map;
-  }, [generators]);
-
-  const generatorTargetGroups = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const gen of generators ?? []) {
-      if (gen.targetGroup) map.set(gen.targetGroup, gen.name || gen.type);
-    }
-    return map;
-  }, [generators]);
-
-  const generatorTargetGroupIds = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const gen of generators ?? []) {
-      if (gen.targetGroup) map.set(gen.targetGroup, gen.id);
-    }
-    return map;
-  }, [generators]);
-
-  const generatorStaleTargetGroups = useMemo(() => {
-    const set = new Set<string>();
-    for (const gen of generators ?? []) {
-      if (gen.isStale && gen.targetGroup) set.add(gen.targetGroup);
-    }
-    return set;
   }, [generators]);
 
   // Expand/collapse state managed by useTokenExpansion (called below)
@@ -1885,10 +1861,8 @@ export function TokenList({
     syncSnapshot,
     cascadeDiff,
     generatorsBySource,
+    generatorsByTargetGroup,
     derivedTokenPaths,
-    generatorTargetGroups,
-    generatorTargetGroupIds,
-    generatorStaleTargetGroups,
     tokenUsageCounts,
     searchHighlight,
     selectedNodes,
@@ -1928,6 +1902,7 @@ export function TokenList({
     onInlineSave: handleInlineSave,
     onRenameToken: handleRenameToken,
     onDetachFromGenerator: handleDetachFromGenerator,
+    onEditGenerator,
     onNavigateToGenerator,
     onRegenerateGenerator: handleRegenerateGenerator,
     onToggleChain: handleToggleChain,
@@ -1962,13 +1937,13 @@ export function TokenList({
   }), [
     density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
-    generatorsBySource, derivedTokenPaths, generatorTargetGroups, generatorTargetGroupIds, generatorStaleTargetGroups, tokenUsageCounts, searchHighlight,
+    generatorsBySource, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, searchHighlight,
     selectedNodes, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     dragOverReorder, selectedLeafNodes, onEdit, onPreview, requestDeleteToken,
     requestDeleteGroup, handleTokenSelect, handleToggleExpand, handleSelectGroupChildren, onNavigateToAlias,
     handleOpenCreateSibling, handleRenameGroup, handleUpdateGroupMeta,
     handleRequestMoveGroup, handleRequestCopyGroup, handleRequestMoveToken, handleRequestCopyToken,
-    setNewGroupDialogParent, onNavigateToGenerator, handleDuplicateGroup,
+    setNewGroupDialogParent, onEditGenerator, onNavigateToGenerator, handleDuplicateGroup,
     handleDuplicateToken, handleOpenExtractToAlias, handleHoverToken,
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
     setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,

@@ -8,7 +8,7 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type {
   ReactNode,
   MutableRefObject,
@@ -23,6 +23,7 @@ import { UnifiedComparePanel } from '../components/UnifiedComparePanel';
 import type { CompareMode } from '../components/UnifiedComparePanel';
 import type { TokenListImperativeHandle } from '../components/tokenListTypes';
 import { TokenEditor } from '../components/TokenEditor';
+import { TokenGeneratorDialog } from '../components/TokenGeneratorDialog';
 import { TokenDetailPreview } from '../components/TokenDetailPreview';
 import { ThemeManager } from '../components/ThemeManager';
 import type { ThemeManagerHandle } from '../components/ThemeManager';
@@ -185,7 +186,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // Navigation and editor state from contexts (previously passed as props)
   const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel } = useNavigationContext();
   const {
-    editingToken, setEditingToken, previewingToken, setPreviewingToken,
+    editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken,
     highlightedToken, setHighlightedToken, createFromEmpty,
     setPendingHighlight, handleNavigateToAlias, handleNavigateBack, navHistoryLength,
   } = useEditorContext();
@@ -206,7 +207,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     tokensError, tokensLoading, setFilteredSetCount,
   } = useTokenFlatMapContext();
   const {
-    generators, derivedTokenPaths, generatorsLoading, refreshGenerators,
+    generators, generatorsByTargetGroup, derivedTokenPaths, generatorsLoading, refreshGenerators,
   } = useGeneratorContext();
   const {
     dimensions, setDimensions, activeThemes, setActiveThemes, themedAllTokensFlat,
@@ -220,6 +221,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   const { tokenUsageCounts } = useUsageContext();
 
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
+  const editingGeneratorData = editingGenerator
+    ? (generators.find(generator => generator.id === editingGenerator.id) ?? null)
+    : null;
+
+  useEffect(() => {
+    if (!editingGenerator || editingGeneratorData) return;
+    setEditingGenerator(null);
+  }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
 
   const editingTokenType = editingToken
     ? (allTokensFlat[editingToken.path]?.$type ?? editingToken.initialType)
@@ -230,16 +239,21 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // three TokenList render variants (side-panel, no-split, preview-split).
   const tokenListActions = {
     onEdit: (path: string, name?: string) => p.guardEditorAction(() => {
+      setEditingGenerator(null);
       setEditingToken({ path, name, set: activeSet });
       setPreviewingToken(null);
       setHighlightedToken(path);
     }),
     onPreview: (path: string, name?: string) => {
+      setEditingGenerator(null);
       setPreviewingToken({ path, name, set: activeSet });
       setHighlightedToken(path);
     },
     onCreateNew: (initialPath: string | undefined, initialType: string | undefined, initialValue: string | undefined) =>
-      setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }),
+      {
+        setEditingGenerator(null);
+        setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue });
+      },
     onRefresh: p.refreshAll,
     onPushUndo: p.pushUndo,
     onTokenCreated: (path: string) => setHighlightedToken(path),
@@ -266,6 +280,11 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       setHistoryFilterPath(path);
       navigateTo('ship', 'history');
     },
+    onEditGenerator: (generatorId: string) => p.guardEditorAction(() => {
+      setPreviewingToken(null);
+      setEditingToken(null);
+      setEditingGenerator({ id: generatorId });
+    }),
     onNavigateToGenerator: p.handleNavigateToGenerator,
     onShowReferences: (path: string) => {
       p.setFlowPanelInitialPath(path);
@@ -313,6 +332,21 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onShowReferences: (path: string) => { p.setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); },
     onNavigateToToken: handleNavigateToAlias,
     onNavigateToGenerator: p.handleNavigateToGenerator,
+  } : null;
+
+  const generatorEditorProps = editingGeneratorData ? {
+    serverUrl,
+    allSets: sets,
+    activeSet,
+    allTokensFlat,
+    existingGenerator: editingGeneratorData,
+    pathToSet,
+    onClose: () => { setEditingGenerator(null); p.refreshAll(); },
+    onSaved: () => { setEditingGenerator(null); p.refreshAll(); },
+    onPushUndo: p.pushUndo,
+    presentation: 'panel' as const,
+    onDirtyChange: (dirty: boolean) => { p.editorIsDirtyRef.current = dirty; },
+    closeRef: p.editorCloseRef,
   } : null;
 
   // ---------------------------------------------------------------------------
@@ -464,7 +498,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               <div className="flex-1 min-w-0 overflow-hidden">
                 <TokenList
                   ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                  data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
+                  data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
                   actions={tokenListActions}
                   recentlyTouched={p.recentlyTouched}
                   defaultCreateOpen={createFromEmpty}
@@ -494,6 +528,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                 <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                 {editingToken && tokenEditorProps ? (
                   <TokenEditor {...tokenEditorProps} />
+                ) : editingGeneratorData && generatorEditorProps ? (
+                  <TokenGeneratorDialog {...generatorEditorProps} />
                 ) : previewingToken ? (
                   <TokenDetailPreview
                     tokenPath={previewingToken.path}
@@ -518,7 +554,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           ) : (
             <TokenList
               ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-              data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
+              data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
               actions={tokenListActions}
               recentlyTouched={p.recentlyTouched}
               defaultCreateOpen={createFromEmpty}
@@ -535,7 +571,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             <div style={{ height: `${p.splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
               <TokenList
                 ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
+                data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
                 actions={tokenListActions}
                 recentlyTouched={p.recentlyTouched}
                 defaultCreateOpen={createFromEmpty}

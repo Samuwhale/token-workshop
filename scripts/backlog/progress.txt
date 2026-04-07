@@ -356,3 +356,11 @@
   - If a search box owns structured filters, keep the qualifier query in the same surface; command-palette handoff breaks autocomplete and makes the syntax feel inconsistent.
   - A funnel panel should mutate the exact query syntax users can also type by hand. That teaches the model without introducing a second, drifting filter state.
 ---
+## 2026-04-07 - Generator-backed token groups give no actionable information inline
+- Added an expanded-row generator summary in the token tree for generator-backed groups, showing source token, generator type, last-run timestamp, and inline Re-run/Edit actions without leaving the Tokens tab.
+- Wired generator editing into the same Tokens-tab side-panel/drawer surfaces as token editing by adding generator edit state to the shared editor context and making `TokenGeneratorDialog` render in either modal or panel mode.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L131, ~L759, ~L1188; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L188, ~L240, ~L337, ~L497; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L18, ~L70, ~L150, ~L162; `packages/figma-plugin/src/ui/App.tsx` ~L102, ~L261, ~L2175; `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L259; `packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx` ~L66, ~L184; `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L24, ~L72; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L92, ~L134, ~L259
+- **Learnings for future iterations:**
+  - If a row-level action needs a richer editor without changing tabs, route it through the existing editor surface first; extending the shared editor context is cheaper and more coherent than inventing a one-off popover.
+  - For reusable editors that can open from multiple surfaces, keep discard/close behavior inside the editor component and expose a panel mode instead of duplicating close guards in each host.
+---

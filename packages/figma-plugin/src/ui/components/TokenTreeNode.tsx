@@ -22,6 +22,8 @@ import { TokenNudge } from './TokenNudge';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { matchesShortcut } from '../shared/shortcutRegistry';
+import type { TokenGenerator } from '../hooks/useGenerators';
+import { getGeneratorTypeLabel } from './GeneratorPipelineCard';
 
 // ---------------------------------------------------------------------------
 // Reverse-reference helpers (used by "Find references" popover)
@@ -123,6 +125,98 @@ function CondensedAncestorBreadcrumb({
     >
       {label}
     </span>
+  );
+}
+
+const GENERATOR_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+
+function formatGeneratorRunAt(lastRunAt?: string): string {
+  if (!lastRunAt) return 'Never run';
+  const date = new Date(lastRunAt);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return GENERATOR_RUN_AT_FORMATTER.format(date);
+}
+
+function GeneratorSummaryRow({
+  depth,
+  condensedView,
+  generator,
+  running,
+  onRun,
+  onEdit,
+}: {
+  depth: number;
+  condensedView: boolean;
+  generator: TokenGenerator;
+  running: boolean;
+  onRun?: () => Promise<void> | void;
+  onEdit?: () => void;
+}) {
+  const sourceLabel = generator.sourceToken || 'standalone';
+  const typeLabel = getGeneratorTypeLabel(generator.type);
+  const lastRunLabel = formatGeneratorRunAt(generator.lastRunAt);
+
+  return (
+    <div
+      className="mx-2 mb-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2"
+      style={{ marginLeft: `${computePaddingLeft(depth, condensedView, 24)}px` }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-bg)] px-1.5 py-0.5 font-medium text-[var(--color-figma-text)]">
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <circle cx="5" cy="2" r="1.5"/>
+                <circle cx="2" cy="8" r="1.5"/>
+                <circle cx="8" cy="8" r="1.5"/>
+                <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5"/>
+              </svg>
+              Generator
+            </span>
+            {generator.isStale && (
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-600">
+                Source changed
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span>
+              Source <span className="font-mono text-[var(--color-figma-text)]">{sourceLabel}</span>
+            </span>
+            <span>
+              Type <span className="text-[var(--color-figma-text)]">{typeLabel}</span>
+            </span>
+            <span>
+              Last run <span className="text-[var(--color-figma-text)]">{lastRunLabel}</span>
+            </span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => { void onRun?.(); }}
+            disabled={running || !onRun}
+            className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {running ? 'Running…' : 'Re-run'}
+          </button>
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={!onEdit}
+            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Edit
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -387,8 +481,8 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType: _onFilterByType,
     onZoomIntoGroup, onDragStart: _onDragStart, onDragEnd: _onDragEnd,
     onDragOverGroup, onDropOnGroup,
-    generatorsBySource: _generatorsBySource, derivedTokenPaths: _derivedTokenPaths, generatorTargetGroups,
-    generatorTargetGroupIds, generatorStaleTargetGroups, onNavigateToGenerator: onNavigateToGeneratorGroup, onRegenerateGenerator,
+    generatorsBySource: _generatorsBySource, generatorsByTargetGroup, derivedTokenPaths: _derivedTokenPaths,
+    onEditGenerator, onNavigateToGenerator: _onNavigateToGeneratorGroup, onRegenerateGenerator,
     themeCoverage, onSelectGroupChildren: _onSelectGroupChildren,
     condensedView = false,
     rovingFocusPath: groupRovingFocusPath, onRovingFocus: onGroupRovingFocus,
@@ -496,6 +590,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   }, [groupMoreMenuPos]);
 
   const leafCount = countLeaves(node);
+  const targetGenerator = generatorsByTargetGroup?.get(node.path) ?? null;
 
   // Build a stable map of child path → filtered lint violations so we don't create
   // a new array on every render when passing violations down to child nodes.
@@ -662,12 +757,10 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           );
         })()}
         {!renamingGroup && (() => {
-          const genName = generatorTargetGroups?.get(node.path);
-          if (!genName) return null;
-          const genId = generatorTargetGroupIds?.get(node.path);
-          const isStale = generatorStaleTargetGroups?.has(node.path) ?? false;
-          const canNavigate = Boolean(genId && onNavigateToGeneratorGroup);
-          const Tag = canNavigate ? 'button' : 'span';
+          if (!targetGenerator) return null;
+          const canEdit = Boolean(onEditGenerator);
+          const isStale = !!targetGenerator.isStale;
+          const Tag = canEdit ? 'button' : 'span';
           return (
             <>
               {isStale && (
@@ -675,12 +768,12 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
                   type="button"
                   title={regenerating ? 'Regenerating…' : 'Source token changed — click to regenerate'}
                   aria-label={regenerating ? 'Regenerating' : 'Regenerate stale generator'}
-                  disabled={regenerating || !genId || !onRegenerateGenerator}
+                  disabled={regenerating || !targetGenerator.id || !onRegenerateGenerator}
                   onClick={async (e) => {
                     e.stopPropagation();
-                    if (!genId || !onRegenerateGenerator || regenerating) return;
+                    if (!targetGenerator.id || !onRegenerateGenerator || regenerating) return;
                     setRegenerating(true);
-                    try { await onRegenerateGenerator(genId); } finally { setRegenerating(false); }
+                    try { await onRegenerateGenerator(targetGenerator.id); } finally { setRegenerating(false); }
                   }}
                   className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-amber-500/20 shrink-0 ml-0.5 hover:bg-amber-500/40 transition-colors disabled:cursor-default"
                 >
@@ -697,12 +790,12 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
                 </button>
               )}
               <Tag
-                {...(canNavigate ? {
+                {...(canEdit ? {
                   type: 'button' as const,
-                  onClick: (e: React.MouseEvent) => { e.stopPropagation(); onNavigateToGeneratorGroup!(genId!); },
+                  onClick: (e: React.MouseEvent) => { e.stopPropagation(); onEditGenerator?.(targetGenerator.id); },
                 } : {})}
-                title={canNavigate ? `Generated by ${genName} — click to edit` : `Generated by ${genName}`}
-                className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium shrink-0 ml-0.5 bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-secondary)]${canNavigate ? ' cursor-pointer hover:bg-[var(--color-figma-accent)]/20 hover:text-[var(--color-figma-accent)]' : ''}${isStale ? ' border border-amber-500/30' : ''}`}
+                title={canEdit ? `Generated by ${targetGenerator.name} — click to edit inline` : `Generated by ${targetGenerator.name}`}
+                className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium shrink-0 ml-0.5 bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-secondary)]${canEdit ? ' cursor-pointer hover:bg-[var(--color-figma-accent)]/20 hover:text-[var(--color-figma-accent)]' : ''}${isStale ? ' border border-amber-500/30' : ''}`}
               >
                 <svg className="shrink-0" width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                   <circle cx="5" cy="2" r="1.5"/>
@@ -710,7 +803,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
                   <circle cx="8" cy="8" r="1.5"/>
                   <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5"/>
                 </svg>
-                {genName}
+                {targetGenerator.name}
               </Tag>
             </>
           );
@@ -1088,6 +1181,27 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             </button>
           </div>
         </div>
+      )}
+
+      {!props.skipChildren && isExpanded && targetGenerator && (
+        <GeneratorSummaryRow
+          depth={depth}
+          condensedView={condensedView}
+          generator={targetGenerator}
+          running={regenerating}
+          onRun={targetGenerator.id && onRegenerateGenerator
+            ? async () => {
+                if (regenerating) return;
+                setRegenerating(true);
+                try {
+                  await onRegenerateGenerator(targetGenerator.id);
+                } finally {
+                  setRegenerating(false);
+                }
+              }
+            : undefined}
+          onEdit={targetGenerator.id && onEditGenerator ? () => onEditGenerator(targetGenerator.id) : undefined}
+        />
       )}
 
       {!props.skipChildren && isExpanded && node.children?.map(child => (

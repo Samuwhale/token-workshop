@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { TokenListImperativeHandle } from './components/tokenListTypes';
 import type { ThemeManagerHandle } from './components/ThemeManager';
 import { TokenEditor } from './components/TokenEditor';
+import { TokenGeneratorDialog } from './components/TokenGeneratorDialog';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ToastStack } from './components/ToastStack';
 import { NotificationHistory } from './components/NotificationHistory';
@@ -98,7 +99,7 @@ function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeN
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
   const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel, setSubTab } = useNavigationContext();
-  const { editingToken, setEditingToken, previewingToken, setPreviewingToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, setAliasNotFoundHandler } = useEditorContext();
+  const { editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, setAliasNotFoundHandler } = useEditorContext();
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useConnectionContext();
@@ -257,7 +258,11 @@ export function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll, setEditingToken]);
+  const handleEditorClose = useCallback(() => {
+    setEditingToken(null);
+    setEditingGenerator(null);
+    refreshAll();
+  }, [refreshAll, setEditingGenerator, setEditingToken]);
   const handlePreviewEdit = useCallback(() => {
     if (previewingToken) { setEditingToken({ path: previewingToken.path, name: previewingToken.name, set: previewingToken.set }); setPreviewingToken(null); }
   }, [previewingToken, setEditingToken, setPreviewingToken]);
@@ -273,6 +278,13 @@ export function App() {
       fn();
     }
   }, []);
+  const editingGeneratorData = editingGenerator
+    ? (generators.find(generator => generator.id === editingGenerator.id) ?? null)
+    : null;
+  useEffect(() => {
+    if (!editingGenerator || editingGeneratorData) return;
+    setEditingGenerator(null);
+  }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   // Imperative handle to TokenList compare actions — populated by TokenList via compareHandle prop
@@ -382,7 +394,7 @@ export function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   const useSidePanel = windowWidth > 400
-    && !!(editingToken || previewingToken)
+    && !!(editingToken || editingGeneratorData || previewingToken)
     && overflowPanel === null
     && activeTopTab === 'define' && activeSubTab === 'tokens'
     && (tokens.length > 0 || createFromEmpty);
@@ -2160,9 +2172,42 @@ export function App() {
         </div>
       )}
 
+      {editingGeneratorData && !editingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
+          <div
+            className="absolute inset-0 bg-black/30 drawer-fade-in"
+            onClick={() => editorCloseRef.current()}
+          />
+          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '72%' }}>
+            <div className="flex justify-center pt-2 pb-1 shrink-0">
+              <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <TokenGeneratorDialog
+                serverUrl={serverUrl}
+                allSets={sets}
+                activeSet={activeSet}
+                allTokensFlat={allTokensFlat}
+                existingGenerator={editingGeneratorData}
+                pathToSet={pathToSet}
+                onClose={handleEditorClose}
+                onSaved={() => {
+                  setEditingGenerator(null);
+                  refreshAll();
+                }}
+                onPushUndo={pushUndo}
+                presentation="panel"
+                onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
+                closeRef={editorCloseRef}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Token preview drawer (narrow windows only; wide windows use side panel) */}
-      {!editingToken && previewingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
+      {!editingToken && !editingGeneratorData && previewingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"

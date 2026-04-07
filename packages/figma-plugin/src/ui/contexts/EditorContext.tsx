@@ -27,10 +27,13 @@ export type EditingToken = {
 };
 
 export type PreviewingToken = { path: string; name?: string; set: string };
+export type EditingGenerator = { id: string };
 
 export interface EditorContextValue {
   editingToken: EditingToken | null;
   setEditingToken: Dispatch<SetStateAction<EditingToken | null>>;
+  editingGenerator: EditingGenerator | null;
+  setEditingGenerator: Dispatch<SetStateAction<EditingGenerator | null>>;
   previewingToken: PreviewingToken | null;
   setPreviewingToken: Dispatch<SetStateAction<PreviewingToken | null>>;
   highlightedToken: string | null;
@@ -70,6 +73,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const { pathToSet } = useTokenFlatMapContext();
 
   const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
+  const [editingGenerator, setEditingGenerator] = useState<EditingGenerator | null>(null);
   const [previewingToken, setPreviewingToken] = useState<PreviewingToken | null>(null);
 
   // Late-bound alias-not-found handler so App.tsx can inject the toast callback
@@ -97,6 +101,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const value = useMemo<EditorContextValue>(() => ({
     editingToken,
     setEditingToken,
+    editingGenerator,
+    setEditingGenerator,
     previewingToken,
     setPreviewingToken,
     highlightedToken,
@@ -111,6 +117,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setAliasNotFoundHandler,
   }), [
     editingToken,
+    editingGenerator,
     previewingToken,
     highlightedToken,
     createFromEmpty,

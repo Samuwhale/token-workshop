@@ -140,3 +140,22 @@
     Added in-place qualifier autocomplete, a funnel filter panel that writes `type:`/`has:` syntax into the search bar, and validated successfully with `bash scripts/backlog/validate.sh`.
 
   Committing: Structured search qualifiers are undiscoverable
+[main a340540f] chore(backlog): done – Structured search qualifiers are undiscoverable
+ 7 files changed, 384 insertions(+), 175 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-07 - Structured search qualifiers are undiscoverable
+- Reworked token search around in-place structured filtering: the search field now uses a static `Search… (type: has: value:)` placeholder with a syntax tooltip, keeps qualifier searches inside the token list instead of bouncing them into the command palette, and shows inline autocomplete only when the active token fragment contains a qualifier.
+- Added a funnel filter panel beside the search bar with type checkboxes plus `has:alias`, `has:unused`, `has:duplicate`, and `has:generated` toggles; toggling these options writes canonical qualifier strings back into the search field and exposes active qualifier chips that can be removed directly.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2571, ~L2643, ~L2910; `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` ~L104, ~L278, ~L304, ~L378; `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L32, ~L186, ~L207, ~L222
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  5 queued · 0 in-progress · last took 9m4s
+═══════════════════════════════════════════════════════════════
+  → Generator-backed token groups give no actionable information inline — the current signal is a small tag with an amber border (`border border-amber-500/30`) on the group header in the token tree (`TokenTreeNode.tsx` ~L628–634) linking to the Generators tab; to do anything with a generator (re-run it, tweak config, see what changed) users must leave the Tokens tab entirely; add an inline generator summary that renders inside the group row when the group is expanded (chevron-open state, not just selected): show the source token path (or "standalone"), generator type label, last-run timestamp, and two buttons — "Re-run" (calls `POST /api/generators/{id}/run`) and "Edit" (opens the existing `TokenGeneratorDialog` in a bottom drawer or side panel, same as token editing uses); this does not require restructuring the Generators tab — it only adds information to a group row that is already visually identified as generator-backed; the Generators tab remains unchanged; scope note: do NOT attempt to embed the full generator config editor inline — that is a separate larger effort; files: `TokenTreeNode.tsx` (TokenGroupNode component, generator badge rendering ~L595–634), `GeneratorPipelineCard.tsx` (reference for Re-run / Edit patterns), `useGenerators.ts` (derivedTokenPaths, generatorsBySource maps)
+  Running agent… (started 23:58:52)
+
+  ✓ done: Generator-backed token groups give no actionable information inline
+    Added expanded inline generator summaries with Re-run/Edit actions and opened generator editing in the Tokens tab side-panel/drawer flow.
+
+  Committing: Generator-backed token groups give no actionable information inline
