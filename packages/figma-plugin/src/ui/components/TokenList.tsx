@@ -16,7 +16,8 @@ import {
   sortTokenNodes, collectAllGroupPaths,
   flattenLeafNodes, findGroupByPath,
   buildZoomBreadcrumb,
-  hasStructuredQualifiers, QUERY_QUALIFIERS,
+  QUERY_QUALIFIERS,
+  replaceQueryToken,
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
@@ -67,6 +68,7 @@ const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
 const VALID_SORT_ORDERS: SortOrder[] = ['default', 'alpha-asc', 'by-type'];
+const FILTER_PANEL_HAS_OPTIONS = ['alias', 'unused', 'duplicate', 'generated'] as const;
 
 function dispatchTokenListViewChanged(setName: string): void {
   window.dispatchEvent(new CustomEvent('tm-token-list-view-changed', { detail: { setName } }));
@@ -783,35 +785,58 @@ export function TokenList({
     deleteFilterPreset,
     applyFilterPreset,
     showQualifierHints, setShowQualifierHints,
-    showQualifierHelp, setShowQualifierHelp,
     hintIndex, setHintIndex,
-    placeholderIdx,
-    searchFocused, setSearchFocused,
     filterDrawerOpen, setFilterDrawerOpen,
+    filterPanelOpen, setFilterPanelOpen,
     crossSetResults,
     crossSetTotal,
     crossSetOffset: _crossSetOffset, setCrossSetOffset,
     CROSS_SET_PAGE_SIZE,
     searchRef,
     qualifierHintsRef,
-    qualifierHelpRef,
+    filterPanelRef,
     crossSetAbortRef: _crossSetAbortRef,
     saveScrollAnchor: _saveScrollAnchor,
     setSearchQuery,
     setTypeFilter,
     setRefFilter,
     setShowDuplicates,
+    toggleQueryQualifierValue,
+    removeQueryToken,
     filtersActive,
     activeFilterCount,
     duplicateValuePaths,
     duplicateCounts,
     availableTypes,
+    qualifierTypeOptions,
     qualifierHints,
+    activeQueryToken,
+    selectedTypeQualifiers,
+    selectedHasQualifiers,
+    structuredFilterChips,
     searchHighlight,
-    PLACEHOLDER_EXAMPLES,
+    searchTooltip,
     displayedTokens,
     displayedLeafNodes,
   } = tokenSearch;
+
+  useEffect(() => {
+    if (!filterPanelOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target as Node)) {
+        setFilterPanelOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFilterPanelOpen(false);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [filterPanelOpen, filterPanelRef, setFilterPanelOpen]);
 
   // Sync displayedLeafNodesRef
   displayedLeafNodesRef.current = displayedLeafNodes;
@@ -2557,8 +2582,8 @@ export function TokenList({
                       setSearchQuery(e.target.value);
                       setHintIndex(0);
                     }}
-                    onFocus={() => { setShowQualifierHints(true); setSearchFocused(true); }}
-                    onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); setSearchFocused(false); }}
+                    onFocus={() => { setShowQualifierHints(true); }}
+                    onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); }}
                     onKeyDown={e => {
                       if (e.key === 'Escape') {
                         e.preventDefault();
@@ -2570,18 +2595,16 @@ export function TokenList({
                       if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
                       else if (e.key === 'ArrowUp') { e.preventDefault(); setHintIndex(i => Math.max(i - 1, 0)); }
                       else if (e.key === 'Tab' || (e.key === 'Enter' && qualifierHints.length > 0)) {
-                        e.preventDefault();
                         const hint = qualifierHints[hintIndex];
-                        if (hint) {
-                          const words = searchQuery.split(/\s+/);
-                          words[words.length - 1] = hint.qualifier;
-                          setSearchQuery(words.join(' '));
-                          setHintIndex(0);
-                        }
+                        if (!hint?.replacement) return;
+                        e.preventDefault();
+                        setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
+                        setHintIndex(0);
                       }
                     }}
-                    placeholder={hasStructuredQualifiers(searchQuery) ? 'Add more filters…' : crossSetSearch ? `Search all ${sets.length} sets — try ${PLACEHOLDER_EXAMPLES[placeholderIdx]}` : `Search (/) — try ${PLACEHOLDER_EXAMPLES[placeholderIdx]}`}
-                    className={`w-full pl-6 ${searchQuery ? 'pr-6' : 'pr-2'} py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${hasStructuredQualifiers(searchQuery) ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                    placeholder="Search… (type: has: value:)"
+                    title={searchTooltip}
+                    className={`w-full pl-6 ${searchQuery ? 'pr-6' : 'pr-2'} py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${structuredFilterChips.length > 0 ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
                   />
                   {searchQuery && (
                     <button
@@ -2596,75 +2619,97 @@ export function TokenList({
                     </button>
                   )}
                   {/* Qualifier autocomplete hints */}
-                  {showQualifierHints && qualifierHints.length > 0 && (
+                  {showQualifierHints && activeQueryToken.token.includes(':') && qualifierHints.length > 0 && (
                     <div ref={qualifierHintsRef} className="absolute left-0 top-full mt-0.5 w-full z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-                      {!searchQuery.trim() && (
-                        <div className="px-2 py-1 border-b border-[var(--color-figma-border)] text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">
-                          Search qualifiers
-                        </div>
-                      )}
                       {qualifierHints.map((hint, i) => (
                         <button
-                          key={hint.qualifier}
+                          key={hint.id}
                           onMouseDown={e => e.preventDefault()}
                           onClick={() => {
-                            const words = searchQuery.split(/\s+/);
-                            words[words.length - 1] = hint.qualifier;
-                            setSearchQuery(words.join(' ').trim());
+                            if (!hint.replacement) return;
+                            setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
                             setHintIndex(0);
                             searchRef.current?.focus();
                           }}
-                          className={`w-full text-left px-2 py-1 text-[10px] flex items-center gap-2 ${i === hintIndex ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                          className={`w-full text-left px-2 py-1 text-[10px] flex items-center gap-2 ${i === hintIndex ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'} ${hint.replacement ? '' : 'cursor-default'}`}
                         >
-                          <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.qualifier}</span>
+                          <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.label}</span>
                           <span className="truncate">{hint.desc}</span>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-                {/* Search qualifier help button */}
-                <div className="relative shrink-0">
+                <div className="relative shrink-0" ref={filterPanelRef}>
                   <button
-                    onClick={() => setShowQualifierHelp(v => !v)}
-                    onBlur={() => { setTimeout(() => setShowQualifierHelp(false), 150); }}
-                    title="Search qualifiers cheat sheet"
-                    aria-label="Search qualifiers cheat sheet"
-                    className={`flex items-center justify-center w-5 h-5 rounded border text-[10px] font-bold cursor-pointer transition-colors ${showQualifierHelp ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-tertiary)]'}`}
+                    onClick={() => setFilterPanelOpen(v => !v)}
+                    title="Structured filters"
+                    aria-label="Structured filters"
+                    aria-expanded={filterPanelOpen}
+                    className={`flex items-center justify-center w-5 h-5 rounded border text-[10px] cursor-pointer transition-colors ${filterPanelOpen || selectedTypeQualifiers.length > 0 || selectedHasQualifiers.length > 0 ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-tertiary)]'}`}
                   >
-                    ?
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+                    </svg>
                   </button>
-                  {showQualifierHelp && (
-                    <div ref={qualifierHelpRef} className="absolute right-0 top-full mt-1 w-56 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
+                  {filterPanelOpen && (
+                    <div className="absolute right-0 top-full mt-1 w-64 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
                       <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)]">
-                        <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Search Qualifiers</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] ml-1">click to insert</span>
+                        <div className="text-[10px] font-semibold text-[var(--color-figma-text)]">Structured filters</div>
+                        <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">Selecting options writes `type:` and `has:` into the search field.</div>
                       </div>
-                      <div className="max-h-48 overflow-y-auto">
-                        {QUERY_QUALIFIERS.map(hint => (
-                          <button
-                            key={hint.qualifier}
-                            onMouseDown={e => e.preventDefault()}
-                            onClick={() => {
-                              const q = searchQuery ? searchQuery + ' ' + hint.qualifier : hint.qualifier;
-                              setSearchQuery(q);
-                              setShowQualifierHelp(false);
-                              searchRef.current?.focus();
-                            }}
-                            className="w-full text-left px-2 py-1 text-[10px] flex flex-col gap-0 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.qualifier}</span>
-                              <span className="text-[var(--color-figma-text-secondary)] truncate">{hint.desc}</span>
-                            </div>
-                            {hint.example && (
-                              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] font-mono ml-0.5">e.g. {hint.example}</span>
+                      <div className="px-2 py-2 flex flex-col gap-3 max-h-72 overflow-y-auto">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Token types</span>
+                            {selectedTypeQualifiers.length > 0 && (
+                              <button
+                                onClick={() => setSearchQuery(structuredFilterChips.length > 0 ? searchQuery.replace(/\btype:\S+/gi, '').replace(/\s+/g, ' ').trim() : searchQuery)}
+                                className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                              >
+                                Clear
+                              </button>
                             )}
-                          </button>
-                        ))}
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                            {qualifierTypeOptions.map(type => (
+                              <label key={type} className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedTypeQualifiers.includes(type.toLowerCase())}
+                                  onChange={() => toggleQueryQualifierValue('type', type)}
+                                  className="rounded border-[var(--color-figma-border)]"
+                                />
+                                <span>{type}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">has:</span>
+                          <div className="flex flex-col gap-1">
+                            {FILTER_PANEL_HAS_OPTIONS.map(option => {
+                              const qualifier = QUERY_QUALIFIERS.find(def => def.qualifier === `has:${option}`);
+                              return (
+                                <label key={option} className="flex items-start gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedHasQualifiers.includes(option)}
+                                    onChange={() => toggleQueryQualifierValue('has', option)}
+                                    className="mt-[1px] rounded border-[var(--color-figma-border)]"
+                                  />
+                                  <span className="leading-snug">
+                                    <span className="font-mono text-[var(--color-figma-accent)]">has:{option}</span>
+                                    <span className="block text-[var(--color-figma-text-tertiary)]">{qualifier?.desc}</span>
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
-                      <div className="px-2 py-1 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)]">
-                        Combine qualifiers: <span className="font-mono">type:color has:alias</span>
+                      <div className="px-2 py-1.5 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)]">
+                        Hover the search field to see the full syntax guide.
                       </div>
                     </div>
                   )}
@@ -2747,18 +2792,6 @@ export function TokenList({
                     </div>
                   )}
                 </div>
-                <select
-                  value={typeFilter}
-                  onChange={e => setTypeFilter(e.target.value)}
-                  title="Filter by type"
-                  aria-label="Filter by type"
-                  className={`shrink-0 px-1 py-1 rounded border text-[10px] outline-none cursor-pointer ${typeFilter ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}
-                >
-                  <option value="">Type</option>
-                  {availableTypes.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
                 {/* Cross-set search toggle (only with multiple sets) */}
                 {sets.length > 1 && (
                   <button
@@ -2906,20 +2939,19 @@ export function TokenList({
                   )}
                 </div>
               )}
-              {/* Qualifier chip bar — shown when search is focused/empty to surface discoverability */}
-              {searchFocused && !searchQuery && (
+              {(structuredFilterChips.length > 0) && (
                 <div className="flex items-center gap-1 px-2 pb-1 flex-wrap">
-                  {QUERY_QUALIFIERS.filter(q => q.example).map(q => (
+                  {structuredFilterChips.map(chip => (
                     <button
-                      key={q.qualifier}
+                      key={chip.token}
                       onMouseDown={e => {
                         e.preventDefault();
-                        setSearchQuery(q.example || q.qualifier);
+                        removeQueryToken(chip.token);
                         searchRef.current?.focus();
                       }}
                       className="px-1.5 py-0.5 rounded text-[9px] font-mono whitespace-nowrap transition-colors border border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5"
                     >
-                      {q.example || q.qualifier}
+                      {chip.label}
                     </button>
                   ))}
                 </div>

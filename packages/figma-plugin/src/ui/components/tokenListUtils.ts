@@ -30,9 +30,24 @@ export interface ParsedQuery {
 }
 
 const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generator|gen):(\S+)/gi;
+const QUERY_TOKEN_RE = /\b([a-z]+):(\S+)/gi;
 
 /** Recognized values for has: qualifier */
 const HAS_VALUES = new Set(['alias', 'ref', 'direct', 'duplicate', 'dup', 'description', 'desc', 'extension', 'ext', 'generated', 'gen', 'unused']);
+const HAS_CANONICAL_MAP: Record<string, string> = {
+  alias: 'alias',
+  ref: 'alias',
+  direct: 'direct',
+  duplicate: 'duplicate',
+  dup: 'duplicate',
+  description: 'description',
+  desc: 'description',
+  extension: 'extension',
+  ext: 'extension',
+  generated: 'generated',
+  gen: 'generated',
+  unused: 'unused',
+};
 
 export function parseStructuredQuery(raw: string): ParsedQuery {
   const types: string[] = [];
@@ -68,7 +83,30 @@ export function hasStructuredQualifiers(raw: string): boolean {
 }
 
 /** Canonical has: values shown in completions (no aliases like 'ref', 'dup', etc.) */
-const HAS_CANONICAL = ['alias', 'direct', 'duplicate', 'description', 'extension', 'generated', 'unused'];
+export const HAS_CANONICAL = ['alias', 'direct', 'duplicate', 'description', 'extension', 'generated', 'unused'] as const;
+export type HasQualifierValue = typeof HAS_CANONICAL[number];
+
+export interface QueryQualifierDefinition {
+  key: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group';
+  qualifier: string;
+  desc: string;
+  example: string;
+  valueHint?: string;
+}
+
+export interface QueryQualifierSuggestion {
+  id: string;
+  label: string;
+  desc: string;
+  replacement?: string;
+  kind: 'replacement' | 'hint';
+}
+
+export interface ActiveQueryToken {
+  token: string;
+  start: number;
+  end: number;
+}
 
 /**
  * Returns dynamic value completions for a qualifier:partial suffix.
@@ -145,22 +183,76 @@ export function getQualifierCompletions(
 }
 
 /** Available qualifier suggestions for the autocomplete hint. */
-export const QUERY_QUALIFIERS = [
-  { qualifier: 'type:', desc: 'Filter by token type', example: 'type:color' },
-  { qualifier: 'has:alias', desc: 'Only reference tokens', example: '' },
-  { qualifier: 'has:direct', desc: 'Only direct-value tokens', example: '' },
-  { qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: '' },
-  { qualifier: 'has:description', desc: 'Only tokens with a description', example: '' },
-  { qualifier: 'has:extension', desc: 'Only tokens with extensions', example: '' },
-  { qualifier: 'has:generated', desc: 'Only generator-produced tokens', example: '' },
-  { qualifier: 'has:unused', desc: 'Tokens with no Figma usage and no alias dependents', example: '' },
-  { qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000' },
-  { qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary' },
-  { qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand' },
-  { qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500' },
-  { qualifier: 'generator:', desc: 'Filter by generator name', example: 'generator:color-ramp' },
-  { qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand' },
+export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
+  { key: 'type', qualifier: 'type:', desc: 'Filter by token type', example: 'type:color', valueHint: 'Choose a token type such as color, dimension, or typography.' },
+  { key: 'has', qualifier: 'has:alias', desc: 'Only reference tokens', example: 'has:alias', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:direct', desc: 'Only direct-value tokens', example: 'has:direct', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: 'has:duplicate', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:description', desc: 'Only tokens with a description', example: 'has:description', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:extension', desc: 'Only tokens with extensions', example: 'has:extension', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:generated', desc: 'Only generator-produced tokens', example: 'has:generated', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:unused', desc: 'Tokens with no Figma usage and no alias dependents', example: 'has:unused', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'value', qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000', valueHint: 'Enter a value fragment, for example #ff0000 or 16px.' },
+  { key: 'desc', qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary', valueHint: 'Enter words from the token description.' },
+  { key: 'path', qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand', valueHint: 'Enter a path segment like colors.brand or spacing.' },
+  { key: 'name', qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500', valueHint: 'Enter the token leaf name, such as 500 or primary.' },
+  { key: 'generator', qualifier: 'generator:', desc: 'Filter by generator name', example: 'generator:color-ramp', valueHint: 'Enter the generator name that produced the token.' },
+  { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];
+
+export function normalizeHasQualifier(value: string): HasQualifierValue | null {
+  return (HAS_CANONICAL_MAP[value.toLowerCase()] as HasQualifierValue | undefined) ?? null;
+}
+
+export function getActiveQueryToken(raw: string): ActiveQueryToken {
+  const trailingWhitespace = raw.match(/\s+$/)?.[0].length ?? 0;
+  const effectiveEnd = raw.length - trailingWhitespace;
+  const trimmed = raw.slice(0, effectiveEnd);
+  const lastSpace = trimmed.lastIndexOf(' ');
+  const start = lastSpace >= 0 ? lastSpace + 1 : 0;
+  return { token: trimmed.slice(start), start, end: effectiveEnd };
+}
+
+export function replaceQueryToken(raw: string, activeToken: ActiveQueryToken, replacement: string): string {
+  const before = raw.slice(0, activeToken.start).replace(/\s+$/, '');
+  const after = raw.slice(activeToken.end).replace(/^\s+/, '');
+  return [before, replacement.trim(), after].filter(Boolean).join(' ').trim();
+}
+
+export function removeQueryQualifierValues(raw: string, qualifier: QueryQualifierDefinition['key']): string {
+  const keys = qualifier === 'generator' ? ['generator', 'gen'] : [qualifier];
+  const pattern = new RegExp(`\\b(?:${keys.join('|')}):\\S+`, 'gi');
+  return raw.replace(pattern, ' ').replace(/\s+/g, ' ').trim();
+}
+
+export function setQueryQualifierValues(
+  raw: string,
+  qualifier: QueryQualifierDefinition['key'],
+  values: string[],
+): string {
+  const base = removeQueryQualifierValues(raw, qualifier);
+  const prefix = qualifier === 'generator' ? 'generator' : qualifier;
+  const additions = values.map(value => `${prefix}:${value}`);
+  return [base, ...additions].filter(Boolean).join(' ').trim();
+}
+
+export function getQueryQualifierValues(raw: string, qualifier: QueryQualifierDefinition['key']): string[] {
+  const keys = qualifier === 'generator' ? new Set(['generator', 'gen']) : new Set([qualifier]);
+  const values: string[] = [];
+  raw.replace(QUERY_TOKEN_RE, (_, key: string, value: string) => {
+    if (keys.has(key.toLowerCase())) values.push(value.toLowerCase());
+    return '';
+  });
+  return values;
+}
+
+export function getQualifierDefinitionForToken(token: string): QueryQualifierDefinition | null {
+  const match = token.match(/^([a-z]+):/i);
+  if (!match) return null;
+  const key = match[1].toLowerCase();
+  if (key === 'gen') return QUERY_QUALIFIERS.find(def => def.key === 'generator') ?? null;
+  return QUERY_QUALIFIERS.find(def => def.key === key) ?? null;
+}
 
 export type { SortOrder } from './tokenListTypes';
 

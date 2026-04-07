@@ -121,3 +121,22 @@
     Cut token list density/sort options down, moved JSON/resolved/stats toggles into command palette with persistence, and validation passed.
 
   Committing: Too many token list viewing modes create an overwhelming UI
+[main aee1d648] chore(backlog): done – Too many token list viewing modes create an overwhelming UI
+ 11 files changed, 204 insertions(+), 146 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-07 - Too many token list viewing modes create an overwhelming UI
+- Reduced token list chrome to the core controls: density is now just `compact` and `comfortable`, sort is now `default` / `A → Z` / `by type`, and the tree toolbar no longer exposes JSON mode or resolved-value toggles.
+- Moved JSON view, resolved values, and the stats bar behind command palette commands backed by persisted localStorage state; TokenList now exposes imperative toggle actions and refreshes command labels when those view settings change.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L117, ~L239, ~L347, ~L1808, ~L2277, ~L2931; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L22, ~L76, ~L155; `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L376; `packages/figma-plugin/src/ui/shared/storage.ts` ~L51, ~L63, ~L72; `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L120, ~L130, ~L245; `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L170, ~L190, ~L268, ~L333, ~L413, ~L600
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  6 queued · 0 in-progress · last took 6m52s
+═══════════════════════════════════════════════════════════════
+  → Structured search qualifiers are undiscoverable — the search bar supports 14 qualifiers (`type:`, `has:alias`, `has:direct`, `has:duplicate`, `has:description`, `has:extension`, `has:generated`, `has:unused`, `value:`, `desc:`, `path:`, `name:`, `generator:`, `group:` — defined in `tokenListUtils.ts` QUERY_QUALIFIERS) but the UI provides zero hints that these exist; add two discoverability mechanisms: (1) when the user types a word followed by a colon (e.g., "type:") show an autocomplete dropdown listing valid completions — for `type:` show all token type names, for `has:` show alias/direct/duplicate/etc., for other qualifiers show a text hint; (2) add a small filter-icon button (funnel icon) to the right of the search bar that opens a compact filter panel with checkbox groups (token type checkboxes, has: toggles for alias/unused/duplicate/generated) — selecting options constructs the qualifier string in the search bar so users learn the syntax by using the UI; do NOT use rotating placeholder text — a static placeholder like `Search… (type: has: value:)` with a tooltip on hover is sufficient and less distracting; files: `TokenList.tsx` (search bar rendering and `useTokenSearch` integration), `tokenListUtils.ts` (QUERY_QUALIFIERS constant, ~L148–163), `useTokenSearch.ts`
+  Running agent… (started 23:49:48)
+
+  ✓ done: Structured search qualifiers are undiscoverable
+    Added in-place qualifier autocomplete, a funnel filter panel that writes `type:`/`has:` syntax into the search bar, and validated successfully with `bash scripts/backlog/validate.sh`.
+
+  Committing: Structured search qualifiers are undiscoverable

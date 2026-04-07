@@ -348,3 +348,11 @@
   - If a view toggle is intentionally moved out of persistent UI, also remove its collapsed placeholder state; otherwise the feature still consumes screen real estate even after the toolbar is cleaned up.
   - For command-palette toggles that mutate child-component local state, pair an imperative handle with a tiny custom event so palette labels stay in sync with persisted state.
 ---
+## 2026-04-07 - Structured search qualifiers are undiscoverable
+- Reworked token search around in-place structured filtering: the search field now uses a static `Search… (type: has: value:)` placeholder with a syntax tooltip, keeps qualifier searches inside the token list instead of bouncing them into the command palette, and shows inline autocomplete only when the active token fragment contains a qualifier.
+- Added a funnel filter panel beside the search bar with type checkboxes plus `has:alias`, `has:unused`, `has:duplicate`, and `has:generated` toggles; toggling these options writes canonical qualifier strings back into the search field and exposes active qualifier chips that can be removed directly.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2571, ~L2643, ~L2910; `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` ~L104, ~L278, ~L304, ~L378; `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L32, ~L186, ~L207, ~L222
+- **Learnings for future iterations:**
+  - If a search box owns structured filters, keep the qualifier query in the same surface; command-palette handoff breaks autocomplete and makes the syntax feel inconsistent.
+  - A funnel panel should mutate the exact query syntax users can also type by hand. That teaches the model without introducing a second, drifting filter state.
+---

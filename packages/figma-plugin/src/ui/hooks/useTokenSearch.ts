@@ -3,6 +3,7 @@ import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from './useGenerators';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
+import { ALL_TOKEN_TYPES } from '../shared/tokenTypeCategories';
 
 export interface FilterPreset {
   id: string;
@@ -11,7 +12,9 @@ export interface FilterPreset {
 }
 import {
   flattenLeafNodes, filterTokenNodes, filterByDuplicatePaths,
-  findGroupByPath, parseStructuredQuery, hasStructuredQualifiers, QUERY_QUALIFIERS,
+  findGroupByPath, parseStructuredQuery, QUERY_QUALIFIERS,
+  getActiveQueryToken, getQualifierDefinitionForToken, getQueryQualifierValues,
+  normalizeHasQualifier, setQueryQualifierValues,
 } from '../components/tokenListUtils';
 import { stableStringify } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
@@ -49,7 +52,7 @@ export function useTokenSearch({
   tokens,
   sets: _sets,
   serverUrl,
-  onOpenCommandPaletteWithQuery,
+  onOpenCommandPaletteWithQuery: _onOpenCommandPaletteWithQuery,
   virtualScrollTopRef,
   flatItemsRef,
   itemOffsetsRef,
@@ -71,7 +74,7 @@ export function useTokenSearch({
 }: UseTokenSearchParams) {
   const searchRef = useRef<HTMLInputElement>(null);
   const qualifierHintsRef = useRef<HTMLDivElement>(null);
-  const qualifierHelpRef = useRef<HTMLDivElement>(null);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQueryState] = useState(() => {
     try { return sessionStorage.getItem('token-search') || ''; } catch (e) { console.debug('[useTokenSearch] storage read search query:', e); return ''; }
@@ -99,19 +102,10 @@ export function useTokenSearch({
   }, [virtualScrollTopRef, flatItemsRef, itemOffsetsRef, scrollAnchorPathRef, isFilterChangeRef]);
 
   const setSearchQuery = useCallback((v: string) => {
-    // Delegate to command palette when the query contains structured qualifiers,
-    // UNLESS cross-set mode is active — the server search handles all qualifiers natively.
-    if (v && hasStructuredQualifiers(v) && onOpenCommandPaletteWithQuery && !crossSetSearch) {
-      onOpenCommandPaletteWithQuery(v);
-      // Clear in-tree search so the tree shows unfiltered
-      setSearchQueryState('');
-      try { sessionStorage.removeItem('token-search'); } catch (e) { console.debug('[useTokenSearch] storage clear search query:', e); }
-      return;
-    }
     saveScrollAnchor();
     setSearchQueryState(v);
     try { sessionStorage.setItem('token-search', v); } catch (e) { console.debug('[useTokenSearch] storage write search query:', e); }
-  }, [saveScrollAnchor, onOpenCommandPaletteWithQuery, crossSetSearch]);
+  }, [saveScrollAnchor]);
 
   const setTypeFilter = useCallback((v: string) => {
     saveScrollAnchor();
@@ -167,30 +161,9 @@ export function useTokenSearch({
   }, [setSearchQuery]);
 
   const [showQualifierHints, setShowQualifierHints] = useState(false);
-  const [showQualifierHelp, setShowQualifierHelp] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
-
-  // Cycling placeholder examples for search qualifier discoverability
-  const PLACEHOLDER_EXAMPLES = useMemo(() => [
-    'type:color',
-    'has:alias',
-    'value:#ff0000',
-    'path:colors.brand',
-    'name:500',
-    'type:dimension',
-    'has:duplicate',
-    'desc:primary',
-  ], []);
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
-  useEffect(() => {
-    if (searchQuery) return; // don't cycle when there's text
-    const id = setInterval(() => {
-      setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length);
-    }, 3000);
-    return () => clearInterval(id);
-  }, [searchQuery, PLACEHOLDER_EXAMPLES]);
-  const [searchFocused, setSearchFocused] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
 
   // Debounced tokens reference for the expensive duplicate-value computation.
   const [debouncedTokens, setDebouncedTokens] = useState(tokens);
@@ -302,49 +275,95 @@ export function useTokenSearch({
     return [...types].sort();
   }, [tokens]);
 
+  const qualifierTypeOptions = useMemo(() => {
+    const merged = new Set<string>(ALL_TOKEN_TYPES);
+    for (const type of availableTypes) merged.add(type);
+    return [...merged].sort();
+  }, [availableTypes]);
+
+  const generatorNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const generator of derivedTokenPaths?.values() ?? []) names.add(generator.name);
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [derivedTokenPaths]);
+
+  const parsedSearchQuery = useMemo(() => parseStructuredQuery(searchQuery), [searchQuery]);
+  const selectedTypeQualifiers = useMemo(
+    () => Array.from(new Set(parsedSearchQuery.types)),
+    [parsedSearchQuery.types],
+  );
+  const selectedHasQualifiers = useMemo(
+    () => Array.from(new Set(parsedSearchQuery.has.map(value => normalizeHasQualifier(value)).filter((value): value is NonNullable<typeof value> => value !== null))),
+    [parsedSearchQuery.has],
+  );
+
+  const activeQueryToken = useMemo(() => getActiveQueryToken(searchQuery), [searchQuery]);
+
   // Compute filtered qualifier hints based on what the user is currently typing.
   // Must be declared AFTER availableTypes to avoid TDZ crash.
   const qualifierHints = useMemo(() => {
-    const lastWord = searchQuery.split(/\s+/).pop() || '';
+    const activeToken = activeQueryToken.token;
+    if (!activeToken.includes(':')) return [];
 
-    // Value completion after type: — show actual token types from the current set
-    if (lastWord.startsWith('type:')) {
-      const suffix = lastWord.slice(5).toLowerCase();
-      const matches = suffix
-        ? availableTypes.filter(t => t.toLowerCase().startsWith(suffix))
-        : availableTypes;
-      return matches.map(t => ({ qualifier: `type:${t}`, desc: `filter to ${t} tokens`, example: '' }));
+    const qualifierDef = getQualifierDefinitionForToken(activeToken);
+    if (!qualifierDef) return [];
+
+    const [, rawValue = ''] = activeToken.split(':', 2);
+    const partialValue = rawValue.toLowerCase();
+
+    if (qualifierDef.key === 'type') {
+      const matches = partialValue
+        ? qualifierTypeOptions.filter(type => type.toLowerCase().startsWith(partialValue))
+        : qualifierTypeOptions;
+      return matches.map(type => ({
+        id: `type:${type}`,
+        label: `type:${type}`,
+        desc: `Filter to ${type} tokens`,
+        replacement: `type:${type}`,
+        kind: 'replacement' as const,
+      }));
     }
 
-    // Value completion after has: — show recognized has: values
-    if (lastWord.startsWith('has:')) {
-      const suffix = lastWord.slice(4).toLowerCase();
-      const hasOptions = [
-        { v: 'alias', desc: 'Only reference tokens' },
-        { v: 'direct', desc: 'Only direct-value tokens' },
-        { v: 'duplicate', desc: 'Only tokens with duplicate values' },
-        { v: 'description', desc: 'Only tokens with a description' },
-        { v: 'extension', desc: 'Only tokens with extensions' },
-      ];
-      const matches = suffix ? hasOptions.filter(({ v }) => v.startsWith(suffix)) : hasOptions;
-      return matches.map(({ v, desc }) => ({ qualifier: `has:${v}`, desc, example: '' }));
+    if (qualifierDef.key === 'has') {
+      const matches = QUERY_QUALIFIERS
+        .filter(def => def.key === 'has')
+        .filter(def => def.qualifier.slice(4).startsWith(partialValue));
+      return matches.map(def => ({
+        id: def.qualifier,
+        label: def.qualifier,
+        desc: def.desc,
+        replacement: def.qualifier,
+        kind: 'replacement' as const,
+      }));
     }
 
-    // On focus with empty query — show all qualifiers as discovery hints
-    if (!lastWord) return QUERY_QUALIFIERS;
+    if (qualifierDef.key === 'generator') {
+      const matches = partialValue
+        ? generatorNames.filter(name => name.toLowerCase().startsWith(partialValue))
+        : generatorNames;
+      if (matches.length > 0) {
+        return matches.map(name => ({
+          id: `generator:${name}`,
+          label: `generator:${name}`,
+          desc: 'Filter by generator name',
+          replacement: `generator:${name}`,
+          kind: 'replacement' as const,
+        }));
+      }
+    }
 
-    // Partial word after unknown qualifier — hide hints
-    if (lastWord.includes(':')) return [];
-
-    // Prefix match on qualifier names
-    const lw = lastWord.toLowerCase();
-    return QUERY_QUALIFIERS.filter(q => q.qualifier.toLowerCase().startsWith(lw));
-  }, [searchQuery, availableTypes]);
+    return [{
+      id: `${qualifierDef.key}-hint`,
+      label: activeToken,
+      desc: qualifierDef.valueHint ?? qualifierDef.desc,
+      kind: 'hint' as const,
+    }];
+  }, [activeQueryToken.token, generatorNames, qualifierTypeOptions]);
 
   // Compute highlight terms from the parsed search query for substring highlighting
   const searchHighlight = useMemo(() => {
     if (!searchQuery) return undefined;
-    const parsed = parseStructuredQuery(searchQuery);
+    const parsed = parsedSearchQuery;
     const nameTerms: string[] = [];
     const valueTerms: string[] = [];
     if (parsed.text) nameTerms.push(parsed.text);
@@ -354,7 +373,41 @@ export function useTokenSearch({
     if (parsed.text) valueTerms.push(parsed.text);
     if (!nameTerms.length && !valueTerms.length) return undefined;
     return { nameTerms, valueTerms };
-  }, [searchQuery]);
+  }, [parsedSearchQuery, searchQuery]);
+
+  const toggleQueryQualifierValue = useCallback((
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    value: string,
+  ) => {
+    const currentValues = getQueryQualifierValues(searchQuery, qualifier);
+    const nextValues = currentValues.includes(value.toLowerCase())
+      ? currentValues.filter(current => current !== value.toLowerCase())
+      : [...currentValues, value.toLowerCase()];
+    setSearchQuery(setQueryQualifierValues(searchQuery, qualifier, nextValues));
+  }, [searchQuery, setSearchQuery]);
+
+  const removeQueryToken = useCallback((token: string) => {
+    const next = searchQuery
+      .split(/\s+/)
+      .filter(part => part && part.toLowerCase() !== token.toLowerCase())
+      .join(' ')
+      .trim();
+    setSearchQuery(next);
+  }, [searchQuery, setSearchQuery]);
+
+  const structuredFilterChips = useMemo(() => {
+    const chips: Array<{ token: string; label: string }> = [];
+    for (const value of parsedSearchQuery.types) chips.push({ token: `type:${value}`, label: `type:${value}` });
+    for (const value of selectedHasQualifiers) chips.push({ token: `has:${value}`, label: `has:${value}` });
+    for (const value of parsedSearchQuery.values) chips.push({ token: `value:${value}`, label: `value:${value}` });
+    for (const value of parsedSearchQuery.descs) chips.push({ token: `desc:${value}`, label: `desc:${value}` });
+    for (const value of parsedSearchQuery.paths) chips.push({ token: `path:${value}`, label: `path:${value}` });
+    for (const value of parsedSearchQuery.names) chips.push({ token: `name:${value}`, label: `name:${value}` });
+    for (const value of parsedSearchQuery.generators) chips.push({ token: `generator:${value}`, label: `generator:${value}` });
+    return chips;
+  }, [parsedSearchQuery, selectedHasQualifiers]);
+
+  const searchTooltip = 'Structured search supports type:, has:, value:, desc:, path:, name:, generator:, and group:. Example: type:color has:duplicate value:#ff0000';
 
   // displayedTokens: derived from search/filter state and component-level state
   const displayedTokens = useMemo(() => {
@@ -405,15 +458,12 @@ export function useTokenSearch({
     applyFilterPreset,
     showQualifierHints,
     setShowQualifierHints,
-    showQualifierHelp,
-    setShowQualifierHelp,
     hintIndex,
     setHintIndex,
-    placeholderIdx,
-    searchFocused,
-    setSearchFocused,
     filterDrawerOpen,
     setFilterDrawerOpen,
+    filterPanelOpen,
+    setFilterPanelOpen,
     debouncedTokens,
     crossSetResults,
     crossSetTotal,
@@ -422,7 +472,7 @@ export function useTokenSearch({
     // Refs
     searchRef,
     qualifierHintsRef,
-    qualifierHelpRef,
+    filterPanelRef,
     crossSetAbortRef,
     CROSS_SET_PAGE_SIZE,
     // Callbacks
@@ -431,15 +481,23 @@ export function useTokenSearch({
     setTypeFilter,
     setRefFilter,
     setShowDuplicates,
+    toggleQueryQualifierValue,
+    removeQueryToken,
     // Computed
     filtersActive,
     activeFilterCount,
     duplicateValuePaths,
     duplicateCounts,
     availableTypes,
+    qualifierTypeOptions,
     qualifierHints,
+    activeQueryToken,
+    parsedSearchQuery,
+    selectedTypeQualifiers,
+    selectedHasQualifiers,
+    structuredFilterChips,
     searchHighlight,
-    PLACEHOLDER_EXAMPLES,
+    searchTooltip,
     displayedTokens,
     displayedLeafNodes,
   };
