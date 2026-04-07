@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
+import type { TokenGenerator } from '../hooks/useGenerators';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { ValuePreview } from './ValuePreview';
 import { resolveTokenValue, isAlias, buildResolutionChain, buildSetThemeMap } from '../../shared/resolveAlias';
@@ -15,6 +16,10 @@ interface TokenDetailPreviewProps {
   pathToSet?: Record<string, string>;
   dimensions?: ThemeDimension[];
   activeThemes?: Record<string, string>;
+  tokenUsageCounts?: Record<string, number>;
+  generators?: TokenGenerator[];
+  generatorsBySource?: Map<string, TokenGenerator[]>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
   /** Server URL for fetching token value history. When omitted, history section is hidden. */
   serverUrl?: string;
   onEdit: () => void;
@@ -30,6 +35,10 @@ export function TokenDetailPreview({
   pathToSet,
   dimensions,
   activeThemes,
+  tokenUsageCounts,
+  generators,
+  generatorsBySource,
+  derivedTokenPaths,
   serverUrl,
   onEdit,
   onClose,
@@ -67,6 +76,28 @@ export function TokenDetailPreview({
   }, [rawValue]);
 
   const tokenSet = pathToSet?.[tokenPath] ?? setName;
+  const tokenManagerExt = entry?.$extensions?.tokenmanager as Record<string, unknown> | undefined;
+  const directAliasPath = typeof rawValue === 'string' && isAlias(rawValue)
+    ? rawValue.slice(1, -1)
+    : null;
+  const lifecycle = typeof tokenManagerExt?.lifecycle === 'string' ? tokenManagerExt.lifecycle : null;
+  const provenance = typeof tokenManagerExt?.source === 'string' ? tokenManagerExt.source : null;
+  const extendsPath = typeof tokenManagerExt?.extends === 'string' ? tokenManagerExt.extends : null;
+  const sourceGenerators = useMemo(() => {
+    if (generatorsBySource) return generatorsBySource.get(tokenPath) ?? [];
+    return (generators ?? []).filter(generator => generator.sourceToken === tokenPath);
+  }, [generatorsBySource, generators, tokenPath]);
+  const derivedGenerator = derivedTokenPaths?.get(tokenPath);
+  const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
+  const provenanceLabel = provenance
+    ? ({
+        'figma-variables': 'Figma variables',
+        'figma-styles': 'Figma styles',
+        json: 'JSON import',
+        css: 'CSS import',
+        tailwind: 'Tailwind import',
+      } as Record<string, string>)[provenance] ?? provenance
+    : null;
 
   if (!entry) {
     return (
@@ -110,6 +141,70 @@ export function TokenDetailPreview({
             <span className="text-[8px] text-[var(--color-figma-text-tertiary)]">{tokenSet}</span>
           </div>
         </div>
+
+        {(entry.$description || directAliasPath || lifecycle || provenanceLabel || extendsPath || sourceGenerators.length > 0 || derivedGenerator || usageCount > 0) && (
+          <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">Metadata</div>
+            <div className="flex flex-col gap-2">
+              {entry.$description && (
+                <div>
+                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] mb-0.5">Description</div>
+                  <div className="text-[10px] text-[var(--color-figma-text)] whitespace-pre-wrap break-words">{entry.$description}</div>
+                </div>
+              )}
+              {directAliasPath && (
+                <div>
+                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] mb-0.5">Alias target</div>
+                  <button
+                    onClick={() => onNavigateToAlias?.(directAliasPath)}
+                    className="text-[10px] font-mono text-left text-[var(--color-figma-accent)] hover:underline break-all"
+                    title={directAliasPath}
+                  >
+                    {formatDisplayPath(directAliasPath, directAliasPath.split('.').pop() ?? directAliasPath)}
+                  </button>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-1">
+                {lifecycle && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
+                    Lifecycle: {lifecycle}
+                  </span>
+                )}
+                {provenanceLabel && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
+                    Source: {provenanceLabel}
+                  </span>
+                )}
+                {extendsPath && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] break-all">
+                    Extends: {extendsPath}
+                  </span>
+                )}
+                {sourceGenerators.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
+                    Generator source: {sourceGenerators.length} target{sourceGenerators.length === 1 ? '' : 's'}
+                  </span>
+                )}
+                {derivedGenerator && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
+                    Derived from: {derivedGenerator.name}
+                  </span>
+                )}
+                {usageCount > 0 && (
+                  <button
+                    onClick={() => {
+                      parent.postMessage({ pluginMessage: { type: 'highlight-layer-by-token', tokenPath } }, '*');
+                    }}
+                    className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15"
+                    title={`Highlight ${usageCount} bound layer${usageCount === 1 ? '' : 's'} on the canvas`}
+                  >
+                    Usage: {usageCount}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Value section */}
         <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">

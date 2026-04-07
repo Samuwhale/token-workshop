@@ -1,5 +1,13 @@
 # Backlog Progress Log
 ---
+## 2026-04-07 - Token rows display too many simultaneous indicators
+- Simplified leaf rows to a progressive-disclosure layout: default rows now show swatch, name, value, and only one prioritized status indicator (`lint` > `sync changed` > `duplicate`); selected/focused rows additionally reveal type and alias target; hover actions were reduced to favorite, edit, apply, and copy-path, with pin/pinned UI and row move buttons removed.
+- Moved secondary token metadata into the preview side panel, including alias target, lifecycle, provenance, inheritance, generator metadata, description, and usage counts with a highlight-bound-layers action; also increased row-height defaults slightly and reduced swatch sizes to fit the calmer row design.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1202, ~L1714, ~L1903; `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx` ~L15, ~L145; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L69, ~L745, ~L1848, ~L2516, ~L3554; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L25; `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L19, ~L218, ~L413; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L499, ~L580; `packages/figma-plugin/src/ui/App.tsx` ~L110, ~L2180
+- **Learnings for future iterations:**
+  - If row density is being reduced, move metadata to an already-existing detail surface instead of inventing new inline truncation patterns; the preview panel is the right sink for verbose token state.
+  - When removing an interaction surface like pinned rows, clear both the visible UI and the orchestration that feeds it (`filters`, `special sections`, `context wiring`) or validation will still exercise the dead path.
+---
 
 ## 2026-04-05 - "Simple mode" auto-activates with no explanation
 - The info banner already existed but had `sets.length > 1` condition, so single-set users got no explanation when their tokens were silently reorganized by type. Fixed by changing to `sets.length >= 1` in both the info bar and the "return to simple mode" bar. Updated copy: single-set case shows "N tokens — organized by type" with "Show original structure" button instead of "Show sets".

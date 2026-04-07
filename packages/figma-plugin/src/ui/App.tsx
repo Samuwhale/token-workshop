@@ -110,7 +110,7 @@ export function App() {
   const resolverState = useResolverContext();
   const { selectedNodes } = useSelectionContext();
   const { triggerHeatmapScan } = useHeatmapContext();
-  const { triggerUsageScan } = useUsageContext();
+  const { triggerUsageScan, tokenUsageCounts } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
   // Banner URL editor has its own local state (separate from SettingsPanel's connection state)
   const [bannerUrlInput, setBannerUrlInput] = useState(serverUrl);
@@ -2180,6 +2180,9 @@ export function App() {
                 pathToSet={pathToSet}
                 dimensions={dimensions}
                 activeThemes={activeThemes}
+                tokenUsageCounts={tokenUsageCounts}
+                generatorsBySource={generatorsBySource}
+                derivedTokenPaths={derivedTokenPaths}
                 serverUrl={serverUrl}
                 onEdit={handlePreviewEdit}
                 onClose={handlePreviewClose}

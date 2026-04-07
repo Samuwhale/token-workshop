@@ -23,16 +23,16 @@ export type Density = 'compact' | 'default' | 'comfortable';
 
 /** Row height (px) per density level */
 export const DENSITY_ROW_HEIGHT: Record<Density, number> = {
-  compact: 22,
-  default: 28,
-  comfortable: 36,
+  compact: 24,
+  default: 30,
+  comfortable: 38,
 };
 
 /** Swatch / preview size (px) per density level */
 export const DENSITY_SWATCH_SIZE: Record<Density, number> = {
-  compact: 16,
-  default: 24,
-  comfortable: 32,
+  compact: 14,
+  default: 18,
+  comfortable: 24,
 };
 
 /** Tailwind py class per density level */
@@ -68,7 +68,7 @@ export const DEPTH_COLORS: readonly string[] = [
 // ---------------------------------------------------------------------------
 // Virtual scroll constants
 // ---------------------------------------------------------------------------
-export const VIRTUAL_ITEM_HEIGHT = 28; // px per row base height (default density — overridden at runtime)
+export const VIRTUAL_ITEM_HEIGHT = 30; // px per row base height (default density — overridden at runtime)
 export const VIRTUAL_CHAIN_EXPAND_HEIGHT = 24; // extra px when the alias chain panel is expanded
 export const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the viewport
 

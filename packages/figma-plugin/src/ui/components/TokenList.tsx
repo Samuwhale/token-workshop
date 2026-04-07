@@ -34,7 +34,6 @@ import type { TokenListModalsState } from './TokenListModalsContext';
 import { useExtractToAlias } from '../hooks/useExtractToAlias';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { matchesShortcut } from '../shared/shortcutRegistry';
-import { usePinnedTokens } from '../hooks/usePinnedTokens';
 import { useTokenCreate } from '../hooks/useTokenCreate';
 import { useTableCreate } from '../hooks/useTableCreate';
 import { useFindReplace } from '../hooks/useFindReplace';
@@ -67,6 +66,7 @@ const TOKEN_TYPE_COLORS: Record<string, string> = {
 };
 const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
+const EMPTY_PATH_SET = new Set<string>();
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
@@ -104,14 +104,12 @@ export function TokenList({
   const [showBatchCopyToSet, setShowBatchCopyToSet] = useState(false);
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState('');
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
-  const pinnedTokens = usePinnedTokens(setName);
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
     timeout: 15000,
     extractResponse: extractSyncApplyResult,
   });
-  const [showPinnedOnly, setShowPinnedOnly] = useState(false);
   const [showResolvedValues, setShowResolvedValues] = useState(false);
   const [zoomRootPath, setZoomRootPath] = useState<string | null>(null);
   const [statsBarOpen, setStatsBarOpen] = useState(() => lsGet('tm_token_stats_bar_open') === 'true');
@@ -640,7 +638,6 @@ export function TokenList({
     onError,
     onRenamePath: (oldPath, newPath) => {
       recentlyTouched.renamePath(oldPath, newPath);
-      pinnedTokens.renamePin(oldPath, newPath);
     },
   });
   const {
@@ -745,12 +742,12 @@ export function TokenList({
     scrollAnchorPathRef,
     isFilterChangeRef,
     expandedPaths,
-    pinnedPaths: pinnedTokens.paths,
+    pinnedPaths: EMPTY_PATH_SET,
     sortedTokens,
     recentlyTouched,
     showIssuesOnly,
     showRecentlyTouched,
-    showPinnedOnly,
+    showPinnedOnly: false,
     inspectMode,
     zoomRootPath,
     lintPaths,
@@ -814,12 +811,6 @@ export function TokenList({
       setZoomRootPath(null);
     }
   }, [sortedTokens, zoomRootPath]);
-
-  // Pinned tokens from the displayed (filtered) set — shown in a dedicated section above the list
-  const pinnedDisplayedNodes = useMemo(() => {
-    if (pinnedTokens.count === 0 || showPinnedOnly) return [];
-    return displayedLeafNodes.filter(n => pinnedTokens.isPinned(n.path));
-  }, [displayedLeafNodes, pinnedTokens, showPinnedOnly]);
 
   // Phase 3: useTokenVirtualScroll (needs displayedTokens from useTokenSearch)
   // Note: showRecentlyTouched special-case for flatItems is handled here
@@ -910,7 +901,6 @@ export function TokenList({
     onRecordTouch: recentlyTouched.recordTouch,
     onRenamePath: (oldPath, newPath) => {
       recentlyTouched.renamePath(oldPath, newPath);
-      pinnedTokens.renamePin(oldPath, newPath);
     },
     onClearSelection: clearSelection,
     onError,
@@ -1846,13 +1836,13 @@ export function TokenList({
       },
     };
     return () => { compareHandle.current = null; };
-  }, [compareHandle, setSelectMode, setShowBatchEditor, setShowRecentlyTouched, setShowPinnedOnly, setPendingRenameToken, setMovingToken, handleOpenExtractToAlias]);
+  }, [compareHandle, setSelectMode, setShowBatchEditor, setShowRecentlyTouched, setPendingRenameToken, setMovingToken, handleOpenExtractToAlias]);
 
   const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), [setPendingRenameToken]);
 
   // Effective roving focus path: if none has been set yet, default to the first visible row
   // so Tab-into-tree always lands on a meaningful starting point.
-  const effectiveRovingPath = rovingFocusPath ?? pinnedDisplayedNodes[0]?.path ?? flatItems[0]?.node.path ?? null;
+  const effectiveRovingPath = rovingFocusPath ?? flatItems[0]?.node.path ?? null;
 
   // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
   const treeCtx: TokenTreeContextType = useMemo(() => ({
@@ -1914,7 +1904,6 @@ export function TokenList({
     onNavigateToGenerator,
     onRegenerateGenerator: handleRegenerateGenerator,
     onToggleChain: handleToggleChain,
-    onTogglePin: pinnedTokens.togglePin,
     onToggleStar,
     starredPaths,
     onCompareToken: handleCompareToken,
@@ -1956,7 +1945,7 @@ export function TokenList({
     handleDuplicateToken, handleOpenExtractToAlias, handleHoverToken,
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
     setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,
-    handleDetachFromGenerator, handleRegenerateGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
+    handleDetachFromGenerator, handleRegenerateGenerator, handleToggleChain, handleZoomIntoGroup,
     handleCompareToken, onViewTokenHistory, onShowReferences, handleCompareAcrossThemes, handleFindInAllSets, handleDragStartNotify, handleDragEndNotify, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, condensedView, themeCoverage,
@@ -2524,22 +2513,6 @@ export function TokenList({
                 </button>
               )}
 
-              {/* Pinned filter */}
-              {pinnedTokens.count > 0 && (
-                <button
-                  onClick={() => setShowPinnedOnly(v => !v)}
-                  title={showPinnedOnly ? 'Show all tokens' : `Show ${pinnedTokens.count} pinned token${pinnedTokens.count !== 1 ? 's' : ''}`}
-                  aria-label={showPinnedOnly ? 'Show all tokens' : 'Show pinned tokens'}
-                  aria-pressed={showPinnedOnly}
-                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showPinnedOnly ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" aria-hidden="true">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                  {pinnedTokens.count}
-                </button>
-              )}
-
               {/* Selection filter */}
               <button
                 onClick={() => setInspectMode(v => !v)}
@@ -2907,16 +2880,6 @@ export function TokenList({
                         Recent ✕
                       </button>
                     )}
-                    {showPinnedOnly && (
-                      <button
-                        onClick={() => setShowPinnedOnly(false)}
-                        title="Clear pinned filter"
-                        aria-label="Clear pinned filter"
-                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                      >
-                        Pinned ✕
-                      </button>
-                    )}
                     {typeFilter !== '' && (
                       <button
                         onClick={() => setTypeFilter('')}
@@ -2981,16 +2944,6 @@ export function TokenList({
                       className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                     >
                       Recent ✕
-                    </button>
-                  )}
-                  {showPinnedOnly && (
-                    <button
-                      onClick={() => setShowPinnedOnly(false)}
-                      title="Clear pinned filter"
-                      aria-label="Clear pinned filter"
-                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                    >
-                      Pinned ✕
                     </button>
                   )}
                 </div>
@@ -3142,31 +3095,6 @@ export function TokenList({
               <div key={r.optionName} className="w-[80px] shrink-0 px-1 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate border-l border-[var(--color-figma-border)]" title={r.optionName}>
                 {r.optionName}
               </div>
-            ))}
-          </div>
-        )}
-        {/* Pinned tokens section */}
-        {pinnedDisplayedNodes.length > 0 && viewMode === 'tree' && (
-          <div className="border-b border-[var(--color-figma-border)]">
-            <div className="flex items-center gap-1 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" className="text-[var(--color-figma-accent)]" aria-hidden="true">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-              <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Pinned ({pinnedDisplayedNodes.length})
-              </span>
-            </div>
-            {pinnedDisplayedNodes.map(node => (
-              <TokenTreeNode
-                key={`pinned-${node.path}`}
-                node={node}
-                depth={0}
-                isSelected={selectedPaths.has(node.path)}
-                skipChildren
-                showFullPath
-                isPinned={true}
-                multiModeValues={multiModeData ? getMultiModeValues(node.path) : undefined}
-              />
             ))}
           </div>
         )}
@@ -3631,8 +3559,7 @@ export function TokenList({
                 isSelected={node.isGroup ? false : selectedPaths.has(node.path)}
                 lintViolations={lintViolationsMap.get(node.path) ?? EMPTY_LINT_VIOLATIONS}
                 chainExpanded={expandedChains.has(node.path)}
-                showFullPath={showRecentlyTouched || showPinnedOnly}
-                isPinned={pinnedTokens.isPinned(node.path)}
+                showFullPath={showRecentlyTouched}
                 onMoveUp={moveEnabled && sibIdx > 0 ? () => handleMoveTokenInGroup(node.path, node.name, 'up') : undefined}
                 onMoveDown={moveEnabled && sibIdx >= 0 && sibIdx < siblings.length - 1 ? () => handleMoveTokenInGroup(node.path, node.name, 'down') : undefined}
                 multiModeValues={multiModeData ? getMultiModeValues(node.path) : undefined}

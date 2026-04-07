@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { useCallback, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
+import type { TokenGenerator } from '../hooks/useGenerators';
 import { TokenDetailPreview } from './TokenDetailPreview';
 import { Spinner } from './Spinner';
 
@@ -18,6 +19,10 @@ interface PreviewPanelProps {
   onClearFocus?: () => void;
   onEditToken?: (path: string, name?: string, set?: string) => void;
   serverUrl?: string;
+  tokenUsageCounts?: Record<string, number>;
+  generators?: TokenGenerator[];
+  generatorsBySource?: Map<string, TokenGenerator[]>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
 }
 
 type Template = 'colors' | 'type-scale' | 'buttons' | 'forms' | 'card' | 'effects';
@@ -213,7 +218,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, generators, generatorsBySource, derivedTokenPaths }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -413,6 +418,10 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
           pathToSet={pathToSet}
           dimensions={dimensions}
           activeThemes={activeThemes}
+          tokenUsageCounts={tokenUsageCounts}
+          generators={generators}
+          generatorsBySource={generatorsBySource}
+          derivedTokenPaths={derivedTokenPaths}
           serverUrl={serverUrl}
           onEdit={() => onEditToken?.(focusedToken.path, focusedToken.name, focusedToken.set)}
           onClose={onClearFocus ?? (() => {})}

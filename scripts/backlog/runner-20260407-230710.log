@@ -25,3 +25,23 @@
     Changed new-token to Cmd/Ctrl+N and guarded Backspace bulk delete behind a meaningful focused row; validation passed.
 
   Committing: Global unmodified keyboard shortcuts trigger unexpected mutations
+[main dad9d140] chore(backlog): done – Global unmodified keyboard shortcuts trigger unexpected mutations
+ 6 files changed, 76 insertions(+), 8 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260407-230710.log
+  ✓ Committed and marked done
+
+## 2026-04-07 - Global unmodified keyboard shortcuts trigger unexpected mutations
+- Changed the token-list "new token" shortcut from bare `N` to `Cmd/Ctrl+N` in the shared shortcut registry so list focus no longer intercepts plain `n` while users are navigating or preparing to search.
+- Tightened `handleListKeyDown` so bulk delete on `Backspace` only fires when multi-select is active, there is an actual selection, and keyboard focus is still on a token/group row. The create-token handler now reuses the same focused row lookup instead of re-reading `document.activeElement`.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L78, ~L159, ~L276; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L983, ~L1103, ~L1153
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  11 queued · 0 in-progress · last took 1m24s
+═══════════════════════════════════════════════════════════════
+  → Token rows display too many simultaneous indicators — a single leaf row shows up to 15+ pieces of information at once (depth bar, swatch, name, type badge at 8px font, lifecycle badge, provenance badge, extends indicator, generator source/derived badges, alias link, resolution chain badge, value text, duplicate-value dot, lint icon, cascade-change dot, usage count, sync-change dot) plus 9 hover-revealed action buttons; at 28px row height in a ~350px plugin window many of these are below legible size; apply progressive disclosure: (1) default row state: swatch + name + value + at most one status indicator using a strict priority order — lint violation > sync-changed > duplicate value; suppress all other badges; (2) when a token row is selected/focused: also show type badge and alias target path (if aliased); (3) all other metadata (lifecycle, provenance, extends, generator source, resolution chain, usage count) moves to the `TokenDetailPreview` side panel which already exists for this purpose; hover actions: keep edit button, copy path button, apply-to-selection button; remove move-up/move-down buttons (drag handles are sufficient); remove pin and star (merge into a single "favorite" concept); files: `TokenTreeNode.tsx` (TokenLeafNode component, lines ~1020–2800), `tokenListTypes.ts` (DENSITY_ROW_HEIGHT, DENSITY_SWATCH_SIZE constants)
+  Running agent… (started 23:08:34)
+
+  ✓ done: Token rows display too many simultaneous indicators
+    Simplified token rows to a progressive-disclosure layout, moved secondary metadata into TokenDetailPreview, removed pin/pinned row UI in favor of a single favorite action, and passed full backlog validation.
+
+  Committing: Token rows display too many simultaneous indicators

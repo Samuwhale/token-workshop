@@ -503,6 +503,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                     pathToSet={pathToSet}
                     dimensions={dimensions}
                     activeThemes={activeThemes}
+                    tokenUsageCounts={tokenUsageCounts}
+                    generators={generators}
+                    derivedTokenPaths={derivedTokenPaths}
                     serverUrl={serverUrl}
                     onEdit={p.handlePreviewEdit}
                     onClose={p.handlePreviewClose}
@@ -577,6 +580,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                     setPreviewingToken(null);
                   }}
                   serverUrl={serverUrl}
+                  tokenUsageCounts={tokenUsageCounts}
+                  generators={generators}
+                  derivedTokenPaths={derivedTokenPaths}
                 />
               </ErrorBoundary>
             </div>

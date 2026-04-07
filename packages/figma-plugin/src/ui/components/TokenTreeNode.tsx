@@ -1023,17 +1023,17 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
 const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const {
     node, depth, isSelected, lintViolations = [],
-    skipChildren, showFullPath, isPinned,
+    skipChildren, showFullPath, isPinned: _isPinned,
     chainExpanded: chainExpandedProp = false,
-    onMoveUp, onMoveDown, multiModeValues,
+    onMoveUp: _onMoveUp, onMoveDown: _onMoveDown, multiModeValues,
   } = props;
 
   const ctx = useTokenTree();
   const {
     density, setName: _setName, selectionCapabilities, allTokensFlat, selectMode,
     expandedPaths: _expandedPaths, onToggleExpand: _onToggleExpand, duplicateCounts, highlightedToken,
-    inspectMode, syncSnapshot, cascadeDiff, generatorsBySource,
-    derivedTokenPaths, tokenUsageCounts, searchHighlight, selectedNodes,
+    inspectMode, syncSnapshot, cascadeDiff: _cascadeDiff, generatorsBySource: _generatorsBySource,
+    derivedTokenPaths, tokenUsageCounts: _tokenUsageCounts, searchHighlight, selectedNodes,
     dragOverGroup: _dragOverGroup, dragOverGroupIsInvalid: _dragOverGroupIsInvalid,
     dragSource: _dragSource, dragOverReorder,
     selectedLeafNodes,
@@ -1046,7 +1046,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     onSetGroupScopes: _onSetGroupScopes, onGenerateScaleFromGroup: _onGenerateScaleFromGroup,
     onFilterByType,
     onJumpToGroup: _onJumpToGroup, onZoomIntoGroup: _onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
-    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onCompareAcrossThemes, onFindInAllSets,
+    onToggleChain: _onToggleChain, onTogglePin: _onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onCompareAcrossThemes, onFindInAllSets,
     onDragStart, onDragEnd,
     onDragOverGroup: _onDragOverGroup, onDropOnGroup: _onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
@@ -1057,11 +1057,9 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     pathToSet, dimensions, activeThemes,
     pendingRenameToken, clearPendingRename,
     pendingTabEdit, clearPendingTabEdit, onTabToNext,
-    onNavigateToGenerator,
+    onNavigateToGenerator: _onNavigateToGenerator,
     rovingFocusPath, onRovingFocus,
   } = ctx;
-
-  const isStarred = starredPaths?.has(node.path) ?? false;
 
   const pyClass = DENSITY_PY_CLASS[density];
   const swatchSize = DENSITY_SWATCH_SIZE[density];
@@ -1202,10 +1200,10 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   );
 
   const displayValue = resolveResult ? (resolveResult.value ?? node.$value) : node.$value;
-  // chain.length is the number of alias hops (e.g. chain=['B','C'] = A→B→C→value = 3 hops)
-  const aliasChain = resolveResult?.chain ?? [];
-  const showChainBadge = aliasChain.length >= 2;
   const isBrokenAlias = isAlias(node.$value) && !!resolveResult?.error;
+  const aliasTargetPath = isAlias(node.$value) ? String(node.$value).slice(1, -1) : null;
+  const isFavorite = starredPaths?.has(node.path) ?? false;
+  const showExpandedMeta = !renamingToken && (isSelected || rovingFocusPath === node.path || isHighlighted);
 
   // Enriched resolution chain with per-hop set/theme metadata (for debugger view)
   const setThemeMap = useMemo(
@@ -1305,9 +1303,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   // Sync state indicator
   const syncChanged = syncSnapshot && node.path in syncSnapshot
     && syncSnapshot[node.path] !== stableStringify(node.$value);
-
-  // Cascade diff: token resolves to a different value under the proposed set order
-  const cascadeChange = cascadeDiff?.[node.path];
 
   const handleCopyPath = useCallback(() => {
     navigator.clipboard.writeText(node.path).catch(e => console.warn('[clipboard] write failed:', e));
@@ -1569,7 +1564,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   return (
     <div ref={nodeRef}>
     <div
-      className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${(node.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
+      className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''}`}
       style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 20)}px` }}
       tabIndex={rovingFocusPath === node.path ? 0 : -1}
       data-token-path={node.path}
@@ -1718,12 +1713,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       >
         <div className="flex items-center gap-1.5">
           <CondensedAncestorBreadcrumb nodePath={node.path} nodeName={node.name} depth={depth} condensedView={condensedView} />
-          {syncChanged && (
-            <span
-              title="Changed locally since last sync"
-              className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] shrink-0 cursor-default"
-            />
-          )}
           {renamingToken ? (
             <div className="flex flex-col gap-0.5 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
               <div className="flex items-center gap-1">
@@ -1746,7 +1735,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           ) : (
             <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchHighlight?.nameTerms ?? [])}</span>
           )}
-          {!renamingToken && node.$type && (
+          {showExpandedMeta && node.$type && (
             <button
               onClick={e => { e.stopPropagation(); onFilterByType?.(node.$type!); }}
               title={`Filter by type: ${node.$type}`}
@@ -1755,106 +1744,20 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               {node.$type}
             </button>
           )}
-          {/* Lifecycle badge */}
-          {(() => {
-            const lc = (node.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
-            if (lc === 'draft') return (
-              <span className="px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400" title="Draft — not yet published">draft</span>
-            );
-            if (lc === 'deprecated') return (
-              <span className="px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-gray-300/40 text-gray-500 dark:bg-gray-700/40 dark:text-gray-400 line-through" title="Deprecated — avoid using this token">deprecated</span>
-            );
-            return null;
-          })()}
-          {/* Provenance badge — imported/synced source */}
-          {(() => {
-            const src = (node.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.source as string | undefined;
-            if (!src) return null;
-            const labels: Record<string, { label: string; title: string; icon: JSX.Element }> = {
-              'figma-variables': { label: 'Figma', title: 'Imported from Figma variables', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M12 9v3M9.5 14.5L12 12M14.5 14.5L12 12"/></svg> },
-              'figma-styles': { label: 'Styles', title: 'Imported from Figma styles', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M12 9v3M9.5 14.5L12 12M14.5 14.5L12 12"/></svg> },
-              json: { label: 'JSON', title: 'Imported from JSON file', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/></svg> },
-              css: { label: 'CSS', title: 'Imported from CSS custom properties', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/></svg> },
-              tailwind: { label: 'TW', title: 'Imported from Tailwind config', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/></svg> },
-            };
-            const info = labels[src];
-            if (!info) return null;
-            return (
-              <span
-                title={info.title}
-                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-[var(--color-figma-text-secondary)]/8 text-[var(--color-figma-text-tertiary)] cursor-default"
-              >
-                {info.icon}
-                {info.label}
-              </span>
-            );
-          })()}
-          {/* Extends (inheritance) indicator */}
-          {(() => {
-            const ext = (node.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.extends;
-            if (typeof ext === 'string' && ext) return (
-              <span
-                title={`Extends ${ext}`}
-                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-purple-500/15 text-purple-700 dark:text-purple-400 cursor-default max-w-[120px]"
-              >
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                </svg>
-                <span className="truncate" title={ext}>{ext}</span>
-              </span>
-            );
-            return null;
-          })()}
-          {/* Generator source indicator */}
-          {generatorsBySource?.has(node.path) && (
-            <span
-              title={`Source for ${generatorsBySource.get(node.path)!.length} derived group${generatorsBySource.get(node.path)!.length !== 1 ? 's' : ''}`}
-              className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] shrink-0 cursor-default"
-            >
-              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <circle cx="5" cy="2" r="1.5"/>
-                <circle cx="2" cy="8" r="1.5"/>
-                <circle cx="8" cy="8" r="1.5"/>
-                <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5"/>
-              </svg>
-              {generatorsBySource.get(node.path)!.length}
-            </span>
-          )}
-          {/* Derived token indicator — shows generator name */}
-          {derivedTokenPaths?.has(node.path) && !generatorsBySource?.has(node.path) && (() => {
-            const gen = derivedTokenPaths.get(node.path);
-            const canNavigate = gen && onNavigateToGenerator;
-            return (
-              <button
-                title={gen ? `Generated by ${gen.name} — click to open generator` : 'Auto-generated by a token generator'}
-                className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-secondary)] shrink-0 max-w-[120px] transition-colors ${canNavigate ? 'cursor-pointer hover:bg-[var(--color-figma-accent)]/15 hover:text-[var(--color-figma-accent)]' : 'cursor-default'}`}
-                onClick={canNavigate ? (e) => { e.stopPropagation(); onNavigateToGenerator!(gen.id); } : undefined}
-              >
-                <svg className="shrink-0" width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <path d="M2 2l6 6M8 2l-3 3-3 3"/>
-                </svg>
-                {gen && <span className="truncate" title={gen.name}>{gen.name}</span>}
-              </button>
-            );
-          })()}
-          {isAlias(node.$value) && !showResolvedValues && (
+          {showExpandedMeta && aliasTargetPath && !showResolvedValues && (
             <button
               onClick={handleAliasClick}
               className={`flex items-center gap-0.5 px-0.5 py-0.5 rounded text-[8px] transition-colors ${isBrokenAlias ? 'text-[var(--color-figma-error)] cursor-default' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
-              title={isBrokenAlias ? `Broken reference — ${resolveResult?.error}` : `${(node.$value as string).slice(1, -1)}\nClick to navigate`}
+              title={isBrokenAlias ? `Broken reference — ${resolveResult?.error}` : `${aliasTargetPath}\nClick to navigate`}
             >
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
                 <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
               </svg>
-              <span className="max-w-[80px] truncate" title={(node.$value as string).slice(1, -1)}>{(node.$value as string).slice(1, -1)}</span>
+              <span className="max-w-[96px] truncate" title={aliasTargetPath}>{aliasTargetPath}</span>
             </button>
           )}
         </div>
-        {node.$description && (
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={node.$description}>{node.$description}</div>
-        )}
       </div>
 
       {/* Multi-mode value columns — per-theme-option resolved values */}
@@ -2002,119 +1905,43 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
         const count = duplicateCounts.get(JSON.stringify(node.$value));
         const hasLint = lintViolations.length > 0;
         const worstSeverity = hasLint ? lintViolations.reduce((worst, v) => v.severity === 'error' ? 'error' : worst === 'error' ? 'error' : v.severity === 'warning' ? 'warning' : worst, 'info' as string) : null;
-        const usageCount = tokenUsageCounts?.[node.path] ?? 0;
-        return (count || hasLint || cascadeChange || showChainBadge || usageCount > 0) ? (
-          <div className="flex items-center gap-1 shrink-0">
-            {usageCount > 0 && (
-              <button
-                className="shrink-0 flex items-center gap-px text-[8px] text-emerald-600 dark:text-emerald-400"
-                title={`Bound to ${usageCount} layer${usageCount !== 1 ? 's' : ''} on this page`}
-                onClick={e => {
-                  e.stopPropagation();
-                  parent.postMessage({ pluginMessage: { type: 'highlight-layer-by-token', tokenPath: node.path } }, '*');
-                }}
-              >
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <circle cx="12" cy="12" r="5"/>
-                </svg>
-                {usageCount > 1 && <span>{usageCount}</span>}
-              </button>
-            )}
-            {hasLint && (
-              <button
-                onClick={e => {
-                  e.stopPropagation();
-                  const v = lintViolations[0];
-                  if (v.suggestedFix === 'extract-to-alias') onExtractToAliasForLint?.(node.path, node.$type, node.$value);
-                  else if (v.suggestedFix === 'add-description') onEdit(node.path, node.name);
-                }}
-                title={lintViolations.map(v => `${v.severity}: ${v.message}${v.suggestion ? `\nSuggestion: ${v.suggestion}` : ''}`).join('\n')}
-                className={`shrink-0 flex items-center justify-center ${worstSeverity === 'error' ? 'text-[var(--color-figma-error)]' : worstSeverity === 'warning' ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
-                </svg>
-              </button>
-            )}
-            {count && (
-              <span className="w-2 h-2 rounded-full bg-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`} />
-            )}
-            {resolutionSteps && resolutionSteps.length >= 2 && !showResolvedValues && (
-              <button
-                className={`text-[8px] shrink-0 px-0.5 rounded transition-colors flex items-center gap-0.5 ${chainExpanded ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
-                title={chainExpanded ? 'Collapse resolution chain' : `Show resolution chain (${resolutionSteps.length - 1} hop${resolutionSteps.length > 2 ? 's' : ''})`}
-                onClick={e => { e.stopPropagation(); onToggleChain?.(node.path); }}
-              >
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-                {resolutionSteps.length - 1}
-              </button>
-            )}
-            {cascadeChange && (
-              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" title={`Would change: ${formatValue(node.$type, cascadeChange.before)} → ${formatValue(node.$type, cascadeChange.after)}`} />
-            )}
-          </div>
-        ) : null;
+        if (hasLint) {
+          return (
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                const v = lintViolations[0];
+                if (v.suggestedFix === 'extract-to-alias') onExtractToAliasForLint?.(node.path, node.$type, node.$value);
+                else if (v.suggestedFix === 'add-description') onEdit(node.path, node.name);
+              }}
+              title={lintViolations.map(v => `${v.severity}: ${v.message}${v.suggestion ? `\nSuggestion: ${v.suggestion}` : ''}`).join('\n')}
+              className={`shrink-0 flex items-center justify-center ${worstSeverity === 'error' ? 'text-[var(--color-figma-error)]' : worstSeverity === 'warning' ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
+              </svg>
+            </button>
+          );
+        }
+        if (syncChanged) {
+          return <span className="w-2 h-2 rounded-full bg-[var(--color-figma-warning)] shrink-0" title="Changed locally since last sync" />;
+        }
+        if (count) {
+          return <span className="w-2 h-2 rounded-full bg-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`} />;
+        }
+        return null;
       })()}
-
-      {/* Quick-bound indicator — visible when not hovering */}
-      {!selectMode && quickBound && (
-        <span className="p-1 text-[var(--color-figma-success)] shrink-0 group-hover:hidden group-focus-within:hidden" title={`Bound to ${quickBound}`}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-            <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </span>
-      )}
-      {/* Pinned indicator — visible when not hovering */}
-      {!selectMode && isPinned && onTogglePin && (
-        <button
-          onClick={e => { e.stopPropagation(); onTogglePin(node.path); }}
-          title="Unpin token"
-          aria-label="Unpin token"
-          className="p-1 rounded text-[var(--color-figma-accent)] shrink-0 group-hover:hidden group-focus-within:hidden"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
-        </button>
-      )}
-      {/* Starred indicator — visible when not hovering */}
-      {!selectMode && isStarred && onToggleStar && (
-        <button
-          onClick={e => { e.stopPropagation(); onToggleStar(node.path); }}
-          title="Unstar token"
-          aria-label="Unstar token"
-          className="p-1 rounded text-amber-400 shrink-0 group-hover:hidden group-focus-within:hidden"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-        </button>
-      )}
       {/* Hover actions — in-flow to avoid overlapping status indicators */}
       {!selectMode && (
         <div className="hidden group-hover:flex group-focus-within:flex items-center gap-0.5 shrink-0 ml-auto">
-          {/* Pin toggle */}
-          {onTogglePin && (
-            <button
-              onClick={e => { e.stopPropagation(); onTogglePin(node.path); }}
-              title={isPinned ? 'Unpin token' : 'Pin token'}
-              aria-label={isPinned ? 'Unpin token' : 'Pin token'}
-              className={`p-1 rounded hover:bg-[var(--color-figma-bg-hover)] ${isPinned ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-            </button>
-          )}
-          {/* Star toggle (cross-set favorites) */}
           {onToggleStar && (
             <button
               onClick={e => { e.stopPropagation(); onToggleStar(node.path); }}
-              title={isStarred ? 'Unstar token' : 'Star token (add to favorites)'}
-              aria-label={isStarred ? 'Unstar token' : 'Star token'}
-              className={`p-1 rounded hover:bg-[var(--color-figma-bg-hover)] ${isStarred ? 'text-amber-400' : 'text-[var(--color-figma-text-secondary)]'}`}
+              title={isFavorite ? 'Remove favorite' : 'Add to favorites'}
+              aria-label={isFavorite ? 'Remove favorite' : 'Add to favorites'}
+              className={`p-1 rounded hover:bg-[var(--color-figma-bg-hover)] ${isFavorite ? 'text-amber-400' : 'text-[var(--color-figma-text-secondary)]'}`}
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill={isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
             </button>
@@ -2130,30 +1957,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
           </button>
-          {onMoveUp && (
-            <button
-              onClick={e => { e.stopPropagation(); onMoveUp(); }}
-              title="Move up"
-              aria-label="Move up"
-              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 15l-6-6-6 6"/>
-              </svg>
-            </button>
-          )}
-          {onMoveDown && (
-            <button
-              onClick={e => { e.stopPropagation(); onMoveDown(); }}
-              title="Move down"
-              aria-label="Move down"
-              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
-          )}
           <button
             onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
             title={quickBound ? `Bound to ${quickBound}` : (() => {
@@ -2190,63 +1993,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
                 <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
               </svg>
             )}
-          </button>
-          <button
-            onClick={handleCopyValue}
-            title={copiedWhat === 'value' ? 'Copied!' : 'Copy value'}
-            aria-label={copiedWhat === 'value' ? 'Copied' : 'Copy value'}
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-          >
-            {copiedWhat === 'value' ? (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2.5" aria-hidden="true">
-                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            ) : (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-              </svg>
-            )}
-          </button>
-          {/* Find references — show which tokens alias this one */}
-          <button
-            onClick={e => {
-              e.stopPropagation();
-              const refs = getIncomingRefs(node.path, allTokensFlat);
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              setRefsPopover({
-                refs,
-                pos: {
-                  x: Math.min(rect.left, window.innerWidth - 244),
-                  y: Math.min(rect.bottom + 4, window.innerHeight - 240),
-                },
-              });
-            }}
-            title="Find references (tokens that alias this)"
-            aria-label="Find references"
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.72-1.71"/>
-            </svg>
-          </button>
-          {/* More actions — opens full context menu */}
-          <button
-            onClick={e => {
-              e.stopPropagation();
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              setContextMenuPos({
-                x: Math.min(rect.left, window.innerWidth - 168),
-                y: Math.min(rect.bottom + 2, window.innerHeight - 280),
-              });
-            }}
-            title="More actions"
-            aria-label="More actions"
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
-            </svg>
           </button>
         </div>
       )}
@@ -2414,33 +2160,18 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           >
             <span>Copy to set...</span>
           </button>
-          {(onTogglePin || onToggleStar) && (
+          {onToggleStar && (
             <div className="flex items-center gap-1 px-3 py-1">
-              {onTogglePin && (
-                <button
-                  data-accel="p"
-                  role="menuitem"
-                  tabIndex={-1}
-                  title={isPinned ? 'Unpin token' : 'Pin token'}
-                  className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${isPinned ? 'bg-[var(--color-figma-accent)]/15 border-[var(--color-figma-accent)]/30 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => { setContextMenuPos(null); onTogglePin(node.path); }}
-                >
-                  {isPinned ? '\u{1F4CC} Pinned' : '\u{1F4CC} Pin'}
-                </button>
-              )}
-              {onToggleStar && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  title={isStarred ? 'Unstar token' : 'Star token'}
-                  className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${isStarred ? 'bg-amber-500/15 border-amber-500/30 text-amber-600' : 'bg-[var(--color-figma-bg-secondary)] border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => { setContextMenuPos(null); onToggleStar(node.path); }}
-                >
-                  {isStarred ? '\u2605 Starred' : '\u2606 Star'}
-                </button>
-              )}
+              <button
+                role="menuitem"
+                tabIndex={-1}
+                title={isFavorite ? 'Remove favorite' : 'Add to favorites'}
+                className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${isFavorite ? 'bg-amber-500/15 border-amber-500/30 text-amber-600' : 'bg-[var(--color-figma-bg-secondary)] border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { setContextMenuPos(null); onToggleStar(node.path); }}
+              >
+                {isFavorite ? '\u2605 Favorite' : '\u2606 Favorite'}
+              </button>
             </div>
           )}
 
