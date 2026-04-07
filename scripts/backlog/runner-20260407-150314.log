@@ -1,0 +1,65 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    28507
+  Tool:   codex
+  Model:  gpt-5.4
+  Mode:   parallel (worktrees)
+  Capabilities: structured_output=yes max_turns=no
+  Log:    /Users/samuel/Documents/Projects/TokenManager/scripts/backlog/runner-20260407-150314.log
+  Passes: enabled (every 40 items)
+
+  Queue:    13 ready · 0 in-progress · 1 failed
+  Done:     1641 total (next passes: product in 2, ux in 6, code in 39)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/Projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  13 queued · 0 in-progress
+═══════════════════════════════════════════════════════════════
+  → Inspect and Ship tabs have undiscoverable inner navigation — clicking Inspect or Ship reveals a secondary inner-tab row (Inspect: Selection, Canvas, Dependencies; Ship: Publish, Export, History, Health) with no prior visual signal, while Tokens, Themes, and Generators go directly to content; users clicking these tabs don't know they're about to get a submenu; fix: (1) add a small secondary-label or chevron hint on the Inspect and Ship primary tab buttons themselves so the inner navigation is visible before clicking, (2) ensure the panel header clearly shows which inner tab is active; do not add inner tabs to Tokens/Themes/Generators — keep their primary tabs as direct destinations; files: `App.tsx` (primary tab bar rendering, ~L300–400), `navigationTypes.ts` (FLAT_TABS, inner tab definitions)
+  Worktree: /tmp/backlog-28507-j6rWVJ
+  Running agent… (started 15:03:14)
+
+  · unknown
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-06 - Incomplete ARIA relationships in interactive panels
+- Fixed three ARIA relationship issues:
+  1. PropertyRow token search input: added `aria-controls="bind-candidates-listbox"` and `aria-activedescendant` pointing to the focused option's id; added `id="bind-candidates-listbox"` to the listbox div; added `id={\`bind-option-${path}\`}` to each option button (both recent and main candidates sections).
+  2. ExportPreviewModal file tabs: added `role="tablist"` and `aria-label="Export files"` to the tab container div; added `role="tab"` and `aria-selected={i === fileIndex}` to each tab button.
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  13 queued · 0 in-progress · last took 3s
+═══════════════════════════════════════════════════════════════
+  → Inspect and Ship tabs have undiscoverable inner navigation — clicking Inspect or Ship reveals a secondary inner-tab row (Inspect: Selection, Canvas, Dependencies; Ship: Publish, Export, History, Health) with no prior visual signal, while Tokens, Themes, and Generators go directly to content; users clicking these tabs don't know they're about to get a submenu; fix: (1) add a small secondary-label or chevron hint on the Inspect and Ship primary tab buttons themselves so the inner navigation is visible before clicking, (2) ensure the panel header clearly shows which inner tab is active; do not add inner tabs to Tokens/Themes/Generators — keep their primary tabs as direct destinations; files: `App.tsx` (primary tab bar rendering, ~L300–400), `navigationTypes.ts` (FLAT_TABS, inner tab definitions)
+  Worktree: /tmp/backlog-28507-DlllmX
+  Running agent… (started 15:03:17)
+
+  · unknown
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-06 - Incomplete ARIA relationships in interactive panels
+- Fixed three ARIA relationship issues:
+  1. PropertyRow token search input: added `aria-controls="bind-candidates-listbox"` and `aria-activedescendant` pointing to the focused option's id; added `id="bind-candidates-listbox"` to the listbox div; added `id={\`bind-option-${path}\`}` to each option button (both recent and main candidates sections).
+  2. ExportPreviewModal file tabs: added `role="tablist"` and `aria-label="Export files"` to the tab container div; added `role="tab"` and `aria-selected={i === fileIndex}` to each tab button.
+
+  → Stop requested — will exit after current item completes.
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  13 queued · 0 in-progress · last took 1s
+═══════════════════════════════════════════════════════════════
+  → Inspect and Ship tabs have undiscoverable inner navigation — clicking Inspect or Ship reveals a secondary inner-tab row (Inspect: Selection, Canvas, Dependencies; Ship: Publish, Export, History, Health) with no prior visual signal, while Tokens, Themes, and Generators go directly to content; users clicking these tabs don't know they're about to get a submenu; fix: (1) add a small secondary-label or chevron hint on the Inspect and Ship primary tab buttons themselves so the inner navigation is visible before clicking, (2) ensure the panel header clearly shows which inner tab is active; do not add inner tabs to Tokens/Themes/Generators — keep their primary tabs as direct destinations; files: `App.tsx` (primary tab bar rendering, ~L300–400), `navigationTypes.ts` (FLAT_TABS, inner tab definitions)
+  Worktree: /tmp/backlog-28507-pLEUuv
+  Running agent… (started 15:03:18)
+
+  · unknown
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-06 - Incomplete ARIA relationships in interactive panels
+- Fixed three ARIA relationship issues:
+  1. PropertyRow token search input: added `aria-controls="bind-candidates-listbox"` and `aria-activedescendant` pointing to the focused option's id; added `id="bind-candidates-listbox"` to the listbox div; added `id={\`bind-option-${path}\`}` to each option button (both recent and main candidates sections).
+  2. ExportPreviewModal file tabs: added `role="tablist"` and `aria-label="Export files"` to the tab container div; added `role="tab"` and `aria-selected={i === fileIndex}` to each tab button.
+
+  Stopped after 3 iterations (1641 total items completed).

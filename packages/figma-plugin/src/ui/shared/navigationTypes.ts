@@ -58,6 +58,8 @@ export type FlatTabId = 'tokens' | 'themes' | 'generators' | 'inspect' | 'ship';
 export interface FlatTab {
   id: FlatTabId;
   label: string;
+  /** Optional small hint shown in the primary tab button before activation. */
+  hintLabel?: string;
   /** Internal top-tab this maps to. */
   topTab: TopTab;
   /** Internal sub-tab this maps to (default for the top-tab). */
@@ -76,6 +78,7 @@ export const FLAT_TABS: FlatTab[] = [
   { id: 'generators', label: 'Generators', topTab: 'define', subTab: 'generators' },
   {
     id: 'inspect', label: 'Inspect', topTab: 'apply', subTab: 'inspect',
+    hintLabel: '3 sections',
     innerTabs: [
       { id: 'inspect', label: 'Selection' },
       { id: 'canvas-analysis', label: 'Canvas' },
@@ -84,6 +87,7 @@ export const FLAT_TABS: FlatTab[] = [
   },
   {
     id: 'ship', label: 'Ship', topTab: 'ship', subTab: 'publish',
+    hintLabel: '4 sections',
     innerTabs: [
       { id: 'publish', label: 'Publish' },
       { id: 'export', label: 'Export' },

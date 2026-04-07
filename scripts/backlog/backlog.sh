@@ -1,6 +1,6 @@
 #!/bin/bash
 # Backlog Runner - Long-running agent loop for backlog.md
-# Usage: ./backlog.sh [--tool claude|qwen|gemini|amp] [--model default|sonnet|opus|qwen-max|gemini-pro|<model-id>] [--pass-model default|sonnet|opus|qwen-max|gemini-pro|<model-id>] [--passes true|false] [--pass-frequency N] [--worktrees true|false] [--validate-only]
+# Usage: ./backlog.sh [--tool claude|qwen|gemini|codex|amp] [--model default|sonnet|opus|qwen-max|gemini-pro|gpt-5.4|<model-id>] [--pass-model default|sonnet|opus|qwen-max|gemini-pro|gpt-5.4|<model-id>] [--passes true|false] [--pass-frequency N] [--worktrees true|false] [--validate-only]
 #
 # --worktrees true  (default): parallel-safe mode — each agent runs in an isolated git worktree,
 #                              changes are cherry-picked back to main under a git lock.
@@ -108,16 +108,17 @@ resolve_model_alias() {
   fi
   # Not an alias or crosswalk match — fall back to hardcoded defaults
   case "$alias" in
-    default)      case "$tool" in claude) echo "claude-opus-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
-    sonnet)       case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
-    opus)         case "$tool" in claude) echo "claude-opus-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
-    qwen|qwen-max)  case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
-    gemini|gemini-pro) case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; esac ;;
+    default)      case "$tool" in claude) echo "claude-opus-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; codex) echo "gpt-5.4" ;; esac ;;
+    sonnet)       case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; codex) echo "gpt-5.4" ;; esac ;;
+    opus)         case "$tool" in claude) echo "claude-opus-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; codex) echo "gpt-5.4" ;; esac ;;
+    qwen|qwen-max)  case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; codex) echo "gpt-5.4" ;; esac ;;
+    gemini|gemini-pro) case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; codex) echo "gpt-5.4" ;; esac ;;
     # Crosswalk common literal model IDs when models.json is missing
-    claude-sonnet-4-6)  case "$tool" in qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; *) echo "$alias" ;; esac ;;
-    claude-opus-4-6)    case "$tool" in qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; *) echo "$alias" ;; esac ;;
-    qwen-coder-plus-latest) case "$tool" in claude) echo "claude-sonnet-4-6" ;; gemini) echo "gemini-2.5-pro" ;; *) echo "$alias" ;; esac ;;
-    gemini-2.5-pro)   case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; *) echo "$alias" ;; esac ;;
+    claude-sonnet-4-6)  case "$tool" in qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; codex) echo "gpt-5.4" ;; *) echo "$alias" ;; esac ;;
+    claude-opus-4-6)    case "$tool" in qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; codex) echo "gpt-5.4" ;; *) echo "$alias" ;; esac ;;
+    qwen-coder-plus-latest) case "$tool" in claude) echo "claude-sonnet-4-6" ;; gemini) echo "gemini-2.5-pro" ;; codex) echo "gpt-5.4" ;; *) echo "$alias" ;; esac ;;
+    gemini-2.5-pro)   case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; codex) echo "gpt-5.4" ;; *) echo "$alias" ;; esac ;;
+    gpt-5.4)          case "$tool" in claude) echo "claude-sonnet-4-6" ;; qwen) echo "qwen-coder-plus-latest" ;; gemini) echo "gemini-2.5-pro" ;; *) echo "$alias" ;; esac ;;
     *) echo "$alias" ;;
   esac
 }
@@ -126,8 +127,8 @@ MODEL=$(resolve_model_alias "$MODEL" "$TOOL")
 [ -n "$PASS_MODEL" ] && PASS_MODEL=$(resolve_model_alias "$PASS_MODEL" "$TOOL")
 [ -z "$PASS_MODEL" ] && PASS_MODEL="$MODEL"
 
-if [[ "$TOOL" != "amp" && "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gemini" ]]; then
-  echo "Error: Invalid tool '$TOOL'. Must be 'amp', 'claude', 'qwen', or 'gemini'."
+if [[ "$TOOL" != "amp" && "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gemini" && "$TOOL" != "codex" ]]; then
+  echo "Error: Invalid tool '$TOOL'. Must be 'amp', 'claude', 'qwen', 'gemini', or 'codex'."
   exit 1
 fi
 
@@ -150,6 +151,10 @@ fi
 #            --model MODEL --policy CONTEXT
 #            < PROMPT (stdin for main prompt, avoids ARG_MAX limit)
 #            (NO --json-schema, NO --max-turns equivalent, NO --append-system-prompt)
+#   Codex:   codex exec -c approval_policy='"never"' --sandbox danger-full-access --ephemeral
+#            --output-schema FILE --output-last-message FILE
+#            --model MODEL -C WORKDIR < MERGED_PROMPT
+#            (NO separate system-prompt flag, NO --max-turns equivalent)
 
 run_ai_agent() {
   local tool="$1" model="$2" context_file="$3" prompt_file="$4" workdir="$5" output_file="$6" error_file="$7"
@@ -195,6 +200,33 @@ run_ai_agent() {
         --model "$model" \
         --policy "$context_file" \
         < "$prompt_file" > "$output_file" 2>"$error_file")
+      ;;
+    codex)
+      local schema_file merged_prompt
+      schema_file=$(mktemp)
+      merged_prompt=$(mktemp)
+      printf '%s' "$schema" > "$schema_file"
+      # Codex only accepts a single prompt payload. Put the agent instructions
+      # first, then append runner context so the assigned item still appears last.
+      {
+        cat "$prompt_file"
+        printf '\n\n'
+        cat "$context_file"
+      } > "$merged_prompt"
+      (
+        cd "$workdir" && trap '' INT
+        codex exec \
+          -c 'approval_policy="never"' \
+          --sandbox danger-full-access \
+          --skip-git-repo-check \
+          --ephemeral \
+          --model "$model" \
+          --output-schema "$schema_file" \
+          --output-last-message "$output_file" \
+          -C "$workdir" \
+          < "$merged_prompt" > /dev/null 2>"$error_file"
+      )
+      rm -f "$schema_file" "$merged_prompt"
       ;;
     *)
       echo "ERROR: run_ai_agent called with unsupported tool: $tool" >&2
@@ -282,6 +314,45 @@ validate_tool_setup() {
         local version
         version=$(gemini --version 2>/dev/null || echo "unknown")
         echo "  ✓ gemini $version"
+      fi
+      ;;
+    codex)
+      if ! command -v codex &>/dev/null; then
+        echo "  ✗ 'codex' CLI not found"
+        errors=$((errors + 1))
+      else
+        local version
+        version=$(codex --version 2>/dev/null || echo "unknown")
+        echo "  ✓ $version"
+
+        local smoke_dir smoke_schema smoke_out smoke_err smoke_prompt
+        smoke_dir=$(mktemp -d)
+        smoke_schema=$(mktemp)
+        smoke_out=$(mktemp)
+        smoke_err=$(mktemp)
+        smoke_prompt='Return exactly this JSON object and nothing else: {"status":"done","item":"smoke","note":"ok"}'
+
+        printf '%s' '{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status","item","note"],"additionalProperties":false}' > "$smoke_schema"
+
+        if printf '%s\n' "$smoke_prompt" | codex exec \
+          -c 'approval_policy="never"' \
+          --sandbox danger-full-access \
+          --skip-git-repo-check \
+          --ephemeral \
+          --model "$MODEL" \
+          --output-schema "$smoke_schema" \
+          --output-last-message "$smoke_out" \
+          -C "$smoke_dir" > /dev/null 2>"$smoke_err" \
+          && jq -e '.status == "done" and .item == "smoke" and .note == "ok"' "$smoke_out" >/dev/null 2>&1; then
+          echo "  ✓ codex exec smoke test"
+        else
+          echo "  ✗ codex exec smoke test failed"
+          sed -n '1,20p' "$smoke_err" 2>/dev/null || true
+          errors=$((errors + 1))
+        fi
+
+        rm -rf "$smoke_dir"
+        rm -f "$smoke_schema" "$smoke_out" "$smoke_err"
       fi
       ;;
     amp)
@@ -387,6 +458,16 @@ try_pass_lock() {
   mkdir "$PASS_LOCKDIR" 2>/dev/null
 }
 
+count_matching_lines() {
+  local pattern="$1"
+  local file="$2"
+  local count
+
+  count=$(grep -cE "$pattern" "$file" 2>/dev/null || true)
+  count=$(printf '%s\n' "$count" | tail -n 1 | tr -cd '0-9')
+  printf '%d\n' "${count:-0}"
+}
+
 # ─── Backlog mutation helpers ──────────────────────────────────────
 # All backlog.md writes go through these, under lock.
 
@@ -465,18 +546,14 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT
 
 remaining() {
-  local count
-  count=$(grep -cE '^\- \[ \]' "$BACKLOG_FILE" 2>/dev/null || echo "0")
-  # Sanitize: strip anything non-numeric (defensive against grep edge cases)
-  count="${count//[!0-9]/}"
-  printf '%d\n' "${count:-0}"
+  count_matching_lines '^\- \[ \]' "$BACKLOG_FILE"
 }
 
 # ─── Stale [~] recovery ──────────────────────────────────────────
 # Only reset stale items if no other backlog runners are active,
 # to avoid nuking items legitimately in-progress by another runner.
 
-STALE=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+STALE=$(count_matching_lines '^\- \[~\]' "$BACKLOG_FILE")
 if [ "$STALE" -gt 0 ]; then
   OTHER_RUNNERS=$(pgrep -f "backlog\.sh" 2>/dev/null | grep -v $$ | wc -l | tr -d ' ' || true)
   if [ "$OTHER_RUNNERS" -eq 0 ]; then
@@ -787,7 +864,7 @@ increment_completed_count() {
 
 cleanup_if_needed() {
   local done_count
-  done_count=$(grep -cE '^\- \[x\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+  done_count=$(count_matching_lines '^\- \[x\]' "$BACKLOG_FILE")
   if [ "$done_count" -le 20 ]; then return 0; fi
 
   echo ""
@@ -801,7 +878,7 @@ cleanup_if_needed() {
   acquire_lock "$BACKLOG_LOCKDIR" || { echo "  (cleanup skipped — lock timeout)"; return 0; }
 
   # Re-count inside lock for accuracy
-  done_count=$(grep -cE '^\- \[x\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+  done_count=$(count_matching_lines '^\- \[x\]' "$BACKLOG_FILE")
   if [ "$done_count" -le 20 ]; then release_lock "$BACKLOG_LOCKDIR"; return 0; fi
 
   local date_str
@@ -822,7 +899,7 @@ cleanup_if_needed() {
 
   # Trim progress.txt: keep last 30 sections
   local section_count
-  section_count=$(grep -c '^## ' "$PROGRESS_FILE" 2>/dev/null || echo 0)
+  section_count=$(count_matching_lines '^## ' "$PROGRESS_FILE")
   if [ "$section_count" -gt 30 ]; then
     local keep=30
     local skip=$((section_count - keep))
@@ -850,9 +927,9 @@ run_special_pass() {
   local pass_type="$1"  # "housekeeping" or "ux"
   local prompt_file="$SCRIPT_DIR/${pass_type}-pass.md"
 
-  # Special passes only support tools with structured output + append-system-prompt-file
-  if [[ "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gemini" ]]; then
-    echo "  (skipping $pass_type pass — only supported with --tool claude, qwen, or gemini)"
+  # Special passes only support tools that run through run_ai_agent.
+  if [[ "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gemini" && "$TOOL" != "codex" ]]; then
+    echo "  (skipping $pass_type pass — only supported with --tool claude, qwen, gemini, or codex)"
     return 0
   fi
 
@@ -1018,7 +1095,7 @@ run_special_pass() {
 }
 
 # JSON schema for structured agent output
-JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
+JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status","item","note"],"additionalProperties":false}'
 
 # Post-hoc JSON schema validation for tools that don't support --json-schema.
 # Extracts the JSON blob from agent output and validates required fields.
@@ -1106,7 +1183,7 @@ fi
 echo "  Mode:   $( [ "$WORKTREES_ENABLED" -eq 1 ] && echo "parallel (worktrees)" || echo "single (no worktrees)" )"
 # Show tool capabilities
 _has_schema=0; _has_max_turns=0
-case "$TOOL" in claude) _has_schema=1; _has_max_turns=1 ;; qwen) _has_max_turns=1 ;; esac
+case "$TOOL" in claude) _has_schema=1; _has_max_turns=1 ;; codex) _has_schema=1 ;; qwen) _has_max_turns=1 ;; esac
 echo "  Capabilities: structured_output=$([ "$_has_schema" -eq 1 ] && echo "yes" || echo "post-hoc") max_turns=$([ "$_has_max_turns" -eq 1 ] && echo "yes" || echo "no")"
 echo "  Log:    $RUNNER_LOG"
 if [ "$PASSES_ENABLED" -eq 1 ]; then
@@ -1118,8 +1195,8 @@ fi
 # Drain inbox before first iteration so items are available immediately
 drain_inbox
 
-IN_PROGRESS=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
-FAILED=$(grep -cE '^\- \[!\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+IN_PROGRESS=$(count_matching_lines '^\- \[~\]' "$BACKLOG_FILE")
+FAILED=$(count_matching_lines '^\- \[!\]' "$BACKLOG_FILE")
 echo ""
 echo "  Queue:    $(remaining) ready · ${IN_PROGRESS} in-progress · ${FAILED} failed"
 if [ "$PASSES_ENABLED" -eq 1 ]; then
@@ -1135,7 +1212,7 @@ ITERATION_START=""
 while true; do
   ITERATION=$((ITERATION + 1))
   REMAINING=$(remaining)
-  IN_PROGRESS=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+  IN_PROGRESS=$(count_matching_lines '^\- \[~\]' "$BACKLOG_FILE")
   ELAPSED=""
   if [ -n "$ITERATION_START" ]; then
     local_elapsed=$(( $(date +%s) - ITERATION_START ))
@@ -1164,7 +1241,7 @@ while true; do
       if [[ "$PASSES_ENABLED" -eq 0 ]]; then
         echo "  Backlog empty and passes are disabled — stopping."
         break
-      elif [[ "$TOOL" == "claude" || "$TOOL" == "qwen" || "$TOOL" == "gemini" ]] && try_pass_lock; then
+      elif [[ "$TOOL" == "claude" || "$TOOL" == "qwen" || "$TOOL" == "gemini" || "$TOOL" == "codex" ]] && try_pass_lock; then
         echo $$ > "$PASS_LOCKDIR/pid"
         echo "  No items found — running discovery passes to replenish backlog…"
         run_special_pass "product"
@@ -1176,11 +1253,11 @@ while true; do
         rm -rf "$PASS_LOCKDIR"
         drain_inbox
         REMAINING=$(remaining)
-      elif [[ "$TOOL" == "claude" || "$TOOL" == "qwen" || "$TOOL" == "gemini" ]]; then
+      elif [[ "$TOOL" == "claude" || "$TOOL" == "qwen" || "$TOOL" == "gemini" || "$TOOL" == "codex" ]]; then
         PASS_OWNER=$(cat "$PASS_LOCKDIR/pid" 2>/dev/null || echo "?")
         echo "  No items — another runner (PID $PASS_OWNER) is running a discovery pass. Waiting…"
       else
-        echo "  No items — discovery passes require --tool claude, qwen, or gemini. Waiting…"
+        echo "  No items — discovery passes require --tool claude, qwen, gemini, or codex. Waiting…"
       fi
       # Final drain — another runner may have filled the inbox since we last checked
       drain_inbox
@@ -1201,7 +1278,7 @@ while true; do
   # ── Claim an item under lock ──
   CLAIMED_ITEM=""
   if ! claim_next_item; then
-    IN_PROGRESS=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+    IN_PROGRESS=$(count_matching_lines '^\- \[~\]' "$BACKLOG_FILE")
     echo "  All $IN_PROGRESS item(s) claimed by other runners — waiting 15s…"
     sleep 15 || true
     continue
@@ -1252,7 +1329,7 @@ while true; do
     if [ "$STOP_REQUESTED" -eq 1 ] && kill -0 $AGENT_PID 2>/dev/null; then
       echo "  → Waiting for agent to finish current work (up to 30s)…"
       # Poll the agent process — wait returns when the process exits
-      local _force_kill_wait=0
+      _force_kill_wait=0
       while kill -0 $AGENT_PID 2>/dev/null && [ $_force_kill_wait -lt 30 ]; do
         sleep 1
         _force_kill_wait=$((_force_kill_wait + 1))

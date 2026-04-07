@@ -173,6 +173,11 @@ export function App() {
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
   const staleGeneratorCount = useMemo(() => generators.filter(g => g.isStale).length, [generators]);
   const activeFlatId = useMemo(() => toFlatTabId(activeTopTab, activeSubTab), [activeTopTab, activeSubTab]);
+  const activeFlatTab = useMemo(() => FLAT_TABS.find(tab => tab.id === activeFlatId) ?? null, [activeFlatId]);
+  const activeInnerTab = useMemo(
+    () => activeFlatTab?.innerTabs?.find(tab => tab.id === activeSubTab) ?? null,
+    [activeFlatTab, activeSubTab],
+  );
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -936,19 +941,39 @@ export function App() {
       <div className="flex items-center" role="tablist" aria-label="Navigation">
         {FLAT_TABS.map(tab => {
           const isActive = tab.id === activeFlatId && overflowPanel === null;
+          const hasInnerTabs = !!tab.innerTabs?.length;
           return (
           <button
             key={tab.id}
             role="tab"
             aria-selected={isActive}
             onClick={() => guardEditorAction(() => navigateTo(tab.topTab, tab.subTab))}
-            className={`relative px-3 py-2 text-[11px] font-medium transition-colors rounded-sm mx-0.5 my-1 ${
+            className={`relative mx-0.5 my-1 flex min-h-[36px] flex-col items-start justify-center rounded-sm px-3 py-1.5 text-left text-[11px] font-medium transition-colors ${
               isActive
                 ? 'bg-[var(--color-figma-accent)] text-white'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
             }`}
           >
-            {tab.label}
+            <span className="flex items-center gap-1">
+              <span>{tab.label}</span>
+              {hasInnerTabs && (
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  fill="currentColor"
+                  aria-hidden="true"
+                  className={`opacity-70 transition-transform ${isActive ? 'rotate-90' : ''}`}
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+              )}
+            </span>
+            {tab.hintLabel && (
+              <span className={`text-[9px] leading-tight ${isActive ? 'text-white/75' : 'text-[var(--color-figma-text-tertiary)]'}`}>
+                {tab.hintLabel}
+              </span>
+            )}
             {tab.id === 'generators' && staleGeneratorCount > 0 && !isActive && (
               <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] flex items-center justify-center rounded-full bg-yellow-400 border border-[var(--color-figma-bg)] text-yellow-900 text-[8px] font-bold leading-none" aria-label={`${staleGeneratorCount} stale`}>{staleGeneratorCount}</span>
             )}
@@ -1274,30 +1299,41 @@ export function App() {
       </div>
       {/* Inner tabs — only shown for Inspect and Ship which have sub-sections */}
       {overflowPanel === null && (() => {
-        const flatTab = FLAT_TABS.find(t => t.id === activeFlatId);
-        if (!flatTab?.innerTabs || flatTab.innerTabs.length <= 1) return null;
+        if (!activeFlatTab?.innerTabs || activeFlatTab.innerTabs.length <= 1) return null;
         return (
-          <div className="flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)]" role="tablist" aria-label="Section tabs">
-            {flatTab.innerTabs.map(inner => (
-              <button
-                key={inner.id}
-                role="tab"
-                aria-selected={activeSubTab === inner.id}
-                onClick={() => {
-                  guardEditorAction(() => {
-                    setSubTab(inner.id);
-                    if (inner.id === 'canvas-analysis') triggerHeatmapScan();
-                  });
-                }}
-                className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
-                  activeSubTab === inner.id
-                    ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
-                    : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-              >
-                {inner.label}
-              </button>
-            ))}
+          <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+              <div className="min-w-0">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                  {activeFlatTab.label} section
+                </div>
+                <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                  {activeInnerTab?.label ?? activeFlatTab.label}
+                </div>
+              </div>
+              <div className="flex items-center gap-0.5" role="tablist" aria-label={`${activeFlatTab.label} sections`}>
+                {activeFlatTab.innerTabs.map(inner => (
+                  <button
+                    key={inner.id}
+                    role="tab"
+                    aria-selected={activeSubTab === inner.id}
+                    onClick={() => {
+                      guardEditorAction(() => {
+                        setSubTab(inner.id);
+                        if (inner.id === 'canvas-analysis') triggerHeatmapScan();
+                      });
+                    }}
+                    className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
+                      activeSubTab === inner.id
+                        ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
+                        : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                    }`}
+                  >
+                    {inner.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         );
       })()}

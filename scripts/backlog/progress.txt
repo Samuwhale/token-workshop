@@ -725,3 +725,12 @@
   - `aria-controls` on a combobox input must reference the listbox by id; both must be present for the relationship to be valid.
   - Icon-only buttons need both `title` (mouse tooltip) AND `aria-label` (screen reader) — `title` alone is insufficient because not all AT reads it.
 ---
+
+## 2026-04-07 - Inspect and Ship tabs have undiscoverable inner navigation
+- Added explicit submenu affordances to the primary `Inspect` and `Ship` tabs by extending `FLAT_TABS` with small hint labels and rendering a chevron on tabs that expose inner sections. Also derived the active flat/inner tab once so the nav can consistently reflect the current route.
+- Added a compact section header above the inner-tab row so `Inspect` and `Ship` now clearly show which subsection is active before the panel content starts.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L58; `packages/figma-plugin/src/ui/App.tsx` ~L175, ~L941, ~L1300
+- **Learnings for future iterations:**
+  - If a primary tab opens a secondary nav row instead of landing directly in content, encode that affordance in shared navigation metadata so both the button chrome and any section header can stay in sync.
+  - A small active-section label above secondary tabs removes ambiguity without forcing direct-destination tabs to adopt the same extra chrome.
+---

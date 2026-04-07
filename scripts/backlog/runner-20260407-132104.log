@@ -1,0 +1,8 @@
+Validating backlog runner setup for tool: codex
+
+  ✓ codex-cli 0.118.0-alpha.2
+  ✓ jq installed
+  → Resolved model: gpt-5.4
+  ✓ backlog.md found
+  ✓ patterns.md found
+  ✓ models.json found
