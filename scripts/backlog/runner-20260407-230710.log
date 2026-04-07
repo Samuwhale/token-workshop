@@ -102,3 +102,22 @@
     Boolean inline editing now uses staged true/false activation with explicit commit, validation passed, and backlog notes were updated.
 
   Committing: Boolean tokens mutate on single-click with no confirmation
+[main c2bd4d59] chore(backlog): done – Boolean tokens mutate on single-click with no confirmation
+ 7 files changed, 95 insertions(+), 18 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-07 - Token creation entry points are inconsistent with each other
+- Reduced the inline TokenList create form to the quick-create fields only: it now keeps the group as read-only context, creates tokens with just name/type/value, and drops description, reference-mode, alias suggestions, and the "open advanced editor" affordance.
+- Kept the full TokenEditor as the canonical advanced create path and fixed the narrow-screen drawer wiring so create-mode editors receive `initialValue` just like the side-panel path.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L73, ~L191, ~L213; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L560, ~L3540, ~L3630; `packages/figma-plugin/src/ui/App.tsx` ~L2142
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  7 queued · 0 in-progress · last took 2m49s
+═══════════════════════════════════════════════════════════════
+  → Too many token list viewing modes create an overwhelming UI — the toolbar exposes: 3 density options, a condensed-view toggle (`CONDENSED_MAX_DEPTH = 3`, key `tm_condensed_view`), 6 sort orders (`default | alpha-asc | alpha-desc | by-type | by-value | by-usage`), stats bar toggle, JSON view toggle, show-resolved-values toggle, plus search filters; most users never need most of these; reduce the persistent toolbar controls: keep 2 densities (rename `default` → `comfortable`, keep `compact`; remove the `comfortable` option or fold it into `default`); reduce sort to 3 options (`default`, `alpha-asc`, `by-type`) — remove `alpha-desc`, `by-value`, `by-usage` since these are edge-case audit tools; move stats bar, JSON view, and show-resolved-values out of the toolbar and into the command palette as toggleable settings (they persist via localStorage so the state is preserved); keep condensed view as-is since zoom-into-group serves a different purpose (navigation vs display density); files: `TokenList.tsx` (toolbar rendering and sort UI), `tokenListTypes.ts` (SortOrder type, Density type, DENSITY_ROW_HEIGHT), `storage.ts` (STORAGE_KEYS.DENSITY, STORAGE_KEYS.CONDENSED_VIEW)
+  Running agent… (started 23:42:56)
+
+  ✓ done: Too many token list viewing modes create an overwhelming UI
+    Cut token list density/sort options down, moved JSON/resolved/stats toggles into command palette with persistence, and validation passed.
+
+  Committing: Too many token list viewing modes create an overwhelming UI

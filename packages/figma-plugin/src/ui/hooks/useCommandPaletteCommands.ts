@@ -12,7 +12,7 @@ import { inferTypeFromValue } from '../components/tokenListHelpers';
 import { isAlias } from '../../shared/resolveAlias';
 import { adaptShortcut } from '../shared/utils';
 import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
-import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
+import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsGetJson, lsSet } from '../shared/storage';
 import { dispatchToast } from '../shared/toastBus';
 import { useConnectionContext } from '../contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from '../contexts/TokenDataContext';
@@ -110,10 +110,16 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
 
   // Track export preset changes so the command palette stays in sync.
   const [exportPresetRev, setExportPresetRev] = useState(0);
+  const [tokenListViewRev, setTokenListViewRev] = useState(0);
   useEffect(() => {
     const onChanged = () => setExportPresetRev(r => r + 1);
     window.addEventListener('exportPresetsChanged', onChanged);
     return () => window.removeEventListener('exportPresetsChanged', onChanged);
+  }, []);
+  useEffect(() => {
+    const onChanged = () => setTokenListViewRev(r => r + 1);
+    window.addEventListener('tm-token-list-view-changed', onChanged);
+    return () => window.removeEventListener('tm-token-list-view-changed', onChanged);
   }, []);
 
   // Split the command palette registry into focused sub-memos so that
@@ -123,6 +129,17 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
   // Base commands: stable navigation / action commands.
   const baseCommands = useMemo<Command[]>(() => {
     const goToTokens = () => { navigateTo('define', 'tokens'); setEditingToken(null); };
+    const goToTokensAndRun = (fn: (handle: TokenListImperativeHandle) => void) => {
+      goToTokens();
+      setTimeout(() => {
+        const handle = tokenListCompareRef.current;
+        if (!handle) return;
+        fn(handle);
+      }, 0);
+    };
+    const tokenJsonView = lsGet(STORAGE_KEY.tokenViewMode(activeSet)) === 'json';
+    const tokenResolvedValues = lsGet(STORAGE_KEY.tokenShowResolvedValues(activeSet)) === '1';
+    const tokenStatsBarOpen = lsGet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN) === 'true';
     return [
       {
         id: 'new-token',
@@ -223,6 +240,27 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         category: 'View',
         shortcut: adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW),
         handler: () => { setShowPreviewSplit(v => !v); setOverflowPanel(null); },
+      },
+      {
+        id: 'toggle-token-json-view',
+        label: tokenJsonView ? 'Switch token list to tree view' : 'Switch token list to JSON view',
+        description: tokenJsonView ? `Leave the raw JSON editor for "${activeSet}"` : `Open the raw JSON editor for "${activeSet}"`,
+        category: 'View',
+        handler: () => goToTokensAndRun(handle => handle.toggleJsonView()),
+      },
+      {
+        id: 'toggle-token-resolved-values',
+        label: tokenResolvedValues ? 'Hide resolved token values' : 'Show resolved token values',
+        description: tokenResolvedValues ? `Show alias references in "${activeSet}"` : `Resolve aliases inline in "${activeSet}"`,
+        category: 'View',
+        handler: () => goToTokensAndRun(handle => handle.toggleResolvedValues()),
+      },
+      {
+        id: 'toggle-token-stats-bar',
+        label: tokenStatsBarOpen ? 'Hide token stats bar' : 'Show token stats bar',
+        description: 'Toggle the token type and per-set summary panel',
+        category: 'View',
+        handler: () => goToTokensAndRun(handle => handle.toggleStatsBar()),
       },
       {
         id: 'settings',
@@ -401,7 +439,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCompareMode(); },
       },
     ];
-  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount, refreshValidation, setEditingToken, setOverflowPanel, setPendingGraphTemplate, setShowColorScaleGen, setShowGuidedSetup, setShowIssuesOnly, setShowKeyboardShortcuts, setShowManageSets, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, setShowWelcome, themeManagerHandleRef, tokenListCompareRef]);
+  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount, refreshValidation, setEditingToken, setOverflowPanel, setPendingGraphTemplate, setShowColorScaleGen, setShowGuidedSetup, setShowIssuesOnly, setShowKeyboardShortcuts, setShowManageSets, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, setShowWelcome, themeManagerHandleRef, tokenListCompareRef, tokenListViewRev]);
 
   // Per-set switch commands — rebuilds when the set list or token counts change.
   const setCommands = useMemo<Command[]>(() => {

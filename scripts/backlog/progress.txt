@@ -340,3 +340,11 @@
   - If a "quick create" surface is meant to stay lightweight, keep non-editable location context visible but remove alternate editing modes from the same form; otherwise validation and field expectations immediately diverge from the canonical editor.
   - When create-mode state is passed through multiple editor render paths, keep the prop set identical across responsive variants or one breakpoint will silently lose prefilled values.
 ---
+## 2026-04-07 - Too many token list viewing modes create an overwhelming UI
+- Reduced token list chrome to the core controls: density is now just `compact` and `comfortable`, sort is now `default` / `A → Z` / `by type`, and the tree toolbar no longer exposes JSON mode or resolved-value toggles.
+- Moved JSON view, resolved values, and the stats bar behind command palette commands backed by persisted localStorage state; TokenList now exposes imperative toggle actions and refreshes command labels when those view settings change.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L117, ~L239, ~L347, ~L1808, ~L2277, ~L2931; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L22, ~L76, ~L155; `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L376; `packages/figma-plugin/src/ui/shared/storage.ts` ~L51, ~L63, ~L72; `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L120, ~L130, ~L245; `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L170, ~L190, ~L268, ~L333, ~L413, ~L600
+- **Learnings for future iterations:**
+  - If a view toggle is intentionally moved out of persistent UI, also remove its collapsed placeholder state; otherwise the feature still consumes screen real estate even after the toolbar is cleaned up.
+  - For command-palette toggles that mutate child-component local state, pair an imperative handle with a tiny custom event so palette labels stay in sync with persisted state.
+---

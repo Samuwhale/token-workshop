@@ -374,19 +374,13 @@ function filterTokenNodesStructured(
 }
 
 export function sortTokenNodes(nodes: TokenNode[], order: SortOrder): TokenNode[] {
-  if (order === 'default' || order === 'by-usage') return nodes;
+  if (order === 'default') return nodes;
   const sorted = [...nodes].sort((a, b) => {
     switch (order) {
       case 'alpha-asc': return a.name.localeCompare(b.name);
-      case 'alpha-desc': return b.name.localeCompare(a.name);
       case 'by-type': {
         const tc = (a.$type || '').localeCompare(b.$type || '');
         return tc !== 0 ? tc : a.name.localeCompare(b.name);
-      }
-      case 'by-value': {
-        const av = typeof a.$value === 'string' ? a.$value : JSON.stringify(a.$value ?? '');
-        const bv = typeof b.$value === 'string' ? b.$value : JSON.stringify(b.$value ?? '');
-        return av.localeCompare(bv);
       }
       default: return 0;
     }
@@ -554,4 +548,3 @@ export function sortLeafNodes(
 
   return sorted;
 }
-

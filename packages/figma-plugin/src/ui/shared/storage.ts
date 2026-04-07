@@ -49,6 +49,7 @@ export const STORAGE_KEYS = {
   STARRED_TOKENS:        'tm_starred_tokens',
   PREFERRED_COPY_FORMAT: 'tm_preferred_copy_format',
   CONDENSED_VIEW:        'tm_condensed_view',
+  TOKEN_STATS_BAR_OPEN:  'tm_token_stats_bar_open',
   INSPECT_PROP_FILTER:      'tm_inspect_prop_filter',
   INSPECT_PROP_FILTER_MODE: 'tm_inspect_prop_filter_mode',
   SETTINGS_ACTIVE_TAB:      'tm_settings_active_tab',
@@ -64,12 +65,14 @@ export const STORAGE_KEY = {
   tokenTypeFilter: (setName: string) => `token-type-filter:${setName}`,
   pinnedTokens:    (setName: string) => `tm_pinned:${setName}`,
   tokenViewMode:   (setName: string) => `tm_view-mode:${setName}`,
+  tokenShowResolvedValues: (setName: string) => `tm_show_resolved_values:${setName}`,
 };
 
 /** Key prefix strings used for bulk-delete operations */
 export const STORAGE_PREFIXES = {
   TOKEN_SORT:        'token-sort:',
   TOKEN_TYPE_FILTER: 'token-type-filter:',
+  TOKEN_SHOW_RESOLVED_VALUES: 'tm_show_resolved_values:',
 } as const;
 
 // ---------------------------------------------------------------------------

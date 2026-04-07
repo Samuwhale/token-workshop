@@ -66,6 +66,11 @@ const TOKEN_TYPE_COLORS: Record<string, string> = {
 const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
+const VALID_SORT_ORDERS: SortOrder[] = ['default', 'alpha-asc', 'by-type'];
+
+function dispatchTokenListViewChanged(setName: string): void {
+  window.dispatchEvent(new CustomEvent('tm-token-list-view-changed', { detail: { setName } }));
+}
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
@@ -109,9 +114,9 @@ export function TokenList({
     timeout: 15000,
     extractResponse: extractSyncApplyResult,
   });
-  const [showResolvedValues, setShowResolvedValues] = useState(false);
+  const [showResolvedValues, setShowResolvedValuesState] = useState(false);
   const [zoomRootPath, setZoomRootPath] = useState<string | null>(null);
-  const [statsBarOpen, setStatsBarOpen] = useState(() => lsGet('tm_token_stats_bar_open') === 'true');
+  const [statsBarOpen, setStatsBarOpenState] = useState(() => lsGet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN) === 'true');
   // Roving tabindex: tracks which row path currently has tabIndex=0
   const [rovingFocusPath, setRovingFocusPath] = useState<string | null>(null);
 
@@ -232,12 +237,31 @@ export function TokenList({
   const [sortOrder, setSortOrderState] = useState<SortOrder>('default');
 
   useEffect(() => {
-    setSortOrderState((lsGet(STORAGE_KEY.tokenSort(setName)) as SortOrder) || 'default');
+    const stored = lsGet(STORAGE_KEY.tokenSort(setName));
+    setSortOrderState(VALID_SORT_ORDERS.includes(stored as SortOrder) ? stored as SortOrder : 'default');
   }, [setName]);
 
   const setSortOrder = useCallback((order: SortOrder) => {
     setSortOrderState(order);
     lsSet(STORAGE_KEY.tokenSort(setName), order);
+  }, [setName]);
+
+  const setShowResolvedValues = useCallback((value: boolean | ((current: boolean) => boolean)) => {
+    setShowResolvedValuesState(current => {
+      const next = typeof value === 'function' ? value(current) : value;
+      lsSet(STORAGE_KEY.tokenShowResolvedValues(setName), next ? '1' : '0');
+      dispatchTokenListViewChanged(setName);
+      return next;
+    });
+  }, [setName]);
+
+  const setStatsBarOpen = useCallback((value: boolean | ((current: boolean) => boolean)) => {
+    setStatsBarOpenState(current => {
+      const next = typeof value === 'function' ? value(current) : value;
+      lsSet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN, next ? 'true' : 'false');
+      dispatchTokenListViewChanged(setName);
+      return next;
+    });
   }, [setName]);
 
   // Clear optimistic deletions when the server response arrives with fresh tokens
@@ -323,10 +347,11 @@ export function TokenList({
   const setViewMode = useCallback((mode: 'tree' | 'json') => {
     setViewModeState(mode);
     lsSet(STORAGE_KEY.tokenViewMode(setName), mode);
+    dispatchTokenListViewChanged(setName);
   }, [setName]);
   const [density, setDensityState] = useState<Density>(() => {
     const stored = lsGet(STORAGE_KEYS.DENSITY);
-    return (stored === 'compact' || stored === 'comfortable') ? stored : 'default';
+    return stored === 'compact' ? 'compact' : 'comfortable';
   });
   const setDensity = useCallback((d: Density) => {
     setDensityState(d);
@@ -337,9 +362,13 @@ export function TokenList({
   useEffect(() => {
     if (densityRev === 0) return;
     const stored = lsGet(STORAGE_KEYS.DENSITY);
-    setDensityState((stored === 'compact' || stored === 'comfortable') ? stored : 'default');
+    setDensityState(stored === 'compact' ? 'compact' : 'comfortable');
   }, [densityRev]);
   const rowHeight = DENSITY_ROW_HEIGHT[density];
+
+  useEffect(() => {
+    setShowResolvedValuesState(lsGet(STORAGE_KEY.tokenShowResolvedValues(setName)) === '1');
+  }, [setName]);
 
   // Condensed view — caps indentation at CONDENSED_MAX_DEPTH to prevent deep nesting from pushing content off-screen
   const [condensedView, setCondensedViewState] = useState<boolean>(() => lsGet(STORAGE_KEYS.CONDENSED_VIEW) === '1');
@@ -1788,6 +1817,16 @@ export function TokenList({
         setShowRecentlyTouched(true);
         setShowPinnedOnly(false);
       },
+      toggleJsonView: () => {
+        setViewMode(viewMode === 'json' ? 'tree' : 'json');
+      },
+      toggleStatsBar: () => {
+        setStatsBarOpen(v => !v);
+      },
+      toggleResolvedValues: () => {
+        setViewMode('tree');
+        setShowResolvedValues(v => !v);
+      },
       triggerInlineRename: (path: string) => {
         setPendingRenameToken(path);
       },
@@ -1799,7 +1838,7 @@ export function TokenList({
       },
     };
     return () => { compareHandle.current = null; };
-  }, [compareHandle, setSelectMode, setShowBatchEditor, setShowRecentlyTouched, setPendingRenameToken, setMovingToken, handleOpenExtractToAlias]);
+  }, [compareHandle, setSelectMode, setShowBatchEditor, setShowRecentlyTouched, viewMode, setViewMode, setStatsBarOpen, setShowResolvedValues, setPendingRenameToken, setMovingToken, handleOpenExtractToAlias]);
 
   const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), [setPendingRenameToken]);
 
@@ -2235,30 +2274,13 @@ export function TokenList({
         )}
 
         {/* Unified toolbar — view modes, search, filters, and actions in one compact bar */}
-        {tokens.length > 0 && !selectMode && (
+        {tokens.length > 0 && !selectMode && viewMode === 'tree' && (
           <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            {/* Row 1: View modes + expand/collapse + sort + actions */}
+            {/* Row 1: Tree controls + actions */}
             <div className="flex items-center gap-0.5 px-2 py-1">
-              {/* View mode segmented control */}
-              <div className="flex items-center bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] p-0.5">
-                {(['tree', 'json'] as const).map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    title={mode === 'tree' ? 'Tree view' : 'JSON editor'}
-                    aria-label={mode === 'tree' ? 'Tree view' : 'JSON editor'}
-                    aria-pressed={viewMode === mode}
-                    className={`px-1.5 py-1 rounded text-[10px] transition-colors capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                  >
-                    {mode === 'json' ? '</>' : mode}
-                  </button>
-                ))}
-              </div>
-
               {/* Expand/Collapse (tree view only) */}
               {viewMode === 'tree' && tokens.some(n => n.isGroup) && (
                 <>
-                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
                   <button
                     onClick={handleExpandAll}
                     title="Expand all groups"
@@ -2290,11 +2312,11 @@ export function TokenList({
                   <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
                   <button
                     onClick={() => {
-                      const cycle: Density[] = ['compact', 'default', 'comfortable'];
-                      setDensity(cycle[(cycle.indexOf(density) + 1) % 3]);
+                      const cycle: Density[] = ['compact', 'comfortable'];
+                      setDensity(cycle[(cycle.indexOf(density) + 1) % cycle.length]);
                     }}
-                    title={`Row density: ${density} — click to cycle`}
-                    aria-label={`Row density: ${density}`}
+                    title={`Row density: ${density === 'comfortable' ? 'comfortable' : 'compact'} — click to cycle`}
+                    aria-label={`Row density: ${density === 'comfortable' ? 'comfortable' : 'compact'}`}
                     className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
@@ -2304,12 +2326,6 @@ export function TokenList({
                           <line x1="1" y1="3.5" x2="9" y2="3.5" />
                           <line x1="1" y1="5.5" x2="9" y2="5.5" />
                           <line x1="1" y1="7.5" x2="9" y2="7.5" />
-                        </>
-                      ) : density === 'comfortable' ? (
-                        <>
-                          <line x1="1" y1="2" x2="9" y2="2" />
-                          <line x1="1" y1="5" x2="9" y2="5" />
-                          <line x1="1" y1="8" x2="9" y2="8" />
                         </>
                       ) : (
                         <>
@@ -2351,25 +2367,6 @@ export function TokenList({
                       ))}
                     </select>
                   )}
-                </>
-              )}
-
-              {/* Resolve all toggle — show resolved values for alias tokens */}
-              {viewMode === 'tree' && (
-                <>
-                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
-                  <button
-                    onClick={() => setShowResolvedValues(v => !v)}
-                    title={showResolvedValues ? 'Show raw alias references' : 'Resolve all aliases — show final values'}
-                    aria-pressed={showResolvedValues}
-                    className={`px-1.5 py-1 rounded text-[10px] transition-colors flex items-center gap-0.5 ${showResolvedValues ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    Resolved
-                  </button>
                 </>
               )}
 
@@ -2451,9 +2448,7 @@ export function TokenList({
               >
                 <option value="default">Sort</option>
                 <option value="alpha-asc">A → Z</option>
-                <option value="alpha-desc">Z → A</option>
                 <option value="by-type">By type</option>
-                <option value="by-value">By value</option>
               </select>
 
               {/* Recently touched filter */}
@@ -2933,81 +2928,73 @@ export function TokenList({
           </div>
         )}
       </div>
-      {/* Token stats bar — collapsible summary of token counts by type and set */}
-      {statsTotalTokens > 0 && (
+      {/* Token stats bar — opened from the command palette to avoid permanent toolbar clutter */}
+      {statsBarOpen && statsTotalTokens > 0 && (
         <div className="shrink-0 border-b border-[var(--color-figma-border)]">
-          <button
-            onClick={() => { setStatsBarOpen(v => { lsSet('tm_token_stats_bar_open', String(!v)); return !v; }); }}
-            className="w-full flex items-center gap-2 px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            aria-expanded={statsBarOpen}
-            aria-label="Token statistics"
-          >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 transition-transform ${statsBarOpen ? 'rotate-90' : ''}`} aria-hidden="true">
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
+          <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
             <span className="font-medium text-[var(--color-figma-text)]">{statsTotalTokens}</span>
             <span>token{statsTotalTokens !== 1 ? 's' : ''}</span>
-            {statsByType.length > 0 && !statsBarOpen && (
-              <div className="flex-1 ml-1 h-1.5 rounded-full overflow-hidden flex gap-px min-w-0 max-w-[120px]">
+            <div className="flex-1 ml-1 h-1.5 rounded-full overflow-hidden flex gap-px min-w-0 max-w-[120px]">
+              {statsByType.map(([type, count]) => (
+                <div
+                  key={type}
+                  style={{ width: `${(count / statsTotalTokens) * 100}%`, backgroundColor: TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK }}
+                  title={`${type}: ${count}`}
+                  className="shrink-0"
+                />
+              ))}
+            </div>
+            <button
+              onClick={() => setStatsBarOpen(false)}
+              className="ml-auto p-1 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              aria-label="Hide token statistics"
+              title="Hide token statistics"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <path d="M1.5 1.5l5 5M6.5 1.5l-5 5" />
+              </svg>
+            </button>
+          </div>
+          <div className="px-3 pb-2 flex flex-col gap-2">
+            {/* Type breakdown */}
+            <div>
+              <div className="h-2 rounded-full overflow-hidden flex gap-px mb-1.5">
                 {statsByType.map(([type, count]) => (
                   <div
                     key={type}
                     style={{ width: `${(count / statsTotalTokens) * 100}%`, backgroundColor: TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK }}
                     title={`${type}: ${count}`}
-                    className="shrink-0"
                   />
                 ))}
               </div>
-            )}
-            {!statsBarOpen && (
-              <span className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)]">
-                {statsByType.slice(0, 3).map(([t, c]) => `${c} ${t}`).join(' · ')}
-                {statsByType.length > 3 ? ' …' : ''}
-              </span>
-            )}
-          </button>
-          {statsBarOpen && (
-            <div className="px-3 pb-2 flex flex-col gap-2">
-              {/* Type breakdown */}
-              <div>
-                <div className="h-2 rounded-full overflow-hidden flex gap-px mb-1.5">
-                  {statsByType.map(([type, count]) => (
-                    <div
-                      key={type}
-                      style={{ width: `${(count / statsTotalTokens) * 100}%`, backgroundColor: TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK }}
-                      title={`${type}: ${count}`}
-                    />
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                  {statsByType.map(([type, count]) => (
-                    <span key={type} className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK }} aria-hidden="true" />
-                      <span className="font-medium text-[var(--color-figma-text)]">{count}</span>
-                      {type}
-                    </span>
-                  ))}
-                </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                {statsByType.map(([type, count]) => (
+                  <span key={type} className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK }} aria-hidden="true" />
+                    <span className="font-medium text-[var(--color-figma-text)]">{count}</span>
+                    {type}
+                  </span>
+                ))}
               </div>
-              {/* Per-set breakdown (only when multiple sets) */}
-              {statsSetTotals.length > 1 && (
-                <div className="flex flex-col gap-0.5">
-                  {statsSetTotals.map(({ name, total }) => (
-                    <div key={name} className="flex items-center gap-2 text-[10px]">
-                      <span className="text-[var(--color-figma-text-secondary)] truncate flex-1" title={name}>{name}</span>
-                      <div className="h-1 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden w-16 shrink-0">
-                        <div
-                          className="h-full rounded-full bg-[var(--color-figma-accent)]"
-                          style={{ width: `${Math.round((total / statsTotalTokens) * 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-[var(--color-figma-text)] font-medium w-6 text-right shrink-0">{total}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          )}
+            {/* Per-set breakdown (only when multiple sets) */}
+            {statsSetTotals.length > 1 && (
+              <div className="flex flex-col gap-0.5">
+                {statsSetTotals.map(({ name, total }) => (
+                  <div key={name} className="flex items-center gap-2 text-[10px]">
+                    <span className="text-[var(--color-figma-text-secondary)] truncate flex-1" title={name}>{name}</span>
+                    <div className="h-1 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden w-16 shrink-0">
+                      <div
+                        className="h-full rounded-full bg-[var(--color-figma-accent)]"
+                        style={{ width: `${Math.round((total / statsTotalTokens) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-[var(--color-figma-text)] font-medium w-6 text-right shrink-0">{total}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
       {/* Promote duplicates callout — shown when the duplicates filter is active */}

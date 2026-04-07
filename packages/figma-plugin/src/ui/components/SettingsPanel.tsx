@@ -11,7 +11,7 @@ import { dispatchToast } from '../shared/toastBus';
 // Types
 // ---------------------------------------------------------------------------
 
-type Density = 'compact' | 'default' | 'comfortable';
+type Density = 'compact' | 'comfortable';
 type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'oklch' | 'p3';
 export type PreferredCopyFormat = 'css-var' | 'dtcg-ref' | 'scss' | 'raw' | 'json';
 type SettingsTab = 'appearance' | 'connection' | 'export' | 'advanced';
@@ -183,6 +183,7 @@ const IMPORTABLE_EXACT_KEYS = new Set<string>([
   STORAGE_KEYS.EXPORT_CHANGES_ONLY,
   STORAGE_KEYS.EXPORT_PRESETS,
   STORAGE_KEYS.UNDO_MAX_HISTORY,
+  STORAGE_KEYS.TOKEN_STATS_BAR_OPEN,
 ]);
 
 /** Returns true only for keys that the export produces and safe to import. */
@@ -192,6 +193,7 @@ function isAllowedImportKey(key: string): boolean {
   if (key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER)) return true;
   if (key.startsWith('tm_pinned:')) return true;
   if (key.startsWith('tm_view-mode:')) return true;
+  if (key.startsWith(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES)) return true;
   return false;
 }
 
@@ -211,6 +213,7 @@ const IMPORT_KEY_LABELS: Record<string, string> = {
   [STORAGE_KEYS.EXPORT_CHANGES_ONLY]:  'Export changes only',
   [STORAGE_KEYS.EXPORT_PRESETS]:       'Export presets',
   [STORAGE_KEYS.UNDO_MAX_HISTORY]:     'Max undo steps',
+  [STORAGE_KEYS.TOKEN_STATS_BAR_OPEN]: 'Token stats bar',
 };
 
 // ---------------------------------------------------------------------------
@@ -264,7 +267,7 @@ export function SettingsPanel({
   // ---- UI Preferences (local state from localStorage) ----
   const [density, setDensity] = useState<Density>(() => {
     const stored = lsGet(STORAGE_KEYS.DENSITY);
-    return (stored === 'compact' || stored === 'comfortable') ? stored : 'default';
+    return stored === 'compact' ? 'compact' : 'comfortable';
   });
   const [colorFormat, setColorFormat] = useState<ColorFormat>(() => {
     const saved = lsGet(STORAGE_KEYS.COLOR_FORMAT);
@@ -333,6 +336,7 @@ export function SettingsPanel({
       STORAGE_KEYS.EXPORT_CHANGES_ONLY,
       STORAGE_KEYS.EXPORT_PRESETS,
       STORAGE_KEYS.UNDO_MAX_HISTORY,
+      STORAGE_KEYS.TOKEN_STATS_BAR_OPEN,
     ];
 
     const out: Record<string, string> = {};
@@ -354,7 +358,8 @@ export function SettingsPanel({
           k.startsWith(STORAGE_PREFIXES.TOKEN_SORT) ||
           k.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER) ||
           k.startsWith('tm_pinned:') ||
-          k.startsWith('tm_view-mode:')
+          k.startsWith('tm_view-mode:') ||
+          k.startsWith(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES)
         ) {
           const v = localStorage.getItem(k);
           if (v !== null) out[k] = v;
@@ -409,6 +414,7 @@ export function SettingsPanel({
             else if (key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER)) label = `Filter: ${key.slice(STORAGE_PREFIXES.TOKEN_TYPE_FILTER.length)}`;
             else if (key.startsWith('tm_pinned:')) label = `Pinned: ${key.slice('tm_pinned:'.length)}`;
             else if (key.startsWith('tm_view-mode:')) label = `View mode: ${key.slice('tm_view-mode:'.length)}`;
+            else if (key.startsWith(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES)) label = `Resolved values: ${key.slice(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES.length)}`;
             else label = key;
           }
           // For presets, show a human-friendly count instead of raw JSON
@@ -596,9 +602,9 @@ export function SettingsPanel({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-[var(--color-figma-text)]">Density</span>
-                  {density !== 'default' && (
+                  {density !== 'comfortable' && (
                     <button
-                      onClick={() => handleDensityChange('default')}
+                      onClick={() => handleDensityChange('comfortable')}
                       className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                     >
                       Reset
@@ -610,8 +616,7 @@ export function SettingsPanel({
               <SegmentedControl
                 options={[
                   { value: 'compact' as Density, label: 'Compact' },
-                  { value: 'default' as Density, label: 'Default' },
-                  { value: 'comfortable' as Density, label: 'Comfy' },
+                  { value: 'comfortable' as Density, label: 'Comfortable' },
                 ]}
                 value={density}
                 onChange={handleDensityChange}

@@ -19,27 +19,24 @@ export interface MultiModeValue {
 // ---------------------------------------------------------------------------
 // Density preference
 // ---------------------------------------------------------------------------
-export type Density = 'compact' | 'default' | 'comfortable';
+export type Density = 'compact' | 'comfortable';
 
 /** Row height (px) per density level */
 export const DENSITY_ROW_HEIGHT: Record<Density, number> = {
   compact: 24,
-  default: 30,
-  comfortable: 38,
+  comfortable: 30,
 };
 
 /** Swatch / preview size (px) per density level */
 export const DENSITY_SWATCH_SIZE: Record<Density, number> = {
   compact: 14,
-  default: 18,
-  comfortable: 24,
+  comfortable: 18,
 };
 
 /** Tailwind py class per density level */
 export const DENSITY_PY_CLASS: Record<Density, string> = {
   compact: 'py-px',
-  default: 'py-1',
-  comfortable: 'py-2',
+  comfortable: 'py-1',
 };
 
 // ---------------------------------------------------------------------------
@@ -76,7 +73,7 @@ export const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the vi
 // Interfaces
 // ---------------------------------------------------------------------------
 
-export type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
+export type SortOrder = 'default' | 'alpha-asc' | 'by-type';
 
 export interface TokenListCtx {
   setName: string;
@@ -160,6 +157,12 @@ export interface TokenListImperativeHandle {
   openCompareMode: () => void;
   /** Enable the recently touched filter inside the token list */
   showRecentlyTouched: () => void;
+  /** Toggle between tree and JSON views */
+  toggleJsonView: () => void;
+  /** Toggle the token stats bar */
+  toggleStatsBar: () => void;
+  /** Toggle alias resolution in tree rows */
+  toggleResolvedValues: () => void;
   /** Trigger inline rename mode for the given token path */
   triggerInlineRename: (path: string) => void;
   /** Open the move-to-set dialog for the given token path */
