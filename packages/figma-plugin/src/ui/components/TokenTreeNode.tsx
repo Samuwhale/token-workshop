@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, Fragment, memo } from 'react';
 import { dispatchToast } from '../shared/toastBus';
-import { lsGet, STORAGE_KEYS } from '../shared/storage';
 import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE, INDENT_PER_LEVEL, CONDENSED_MAX_DEPTH, DEPTH_COLORS } from './tokenListTypes';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
@@ -18,7 +17,6 @@ import { ColorPicker } from './ColorPicker';
 import { getQuickBindTargets } from './selectionInspectorUtils';
 import { useTokenTree } from './TokenTreeContext';
 import { ComplexTypePreviewCard, COMPLEX_PREVIEW_TYPES } from './ComplexTypePreviewCard';
-import { formatHexAs, type ColorFormat } from '../shared/colorUtils';
 import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
 import { TokenNudge } from './TokenNudge';
 import { AliasAutocomplete } from './AliasAutocomplete';
@@ -126,6 +124,28 @@ function CondensedAncestorBreadcrumb({
       {label}
     </span>
   );
+}
+
+type MenuPosition = { x: number; y: number };
+
+const MENU_SURFACE_CLASS =
+  'fixed z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1';
+const MENU_ITEM_CLASS =
+  'w-full flex items-center justify-between gap-3 px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors';
+const MENU_DANGER_ITEM_CLASS =
+  'w-full flex items-center justify-between gap-3 px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors';
+
+function clampMenuPosition(x: number, y: number, width: number, height: number): MenuPosition {
+  return {
+    x: Math.max(8, Math.min(x, window.innerWidth - width - 8)),
+    y: Math.max(8, Math.min(y, window.innerHeight - height - 8)),
+  };
+}
+
+function getSubmenuPosition(anchorRect: DOMRect, width: number, height: number): MenuPosition {
+  const openRight = anchorRect.right + width + 8 <= window.innerWidth;
+  const rawX = openRight ? anchorRect.right + 4 : anchorRect.left - width - 4;
+  return clampMenuPosition(rawX, anchorRect.top, width, height);
 }
 
 // ---------------------------------------------------------------------------
@@ -369,7 +389,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     onDragOverGroup, onDropOnGroup,
     generatorsBySource: _generatorsBySource, derivedTokenPaths: _derivedTokenPaths, generatorTargetGroups,
     generatorTargetGroupIds, generatorStaleTargetGroups, onNavigateToGenerator: onNavigateToGeneratorGroup, onRegenerateGenerator,
-    themeCoverage, onSelectGroupChildren,
+    themeCoverage, onSelectGroupChildren: _onSelectGroupChildren,
     condensedView = false,
     rovingFocusPath: groupRovingFocusPath, onRovingFocus: onGroupRovingFocus,
   } = ctx;
@@ -379,12 +399,15 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   const isHighlighted = highlightedToken === node.path;
 
   // Group-specific state
-  const [groupMenuPos, setGroupMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [groupMenuPos, setGroupMenuPos] = useState<MenuPosition | null>(null);
+  const [groupMoreMenuPos, setGroupMoreMenuPos] = useState<MenuPosition | null>(null);
   const [renamingGroup, setRenamingGroup] = useState(false);
   const [renameGroupVal, setRenameGroupVal] = useState('');
   const [renameGroupError, setRenameGroupError] = useState('');
   const renameGroupInputRef = useRef<HTMLInputElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
+  const groupMoreMenuRef = useRef<HTMLDivElement>(null);
+  const groupMoreButtonRef = useRef<HTMLButtonElement>(null);
   const [editingGroupMeta, setEditingGroupMeta] = useState(false);
   const [groupMetaType, setGroupMetaType] = useState('');
   const [groupMetaDescription, setGroupMetaDescription] = useState('');
@@ -398,27 +421,79 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     }
   }, [renamingGroup]);
 
+  const closeGroupMenus = useCallback(() => {
+    setGroupMenuPos(null);
+    setGroupMoreMenuPos(null);
+  }, []);
+
+  const closeGroupMoreMenu = useCallback(() => {
+    setGroupMoreMenuPos(null);
+    requestAnimationFrame(() => groupMoreButtonRef.current?.focus());
+  }, []);
+
+  const openGroupMoreMenu = useCallback((anchor?: HTMLElement | null) => {
+    const rect = anchor?.getBoundingClientRect() ?? groupMoreButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setGroupMoreMenuPos(getSubmenuPosition(rect, 188, 260));
+  }, []);
+
   useEffect(() => {
     if (!groupMenuPos) return;
-    // Auto-focus first enabled menu item when menu opens
     requestAnimationFrame(() => {
       if (groupMenuRef.current) getMenuItems(groupMenuRef.current)[0]?.focus();
     });
-    const close = () => setGroupMenuPos(null);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { close(); return; }
-      const menuEl = groupMenuRef.current;
-      if (!menuEl) return;
-      // Arrow-key navigation takes priority over letter shortcuts
-      if (handleMenuArrowKeys(e, menuEl)) return;
-      const key = e.key.toLowerCase();
-      const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
-      if (btn) { e.preventDefault(); btn.click(); }
+    const onDocumentClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (
+        groupMenuRef.current?.contains(target) ||
+        groupMoreMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      closeGroupMenus();
     };
-    document.addEventListener('click', close);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (groupMoreMenuPos) {
+          closeGroupMoreMenu();
+          return;
+        }
+        closeGroupMenus();
+        return;
+      }
+      const activeMenuEl = groupMoreMenuRef.current?.contains(document.activeElement)
+        ? groupMoreMenuRef.current
+        : groupMenuRef.current;
+      if (!activeMenuEl) return;
+      if (handleMenuArrowKeys(e, activeMenuEl, {
+        onOpenSubmenu: activeMenuEl === groupMenuRef.current && document.activeElement === groupMoreButtonRef.current
+          ? () => openGroupMoreMenu(groupMoreButtonRef.current)
+          : undefined,
+        onCloseSubmenu: activeMenuEl === groupMoreMenuRef.current ? closeGroupMoreMenu : undefined,
+      })) {
+        return;
+      }
+      const key = e.key.toLowerCase();
+      const btn = activeMenuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
+      if (btn) {
+        e.preventDefault();
+        btn.click();
+      }
+    };
+    document.addEventListener('click', onDocumentClick);
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
-  }, [groupMenuPos]);
+    return () => {
+      document.removeEventListener('click', onDocumentClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [closeGroupMenus, closeGroupMoreMenu, groupMenuPos, groupMoreMenuPos, openGroupMoreMenu]);
+
+  useEffect(() => {
+    if (!groupMoreMenuPos) return;
+    requestAnimationFrame(() => {
+      if (groupMoreMenuRef.current) getMenuItems(groupMoreMenuRef.current)[0]?.focus();
+    });
+  }, [groupMoreMenuPos]);
 
   const leafCount = countLeaves(node);
 
@@ -519,18 +594,14 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             e.preventDefault();
             e.stopPropagation();
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setGroupMenuPos({
-              x: Math.min(rect.left, window.innerWidth - 168),
-              y: Math.min(rect.bottom + 2, window.innerHeight - 220),
-            });
+            setGroupMoreMenuPos(null);
+            setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 184, 240));
           }
         }}
         onContextMenu={e => {
           e.preventDefault();
-          setGroupMenuPos({
-            x: Math.min(e.clientX, window.innerWidth - 168),
-            y: Math.min(e.clientY, window.innerHeight - 220),
-          });
+          setGroupMoreMenuPos(null);
+          setGroupMenuPos(clampMenuPosition(e.clientX, e.clientY, 184, 240));
         }}
       >
         <DepthBar depth={depth} />
@@ -698,10 +769,8 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
               onClick={(e) => {
                 e.stopPropagation();
                 const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                setGroupMenuPos({
-                  x: Math.min(rect.left, window.innerWidth - 168),
-                  y: Math.min(rect.bottom + 2, window.innerHeight - 220),
-                });
+                setGroupMoreMenuPos(null);
+                setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 184, 240));
               }}
               title="Group actions (M)"
               aria-label="Group actions"
@@ -719,212 +788,243 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
 
       {/* Group context menu */}
       {groupMenuPos && (
-        <div
-          ref={groupMenuRef}
-          role="menu"
-          data-context-menu="group"
-          className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
-          style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
-        >
-          {onCreateSibling && (
-            <button
-              role="menuitem" tabIndex={-1}
-              data-accel="c"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                onCreateSibling(node.path, inferGroupTokenType(node.children));
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>Create token here…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">C</span>
-            </button>
-          )}
-          {onCreateGroup && (
-            <button
-              role="menuitem" tabIndex={-1}
-              data-accel="n"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                onCreateGroup(node.path);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>New subgroup…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">N</span>
-            </button>
-          )}
-          <button
-            role="menuitem" tabIndex={-1}
-            data-accel="r"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setGroupMenuPos(null);
-              setRenameGroupVal(node.name);
-              setRenamingGroup(true);
-            }}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+        <>
+          <div
+            ref={groupMenuRef}
+            role="menu"
+            data-context-menu="group"
+            className={`${MENU_SURFACE_CLASS} min-w-[184px]`}
+            style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
+            onClick={e => e.stopPropagation()}
           >
-            <span>Rename group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">R</span>
-          </button>
-          <button
-            role="menuitem" tabIndex={-1}
-            data-accel="e"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setGroupMenuPos(null);
-              setGroupMetaType(node.$type ?? '');
-              setGroupMetaDescription(node.$description ?? '');
-              setEditingGroupMeta(true);
-            }}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            <span>Edit type &amp; description…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
-          </button>
-          <button
-            role="menuitem" tabIndex={-1}
-            data-accel="m"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setGroupMenuPos(null);
-              onRequestMoveGroup?.(node.path);
-            }}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            <span>Move group to set…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
-          </button>
-          <button
-            role="menuitem" tabIndex={-1}
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setGroupMenuPos(null);
-              onRequestCopyGroup?.(node.path);
-            }}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            <span>Copy group to set…</span>
-          </button>
-          <button
-            role="menuitem" tabIndex={-1}
-            data-accel="d"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setGroupMenuPos(null);
-              onDuplicateGroup?.(node.path);
-            }}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            <span>Duplicate group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
-          </button>
-          {onSelectGroupChildren && (
+            {onCreateSibling && (
+              <button
+                role="menuitem"
+                tabIndex={-1}
+                data-accel="c"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  closeGroupMenus();
+                  onCreateSibling(node.path, inferGroupTokenType(node.children));
+                }}
+                className={MENU_ITEM_CLASS}
+              >
+                <span>Add token</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">C</span>
+              </button>
+            )}
             <button
-              role="menuitem" tabIndex={-1}
-              data-accel="a"
+              role="menuitem"
+              tabIndex={-1}
+              data-accel="r"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
-                setGroupMenuPos(null);
-                onSelectGroupChildren(node);
+                closeGroupMenus();
+                setRenameGroupVal(node.name);
+                setRenamingGroup(true);
               }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className={MENU_ITEM_CLASS}
             >
-              <span>Select children</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">A</span>
+              <span>Rename</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">R</span>
             </button>
-          )}
-          {onZoomIntoGroup && (
             <button
-              role="menuitem" tabIndex={-1}
-              data-accel="f"
+              role="menuitem"
+              tabIndex={-1}
+              data-accel="x"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
-                setGroupMenuPos(null);
-                onZoomIntoGroup(node.path);
+                closeGroupMenus();
+                onDeleteGroup(node.path, node.name, leafCount);
               }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className={MENU_DANGER_ITEM_CLASS}
             >
-              <span>Focus on group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">F</span>
+              <span>Delete</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">X</span>
             </button>
-          )}
-          {onSetGroupScopes && (
-            <button
-              role="menuitem" tabIndex={-1}
-              data-accel="s"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                onSetGroupScopes(node.path);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>Set scopes for group…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">S</span>
-            </button>
-          )}
-          {onSyncGroup && (
-            <button
-              role="menuitem" tabIndex={-1}
-              data-accel="v"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                const count = node.children ? countTokensInGroup(node) : 0;
-                onSyncGroup(node.path, count);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
-            >
-              <span>Create variables from group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">V</span>
-            </button>
-          )}
-          {onSyncGroupStyles && (
-            <button
-              role="menuitem" tabIndex={-1}
-              data-accel="y"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                const count = node.children ? countTokensInGroup(node) : 0;
-                onSyncGroupStyles(node.path, count);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>Create styles from group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">Y</span>
-            </button>
-          )}
-          {onGenerateScaleFromGroup && (
-            <button
-              role="menuitem" tabIndex={-1}
-              data-accel="g"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                // Detect the dominant token type from this group's leaves
-                const prefix = node.path + '.';
-                const types: Record<string, number> = {};
-                for (const [path, entry] of Object.entries(allTokensFlat)) {
-                  if (path === node.path || path.startsWith(prefix)) {
-                    const t = entry.$type;
-                    if (t) types[t] = (types[t] ?? 0) + 1;
+            {onGenerateScaleFromGroup && (
+              <button
+                role="menuitem"
+                tabIndex={-1}
+                data-accel="g"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  closeGroupMenus();
+                  const prefix = `${node.path}.`;
+                  const types: Record<string, number> = {};
+                  for (const [path, entry] of Object.entries(allTokensFlat)) {
+                    if (path === node.path || path.startsWith(prefix)) {
+                      const t = entry.$type;
+                      if (t) types[t] = (types[t] ?? 0) + 1;
+                    }
                   }
+                  const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+                  onGenerateScaleFromGroup(node.path, dominant);
+                }}
+                className={MENU_ITEM_CLASS}
+              >
+                <span>Generate scale</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">G</span>
+              </button>
+            )}
+            <button
+              ref={groupMoreButtonRef}
+              role="menuitem"
+              tabIndex={-1}
+              aria-haspopup="menu"
+              aria-expanded={!!groupMoreMenuPos}
+              onMouseDown={e => e.preventDefault()}
+              onClick={e => {
+                e.stopPropagation();
+                if (groupMoreMenuPos) {
+                  closeGroupMoreMenu();
+                } else {
+                  openGroupMoreMenu(e.currentTarget);
                 }
-                const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-                onGenerateScaleFromGroup(node.path, dominant);
               }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+              className={MENU_ITEM_CLASS}
             >
-              <span>Generate scale from this group…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">G</span>
+              <span>More…</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
+          </div>
+
+          {groupMoreMenuPos && (
+            <div
+              ref={groupMoreMenuRef}
+              role="menu"
+              aria-label="More group actions"
+              className={`${MENU_SURFACE_CLASS} min-w-[188px]`}
+              style={{ top: groupMoreMenuPos.y, left: groupMoreMenuPos.x }}
+              onClick={e => e.stopPropagation()}
+            >
+              {onCreateGroup && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="n"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    closeGroupMenus();
+                    onCreateGroup(node.path);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>New subgroup</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">N</span>
+                </button>
+              )}
+              <button
+                role="menuitem"
+                tabIndex={-1}
+                data-accel="e"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  closeGroupMenus();
+                  setGroupMetaType(node.$type ?? '');
+                  setGroupMetaDescription(node.$description ?? '');
+                  setEditingGroupMeta(true);
+                }}
+                className={MENU_ITEM_CLASS}
+              >
+                <span>Edit type &amp; description</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
+              </button>
+              <button
+                role="menuitem"
+                tabIndex={-1}
+                data-accel="m"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  closeGroupMenus();
+                  onRequestMoveGroup?.(node.path);
+                }}
+                className={MENU_ITEM_CLASS}
+              >
+                <span>Move to set</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
+              </button>
+              <button
+                role="menuitem"
+                tabIndex={-1}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  closeGroupMenus();
+                  onRequestCopyGroup?.(node.path);
+                }}
+                className={MENU_ITEM_CLASS}
+              >
+                <span>Copy to set</span>
+              </button>
+              <button
+                role="menuitem"
+                tabIndex={-1}
+                data-accel="d"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  closeGroupMenus();
+                  onDuplicateGroup?.(node.path);
+                }}
+                className={MENU_ITEM_CLASS}
+              >
+                <span>Duplicate</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
+              </button>
+              {onSetGroupScopes && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="s"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    closeGroupMenus();
+                    onSetGroupScopes(node.path);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>Set scopes</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">S</span>
+                </button>
+              )}
+              {onSyncGroup && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="v"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    closeGroupMenus();
+                    const count = node.children ? countTokensInGroup(node) : 0;
+                    onSyncGroup(node.path, count);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>Sync to Figma variables</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">V</span>
+                </button>
+              )}
+              {onSyncGroupStyles && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="y"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    closeGroupMenus();
+                    const count = node.children ? countTokensInGroup(node) : 0;
+                    onSyncGroupStyles(node.path, count);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>Sync to Figma styles</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Y</span>
+                </button>
+              )}
+            </div>
           )}
-          <button
-            role="menuitem" tabIndex={-1}
-            data-accel="x"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setGroupMenuPos(null);
-              onDeleteGroup(node.path, node.name, leafCount);
-            }}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
-          >
-            <span>Delete group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">X</span>
-          </button>
-        </div>
+        </>
       )}
 
       {editingGroupMeta && (
@@ -1033,20 +1133,20 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     density, setName: _setName, selectionCapabilities, allTokensFlat, selectMode,
     expandedPaths: _expandedPaths, onToggleExpand: _onToggleExpand, duplicateCounts, highlightedToken,
     inspectMode, syncSnapshot, cascadeDiff: _cascadeDiff, generatorsBySource: _generatorsBySource,
-    derivedTokenPaths, tokenUsageCounts: _tokenUsageCounts, searchHighlight, selectedNodes,
+    derivedTokenPaths: _derivedTokenPaths, tokenUsageCounts: _tokenUsageCounts, searchHighlight, selectedNodes,
     dragOverGroup: _dragOverGroup, dragOverGroupIsInvalid: _dragOverGroupIsInvalid,
     dragSource: _dragSource, dragOverReorder,
     selectedLeafNodes,
     onEdit, onPreview, onDelete, onDeleteGroup: _onDeleteGroup, onToggleSelect,
-    onNavigateToAlias, onCreateSibling, onCreateGroup: _onCreateGroup, onRenameGroup: _onRenameGroup,
+    onNavigateToAlias, onCreateSibling: _onCreateSibling, onCreateGroup: _onCreateGroup, onRenameGroup: _onRenameGroup,
     onUpdateGroupMeta: _onUpdateGroupMeta, onRequestMoveGroup: _onRequestMoveGroup,
     onRequestCopyGroup: _onRequestCopyGroup, onRequestMoveToken, onRequestCopyToken,
     onDuplicateGroup: _onDuplicateGroup, onDuplicateToken, onExtractToAlias, onHoverToken,
     onExtractToAliasForLint, onSyncGroup: _onSyncGroup, onSyncGroupStyles: _onSyncGroupStyles,
     onSetGroupScopes: _onSetGroupScopes, onGenerateScaleFromGroup: _onGenerateScaleFromGroup,
     onFilterByType,
-    onJumpToGroup: _onJumpToGroup, onZoomIntoGroup: _onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
-    onToggleChain: _onToggleChain, onTogglePin: _onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onCompareAcrossThemes, onFindInAllSets,
+    onJumpToGroup: _onJumpToGroup, onZoomIntoGroup: _onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator: _onDetachFromGenerator,
+    onToggleChain: _onToggleChain, onTogglePin: _onTogglePin, onCompareToken: _onCompareToken, onViewTokenHistory, onShowReferences: _onShowReferences, onCompareAcrossThemes, onFindInAllSets: _onFindInAllSets,
     onDragStart, onDragEnd,
     onDragOverGroup: _onDragOverGroup, onDropOnGroup: _onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
@@ -1073,7 +1173,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [pendingColor, setPendingColor] = useState('');
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<MenuPosition | null>(null);
+  const [tokenMoreMenuPos, setTokenMoreMenuPos] = useState<MenuPosition | null>(null);
   const [refsPopover, setRefsPopover] = useState<{ pos: { x: number; y: number }; refs: string[] } | null>(null);
   const refsPopoverRef = useRef<HTMLDivElement>(null);
   const chainExpanded = chainExpandedProp;
@@ -1101,6 +1202,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const [renameTokenError, setRenameTokenError] = useState('');
   const renameTokenInputRef = useRef<HTMLInputElement>(null);
   const tokenMenuRef = useRef<HTMLDivElement>(null);
+  const tokenMoreMenuRef = useRef<HTMLDivElement>(null);
+  const tokenMoreButtonRef = useRef<HTMLButtonElement>(null);
 
   useLayoutEffect(() => {
     if (renamingToken && renameTokenInputRef.current) {
@@ -1132,29 +1235,80 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     clearPendingTabEditRef.current();
   }, [pendingTabEdit]);
 
-  // Close context menu on outside click + arrow-key navigation + letter-key accelerators
+  const closeTokenMenus = useCallback(() => {
+    setContextMenuPos(null);
+    setTokenMoreMenuPos(null);
+  }, []);
+
+  const closeTokenMoreMenu = useCallback(() => {
+    setTokenMoreMenuPos(null);
+    requestAnimationFrame(() => tokenMoreButtonRef.current?.focus());
+  }, []);
+
+  const openTokenMoreMenu = useCallback((anchor?: HTMLElement | null) => {
+    const rect = anchor?.getBoundingClientRect() ?? tokenMoreButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setTokenMoreMenuPos(getSubmenuPosition(rect, 212, 320));
+  }, []);
+
+  // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
   useEffect(() => {
     if (!contextMenuPos) return;
-    // Auto-focus first enabled menu item when menu opens
     requestAnimationFrame(() => {
       if (tokenMenuRef.current) getMenuItems(tokenMenuRef.current)[0]?.focus();
     });
-    const close = () => setContextMenuPos(null);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { close(); return; }
-      const menuEl = tokenMenuRef.current;
-      if (!menuEl) return;
-      // Arrow-key navigation takes priority over letter shortcuts
-      if (handleMenuArrowKeys(e, menuEl)) return;
-      // Normalize Backspace → delete so both keys trigger the delete action
-      const key = e.key === 'Backspace' ? 'delete' : e.key.toLowerCase();
-      const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
-      if (btn) { e.preventDefault(); btn.click(); }
+    const onDocumentClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (
+        tokenMenuRef.current?.contains(target) ||
+        tokenMoreMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      closeTokenMenus();
     };
-    document.addEventListener('click', close);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (tokenMoreMenuPos) {
+          closeTokenMoreMenu();
+          return;
+        }
+        closeTokenMenus();
+        return;
+      }
+      const activeMenuEl = tokenMoreMenuRef.current?.contains(document.activeElement)
+        ? tokenMoreMenuRef.current
+        : tokenMenuRef.current;
+      if (!activeMenuEl) return;
+      if (handleMenuArrowKeys(e, activeMenuEl, {
+        onOpenSubmenu: activeMenuEl === tokenMenuRef.current && document.activeElement === tokenMoreButtonRef.current
+          ? () => openTokenMoreMenu(tokenMoreButtonRef.current)
+          : undefined,
+        onCloseSubmenu: activeMenuEl === tokenMoreMenuRef.current ? closeTokenMoreMenu : undefined,
+      })) {
+        return;
+      }
+      const key = e.key === 'Backspace' ? 'delete' : e.key.toLowerCase();
+      const btn = activeMenuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
+      if (btn) {
+        e.preventDefault();
+        btn.click();
+      }
+    };
+    document.addEventListener('click', onDocumentClick);
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
-  }, [contextMenuPos]);
+    return () => {
+      document.removeEventListener('click', onDocumentClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [closeTokenMenus, closeTokenMoreMenu, contextMenuPos, openTokenMoreMenu, tokenMoreMenuPos]);
+
+  useEffect(() => {
+    if (!tokenMoreMenuPos) return;
+    requestAnimationFrame(() => {
+      if (tokenMoreMenuRef.current) getMenuItems(tokenMoreMenuRef.current)[0]?.focus();
+    });
+  }, [tokenMoreMenuPos]);
 
   // Close refs popover on outside click or Escape
   useEffect(() => {
@@ -1417,10 +1571,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    setContextMenuPos({
-      x: Math.min(e.clientX, window.innerWidth - 168),
-      y: Math.min(e.clientY, window.innerHeight - 320),
-    });
+    setTokenMoreMenuPos(null);
+    setContextMenuPos(clampMenuPosition(e.clientX, e.clientY, 192, 220));
   }, []);
 
   /**
@@ -2010,221 +2162,202 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
       {/* Right-click context menu — organized into labeled sections */}
       {contextMenuPos && (
-        <div
-          ref={tokenMenuRef}
-          data-context-menu="token"
-          role="menu"
-          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[180px] max-h-[80vh] overflow-y-auto"
-          style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
-          onClick={e => e.stopPropagation()}
-        >
-          {/* ── Edit — primary action ── */}
-          <button
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => { setContextMenuPos(null); onEdit(node.path, node.name); }}
+        <>
+          <div
+            ref={tokenMenuRef}
+            data-context-menu="token"
+            role="menu"
+            className={`${MENU_SURFACE_CLASS} min-w-[192px]`}
+            style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
+            onClick={e => e.stopPropagation()}
           >
-            Edit token
-          </button>
-
-          {/* ── Quick Actions ── */}
-          <div className="my-1 border-t border-[var(--color-figma-border)]" />
-          <button
-            data-accel="r"
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setContextMenuPos(null);
-              setRenameTokenVal(node.name);
-              setRenamingToken(true);
-            }}
-          >
-            <span>Rename token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">F2</span>
-          </button>
-          <button
-            data-accel="d"
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setContextMenuPos(null);
-              onDuplicateToken?.(node.path);
-            }}
-          >
-            <span>Duplicate token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
-          </button>
-          <button
-            data-accel="delete"
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setContextMenuPos(null);
-              onDelete(node.path);
-            }}
-          >
-            <span>Delete token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">\u232B</span>
-          </button>
-
-          {/* ── Organize ── */}
-          <div className="my-1 border-t border-[var(--color-figma-border)]" />
-          <div className="px-3 py-1 text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">Organize</div>
-          <button
-            data-accel="n"
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setContextMenuPos(null);
-              onCreateSibling?.(nodeParentPath(node.path, node.name), node.$type || 'color');
-            }}
-          >
-            <span>Create sibling</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">N</span>
-          </button>
-          <button
-            data-accel="a"
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setContextMenuPos(null);
-              onCreateSibling?.(nodeParentPath(node.path, node.name), node.$type || 'color');
-            }}
-          >
-            <span>Alias to this token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">A</span>
-          </button>
-          {!isAlias(node.$value) && onExtractToAlias && (
             <button
-              data-accel="e"
               role="menuitem"
               tabIndex={-1}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
-                setContextMenuPos(null);
-                onExtractToAlias(node.path, node.$type, node.$value);
+                closeTokenMenus();
+                onEdit(node.path, node.name);
               }}
+              className={MENU_ITEM_CLASS}
             >
-              <span>Extract to alias\u2026</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
+              <span>Edit</span>
             </button>
-          )}
-          <button
-            data-accel="l"
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setContextMenuPos(null);
-              const rect = nodeRef.current?.getBoundingClientRect();
-              setAliasPickerPos({
-                x: rect ? Math.min(rect.left, window.innerWidth - 264) : 0,
-                y: rect ? Math.min(rect.bottom + 2, window.innerHeight - 320) : 0,
-              });
-              setAliasQuery('');
-              setAliasPickerOpen(true);
-            }}
-          >
-            <span>Link to token\u2026</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">L</span>
-          </button>
-          <button
-            data-accel="m"
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setContextMenuPos(null);
-              onRequestMoveToken?.(node.path);
-            }}
-          >
-            <span>Move to set...</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
-          </button>
-          <button
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              setContextMenuPos(null);
-              onRequestCopyToken?.(node.path);
-            }}
-          >
-            <span>Copy to set...</span>
-          </button>
-          {onToggleStar && (
-            <div className="flex items-center gap-1 px-3 py-1">
+            <button
+              role="menuitem"
+              tabIndex={-1}
+              data-accel="r"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                closeTokenMenus();
+                setRenameTokenVal(node.name);
+                setRenamingToken(true);
+              }}
+              className={MENU_ITEM_CLASS}
+            >
+              <span>Rename</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">F2</span>
+            </button>
+            <button
+              role="menuitem"
+              tabIndex={-1}
+              data-accel="delete"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                closeTokenMenus();
+                onDelete(node.path);
+              }}
+              className={MENU_DANGER_ITEM_CLASS}
+            >
+              <span>Delete</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">⌫</span>
+            </button>
+            <button
+              role="menuitem"
+              tabIndex={-1}
+              data-accel="c"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                handleCopyPath();
+                closeTokenMenus();
+              }}
+              className={MENU_ITEM_CLASS}
+            >
+              <span>Copy path</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">C</span>
+            </button>
+            {!selectMode && node.$type && (TOKEN_PROPERTY_MAP[node.$type]?.length > 0 || node.$type === 'composition') && selectedNodes.length > 0 && (
               <button
                 role="menuitem"
                 tabIndex={-1}
-                title={isFavorite ? 'Remove favorite' : 'Add to favorites'}
-                className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${isFavorite ? 'bg-amber-500/15 border-amber-500/30 text-amber-600' : 'bg-[var(--color-figma-bg-secondary)] border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => { setContextMenuPos(null); onToggleStar(node.path); }}
-              >
-                {isFavorite ? '\u2605 Favorite' : '\u2606 Favorite'}
-              </button>
-            </div>
-          )}
-
-          {/* ── Apply to Figma selection — shown only when applicable ── */}
-          {!selectMode && node.$type && (TOKEN_PROPERTY_MAP[node.$type]?.length > 0 || node.$type === 'composition') && selectedNodes.length > 0 && (
-            <>
-              <div className="my-1 border-t border-[var(--color-figma-border)]" />
-              <button
                 data-accel="v"
-                role="menuitem"
-                tabIndex={-1}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 onMouseDown={e => e.preventDefault()}
                 onClick={handleContextMenuApply}
+                className={MENU_ITEM_CLASS}
               >
                 <span>Apply to selection</span>
                 {quickBindTargets?.length === 1 && (
-                  <span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)] font-normal">{PROPERTY_LABELS[quickBindTargets[0]]}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{PROPERTY_LABELS[quickBindTargets[0]]}</span>
                 )}
               </button>
-            </>
-          )}
+            )}
+            <button
+              ref={tokenMoreButtonRef}
+              role="menuitem"
+              tabIndex={-1}
+              aria-haspopup="menu"
+              aria-expanded={!!tokenMoreMenuPos}
+              onMouseDown={e => e.preventDefault()}
+              onClick={e => {
+                e.stopPropagation();
+                if (tokenMoreMenuPos) {
+                  closeTokenMoreMenu();
+                } else {
+                  openTokenMoreMenu(e.currentTarget);
+                }
+              }}
+              className={MENU_ITEM_CLASS}
+            >
+              <span>More…</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
 
-          {/* ── Inspect ── */}
-          {!selectMode && (
-            <>
-              <div className="my-1 border-t border-[var(--color-figma-border)]" />
-              <div className="px-3 py-1 text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">Inspect</div>
-              {isAlias(node.$value) && !isBrokenAlias && onNavigateToAlias && (
+          {tokenMoreMenuPos && (
+            <div
+              ref={tokenMoreMenuRef}
+              role="menu"
+              aria-label="More token actions"
+              className={`${MENU_SURFACE_CLASS} min-w-[212px] max-h-[80vh] overflow-y-auto`}
+              style={{ top: tokenMoreMenuPos.y, left: tokenMoreMenuPos.x }}
+              onClick={e => e.stopPropagation()}
+            >
+              {onDuplicateToken && (
                 <button
-                  data-accel="g"
                   role="menuitem"
                   tabIndex={-1}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  data-accel="d"
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => {
-                    setContextMenuPos(null);
-                    const aliasPath = (node.$value as string).slice(1, -1);
-                    onNavigateToAlias(aliasPath, node.path);
+                    closeTokenMenus();
+                    onDuplicateToken(node.path);
                   }}
+                  className={MENU_ITEM_CLASS}
                 >
-                  <span>Go to definition</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">G</span>
+                  <span>Duplicate</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
+                </button>
+              )}
+              {onRequestMoveToken && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="m"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    closeTokenMenus();
+                    onRequestMoveToken(node.path);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>Move to set</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
+                </button>
+              )}
+              {onRequestCopyToken && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    closeTokenMenus();
+                    onRequestCopyToken(node.path);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>Copy to set</span>
+                </button>
+              )}
+              {!isAlias(node.$value) && onExtractToAlias && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="e"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    closeTokenMenus();
+                    onExtractToAlias(node.path, node.$type, node.$value);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>Extract to alias</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
+                </button>
+              )}
+              {onCompareAcrossThemes && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    closeTokenMenus();
+                    onCompareAcrossThemes(node.path);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>Compare across themes</span>
                 </button>
               )}
               <button
                 role="menuitem"
                 tabIndex={-1}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   const refs = getIncomingRefs(node.path, allTokensFlat);
                   const rect = nodeRef.current?.getBoundingClientRect();
-                  setContextMenuPos(null);
+                  closeTokenMenus();
                   setRefsPopover({
                     refs,
                     pos: rect
@@ -2235,182 +2368,27 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
                       : { x: 100, y: 100 },
                   });
                 }}
+                className={MENU_ITEM_CLASS}
               >
                 <span>Find references</span>
               </button>
-              {onShowReferences && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    setContextMenuPos(null);
-                    onShowReferences(node.path);
-                  }}
-                >
-                  <span>Open in dependency graph</span>
-                </button>
-              )}
               {onViewTokenHistory && (
                 <button
                   role="menuitem"
                   tabIndex={-1}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => {
-                    setContextMenuPos(null);
+                    closeTokenMenus();
                     onViewTokenHistory(node.path);
                   }}
+                  className={MENU_ITEM_CLASS}
                 >
                   <span>View history</span>
                 </button>
               )}
-              {onCompareToken && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    setContextMenuPos(null);
-                    onCompareToken(node.path);
-                  }}
-                >
-                  <span>Compare with\u2026</span>
-                </button>
-              )}
-              {onCompareAcrossThemes && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    setContextMenuPos(null);
-                    onCompareAcrossThemes(node.path);
-                  }}
-                >
-                  <span>Compare across themes</span>
-                </button>
-              )}
-              {onFindInAllSets && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    setContextMenuPos(null);
-                    onFindInAllSets(node.path);
-                  }}
-                >
-                  <span>Find in all sets</span>
-                </button>
-              )}
-              {onDetachFromGenerator && derivedTokenPaths?.has(node.path) && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    setContextMenuPos(null);
-                    onDetachFromGenerator(node.path);
-                  }}
-                >
-                  Detach from generator
-                </button>
-              )}
-            </>
+            </div>
           )}
-
-          {/* ── Copy ── */}
-          <div className="my-1 border-t border-[var(--color-figma-border)]" />
-          <button
-            data-accel="c"
-            role="menuitem"
-            tabIndex={-1}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              handleCopyPath();
-              setContextMenuPos(null);
-            }}
-          >
-            <span>Copy path <span className="text-[var(--color-figma-text-tertiary)]">({node.path})</span></span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">C</span>
-          </button>
-          {/* Compact format picker — CSS var, DTCG ref, SCSS, raw value, JSON */}
-          {(() => {
-            const cssVar = `var(--${node.path.replace(/\./g, '-')})`;
-            const dtcgRef = `{${node.path}}`;
-            const scssVar = `$${node.path.replace(/\./g, '-')}`;
-            const rawVal = typeof node.$value === 'string' ? node.$value : JSON.stringify(node.$value);
-            const dtcgLeaf: Record<string, unknown> = { $value: node.$value, $type: node.$type };
-            if (node.$description) dtcgLeaf.$description = node.$description;
-            const dtcgSegments = node.path.split('.');
-            let dtcgObj: Record<string, unknown> = dtcgLeaf;
-            for (let _i = dtcgSegments.length - 1; _i >= 0; _i--) {
-              dtcgObj = { [dtcgSegments[_i]]: dtcgObj };
-            }
-            const dtcgJsonText = JSON.stringify(dtcgObj, null, 2);
-            const preferredFmt = lsGet(STORAGE_KEYS.PREFERRED_COPY_FORMAT) ?? 'css-var';
-            const formats: Array<{ label: string; value: string; title: string; accel?: string; fmtKey: string }> = [
-              { label: 'CSS var', value: cssVar, title: cssVar, fmtKey: 'css-var' },
-              { label: '{ref}', value: dtcgRef, title: `${dtcgRef} \u00B7 alias reference (\u2318\u2325C)`, fmtKey: 'dtcg-ref' },
-              { label: '$scss', value: scssVar, title: scssVar, fmtKey: 'scss' },
-              { label: 'value', value: rawVal, title: 'Copy raw value', accel: 'v', fmtKey: 'raw' },
-              { label: 'DTCG', value: dtcgJsonText, title: 'Copy as DTCG JSON (W3C format)', accel: 'j', fmtKey: 'json' },
-            ];
-            return (
-              <div className="px-3 py-1.5">
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1 uppercase tracking-wide">Copy as\u2026 <span title="Set preferred format in Settings (\u2318\u21E7C uses it)" className="normal-case opacity-60">\u2318\u21E7C uses preferred</span></div>
-                <div className="flex flex-wrap gap-1">
-                  {formats.map(({ label, value, title, accel, fmtKey }) => (
-                    <button
-                      key={label}
-                      data-accel={accel}
-                      title={fmtKey === preferredFmt ? `${title} \u00B7 preferred format (\u2318\u21E7C)` : title}
-                      className={`px-1.5 py-0.5 text-[10px] font-mono rounded border transition-colors ${fmtKey === preferredFmt ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)] text-white hover:opacity-90' : 'bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] border-[var(--color-figma-border)]'}`}
-                      onMouseDown={e => e.preventDefault()}
-                      onClick={() => {
-                        navigator.clipboard.writeText(value).catch(e => console.warn('[clipboard] write failed:', e));
-                        setCopiedWhat('value');
-                        setTimeout(() => setCopiedWhat(null), 1500);
-                        setContextMenuPos(null);
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {node.$type === 'color' && typeof displayValue === 'string' && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {(['hex', 'rgb', 'hsl', 'oklch', 'p3'] as ColorFormat[]).map(fmt => {
-                      const colorVal = formatHexAs(displayValue, fmt);
-                      return (
-                        <button
-                          key={fmt}
-                          title={colorVal}
-                          className="px-1.5 py-0.5 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] rounded border border-[var(--color-figma-border)] transition-colors"
-                          onMouseDown={e => e.preventDefault()}
-                          onClick={() => {
-                            navigator.clipboard.writeText(colorVal).catch(e => console.warn('[clipboard] write failed:', e));
-                            setCopiedWhat('value');
-                            setTimeout(() => setCopiedWhat(null), 1500);
-                            setContextMenuPos(null);
-                          }}
-                        >
-                          {fmt === 'hex' ? 'hex' : fmt === 'rgb' ? 'rgb()' : fmt === 'hsl' ? 'hsl()' : fmt === 'oklch' ? 'oklch()' : 'p3'}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
+        </>
       )}
 
       {/* Inline alias picker popover — opened via "Link to token…" context menu item */}

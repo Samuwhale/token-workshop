@@ -318,3 +318,10 @@
   - Any list-level single-letter shortcut that mutates data should require a modifier unless it is strictly modal/context-local. Bare keys are too easy to trigger after focus jumps back to the list.
   - For container-level destructive shortcuts, gate on both selection state and a meaningful focused row (`data-token-path`/`data-group-path`) so stale multi-select state alone cannot trigger a mutation.
 ---
+## 2026-04-07 - Token context menus are too long to scan
+- Reworked both token and group row context menus into compact primary menus with a `More…` submenu, matching the backlog action split. Added submenu positioning/clamping, submenu autofocus, and scoped keyboard handling so ArrowRight opens `More…`, ArrowLeft closes it, Escape closes the nested level first, and accelerators only fire inside the active menu surface.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L129, ~L402, ~L789, ~L1238, ~L2163; `packages/figma-plugin/src/ui/hooks/useMenuKeyboard.ts` ~L23
+- **Learnings for future iterations:**
+  - For nested context menus, scope accelerators to the currently focused menu container instead of querying the whole root menu tree, or submenu actions will bleed into the wrong level.
+  - `More…` submenus should derive their position from the trigger button rect, not the original context-click point, so they stay visually attached and can flip left when near the viewport edge.
+---

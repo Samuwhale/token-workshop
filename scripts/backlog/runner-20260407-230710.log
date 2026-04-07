@@ -45,3 +45,22 @@
     Simplified token rows to a progressive-disclosure layout, moved secondary metadata into TokenDetailPreview, removed pin/pinned row UI in favor of a single favorite action, and passed full backlog validation.
 
   Committing: Token rows display too many simultaneous indicators
+[main 08179fef] chore(backlog): done – Token rows display too many simultaneous indicators
+ 11 files changed, 214 insertions(+), 415 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-07 - Global unmodified keyboard shortcuts trigger unexpected mutations
+- Changed the token-list "new token" shortcut from bare `N` to `Cmd/Ctrl+N` in the shared shortcut registry so list focus no longer intercepts plain `n` while users are navigating or preparing to search.
+- Tightened `handleListKeyDown` so bulk delete on `Backspace` only fires when multi-select is active, there is an actual selection, and keyboard focus is still on a token/group row. The create-token handler now reuses the same focused row lookup instead of re-reading `document.activeElement`.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L78, ~L159, ~L276; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L983, ~L1103, ~L1153
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  10 queued · 0 in-progress · last took 15m28s
+═══════════════════════════════════════════════════════════════
+  → Token context menus are too long to scan — the token row context menu has ~18 items and the group context menu has ~13; users cannot scan a menu this long; restructure both menus with a "More..." submenu pattern: token primary (max 6): Edit, Rename, Delete, Copy path, Apply to selection (only shown when Figma has a layer selected), More...; token More...: Duplicate, Move to set, Copy to set, Extract to alias, Compare across themes, Find references, View history; group primary (max 5): Add token, Rename, Delete, Generate scale, More...; group More...: New subgroup, Edit type & description, Move to set, Copy to set, Duplicate, Set scopes, Sync to Figma variables/styles; note: "Generate scale" in the group primary menu is a dependency of the quick-generator task — if that task ships first, this item becomes "Generate..." opening the quick-generator popover directly; files: `TokenTreeNode.tsx` (group context menu ~L720–930, token context menu ~L2260–2400), `useMenuKeyboard.ts`
+  Running agent… (started 23:24:02)
+
+  ✓ done: Token context menus are too long to scan
+    Collapsed token and group context menus into primary + More submenus, added nested-menu keyboard behavior, and passed scripts/backlog/validate.sh.
+
+  Committing: Token context menus are too long to scan

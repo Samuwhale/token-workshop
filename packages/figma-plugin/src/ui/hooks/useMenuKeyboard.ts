@@ -20,14 +20,43 @@ export function getMenuItems(container: HTMLElement): HTMLElement[] {
   ).filter(el => !(el as HTMLButtonElement).disabled);
 }
 
+type MenuKeyHandlers = {
+  onOpenSubmenu?: () => void;
+  onCloseSubmenu?: () => void;
+};
+
 /**
  * Handles ArrowDown / ArrowUp / Home / End within a menu container.
+ * Optionally handles ArrowRight / ArrowLeft for submenu open/close.
  * Moves focus between non-disabled menuitems and wraps at the ends.
  * @returns true if the event was consumed (caller should skip further handling)
  */
-export function handleMenuArrowKeys(e: KeyboardEvent, container: HTMLElement): boolean {
-  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') {
+export function handleMenuArrowKeys(
+  e: KeyboardEvent,
+  container: HTMLElement,
+  handlers?: MenuKeyHandlers,
+): boolean {
+  if (
+    e.key !== 'ArrowDown' &&
+    e.key !== 'ArrowUp' &&
+    e.key !== 'Home' &&
+    e.key !== 'End' &&
+    e.key !== 'ArrowRight' &&
+    e.key !== 'ArrowLeft'
+  ) {
     return false;
+  }
+  if (e.key === 'ArrowRight') {
+    if (!handlers?.onOpenSubmenu) return false;
+    e.preventDefault();
+    handlers.onOpenSubmenu();
+    return true;
+  }
+  if (e.key === 'ArrowLeft') {
+    if (!handlers?.onCloseSubmenu) return false;
+    e.preventDefault();
+    handlers.onCloseSubmenu();
+    return true;
   }
   const items = getMenuItems(container);
   if (!items.length) return false;
