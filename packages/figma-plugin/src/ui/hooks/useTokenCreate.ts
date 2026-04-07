@@ -3,7 +3,6 @@ import type { SelectionNodeInfo } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue } from '../components/tokenListUtils';
-import { fuzzyScore } from '../shared/fuzzyMatch';
 import { validateTokenPath } from '../shared/tokenParsers';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { tokenPathToUrlSegment } from '../shared/utils';
@@ -72,10 +71,8 @@ export function useTokenCreate({
     try { localStorage.setItem('tm_last_token_type', t); } catch (e) { console.debug('[useTokenCreate] storage write failed:', e); }
   };
   const [newTokenValue, setNewTokenValue] = useState('');
-  const [newTokenDescription, setNewTokenDescription] = useState('');
   const [typeAutoInferred, setTypeAutoInferred] = useState(false);
   const [createError, setCreateError] = useState('');
-  const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
   const [nameIsAutoSuggested, setNameIsAutoSuggested] = useState(false);
   const createFormRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -114,24 +111,6 @@ export function useTokenCreate({
 
     return result;
   }, [newTokenPath, newTokenGroup, allTokensFlat, allGroupPaths]);
-
-  const [groupActiveIdx, setGroupActiveIdx] = useState(-1);
-
-  // Filtered group suggestions with fuzzy scoring
-  const filteredGroups = useMemo(() => {
-    const q = newTokenGroup.trim();
-    if (!q) return allGroupPaths;
-    const scored = allGroupPaths
-      .map(p => ({ path: p, score: fuzzyScore(q, p) }))
-      .filter(x => x.score >= 0);
-    scored.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
-    return scored.map(x => x.path);
-  }, [newTokenGroup, allGroupPaths]);
-
-  // Reset keyboard index when suggestions change
-  useEffect(() => {
-    setGroupActiveIdx(-1);
-  }, [filteredGroups]);
 
   // Scroll to and pulse the create form when it appears
   useEffect(() => {
@@ -214,9 +193,7 @@ export function useTokenCreate({
     setNewTokenGroup('');
     setNewTokenName('');
     setNewTokenValue('');
-    setNewTokenDescription('');
     setCreateError('');
-    setGroupDropdownOpen(false);
     pendingAutoSuggestRef.current = false;
   }, []);
 
@@ -236,7 +213,6 @@ export function useTokenCreate({
         body: JSON.stringify({
           $type: newTokenType,
           $value: parsedValue,
-          ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
         }),
       });
       const createdPath = trimmedPath;
@@ -251,7 +227,6 @@ export function useTokenCreate({
         // Keep group, clear name for next token in same group
         setNewTokenName('');
         setNewTokenValue('');
-        setNewTokenDescription('');
         setTypeAutoInferred(false);
         setCreateError('');
         // Trigger name auto-suggestion after refresh updates siblings
@@ -261,7 +236,6 @@ export function useTokenCreate({
         setNewTokenGroup('');
         setNewTokenName('');
         setNewTokenValue('');
-        setNewTokenDescription('');
       }
       onRefresh();
       onTokenCreated?.(createdPath);
@@ -290,7 +264,7 @@ export function useTokenCreate({
         setCreateError('Network error — could not create token');
       }
     }
-  }, [newTokenPath, newTokenName, newTokenType, newTokenValue, newTokenDescription, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, newTokenGroup, setShowCreateForm]);
+  }, [newTokenPath, newTokenName, newTokenType, newTokenValue, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, newTokenGroup, setShowCreateForm]);
 
   const handleCreate = useCallback(() => doCreate(false), [doCreate]);
   const handleCreateAndNew = useCallback(() => doCreate(true), [doCreate]);
@@ -308,8 +282,6 @@ export function useTokenCreate({
     setNewTokenType,
     newTokenValue,
     setNewTokenValue,
-    newTokenDescription,
-    setNewTokenDescription,
     typeAutoInferred,
     setTypeAutoInferred,
     createError,
@@ -317,12 +289,6 @@ export function useTokenCreate({
     createFormRef,
     nameInputRef,
     nameSuggestions,
-    filteredGroups,
-    allGroupPaths,
-    groupDropdownOpen,
-    setGroupDropdownOpen,
-    groupActiveIdx,
-    setGroupActiveIdx,
     resetCreateForm,
     handleOpenCreateSibling,
     handleCreate,

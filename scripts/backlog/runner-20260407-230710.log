@@ -64,3 +64,22 @@
     Collapsed token and group context menus into primary + More submenus, added nested-menu keyboard behavior, and passed scripts/backlog/validate.sh.
 
   Committing: Token context menus are too long to scan
+[main 4e704a3d] chore(backlog): done – Token context menus are too long to scan
+ 7 files changed, 598 insertions(+), 564 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-07 - Token context menus are too long to scan
+- Reworked both token and group row context menus into compact primary menus with a `More…` submenu, matching the backlog action split. Added submenu positioning/clamping, submenu autofocus, and scoped keyboard handling so ArrowRight opens `More…`, ArrowLeft closes it, Escape closes the nested level first, and accelerators only fire inside the active menu surface.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L129, ~L402, ~L789, ~L1238, ~L2163; `packages/figma-plugin/src/ui/hooks/useMenuKeyboard.ts` ~L23
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  9 queued · 0 in-progress · last took 9m19s
+═══════════════════════════════════════════════════════════════
+  → Token creation entry points are inconsistent with each other — the inline create form (inside TokenList), the full TokenEditor in create mode, the command palette, context menu "Create sibling", and empty state each offer different subsets of fields and behave differently on validation errors; the fix is not to remove entry points but to make them consistent: (1) the inline form should offer only name + type + value, nothing else — strip the description field and any advanced options from it (those belong in the editor); (2) the full editor create mode is the canonical path for everything else and all other paths (command palette create, "Create sibling", empty state button) should invoke it; (3) the paste modal and import panel are batch operations and intentionally different — leave them alone; files: `useTokenCreate.ts` (inline create hook), `TokenEditor.tsx` (isCreateMode path), `TokenList.tsx` (inline create form rendering ~L1800–2000)
+  Running agent… (started 23:33:21)
+
+  ✓ done: Token creation entry points are inconsistent with each other
+    Inline create is now a strict name/type/value quick form, advanced creation stays in TokenEditor, and create-mode initial values are wired consistently across editor variants.
+
+  Committing: Token creation entry points are inconsistent with each other

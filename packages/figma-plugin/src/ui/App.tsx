@@ -2139,6 +2139,7 @@ export function App() {
                 onRefreshGenerators={refreshGenerators}
                 isCreateMode={editingToken.isCreate}
                 initialType={editingToken.initialType}
+                initialValue={editingToken.initialValue}
                 onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
                 closeRef={editorCloseRef}
                 onSaved={handleEditorSave}

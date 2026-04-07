@@ -325,3 +325,11 @@
   - For nested context menus, scope accelerators to the currently focused menu container instead of querying the whole root menu tree, or submenu actions will bleed into the wrong level.
   - `More…` submenus should derive their position from the trigger button rect, not the original context-click point, so they stay visually attached and can flip left when near the viewport edge.
 ---
+## 2026-04-07 - Token creation entry points are inconsistent with each other
+- Reduced the inline TokenList create form to the quick-create fields only: it now keeps the group as read-only context, creates tokens with just name/type/value, and drops description, reference-mode, alias suggestions, and the "open advanced editor" affordance.
+- Kept the full TokenEditor as the canonical advanced create path and fixed the narrow-screen drawer wiring so create-mode editors receive `initialValue` just like the side-panel path.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L73, ~L191, ~L213; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L560, ~L3540, ~L3630; `packages/figma-plugin/src/ui/App.tsx` ~L2142
+- **Learnings for future iterations:**
+  - If a "quick create" surface is meant to stay lightweight, keep non-editable location context visible but remove alternate editing modes from the same form; otherwise validation and field expectations immediately diverge from the canonical editor.
+  - When create-mode state is passed through multiple editor render paths, keep the prop set identical across responsive variants or one breakpoint will silently lose prefilled values.
+---

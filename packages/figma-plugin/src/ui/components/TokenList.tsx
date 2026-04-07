@@ -22,9 +22,8 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenListProps, MultiModeValue, Density, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
 import { VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
-import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
+import { validateJsonRefs, parseInlineValue, inferTypeFromValue, highlightMatch, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
-import { AliasAutocomplete } from './AliasAutocomplete';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenTreeProvider } from './TokenTreeContext';
 import type { TokenTreeContextType } from './tokenListTypes';
@@ -562,21 +561,14 @@ export function TokenList({
     showCreateForm, setShowCreateForm,
     newTokenGroup, setNewTokenGroup, newTokenName, setNewTokenName,
     newTokenPath, pathValidation, newTokenType, setNewTokenType, newTokenValue, setNewTokenValue,
-    newTokenDescription, setNewTokenDescription, typeAutoInferred, setTypeAutoInferred,
+    typeAutoInferred, setTypeAutoInferred,
     createError, setCreateError,
-    createFormRef, nameInputRef, nameSuggestions, filteredGroups, groupDropdownOpen, setGroupDropdownOpen,
-    groupActiveIdx, setGroupActiveIdx,
+    createFormRef, nameInputRef, nameSuggestions,
     resetCreateForm, handleOpenCreateSibling, handleCreate, handleCreateAndNew,
   } = tokenCreate;
 
-  // Reference mode toggle for inline create form
-  const [createRefMode, setCreateRefMode] = useState(false);
-  const [createRefQuery, setCreateRefQuery] = useState('');
-  const createRefInputRef = useRef<HTMLInputElement>(null);
   const resetCreateFormFull = useCallback(() => {
     resetCreateForm();
-    setCreateRefMode(false);
-    setCreateRefQuery('');
   }, [resetCreateForm]);
 
   const tableCreate = useTableCreate({
@@ -599,13 +591,6 @@ export function TokenList({
     openTableCreate, handleCreateAll,
     tableSuggestions,
   } = tableCreate;
-
-  // Scroll active group autocomplete item into view
-  useEffect(() => {
-    if (groupActiveIdx < 0 || !createFormRef.current) return;
-    const el = createFormRef.current.querySelector(`[data-group-idx="${groupActiveIdx}"]`) as HTMLElement | null;
-    el?.scrollIntoView({ block: 'nearest' });
-  }, [groupActiveIdx, createFormRef]);
 
   const findReplace = useFindReplace({
     connected,
@@ -1339,28 +1324,6 @@ export function TokenList({
       ([path, token]) => path in syncSnapshot && syncSnapshot[path] !== stableStringify(token.$value)
     ).length;
   }, [syncSnapshot, allTokensFlat]);
-
-  // Smart alias suggestion: when the typed value matches an existing token's value, suggest using a reference
-  const aliasSuggestion = useMemo<{ path: string; name: string } | null>(() => {
-    if (!showCreateForm) return null;
-    const raw = newTokenValue.trim();
-    if (!raw) return null;
-    // Don't suggest if user already typed an alias reference
-    if (isAlias(raw)) return null;
-    const parsed = parseInlineValue(newTokenType, raw);
-    if (parsed === null) return null;
-    for (const [tokenPath, entry] of Object.entries(allTokensFlat)) {
-      // Skip aliases — we want to match concrete values
-      if (isAlias(entry.$value)) continue;
-      // Only match same-type tokens
-      if (entry.$type !== newTokenType) continue;
-      if (valuesEqual(parsed, entry.$value)) {
-        const segments = tokenPath.split('.');
-        return { path: tokenPath, name: segments[segments.length - 1] };
-      }
-    }
-    return null;
-  }, [showCreateForm, newTokenValue, newTokenType, allTokensFlat]);
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
@@ -3584,78 +3547,14 @@ export function TokenList({
               <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Creating in:</span>
               <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{setName}</span>
             </div>
-            {/* Group picker */}
-            <div className="relative">
-              <label className="block text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Group</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Root (none)"
-                  value={newTokenGroup}
-                  onChange={e => { setNewTokenGroup(e.target.value); setGroupDropdownOpen(true); setCreateError(''); }}
-                  onFocus={() => setGroupDropdownOpen(true)}
-                  onBlur={() => { setTimeout(() => setGroupDropdownOpen(false), 150); }}
-                  className="w-full px-2 py-1.5 pr-6 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-                  onKeyDown={e => {
-                    if (e.key === 'Escape') { setGroupDropdownOpen(false); (e.target as HTMLInputElement).blur(); return; }
-                    if (groupDropdownOpen && filteredGroups.length > 0) {
-                      if (e.key === 'ArrowDown') { e.preventDefault(); setGroupActiveIdx(i => Math.min(i + 1, filteredGroups.length - 1)); return; }
-                      if (e.key === 'ArrowUp') { e.preventDefault(); setGroupActiveIdx(i => Math.max(i - 1, -1)); return; }
-                      if ((e.key === 'Tab' || e.key === 'Enter') && groupActiveIdx >= 0 && filteredGroups[groupActiveIdx]) {
-                        e.preventDefault();
-                        setNewTokenGroup(filteredGroups[groupActiveIdx]);
-                        setGroupDropdownOpen(false);
-                        return;
-                      }
-                    }
-                    if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); }
-                  }}
-                />
-                <svg className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-figma-text-tertiary)]" width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><path d="M1 2.5l3 3 3-3" /></svg>
-              </div>
-              {groupDropdownOpen && filteredGroups.length > 0 && (
-                <div className="absolute z-50 left-0 right-0 mt-0.5 max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg">
-                  <button
-                    type="button"
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => { setNewTokenGroup(''); setGroupDropdownOpen(false); }}
-                    className={`w-full text-left px-2 py-1 text-[11px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${!newTokenGroup.trim() ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-tertiary)] italic'}`}
-                  >
-                    (root)
-                  </button>
-                  {filteredGroups.map((gp, idx) => {
-                    const isActive = idx === groupActiveIdx;
-                    const isExact = gp === newTokenGroup.trim();
-                    const terms = newTokenGroup.trim() ? newTokenGroup.trim().split(/[\s.]+/).filter(Boolean) : [];
-                    return (
-                      <button
-                        key={gp}
-                        type="button"
-                        data-group-idx={idx}
-                        onMouseDown={e => e.preventDefault()}
-                        onClick={() => { setNewTokenGroup(gp); setGroupDropdownOpen(false); }}
-                        onMouseEnter={() => setGroupActiveIdx(idx)}
-                        className={`w-full flex items-center gap-1.5 text-left px-2 py-1 text-[11px] transition-colors ${isActive ? 'bg-[var(--color-figma-bg-hover)]' : ''} ${isExact ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'}`}
-                      >
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
-                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                        </svg>
-                        <span className="flex-1 truncate">{terms.length > 0 ? highlightMatch(gp, terms) : gp}</span>
-                      </button>
-                    );
-                  })}
-                  {newTokenGroup.trim() && !allGroupPaths.includes(newTokenGroup.trim()) && (
-                    <button
-                      type="button"
-                      onMouseDown={e => e.preventDefault()}
-                      onClick={() => { setGroupDropdownOpen(false); }}
-                      className="w-full text-left px-2 py-1 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      + Create &ldquo;{newTokenGroup.trim()}&rdquo;
-                    </button>
-                  )}
-                </div>
-              )}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Group:</span>
+              <span className="min-w-0 truncate text-[10px] text-[var(--color-figma-text)]">
+                {newTokenGroup.trim() || 'Root'}
+              </span>
             </div>
             {/* Token name */}
             <div>
@@ -3728,130 +3627,35 @@ export function TokenList({
                 })}
               </div>
             )}
-            {/* Value input with reference mode toggle */}
+            {/* Inline create stays intentionally minimal: name, value, and type only. */}
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-1.5">
-                {/* Toggle between direct value and reference mode */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !createRefMode;
-                    setCreateRefMode(next);
-                    if (next) {
-                      setCreateRefQuery('');
-                      setTimeout(() => createRefInputRef.current?.focus(), 0);
+                {newTokenValue.trim() && (
+                  <ValuePreview type={newTokenType} value={parseInlineValue(newTokenType, newTokenValue.trim())} />
+                )}
+                <input
+                  type="text"
+                  placeholder={valuePlaceholderForType(newTokenType)}
+                  value={newTokenValue}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setNewTokenValue(val);
+                    const inferred = inferTypeFromValue(val);
+                    if (inferred) {
+                      setNewTokenType(inferred);
+                      setTypeAutoInferred(true);
+                    } else if (typeAutoInferred && !val.trim()) {
+                      setTypeAutoInferred(false);
                     }
                   }}
-                  title={createRefMode ? 'Switch to direct value' : 'Reference an existing token'}
-                  className={`p-1 rounded transition-colors shrink-0 ${
-                    createRefMode
-                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-                      : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                  }`}
-                >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-                    <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
-                  </svg>
-                </button>
-                {!createRefMode ? (
-                  <>
-                    {newTokenValue.trim() && (
-                      <ValuePreview type={newTokenType} value={parseInlineValue(newTokenType, newTokenValue.trim())} />
-                    )}
-                    <input
-                      type="text"
-                      placeholder={valuePlaceholderForType(newTokenType)}
-                      value={newTokenValue}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setNewTokenValue(val);
-                        const inferred = inferTypeFromValue(val);
-                        if (inferred) {
-                          setNewTokenType(inferred);
-                          setTypeAutoInferred(true);
-                        } else if (typeAutoInferred && !val.trim()) {
-                          setTypeAutoInferred(false);
-                        }
-                      }}
-                      className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-                      onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
-                    />
-                  </>
-                ) : (
-                  <div className="flex-1 min-w-0 relative">
-                    {/* Show linked token badge if already referencing */}
-                    {newTokenValue.startsWith('{') && newTokenValue.endsWith('}') ? (
-                      <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/40">
-                        <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-accent)] truncate">
-                          {newTokenValue.slice(1, -1)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => { setNewTokenValue(''); setCreateRefQuery(''); }}
-                          className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]"
-                          title="Clear reference"
-                        >
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <input
-                          ref={createRefInputRef}
-                          type="text"
-                          placeholder="Search tokens to reference…"
-                          value={createRefQuery}
-                          onChange={e => setCreateRefQuery(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Escape') { setCreateRefMode(false); } }}
-                          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none"
-                        />
-                        {createRefQuery && (
-                          <AliasAutocomplete
-                            query={createRefQuery}
-                            allTokensFlat={allTokensFlat}
-                            pathToSet={pathToSet}
-                            filterType={newTokenType !== 'custom' ? newTokenType : undefined}
-                            onSelect={path => {
-                              setNewTokenValue(`{${path}}`);
-                              setCreateRefQuery('');
-                              // Auto-infer type from referenced token
-                              const entry = allTokensFlat[path];
-                              if (entry?.$type) {
-                                setNewTokenType(entry.$type);
-                                setTypeAutoInferred(true);
-                              }
-                            }}
-                            onClose={() => setCreateRefQuery('')}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
+                  className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+                  onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
+                />
               </div>
             </div>
-            {!createRefMode && !newTokenValue.trim() && valueFormatHint(newTokenType) && (
+            {!newTokenValue.trim() && valueFormatHint(newTokenType) && (
               <p className="text-[9px] leading-snug text-[var(--color-figma-text-tertiary)] -mt-0.5 px-0.5">{valueFormatHint(newTokenType)}</p>
             )}
-            {!createRefMode && aliasSuggestion && (
-              <button
-                type="button"
-                onClick={() => { setNewTokenValue(`{${aliasSuggestion.path}}`); setCreateRefMode(true); }}
-                className="w-full flex items-center gap-1.5 px-2 py-1 rounded border border-dashed border-[var(--color-figma-accent)] bg-[var(--color-figma-accent-bg,transparent)] text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors cursor-pointer text-left"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                <span>Use reference instead &rarr; <strong>{`{${formatDisplayPath(aliasSuggestion.path, aliasSuggestion.name)}}`}</strong></span>
-              </button>
-            )}
-            <input
-              type="text"
-              placeholder="Description (optional)"
-              value={newTokenDescription}
-              onChange={e => setNewTokenDescription(e.target.value)}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-              onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
-            />
             <select
               value={newTokenType}
               onChange={e => { setNewTokenType(e.target.value); setTypeAutoInferred(false); }}
@@ -3882,19 +3686,6 @@ export function TokenList({
               >
                 & New
               </button>
-              {onCreateNew && (
-                <button
-                  onClick={() => {
-                    const path = newTokenPath.trim();
-                    onCreateNew(path || undefined, newTokenType, newTokenValue.trim() || undefined);
-                    resetCreateFormFull();
-                  }}
-                  title="Open full editor with more fields (references, scopes, extensions, modes)"
-                  className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"/></svg>
-                </button>
-              )}
               <button
                 onClick={resetCreateFormFull}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
