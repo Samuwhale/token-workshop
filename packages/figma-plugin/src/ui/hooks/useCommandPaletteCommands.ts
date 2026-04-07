@@ -193,10 +193,14 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
       },
       {
         id: 'recents-favorites',
-        label: 'Recents & Favorites',
-        description: 'View recently edited tokens and starred favorites across all sets',
+        label: 'Show Recent Tokens',
+        description: 'Jump to Tokens and filter the list to recently touched items',
         category: 'View',
-        handler: () => openOverflowPanel('recents'),
+        handler: () => {
+          navigateTo('define', 'tokens');
+          setEditingToken(null);
+          setTimeout(() => { tokenListCompareRef.current?.showRecentlyTouched(); }, 0);
+        },
       },
       {
         id: 'import',

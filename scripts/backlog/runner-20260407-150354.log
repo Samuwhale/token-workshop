@@ -27,3 +27,44 @@
 
   Merging to main: Inspect and Ship tabs have undiscoverable inner navigation
 Already up to date.
+[main f007950a] chore(backlog): done – Inspect and Ship tabs have undiscoverable inner navigation
+ 18 files changed, 554 insertions(+), 75 deletions(-)
+ create mode 100644 runner-20260407-125909.log
+ create mode 100644 scripts/backlog/runner-20260407-121248.log
+ create mode 100644 scripts/backlog/runner-20260407-125809.log
+ create mode 100644 scripts/backlog/runner-20260407-125909.log
+ create mode 100644 scripts/backlog/runner-20260407-130521.log
+ create mode 100644 scripts/backlog/runner-20260407-131937.log
+ create mode 100644 scripts/backlog/runner-20260407-132104.log
+ create mode 100644 scripts/backlog/runner-20260407-132147.log
+ create mode 100644 scripts/backlog/runner-20260407-133510.log
+ create mode 100644 scripts/backlog/runner-20260407-150231.log
+ create mode 100644 scripts/backlog/runner-20260407-150314.log
+ create mode 100644 scripts/backlog/runner-20260407-150354.log
+  ✓ Merged and marked done
+
+## 2026-04-07 - Inspect and Ship tabs have undiscoverable inner navigation
+- Added explicit submenu affordances to the primary `Inspect` and `Ship` tabs by extending `FLAT_TABS` with small hint labels and rendering a chevron on tabs that expose inner sections. Also derived the active flat/inner tab once so the nav can consistently reflect the current route.
+- Added a compact section header above the inner-tab row so `Inspect` and `Ship` now clearly show which subsection is active before the panel content starts.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L58; `packages/figma-plugin/src/ui/App.tsx` ~L175, ~L941, ~L1300
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  12 queued · 0 in-progress · last took 3m43s
+═══════════════════════════════════════════════════════════════
+  → Settings and Recents panels are invisible in the UI — they are accessible only by knowing a hidden toolbar overflow "..." button exists; Settings should become a persistent gear icon (⚙) in the right side of the toolbar (between the notification bell and the "..." menu); Recents should be removed as a standalone panel and its functionality merged into the token list as a "recently touched" filter toggle (the `useRecentlyTouched` hook already tracks this); Import is already a modal workflow and requires no change; files: `App.tsx` (toolbar, overflow menu ~L450–550), `RecentsPanel.tsx`, `TokenList.tsx` (filter bar), `useRecentlyTouched.ts`
+  Worktree: /tmp/backlog-30812-hbWKT1
+  Running agent… (started 15:07:37)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work (up to 30s)…
+scripts/backlog/backlog.sh: line 250: echo: write error: Broken pipe
+
+  · unknown
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-07 - Inspect and Ship tabs have undiscoverable inner navigation
+- Added explicit submenu affordances to the primary `Inspect` and `Ship` tabs by extending `FLAT_TABS` with small hint labels and rendering a chevron on tabs that expose inner sections. Also derived the active flat/inner tab once so the nav can consistently reflect the current route.
+- Added a compact section header above the inner-tab row so `Inspect` and `Ship` now clearly show which subsection is active before the panel content starts.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L58; `packages/figma-plugin/src/ui/App.tsx` ~L175, ~L941, ~L1300
+
+  Stopped after 2 iterations (1642 total items completed).

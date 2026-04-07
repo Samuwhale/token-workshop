@@ -4,6 +4,7 @@ import type { NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../s
 import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
+import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
 import type { ThemeDimension } from '@tokenmanager/core';
 
 /** Per-option resolved value for a single token in multi-mode view */
@@ -157,6 +158,8 @@ export interface TokenListActions {
 export interface TokenListImperativeHandle {
   /** Enter multi-select mode (no navigation — user selects tokens then clicks Compare) */
   openCompareMode: () => void;
+  /** Enable the recently touched filter inside the token list */
+  showRecentlyTouched: () => void;
   /** Trigger inline rename mode for the given token path */
   triggerInlineRename: (path: string) => void;
   /** Open the move-to-set dialog for the given token path */
@@ -169,6 +172,7 @@ export interface TokenListProps {
   ctx: TokenListCtx;
   data: TokenListData;
   actions: TokenListActions;
+  recentlyTouched: RecentlyTouchedState;
   defaultCreateOpen?: boolean;
   highlightedToken?: string | null;
   showIssuesOnly?: boolean;

@@ -38,7 +38,6 @@ import { HealthPanel } from '../components/HealthPanel';
 import { PreviewPanel } from '../components/PreviewPanel';
 import { EmptyState } from '../components/EmptyState';
 import { SettingsPanel } from '../components/SettingsPanel';
-import { RecentsPanel } from '../components/RecentsPanel';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useConnectionContext, useSyncContext } from '../contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from '../contexts/TokenDataContext';
@@ -52,7 +51,6 @@ import type { ValidationIssue, ValidationSummary } from '../hooks/useValidationC
 import type { UndoSlot } from '../hooks/useUndo';
 import type { OperationEntry } from '../hooks/useRecentOperations';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
-import type { CrossSetRecentsState } from '../hooks/useCrossSetRecents';
 import type { StarredTokensState } from '../hooks/useStarredTokens';
 import type { TopTab, SubTab } from '../shared/navigationTypes';
 import { useEditorWidth } from '../hooks/useEditorWidth';
@@ -166,8 +164,7 @@ export interface PanelRouterProps {
   handleNavigateToGenerator: (id: string) => void;
   setThemeGapCount: (n: number) => void;
   triggerCreateToken: number;
-  paletteRecentlyTouched: Pick<RecentlyTouchedState, 'recordTouch'>;
-  crossSetRecents: CrossSetRecentsState;
+  recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
   // Modal openers (for EmptyState + other panels that trigger global modals)
   onShowPasteModal: () => void;
@@ -276,8 +273,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     },
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => { p.displayedLeafNodesRef.current = nodes; },
     onTokenTouched: (path: string) => {
-      p.paletteRecentlyTouched.recordTouch(path);
-      p.crossSetRecents.recordTouch(path, activeSet);
+      p.recentlyTouched.recordTouch(path);
     },
     onToggleStar: (path: string) => p.starredTokens.toggleStar(path, activeSet),
     starredPaths: new Set(p.starredTokens.tokens.filter(t => t.setName === activeSet).map(t => t.path)),
@@ -352,21 +348,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           />
         </ErrorBoundary>
       </>
-    );
-  }
-
-  if (overflowPanel === 'recents') {
-    return (
-      <RecentsPanel
-        crossSetRecents={p.crossSetRecents}
-        starredTokens={p.starredTokens}
-        perSetFlat={perSetFlat}
-        onNavigateToSet={(setName, path) => {
-          p.handleNavigateToSet(setName, path);
-          setOverflowPanel(null);
-        }}
-        onClose={() => setOverflowPanel(null)}
-      />
     );
   }
 
@@ -485,6 +466,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                   data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
                   actions={tokenListActions}
+                  recentlyTouched={p.recentlyTouched}
                   defaultCreateOpen={createFromEmpty}
                   highlightedToken={editingToken?.path ?? previewingToken?.path ?? highlightedToken}
                   showIssuesOnly={p.showIssuesOnly}
@@ -535,6 +517,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
               data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
               actions={tokenListActions}
+              recentlyTouched={p.recentlyTouched}
               defaultCreateOpen={createFromEmpty}
               highlightedToken={highlightedToken}
               showIssuesOnly={p.showIssuesOnly}
@@ -551,6 +534,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                 ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                 data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
                 actions={tokenListActions}
+                recentlyTouched={p.recentlyTouched}
                 defaultCreateOpen={createFromEmpty}
                 highlightedToken={previewingToken?.path ?? highlightedToken}
                 showIssuesOnly={p.showIssuesOnly}

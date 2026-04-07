@@ -1,0 +1,27 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    42249
+  Tool:   codex
+  Model:  gpt-5.4
+  Mode:   single (no worktrees)
+  Capabilities: structured_output=yes max_turns=no
+  Log:    /Users/samuel/Documents/Projects/TokenManager/scripts/backlog/runner-20260407-151143.log
+  Passes: enabled (every 40 items)
+
+  Queue:    12 ready · 0 in-progress · 1 failed
+  Done:     1642 total (next passes: product in 1, ux in 5, code in 38)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/Projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  12 queued · 0 in-progress
+═══════════════════════════════════════════════════════════════
+  → Settings and Recents panels are invisible in the UI — they are accessible only by knowing a hidden toolbar overflow "..." button exists; Settings should become a persistent gear icon (⚙) in the right side of the toolbar (between the notification bell and the "..." menu); Recents should be removed as a standalone panel and its functionality merged into the token list as a "recently touched" filter toggle (the `useRecentlyTouched` hook already tracks this); Import is already a modal workflow and requires no change; files: `App.tsx` (toolbar, overflow menu ~L450–550), `RecentsPanel.tsx`, `TokenList.tsx` (filter bar), `useRecentlyTouched.ts`
+  Running agent… (started 15:11:43)
+
+  ✓ done: Settings and Recents panels are invisible in the UI
+    Added a persistent toolbar Settings gear, removed the standalone Recents panel, and merged recents access into the TokenList filter plus command palette.
+
+  Committing: Settings and Recents panels are invisible in the UI

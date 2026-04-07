@@ -34,6 +34,14 @@
   - Use `group/layer` + `group-hover/layer:` named group classes when adding hover actions to a nested row that already has inner `group/row` elements — named groups prevent the outer hover from colliding with inner row hover styles.
 ---
 
+## 2026-04-07 - Settings and Recents panels are invisible in the UI
+- Replaced the hidden connection-dot Settings entry with a persistent gear button in the toolbar, removed Recents from overflow routing, and wired the command palette's recents action to switch to Tokens and enable the in-list recently-touched filter. Hoisted `useRecentlyTouched` to App so the command palette and TokenList share one live source of truth, and deleted the dead standalone recents panel files.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1185; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L167; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1820; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L157; `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L195; `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L14
+- **Learnings for future iterations:**
+  - If a global command needs to flip internal TokenList UI state, use the existing imperative handle rather than adding another top-level route or overflow panel.
+  - Hoisting localStorage-backed hooks like `useRecentlyTouched` prevents subtle stale UI where two components share persistence but not React state.
+---
+
 ## 2026-04-05 - CreatePanel does not allow setting description or metadata during creation
 - Upgraded description field from `<input>` to `<textarea>` (rows=2, resize-none, min-h-[48px]) matching MetadataEditor style
 - Added `scopes: string[]` state and a collapsible "Figma variable scopes" section (only visible for types that have scope definitions: color, number, dimension, string, boolean)

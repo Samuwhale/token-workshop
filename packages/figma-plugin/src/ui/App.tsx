@@ -47,7 +47,6 @@ import { useModalVisibility } from './hooks/useModalVisibility';
 import { useSetTabs } from './hooks/useSetTabs';
 import { useRecentOperations } from './hooks/useRecentOperations';
 import { useRecentlyTouched } from './hooks/useRecentlyTouched';
-import { useCrossSetRecents } from './hooks/useCrossSetRecents';
 import { useStarredTokens } from './hooks/useStarredTokens';
 import { usePinnedTokens } from './hooks/usePinnedTokens';
 import { useAnalyticsState } from './hooks/useAnalyticsState';
@@ -119,8 +118,7 @@ export function App() {
   const [showBannerUrlEditor, setShowBannerUrlEditor] = useState(false);
   const { showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
-  const paletteRecentlyTouched = useRecentlyTouched();
-  const crossSetRecents = useCrossSetRecents();
+  const recentlyTouched = useRecentlyTouched();
   const starredTokens = useStarredTokens();
   const palettePinnedTokens = usePinnedTokens(activeSet);
   const [showWelcome, setShowWelcome] = useState(() => !lsGet(STORAGE_KEYS.FIRST_RUN_DONE));
@@ -852,7 +850,7 @@ export function App() {
 
   const recentPaletteTokens: TokenEntry[] = useMemo(() => {
     const MAX_RECENT = 10;
-    return Array.from(paletteRecentlyTouched.timestamps.entries())
+    return Array.from(recentlyTouched.timestamps.entries())
       .filter(([path]) => allTokensFlat[path])
       .sort(([, a], [, b]) => b - a)
       .slice(0, MAX_RECENT)
@@ -866,7 +864,7 @@ export function App() {
           isAlias: isAlias(entry.$value),
         };
       });
-  }, [paletteRecentlyTouched.timestamps, allTokensFlat, pathToSet]);
+  }, [recentlyTouched.timestamps, allTokensFlat, pathToSet]);
 
   return (
     <div className="relative flex flex-col h-screen">
@@ -1184,23 +1182,21 @@ export function App() {
           )}
         </div>
 
-        {/* Server connection indicator */}
+        {/* Settings */}
         <Tooltip
-          label={checking ? 'Connecting…' : connected ? `Connected to ${serverUrl}` : `Cannot reach ${serverUrl}`}
+          label={checking ? 'Settings · connecting…' : connected ? `Settings · connected to ${serverUrl}` : `Settings · cannot reach ${serverUrl}`}
           className="mr-0.5 my-1"
         >
           <button
-            onClick={() => {
-              if (!connected) {
-                retryConnection();
-              } else {
-                setOverflowPanel('settings');
-              }
-            }}
-            className="flex items-center justify-center w-7 h-7 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            aria-label={checking ? 'Connecting to server' : connected ? 'Server connected' : 'Server disconnected — click to retry'}
+            onClick={() => openOverflowPanel('settings')}
+            className="relative flex items-center justify-center w-7 h-7 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+            aria-label="Settings"
           >
-            <span className={`w-2 h-2 rounded-full ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : connected ? 'bg-green-500' : 'bg-[var(--color-figma-error)]'}`} />
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.25" />
+              <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1.2 1.2 0 0 1 0 1.7l-1.6 1.6a1.2 1.2 0 0 1-1.7 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9v.3a1.2 1.2 0 0 1-1.2 1.2h-2.3a1.2 1.2 0 0 1-1.2-1.2V20a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1.2 1.2 0 0 1-1.7 0L4.3 18a1.2 1.2 0 0 1 0-1.7l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6h-.3a1.2 1.2 0 0 1-1.2-1.2v-2.3a1.2 1.2 0 0 1 1.2-1.2H4a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1.2 1.2 0 0 1 0-1.7l1.6-1.6a1.2 1.2 0 0 1 1.7 0l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V3.4a1.2 1.2 0 0 1 1.2-1.2h2.3a1.2 1.2 0 0 1 1.2 1.2V4a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1.2 1.2 0 0 1 1.7 0l1.6 1.6a1.2 1.2 0 0 1 0 1.7l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6h.3a1.2 1.2 0 0 1 1.2 1.2v2.3a1.2 1.2 0 0 1-1.2 1.2H20a1 1 0 0 0-.6.6Z" />
+            </svg>
+            <span className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full border border-[var(--color-figma-bg)] ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : connected ? 'bg-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]'}`} aria-hidden="true" />
           </button>
         </Tooltip>
 
@@ -1271,28 +1267,6 @@ export function App() {
                 Health
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onClick={() => { setMenuOpen(false); openOverflowPanel('recents'); }}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center gap-2"
-              >
-                <span className="flex-1">Recents &amp; Favorites</span>
-                {(crossSetRecents.count > 0 || starredTokens.count > 0) && (
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                    {starredTokens.count > 0 ? `★ ${starredTokens.count}` : ''}
-                  </span>
-                )}
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onClick={() => openOverflowPanel('settings')}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center gap-2"
-              >
-                <span className="flex-1">Settings</span>
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} aria-hidden="true" />
-              </button>
             </div>
           )}
         </div>
@@ -2118,8 +2092,7 @@ export function App() {
               handleNavigateToGenerator={handleNavigateToGenerator}
               setThemeGapCount={setThemeGapCount}
               triggerCreateToken={triggerCreateToken}
-              paletteRecentlyTouched={paletteRecentlyTouched}
-              crossSetRecents={crossSetRecents}
+              recentlyTouched={recentlyTouched}
               starredTokens={starredTokens}
               onShowPasteModal={() => setShowPasteModal(true)}
               onShowScaffoldWizard={() => setShowScaffoldWizard(true)}

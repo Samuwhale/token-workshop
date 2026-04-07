@@ -34,7 +34,6 @@ import type { TokenListModalsState } from './TokenListModalsContext';
 import { useExtractToAlias } from '../hooks/useExtractToAlias';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { matchesShortcut } from '../shared/shortcutRegistry';
-import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 import { usePinnedTokens } from '../hooks/usePinnedTokens';
 import { useTokenCreate } from '../hooks/useTokenCreate';
 import { useTableCreate } from '../hooks/useTableCreate';
@@ -73,6 +72,7 @@ export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
   actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onToggleStar, starredPaths, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd },
+  recentlyTouched,
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -104,7 +104,6 @@ export function TokenList({
   const [showBatchCopyToSet, setShowBatchCopyToSet] = useState(false);
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState('');
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
-  const recentlyTouched = useRecentlyTouched();
   const pinnedTokens = usePinnedTokens(setName);
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
     responseType: 'styles-applied',
@@ -1825,6 +1824,10 @@ export function TokenList({
         setSelectMode(true);
         setShowBatchEditor(false);
       },
+      showRecentlyTouched: () => {
+        setShowRecentlyTouched(true);
+        setShowPinnedOnly(false);
+      },
       triggerInlineRename: (path: string) => {
         setPendingRenameToken(path);
       },
@@ -1836,7 +1839,7 @@ export function TokenList({
       },
     };
     return () => { compareHandle.current = null; };
-  }, [compareHandle, setSelectMode, setShowBatchEditor, setPendingRenameToken, setMovingToken, handleOpenExtractToAlias]);
+  }, [compareHandle, setSelectMode, setShowBatchEditor, setShowRecentlyTouched, setShowPinnedOnly, setPendingRenameToken, setMovingToken, handleOpenExtractToAlias]);
 
   const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), [setPendingRenameToken]);
 
@@ -2501,13 +2504,16 @@ export function TokenList({
                   title={showRecentlyTouched ? 'Show all tokens' : `Show ${recentlyTouched.count} recently touched token${recentlyTouched.count !== 1 ? 's' : ''}`}
                   aria-label={showRecentlyTouched ? 'Show all tokens' : 'Show recently touched tokens'}
                   aria-pressed={showRecentlyTouched}
-                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showRecentlyTouched ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showRecentlyTouched ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
                 >
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
                     <circle cx="5" cy="5" r="4" />
                     <path d="M5 3v2.5l1.5 1" />
                   </svg>
-                  {recentlyTouched.count}
+                  <span>Recent</span>
+                  <span className={`min-w-[14px] rounded-full px-1 text-[8px] leading-3 ${showRecentlyTouched ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    {recentlyTouched.count}
+                  </span>
                 </button>
               )}
 
