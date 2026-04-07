@@ -75,7 +75,7 @@ export const SHORTCUT_KEYS = {
   EDITOR_NEXT_TOKEN:     '⌘]',
   EDITOR_PREV_TOKEN:     '⌘[',
   // Token List
-  TOKEN_NEW:             'N',
+  TOKEN_NEW:             '⌘N',
   TOKEN_SEARCH:          '/',
   TOKEN_COPY:            '⌘C',
   TOKEN_COPY_CSS_VAR:    '⌘⇧C',
@@ -156,7 +156,7 @@ export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
   EDITOR_NEXT_TOKEN:     { key: ']',          meta: true,  shift: false, alt: false },
   EDITOR_PREV_TOKEN:     { key: '[',          meta: true,  shift: false, alt: false },
   // Token List
-  TOKEN_NEW:             { key: 'n',          meta: false, shift: false, alt: false },
+  TOKEN_NEW:             { key: 'n',          meta: true,  shift: false, alt: false },
   TOKEN_SEARCH:          { key: '/',          meta: false, shift: false, alt: false },
   TOKEN_COPY:            { key: 'c',          meta: true,  shift: false, alt: false },
   TOKEN_COPY_CSS_VAR:    { key: 'c',          meta: true,  shift: true,  alt: false },

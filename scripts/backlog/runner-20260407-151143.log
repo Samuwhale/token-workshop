@@ -36,3 +36,25 @@
 --- Cleanup: archiving completed items (≥33) ---
   → Archived 33 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 66)
+[main 10f50c57] chore(backlog): archive 33 completed items + trim progress
+ 5 files changed, 48 insertions(+), 475 deletions(-)
+
+  Milestone: 1643 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================
+  ⚠ Rate limit hit during product pass — skipping
+
+## 2026-04-07 - Inspect and Ship tabs have undiscoverable inner navigation
+- Added explicit submenu affordances to the primary `Inspect` and `Ship` tabs by extending `FLAT_TABS` with small hint labels and rendering a chevron on tabs that expose inner sections. Also derived the active flat/inner tab once so the nav can consistently reflect the current route.
+- Added a compact section header above the inner-tab row so `Inspect` and `Ship` now clearly show which subsection is active before the panel content starts.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L58; `packages/figma-plugin/src/ui/App.tsx` ~L175, ~L941, ~L1300
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  11 queued · 0 in-progress · last took 12m7s
+═══════════════════════════════════════════════════════════════
+  → Global unmodified keyboard shortcuts trigger unexpected mutations — the token list container's `handleListKeyDown` registers N (new token), M (toggle multi-select), and Backspace (delete) as global single-key shortcuts that fire whenever a token row has focus; these are dangerous because they conflict with expected text-editing behavior and fire without modifier keys; N conflicts with pressing "n" to search; Backspace is one key away from a delete when focus returns to the list unexpectedly; replace N with Cmd+N, keep M as-is (it's a mode toggle with no destructive effect), verify Backspace is guarded against firing when the row's delete action is not meaningful (e.g., no row focused); note: letters like G, R, E, X shown in context menus are context-menu-only accelerators — they fire only while the dropdown is open, which is correct behavior and should not be changed; files: `shortcutRegistry.ts`, `TokenList.tsx` (handleListKeyDown, ~L1095–1160)
+  Running agent… (started 15:23:50)
+
+  ✗ Authentication/permission error — check your API key and tool setup

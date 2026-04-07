@@ -302,3 +302,11 @@
   - If a primary tab opens a secondary nav row instead of landing directly in content, encode that affordance in shared navigation metadata so both the button chrome and any section header can stay in sync.
   - A small active-section label above secondary tabs removes ambiguity without forcing direct-destination tabs to adopt the same extra chrome.
 ---
+## 2026-04-07 - Global unmodified keyboard shortcuts trigger unexpected mutations
+- Changed the token-list "new token" shortcut from bare `N` to `Cmd/Ctrl+N` in the shared shortcut registry so list focus no longer intercepts plain `n` while users are navigating or preparing to search.
+- Tightened `handleListKeyDown` so bulk delete on `Backspace` only fires when multi-select is active, there is an actual selection, and keyboard focus is still on a token/group row. The create-token handler now reuses the same focused row lookup instead of re-reading `document.activeElement`.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L78, ~L159, ~L276; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L983, ~L1103, ~L1153
+- **Learnings for future iterations:**
+  - Any list-level single-letter shortcut that mutates data should require a modifier unless it is strictly modal/context-local. Bare keys are too easy to trigger after focus jumps back to the list.
+  - For container-level destructive shortcuts, gate on both selection state and a meaningful focused row (`data-token-path`/`data-group-path`) so stale multi-select state alone cannot trigger a mutation.
+---

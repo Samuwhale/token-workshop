@@ -1,0 +1,27 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    2930
+  Tool:   codex
+  Model:  gpt-5.4
+  Mode:   single (no worktrees)
+  Capabilities: structured_output=yes max_turns=no
+  Log:    /Users/samuel/Documents/Projects/TokenManager/scripts/backlog/runner-20260407-230710.log
+  Passes: disabled
+
+  Queue:    11 ready · 0 in-progress · 1 failed
+  Done:     1643 total
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/Projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  11 queued · 0 in-progress
+═══════════════════════════════════════════════════════════════
+  → Global unmodified keyboard shortcuts trigger unexpected mutations — the token list container's `handleListKeyDown` registers N (new token), M (toggle multi-select), and Backspace (delete) as global single-key shortcuts that fire whenever a token row has focus; these are dangerous because they conflict with expected text-editing behavior and fire without modifier keys; N conflicts with pressing "n" to search; Backspace is one key away from a delete when focus returns to the list unexpectedly; replace N with Cmd+N, keep M as-is (it's a mode toggle with no destructive effect), verify Backspace is guarded against firing when the row's delete action is not meaningful (e.g., no row focused); note: letters like G, R, E, X shown in context menus are context-menu-only accelerators — they fire only while the dropdown is open, which is correct behavior and should not be changed; files: `shortcutRegistry.ts`, `TokenList.tsx` (handleListKeyDown, ~L1095–1160)
+  Running agent… (started 23:07:10)
+
+  ✓ done: Global unmodified keyboard shortcuts trigger unexpected mutations
+    Changed new-token to Cmd/Ctrl+N and guarded Backspace bulk delete behind a meaningful focused row; validation passed.
+
+  Committing: Global unmodified keyboard shortcuts trigger unexpected mutations

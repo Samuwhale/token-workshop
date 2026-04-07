@@ -983,6 +983,9 @@ export function TokenList({
   const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+    const activeEl = document.activeElement as HTMLElement | null;
+    const focusedTokenPath = activeEl?.dataset?.tokenPath;
+    const focusedGroupPath = activeEl?.dataset?.groupPath;
 
     // Escape: close create form, exit select mode, exit zoom, or blur search
     if (e.key === 'Escape') {
@@ -1098,7 +1101,12 @@ export function TokenList({
     }
 
     // ⌫/Del: bulk delete when in select mode with tokens selected
-    if (matchesShortcut(e, 'TOKEN_DELETE') && selectMode && selectedPaths.size > 0) {
+    if (
+      matchesShortcut(e, 'TOKEN_DELETE')
+      && selectMode
+      && selectedPaths.size > 0
+      && (focusedTokenPath || focusedGroupPath)
+    ) {
       e.preventDefault();
       requestBulkDeleteFromHook(selectedPaths);
       return;
@@ -1145,9 +1153,8 @@ export function TokenList({
     // n: open create form / drawer, pre-filling path from focused group or token's parent group
     if (matchesShortcut(e, 'TOKEN_NEW')) {
       e.preventDefault();
-      const activeEl = document.activeElement as HTMLElement;
-      const groupPath = activeEl?.dataset?.groupPath;
-      const tokenPath = activeEl?.dataset?.tokenPath;
+      const groupPath = focusedGroupPath;
+      const tokenPath = focusedTokenPath;
 
       let prefixPath = '';
       if (groupPath) {
