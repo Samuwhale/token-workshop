@@ -8,8 +8,10 @@ import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ToastStack } from './components/ToastStack';
 import { NotificationHistory } from './components/NotificationHistory';
 import { WorkspaceSummaryHeader } from './components/WorkspaceSummaryHeader';
+import { ApplyWorkflowControls } from './components/ApplyWorkflowControls';
 import { ThemeStageModelControls } from './components/ThemeStageModelControls';
 import { SyncWorkflowControls } from './components/publish/SyncWorkflowControls';
+import type { SelectionInspectorHandle } from './components/SelectionInspector';
 import { useToastStack } from './hooks/useToastStack';
 import { useToastBusListener } from './shared/toastBus';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -62,7 +64,7 @@ import { useCommandPaletteCommands } from './hooks/useCommandPaletteCommands';
 import { useCompareState } from './hooks/useCompareState';
 import { useSettingsListener } from './components/SettingsPanel';
 import type { TokenMapEntry } from '../shared/types';
-import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
+import { KNOWN_CONTROLLER_MESSAGE_TYPES, PROPERTY_LABELS } from '../shared/types';
 import { isAlias } from '../shared/resolveAlias';
 import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS, matchesShortcut } from './shared/shortcutRegistry';
@@ -70,6 +72,7 @@ import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch, ApiError } from './shared/apiFetch';
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from './shared/storage';
 import { findLeafByPath } from './components/tokenListUtils';
+import { summarizeApplyWorkflow } from './components/selectionInspectorUtils';
 
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
@@ -173,6 +176,10 @@ export function App() {
     [activeWorkspace, activeTopTab, activeSubTab],
   );
   const themeWorkflowSummary = useMemo(() => summarizeThemeWorkflow(dimensions), [dimensions]);
+  const applyWorkflowSummary = useMemo(
+    () => summarizeApplyWorkflow(selectedNodes, allTokensFlat),
+    [allTokensFlat, selectedNodes],
+  );
   const [themeShellState, setThemeShellState] = useState<ThemeWorkspaceShellState>({
     activeView: 'authoring',
     showPreview: false,
@@ -215,6 +222,25 @@ export function App() {
       return 'Preflight is clear. Compare Figma variables and styles, then apply the reviewed destinations you want to keep.';
     }
 
+    if (activeWorkspace.id === 'apply' && activeWorkspaceSection?.id === 'inspect') {
+      if (!applyWorkflowSummary.hasSelection) {
+        return 'Start with the selection summary. Pick a layer on the canvas, then review best matches and bind the visible properties before opening advanced tools.';
+      }
+      if (!applyWorkflowSummary.hasAnyTokens) {
+        return 'The selection is ready, but the token library is empty. Create tokens first so best matches and property binding can follow the default Apply sequence.';
+      }
+      if (applyWorkflowSummary.suggestionCount > 0) {
+        return `The selection is ready and ${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? '' : 'es'} surfaced. Review those suggestions before you bind properties manually.`;
+      }
+      if (applyWorkflowSummary.nextUnboundProperty) {
+        return `No strong automatic matches surfaced. Continue to property binding and start with ${PROPERTY_LABELS[applyWorkflowSummary.nextUnboundProperty]}.`;
+      }
+      if (applyWorkflowSummary.allVisiblePropertiesBound) {
+        return 'The primary Apply flow is complete. Open advanced tools only when you need sync, remap, extraction, or deep inspection work.';
+      }
+      return 'The selection summary is ready. Continue into property binding to finish tokenizing the visible properties.';
+    }
+
     if (activeWorkspace.id !== 'themes') return defaultWorkspaceSummaryGuidance;
     switch (themeShellState.activeView) {
       case 'coverage':
@@ -235,6 +261,11 @@ export function App() {
     publishPreflightState.blockingCount,
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
+    applyWorkflowSummary.allVisiblePropertiesBound,
+    applyWorkflowSummary.hasAnyTokens,
+    applyWorkflowSummary.hasSelection,
+    applyWorkflowSummary.nextUnboundProperty,
+    applyWorkflowSummary.suggestionCount,
     themeShellState.activeView,
     themeShellState.showPreview,
   ]);
@@ -353,6 +384,7 @@ export function App() {
   // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
   const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
+  const selectionInspectorHandleRef = useRef<SelectionInspectorHandle | null>(null);
   const [themeGapCount, setThemeGapCount] = useState(0);
   // Compare state for the Tokens tab — shown in-place without switching tabs
   const {
@@ -944,7 +976,32 @@ export function App() {
         if (themeShellState.activeView === 'advanced') pills.push({ label: 'Resolver mode', tone: 'accent' });
         break;
       case 'apply':
-        pills.push({ label: `${selectedNodes.length} layer${selectedNodes.length === 1 ? '' : 's'} selected`, tone: selectedNodes.length > 0 ? 'accent' : 'neutral' });
+        pills.push({
+          label: `${applyWorkflowSummary.selectionCount} layer${applyWorkflowSummary.selectionCount === 1 ? '' : 's'} selected`,
+          tone: applyWorkflowSummary.hasSelection ? 'accent' : 'neutral',
+        });
+        if (applyWorkflowSummary.suggestionCount > 0) {
+          pills.push({
+            label: `${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? '' : 'es'} ready`,
+            tone: 'accent',
+          });
+        } else if (!applyWorkflowSummary.hasAnyTokens && applyWorkflowSummary.hasSelection) {
+          pills.push({ label: 'Token library needed', tone: 'warning' });
+        }
+        if (applyWorkflowSummary.allVisiblePropertiesBound) {
+          pills.push({ label: 'Visible properties bound', tone: 'success' });
+        } else if (applyWorkflowSummary.unboundPropertyCount > 0) {
+          pills.push({
+            label: `${applyWorkflowSummary.unboundPropertyCount} propert${applyWorkflowSummary.unboundPropertyCount === 1 ? 'y' : 'ies'} to bind`,
+            tone: 'warning',
+          });
+        }
+        if (applyWorkflowSummary.mixedPropertyCount > 0) {
+          pills.push({
+            label: `${applyWorkflowSummary.mixedPropertyCount} mixed`,
+            tone: 'warning',
+          });
+        }
         break;
       case 'sync':
         if (activeWorkspaceSection?.id === 'publish') {
@@ -985,6 +1042,13 @@ export function App() {
   }, [
     activeWorkspace.id,
     activeWorkspaceSection?.id,
+    applyWorkflowSummary.allVisiblePropertiesBound,
+    applyWorkflowSummary.hasAnyTokens,
+    applyWorkflowSummary.hasSelection,
+    applyWorkflowSummary.mixedPropertyCount,
+    applyWorkflowSummary.selectionCount,
+    applyWorkflowSummary.suggestionCount,
+    applyWorkflowSummary.unboundPropertyCount,
     dimensions.length,
     healthIssueCount,
     lintViolations.length,
@@ -994,7 +1058,6 @@ export function App() {
     publishPreflightState.canProceed,
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
-    selectedNodes.length,
     sets.length,
     staleGeneratorCount,
     themeGapCount,
@@ -1106,6 +1169,98 @@ export function App() {
     themeShellState.activeView,
     themeShellState.showPreview,
     themeWorkflowSummary,
+  ]);
+
+  const handleSelectApplyStage = useCallback((stage: 'summary' | 'suggestions' | 'bindings' | 'advanced') => {
+    guardEditorAction(() => {
+      navigateTo('apply', 'inspect');
+      setOverflowPanel(null);
+      selectionInspectorHandleRef.current?.focusStage(stage);
+    });
+  }, [guardEditorAction, navigateTo, setOverflowPanel]);
+
+  const applyContextualControls = useMemo(() => {
+    if (overflowPanel !== null || activeWorkspace.id !== 'apply' || activeWorkspaceSection?.id !== 'inspect') return null;
+
+    const stages = [
+      {
+        id: 'summary' as const,
+        step: 1,
+        label: 'Summary',
+        detail: !applyWorkflowSummary.hasSelection
+          ? 'Select a layer to start'
+          : `${applyWorkflowSummary.selectionCount} layer${applyWorkflowSummary.selectionCount === 1 ? '' : 's'} ready to review`,
+        tone: !applyWorkflowSummary.hasSelection ? 'current' : 'complete',
+      },
+      {
+        id: 'suggestions' as const,
+        step: 2,
+        label: 'Best matches',
+        detail: !applyWorkflowSummary.hasSelection
+          ? 'Pick a layer first'
+          : !applyWorkflowSummary.hasAnyTokens
+            ? 'Create tokens before matches can surface'
+            : applyWorkflowSummary.suggestionCount > 0
+              ? `${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? '' : 'es'} ready`
+              : 'No strong automatic matches surfaced',
+        tone: !applyWorkflowSummary.hasSelection
+          ? 'blocked'
+          : !applyWorkflowSummary.hasAnyTokens
+            ? 'blocked'
+            : applyWorkflowSummary.suggestionCount > 0
+              ? 'current'
+              : 'pending',
+        disabled: !applyWorkflowSummary.hasSelection,
+      },
+      {
+        id: 'bindings' as const,
+        step: 3,
+        label: 'Bindings',
+        detail: !applyWorkflowSummary.hasSelection
+          ? 'Selection required'
+          : !applyWorkflowSummary.hasVisibleProperties
+            ? 'No token-ready properties on this selection'
+            : applyWorkflowSummary.allVisiblePropertiesBound
+              ? 'All visible properties are already bound'
+              : applyWorkflowSummary.nextUnboundProperty
+                ? `Next: ${PROPERTY_LABELS[applyWorkflowSummary.nextUnboundProperty]}`
+                : `${applyWorkflowSummary.unboundPropertyCount} propert${applyWorkflowSummary.unboundPropertyCount === 1 ? 'y' : 'ies'} left to review`,
+        tone: !applyWorkflowSummary.hasSelection || !applyWorkflowSummary.hasVisibleProperties
+          ? 'blocked'
+          : applyWorkflowSummary.allVisiblePropertiesBound
+            ? 'complete'
+            : 'current',
+        disabled: !applyWorkflowSummary.hasSelection,
+      },
+      {
+        id: 'advanced' as const,
+        step: 4,
+        label: 'Advanced',
+        detail: 'Open sync, extract, remap, deep inspect, or filters only when the main binding flow is done',
+        tone: applyWorkflowSummary.hasSelection ? 'pending' : 'blocked',
+        disabled: !applyWorkflowSummary.hasSelection,
+      },
+    ];
+
+    return (
+      <ApplyWorkflowControls
+        stages={stages}
+        onSelectStage={handleSelectApplyStage}
+      />
+    );
+  }, [
+    activeWorkspace.id,
+    activeWorkspaceSection?.id,
+    applyWorkflowSummary.allVisiblePropertiesBound,
+    applyWorkflowSummary.hasAnyTokens,
+    applyWorkflowSummary.hasSelection,
+    applyWorkflowSummary.hasVisibleProperties,
+    applyWorkflowSummary.nextUnboundProperty,
+    applyWorkflowSummary.selectionCount,
+    applyWorkflowSummary.suggestionCount,
+    applyWorkflowSummary.unboundPropertyCount,
+    handleSelectApplyStage,
+    overflowPanel,
   ]);
 
   const handleSelectSyncStage = useCallback((stage: SyncWorkflowStage) => {
@@ -1268,10 +1423,31 @@ export function App() {
     }
 
     if (overflowPanel === null && activeWorkspace.id === 'apply' && activeWorkspaceSection?.id === 'inspect') {
+      if (!applyWorkflowSummary.hasSelection) {
+        return {
+          label: 'Select a layer',
+          onClick: () => {},
+          disabled: true,
+        };
+      }
+
+      if (applyWorkflowSummary.suggestionCount > 0) {
+        return {
+          label: 'Review matches',
+          onClick: () => selectionInspectorHandleRef.current?.focusStage('suggestions'),
+        };
+      }
+
+      if (applyWorkflowSummary.nextUnboundProperty) {
+        return {
+          label: `Bind ${PROPERTY_LABELS[applyWorkflowSummary.nextUnboundProperty]}`,
+          onClick: () => selectionInspectorHandleRef.current?.focusStage('bindings'),
+        };
+      }
+
       return {
-        label: 'Quick apply',
-        onClick: () => setShowQuickApply(true),
-        disabled: selectedNodes.length === 0,
+        label: 'Review bindings',
+        onClick: () => selectionInspectorHandleRef.current?.focusStage('bindings'),
       };
     }
 
@@ -1323,6 +1499,9 @@ export function App() {
     activeSet,
     activeWorkspace.id,
     activeWorkspaceSection?.id,
+    applyWorkflowSummary.hasSelection,
+    applyWorkflowSummary.nextUnboundProperty,
+    applyWorkflowSummary.suggestionCount,
     guardEditorAction,
     navigateTo,
     overflowPanel,
@@ -1330,12 +1509,10 @@ export function App() {
     pendingPublishCount,
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
-    selectedNodes.length,
     setEditingGenerator,
     setEditingToken,
     setOverflowPanel,
     setPreviewingToken,
-    setShowQuickApply,
     themeShellState.activeView,
     themeShellState.showPreview,
     themeWorkflowSummary.currentStage,
@@ -1343,6 +1520,8 @@ export function App() {
 
   const workspaceContextualControls = activeWorkspace.id === 'themes'
     ? themeContextualControls
+    : activeWorkspace.id === 'apply'
+      ? applyContextualControls
     : activeWorkspace.id === 'sync'
       ? syncContextualControls
       : null;
@@ -2058,6 +2237,7 @@ export function App() {
               setPendingOpenPicker={setPendingOpenPicker}
               themeManagerHandleRef={themeManagerHandleRef}
               publishPanelHandleRef={publishPanelHandleRef}
+              selectionInspectorHandleRef={selectionInspectorHandleRef}
               onTokenDragStart={(paths, fromSet) => setTokenDragState({ paths, fromSet })}
               onTokenDragEnd={() => setTokenDragState(null)}
               refreshAll={refreshAll}

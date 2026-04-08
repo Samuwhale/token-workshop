@@ -35,9 +35,17 @@ interface SuggestedTokensProps {
   suggestions: SuggestedToken[];
   onApply: (tokenPath: string, property: BindableProperty) => void;
   onNavigateToToken?: (tokenPath: string) => void;
+  title?: string;
+  showHeader?: boolean;
 }
 
-export function SuggestedTokens({ suggestions, onApply, onNavigateToToken }: SuggestedTokensProps) {
+export function SuggestedTokens({
+  suggestions,
+  onApply,
+  onNavigateToToken,
+  title = 'Best matches',
+  showHeader = true,
+}: SuggestedTokensProps) {
   const [collapsed, setCollapsed] = useState(() => lsGet(LS_KEY) === 'true');
 
   if (suggestions.length === 0) return null;
@@ -50,30 +58,30 @@ export function SuggestedTokens({ suggestions, onApply, onNavigateToToken }: Sug
   };
 
   return (
-    <div className="border-b border-[var(--color-figma-border)]">
-      {/* Header */}
-      <button
-        onClick={toggle}
-        className="w-full flex items-center gap-1.5 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-        aria-expanded={!collapsed}
-      >
-        <svg
-          width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-          className={`text-[var(--color-figma-text-secondary)] transition-transform shrink-0 ${collapsed ? '' : 'rotate-90'}`}
-          aria-hidden="true"
+    <div className={showHeader ? 'border-b border-[var(--color-figma-border)]' : ''}>
+      {showHeader && (
+        <button
+          onClick={toggle}
+          className="w-full flex items-center gap-1.5 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          aria-expanded={!collapsed}
         >
-          <path d="M2 1l4 3-4 3V1z" />
-        </svg>
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-          Suggested
-        </span>
-        <span className="text-[9px] bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
-          {suggestions.length}
-        </span>
-      </button>
+          <svg
+            width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+            className={`text-[var(--color-figma-text-secondary)] transition-transform shrink-0 ${collapsed ? '' : 'rotate-90'}`}
+            aria-hidden="true"
+          >
+            <path d="M2 1l4 3-4 3V1z" />
+          </svg>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+            {title}
+          </span>
+          <span className="text-[9px] bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
+            {suggestions.length}
+          </span>
+        </button>
+      )}
 
-      {/* Token rows */}
-      {!collapsed && (
+      {(!showHeader || !collapsed) && (
         <div className="px-1 pb-1.5">
           {suggestions.map((s) => {
             const isColor = s.entry.$type === 'color' && typeof s.resolvedValue === 'string';

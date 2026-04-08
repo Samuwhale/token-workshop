@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, type MutableRefObject } from 'react';
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
@@ -11,7 +11,9 @@ import { adaptShortcut, getErrorMessage, tokenPathToUrlSegment } from '../shared
 import { apiFetch } from '../shared/apiFetch';
 import { SHORTCUT_KEYS, matchesShortcut } from '../shared/shortcutRegistry';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import type { ApplyWorkflowStage } from '../shared/applyWorkflow';
 import {
+  summarizeApplyWorkflow,
   shouldShowGroup,
   getBindingForProperty,
   getCurrentValue,
@@ -174,6 +176,11 @@ interface SelectionInspectorProps {
   onGoToTokens?: () => void;
   /** Increment to trigger create-from-first-property (Cmd+T shortcut) */
   triggerCreateToken?: number;
+  selectionInspectorHandle?: MutableRefObject<SelectionInspectorHandle | null>;
+}
+
+export interface SelectionInspectorHandle {
+  focusStage: (stage: ApplyWorkflowStage) => void;
 }
 
 export function SelectionInspector({
@@ -193,6 +200,7 @@ export function SelectionInspector({
   onToast,
   onGoToTokens,
   triggerCreateToken,
+  selectionInspectorHandle,
 }: SelectionInspectorProps) {
   const [creatingFromProp, setCreatingFromProp] = useState<BindableProperty | null>(null);
   const [newTokenName, setNewTokenName] = useState('');
@@ -257,6 +265,10 @@ export function SelectionInspector({
   const [applyProgress, setApplyProgress] = useState<{ processed: number; total: number } | null>(null);
 
   const prevNodeIdsRef = useRef<string>('');
+  const summarySectionRef = useRef<HTMLElement | null>(null);
+  const suggestionsSectionRef = useRef<HTMLElement | null>(null);
+  const bindingsSectionRef = useRef<HTMLElement | null>(null);
+  const advancedSectionRef = useRef<HTMLElement | null>(null);
 
   // Listen for binding results from the plugin sandbox
   useEffect(() => {
@@ -353,6 +365,10 @@ export function SelectionInspector({
 
   const hasSelection = rootNodes.length > 0;
   const caps = getMergedCapabilities(rootNodes);
+  const workflowSummary = useMemo(
+    () => summarizeApplyWorkflow(selectedNodes, tokenMap),
+    [selectedNodes, tokenMap],
+  );
 
   // Capture sync result for freshness badge (outlives the 3s global clear)
   useEffect(() => {
@@ -381,18 +397,8 @@ export function SelectionInspector({
     }
   }, [selectedNodes, rootNodes]);
 
-  const totalBindings = hasSelection
-    ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
-        const b = getBindingForProperty(rootNodes, prop);
-        return sum + (b && b !== 'mixed' ? 1 : 0);
-      }, 0)
-    : 0;
-
-  const mixedBindings = hasSelection && rootNodes.length > 1
-    ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
-        return sum + (getBindingForProperty(rootNodes, prop) === 'mixed' ? 1 : 0);
-      }, 0)
-    : 0;
+  const totalBindings = workflowSummary.boundPropertyCount;
+  const mixedBindings = workflowSummary.mixedPropertyCount;
 
   const handleRemoveBinding = (prop: BindableProperty) => {
     const binding = getBindingForProperty(selectedNodes, prop);
@@ -755,24 +761,43 @@ export function SelectionInspector({
     parent.postMessage({ pluginMessage: { type: 'extract-tokens-from-selection' } }, '*');
   }, [connected, activeSet, extractingUnbound, rootNodes, tokenMap, serverUrl, onTokenCreated]);
 
-  const visiblePropertyStats = useMemo(() => {
-    let visible = 0;
-    let bound = 0;
-    let mixed = 0;
-    let unbound = 0;
+  const visiblePropertyStats = useMemo(() => ({
+    visible: workflowSummary.visiblePropertyCount,
+    bound: workflowSummary.boundPropertyCount,
+    mixed: workflowSummary.mixedPropertyCount,
+    unbound: workflowSummary.unboundPropertyCount,
+  }), [workflowSummary]);
 
-    for (const prop of ALL_BINDABLE_PROPERTIES) {
-      const binding = getBindingForProperty(rootNodes, prop);
-      const value = getCurrentValue(rootNodes, prop);
-      if (!binding && value === undefined) continue;
-      visible++;
-      if (binding === 'mixed') mixed++;
-      else if (binding) bound++;
-      else unbound++;
+  const focusStage = useCallback((stage: ApplyWorkflowStage) => {
+    const target =
+      stage === 'summary'
+        ? summarySectionRef.current
+        : stage === 'suggestions'
+          ? suggestionsSectionRef.current
+          : stage === 'bindings'
+            ? bindingsSectionRef.current
+            : advancedSectionRef.current;
+
+    if (stage === 'advanced' && !showAdvancedTools) {
+      setShowAdvancedTools(true);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+      });
+      return;
     }
 
-    return { visible, bound, mixed, unbound };
-  }, [rootNodes]);
+    target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [showAdvancedTools]);
+
+  useEffect(() => {
+    if (!selectionInspectorHandle) return;
+    selectionInspectorHandle.current = { focusStage };
+    return () => {
+      selectionInspectorHandle.current = null;
+    };
+  }, [focusStage, selectionInspectorHandle]);
 
   // No selection — full empty state
   if (!hasSelection) {
@@ -884,13 +909,15 @@ export function SelectionInspector({
   };
 
   const isFilterActive = propFilter !== '' || propFilterMode !== 'all';
-  const nextUnboundProperty = hasSelection ? getNextUnboundProperty(null, rootNodes, caps) : null;
+  const nextUnboundProperty = workflowSummary.nextUnboundProperty;
 
   const summaryGuidance = !connected
     ? 'Connect to the token server to bind, extract, or sync tokens for this selection.'
+    : suggestions.length > 0
+    ? `Review ${suggestions.length} best match${suggestions.length === 1 ? '' : 'es'} before you bind properties manually.`
     : nextUnboundProperty
     ? `Start with ${PROPERTY_LABELS[nextUnboundProperty]} below, or apply one of the suggested tokens if it already matches.`
-    : visiblePropertyStats.bound > 0
+    : workflowSummary.allVisiblePropertiesBound
     ? 'Everything visible is already tokenized. Replace a binding below or use advanced tools for maintenance work.'
     : 'Review the visible properties below and bind or create tokens where needed.';
 
@@ -936,33 +963,12 @@ export function SelectionInspector({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex items-center justify-end px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
-        <button
-          onClick={() => setShowAdvancedTools(prev => !prev)}
-          className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded border text-[10px] transition-colors ${
-            showAdvancedTools
-              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-          }`}
-          aria-expanded={showAdvancedTools}
-        >
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showAdvancedTools ? 'rotate-90' : ''}`} aria-hidden="true">
-            <path d="M2 1l4 3-4 3V1z" />
-          </svg>
-          Advanced tools
-          {advancedStatusCount > 0 && (
-            <span className="rounded-full bg-[var(--color-figma-accent)]/15 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)]">
-              {advancedStatusCount}
-            </span>
-          )}
-        </button>
-      </div>
-
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="flex flex-col gap-3">
-          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3">
+          <section ref={summarySectionRef} className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Step 1</p>
                 <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Selected layer summary</p>
                 <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
                   {summaryGuidance}
@@ -991,57 +997,57 @@ export function SelectionInspector({
             </div>
           </section>
 
-          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Current bindings</p>
-                <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                  {totalBindings > 0
-                    ? `${totalBindings} propert${totalBindings === 1 ? 'y is' : 'ies are'} currently bound to tokens.`
-                    : 'No visible properties are bound yet.'}
-                  {mixedBindings > 0 ? ` ${mixedBindings} propert${mixedBindings === 1 ? 'y varies' : 'ies vary'} across the selection.` : ''}
-                </p>
-              </div>
-              {isFilterActive && (
-                <button
-                  onClick={() => { setPropFilter(''); setPropFilterMode('all'); }}
-                  className="shrink-0 text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                >
-                  Clear filter
-                </button>
-              )}
+          <section ref={suggestionsSectionRef} className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+            <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Step 2</p>
+              <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Best-match suggestions</p>
+              <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                {suggestions.length > 0
+                  ? 'Start with the strongest suggested token matches before you bind properties one-by-one.'
+                  : !hasAnyTokens
+                  ? 'Create tokens in the Tokens workspace first. Once the library exists, the Apply workspace will surface best matches here.'
+                  : workflowSummary.hasVisibleProperties
+                  ? 'No strong automatic matches surfaced for this selection. Continue into property binding and choose the right token manually.'
+                  : 'This selection does not expose token-ready properties, so there are no best matches to review.'}
+              </p>
             </div>
-            {isFilterActive && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {propFilter && (
-                  <span className="rounded-full bg-[var(--color-figma-accent)]/10 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-accent)]">
-                    Search: {propFilter}
+            {suggestions.length > 0 ? (
+              <SuggestedTokens
+                suggestions={suggestions}
+                onApply={(tokenPath, property) => handleBindToken(property, tokenPath)}
+                onNavigateToToken={onNavigateToToken}
+                showHeader={false}
+              />
+            ) : (
+              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                    {workflowSummary.suggestionCount} matches ready
                   </span>
-                )}
-                {propFilterMode !== 'all' && (
-                  <span className="rounded-full bg-[var(--color-figma-accent)]/10 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-accent)]">
-                    {propFilterMode === 'dimensions' ? 'Dimensions only' : propFilterMode === 'colors' ? 'Colors only' : `${propFilterMode[0].toUpperCase()}${propFilterMode.slice(1)} only`}
-                  </span>
+                  {!hasAnyTokens && (
+                    <span className="rounded-full bg-[var(--color-figma-warning,#f5a623)]/15 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-warning,#f5a623)]">
+                      Token library needed
+                    </span>
+                  )}
+                </div>
+                {!hasAnyTokens && onGoToTokens && (
+                  <button
+                    onClick={onGoToTokens}
+                    className="mt-2 text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                  >
+                    Go to Tokens →
+                  </button>
                 )}
               </div>
             )}
           </section>
 
-          {suggestions.length > 0 && (
-            <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
-              <SuggestedTokens
-                suggestions={suggestions}
-                onApply={(tokenPath, property) => handleBindToken(property, tokenPath)}
-                onNavigateToToken={onNavigateToToken}
-              />
-            </section>
-          )}
-
-          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+          <section ref={bindingsSectionRef} className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
             <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Apply or replace bindings</p>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Step 3</p>
+              <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Bind visible properties</p>
               <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                Inspect each property, then bind, replace, remove, or create a token directly from the current value.
+                Review each visible property, then bind, replace, remove, or create a token directly from the current value.
               </p>
             </div>
             <div className="px-1.5 py-1.5">
@@ -1152,7 +1158,7 @@ export function SelectionInspector({
             </div>
           </section>
 
-          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+          <section ref={advancedSectionRef} className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
             <button
               onClick={() => setShowAdvancedTools(prev => !prev)}
               className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1162,11 +1168,17 @@ export function SelectionInspector({
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
               <div className="min-w-0 flex-1">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Step 4</p>
                 <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Advanced tools</p>
                 <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
                   Search layers, sync the page, extract or remap bindings, inspect nested children, and filter the property list without crowding the primary binding flow.
                 </p>
               </div>
+              {advancedStatusCount > 0 && (
+                <span className="rounded-full bg-[var(--color-figma-accent)]/15 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)]">
+                  {advancedStatusCount}
+                </span>
+              )}
             </button>
 
             {showAdvancedTools && (

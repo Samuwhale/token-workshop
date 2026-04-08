@@ -358,3 +358,11 @@
   - If a sync or publish surface needs prerequisite checks, make them a first-class preflight step and lock later actions instead of leaving compare/apply affordances visible with a warning banner.
   - When the shared shell needs to narrate a child panel’s readiness state, broadcast a compact summary event from the panel and keep the shell limited to guidance, pills, stage cards, and CTA routing.
 ---
+## 2026-04-08 - [HIGH] Restructure the Apply workspace into a simple sequence for the target user: selection summary first, best-match suggestions second, property binding third, and advanced tools only on demand
+- Rebuilt the Apply shell around a lightweight workflow summary, new step cards, and stage-aware guidance/CTA logic so the shared header now narrates summary, best matches, bindings, and advanced maintenance in order.
+- Reworked `SelectionInspector` into explicit Step 1–4 sections, removed the duplicate always-visible advanced toggle and the separate current-bindings card, kept best-match suggestions as the second stage even when empty, and hid sync/search/remap/filter work behind a final on-demand advanced section.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L179, ~L225, ~L978, ~L1174, ~L1425; `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L179, ~L268, ~L368, ~L771, ~L968, ~L1161; `packages/figma-plugin/src/ui/components/ApplyWorkflowControls.tsx` ~L1; `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L457; `packages/figma-plugin/src/ui/components/SuggestedTokens.tsx` ~L34; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L34, ~L140, ~L739; `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L164
+- **Learnings for future iterations:**
+  - If a workspace should feel linear, keep every primary stage visible in order even when one stage has no results; use an explicit empty state instead of dropping that stage from the flow.
+  - When a shared shell needs to steer a child panel through sequential sections, pair shell-side workflow cards with an imperative `focusStage()` handle in the child instead of lifting the full panel state upward.
+---

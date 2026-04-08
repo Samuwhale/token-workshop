@@ -31,6 +31,7 @@ import { PublishPanel } from '../components/PublishPanel';
 import type { PublishPanelHandle } from '../components/PublishPanel';
 import { ImportPanel } from '../components/ImportPanel';
 import { SelectionInspector } from '../components/SelectionInspector';
+import type { SelectionInspectorHandle } from '../components/SelectionInspector';
 import { CanvasAnalysisPanel } from '../components/CanvasAnalysisPanel';
 import { GraphPanel } from '../components/GraphPanel';
 import { TokenFlowPanel } from '../components/TokenFlowPanel';
@@ -136,6 +137,7 @@ export interface PanelRouterProps {
   // Refs
   themeManagerHandleRef: MutableRefObject<ThemeManagerHandle | null>;
   publishPanelHandleRef: MutableRefObject<PublishPanelHandle | null>;
+  selectionInspectorHandleRef: MutableRefObject<SelectionInspectorHandle | null>;
 
   // Token drag callbacks — notified by TokenList when a cross-set drag starts/ends
   onTokenDragStart?: (paths: string[], fromSet: string) => void;
@@ -734,6 +736,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           onToast={p.setSuccessToast}
           onGoToTokens={() => navigateTo('define', 'tokens')}
           triggerCreateToken={p.triggerCreateToken}
+          selectionInspectorHandle={p.selectionInspectorHandleRef}
         />
       </ErrorBoundary>
     );

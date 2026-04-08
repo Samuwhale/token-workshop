@@ -163,7 +163,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: 'apply',
     label: 'Apply',
-    description: 'Inspect bound layers and apply tokens to the current canvas selection.',
+    description: 'Review the current selection, surface best matches, bind visible properties, and keep maintenance tools out of the default path.',
     topTab: 'apply',
     subTab: 'inspect',
     sections: [
@@ -172,7 +172,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         label: 'Selection',
         description: 'Inspect and edit the current selection.',
         summaryTitle: 'Bind tokens to selection',
-        summaryGuidance: 'Review the current selection, inspect suggested matches, and bind or replace tokens on the visible properties.',
+        summaryGuidance: 'Review the current selection first, inspect best matches second, bind visible properties third, and open advanced tools only when you need maintenance work.',
         topTab: 'apply',
         subTab: 'inspect',
       },

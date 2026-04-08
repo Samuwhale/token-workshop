@@ -454,6 +454,68 @@ export interface SuggestedToken {
   matchReason: 'value-match' | 'already-bound' | 'sibling-usage' | 'type-match';
 }
 
+export interface ApplyWorkflowSummary {
+  selectionCount: number;
+  hasSelection: boolean;
+  hasAnyTokens: boolean;
+  hasVisibleProperties: boolean;
+  suggestionCount: number;
+  visiblePropertyCount: number;
+  boundPropertyCount: number;
+  mixedPropertyCount: number;
+  unboundPropertyCount: number;
+  nextUnboundProperty: BindableProperty | null;
+  allVisiblePropertiesBound: boolean;
+}
+
+export function summarizeApplyWorkflow(
+  selectedNodes: SelectionNodeInfo[],
+  tokenMap: Record<string, TokenMapEntry>,
+): ApplyWorkflowSummary {
+  const rootNodes = selectedNodes.filter((node) => (node.depth ?? 0) === 0);
+  const hasSelection = rootNodes.length > 0;
+  const hasAnyTokens = Object.keys(tokenMap).length > 0;
+  const caps = getMergedCapabilities(rootNodes);
+
+  let visiblePropertyCount = 0;
+  let boundPropertyCount = 0;
+  let mixedPropertyCount = 0;
+  let unboundPropertyCount = 0;
+
+  for (const group of PROPERTY_GROUPS) {
+    if (!shouldShowGroup(group.condition, caps)) continue;
+    for (const prop of group.properties) {
+      const binding = getBindingForProperty(rootNodes, prop);
+      const value = getCurrentValue(rootNodes, prop);
+      if (!binding && value === undefined) continue;
+      visiblePropertyCount += 1;
+      if (binding === 'mixed') mixedPropertyCount += 1;
+      else if (binding) boundPropertyCount += 1;
+      else unboundPropertyCount += 1;
+    }
+  }
+
+  const hasVisibleProperties = visiblePropertyCount > 0;
+  const suggestionCount = hasSelection && hasAnyTokens
+    ? rankTokensForSelection(rootNodes, tokenMap, caps).length
+    : 0;
+  const nextUnboundProperty = hasSelection ? getNextUnboundProperty(null, rootNodes, caps) : null;
+
+  return {
+    selectionCount: rootNodes.length,
+    hasSelection,
+    hasAnyTokens,
+    hasVisibleProperties,
+    suggestionCount,
+    visiblePropertyCount,
+    boundPropertyCount,
+    mixedPropertyCount,
+    unboundPropertyCount,
+    nextUnboundProperty,
+    allVisiblePropertiesBound: hasVisibleProperties && boundPropertyCount > 0 && nextUnboundProperty === null,
+  };
+}
+
 /**
  * Rank all tokens by relevance to the current Figma selection and return the top N.
  * Aggregates scores across all visible, capable properties of the selection.
