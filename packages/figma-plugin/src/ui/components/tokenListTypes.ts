@@ -30,8 +30,8 @@ export const DENSITY_ROW_HEIGHT: Record<Density, number> = {
 
 /** Swatch / preview size (px) per density level */
 export const DENSITY_SWATCH_SIZE: Record<Density, number> = {
-  compact: 14,
-  comfortable: 18,
+  compact: 16,
+  comfortable: 20,
 };
 
 /** Tailwind py class per density level */

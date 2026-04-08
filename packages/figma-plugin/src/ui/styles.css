@@ -149,6 +149,40 @@ select:focus-visible,
 .token-type-fontWeight { background: var(--token-badge-fontWeight-bg); color: var(--token-badge-fontWeight-text); }
 .token-type-strokeStyle { background: var(--token-badge-strokeStyle-bg); color: var(--token-badge-strokeStyle-text); }
 
+:is(
+  .token-type-color,
+  .token-type-dimension,
+  .token-type-typography,
+  .token-type-shadow,
+  .token-type-border,
+  .token-type-number,
+  .token-type-string,
+  .token-type-boolean,
+  .token-type-gradient,
+  .token-type-duration,
+  .token-type-fontFamily,
+  .token-type-composition,
+  .token-type-asset,
+  .token-type-cubicBezier,
+  .token-type-transition,
+  .token-type-fontStyle,
+  .token-type-lineHeight,
+  .token-type-letterSpacing,
+  .token-type-percentage,
+  .token-type-link,
+  .token-type-textDecoration,
+  .token-type-textTransform,
+  .token-type-custom,
+  .token-type-fontWeight,
+  .token-type-strokeStyle
+) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 /* Toast slide-in animation */
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(8px); }

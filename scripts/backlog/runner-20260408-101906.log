@@ -45,3 +45,15 @@
     Trimmed navigation-only palette entries, recentered the remaining commands around expert workflows and final IA categories, and passed bash scripts/backlog/validate.sh.
 
   Committing: The command palette is compensating for weak primary navigation instead of acting as a true power-user layer
+  ✓ Committed and marked done
+
+  #4  ·  2 queued · 0 in-progress · last took 7m32s
+═══════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════
+  → Sub-readable badge font sizes and undersized interactive targets — several elements in the token tree use font sizes below readable thresholds: type badges use 8px (`text-[8px]`), provenance badges are 7×7px SVG-only icons, the `Recommended` badge in the generator type selector uses 7px (`text-[7px]`); additionally, several interactive elements (type badge click area for filtering, provenance badge, resolution-chain badge) have click areas well below WCAG 2.2's 24×24px minimum because they have no padding; fix: audit all badge components in `TokenTreeNode.tsx` for font sizes below 10px and increase to 10px minimum; add `min-h-[24px] min-w-[24px]` or equivalent padding to all clickable badge elements; this does not require changing the visual size of badges — use padding to extend the hit area beyond the visual boundary; files: `TokenTreeNode.tsx` (badge rendering throughout TokenLeafNode), `tokenListTypes.ts` (DENSITY_SWATCH_SIZE), `styles.css` (token type badge CSS classes); note: full light theme support is a separate large effort and is intentionally out of scope for this task
+  Running agent… (started 12:44:01)
+
+  ✓ done: Sub-readable badge font sizes and undersized interactive targets
+    Raised token-tree and generator badge text to a 10px minimum, added 24x24 hit areas to compact interactive badges and preview controls, and validated cleanly with scripts/backlog/validate.sh.
+
+  Committing: Sub-readable badge font sizes and undersized interactive targets

@@ -462,3 +462,11 @@
   - Once primary navigation is clear, the command palette should stop mirroring tabs and utility destinations and instead focus on actions that save expert users time.
   - Showing categories directly in palette search results keeps trimmed command sets legible after IA refactors, especially when recent actions mix commands from multiple workspaces.
 ---
+## 2026-04-08 - Sub-readable badge font sizes and undersized interactive targets
+- Raised token-tree badge text to a 10px floor, expanded clickable badge hit areas to at least 24×24 for type filtering, generator provenance, alias/provenance pills, and related compact controls, and nudged token preview swatches up one density step so the row-level affordances read more cleanly.
+- Matched the token-type badge CSS to the new hit-area behavior with inline-flex centering, and raised the generator type selector's `Recommended` pill to 10px so the badge is readable without changing the card layout.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L142, ~L816, ~L1999, ~L2088, ~L2756, ~L2798, ~L2837, ~L2903; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L32; `packages/figma-plugin/src/ui/styles.css` ~L152; `packages/figma-plugin/src/ui/components/generator-steps/StepWhat.tsx` ~L131; `scripts/backlog/patterns.md` ~L169
+- **Learnings for future iterations:**
+  - Dense tree UIs can keep compact badge visuals if the interactive wrapper carries the 24×24 target size; do not solve target-size issues by only shrinking or growing the visible chip.
+  - Token-type color classes are a good place to centralize badge alignment rules so buttons and spans render consistently after accessibility tweaks.
+---

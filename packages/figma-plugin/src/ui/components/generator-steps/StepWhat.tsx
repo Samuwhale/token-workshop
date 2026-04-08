@@ -128,7 +128,7 @@ function TypeCard({
               {TYPE_LABELS[type]}
             </span>
             {isRecommended && (
-              <span className="text-[7px] px-1 py-0.5 rounded-full bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-bold uppercase tracking-wider">
+              <span className="text-[10px] px-1 py-0.5 rounded-full bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-bold uppercase tracking-wider">
                 Recommended
               </span>
             )}
