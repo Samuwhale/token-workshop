@@ -396,3 +396,11 @@
   - If an area mixes novice and expert jobs, keep one default authoring surface and route expert configuration through an explicit advanced entry point instead of a peer top-level mode switch.
   - When a child component exposes imperative navigation handles, preserve the public methods and repoint them at the new internal view model so App-level commands do not need to change.
 ---
+## 2026-04-08 - Coverage and compare feel like parallel theme products instead of contextual tools
+- Refocused `ThemeManager` around one authoring home by removing the top-level coverage/compare buttons, tracking the active axis/option in local context state, and launching both tools from the axis or option the user is editing.
+- Reframed coverage around the current axis by default, added a scoped coverage header with optional `Show all axes`, and made compare default to the selected option inside the current axis while preserving back-navigation to the same authoring context.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L77, ~L188, ~L627, ~L718, ~L782, ~L1237, ~L1510, ~L2024
+- **Learnings for future iterations:**
+  - If a secondary analysis tool still needs a dedicated screen, launch it from the current object and carry that object into the screen header and back-navigation instead of presenting it as a parallel home.
+  - When a review tool can expand from local context to global scope, default to the local scope first and make the broader audit an explicit toggle rather than the starting point.
+---

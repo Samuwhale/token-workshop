@@ -87,3 +87,22 @@
     Reworked ThemeManager around a primary authoring flow, moved resolvers behind an explicit Advanced theme logic entry, and passed backlog validation.
 
   Committing: Theme authoring mixes beginner workflows with advanced resolver workflows too early
+[main f61c5aa1] chore(backlog): done – Theme authoring mixes beginner workflows with advanced resolver workflows too early
+ 6 files changed, 236 insertions(+), 243 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-08 - Theme authoring mixes beginner workflows with advanced resolver workflows too early
+- Reframed `ThemeManager` around a single primary theme-authoring flow: the header now emphasizes creating axes, defining options, mapping sets, and previewing the active combination, while coverage review and compare moved to explicit secondary actions and back-to-authoring routes.
+- Demoted resolver work from a peer mode to an explicit `Advanced theme logic` entry point, kept the imperative resolver handle stable for App/command-palette callers, and made the advanced resolver screen reachable even when no axes exist yet.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L582, ~L680, ~L704, ~L829, ~L1842
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  10 queued · 0 in-progress · last took 13m54s
+═══════════════════════════════════════════════════════════════
+  → Coverage and compare are useful theme tools, but they currently behave like parallel destinations instead of contextual tools — the `ThemeManager` exposes `Dimensions`, `Coverage`, and `Compare` as sibling tabs, which makes the theme area feel wider and more complex than necessary; refactor this so authoring remains the default home and coverage/compare are launched contextually from the axis or option the user is currently working on; for example, coverage should feel like “show me gaps for this theme setup” and compare should feel like “compare this option/set against another” rather than separate quasi-products; success criteria: (1) a new user can complete the basic theme-authoring flow without needing to understand why there are 3 sub-views, (2) coverage and compare remain discoverable for experts, (3) preview, gap-filling, and compare flows are anchored to the current theme context instead of resetting the user into a new mental model; files: `packages/figma-plugin/src/ui/components/ThemeManager.tsx`
+  Running agent… (started 10:24:07)
+
+  ✓ done: Coverage and compare are useful theme tools, but they currently behave like parallel destinations instead of contextual tools
+    Refactored ThemeManager so authoring stays primary while coverage and compare launch from the active axis or option, keep that context in their headers/back flow, and validation passed.
+
+  Committing: Coverage and compare are useful theme tools, but they currently behave like parallel destinations instead of contextual tools

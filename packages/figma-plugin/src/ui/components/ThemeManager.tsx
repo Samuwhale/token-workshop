@@ -74,6 +74,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const dimSearchRef = useRef<HTMLInputElement | null>(null);
   const previewSearchRef = useRef<HTMLInputElement | null>(null);
   const [showOnlyWithGaps, setShowOnlyWithGaps] = useState(false);
+  const dimensionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [focusedDimensionId, setFocusedDimensionId] = useState<string | null>(null);
+  const [coverageContext, setCoverageContext] = useState<{ dimId: string | null; optionName: string | null }>({
+    dimId: null,
+    optionName: null,
+  });
+  const [showAllCoverageAxes, setShowAllCoverageAxes] = useState(false);
+  const [compareContext, setCompareContext] = useState<{ dimId: string | null; optionName: string | null }>({
+    dimId: null,
+    optionName: null,
+  });
   // Tab strip scroll state — tracks whether each dimension's tab strip can scroll left/right
   const tabScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [tabScrollState, setTabScrollState] = useState<Record<string, { left: boolean; right: boolean }>>({});
@@ -101,6 +112,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
   useEffect(() => { fetchDimensions(); }, [fetchDimensions]);
+  useEffect(() => {
+    if (dimensions.length === 0) {
+      setFocusedDimensionId(null);
+      return;
+    }
+    if (focusedDimensionId && dimensions.some(dim => dim.id === focusedDimensionId)) return;
+    setFocusedDimensionId(dimensions[0].id);
+  }, [dimensions, focusedDimensionId]);
 
   const {
     draggingDimId, dragOverDimId, draggingOpt, dragOverOpt,
@@ -117,7 +136,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     compareThemeKey, setCompareThemeKey,
     compareThemeDefaultA, setCompareThemeDefaultA,
     compareThemeDefaultB, setCompareThemeDefaultB,
-    navigateToCompare,
+    navigateToCompare: navigateToCompareState,
   } = useThemeCompare();
 
   const {
@@ -165,6 +184,44 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   } = useThemeCoverage({ coverage, missingOverrides, serverUrl, debouncedFetchDimensions, setError });
 
   useEffect(() => { onGapsDetected?.(totalFillableGaps); }, [totalFillableGaps, onGapsDetected]);
+
+  const getDimensionForContext = useCallback((preferredId?: string | null) => {
+    if (preferredId) {
+      const matched = dimensions.find(dim => dim.id === preferredId);
+      if (matched) return matched;
+    }
+    if (focusedDimensionId) {
+      const focused = dimensions.find(dim => dim.id === focusedDimensionId);
+      if (focused) return focused;
+    }
+    return dimensions[0] ?? null;
+  }, [dimensions, focusedDimensionId]);
+
+  const getOptionNameForContext = useCallback((dim: ThemeDimension | null, preferredName?: string | null) => {
+    if (!dim) return null;
+    if (preferredName && dim.options.some(option => option.name === preferredName)) return preferredName;
+    const selectedName = selectedOptions[dim.id];
+    if (selectedName && dim.options.some(option => option.name === selectedName)) return selectedName;
+    return dim.options[0]?.name ?? null;
+  }, [selectedOptions]);
+
+  const scrollToDimension = useCallback((dimId: string | null | undefined) => {
+    if (!dimId) return;
+    requestAnimationFrame(() => {
+      dimensionRefs.current[dimId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
+  const handleSelectOption = useCallback((dimId: string, optionName: string) => {
+    setFocusedDimensionId(dimId);
+    setSelectedOptions(prev => ({ ...prev, [dimId]: optionName }));
+  }, [setSelectedOptions]);
+
+  const returnToAuthoring = useCallback((dimId?: string | null) => {
+    setShowCompare(false);
+    setActiveView('authoring');
+    scrollToDimension(dimId ?? focusedDimensionId);
+  }, [focusedDimensionId, scrollToDimension, setShowCompare]);
 
   // --- Create override set ---
   const [createOverrideSet, setCreateOverrideSet] = useState<{ dimId: string; setName: string; optName?: string } | null>(null);
@@ -219,29 +276,78 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     if (showCompare) setActiveView('compare');
   }, [showCompare]);
 
-  const openCoverageView = useCallback(() => {
+  const openCoverageView = useCallback((dimensionId?: string, optionName?: string, allAxes = false) => {
+    const targetDimension = getDimensionForContext(dimensionId);
+    const targetOptionName = getOptionNameForContext(targetDimension, optionName);
+    if (targetDimension) setFocusedDimensionId(targetDimension.id);
+    setCoverageContext({
+      dimId: targetDimension?.id ?? null,
+      optionName: targetOptionName,
+    });
+    setShowAllCoverageAxes(allAxes);
     setShowCompare(false);
     setShowPreview(false);
     setActiveView('coverage');
-  }, [setShowCompare]);
+  }, [getDimensionForContext, getOptionNameForContext, setShowCompare]);
 
-  const openCompareView = useCallback((dimension?: ThemeDimension) => {
+  const openCompareView = useCallback((dimension?: ThemeDimension, optionName?: string) => {
     setCompareMode('theme-options');
+    const contextualDimension = getDimensionForContext(dimension?.id ?? null);
     const compareDimension = dimension && dimension.options.length >= 2
       ? dimension
-      : dimensions.find(d => d.options.length >= 2);
+      : contextualDimension && contextualDimension.options.length >= 2
+        ? contextualDimension
+        : dimensions.find(d => d.options.length >= 2);
     if (compareDimension) {
-      setCompareThemeDefaultA(`${compareDimension.id}:${compareDimension.options[0].name}`);
-      setCompareThemeDefaultB(`${compareDimension.id}:${compareDimension.options[1].name}`);
+      const optionAName = getOptionNameForContext(compareDimension, optionName) ?? compareDimension.options[0]?.name ?? '';
+      const optionBName = compareDimension.options.find(option => option.name !== optionAName)?.name ?? compareDimension.options[1]?.name ?? '';
+      setFocusedDimensionId(compareDimension.id);
+      setCompareContext({
+        dimId: compareDimension.id,
+        optionName: optionAName || null,
+      });
+      setCompareThemeDefaultA(`${compareDimension.id}:${optionAName}`);
+      setCompareThemeDefaultB(`${compareDimension.id}:${optionBName}`);
     } else if (dimensions.length >= 2 && dimensions[0].options.length > 0 && dimensions[1].options.length > 0) {
+      setCompareContext({
+        dimId: dimensions[0].id,
+        optionName: dimensions[0].options[0].name,
+      });
       setCompareThemeDefaultA(`${dimensions[0].id}:${dimensions[0].options[0].name}`);
       setCompareThemeDefaultB(`${dimensions[1].id}:${dimensions[1].options[0].name}`);
+    } else {
+      setCompareContext({
+        dimId: focusedDimensionId,
+        optionName: null,
+      });
     }
     setCompareThemeKey(k => k + 1);
     setShowCompare(true);
     setShowPreview(false);
     setActiveView('compare');
-  }, [dimensions, setCompareMode, setCompareThemeDefaultA, setCompareThemeDefaultB, setCompareThemeKey, setShowCompare]);
+  }, [dimensions, focusedDimensionId, getDimensionForContext, getOptionNameForContext, setCompareMode, setCompareThemeDefaultA, setCompareThemeDefaultB, setCompareThemeKey, setShowCompare]);
+
+  const handleNavigateToCompare = useCallback((
+    mode: CompareMode,
+    path?: string,
+    tokenPaths?: Set<string>,
+    optionA?: string,
+    optionB?: string,
+  ) => {
+    if (mode === 'theme-options' && optionA) {
+      const separator = optionA.indexOf(':');
+      const dimId = separator === -1 ? optionA : optionA.slice(0, separator);
+      const optionName = separator === -1 ? null : optionA.slice(separator + 1);
+      setFocusedDimensionId(dimId);
+      setCompareContext({ dimId, optionName });
+    } else {
+      setCompareContext({
+        dimId: focusedDimensionId,
+        optionName: null,
+      });
+    }
+    navigateToCompareState(mode, path, tokenPaths, optionA, optionB);
+  }, [focusedDimensionId, navigateToCompareState]);
 
   // Populate imperative handle so parent (e.g. command palette) can trigger auto-fill
   const handleAutoFillAllRef = useRef(handleAutoFillAllOptions);
@@ -258,7 +364,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         });
         if (dimWithGaps) handleAutoFillAllRef.current(dimWithGaps.id);
       },
-      navigateToCompare,
+      navigateToCompare: handleNavigateToCompare,
       switchToResolverMode: () => {
         setShowCompare(false);
         setShowPreview(false);
@@ -266,7 +372,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       },
     };
     return () => { themeManagerHandle.current = null; };
-  }, [themeManagerHandle, dimensions, coverage, navigateToCompare, setShowCompare]);
+  }, [themeManagerHandle, dimensions, coverage, handleNavigateToCompare, setShowCompare]);
 
   // Tab strip scroll helpers
   const updateTabScroll = useCallback((dimId: string) => {
@@ -518,6 +624,40 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     });
   }, [dimensions, dimSearch, showOnlyWithGaps, coverage]);
 
+  const focusedDimension = useMemo(
+    () => dimensions.find(dim => dim.id === focusedDimensionId) ?? dimensions[0] ?? null,
+    [dimensions, focusedDimensionId],
+  );
+  const focusedOptionName = useMemo(
+    () => getOptionNameForContext(focusedDimension, null),
+    [focusedDimension, getOptionNameForContext],
+  );
+  const coverageFocusDimension = useMemo(
+    () => dimensions.find(dim => dim.id === coverageContext.dimId) ?? focusedDimension,
+    [coverageContext.dimId, dimensions, focusedDimension],
+  );
+  const coverageFocusOptionName = useMemo(
+    () => getOptionNameForContext(coverageFocusDimension, coverageContext.optionName),
+    [coverageContext.optionName, coverageFocusDimension, getOptionNameForContext],
+  );
+  const coverageDimensions = useMemo(
+    () => showAllCoverageAxes || !coverageFocusDimension ? dimensions : [coverageFocusDimension],
+    [coverageFocusDimension, dimensions, showAllCoverageAxes],
+  );
+  const coverageFocusIssueCount = useMemo(() => {
+    if (!coverageFocusDimension || !coverageFocusOptionName) return 0;
+    return (coverage[coverageFocusDimension.id]?.[coverageFocusOptionName]?.uncovered.length ?? 0)
+      + (missingOverrides[coverageFocusDimension.id]?.[coverageFocusOptionName]?.missing.length ?? 0);
+  }, [coverage, coverageFocusDimension, coverageFocusOptionName, missingOverrides]);
+  const compareFocusDimension = useMemo(
+    () => dimensions.find(dim => dim.id === compareContext.dimId) ?? focusedDimension,
+    [compareContext.dimId, dimensions, focusedDimension],
+  );
+  const compareFocusOptionName = useMemo(
+    () => getOptionNameForContext(compareFocusDimension, compareContext.optionName),
+    [compareContext.optionName, compareFocusDimension, getOptionNameForContext],
+  );
+
   const modalContextValue = useMemo<ThemeManagerModalsState>(() => ({
     dimensions,
     autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy,
@@ -581,7 +721,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             <div className="min-w-0">
               <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">Theme authoring</p>
               <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Create axes like mode, brand, density, or platform, define their options, map token sets, and preview the active combination before reaching for advanced resolver logic.
+                Create axes like mode, brand, density, or platform, define their options, map token sets, and preview the active combination. Coverage and compare open from the axis you are editing instead of splitting authoring into separate destinations.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -600,40 +740,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 </svg>
                 {showPreview ? 'Hide preview' : 'Preview active combination'}
               </button>
-              {dimensions.length > 0 && (
-                <>
-                  <button
-                    onClick={openCoverageView}
-                    className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-                    title="Review unresolved gaps and missing overrides across theme options"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="3" y="3" width="7" height="7" />
-                      <rect x="14" y="3" width="7" height="7" />
-                      <rect x="3" y="14" width="7" height="7" />
-                      <rect x="14" y="14" width="7" height="7" />
-                    </svg>
-                    Coverage
-                    {totalFillableGaps > 0 && (
-                      <span className="rounded-full bg-amber-500/20 px-1 py-px text-[9px] font-semibold leading-none text-amber-600">
-                        {totalFillableGaps}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => openCompareView()}
-                    className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-                    title="Compare options or theme combinations without leaving theme authoring"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
-                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                      <path d="M9 12h6" />
-                    </svg>
-                    Compare
-                  </button>
-                </>
-              )}
               {resolverState && (
                 <button
                   onClick={() => {
@@ -677,23 +783,68 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="px-3 py-2.5 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">Coverage review</p>
+              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                {showAllCoverageAxes || !coverageFocusDimension ? 'Coverage review' : `Coverage for ${coverageFocusDimension.name}`}
+              </p>
               <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Audit every option for missing values and missing overrides, then jump back into authoring to fix the set mapping.
+                {showAllCoverageAxes || !coverageFocusDimension
+                  ? 'Started from the current theme context and expanded to every axis. Click any option to jump back into authoring with that setup selected.'
+                  : coverageFocusOptionName
+                    ? `Review missing values and overrides for ${coverageFocusDimension.name} → ${coverageFocusOptionName}, then jump straight back into that axis to fix the mapping.`
+                    : 'Review missing values and overrides for the current axis, then jump back into authoring to fix the mapping.'}
               </p>
             </div>
-            <button
-              onClick={() => {
-                setShowCompare(false);
-                setActiveView('authoring');
-              }}
-              className="shrink-0 inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-            >
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              Back to authoring
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              {dimensions.length > 1 && coverageFocusDimension && (
+                <button
+                  onClick={() => setShowAllCoverageAxes(value => !value)}
+                  className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+                >
+                  {showAllCoverageAxes ? `Focus ${coverageFocusDimension.name}` : 'Show all axes'}
+                </button>
+              )}
+              <button
+                onClick={() => returnToAuthoring(coverageFocusDimension?.id ?? coverageContext.dimId)}
+                className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+              >
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+                Back to authoring
+              </button>
+            </div>
+          </div>
+          {!showAllCoverageAxes && coverageFocusDimension && (
+            <div className="px-3 pb-2 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
+                <span className="font-medium text-[var(--color-figma-text-secondary)]">Axis</span>
+                <span>{coverageFocusDimension.name}</span>
+              </span>
+              {coverageFocusOptionName && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
+                  <span className="font-medium text-[var(--color-figma-text-secondary)]">Option</span>
+                  <span>{coverageFocusOptionName}</span>
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
+                <span className="font-medium text-[var(--color-figma-text-secondary)]">Issues</span>
+                <span>{coverageFocusIssueCount}</span>
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      {activeView === 'compare' && (
+        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          <div className="px-3 py-2.5">
+            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+              {compareFocusDimension ? `Compare from ${compareFocusDimension.name}` : 'Compare in theme context'}
+            </p>
+            <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              {compareFocusDimension && compareFocusOptionName
+                ? `Theme option comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this context.`
+                : 'Compare launches from the current axis or option so you can inspect alternatives without leaving theme authoring.'}
+            </p>
           </div>
         </div>
       )}
@@ -907,22 +1058,39 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     <strong>{totalFillableGaps}</strong> gap{totalFillableGaps !== 1 ? 's' : ''} can be auto-filled from source sets
                   </span>
                 </div>
-                <button
-                  onClick={() => {
-                    const dimWithGaps = dimensions.find(dim => {
-                      const dimCov = coverage[dim.id] ?? {};
-                      return Object.values(dimCov).some(opt =>
-                        opt.uncovered.some(i => i.missingRef && i.fillValue !== undefined),
-                      );
-                    });
-                    if (dimWithGaps) handleAutoFillAllOptions(dimWithGaps.id);
-                  }}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors shrink-0"
-                  title={`Auto-fill ${totalFillableGaps} missing token${totalFillableGaps !== 1 ? 's' : ''} — opens confirmation dialog`}
-                >
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                  Auto-fill gaps
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => {
+                      const dimWithGaps = dimensions.find(dim => {
+                        const dimCov = coverage[dim.id] ?? {};
+                        return Object.values(dimCov).some(opt =>
+                          opt.uncovered.some(i => i.missingRef && i.fillValue !== undefined),
+                        );
+                      });
+                      openCoverageView(focusedDimension?.id ?? dimWithGaps?.id, focusedOptionName ?? undefined, true);
+                    }}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded border border-[var(--color-figma-warning)]/35 text-[10px] font-medium text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/12 transition-colors"
+                    title="Review gap coverage in context"
+                  >
+                    Review gaps
+                  </button>
+                  <button
+                    onClick={() => {
+                      const dimWithGaps = dimensions.find(dim => {
+                        const dimCov = coverage[dim.id] ?? {};
+                        return Object.values(dimCov).some(opt =>
+                          opt.uncovered.some(i => i.missingRef && i.fillValue !== undefined),
+                        );
+                      });
+                      if (dimWithGaps) handleAutoFillAllOptions(dimWithGaps.id);
+                    }}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+                    title={`Auto-fill ${totalFillableGaps} missing token${totalFillableGaps !== 1 ? 's' : ''} — opens confirmation dialog`}
+                  >
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                    Auto-fill gaps
+                  </button>
+                </div>
               </div>
             )}
 
@@ -958,6 +1126,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 const dimCov = coverage[dim.id] ?? {};
                 const optionsWithGaps = dim.options.filter(o => (dimCov[o.name]?.uncovered.length ?? 0) > 0);
                 const totalDimGaps = optionsWithGaps.reduce((sum, o) => sum + (dimCov[o.name]?.uncovered.length ?? 0), 0);
+                const totalDimMissingOverrides = dim.options.reduce(
+                  (sum, option) => sum + (missingOverrides[dim.id]?.[option.name]?.missing.length ?? 0),
+                  0,
+                );
+                const totalDimCoverageIssues = totalDimGaps + totalDimMissingOverrides;
                 const totalDimFillable = optionsWithGaps.reduce((sum, o) => {
                   const items = dimCov[o.name]?.uncovered ?? [];
                   return sum + items.filter(i => i.missingRef && i.fillValue !== undefined).length;
@@ -968,7 +1141,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 return (
                   <div
                     key={dim.id}
-                    ref={dim.id === newlyCreatedDim ? (el) => { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } : undefined}
+                    ref={el => {
+                      dimensionRefs.current[dim.id] = el;
+                      if (el && dim.id === newlyCreatedDim) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                      }
+                    }}
                     draggable
                     onDragStart={e => handleDimDragStart(e, dim.id)}
                     onDragOver={e => handleDimDragOver(e, dim.id)}
@@ -1056,11 +1234,25 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               </button>
                             </div>
                           )}
+                          <button
+                            onClick={() => openCoverageView(dim.id, selectedOpt)}
+                            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0 opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                            title={totalDimCoverageIssues > 0 ? `Review ${totalDimCoverageIssues} issue${totalDimCoverageIssues !== 1 ? 's' : ''} for ${dim.name}` : `Review coverage for ${dim.name}`}
+                            aria-label={`Review coverage for ${dim.name}`}
+                          >
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <rect x="3" y="3" width="7" height="7" />
+                              <rect x="14" y="3" width="7" height="7" />
+                              <rect x="3" y="14" width="7" height="7" />
+                              <rect x="14" y="14" width="7" height="7" />
+                            </svg>
+                            {totalDimCoverageIssues > 0 ? 'Review gaps' : 'Coverage'}
+                          </button>
                           {dim.options.length >= 2 && (
                             <button
-                              onClick={() => openCompareView(dim)}
+                              onClick={() => openCompareView(dim, selectedOpt)}
                               className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0 opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                              title={`Compare ${dim.name} options`}
+                              title={`Compare ${selectedOpt || dim.name} against another ${dim.name} option`}
                               aria-label={`Compare ${dim.name} options`}
                             >
                               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1148,7 +1340,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             onDragOver={e => handleOptDragOver(e, dim.id, o.name)}
                             onDrop={e => handleOptDrop(e, dim.id, o.name)}
                             onDragEnd={handleOptDragEnd}
-                            onClick={() => setSelectedOptions(prev => ({ ...prev, [dim.id]: o.name }))}
+                            onClick={() => handleSelectOption(dim.id, o.name)}
                             className={`relative px-2.5 py-1 text-[10px] font-medium rounded-t transition-colors flex-shrink-0 flex items-center gap-1 ${
                               isSelected
                                 ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)]'
@@ -1316,6 +1508,35 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           ) : (
                             <>
                               <div className="flex items-center gap-1">
+                                {dim.options.length > 1 && (
+                                  <button
+                                    onClick={() => openCompareView(dim, opt.name)}
+                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                                    title={`Compare ${opt.name} against another ${dim.name} option`}
+                                  >
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
+                                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                                      <path d="M9 12h6" />
+                                    </svg>
+                                    Compare {opt.name}
+                                  </button>
+                                )}
+                                {((coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 || (missingOverrides[dim.id]?.[selectedOpt]?.missing.length ?? 0) > 0) && (
+                                  <button
+                                    onClick={() => openCoverageView(dim.id, opt.name)}
+                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                                    title={`Review coverage for ${dim.name} → ${opt.name}`}
+                                  >
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <rect x="3" y="3" width="7" height="7" />
+                                      <rect x="14" y="3" width="7" height="7" />
+                                      <rect x="3" y="14" width="7" height="7" />
+                                      <rect x="14" y="14" width="7" height="7" />
+                                    </svg>
+                                    Review coverage
+                                  </button>
+                                )}
                                 {hasUncovered && (
                                   <button
                                     onClick={() => setExpandedCoverage(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
@@ -1803,13 +2024,13 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             {/* Coverage tab view */}
             {activeView === 'coverage' && (
               <ThemeCoverageMatrix
-                dimensions={filteredDimensions.length > 0 ? filteredDimensions : dimensions}
+                dimensions={coverageDimensions}
                 coverage={coverage}
                 missingOverrides={missingOverrides}
                 setTokenValues={setTokenValues}
                 onSelectOption={(dimId, optionName) => {
-                  setSelectedOptions(prev => ({ ...prev, [dimId]: optionName }));
-                  setActiveView('authoring');
+                  handleSelectOption(dimId, optionName);
+                  returnToAuthoring(dimId);
                 }}
               />
             )}
@@ -1836,10 +2057,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 serverUrl={serverUrl}
                 onTokensCreated={() => { debouncedFetchDimensions(); onTokensCreated?.(); }}
                 onBack={() => {
-                  setShowCompare(false);
-                  setActiveView('authoring');
+                  returnToAuthoring(compareFocusDimension?.id ?? compareContext.dimId);
                 }}
-                backLabel="Back to authoring"
+                backLabel={compareFocusDimension ? `Back to ${compareFocusDimension.name}` : 'Back to authoring'}
               />
             )}
 
