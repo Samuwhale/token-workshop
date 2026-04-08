@@ -1,0 +1,17 @@
+id: replace-the-rule-console-feel-of-packages-figma--d4d4b9ed
+title: Replace the rule-console feel of `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` and `packages/server/src/routes/lint.ts` with a guided quality-policy surface that starts from presets and uses set pickers and exception chips rather than free-text path filters and per-rule override names.
+priority: normal
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/LintConfigPanel.tsx
+  - packages/server/src/routes/lint.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Replace the rule-console feel of `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` and `packages/server/src/routes/lint.ts` with a guided quality-policy surface that starts from presets and uses set pickers and exception chips rather than free-text path filters and per-rule override names.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

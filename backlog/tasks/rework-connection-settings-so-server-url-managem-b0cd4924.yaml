@@ -1,0 +1,16 @@
+id: rework-connection-settings-so-server-url-managem-b0cd4924
+title: Rework connection settings so server URL management, connection testing, retry behavior, and setup guidance live in one coherent place instead of being split between the top banner, onboarding, and the settings panel
+priority: normal
+depends_on: []
+touch_paths: []
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+  - Planner could not infer touch_paths from the title; refine this task before execution.
+state: planned
+acceptance_criteria:
+  - Rework connection settings so server URL management, connection testing, retry behavior, and setup guidance live in one coherent place instead of being split between the top banner, onboarding, and the settings panel
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

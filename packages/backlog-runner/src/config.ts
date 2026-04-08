@@ -29,18 +29,20 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
   const runtimeDir = resolvePath(baseDir, config.files.runtimeDir ?? '.backlog-runner');
   const locksDir = resolvePath(baseDir, config.files.locksDir ?? path.join(runtimeDir, 'locks'));
   const followups = resolvePath(baseDir, config.files.followups ?? path.join(runtimeDir, 'followups.jsonl'));
+  const taskSpecsDir = resolvePath(baseDir, config.files.taskSpecsDir ?? path.join('backlog', 'tasks'));
+  const stateDb = resolvePath(baseDir, config.files.stateDb ?? path.join(runtimeDir, 'state.sqlite'));
 
   return {
     projectRoot,
     files: {
       backlog: resolvePath(baseDir, config.files.backlog),
       inbox: resolvePath(baseDir, config.files.inbox),
+      taskSpecsDir,
       followups,
       stop: resolvePath(baseDir, config.files.stop),
       patterns: resolvePath(baseDir, config.files.patterns),
       progress: resolvePath(baseDir, config.files.progress),
-      archive: resolvePath(baseDir, config.files.archive),
-      counter: resolvePath(baseDir, config.files.counter),
+      stateDb,
       models: config.files.models ? resolvePath(baseDir, config.files.models) : undefined,
       runnerLogDir,
       runtimeDir,
@@ -53,6 +55,10 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
       code: resolvePath(baseDir, config.prompts.code),
     },
     validationCommand: config.validationCommand,
+    validationProfiles: {
+      repo: config.validationCommand,
+      ...(config.validationProfiles ?? {}),
+    },
     defaults: {
       tool: config.defaults?.tool ?? 'claude',
       model: config.defaults?.model ?? 'claude-sonnet-4-6',
@@ -60,10 +66,6 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
       passes: config.defaults?.passes ?? true,
       passFrequency: config.defaults?.passFrequency ?? 10,
       worktrees: config.defaults?.worktrees ?? true,
-    },
-    cleanup: {
-      archiveDoneThreshold: config.cleanup?.archiveDoneThreshold ?? 20,
-      progressSectionsToKeep: config.cleanup?.progressSectionsToKeep ?? 30,
     },
     passes: {
       product: {
@@ -93,6 +95,7 @@ export async function ensureConfigReady(config: BacklogRunnerConfig): Promise<vo
   await mkdir(config.files.runtimeDir, { recursive: true });
   await mkdir(config.files.runnerLogDir, { recursive: true });
   await mkdir(config.files.locksDir, { recursive: true });
+  await mkdir(config.files.taskSpecsDir, { recursive: true });
 }
 
 type ModelsFileShape = {

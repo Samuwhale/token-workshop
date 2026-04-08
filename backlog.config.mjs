@@ -3,12 +3,12 @@ export default {
   files: {
     backlog: './backlog.md',
     inbox: './backlog-inbox.md',
+    taskSpecsDir: './backlog/tasks',
     followups: './.backlog-runner/followups.jsonl',
     stop: './backlog-stop',
     patterns: './scripts/backlog/patterns.md',
     progress: './scripts/backlog/progress.txt',
-    archive: './scripts/backlog/backlog-archive.md',
-    counter: './scripts/backlog/.completed-count',
+    stateDb: './.backlog-runner/state.sqlite',
     models: './scripts/backlog/models.json',
     runnerLogDir: './.backlog-runner/logs',
     runtimeDir: './.backlog-runner',
@@ -20,6 +20,13 @@ export default {
     code: './scripts/backlog/code-pass.md',
   },
   validationCommand: 'bash scripts/backlog/validate.sh',
+  validationProfiles: {
+    repo: 'bash scripts/backlog/validate.sh',
+    core: 'pnpm --filter @tokenmanager/core build',
+    server: 'pnpm --filter @tokenmanager/server build',
+    plugin: 'pnpm preview:build',
+    backlog: 'pnpm --filter @tokenmanager/backlog-runner exec vitest run',
+  },
   defaults: {
     tool: 'claude',
     model: '',
@@ -27,10 +34,6 @@ export default {
     passes: true,
     passFrequency: 10,
     worktrees: true,
-  },
-  cleanup: {
-    archiveDoneThreshold: 20,
-    progressSectionsToKeep: 30,
   },
   passes: {
     product: { offset: 3 },

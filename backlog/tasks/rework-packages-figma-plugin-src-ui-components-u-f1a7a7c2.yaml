@@ -1,0 +1,16 @@
+id: rework-packages-figma-plugin-src-ui-components-u-f1a7a7c2
+title: Rework `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` into a cleanup queue grouped by set and lifecycle with search, filters, and staged bulk actions, because the current flat list plus `Delete all` / `Deprecate all` controls does not scale to large libraries with hundreds of unused tokens.
+priority: normal
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Rework `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` into a cleanup queue grouped by set and lifecycle with search, filters, and staged bulk actions, because the current flat list plus `Delete all` / `Deprecate all` controls does not scale to large libraries with hundreds of unused tokens.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

@@ -1,0 +1,16 @@
+id: redesign-the-post-import-handoff-so-the-user-alw-ee3add78
+title: Redesign the post-import handoff so the user always lands in a sensible next step with a summary of what was created, what needs review, and whether they should go to Tokens, Themes, or Sync next
+priority: normal
+depends_on: []
+touch_paths: []
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+  - Planner could not infer touch_paths from the title; refine this task before execution.
+state: planned
+acceptance_criteria:
+  - Redesign the post-import handoff so the user always lands in a sensible next step with a summary of what was created, what needs review, and whether they should go to Tokens, Themes, or Sync next
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

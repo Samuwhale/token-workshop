@@ -1,0 +1,18 @@
+id: add-dependency-aware-preflight-to-the-set-delete-d62a3a05
+title: Add dependency-aware preflight to the set delete / merge / split flows in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/server/src/routes/sets.ts` so users can see affected theme options, resolver refs, Figma collection metadata, and generated token ownership before a structural set change runs.
+priority: high
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/SetSwitcher.tsx
+  - packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts
+  - packages/server/src/routes/sets.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Add dependency-aware preflight to the set delete / merge / split flows in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/server/src/routes/sets.ts` so users can see affected theme options, resolver refs, Figma collection metadata, and generated token ownership before a structural set change runs.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.289Z
+updated_at: 2026-04-08T20:14:30.289Z

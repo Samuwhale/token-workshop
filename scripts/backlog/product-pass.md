@@ -2,7 +2,7 @@
 
 You are an autonomous discovery agent. Your job is NOT to implement anything — it is to explore the product, identify what's missing or painful, and write actionable backlog items to `backlog-inbox.md`.
 
-Codebase patterns are injected into your system prompt. Recent progress log is also included.
+Codebase patterns and backlog state are injected as compact digests. Start there, then read more only when a specific area needs deeper inspection.
 
 ---
 
@@ -41,7 +41,7 @@ Overhaul, consolidation, and removal items are encouraged when a whole area of t
 
 ## Workflow
 
-1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `product-pass:` entries to avoid retreading the same ground. Then read the injected `Current Open Backlog` section before roaming the codebase. Use it to understand what themes are already important, where the queue is dense, and what adjacent workflow gaps or missing follow-through work the current backlog implies. Then roam the codebase — panels, flows, server routes, whatever catches your eye. Look at both the frontend (`packages/figma-plugin/src/ui/`) and the server (`packages/server/`).
+1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `product-pass:` entries to avoid retreading the same ground. Then read the injected backlog digest before roaming the codebase. Use it to understand what themes are already important, where the queue is dense, and what adjacent workflow gaps or missing follow-through work the current backlog implies. Then roam the codebase — panels, flows, server routes, whatever catches your eye. Look at both the frontend (`packages/figma-plugin/src/ui/`) and the server (`packages/server/`).
 
 3. **Write findings** — for each issue found, append a line to `backlog-inbox.md`:
    - Normal: `- [ ] Short title — one sentence describing the gap and where it is`

@@ -1,0 +1,17 @@
+id: promote-any-redesign-guidance-that-still-matters-1443d95b
+title: Promote any redesign guidance that still matters long-term into the correct permanent docs, then delete or archive the temporary planning docs such as `docs/redesign/plugin-ia-blueprint.md` and `docs/redesign/repo-handoff-decision.md` once their decisions are fully reflected in code and stable documentation
+priority: normal
+depends_on: []
+touch_paths:
+  - docs/redesign/plugin-ia-blueprint.md
+  - docs/redesign/repo-handoff-decision.md
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Promote any redesign guidance that still matters long-term into the correct permanent docs, then delete or archive the temporary planning docs such as `docs/redesign/plugin-ia-blueprint.md` and `docs/redesign/repo-handoff-decision.md` once their decisions are fully reflected in code and stable documentation
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

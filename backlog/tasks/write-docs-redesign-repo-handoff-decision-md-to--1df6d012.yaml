@@ -1,0 +1,16 @@
+id: write-docs-redesign-repo-handoff-decision-md-to--1df6d012
+title: Write `docs/redesign/repo-handoff-decision.md` to decide whether the Git-based handoff workflow remains inside the plugin or moves out of the primary UX, documenting the target user, rationale, and chosen product direction
+priority: normal
+depends_on: []
+touch_paths:
+  - docs/redesign/repo-handoff-decision.md
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Write `docs/redesign/repo-handoff-decision.md` to decide whether the Git-based handoff workflow remains inside the plugin or moves out of the primary UX, documenting the target user, rationale, and chosen product direction
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

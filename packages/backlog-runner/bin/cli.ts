@@ -2,12 +2,12 @@
 import { parseArgs } from 'node:util';
 import { promptForRunOverrides, shouldPromptInteractively } from './interactive.js';
 import { loadBacklogRunnerConfig } from '../src/config.js';
-import { runBacklogRunner } from '../src/scheduler.js';
+import { runBacklogRunner, syncBacklogRunner } from '../src/scheduler.js';
 import { validateBacklogRunner } from '../src/validate.js';
 import type { BacklogTool, RunOverrides } from '../src/types.js';
 
 function usage(): never {
-  console.error('Usage: backlog-runner <run|validate> --config backlog.config.mjs [--tool TOOL] [--model MODEL] [--pass-model MODEL] [--passes true|false] [--pass-frequency N] [--worktrees true|false] [--interactive|--no-interactive]');
+  console.error('Usage: backlog-runner <run|validate|sync> --config backlog.config.mjs [--tool TOOL] [--model MODEL] [--pass-model MODEL] [--passes true|false] [--pass-frequency N] [--worktrees true|false] [--interactive|--no-interactive]');
   process.exit(1);
   throw new Error('unreachable');
 }
@@ -21,7 +21,7 @@ function parseBoolean(value: string | undefined): boolean | undefined {
 
 async function main() {
   const [command] = process.argv.slice(2);
-  if (!command || (command !== 'run' && command !== 'validate')) {
+  if (!command || (command !== 'run' && command !== 'validate' && command !== 'sync')) {
     usage();
   }
 
@@ -58,6 +58,22 @@ async function main() {
 
   if (shouldPromptInteractively(command, overrides)) {
     overrides = await promptForRunOverrides(config, overrides);
+  }
+
+  if (command === 'sync') {
+    const result = await syncBacklogRunner(config);
+    console.log('Backlog sync complete');
+    console.log('');
+    if (result.inbox.drained) {
+      console.log(`Inbox planner: ${result.inbox.createdTasks} created · ${result.inbox.skippedDuplicates} duplicates · ${result.inbox.ignoredInvalidLines} invalid`);
+    }
+    if (result.followups.drained) {
+      console.log(`Follow-up planner: ${result.followups.createdTasks} created · ${result.followups.skippedDuplicates} duplicates · ${result.followups.ignoredInvalidLines} invalid`);
+    }
+    console.log(
+      `Queue: ${result.counts.ready} ready · ${result.counts.blocked} blocked · ${result.counts.planned} planned · ${result.counts.inProgress} in-progress · ${result.counts.failed} failed · ${result.counts.done} done`,
+    );
+    return;
   }
 
   if (command === 'validate') {

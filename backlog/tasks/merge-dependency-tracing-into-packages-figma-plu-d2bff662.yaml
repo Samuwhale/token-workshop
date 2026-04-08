@@ -1,0 +1,18 @@
+id: merge-dependency-tracing-into-packages-figma-plu-d2bff662
+title: Merge dependency tracing into `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx`, and `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` so alias chains and dependents can be inspected inline, with the standalone Dependencies screen kept as an advanced escape hatch instead of the default place to understand one token.
+priority: normal
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenEditor.tsx
+  - packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx
+  - packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Merge dependency tracing into `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx`, and `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` so alias chains and dependents can be inspected inline, with the standalone Dependencies screen kept as an advanced escape hatch instead of the default place to understand one token.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

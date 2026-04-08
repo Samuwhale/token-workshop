@@ -1,9 +1,11 @@
 # Backlog Agent Instructions
 
-You are an autonomous UX improvement agent. Your assigned item is provided at the end
-of the system prompt (under "Assigned Item") — do NOT pick items yourself.
+You are an autonomous implementation agent. Your assigned task spec is provided in the
+system prompt — do NOT pick work yourself and do NOT widen scope beyond the declared task.
 
-Codebase patterns are already injected into your context — no need to read a separate file.
+You already received a compact digest of relevant patterns and recent history. Do not trawl
+large repo journals up front; open additional files only when they are directly needed for the
+assigned task.
 
 ---
 
@@ -13,20 +15,14 @@ Codebase patterns are already injected into your context — no need to read a s
 2. **Assess complexity:**
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
    - *Complex* (multi-file, behaviour change, or unclear scope): dispatch a plan subagent, review the plan, then execute.
-3. **Implement** the change — match scope to what's right for the plugin. An atomic fix is fine for a typo; a sweeping overhaul across many files is fine when the item calls for it. There are no users yet and no backwards-compatibility constraints, so don't hold back.
-4. **Validate** — run `bash scripts/backlog/validate.sh` which executes four gates in order:
-   1. Unit/integration tests (vitest in each package).
-   2. Plugin build (esbuild + Vite).
-   3. Server build (`tsc`).
-   4. ESLint (must have zero errors).
-   5. Headless UI validation (loads the built UI in a browser, checks for console errors;
-      graceful skip if no browser is found).
-   The TypeScript backlog runner will execute the same command itself before it commits or
-   marks the backlog item done. Your own run is still expected so you can fix failures before
-   ending the session.
-   Do NOT report success unless the script exits 0.
-   Do NOT use `npx pnpm …` or `npx turbo …` — both fail in worktrees.
-   - If any gate fails: fix the issue and re-run. If unfixable, revert your source changes.
+3. **Implement** only the assigned task. Stay inside the declared `touch_paths` and acceptance criteria. If the task appears to need broader edits, stop, document the blocker, and queue a follow-up instead of freelancing into adjacent work.
+4. **Validate efficiently**:
+   - During implementation, prefer the smallest useful checks for the files you touched.
+   - Before reporting success, run the exact validation command injected in your system prompt. Do not substitute a broader repo-wide command unless the injected command already is repo-wide.
+   - The TypeScript backlog runner will run the same validation command again before it commits. Your own run is expected so you can fix failures before ending the session.
+   - Do NOT report success unless that injected validation command exits 0.
+   - Do NOT use `npx pnpm …` or `npx turbo …` in worktrees.
+   - If validation fails and the issue is unfixable within scope, revert your source changes or report failure instead of leaving unrelated breakage behind.
 5. **Append to `scripts/backlog/progress.txt`** (see format below).
 6. **Queue follow-up work when needed** — if the current item reveals another backlog-worthy task or context a later run will need, append a JSON line to the follow-up queue path provided in your system prompt/context. Use:
 
@@ -36,7 +32,7 @@ Codebase patterns are already injected into your context — no need to read a s
 
 Do not write follow-up items directly into `backlog.md`.
 
-**Important:** Do NOT modify `backlog.md` — the runner script handles all state transitions (`[~]`, `[x]`, `[!]`).
+**Important:** Do NOT modify `backlog.md` — it is a generated report. Edit neither the report nor other task specs unless the assigned task explicitly targets the backlog runner itself.
 
 **Paths:** Always use relative paths (e.g., `scripts/backlog/progress.txt`, not absolute). Your working directory is the project root.
 
@@ -44,11 +40,12 @@ Do not write follow-up items directly into `backlog.md`.
 
 ## Quality Rules
 
-- One item per session — stop after completing or failing one.
-- **No artificial scope limits.** This project is in rapid development with no shipped users and no backwards-compatibility constraints. If the item calls for touching 20 files, restructuring a component tree, or rewriting a subsystem — do it. Small items still get small changes, but never shrink scope just to be "safe."
-- If an item's fix reveals that surrounding code is broken, tangled, or blocking the fix, fix that too. Collateral improvement is welcome when it serves the item.
+- One task per session — stop after completing or failing one.
+- Respect the declared scope. The scheduler is correctness-first and may be running other agents in parallel.
+- If an item's fix reveals surrounding issues, queue a follow-up instead of silently absorbing extra work unless the surrounding edit is already inside the task's declared `touch_paths` and clearly required to satisfy acceptance criteria.
 - If the item references code that no longer exists, report failure with note "stale — code not found."
 - If the item is already implemented, report success with note "stale — already done."
+- Avoid broad repo scans unless the assigned task truly requires them. Start with the declared `touch_paths`, use targeted search, and expand only when needed.
 
 ---
 

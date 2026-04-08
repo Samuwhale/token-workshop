@@ -1,0 +1,16 @@
+id: replace-the-slug-only-save-preview-in-packages-f-f2039ee7
+title: Replace the slug-only save preview in `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` with per-destination mapping and merge choices, because the current flow can only create or overwrite whole sets and gives no diff, skip, or append path before writing Figma variables into an existing token library.
+priority: high
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Replace the slug-only save preview in `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` with per-destination mapping and merge choices, because the current flow can only create or overwrite whole sets and gives no diff, skip, or append path before writing Figma variables into an existing token library.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.289Z
+updated_at: 2026-04-08T20:14:30.289Z

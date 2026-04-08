@@ -66,7 +66,7 @@ function hasExplicitOverrides(overrides: RunOverrides): boolean {
   );
 }
 
-export function shouldPromptInteractively(command: 'run' | 'validate', overrides: RunOverrides): boolean {
+export function shouldPromptInteractively(command: 'run' | 'validate' | 'sync', overrides: RunOverrides): boolean {
   if (!input.isTTY || !output.isTTY) return false;
   if (overrides.interactive === false) return false;
   if (overrides.interactive === true) return true;

@@ -1,18 +1,19 @@
 export type BacklogTool = 'claude' | 'codex';
-export type BacklogMarker = ' ' | '~' | 'x' | '!';
 export type BacklogPassType = 'product' | 'ux' | 'code';
+export type BacklogTaskPriority = 'high' | 'normal' | 'low';
+export type BacklogTaskState = 'planned' | 'ready' | 'done' | 'failed';
 
 export interface BacklogRunnerConfigInput {
   projectRoot?: string;
   files: {
     backlog: string;
     inbox: string;
+    taskSpecsDir?: string;
     followups?: string;
     stop: string;
     patterns: string;
     progress: string;
-    archive: string;
-    counter: string;
+    stateDb?: string;
     models?: string;
     runnerLogDir?: string;
     runtimeDir?: string;
@@ -25,6 +26,7 @@ export interface BacklogRunnerConfigInput {
     code: string;
   };
   validationCommand: string;
+  validationProfiles?: Record<string, string>;
   defaults?: {
     tool?: BacklogTool;
     model?: string;
@@ -32,10 +34,6 @@ export interface BacklogRunnerConfigInput {
     passes?: boolean;
     passFrequency?: number;
     worktrees?: boolean;
-  };
-  cleanup?: {
-    archiveDoneThreshold?: number;
-    progressSectionsToKeep?: number;
   };
   passes?: Partial<Record<BacklogPassType, { offset?: number; promptFile?: string }>>;
 }
@@ -45,12 +43,12 @@ export interface BacklogRunnerConfig {
   files: {
     backlog: string;
     inbox: string;
+    taskSpecsDir: string;
     followups: string;
     stop: string;
     patterns: string;
     progress: string;
-    archive: string;
-    counter: string;
+    stateDb: string;
     models?: string;
     runnerLogDir: string;
     runtimeDir: string;
@@ -58,6 +56,7 @@ export interface BacklogRunnerConfig {
   };
   prompts: Record<BacklogPassType | 'agent', string>;
   validationCommand: string;
+  validationProfiles: Record<string, string>;
   defaults: {
     tool: BacklogTool;
     model?: string;
@@ -65,10 +64,6 @@ export interface BacklogRunnerConfig {
     passes: boolean;
     passFrequency: number;
     worktrees: boolean;
-  };
-  cleanup: {
-    archiveDoneThreshold: number;
-    progressSectionsToKeep: number;
   };
   passes: Record<BacklogPassType, { offset: number; promptFile: string }>;
 }
@@ -155,44 +150,100 @@ export interface LogSink {
   close(): Promise<void>;
 }
 
-export interface BacklogItemClaim {
-  lineNumber: number;
-  item: string;
-  claimToken: string;
+export interface BacklogTaskSpec {
+  id: string;
+  title: string;
+  priority: BacklogTaskPriority;
+  dependsOn: string[];
+  touchPaths: string[];
+  capabilities: string[];
+  validationProfile: string;
+  statusNotes: string[];
+  state: BacklogTaskState;
+  acceptanceCriteria: string[];
+  source: 'legacy-backlog' | 'inbox' | 'followup' | 'manual';
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BacklogQueueCounts {
+  planned: number;
   ready: number;
+  blocked: number;
   inProgress: number;
   failed: number;
-}
-
-export interface StoreCleanupResult {
-  archivedCount: number;
-  trimmedProgress: boolean;
+  done: number;
 }
 
 export interface BacklogDrainResult {
   drained: boolean;
+  createdTasks: number;
   skippedDuplicates: number;
   ignoredInvalidLines: number;
 }
 
+export interface BacklogSyncResult {
+  inbox: BacklogDrainResult;
+  followups: BacklogDrainResult;
+  counts: BacklogQueueCounts;
+}
+
+export interface BacklogTaskLease {
+  taskId: string;
+  runnerId: string;
+  claimToken: string;
+  claimedAt: string;
+  heartbeatAt: string;
+  expiresAt: string;
+}
+
+export interface BacklogTaskClaim {
+  task: BacklogTaskSpec;
+  lease: BacklogTaskLease;
+}
+
+export interface TaskReservationSnapshot {
+  taskId: string;
+  title: string;
+  touchPaths: string[];
+  capabilities: string[];
+  runnerId: string;
+  expiresAt: string;
+}
+
+export interface TaskDependencySnapshot {
+  taskId: string;
+  title: string;
+  state: BacklogTaskState;
+}
+
+export interface TaskBlockage {
+  taskId: string;
+  reason: string;
+}
+
 export interface BacklogStore {
   ensureProgressFile(): Promise<void>;
+  ensureTaskSpecsReady(): Promise<void>;
+  close(): Promise<void>;
   countReady(): Promise<number>;
   countInProgress(): Promise<number>;
   countFailed(): Promise<number>;
   countDone(): Promise<number>;
   getQueueCounts(): Promise<BacklogQueueCounts>;
-  claimNextItem(): Promise<BacklogItemClaim | null>;
-  updateItemStatus(claim: BacklogItemClaim, marker: BacklogMarker): Promise<void>;
-  resetStaleInProgressItems(): Promise<number>;
+  claimNextRunnableTask(runnerId: string): Promise<BacklogTaskClaim | null>;
+  heartbeatClaim(claim: BacklogTaskClaim): Promise<void>;
+  releaseClaim(claim: BacklogTaskClaim): Promise<void>;
+  completeClaim(claim: BacklogTaskClaim, note: string): Promise<void>;
+  failClaim(claim: BacklogTaskClaim, note: string): Promise<void>;
+  failTaskById(taskId: string, note: string): Promise<void>;
+  rewriteBacklogReport(): Promise<void>;
   drainInbox(): Promise<BacklogDrainResult>;
   drainFollowups(filePath?: string): Promise<BacklogDrainResult>;
-  getCompletedCount(): Promise<number>;
-  incrementCompletedCount(): Promise<number>;
-  cleanupIfNeeded(): Promise<StoreCleanupResult>;
+  getTaskDependencies(taskId: string): Promise<TaskDependencySnapshot[]>;
+  getActiveReservations(excludeTaskId?: string): Promise<TaskReservationSnapshot[]>;
+  getTaskBlockage(taskId: string): Promise<TaskBlockage | null>;
+  getTaskSpec(taskId: string): Promise<BacklogTaskSpec | null>;
   appendProgress(section: string): Promise<void>;
   appendPatterns(section: string): Promise<void>;
 }

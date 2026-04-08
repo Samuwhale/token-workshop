@@ -2,6 +2,8 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { BacklogRunnerConfig } from './types.js';
 
+const localLockCounts = new Map<string, number>();
+
 async function pidFromLock(lockDir: string): Promise<number | null> {
   try {
     const value = await readFile(`${lockDir}/pid`, 'utf8');
@@ -23,7 +25,7 @@ function isPidAlive(pid: number | null): boolean {
 }
 
 export class LockHandle {
-  constructor(readonly lockDir: string, readonly pid: number) {}
+  constructor(readonly lockDir: string, readonly pid: number, readonly reentrant = false) {}
 }
 
 export async function acquireLock(lockDir: string, timeoutSeconds = 30): Promise<LockHandle> {
@@ -31,15 +33,23 @@ export async function acquireLock(lockDir: string, timeoutSeconds = 30): Promise
   const ownPid = process.pid;
   await mkdir(path.dirname(lockDir), { recursive: true });
 
+  const localCount = localLockCounts.get(lockDir) ?? 0;
+  if (localCount > 0) {
+    localLockCounts.set(lockDir, localCount + 1);
+    return new LockHandle(lockDir, ownPid, true);
+  }
+
   while (true) {
     try {
       await mkdir(lockDir);
       await writeFile(`${lockDir}/pid`, `${ownPid}\n`, 'utf8');
+      localLockCounts.set(lockDir, 1);
       return new LockHandle(lockDir, ownPid);
     } catch {
       const existingPid = await pidFromLock(lockDir);
       if (existingPid === ownPid) {
-        return new LockHandle(lockDir, ownPid);
+        localLockCounts.set(lockDir, localCount + 1 || 1);
+        return new LockHandle(lockDir, ownPid, true);
       }
 
       if (!isPidAlive(existingPid)) {
@@ -57,6 +67,12 @@ export async function acquireLock(lockDir: string, timeoutSeconds = 30): Promise
 }
 
 export async function releaseLock(lock: LockHandle): Promise<void> {
+  const count = localLockCounts.get(lock.lockDir) ?? 0;
+  if (count > 1) {
+    localLockCounts.set(lock.lockDir, count - 1);
+    return;
+  }
+  localLockCounts.delete(lock.lockDir);
   await rm(lock.lockDir, { recursive: true, force: true });
 }
 

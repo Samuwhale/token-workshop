@@ -1,0 +1,18 @@
+id: make-manual-snapshot-restore-in-packages-figma-p-1129f25e
+title: Make manual snapshot restore in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, `packages/server/src/routes/snapshots.ts`, and `packages/server/src/services/manual-snapshot.ts` a true workspace restore, because the current flow can leave sets created after the snapshot behind even though the UI frames restore as returning to a saved checkpoint.
+priority: high
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/HistoryPanel.tsx
+  - packages/server/src/routes/snapshots.ts
+  - packages/server/src/services/manual-snapshot.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Make manual snapshot restore in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, `packages/server/src/routes/snapshots.ts`, and `packages/server/src/services/manual-snapshot.ts` a true workspace restore, because the current flow can leave sets created after the snapshot behind even though the UI frames restore as returning to a saved checkpoint.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.289Z
+updated_at: 2026-04-08T20:14:30.289Z

@@ -1,0 +1,16 @@
+id: split-the-history-workspace-into-task-based-reco-02da0669
+title: Split the History workspace into task-based recovery surfaces like `Undo recent edits`, `Restore snapshot`, and `Return to git commit` instead of one mixed timeline in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because designers currently have to learn four different recovery systems from a legend before they know which action is safe.
+priority: normal
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/HistoryPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Split the History workspace into task-based recovery surfaces like `Undo recent edits`, `Restore snapshot`, and `Return to git commit` instead of one mixed timeline in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because designers currently have to learn four different recovery systems from a legend before they know which action is safe.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

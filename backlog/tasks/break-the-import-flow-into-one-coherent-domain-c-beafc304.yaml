@@ -1,0 +1,16 @@
+id: break-the-import-flow-into-one-coherent-domain-c-beafc304
+title: Break the import flow into one coherent domain controller instead of the current late-bound ref cycle across `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx`, `useImportSource.ts`, `useImportConflicts.ts`, `useImportApply.ts`, and `useTokensImport.ts`, where single-set and multi-set imports still duplicate flattening, conflict detection, cache resets, and success/undo plumbing.
+priority: normal
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ImportPanelContext.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Break the import flow into one coherent domain controller instead of the current late-bound ref cycle across `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx`, `useImportSource.ts`, `useImportConflicts.ts`, `useImportApply.ts`, and `useTokensImport.ts`, where single-set and multi-set imports still duplicate flattening, conflict detection, cache resets, and success/undo plumbing.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

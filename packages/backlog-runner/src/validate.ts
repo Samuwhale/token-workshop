@@ -2,6 +2,7 @@ import { access, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
+import { inspectBacklogState } from './context.js';
 import { createCommandRunner } from './process.js';
 import { validateProvider } from './providers/index.js';
 import type { BacklogRunnerConfig, RunOverrides, ToolValidationResult } from './types.js';
@@ -153,6 +154,33 @@ async function validateGitReadiness(
   }
 }
 
+async function validateBacklogState(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
+  const messages: string[] = [];
+  const state = await inspectBacklogState(config);
+
+  if (state.taskSpecCount === 0 && state.hasLegacyTasks) {
+    messages.push('  ✗ backlog is still in legacy markdown mode; run `pnpm backlog:sync` to migrate task specs before autonomous runs');
+    return { ok: false, messages };
+  }
+
+  if (state.taskSpecCount > 0 && !state.generatedReport) {
+    messages.push('  ✗ backlog.md is not the generated task report; run `pnpm backlog:sync` to rebuild it from task specs');
+    return { ok: false, messages };
+  }
+
+  if (state.taskSpecCount === 0) {
+    messages.push('  ⚠ no task specs found yet; the queue is empty until you sync or add task YAML files');
+  } else {
+    messages.push(`  ✓ task spec store is populated (${state.taskSpecCount} task spec${state.taskSpecCount === 1 ? '' : 's'})`);
+  }
+
+  if (state.generatedReport) {
+    messages.push('  ✓ backlog.md is the generated report');
+  }
+
+  return { ok: true, messages };
+}
+
 export async function validateBacklogRunner(
   config: BacklogRunnerConfig,
   overrides: RunOverrides = {},
@@ -171,6 +199,7 @@ export async function validateBacklogRunner(
 
   const requiredFiles = [
     ['backlog.md', config.files.backlog],
+    ['task specs dir', config.files.taskSpecsDir],
     ['patterns.md', config.files.patterns],
     ['agent prompt', config.prompts.agent],
     ['product pass prompt', config.prompts.product],
@@ -191,6 +220,12 @@ export async function validateBacklogRunner(
   if (config.files.models) {
     messages.push((await fileExists(config.files.models)) ? '  ✓ models.json found' : '  ⚠ models.json not found');
   }
+
+  const backlogState = await validateBacklogState(config);
+  if (!backlogState.ok) {
+    ok = false;
+  }
+  messages.push(...backlogState.messages);
 
   const gitReadiness = await validateGitReadiness(config, runOptions.worktrees);
   if (!gitReadiness.ok) {

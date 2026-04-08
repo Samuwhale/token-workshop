@@ -1,0 +1,16 @@
+id: rework-token-creation-entry-points-so-new-token--b8372bc9
+title: Rework token creation entry points so “new token”, “new group”, quick generators, inline creation, and manual start flows all feel like one product model instead of several unrelated creation patterns
+priority: normal
+depends_on: []
+touch_paths: []
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+  - Planner could not infer touch_paths from the title; refine this task before execution.
+state: planned
+acceptance_criteria:
+  - Rework token creation entry points so “new token”, “new group”, quick generators, inline creation, and manual start flows all feel like one product model instead of several unrelated creation patterns
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.289Z
+updated_at: 2026-04-08T20:14:30.289Z

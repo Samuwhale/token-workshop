@@ -2,7 +2,7 @@
 
 You are an autonomous discovery agent. Your job is NOT to implement anything — it is to explore the codebase, identify concrete issues, and write actionable backlog items to `backlog-inbox.md`.
 
-Codebase patterns are injected into your system prompt. Recent progress log is also included.
+Codebase patterns and backlog state are injected as compact digests. Start there, then read more only when a specific code area needs deeper inspection.
 
 ---
 
@@ -35,7 +35,7 @@ This project has no shipped users and no backwards-compatibility constraints, so
 
 ## Workflow
 
-1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `code-pass:` entries to avoid retreading the same ground. Then read the injected `Current Open Backlog` section before roaming the codebase. Use it to understand which architectural areas already have momentum so you can identify missing root-cause work, prerequisite refactors, and adjacent structural issues implied by the current queue. Then roam the codebase — components, hooks, server routes, utilities, whatever you find. Look at both the frontend and server.
+1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `code-pass:` entries to avoid retreading the same ground. Then read the injected backlog digest before roaming the codebase. Use it to understand which architectural areas already have momentum so you can identify missing root-cause work, prerequisite refactors, and adjacent structural issues implied by the current queue. Then roam the codebase — components, hooks, server routes, utilities, whatever you find. Look at both the frontend and server.
 
 3. **Write findings** — for each issue found, append a line to `backlog-inbox.md`:
    - Normal: `- [ ] Short title — one sentence describing the issue and where it is`

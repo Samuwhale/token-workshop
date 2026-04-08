@@ -1,0 +1,16 @@
+id: redesign-the-set-role-assignment-ui-so-source-ov-c98857c8
+title: Redesign the set-role assignment UI so source, override, and excluded states are obvious at a glance and can be edited without scanning dense toggle rows and helper text
+priority: normal
+depends_on: []
+touch_paths: []
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+  - Planner could not infer touch_paths from the title; refine this task before execution.
+state: planned
+acceptance_criteria:
+  - Redesign the set-role assignment UI so source, override, and excluded states are obvious at a glance and can be edited without scanning dense toggle rows and helper text
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.289Z
+updated_at: 2026-04-08T20:14:30.289Z

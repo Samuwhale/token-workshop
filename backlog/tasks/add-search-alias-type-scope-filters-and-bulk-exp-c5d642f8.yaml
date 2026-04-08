@@ -1,0 +1,16 @@
+id: add-search-alias-type-scope-filters-and-bulk-exp-c5d642f8
+title: Add search, alias/type/scope filters, and bulk expand or collapse controls to `packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` so large Figma variable libraries are navigable without opening one collection and one variable row at a time.
+priority: normal
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Add search, alias/type/scope filters, and bulk expand or collapse controls to `packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` so large Figma variable libraries are navigable without opening one collection and one variable row at a time.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

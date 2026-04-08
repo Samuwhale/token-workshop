@@ -42,8 +42,6 @@ async function makeRepo() {
         stop: './backlog-stop',
         patterns: './scripts/backlog/patterns.md',
         progress: './scripts/backlog/progress.txt',
-        archive: './scripts/backlog/archive.md',
-        counter: './scripts/backlog/.completed-count',
         runnerLogDir: './scripts/backlog',
         runtimeDir: './.backlog-runner',
       },

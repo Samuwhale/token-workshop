@@ -1,0 +1,16 @@
+id: redesign-export-as-a-dedicated-handoff-surface-w-070246a8
+title: Redesign Export as a dedicated handoff surface with a narrower control set, clearer preset behavior, and more obvious output expectations, rather than an advanced sub-view bolted onto the sync workspace
+priority: normal
+depends_on: []
+touch_paths: []
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+  - Planner could not infer touch_paths from the title; refine this task before execution.
+state: planned
+acceptance_criteria:
+  - Redesign Export as a dedicated handoff surface with a narrower control set, clearer preset behavior, and more obvious output expectations, rather than an advanced sub-view bolted onto the sync workspace
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

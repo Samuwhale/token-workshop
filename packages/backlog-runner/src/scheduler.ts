@@ -1,17 +1,19 @@
 import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
+import { buildDiscoveryContext, buildExecutionContext } from './context.js';
 import { createDefaultLogSink, RunnerLogger } from './logger.js';
-import { acquireLock, lockPath, releaseLock } from './locks.js';
+import { withLock, lockPath } from './locks.js';
 import { createCommandRunner, sleep as defaultSleep } from './process.js';
 import { runProvider } from './providers/index.js';
 import { JSON_SCHEMA, isAuthFailure, isRateLimited } from './providers/common.js';
-import { createMarkdownBacklogStore } from './store/markdown-store.js';
+import { createFileBackedTaskStore } from './store/task-store.js';
+import { isPathWithinTouchPaths } from './task-specs.js';
 import type {
   BacklogDrainResult,
   BacklogPassType,
   BacklogRunnerConfig,
-  BacklogStore,
+  BacklogSyncResult,
   CommandRunner,
   ResolvedRunOptions,
   RunnerDependencies,
@@ -43,10 +45,6 @@ function summarizeCommandOutput(stdout: string, stderr: string): string {
   return lines.slice(-8).join(' | ') || 'no output';
 }
 
-function normalizePathForGit(value: string): string {
-  return value.split(path.sep).join('/');
-}
-
 function sessionScopedPath(config: BacklogRunnerConfig, cwd: string, filePath: string): string {
   return path.join(cwd, path.relative(config.projectRoot, filePath));
 }
@@ -55,6 +53,9 @@ function logDrainResult(logger: RunnerLogger, label: string, result: BacklogDrai
   if (!result.drained) return;
 
   const details = [];
+  if (result.createdTasks > 0) {
+    details.push(`${result.createdTasks} task${result.createdTasks === 1 ? '' : 's'} created`);
+  }
   if (result.skippedDuplicates > 0) {
     details.push(`${result.skippedDuplicates} duplicate${result.skippedDuplicates === 1 ? '' : 's'} skipped`);
   }
@@ -88,87 +89,38 @@ async function changedFiles(commandRunner: CommandRunner, cwd: string): Promise<
   return [...files];
 }
 
-async function validatePassWorkspace(
+function scopeViolations(changed: string[], allowed: string[]): string[] {
+  return changed.filter(file => !isPathWithinTouchPaths(file, allowed));
+}
+
+function normalizePathForGit(value: string): string {
+  return value.split(path.sep).join('/');
+}
+
+async function validateWorkspaceScope(
   commandRunner: CommandRunner,
-  config: BacklogRunnerConfig,
   cwd: string,
+  allowedPaths: string[],
+  label: string,
 ): Promise<{ ok: boolean; reason?: string }> {
-  const allowed = new Set([
-    normalizePathForGit(path.relative(cwd, config.files.inbox)),
-    normalizePathForGit(path.relative(cwd, config.files.progress)),
-    normalizePathForGit(path.relative(cwd, config.files.patterns)),
-  ]);
   const modified = await changedFiles(commandRunner, cwd);
-  const unexpected = modified.filter(file => !allowed.has(file));
+  const unexpected = scopeViolations(modified, allowedPaths);
   if (unexpected.length > 0) {
     return {
       ok: false,
-      reason: `discovery pass touched non-backlog files: ${unexpected.slice(0, 5).join(', ')}`,
+      reason: `${label}: touched ${unexpected.slice(0, 8).join(', ')}`,
     };
   }
   return { ok: true };
 }
 
-async function readRecentSections(progressFile: string, maxSections: number): Promise<string> {
-  try {
-    const content = await readFile(progressFile, 'utf8');
-    const sections = content.split(/^## /gm).filter((section: string) => Boolean(section));
-    const recent = sections.slice(-maxSections).map((section: string) => `## ${section.trimEnd()}`);
-    return recent.join('\n');
-  } catch {
-    return '';
-  }
-}
-
-function extractOpenBacklogItems(content: string): string[] {
-  return content
-    .split('\n')
-    .map((line) => line.trimEnd())
-    .filter((line) => /^- \[[ ~!]\]/.test(line));
-}
-
-async function readBacklogSnapshot(backlogFile: string): Promise<string> {
-  try {
-    const content = await readFile(backlogFile, 'utf8');
-    const items = extractOpenBacklogItems(content);
-    if (items.length === 0) {
-      return 'No open backlog items.';
-    }
-    return items.join('\n');
-  } catch {
-    return 'Backlog unavailable.';
-  }
-}
-
-async function buildContext(
-  config: BacklogRunnerConfig,
-  cwd: string,
-  item: string | null,
-  recentSectionCount: number,
-): Promise<string> {
-  const patterns = await readFile(config.files.patterns, 'utf8');
-  const recent = await readRecentSections(config.files.progress, recentSectionCount);
-  const backlog = item ? '' : await readBacklogSnapshot(config.files.backlog);
-  const validation = `\n\n## Validation Command\n\nRun this command before reporting success:\n\n${config.validationCommand}\n`;
-  const followups = item
-    ? `\n\n## Follow-up Queue\n\nIf this work reveals another backlog item or context that a later run should keep, append one JSON object per line to:\n\n${normalizePathForGit(path.relative(cwd, config.files.followups))}\n\nSchema:\n{"title":"Standalone backlog item title","context":"Optional concise context for the future run","priority":"normal|high"}\n\nDo NOT modify backlog.md directly for follow-up work.\n`
-    : '';
-  const assigned = item
-    ? `\n\n## Assigned Item\n\nWork on this specific item (already marked [~] in backlog.md):\n\n${item}\n\nDo NOT pick a different item. Do NOT modify backlog.md.\n`
-    : '';
-  const backlogContext = item
-    ? ''
-    : `\n\n## Current Open Backlog\n\nUse these existing items as ideation input. Look for clusters, repeated themes, missing prerequisites, missing follow-through work, adjacent consolidation opportunities, and larger workflow gaps implied by what is already queued. Do not restate the same task with slightly different wording.\n\n${backlog}`;
-  return `${patterns}\n\n## Recent session log:\n${recent}${backlogContext}${validation}${followups}${assigned}`;
-}
-
 async function runValidationCommand(
-  commandRunner: ReturnType<typeof createCommandRunner>,
-  config: BacklogRunnerConfig,
+  commandRunner: CommandRunner,
+  command: string,
   cwd: string,
 ): Promise<ValidationCommandResult> {
   const startedAt = Date.now();
-  const result = await commandRunner.runShell(config.validationCommand, {
+  const result = await commandRunner.runShell(command, {
     cwd,
     ignoreFailure: true,
   });
@@ -196,22 +148,25 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function registerRunner(config: BacklogRunnerConfig): Promise<string> {
+async function registerRunner(config: BacklogRunnerConfig): Promise<{ runnerId: string; registryFile: string }> {
+  const runnerId = `${process.pid}-${Date.now()}`;
   const runnersDir = path.join(config.files.runtimeDir, 'runners');
   await mkdir(runnersDir, { recursive: true });
-  const filePath = path.join(runnersDir, `${process.pid}.json`);
-  await writeFile(filePath, JSON.stringify({ pid: process.pid, startedAt: Date.now() }), 'utf8');
-  return filePath;
+  const filePath = path.join(runnersDir, `${runnerId}.json`);
+  await writeFile(filePath, JSON.stringify({ runnerId, pid: process.pid, startedAt: Date.now() }), 'utf8');
+  return { runnerId, registryFile: filePath };
 }
 
-async function countOtherRunners(config: BacklogRunnerConfig): Promise<number> {
+async function countOtherRunners(config: BacklogRunnerConfig, ownRunnerId: string): Promise<number> {
   const runnersDir = path.join(config.files.runtimeDir, 'runners');
   try {
     const entries = await readdir(runnersDir);
     let count = 0;
     for (const entry of entries) {
-      const pid = Number.parseInt(entry.replace(/\.json$/, ''), 10);
-      if (!Number.isFinite(pid) || pid === process.pid) continue;
+      const runnerId = entry.replace(/\.json$/, '');
+      if (runnerId === ownRunnerId) continue;
+      const pid = Number.parseInt(runnerId.split('-')[0] ?? '', 10);
+      if (!Number.isFinite(pid)) continue;
       try {
         process.kill(pid, 0);
         count += 1;
@@ -225,36 +180,38 @@ async function countOtherRunners(config: BacklogRunnerConfig): Promise<number> {
   }
 }
 
+function passNamesToRun(iteration: number, frequency: number, config: BacklogRunnerConfig): BacklogPassType[] {
+  const names: BacklogPassType[] = [];
+  if (iteration % frequency === config.passes.product.offset) names.push('product');
+  if (iteration % frequency === config.passes.ux.offset) names.push('ux');
+  if (iteration % frequency === config.passes.code.offset) names.push('code');
+  if (iteration % frequency === 0 && !names.includes('code')) {
+    names.push('code');
+  }
+  return names;
+}
+
 async function runPass(
   config: BacklogRunnerConfig,
-  store: BacklogStore,
+  store: ReturnType<typeof createFileBackedTaskStore>,
   workspaceStrategy: WorkspaceStrategy,
   logger: RunnerLogger,
   options: ResolvedRunOptions,
   passType: BacklogPassType,
 ): Promise<void> {
-  const promptFile = config.passes[passType].promptFile;
   logger.line('');
   logger.line('================================================================');
   logger.line(`  ★ Maintenance Pass: ${passType}`);
   logger.line('================================================================');
 
-  let passLock = null;
-  try {
-    passLock = await acquireLock(lockPath(config, 'pass'), 1);
-  } catch {
-    logger.line(`  · ${passType} pass skipped — another runner is already doing discovery`);
-    return;
-  }
-
   const session = await workspaceStrategy.setup();
   try {
-    const context = await buildContext(config, session.cwd, null, 5);
+    const context = await buildDiscoveryContext(config);
     const result = await runProvider(createCommandRunner(), {
       tool: options.tool,
       model: options.passModel,
       context,
-      prompt: await readPrompt(promptFile),
+      prompt: await readPrompt(config.passes[passType].promptFile),
       cwd: session.cwd,
       maxTurns: 100,
       schema: JSON_SCHEMA,
@@ -263,26 +220,43 @@ async function runPass(
     logger.line(`  ✓ ${passType} pass: ${result.item}`);
     if (result.note) logger.line(`    ${result.note}`);
 
-    const workspaceCheck = await validatePassWorkspace(createCommandRunner(), config, session.cwd);
+    const workspaceCheck = await validateWorkspaceScope(
+      createCommandRunner(),
+      session.cwd,
+      [
+        normalizePathForGit(path.relative(session.cwd, config.files.inbox)),
+        normalizePathForGit(path.relative(session.cwd, config.files.progress)),
+        normalizePathForGit(path.relative(session.cwd, config.files.patterns)),
+      ],
+      'discovery pass touched non-planner files',
+    );
     if (!workspaceCheck.ok) {
       logger.line(`  WARNING: ${workspaceCheck.reason}`);
       return;
     }
 
     const commitMessage = `chore(backlog): ${passType} pass – ${result.item || 'maintenance'}`;
-    const mergeResult = await session.merge(commitMessage);
-    if (!mergeResult.ok) {
-      logger.line(`  WARNING: ${mergeResult.reason ?? 'pass merge failed'}`);
-      return;
-    }
-    if (!options.worktrees) {
-      const finalizeResult = await workspaceStrategy.commitAndPush(commitMessage);
-      if (!finalizeResult.ok) {
-        logger.line(`  WARNING: ${finalizeResult.reason ?? 'pass finalize failed'}`);
+    await withLock(lockPath(config, 'git'), 30, async () => {
+      const mergeResult = await session.merge(commitMessage);
+      if (!mergeResult.ok) {
+        logger.line(`  WARNING: ${mergeResult.reason ?? 'pass merge failed'}`);
         return;
       }
-    }
-    await store.drainInbox();
+
+      logDrainResult(logger, 'Inbox planner', await store.drainInbox());
+      if (!options.worktrees) {
+        const finalizeResult = await workspaceStrategy.commitAndPush(commitMessage);
+        if (!finalizeResult.ok) {
+          logger.line(`  WARNING: ${finalizeResult.reason ?? 'pass finalize failed'}`);
+          return;
+        }
+      } else {
+        const queueCommit = await workspaceStrategy.commitAndPush(`chore(backlog): planner sync – ${passType} pass`);
+        if (!queueCommit.ok) {
+          logger.line(`  WARNING: ${queueCommit.reason ?? 'planner sync commit failed'}`);
+        }
+      }
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (isRateLimited(message)) {
@@ -292,21 +266,22 @@ async function runPass(
     logger.line(`  · ${passType} pass skipped — ${message}`);
   } finally {
     await session.teardown();
-    if (passLock) {
-      await releaseLock(passLock);
-    }
   }
 }
 
-function passNamesToRun(doneCount: number, frequency: number, config: BacklogRunnerConfig): BacklogPassType[] {
-  const names: BacklogPassType[] = [];
-  if (doneCount % frequency === config.passes.product.offset) names.push('product');
-  if (doneCount % frequency === config.passes.ux.offset) names.push('ux');
-  if (doneCount % frequency === config.passes.code.offset) names.push('code');
-  if (doneCount % frequency === 0) {
-    if (!names.includes('code')) names.push('code');
+export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<BacklogSyncResult> {
+  await ensureConfigReady(config);
+  const store = createFileBackedTaskStore(config);
+  try {
+    await store.ensureProgressFile();
+    await store.ensureTaskSpecsReady();
+    const inbox = await store.drainInbox();
+    const followups = await store.drainFollowups();
+    const counts = await store.getQueueCounts();
+    return { inbox, followups, counts };
+  } finally {
+    await store.close();
   }
-  return names;
 }
 
 export async function runBacklogRunner(
@@ -319,106 +294,122 @@ export async function runBacklogRunner(
   const logSink = await (dependencies.createLogSink?.(config) ?? createDefaultLogSink(config));
   const logger = new RunnerLogger(logSink);
   const commandRunner = dependencies.commandRunner ?? createCommandRunner();
-  const store = createMarkdownBacklogStore(config);
+  const store = createFileBackedTaskStore(config);
   const options = await resolveRunOptions(config, overrides);
   const workspaceStrategy: WorkspaceStrategy = options.worktrees
     ? new GitWorktreeWorkspaceStrategy(commandRunner, config)
     : new InPlaceWorkspaceStrategy(commandRunner, config);
-  const registryFile = await registerRunner(config);
+  const { runnerId, registryFile } = await registerRunner(config);
 
   let stopRequested = false;
   const onSignal = () => {
     stopRequested = true;
     logger.line('');
-    logger.line('  → Stop requested — will exit after current item completes.');
+    logger.line('  → Stop requested — will exit after current task completes.');
   };
   process.once('SIGINT', onSignal);
   process.once('SIGTERM', onSignal);
 
   try {
     await store.ensureProgressFile();
-    const otherRunners = await countOtherRunners(config);
-    if (otherRunners === 0) {
-      const staleCount = await store.resetStaleInProgressItems();
-      if (staleCount > 0) {
-        logger.line(`WARNING: ${staleCount} stale [~] item(s) from a crashed session — resetting to [ ]`);
-      }
-    }
-
-    logDrainResult(logger, 'Inbox', await store.drainInbox());
-    logDrainResult(logger, 'Follow-ups', await store.drainFollowups());
+    await store.ensureTaskSpecsReady();
+    logDrainResult(logger, 'Inbox planner', await store.drainInbox());
+    logDrainResult(logger, 'Follow-up planner', await store.drainFollowups());
 
     logger.line('');
     logger.line('╔═══════════════════════════════════════════════════════════════╗');
     logger.line('║  TypeScript Backlog Runner                                  ║');
     logger.line('╚═══════════════════════════════════════════════════════════════╝');
-    logger.line(`  PID:    ${process.pid}`);
+    logger.line(`  Runner: ${runnerId}`);
     logger.line(`  Tool:   ${options.tool}`);
     logger.line(`  Model:  ${options.model}`);
     if (options.passModel !== options.model) {
       logger.line(`  Pass model: ${options.passModel}`);
     }
     logger.line(`  Mode:   ${options.worktrees ? 'parallel (worktrees)' : 'single (no worktrees)'}`);
-    logger.line(`  Passes: ${options.passes ? `enabled (every ${options.passFrequency} items)` : 'disabled'}`);
+    logger.line(`  Passes: ${options.passes ? `enabled (every ${options.passFrequency} loops)` : 'disabled'}`);
     const queue = await store.getQueueCounts();
-    logger.line(`  Queue:    ${queue.ready} ready · ${queue.inProgress} in-progress · ${queue.failed} failed`);
-    logger.line(`  Done:     ${await store.getCompletedCount()} total`);
-    logger.line(`  Stop:     Ctrl+C  (or: touch ${config.files.stop})`);
+    logger.line(
+      `  Queue:  ${queue.ready} ready · ${queue.blocked} blocked · ${queue.planned} planned · ${queue.inProgress} in-progress · ${queue.failed} failed · ${queue.done} done`,
+    );
+    logger.line(`  Other runners: ${await countOtherRunners(config, runnerId)}`);
+    logger.line(`  Stop:  Ctrl+C  (or: touch ${config.files.stop})`);
 
     let iteration = 0;
     let previousDurationSeconds = 0;
 
     while (true) {
       iteration += 1;
+      logDrainResult(logger, 'Inbox planner', await store.drainInbox());
+      logDrainResult(logger, 'Follow-up planner', await store.drainFollowups());
+
       const counts = await store.getQueueCounts();
       logger.line('');
       logger.line('═══════════════════════════════════════════════════════════════');
       logger.line(
-        `  #${iteration}  ·  ${counts.ready} queued · ${counts.inProgress} in-progress` +
+        `  #${iteration} · ${counts.ready} ready · ${counts.blocked} blocked · ${counts.planned} planned · ${counts.inProgress} in-progress` +
           (previousDurationSeconds ? ` · last took ${formatDuration(previousDurationSeconds)}` : ''),
       );
       logger.line('═══════════════════════════════════════════════════════════════');
 
       if (counts.ready === 0) {
-        logger.line('');
-        logger.line('  Backlog empty — checking inbox for new items…');
-        logDrainResult(logger, 'Inbox', await store.drainInbox());
-        logDrainResult(logger, 'Follow-ups', await store.drainFollowups());
-        if ((await store.countReady()) === 0) {
-          if (!options.passes) {
-            logger.line('  Backlog empty and passes are disabled — stopping.');
-            break;
-          }
-          logger.line('  No items found — running discovery passes to replenish backlog…');
-          await runPass(config, store, workspaceStrategy, logger, options, 'product');
-          await runPass(config, store, workspaceStrategy, logger, options, 'code');
-          await runPass(config, store, workspaceStrategy, logger, options, 'ux');
-        }
-
-        if ((await store.countReady()) === 0) {
-          logger.line('  Still no items. Polling inbox every 30s… (Ctrl+C to stop)');
-          await sleep(30_000);
+        if (counts.inProgress > 0) {
+          logger.line('  No runnable task available locally — waiting 15s for other runner activity…');
+          await sleep(15_000);
           continue;
         }
+
+        if (counts.blocked > 0 || counts.planned > 0) {
+          logger.line('  No runnable tasks remain. Remaining tasks are blocked or still need planner refinement.');
+          break;
+        }
+
+        if (!options.passes) {
+          logger.line('  Task queue empty and discovery passes are disabled — stopping.');
+          break;
+        }
+
+        logger.line('  No tasks found — running discovery passes to replenish backlog…');
+        for (const passType of ['product', 'code', 'ux'] as const) {
+          await runPass(config, store, workspaceStrategy, logger, options, passType);
+        }
+
+        const refreshed = await store.getQueueCounts();
+        if (refreshed.ready === 0 && refreshed.blocked === 0 && refreshed.planned === 0) {
+          logger.line('  Still no tasks available. Polling inbox every 30s…');
+          await sleep(30_000);
+        }
+        continue;
       }
 
-      const claim = await store.claimNextItem();
+      const claim = await store.claimNextRunnableTask(runnerId);
       if (!claim) {
-        logger.line(`  All ${(await store.countInProgress())} item(s) claimed by other runners — waiting 15s…`);
+        logger.line(`  Ready tasks were claimed elsewhere — waiting 15s…`);
         await sleep(15_000);
         continue;
       }
 
-      logger.line(`  → ${claim.item}`);
+      logger.line(`  → ${claim.task.title} (${claim.task.id})`);
       const session = await workspaceStrategy.setup();
       if (options.worktrees) {
         logger.line(`  Worktree: ${session.cwd}`);
       }
 
+      const heartbeat = setInterval(() => {
+        void store.heartbeatClaim(claim).catch(() => undefined);
+      }, 30_000);
+      heartbeat.unref?.();
+
       const startedAt = Date.now();
       try {
         logger.line(`  Running agent… (started ${new Date().toTimeString().slice(0, 8)})`);
-        const context = await buildContext(config, session.cwd, claim.item, 3);
+        const context = await buildExecutionContext(
+          config,
+          session.cwd,
+          claim,
+          await store.getTaskDependencies(claim.task.id),
+          await store.getActiveReservations(claim.task.id),
+        );
         const result = await runProvider(commandRunner, {
           tool: options.tool,
           model: options.model,
@@ -441,112 +432,144 @@ export async function runBacklogRunner(
           logger.line(`    ${meta.join(' · ')}`);
         }
 
-        if (result.status === 'done') {
-          logger.line('');
-          logger.line(`  Running runner-owned validation: ${config.validationCommand}`);
-          const validation = await runValidationCommand(commandRunner, config, session.cwd);
-          if (!validation.ok) {
-            await store.updateItemStatus(claim, '!');
-            logger.line(
-              `  ✗ validation failed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
-            );
-            logger.line(`    ${validation.summary}`);
-            if (!options.worktrees) {
-              logger.line('    Workspace left dirty for inspection because worktrees are disabled');
-            }
-            if (stopRequested || (await fileExists(config.files.stop))) {
-              break;
-            }
-            continue;
-          }
-          logger.line(
-            `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
-          );
+        if (result.status !== 'done') {
+          await store.failClaim(claim, result.note || 'agent reported failure');
+          continue;
+        }
 
-          const message = `chore(backlog): done – ${result.item || claim.item}`;
-          let itemCompleted = false;
-          if (options.worktrees) {
+        const initialScopeCheck = await validateWorkspaceScope(
+          commandRunner,
+          session.cwd,
+          claim.task.touchPaths,
+          'write scope violation',
+        );
+        if (!initialScopeCheck.ok) {
+          await store.failClaim(
+            claim,
+            initialScopeCheck.reason ?? 'write scope violation',
+          );
+          logger.line(`  ✗ write scope violation — marked failed`);
+          continue;
+        }
+
+        const validationCommand = config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand;
+        logger.line('');
+        logger.line(`  Running validation profile "${claim.task.validationProfile}": ${validationCommand}`);
+        const validation = await runValidationCommand(commandRunner, validationCommand, session.cwd);
+        if (!validation.ok) {
+          await store.failClaim(claim, `validation failed: ${validation.summary}`);
+          logger.line(
+            `  ✗ validation failed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
+          );
+          logger.line(`    ${validation.summary}`);
+          if (!options.worktrees) {
+            logger.line('    Workspace left dirty for inspection because worktrees are disabled');
+          }
+          continue;
+        }
+        logger.line(
+          `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
+        );
+
+        const postValidationScopeCheck = await validateWorkspaceScope(
+          commandRunner,
+          session.cwd,
+          claim.task.touchPaths,
+          'post-validation scope violation',
+        );
+        if (!postValidationScopeCheck.ok) {
+          await store.failClaim(
+            claim,
+            postValidationScopeCheck.reason ?? 'post-validation scope violation',
+          );
+          logger.line('  ✗ validation introduced out-of-scope changes — marked failed');
+          continue;
+        }
+
+        const message = `chore(backlog): done – ${result.item || claim.task.title}`;
+        if (options.worktrees) {
+          await withLock(lockPath(config, 'git'), 30, async () => {
             logger.line('');
-            logger.line(`  Merging to main: ${result.item || claim.item}`);
+            logger.line(`  Merging to main: ${claim.task.title}`);
             const mergeResult = await session.merge(message);
-            if (mergeResult.ok) {
-              await store.updateItemStatus(claim, 'x');
-              logDrainResult(
-                logger,
-                'Follow-ups',
-                await store.drainFollowups(sessionScopedPath(config, session.cwd, config.files.followups)),
-              );
-              itemCompleted = true;
-              logger.line('  ✓ Merged and marked done');
-            } else {
-              await store.updateItemStatus(claim, '!');
+            if (!mergeResult.ok) {
+              await store.failClaim(claim, mergeResult.reason ?? 'merge failed');
               logger.line(`  ✗ ${mergeResult.reason ?? 'merge failed'} — marked failed`);
+              return;
             }
-          } else {
-            await store.updateItemStatus(claim, 'x');
+
+            logger.line('  ✓ Merged code changes to main');
             logDrainResult(
               logger,
-              'Follow-ups',
+              'Follow-up planner',
               await store.drainFollowups(sessionScopedPath(config, session.cwd, config.files.followups)),
             );
-            logger.line('');
-            logger.line(`  Committing: ${result.item || claim.item}`);
-            const finalizeResult = await workspaceStrategy.commitAndPush(message);
-            if (finalizeResult.ok) {
-              itemCompleted = true;
-              logger.line('  ✓ Committed and marked done');
-            } else {
-              await store.updateItemStatus(claim, '!');
-              logger.line(`  ✗ ${finalizeResult.reason ?? 'commit/push failed'} — marked failed`);
-            }
-          }
+            await store.completeClaim(claim, result.note || 'completed');
+            logger.line('  ✓ Marked done after merge');
 
-          if (itemCompleted) {
-            const totalDone = await store.incrementCompletedCount();
-            const cleanupResult = await store.cleanupIfNeeded();
-            if (options.worktrees) {
-              const bookkeepingCommit = await workspaceStrategy.commitAndPush(
-                cleanupResult.archivedCount > 0
-                  ? `chore(backlog): update queue state + archive ${cleanupResult.archivedCount} completed items`
-                  : `chore(backlog): update queue state – ${result.item || claim.item}`,
-              );
-              if (!bookkeepingCommit.ok) {
-                logger.line(`  WARNING: ${bookkeepingCommit.reason ?? 'queue state commit failed'}`);
-              }
+            const bookkeepingCommit = await workspaceStrategy.commitAndPush(
+              `chore(backlog): planner sync – ${claim.task.title}`,
+            );
+            if (!bookkeepingCommit.ok) {
+              logger.line(`  WARNING: ${bookkeepingCommit.reason ?? 'queue state commit failed'}`);
             }
-
-            if (options.passes && !stopRequested && !(await fileExists(config.files.stop))) {
-              const scheduledPasses = passNamesToRun(totalDone, options.passFrequency, config);
-              if (scheduledPasses.length > 0) {
-                logger.line('');
-                logger.line(
-                  `  Milestone: ${totalDone} items done — running ${scheduledPasses.join(' + ')} discovery pass`,
-                );
-                for (const passType of scheduledPasses) {
-                  await runPass(config, store, workspaceStrategy, logger, options, passType);
-                }
-              }
-            }
-          }
+          });
         } else {
-          await store.updateItemStatus(claim, '!');
+          await withLock(lockPath(config, 'git'), 30, async () => {
+            logger.line('');
+            logger.line(`  Finalizing code changes: ${claim.task.title}`);
+            const finalizeResult = await workspaceStrategy.commitAndPush(message);
+            if (!finalizeResult.ok) {
+              await store.failClaim(claim, finalizeResult.reason ?? 'commit/push failed');
+              logger.line(`  ✗ ${finalizeResult.reason ?? 'commit/push failed'} — marked failed`);
+              return;
+            }
+
+            logger.line('  ✓ Finalized code changes');
+            logDrainResult(
+              logger,
+              'Follow-up planner',
+              await store.drainFollowups(sessionScopedPath(config, session.cwd, config.files.followups)),
+            );
+            await store.completeClaim(claim, result.note || 'completed');
+            logger.line('  ✓ Marked done after finalize');
+
+            const bookkeepingCommit = await workspaceStrategy.commitAndPush(
+              `chore(backlog): planner sync – ${claim.task.title}`,
+            );
+            if (!bookkeepingCommit.ok) {
+              logger.line(`  WARNING: ${bookkeepingCommit.reason ?? 'queue state commit failed'}`);
+            }
+          });
+        }
+
+        if (options.passes && !stopRequested && !(await fileExists(config.files.stop))) {
+          const scheduledPasses = passNamesToRun(iteration, options.passFrequency, config);
+          if (scheduledPasses.length > 0) {
+            logger.line('');
+            logger.line(`  Milestone: iteration ${iteration} — running ${scheduledPasses.join(' + ')} discovery pass`);
+            for (const passType of scheduledPasses) {
+              await runPass(config, store, workspaceStrategy, logger, options, passType);
+            }
+          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (isAuthFailure(message)) {
-          await store.updateItemStatus(claim, ' ');
+          await store.releaseClaim(claim);
           throw new Error('Authentication/permission error — check your API key and tool setup');
         }
         if (isRateLimited(message)) {
           logger.line('');
-          logger.line(`  ⚠ Rate limit hit — unclaiming item, retry at ${retryTime()}`);
-          await store.updateItemStatus(claim, ' ');
+          logger.line(`  ⚠ Rate limit hit — unclaiming task, retry at ${retryTime()}`);
+          await store.releaseClaim(claim);
           await sleep(60_000);
         } else {
-          logger.line(`  ⚠ ${message} — unclaiming item`);
-          await store.updateItemStatus(claim, ' ');
+          logger.line(`  ⚠ ${message} — unclaiming task`);
+          await store.releaseClaim(claim);
         }
       } finally {
+        clearInterval(heartbeat);
         previousDurationSeconds = Math.floor((Date.now() - startedAt) / 1000);
         await session.teardown();
       }
@@ -559,6 +582,10 @@ export async function runBacklogRunner(
     process.removeListener('SIGINT', onSignal);
     process.removeListener('SIGTERM', onSignal);
     await rm(registryFile, { force: true });
-    await logger.close();
+    try {
+      await store.close();
+    } finally {
+      await logger.close();
+    }
   }
 }

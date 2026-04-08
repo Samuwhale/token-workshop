@@ -1,0 +1,18 @@
+id: make-set-metadata-edits-rollbackable-and-visible-dcec8ceb
+title: Make set metadata edits rollbackable and visible in `packages/server/src/routes/sets.ts`, `packages/server/src/services/operation-log.ts`, and `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because changing a set's Figma collection or mode mapping currently has no recovery path even though it can silently redirect later publish operations.
+priority: high
+depends_on: []
+touch_paths:
+  - packages/server/src/routes/sets.ts
+  - packages/server/src/services/operation-log.ts
+  - packages/figma-plugin/src/ui/components/HistoryPanel.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+state: done
+acceptance_criteria:
+  - Make set metadata edits rollbackable and visible in `packages/server/src/routes/sets.ts`, `packages/server/src/services/operation-log.ts`, and `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because changing a set's Figma collection or mode mapping currently has no recovery path even though it can silently redirect later publish operations.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.289Z
+updated_at: 2026-04-08T20:14:30.289Z

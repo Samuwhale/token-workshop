@@ -1,0 +1,17 @@
+id: replace-the-current-50-entry-operationlog-ring-b-bad3af7a
+title: Replace the current 50-entry `OperationLog` ring-buffer design in `packages/server/src/services/operation-log.ts` with separate persistence for rollback/history versus rename propagation — `PublishPanel.tsx` and `/api/operations/*` both depend on data that silently disappears once enough unrelated operations have been recorded.
+priority: normal
+depends_on: []
+touch_paths:
+  - packages/server/src/services/operation-log.ts
+  - /api/operations/*
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+state: ready
+acceptance_criteria:
+  - Replace the current 50-entry `OperationLog` ring-buffer design in `packages/server/src/services/operation-log.ts` with separate persistence for rollback/history versus rename propagation — `PublishPanel.tsx` and `/api/operations/*` both depend on data that silently disappears once enough unrelated operations have been recorded.
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z

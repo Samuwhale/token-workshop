@@ -1,0 +1,16 @@
+id: define-the-new-plugin-wide-visual-system-for-den-4587a422
+title: Define the new plugin-wide visual system for density, typography, spacing, chips, badges, section headers, and CTA hierarchy, raising the baseline readability above the current 9–11px-heavy interface
+priority: normal
+depends_on: []
+touch_paths: []
+capabilities: []
+validation_profile: repo
+status_notes:
+  - Imported from legacy backlog.md.
+  - Planner could not infer touch_paths from the title; refine this task before execution.
+state: planned
+acceptance_criteria:
+  - Define the new plugin-wide visual system for density, typography, spacing, chips, badges, section headers, and CTA hierarchy, raising the baseline readability above the current 9–11px-heavy interface
+source: legacy-backlog
+created_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T20:14:30.290Z
