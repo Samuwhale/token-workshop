@@ -278,6 +278,12 @@ export interface ReadVariableToken {
   $value: string | number | boolean | null;
   $description: string;
   $scopes: string[];
+  /** DTCG reference string e.g. "{colors.primary}", set when the value is an alias. */
+  reference?: string;
+  /** Indicates that `$value` is a reference string rather than a resolved scalar. */
+  isAlias?: boolean;
+  /** Mirrors the underlying Figma flag for export/save workflows. */
+  hiddenFromPublishing: boolean;
 }
 
 /** A mode within a Figma variable collection (read-back). */
@@ -291,36 +297,6 @@ export interface ReadVariableMode {
 export interface ReadVariableCollection {
   name: string;
   modes: ReadVariableMode[];
-}
-
-// ─── Variable export types ────────────────────────────────────────────────────
-
-/** Resolved or aliased mode value for a Figma variable export. */
-export interface ExportedVariableModeValue {
-  /** Resolved scalar value (color hex, number, string, boolean), null if alias */
-  resolvedValue: string | number | boolean | null;
-  /** DTCG reference string e.g. "{colors.primary}", set when isAlias is true */
-  reference?: string;
-  isAlias: boolean;
-}
-
-/** A single Figma variable in export format. */
-export interface ExportedVariableEntry {
-  name: string;
-  path: string;
-  resolvedType: string;
-  $type: string;
-  description?: string;
-  hiddenFromPublishing: boolean;
-  scopes: string[];
-  modeValues: Record<string, ExportedVariableModeValue>;
-}
-
-/** A Figma variable collection in export format. */
-export interface ExportedVariableCollection {
-  name: string;
-  modes: string[];
-  variables: ExportedVariableEntry[];
 }
 
 // ─── Consistency scanner types ────────────────────────────────────────────────
@@ -434,10 +410,6 @@ export interface ReadVariablesMessage {
 export interface ReadStylesMessage {
   type: 'read-styles';
   correlationId?: string;
-}
-
-export interface ExportAllVariablesMessage {
-  type: 'export-all-variables';
 }
 
 export interface GetSelectionMessage {
@@ -902,11 +874,6 @@ export interface OrphansDeletedMessage {
   correlationId?: string;
 }
 
-export interface AllVariablesExportedMessage {
-  type: 'all-variables-exported';
-  collections: ExportedVariableCollection[];
-}
-
 export interface StyleSyncProgressMessage {
   type: 'style-sync-progress';
   current: number;
@@ -973,7 +940,6 @@ export type ControllerMessage =
   | StylesReadMessage
   | StylesReadErrorMessage
   | OrphansDeletedMessage
-  | AllVariablesExportedMessage
   | SyncProgressResponseMessage
   | SyncCompleteResponseMessage
   | RemapCompleteResponseMessage
@@ -1020,7 +986,6 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'styles-read',
   'styles-read-error',
   'orphans-deleted',
-  'all-variables-exported',
   'sync-progress',
   'sync-complete',
   'remap-complete',
@@ -1056,7 +1021,6 @@ export type PluginMessage =
   | ApplyStylesMessage
   | ReadVariablesMessage
   | ReadStylesMessage
-  | ExportAllVariablesMessage
   | ApplyToSelectionMessage
   | GetSelectionMessage
   | SetDeepInspectMessage

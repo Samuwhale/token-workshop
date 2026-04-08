@@ -261,3 +261,11 @@
   - Dense tree UIs can keep compact badge visuals if the interactive wrapper carries the 24×24 target size; do not solve target-size issues by only shrinking or growing the visible chip.
   - Token-type color classes are a good place to centralize badge alignment rules so buttons and spans render consistently after accessibility tweaks.
 ---
+## 2026-04-08 - `export-all-variables` message handler in plugin sandbox is dead code
+- Removed the dedicated `export-all-variables` / `all-variables-exported` sandbox message path, routed the export hook through the existing `read-variables` request with correlation IDs, and normalized the shared read payload in the UI for the export panel’s collection-by-variable view.
+- Extended the shared variable read payload with alias and publishing metadata so the import/publish/export flows now reuse one controller read path without losing DTCG export fidelity for aliases or multi-mode metadata.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L4, ~L96, ~L372; `packages/figma-plugin/src/plugin/variableSync.ts` ~L355, ~L390; `packages/figma-plugin/src/shared/types.ts` ~L275, ~L405, ~L936, ~L1019; `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` ~L1, ~L73, ~L136, ~L155, ~L192; `scripts/backlog/patterns.md` ~L171
+- **Learnings for future iterations:**
+  - If two UI surfaces are reading the same Figma-side entity, keep a single message/response pair and do view-specific reshaping in the UI instead of adding a second sandbox handler.
+  - Correlation IDs are worth using even for read-only export helpers once multiple panels can listen for the same controller response type.
+---

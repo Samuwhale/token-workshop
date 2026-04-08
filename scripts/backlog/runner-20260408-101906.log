@@ -58,3 +58,14 @@
 
   Committing: Sub-readable badge font sizes and undersized interactive targets
   ✓ Committed and marked done
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  1 queued · 0 in-progress · last took 6m57s
+═══════════════════════════════════════════════════════════════
+  → `export-all-variables` message handler in plugin sandbox is dead code — controller.ts registers a handler for this message type but no UI component ever sends it; the export flow uses server API routes instead; remove the dead handler to reduce sandbox bundle size and avoid confusion
+  Running agent… (started 12:50:59)
+
+  ✓ done: `export-all-variables` message handler in plugin sandbox is dead code
+    Removed the duplicate sandbox export message path and routed the export hook through the existing `read-variables` flow; validation passed.
+  Committing: `export-all-variables` message handler in plugin sandbox is dead code
+

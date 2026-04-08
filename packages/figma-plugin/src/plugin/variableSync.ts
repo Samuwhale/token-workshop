@@ -1,7 +1,7 @@
 import { VARIABLE_COLLECTION_NAME } from './constants.js';
 import { mapTokenTypeToVariableType, mapVariableTypeToTokenType, convertToFigmaValue, convertFromFigmaValue, findVariableInList } from './variableUtils.js';
 import { getErrorMessage } from '../shared/utils.js';
-import type { VariableSyncToken, ReadVariableCollection, ReadVariableMode, ReadVariableToken, ExportedVariableModeValue, ExportedVariableEntry, ExportedVariableCollection, VarSnapshot } from '../shared/types.js';
+import type { VariableSyncToken, ReadVariableCollection, ReadVariableMode, ReadVariableToken, VarSnapshot } from '../shared/types.js';
 
 export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, renames?: Array<{ oldPath: string; newPath: string }>, correlationId?: string) {
   // Rollback tracking — populated before any mutations occur
@@ -354,6 +354,7 @@ export async function readFigmaVariables(correlationId?: string) {
 
   // Build a lookup map so each varId resolves in O(1) instead of a sequential async call
   const variableById = new Map<string, Variable>(allVariables.map(v => [v.id, v]));
+  const variableNameById = new Map<string, string>(allVariables.map(v => [v.id, v.name.replace(/\//g, '.')]));
 
   const collections: ReadVariableCollection[] = [];
 
@@ -366,13 +367,16 @@ export async function readFigmaVariables(correlationId?: string) {
       for (const varId of collection.variableIds) {
         const variable = variableById.get(varId);
         if (!variable) continue;
-        const value = variable.valuesByMode[mode.modeId];
+        const modeValue = toReadModeValue(variable.valuesByMode[mode.modeId], variable.resolvedType, variableNameById);
         tokens.push({
           path: variable.name.replace(/\//g, '.'),
           $type: mapVariableTypeToTokenType(variable.resolvedType),
-          $value: convertFromFigmaValue(value, variable.resolvedType),
+          $value: modeValue.value,
           $description: variable.description || '',
           $scopes: variable.scopes,
+          reference: modeValue.reference,
+          isAlias: modeValue.isAlias,
+          hiddenFromPublishing: variable.hiddenFromPublishing,
         });
       }
       modes.push({ modeId: mode.modeId, modeName: mode.name, tokens });
@@ -381,6 +385,28 @@ export async function readFigmaVariables(correlationId?: string) {
   }
 
   figma.ui.postMessage({ type: 'variables-read', collections, correlationId });
+}
+
+function toReadModeValue(
+  rawValue: VariableValue,
+  resolvedType: VariableResolvedDataType,
+  variableNameById: Map<string, string>,
+): { value: string | number | boolean | null; reference?: string; isAlias: boolean } {
+  if (rawValue && typeof rawValue === 'object' && 'type' in rawValue && rawValue.type === 'VARIABLE_ALIAS') {
+    const reference = variableNameById.get(rawValue.id)
+      ? `{${variableNameById.get(rawValue.id)}}`
+      : `{unknown:${rawValue.id}}`;
+    return {
+      value: reference,
+      reference,
+      isAlias: true,
+    };
+  }
+
+  return {
+    value: convertFromFigmaValue(rawValue, resolvedType),
+    isAlias: false,
+  };
 }
 
 export async function deleteOrphanVariables(knownPaths: string[], collectionMap: Record<string, string> = {}, correlationId?: string) {
@@ -431,84 +457,6 @@ export async function deleteOrphanVariables(knownPaths: string[], collectionMap:
     // Use orphans-deleted (not the generic 'error' type) so the correlationId-based
     // promise in the UI resolves rather than timing out on an unexpected throw.
     figma.ui.postMessage({ type: 'orphans-deleted', count: 0, failures: [getErrorMessage(error)], correlationId });
-  }
-}
-
-function convertExportValue(
-  rawValue: VariableValue,
-  resolvedType: VariableResolvedDataType,
-  idToName: Map<string, string>,
-): ExportedVariableModeValue {
-  // Check if it's a variable alias
-  if (rawValue && typeof rawValue === 'object' && 'type' in rawValue && rawValue.type === 'VARIABLE_ALIAS') {
-    const referencedName = idToName.get(rawValue.id);
-    return {
-      resolvedValue: null,
-      reference: referencedName ? `{${referencedName}}` : `{unknown:${rawValue.id}}`,
-      isAlias: true,
-    };
-  }
-
-  return {
-    resolvedValue: convertFromFigmaValue(rawValue, resolvedType),
-    isAlias: false,
-  };
-}
-
-export async function exportAllVariables() {
-  try {
-    const [collections, allVariables] = await Promise.all([
-      figma.variables.getLocalVariableCollectionsAsync(),
-      figma.variables.getLocalVariablesAsync(),
-    ]);
-
-    // Build lookups: variable id -> variable name (for resolving aliases) and id -> Variable
-    const idToName = new Map<string, string>();
-    const variableById = new Map<string, Variable>();
-    for (const v of allVariables) {
-      idToName.set(v.id, v.name.replace(/\//g, '.'));
-      variableById.set(v.id, v);
-    }
-
-    const exportedCollections: ExportedVariableCollection[] = [];
-
-    for (const collection of collections) {
-      const modes = collection.modes.map(m => ({ modeId: m.modeId, name: m.name }));
-      const variables: ExportedVariableEntry[] = [];
-
-      for (const varId of collection.variableIds) {
-        const variable = variableById.get(varId);
-        if (!variable) continue;
-
-        const modeValues: Record<string, ExportedVariableModeValue> = {};
-
-        for (const mode of modes) {
-          const rawValue = variable.valuesByMode[mode.modeId];
-          modeValues[mode.name] = convertExportValue(rawValue, variable.resolvedType, idToName);
-        }
-
-        variables.push({
-          name: variable.name,
-          path: variable.name.replace(/\//g, '.'),
-          resolvedType: variable.resolvedType,
-          $type: mapVariableTypeToTokenType(variable.resolvedType),
-          description: variable.description || undefined,
-          hiddenFromPublishing: variable.hiddenFromPublishing,
-          scopes: variable.scopes,
-          modeValues,
-        });
-      }
-
-      exportedCollections.push({
-        name: collection.name,
-        modes: modes.map(m => m.name),
-        variables,
-      });
-    }
-
-    figma.ui.postMessage({ type: 'all-variables-exported', collections: exportedCollections });
-  } catch (error) {
-    figma.ui.postMessage({ type: 'error', message: `Failed to export variables: ${String(error)}` });
   }
 }
 

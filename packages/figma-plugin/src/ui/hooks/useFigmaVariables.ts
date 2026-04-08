@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
+import type { ReadVariableCollection, ReadVariableToken } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage } from '../shared/utils';
@@ -10,9 +11,7 @@ export interface ExportedModeValue {
 }
 
 export interface ExportedVariable {
-  name: string;
   path: string;
-  resolvedType: string;
   $type: string;
   description?: string;
   hiddenFromPublishing: boolean;
@@ -71,6 +70,62 @@ export interface FigmaVariablesState {
   formatModeValue: (modeVal: ExportedModeValue) => string;
 }
 
+function toExportedCollections(readCollections: ReadVariableCollection[]): ExportedCollection[] {
+  return readCollections.map((collection) => {
+    const modeNames = collection.modes.map(mode => mode.modeName);
+    const variableOrder: string[] = [];
+    const variablesByPath = new Map<string, ExportedVariable>();
+
+    for (const mode of collection.modes) {
+      for (const token of mode.tokens) {
+        let variable = variablesByPath.get(token.path);
+        if (!variable) {
+          variable = {
+            path: token.path,
+            $type: token.$type,
+            description: token.$description || undefined,
+            hiddenFromPublishing: token.hiddenFromPublishing,
+            scopes: [...token.$scopes],
+            modeValues: {},
+          };
+          variablesByPath.set(token.path, variable);
+          variableOrder.push(token.path);
+        }
+
+        if (!variable.description && token.$description) {
+          variable.description = token.$description;
+        }
+        if (variable.scopes.length === 0 && token.$scopes.length > 0) {
+          variable.scopes = [...token.$scopes];
+        }
+        variable.hiddenFromPublishing = variable.hiddenFromPublishing || token.hiddenFromPublishing;
+        variable.modeValues[mode.modeName] = toExportedModeValue(token);
+      }
+    }
+
+    return {
+      name: collection.name,
+      modes: modeNames,
+      variables: variableOrder.map(path => variablesByPath.get(path)!),
+    };
+  });
+}
+
+function toExportedModeValue(token: ReadVariableToken): ExportedModeValue {
+  if (token.isAlias) {
+    return {
+      resolvedValue: null,
+      reference: token.reference ?? (typeof token.$value === 'string' ? token.$value : undefined),
+      isAlias: true,
+    };
+  }
+
+  return {
+    resolvedValue: token.$value,
+    isAlias: false,
+  };
+}
+
 export function useFigmaVariables({
   connected,
   serverUrl,
@@ -79,9 +134,8 @@ export function useFigmaVariables({
   setError,
 }: UseFigmaVariablesOptions): FigmaVariablesState {
   const [figmaLoading, setFigmaLoading] = useState(false);
-  const figmaLoadingRef = useRef(false);
-  figmaLoadingRef.current = figmaLoading;
   const figmaLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const figmaReadCorrelationIdRef = useRef<string | null>(null);
   const [figmaCollections, setFigmaCollections] = useState<ExportedCollection[]>([]);
   const [expandedCollection, setExpandedCollection] = useState<string | null>(null);
   const [expandedVar, setExpandedVar] = useState<string | null>(null);
@@ -98,23 +152,26 @@ export function useFigmaVariables({
       const msg = event.data?.pluginMessage;
       if (!msg) return;
 
-      if (msg.type === 'all-variables-exported') {
+      if (msg.type === 'variables-read' && msg.correlationId === figmaReadCorrelationIdRef.current) {
         if (figmaLoadingTimeoutRef.current !== null) {
           clearTimeout(figmaLoadingTimeoutRef.current);
           figmaLoadingTimeoutRef.current = null;
         }
-        setFigmaCollections(msg.collections || []);
+        figmaReadCorrelationIdRef.current = null;
+        const collections = toExportedCollections(msg.collections || []);
+        setFigmaCollections(collections);
         setFigmaLoading(false);
-        if (msg.collections?.length > 0) {
-          setExpandedCollection(msg.collections[0].name);
+        if (collections.length > 0) {
+          setExpandedCollection(collections[0].name);
         }
       }
-      if (msg.type === 'error' && figmaLoadingRef.current) {
+      if (msg.type === 'variables-read-error' && msg.correlationId === figmaReadCorrelationIdRef.current) {
         if (figmaLoadingTimeoutRef.current !== null) {
           clearTimeout(figmaLoadingTimeoutRef.current);
           figmaLoadingTimeoutRef.current = null;
         }
-        setError(msg.message);
+        figmaReadCorrelationIdRef.current = null;
+        setError(msg.error);
         setFigmaLoading(false);
       }
     };
@@ -139,12 +196,15 @@ export function useFigmaVariables({
     if (figmaLoadingTimeoutRef.current !== null) {
       clearTimeout(figmaLoadingTimeoutRef.current);
     }
+    const correlationId = `export-vars-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    figmaReadCorrelationIdRef.current = correlationId;
     figmaLoadingTimeoutRef.current = setTimeout(() => {
       figmaLoadingTimeoutRef.current = null;
+      figmaReadCorrelationIdRef.current = null;
       setFigmaLoading(false);
       setError('No response from Figma — make sure a Figma document is open and the plugin is running.');
     }, 10000);
-    parent.postMessage({ pluginMessage: { type: 'export-all-variables' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId } }, '*');
   };
 
   const buildDTCGJson = (modeOverride?: string | null): string => {

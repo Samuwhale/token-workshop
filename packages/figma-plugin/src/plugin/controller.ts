@@ -1,7 +1,7 @@
 // This runs in Figma's sandbox (no DOM access)
 
 import type { PluginMessage } from '../shared/types.js';
-import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables, scanTokenVariableBindings, revertVariables } from './variableSync.js';
+import { applyVariables, readFigmaVariables, deleteOrphanVariables, scanTokenVariableBindings, revertVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode } from './selectionHandling.js';
@@ -98,7 +98,6 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'apply-styles':               [['tokens', 'array']],
   'read-variables':             [],
   'read-styles':                [],
-  'export-all-variables':       [],
   'apply-to-selection':         [['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string'], ['resolvedValue', 'any']],
   'get-selection':              [],
   'set-deep-inspect':           [['enabled', 'boolean']],
@@ -371,13 +370,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           error: describeError(e, 'Failed to read Figma styles'),
           correlationId: msg.correlationId,
         });
-      }
-      break;
-    case 'export-all-variables':
-      try {
-        await exportAllVariables();
-      } catch (e) {
-        reportError('export-all-variables', e);
       }
       break;
     case 'apply-to-selection':
