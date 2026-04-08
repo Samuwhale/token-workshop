@@ -265,6 +265,8 @@ export interface TokenTreeContextType {
   expandedPaths: Set<string>;
   duplicateCounts: Map<string, number>;
   highlightedToken: string | null;
+  /** Path currently being previewed in the side panel / split preview */
+  previewedPath: string | null;
   inspectMode?: boolean;
   syncSnapshot?: Record<string, string>;
   cascadeDiff?: Record<string, { before: any; after: any }>;

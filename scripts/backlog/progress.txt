@@ -435,3 +435,12 @@
   - After moving expert controls behind one overflow entry, summarize their active state in a few labeled groups instead of reintroducing a flat chip strip.
   - Keep the primary create action in the same visual rail as search, and push secondary creation/view tools into quieter grouped containers so the main job stays obvious.
 ---
+## 2026-04-08 - Redesign token rows and group rows to reduce simultaneous indicators, badges, and hover actions; define which metadata is always visible, which appears on selection, and which belongs in a detail preview instead of the list
+- Reduced both token rows and group rows to a clearer one-line hierarchy: the list now keeps identity, one compact summary slot, and one prioritized status marker always visible, while type badges, alias targets, generator/theme metadata, and most actions only appear on the active row.
+- Moved row-level secondary metadata into the preview surface by adding lint, duplicate, and sync status details to `TokenDetailPreview`, and wired those props through the side-panel, drawer, and split-preview callers so the list no longer has to carry that explanatory burden inline.
+- Validation passed via `bash scripts/backlog/validate.sh`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L212, ~L688, ~L857, ~L2366; `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx` ~L13, ~L100, ~L171, ~L206; `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L10, ~L224, ~L413; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L546, ~L619; `packages/figma-plugin/src/ui/App.tsx` ~L2452; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2005; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L260; `scripts/backlog/patterns.md` ~L289
+- **Learnings for future iterations:**
+  - In dense authoring trees, keep the row itself focused on recognition and action, then let the detail preview absorb explanation and diagnostics.
+  - If a row needs more than one badge, dot, and hover cluster to explain itself, switch to a priority model instead of trying to show every state at once.
+---

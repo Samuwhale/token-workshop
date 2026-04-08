@@ -2,11 +2,13 @@ import { useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenGenerator } from '../hooks/useGenerators';
+import type { LintViolation } from '../hooks/useLint';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { ValuePreview } from './ValuePreview';
 import { resolveTokenValue, isAlias, buildResolutionChain, buildSetThemeMap } from '../../shared/resolveAlias';
 import { formatDisplayPath, formatValue } from './tokenListUtils';
 import { TokenHistorySection } from './TokenHistorySection';
+import { stableStringify } from '../shared/utils';
 
 interface TokenDetailPreviewProps {
   tokenPath: string;
@@ -20,6 +22,9 @@ interface TokenDetailPreviewProps {
   generators?: TokenGenerator[];
   generatorsBySource?: Map<string, TokenGenerator[]>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
+  lintViolations?: LintViolation[];
+  syncSnapshot?: Record<string, string>;
+  duplicateCount?: number;
   /** Server URL for fetching token value history. When omitted, history section is hidden. */
   serverUrl?: string;
   onEdit: () => void;
@@ -39,6 +44,9 @@ export function TokenDetailPreview({
   generators,
   generatorsBySource,
   derivedTokenPaths,
+  lintViolations = [],
+  syncSnapshot,
+  duplicateCount,
   serverUrl,
   onEdit,
   onClose,
@@ -89,6 +97,26 @@ export function TokenDetailPreview({
   }, [generatorsBySource, generators, tokenPath]);
   const derivedGenerator = derivedTokenPaths?.get(tokenPath);
   const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
+  const duplicateMatches = useMemo(() => {
+    if (duplicateCount != null) return duplicateCount;
+    if (rawValue === undefined) return 0;
+    const key = stableStringify(rawValue);
+    let count = 0;
+    for (const entry of Object.values(allTokensFlat)) {
+      if (stableStringify(entry.$value) === key) count += 1;
+    }
+    return count > 1 ? count : 0;
+  }, [duplicateCount, rawValue, allTokensFlat]);
+  const syncChanged = useMemo(() => {
+    if (!syncSnapshot || !(tokenPath in syncSnapshot)) return false;
+    return syncSnapshot[tokenPath] !== stableStringify(rawValue);
+  }, [syncSnapshot, tokenPath, rawValue]);
+  const lintTone = useMemo(() => {
+    if (lintViolations.some(violation => violation.severity === 'error')) return 'error';
+    if (lintViolations.some(violation => violation.severity === 'warning')) return 'warning';
+    if (lintViolations.length > 0) return 'info';
+    return null;
+  }, [lintViolations]);
   const provenanceLabel = provenance
     ? ({
         'figma-variables': 'Figma variables',
@@ -140,7 +168,67 @@ export function TokenDetailPreview({
             <span className={`px-1 py-0.5 rounded text-[8px] font-medium ${TOKEN_TYPE_BADGE_CLASS[type] ?? 'token-type-string'}`}>{type}</span>
             <span className="text-[8px] text-[var(--color-figma-text-tertiary)]">{tokenSet}</span>
           </div>
+          {(lintViolations.length > 0 || syncChanged || duplicateMatches > 1) && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {lintViolations.length > 0 && (
+                <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                  lintTone === 'error'
+                    ? 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'
+                    : lintTone === 'warning'
+                      ? 'bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]'
+                      : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]'
+                }`}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
+                  </svg>
+                  {lintViolations.length === 1 ? '1 issue' : `${lintViolations.length} issues`}
+                </span>
+              )}
+              {syncChanged && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]">
+                  <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
+                  Unsynced
+                </span>
+              )}
+              {duplicateMatches > 1 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="9" y="9" width="10" height="10" rx="2" />
+                    <path d="M5 15V7a2 2 0 0 1 2-2h8" />
+                  </svg>
+                  Shared by {duplicateMatches}
+                </span>
+              )}
+            </div>
+          )}
         </div>
+
+        {lintViolations.length > 0 && (
+          <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">Issues</div>
+            <div className="flex flex-col gap-1.5">
+              {lintViolations.map((violation, index) => (
+                <div key={`${violation.path}-${violation.message}-${index}`} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+                  <div className={`text-[9px] font-medium uppercase tracking-wide ${
+                    violation.severity === 'error'
+                      ? 'text-[var(--color-figma-error)]'
+                      : violation.severity === 'warning'
+                        ? 'text-[var(--color-figma-warning)]'
+                        : 'text-[var(--color-figma-text-tertiary)]'
+                  }`}>
+                    {violation.severity}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-[var(--color-figma-text)]">{violation.message}</div>
+                  {violation.suggestion && (
+                    <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      Suggestion: {violation.suggestion}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {(entry.$description || directAliasPath || lifecycle || provenanceLabel || extendsPath || sourceGenerators.length > 0 || derivedGenerator || usageCount > 0) && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">

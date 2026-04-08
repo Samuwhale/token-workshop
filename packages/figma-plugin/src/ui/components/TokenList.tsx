@@ -2003,6 +2003,7 @@ export function TokenList({
     expandedPaths,
     duplicateCounts,
     highlightedToken: highlightedToken ?? null,
+    previewedPath: highlightedToken ?? null,
     inspectMode,
     syncSnapshot,
     cascadeDiff,

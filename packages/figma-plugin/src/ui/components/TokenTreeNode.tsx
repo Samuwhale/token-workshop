@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, Fragment, memo } from 'react';
+import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, memo } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE, INDENT_PER_LEVEL, CONDENSED_MAX_DEPTH, DEPTH_COLORS } from './tokenListTypes';
 import type { TokenMapEntry } from '../../shared/types';
@@ -280,6 +280,70 @@ function getQuickGeneratorActionLabel(type: GeneratorType): string {
   }
 }
 
+type TokenRowStatus =
+  | { kind: 'lint'; label: string; title: string; toneClass: string }
+  | { kind: 'applied'; label: string; title: string; toneClass: string }
+  | { kind: 'sync'; label: string; title: string; toneClass: string }
+  | { kind: 'duplicate'; label: string; title: string; toneClass: string }
+  | null;
+
+function getLintSeverityRank(severity: 'error' | 'warning' | 'info'): number {
+  if (severity === 'error') return 3;
+  if (severity === 'warning') return 2;
+  return 1;
+}
+
+function getTokenRowStatus(props: {
+  lintViolations: NonNullable<TokenTreeNodeProps['lintViolations']>;
+  quickBound: string | null;
+  syncChanged: boolean;
+  duplicateCount: number;
+}): TokenRowStatus {
+  const { lintViolations, quickBound, syncChanged, duplicateCount } = props;
+  if (lintViolations.length > 0) {
+    const worst = lintViolations.reduce<'error' | 'warning' | 'info'>(
+      (acc, violation) => getLintSeverityRank(violation.severity) > getLintSeverityRank(acc) ? violation.severity : acc,
+      'info',
+    );
+    const issueCount = lintViolations.length;
+    return {
+      kind: 'lint',
+      label: issueCount === 1 ? 'Issue' : `${issueCount} issues`,
+      title: lintViolations.map(v => `${v.severity}: ${v.message}${v.suggestion ? `\nSuggestion: ${v.suggestion}` : ''}`).join('\n'),
+      toneClass: worst === 'error'
+        ? 'text-[var(--color-figma-error)]'
+        : worst === 'warning'
+          ? 'text-[var(--color-figma-warning)]'
+          : 'text-[var(--color-figma-text-tertiary)]',
+    };
+  }
+  if (quickBound) {
+    return {
+      kind: 'applied',
+      label: quickBound,
+      title: `Bound to ${quickBound}`,
+      toneClass: 'text-[var(--color-figma-success)]',
+    };
+  }
+  if (syncChanged) {
+    return {
+      kind: 'sync',
+      label: 'Unsynced',
+      title: 'Changed locally since last sync',
+      toneClass: 'text-[var(--color-figma-warning)]',
+    };
+  }
+  if (duplicateCount > 1) {
+    return {
+      kind: 'duplicate',
+      label: `${duplicateCount} same`,
+      title: `${duplicateCount} tokens share this value`,
+      toneClass: 'text-[var(--color-figma-accent)]',
+    };
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
 // ---------------------------------------------------------------------------
@@ -508,7 +572,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   const ctx = useTokenTree();
   const {
     density, selectMode,
-    expandedPaths, onToggleExpand, highlightedToken,
+    expandedPaths, onToggleExpand, highlightedToken, previewedPath,
     searchHighlight, selectedNodes: _selectedNodes,
     dragOverGroup, dragOverGroupIsInvalid, dragSource, dragOverReorder: _dragOverReorder,
     onDeleteGroup, onToggleSelect: _onToggleSelect,
@@ -529,6 +593,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   const pyClass = DENSITY_PY_CLASS[density];
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
+  const isGroupActive = groupRovingFocusPath === node.path || previewedPath === node.path;
 
   // Group-specific state
   const [groupMenuPos, setGroupMenuPos] = useState<MenuPosition | null>(null);
@@ -627,8 +692,29 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     });
   }, [groupMoreMenuPos]);
 
+  const isCategoryHeader = depth === 0;
   const leafCount = countLeaves(node);
   const targetGenerator = generatorsByTargetGroup?.get(node.path) ?? null;
+  const themeCoverageSummary = themeCoverage?.get(node.path) ?? null;
+  const groupSummary = targetGenerator?.isStale
+    ? {
+        label: 'Generator stale',
+        title: 'Source token changed — open group actions to regenerate',
+        className: 'text-amber-600',
+      }
+    : leafCount === 0
+      ? {
+          label: 'Empty',
+          title: 'This group has no tokens yet',
+          className: 'text-[var(--color-figma-text-tertiary)] opacity-60',
+        }
+      : {
+          label: `${leafCount} token${leafCount === 1 ? '' : 's'}`,
+          title: `${leafCount} token${leafCount === 1 ? '' : 's'} in this group`,
+          className: isCategoryHeader
+            ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]'
+            : 'text-[var(--color-figma-text-secondary)]',
+        };
 
   // Build a stable map of child path → filtered lint violations so we don't create
   // a new array on every render when passing violations down to child nodes.
@@ -677,8 +763,6 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
       setGroupMetaSaving(false);
     }
   }, [onUpdateGroupMeta, node.path, groupMetaType, groupMetaDescription]);
-
-  const isCategoryHeader = depth === 0;
 
   return (
     <div className={isCategoryHeader ? 'border-t border-[var(--color-figma-border)]' : ''}>
@@ -770,31 +854,23 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
         ) : (
           <span className={isCategoryHeader ? 'text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)] flex-1' : 'text-[11px] font-medium text-[var(--color-figma-text)] flex-1'}>{highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}</span>
         )}
-        {!renamingGroup && node.children && (
-          isCategoryHeader ? (
-            <span className={`text-[10px] ml-1 shrink-0 px-1.5 py-0.5 rounded-full font-medium ${leafCount === 0 ? 'text-[var(--color-figma-text-tertiary)] opacity-60' : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]'}`}>
-              {leafCount === 0 ? 'empty' : leafCount}
-            </span>
-          ) : (
-            <span className={`text-[10px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
-              {leafCount === 0 ? 'empty' : `(${leafCount})`}
-            </span>
-          )
+        {!renamingGroup && (
+          <span
+            className={`ml-1 shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${groupSummary.className}`}
+            title={groupSummary.title}
+          >
+            {groupSummary.label}
+          </span>
         )}
-        {!renamingGroup && themeCoverage && (() => {
-          const cov = themeCoverage!.get(node.path);
-          if (!cov || cov.total === 0) return null;
-          const isFull = cov.themed === cov.total;
-          return (
-            <span
-              className={`text-[10px] ml-1 shrink-0 ${isFull ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
-              title={`${cov.themed} of ${cov.total} tokens have themed overrides`}
-            >
-              {cov.themed}/{cov.total} themed
-            </span>
-          );
-        })()}
-        {!renamingGroup && (() => {
+        {!renamingGroup && isGroupActive && themeCoverageSummary && themeCoverageSummary.total > 0 && (
+          <span
+            className={`ml-1 shrink-0 text-[10px] ${themeCoverageSummary.themed === themeCoverageSummary.total ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
+            title={`${themeCoverageSummary.themed} of ${themeCoverageSummary.total} tokens have themed overrides`}
+          >
+            {themeCoverageSummary.themed}/{themeCoverageSummary.total} themed
+          </span>
+        )}
+        {!renamingGroup && isGroupActive && (() => {
           if (!targetGenerator) return null;
           const canEdit = Boolean(onEditGenerator);
           const isStale = !!targetGenerator.isStale;
@@ -846,7 +922,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             </>
           );
         })()}
-        {!renamingGroup && node.$type && (
+        {!renamingGroup && isGroupActive && node.$type && (
           <span
             className="text-[10px] shrink-0 text-[var(--color-figma-text-secondary)] italic ml-0.5 opacity-60"
             title={`$type: ${node.$type} (inherited by all children)`}
@@ -855,15 +931,12 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           </span>
         )}
         {!selectMode && !renamingGroup && (
-          <kbd className="hidden group-focus-visible/group:inline text-[9px] leading-none px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] font-sans ml-auto shrink-0" aria-hidden="true">N</kbd>
-        )}
-        {!selectMode && !renamingGroup && (
-          <div className="hidden group-hover/group:flex group-focus-within/group:flex items-center gap-0.5 shrink-0 ml-auto">
+          <div className={`${isGroupActive ? 'flex' : 'hidden group-hover/group:flex group-focus-within/group:flex'} items-center gap-0.5 shrink-0 ml-auto`}>
             {onMoveUp && (
               <button
                 onClick={e => { e.stopPropagation(); onMoveUp(); }}
-                title="Move up"
-                aria-label="Move up"
+                title="Move group up"
+                aria-label="Move group up"
                 className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -874,8 +947,8 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             {onMoveDown && (
               <button
                 onClick={e => { e.stopPropagation(); onMoveDown(); }}
-                title="Move down"
-                aria-label="Move down"
+                title="Move group down"
+                aria-label="Move group down"
                 className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -891,11 +964,11 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
               title="Add token to group"
               aria-label="Add token to group"
               className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
-            </button>
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -1283,7 +1356,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const ctx = useTokenTree();
   const {
     density, serverUrl, setName, sets, selectionCapabilities, allTokensFlat, selectMode,
-    expandedPaths: _expandedPaths, onToggleExpand: _onToggleExpand, duplicateCounts, highlightedToken,
+    expandedPaths: _expandedPaths, onToggleExpand: _onToggleExpand, duplicateCounts, highlightedToken, previewedPath,
     inspectMode, syncSnapshot, cascadeDiff: _cascadeDiff, generatorsBySource: _generatorsBySource,
     derivedTokenPaths: _derivedTokenPaths, tokenUsageCounts: _tokenUsageCounts, searchHighlight, selectedNodes,
     dragOverGroup: _dragOverGroup, dragOverGroupIsInvalid: _dragOverGroupIsInvalid,
@@ -1294,7 +1367,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     onUpdateGroupMeta: _onUpdateGroupMeta, onRequestMoveGroup: _onRequestMoveGroup,
     onRequestCopyGroup: _onRequestCopyGroup, onRequestMoveToken, onRequestCopyToken,
     onDuplicateGroup: _onDuplicateGroup, onDuplicateToken, onExtractToAlias, onHoverToken,
-    onExtractToAliasForLint, onSyncGroup: _onSyncGroup, onSyncGroupStyles: _onSyncGroupStyles,
+    onSyncGroup: _onSyncGroup, onSyncGroupStyles: _onSyncGroupStyles,
     onSetGroupScopes: _onSetGroupScopes, onGenerateScaleFromGroup: _onGenerateScaleFromGroup,
     onFilterByType,
     onJumpToGroup: _onJumpToGroup, onZoomIntoGroup: _onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator: _onDetachFromGenerator,
@@ -1318,9 +1391,9 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const swatchSize = DENSITY_SWATCH_SIZE[density];
 
   const isHighlighted = highlightedToken === node.path;
+  const isPreviewed = previewedPath === node.path;
   const [hovered, setHovered] = useState(false);
   const [hoverPreviewVisible, setHoverPreviewVisible] = useState(false);
-  const [hoverInfoVisible, setHoverInfoVisible] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -1546,7 +1619,9 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const isBrokenAlias = isAlias(node.$value) && !!resolveResult?.error;
   const aliasTargetPath = isAlias(node.$value) ? String(node.$value).slice(1, -1) : null;
   const isFavorite = starredPaths?.has(node.path) ?? false;
-  const showExpandedMeta = !renamingToken && (isSelected || rovingFocusPath === node.path || isHighlighted);
+  const isRowActive = isSelected || rovingFocusPath === node.path || isPreviewed;
+  const showSecondaryMeta = !renamingToken && isRowActive;
+  const duplicateCount = duplicateCounts.get(stableStringify(node.$value)) ?? 0;
 
   // Enriched resolution chain with per-hop set/theme metadata (for debugger view)
   const setThemeMap = useMemo(
@@ -1560,17 +1635,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       allTokensFlat, pathToSet, setThemeMap,
     );
   }, [node.path, node.$value, node.$type, allTokensFlat, pathToSet, setThemeMap]);
-
-  // Delayed quick-info tooltip for tokens without an alias chain tooltip
-  useEffect(() => {
-    const aliasChainShowing = !!(resolutionSteps && resolutionSteps.length >= 2 && !isBrokenAlias);
-    if (!hovered || aliasChainShowing || (!node.$type && !node.$description)) {
-      setHoverInfoVisible(false);
-      return;
-    }
-    const timer = setTimeout(() => setHoverInfoVisible(true), 400);
-    return () => clearTimeout(timer);
-  }, [hovered, resolutionSteps, isBrokenAlias, node.$type, node.$description]);
 
   // Inline quick-edit eligibility
   const canInlineEdit = !isAlias(node.$value) && !!node.$type
@@ -1652,6 +1716,12 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   // Sync state indicator
   const syncChanged = syncSnapshot && node.path in syncSnapshot
     && syncSnapshot[node.path] !== stableStringify(node.$value);
+  const tokenStatus = getTokenRowStatus({
+    lintViolations,
+    quickBound,
+    syncChanged: !!syncChanged,
+    duplicateCount,
+  });
 
   const handleCopyPath = useCallback(() => {
     navigator.clipboard.writeText(node.path).catch(e => console.warn('[clipboard] write failed:', e));
@@ -1769,6 +1839,13 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     setQuickGeneratorPopover(null);
     setTokenMoreMenuPos(null);
     setContextMenuPos(clampMenuPosition(e.clientX, e.clientY, 192, 220));
+  }, []);
+
+  const handleOpenTokenActions = useCallback((anchor: HTMLElement) => {
+    setQuickGeneratorPopover(null);
+    setTokenMoreMenuPos(null);
+    const rect = anchor.getBoundingClientRect();
+    setContextMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 192, 220));
   }, []);
 
   /**
@@ -1904,6 +1981,9 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     const entry = allTokensFlat[node.path];
     return getQuickBindTargets(node.$type, entry?.$scopes, selectedNodes);
   }, [node.$type, node.path, allTokensFlat, selectedNodes]);
+  const canApplyFromRow = !!node.$type
+    && selectedNodes.length > 0
+    && (node.$type === 'composition' || (TOKEN_PROPERTY_MAP[node.$type]?.length ?? 0) > 0);
 
   const reorderPos = dragOverReorder?.path === node.path ? dragOverReorder.position : null;
 
@@ -2057,7 +2137,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
         } : undefined}
         style={selectMode ? { cursor: 'pointer' } : undefined}
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
           <CondensedAncestorBreadcrumb nodePath={node.path} nodeName={node.name} depth={depth} condensedView={condensedView} />
           {renamingToken ? (
             <div className="flex flex-col gap-0.5 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
@@ -2079,9 +2159,9 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               {renameTokenError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{renameTokenError}</p>}
             </div>
           ) : (
-            <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchHighlight?.nameTerms ?? [])}</span>
+            <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-figma-text)]" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchHighlight?.nameTerms ?? [])}</span>
           )}
-          {showExpandedMeta && node.$type && (
+          {showSecondaryMeta && node.$type && (
             <button
               onClick={e => { e.stopPropagation(); onFilterByType?.(node.$type!); }}
               title={`Filter by type: ${node.$type}`}
@@ -2090,7 +2170,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               {node.$type}
             </button>
           )}
-          {showExpandedMeta && aliasTargetPath && !showResolvedValues && (
+          {showSecondaryMeta && aliasTargetPath && !showResolvedValues && (
             <button
               onClick={handleAliasClick}
               className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} ${INTERACTIVE_BADGE_HIT_AREA_CLASS} transition-colors ${isBrokenAlias ? 'text-[var(--color-figma-error)] cursor-default' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
@@ -2283,41 +2363,46 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}
         </span>
       ))}
-      {/* Status indicators — compact dots/badges instead of verbose labels */}
-      {(() => {
-        const count = duplicateCounts.get(JSON.stringify(node.$value));
-        const hasLint = lintViolations.length > 0;
-        const worstSeverity = hasLint ? lintViolations.reduce((worst, v) => v.severity === 'error' ? 'error' : worst === 'error' ? 'error' : v.severity === 'warning' ? 'warning' : worst, 'info' as string) : null;
-        if (hasLint) {
-          return (
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                const v = lintViolations[0];
-                if (v.suggestedFix === 'extract-to-alias') onExtractToAliasForLint?.(node.path, node.$type, node.$value);
-                else if (v.suggestedFix === 'add-description') onEdit(node.path, node.name);
-              }}
-              title={lintViolations.map(v => `${v.severity}: ${v.message}${v.suggestion ? `\nSuggestion: ${v.suggestion}` : ''}`).join('\n')}
-              className={`shrink-0 flex items-center justify-center ${worstSeverity === 'error' ? 'text-[var(--color-figma-error)]' : worstSeverity === 'warning' ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
+      {tokenStatus && (
+        tokenStatus.kind === 'lint' ? (
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              if (onPreview) onPreview(node.path, node.name);
+              else onEdit(node.path, node.name);
+            }}
+            title={tokenStatus.title}
+            className={`ml-1 shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 ${BADGE_TEXT_CLASS} font-medium ${tokenStatus.toneClass} ${tokenStatus.kind === 'lint' ? 'bg-current/10' : ''}`}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
+            </svg>
+            {isRowActive && <span className="max-w-[72px] truncate">{tokenStatus.label}</span>}
+          </button>
+        ) : (
+          <span
+            className={`ml-1 shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 ${BADGE_TEXT_CLASS} font-medium ${tokenStatus.toneClass} ${tokenStatus.kind === 'applied' ? 'bg-[var(--color-figma-success)]/10' : tokenStatus.kind === 'sync' ? 'bg-[var(--color-figma-warning)]/10' : 'bg-[var(--color-figma-accent)]/10'}`}
+            title={tokenStatus.title}
+          >
+            {tokenStatus.kind === 'applied' ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-            </button>
-          );
-        }
-        if (syncChanged) {
-          return <span className="w-2 h-2 rounded-full bg-[var(--color-figma-warning)] shrink-0" title="Changed locally since last sync" />;
-        }
-        if (count) {
-          return <span className="w-2 h-2 rounded-full bg-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`} />;
-        }
-        return null;
-      })()}
-      {/* Hover actions — in-flow to avoid overlapping status indicators */}
+            ) : tokenStatus.kind === 'sync' ? (
+              <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="10" height="10" rx="2" />
+                <path d="M5 15V7a2 2 0 0 1 2-2h8" />
+              </svg>
+            )}
+            {isRowActive && <span className="max-w-[72px] truncate">{tokenStatus.label}</span>}
+          </span>
+        )
+      )}
       {!selectMode && (
-        <div className="hidden group-hover:flex group-focus-within:flex items-center gap-0.5 shrink-0 ml-auto">
-          {onToggleStar && (
+        <div className={`${isRowActive ? 'flex' : 'hidden group-hover:flex group-focus-within:flex'} items-center gap-0.5 shrink-0 ml-1`}>
+          {onToggleStar && (isFavorite || isRowActive) && (
             <button
               onClick={e => { e.stopPropagation(); onToggleStar(node.path); }}
               title={isFavorite ? 'Remove favorite' : 'Add to favorites'}
@@ -2329,53 +2414,43 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               </svg>
             </button>
           )}
-          {/* Edit button */}
+          {canApplyFromRow && !quickBound && (
+            <button
+              onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
+              title={quickBound ? `Bound to ${quickBound}` : (() => {
+                if (!quickBindTargets) return 'Apply to selection';
+                if (quickBindTargets.length === 0) return 'No compatible properties on selection';
+                if (quickBindTargets.length === 1) return `Quick bind to ${PROPERTY_LABELS[quickBindTargets[0]]}`;
+                return `Apply to ${quickBindTargets.map(t => PROPERTY_LABELS[t]).join(', ')}`;
+              })()}
+              aria-label={quickBound ? `Bound to ${quickBound}` : 'Apply to selection'}
+              className={`p-1 rounded ${quickBound ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20'}`}
+            >
+              {quickBound ? (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M12 5l7 7-7 7M5 12h14" />
+                </svg>
+              )}
+            </button>
+          )}
           <button
-            onClick={() => onEdit(node.path, node.name)}
-            title="Edit (or double-click row)"
-            aria-label="Edit token"
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            onClick={e => {
+              e.stopPropagation();
+              handleOpenTokenActions(e.currentTarget);
+            }}
+            title="More token actions"
+            aria-label="More token actions"
+            aria-haspopup="menu"
+            aria-expanded={!!contextMenuPos}
+            className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
             </svg>
-          </button>
-          <button
-            onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
-            title={quickBound ? `Bound to ${quickBound}` : (() => {
-              if (!quickBindTargets) return 'Apply to selection';
-              if (quickBindTargets.length === 0) return 'No compatible properties on selection';
-              if (quickBindTargets.length === 1) return `Quick bind to ${PROPERTY_LABELS[quickBindTargets[0]]}`;
-              return `Apply to ${quickBindTargets.map(t => PROPERTY_LABELS[t]).join(', ')}`;
-            })()}
-            aria-label={quickBound ? `Bound to ${quickBound}` : 'Apply to selection'}
-            className={`p-1 rounded ${quickBound ? 'text-[var(--color-figma-success)]' : 'hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'}`}
-          >
-            {quickBound ? (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            ) : (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M12 5l7 7-7 7M5 12h14" />
-              </svg>
-            )}
-          </button>
-          <button
-            onClick={e => { e.stopPropagation(); handleCopyPath(); }}
-            title={copiedWhat === 'path' ? 'Copied!' : 'Copy token path'}
-            aria-label={copiedWhat === 'path' ? 'Copied' : 'Copy token path'}
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-          >
-            {copiedWhat === 'path' ? (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2.5" aria-hidden="true">
-                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            ) : (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
-              </svg>
-            )}
           </button>
         </div>
       )}
@@ -2790,60 +2865,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
         <ComplexTypePreviewCard type={node.$type} value={displayValue} />
       )}
 
-      {/* Quick-info tooltip — shows type, resolved value, and description for tokens without an alias chain */}
-      {hoverInfoVisible && (node.$type || node.$description) && (
-        <div className="absolute left-4 right-4 bottom-full z-20" style={{ marginBottom: '-2px' }}>
-          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
-            {node.$type && (
-              <span className={`px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] font-mono ${BADGE_TEXT_CLASS} shrink-0`}>{node.$type}</span>
-            )}
-            {node.$type && (
-              <span className="font-mono text-[var(--color-figma-text)]">{formatValue(node.$type, displayValue)}</span>
-            )}
-            {node.$description && (
-              <>
-                {node.$type && <span className="text-[var(--color-figma-border)] shrink-0">—</span>}
-                <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[200px]">{node.$description}</span>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Alias resolution chain tooltip — visible on row hover */}
-      {hovered && resolutionSteps && resolutionSteps.length >= 2 && !isBrokenAlias && (
-        <div className="absolute left-4 right-4 bottom-full z-20" style={{ marginBottom: '-2px' }}>
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
-            {resolutionSteps.map((step, i) => {
-              const isLast = i === resolutionSteps.length - 1;
-              const isConcrete = isLast && !step.isError && step.value != null && !isAlias(step.value);
-              return (
-                <Fragment key={i}>
-                  {i > 0 && (
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M1 4h6M4 1l3 3-3 3"/></svg>
-                  )}
-                  {i === 0 ? (
-                    <span className="text-[var(--color-figma-accent)]">{step.path}</span>
-                  ) : isConcrete ? (
-                    <span className="text-[var(--color-figma-text)] font-medium">{formatValue(step.$type, step.value)}</span>
-                  ) : (
-                    <button
-                      className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline cursor-pointer transition-colors"
-                      onClick={() => onNavigateToAlias?.(step.path, node.path)}
-                      title={`Navigate to ${step.path}`}
-                    >{step.path}</button>
-                  )}
-                  {step.isThemed && (
-                    <span className={`${BADGE_TEXT_CLASS} px-0.5 text-[var(--color-figma-accent)] font-sans not-italic`}>
-                      {step.themeOption}
-                    </span>
-                  )}
-                </Fragment>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
 
     {/* Inline nudge — shown after saving a raw value that closely matches an existing token */}

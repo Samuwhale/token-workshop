@@ -554,6 +554,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                     tokenUsageCounts={tokenUsageCounts}
                     generators={generators}
                     derivedTokenPaths={derivedTokenPaths}
+                    lintViolations={p.lintViolations.filter(violation => violation.path === previewingToken.path)}
+                    syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                     serverUrl={serverUrl}
                     onEdit={p.handlePreviewEdit}
                     onClose={p.handlePreviewClose}
@@ -629,6 +631,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   focusedToken={previewingToken}
                   pathToSet={pathToSet}
                   onClearFocus={() => setPreviewingToken(null)}
+                  lintViolations={p.lintViolations}
+                  syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                   onEditToken={(path, name, set) => {
                     p.setShowPreviewSplit(false);
                     setEditingToken({ path, name, set: set ?? activeSet });

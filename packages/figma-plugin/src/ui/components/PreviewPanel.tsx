@@ -3,6 +3,7 @@ import { useCallback, useDeferredValue, useMemo, useState, useTransition } from 
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenGenerator } from '../hooks/useGenerators';
+import type { LintViolation } from '../hooks/useLint';
 import { TokenDetailPreview } from './TokenDetailPreview';
 import { Spinner } from './Spinner';
 
@@ -23,6 +24,8 @@ interface PreviewPanelProps {
   generators?: TokenGenerator[];
   generatorsBySource?: Map<string, TokenGenerator[]>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
+  lintViolations?: LintViolation[];
+  syncSnapshot?: Record<string, string>;
 }
 
 type Template = 'colors' | 'type-scale' | 'buttons' | 'forms' | 'card' | 'effects';
@@ -218,7 +221,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, generators, generatorsBySource, derivedTokenPaths }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, generators, generatorsBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -422,6 +425,8 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
           generators={generators}
           generatorsBySource={generatorsBySource}
           derivedTokenPaths={derivedTokenPaths}
+          lintViolations={lintViolations?.filter(violation => violation.path === focusedToken.path)}
+          syncSnapshot={syncSnapshot}
           serverUrl={serverUrl}
           onEdit={() => onEditToken?.(focusedToken.path, focusedToken.name, focusedToken.set)}
           onClose={onClearFocus ?? (() => {})}

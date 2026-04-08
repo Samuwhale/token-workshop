@@ -2460,6 +2460,8 @@ export function App() {
                 tokenUsageCounts={tokenUsageCounts}
                 generatorsBySource={generatorsBySource}
                 derivedTokenPaths={derivedTokenPaths}
+                lintViolations={lintViolations.filter(violation => violation.path === previewingToken.path)}
+                syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                 serverUrl={serverUrl}
                 onEdit={handlePreviewEdit}
                 onClose={handlePreviewClose}
