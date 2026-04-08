@@ -301,3 +301,11 @@
   - When a plugin header mixes section tabs and status pills, prefer a single horizontal overflow rail over `flex-wrap`; scroll preserves hierarchy better than stacked chrome rows.
   - Utility/admin surfaces can stay behind one global trigger as long as the active workspace remains visually dominant and the summary strip carries the per-workspace context.
 ---
+## 2026-04-08 - [HIGH] Rebuild the default Tokens workspace header and toolbar around the primary library flow only: set selection, search, theme mode, and token creation remain visible by default, while sorting, compare, batch selection, issue filtering, and other power features move behind one View Options / More Actions entry
+- Removed the always-on Tokens workspace header toggles, passed preview-split state into the token list, and rebuilt the library toolbar around one visible search field plus a single `View options` entry that now owns sort, preview/layout toggles, compare/batch-select entry, issue filtering, structured filters, presets, and advanced token actions.
+- Kept the active state discoverable without restoring the clutter by showing compact chips only when a hidden view/filter option is active, so the default Tokens surface now reads as set switcher + theme mode + search + create token.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L80, ~L2361, ~L2784; `packages/figma-plugin/src/ui/App.tsx` ~L982, ~L1609; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L306, ~L505; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L157
+- **Learnings for future iterations:**
+  - If a workspace needs many expert toggles, collapse them behind one clearly named overflow entry and leave the default row dedicated to the primary authoring path.
+  - When a hidden advanced control affects panel layout state, thread that state through the feature surface that owns the new overflow entry instead of keeping a second always-visible control in the shared shell.
+---

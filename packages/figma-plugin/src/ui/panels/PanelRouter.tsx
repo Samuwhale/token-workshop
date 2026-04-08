@@ -303,6 +303,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onOpenCrossThemeCompare: p.handleOpenCrossThemeCompare,
     onOpenCommandPaletteWithQuery: p.openCommandPaletteWithQuery,
     onOpenStartHere: p.onOpenStartHere,
+    onTogglePreviewSplit: () => p.setShowPreviewSplit(v => !v),
     onTokenDragStart: p.onTokenDragStart,
     onTokenDragEnd: p.onTokenDragEnd,
   };
@@ -501,6 +502,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   defaultCreateOpen={createFromEmpty}
                   highlightedToken={editingToken?.path ?? previewingToken?.path ?? highlightedToken}
                   showIssuesOnly={p.showIssuesOnly}
+                  showPreviewSplit={p.showPreviewSplit}
                   editingTokenPath={editingToken?.path}
                   compareHandle={p.tokenListCompareRef}
                 />
@@ -557,6 +559,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               defaultCreateOpen={createFromEmpty}
               highlightedToken={highlightedToken}
               showIssuesOnly={p.showIssuesOnly}
+              showPreviewSplit={p.showPreviewSplit}
               editingTokenPath={editingToken?.path}
               compareHandle={p.tokenListCompareRef}
             />
@@ -574,6 +577,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                 defaultCreateOpen={createFromEmpty}
                 highlightedToken={previewingToken?.path ?? highlightedToken}
                 showIssuesOnly={p.showIssuesOnly}
+                showPreviewSplit={p.showPreviewSplit}
                 editingTokenPath={editingToken?.path}
                 compareHandle={p.tokenListCompareRef}
               />

@@ -979,51 +979,7 @@ export function App() {
     setShowQuickApply,
   ]);
 
-  const workspaceContextualControls = useMemo(() => {
-    if (!(overflowPanel === null && activeWorkspace.id === 'tokens' && activeWorkspaceSection?.id === 'tokens')) return null;
-
-    return (
-      <div className="flex items-center justify-end gap-1.5 px-3 py-2">
-        <button
-          onClick={() => setShowIssuesOnly(v => !v)}
-          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
-            showIssuesOnly
-              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
-              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
-          }`}
-          aria-pressed={showIssuesOnly}
-        >
-          Issues only
-          {lintViolations.length > 0 && (
-            <span className={`rounded-full px-1.5 py-0.5 text-[9px] leading-none ${showIssuesOnly ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'}`}>
-              {lintViolations.length > 99 ? '99+' : lintViolations.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
-          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
-            showPreviewSplit
-              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
-              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
-          }`}
-          aria-pressed={showPreviewSplit}
-        >
-          {showPreviewSplit ? 'Hide preview' : 'Show preview'}
-        </button>
-      </div>
-    );
-  }, [
-    activeWorkspace.id,
-    activeWorkspaceSection?.id,
-    lintViolations.length,
-    overflowPanel,
-    setOverflowPanel,
-    setShowIssuesOnly,
-    setShowPreviewSplit,
-    showIssuesOnly,
-    showPreviewSplit,
-  ]);
+  const workspaceContextualControls = null;
 
   const handleSecondaryAction = useCallback((actionId: SecondaryActionId) => {
     setMenuOpen(false);

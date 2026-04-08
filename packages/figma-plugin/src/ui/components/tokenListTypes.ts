@@ -154,6 +154,7 @@ export interface TokenListActions {
   onTokenDragEnd?: () => void;
   /** Open the unified start-here flow from token-level empty states */
   onOpenStartHere?: (branch?: StartHereBranch) => void;
+  onTogglePreviewSplit?: () => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */
@@ -184,6 +185,7 @@ export interface TokenListProps {
   defaultCreateOpen?: boolean;
   highlightedToken?: string | null;
   showIssuesOnly?: boolean;
+  showPreviewSplit?: boolean;
   /** Path of the token currently open in the editor — enables Cmd+]/[ navigation shortcuts */
   editingTokenPath?: string | null;
   /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */

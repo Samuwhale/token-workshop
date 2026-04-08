@@ -32,7 +32,6 @@ import { TokenListModals } from './TokenListModals';
 import { TokenListModalsProvider } from './TokenListModalsContext';
 import type { TokenListModalsState } from './TokenListModalsContext';
 import { useExtractToAlias } from '../hooks/useExtractToAlias';
-import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { matchesShortcut } from '../shared/shortcutRegistry';
 import { useTokenCreate } from '../hooks/useTokenCreate';
 import { useTableCreate } from '../hooks/useTableCreate';
@@ -78,11 +77,12 @@ function dispatchTokenListViewChanged(setName: string): void {
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, generatorsByTargetGroup, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onToggleStar, starredPaths, onError, onViewTokenHistory, onEditGenerator, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd, onOpenStartHere },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onToggleStar, starredPaths, onError, onViewTokenHistory, onEditGenerator, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd, onOpenStartHere, onTogglePreviewSplit },
   recentlyTouched,
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
+  showPreviewSplit = false,
   editingTokenPath,
   compareHandle,
 }: TokenListProps) {
@@ -169,9 +169,8 @@ export function TokenList({
   );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
-  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
-  const moreFiltersRef = useRef<HTMLDivElement>(null);
-  const filterMenuRef = useRef<HTMLDivElement>(null);
+  const [viewOptionsOpen, setViewOptionsOpen] = useState(false);
+  const viewOptionsRef = useRef<HTMLDivElement>(null);
   // createFormRef is managed by useTokenCreate hook
   const virtualListRef = useRef<HTMLDivElement>(null);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
@@ -212,29 +211,22 @@ export function TokenList({
   // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
 
   useEffect(() => {
-    if (!moreFiltersOpen) return;
-    // Auto-focus first menu item when the menu opens
-    const frame = requestAnimationFrame(() => {
-      if (filterMenuRef.current) getMenuItems(filterMenuRef.current)[0]?.focus();
-    });
+    if (!viewOptionsOpen) return;
     const onMouseDown = (e: MouseEvent) => {
-      if (moreFiltersRef.current && !moreFiltersRef.current.contains(e.target as Node)) {
-        setMoreFiltersOpen(false);
+      if (viewOptionsRef.current && !viewOptionsRef.current.contains(e.target as Node)) {
+        setViewOptionsOpen(false);
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (!filterMenuRef.current) return;
-      if (e.key === 'Escape') { setMoreFiltersOpen(false); return; }
-      handleMenuArrowKeys(e, filterMenuRef.current);
+      if (e.key === 'Escape') setViewOptionsOpen(false);
     };
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('keydown', onKey);
     return () => {
-      cancelAnimationFrame(frame);
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [moreFiltersOpen]);
+  }, [viewOptionsOpen]);
 
   // Sort order — persisted in localStorage per-set so each set remembers its own order
   const [sortOrder, setSortOrderState] = useState<SortOrder>('default');
@@ -805,23 +797,18 @@ export function TokenList({
     showDuplicates,
     crossSetSearch, setCrossSetSearch,
     filterPresets,
-    showPresetDropdown, setShowPresetDropdown,
     presetNameInput, setPresetNameInput,
-    presetDropdownRef,
     saveFilterPreset,
     deleteFilterPreset,
     applyFilterPreset,
     showQualifierHints, setShowQualifierHints,
     hintIndex, setHintIndex,
-    filterDrawerOpen, setFilterDrawerOpen,
-    filterPanelOpen, setFilterPanelOpen,
     crossSetResults,
     crossSetTotal,
     crossSetOffset: _crossSetOffset, setCrossSetOffset,
     CROSS_SET_PAGE_SIZE,
     searchRef,
     qualifierHintsRef,
-    filterPanelRef,
     crossSetAbortRef: _crossSetAbortRef,
     saveScrollAnchor: _saveScrollAnchor,
     setSearchQuery,
@@ -847,23 +834,24 @@ export function TokenList({
     displayedLeafNodes,
   } = tokenSearch;
 
-  useEffect(() => {
-    if (!filterPanelOpen) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target as Node)) {
-        setFilterPanelOpen(false);
-      }
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFilterPanelOpen(false);
-    };
-    document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [filterPanelOpen, filterPanelRef, setFilterPanelOpen]);
+  const viewOptionsActiveCount = useMemo(() => {
+    let count = activeFilterCount;
+    if (sortOrder !== 'default') count += 1;
+    if (inspectMode) count += 1;
+    if (crossSetSearch) count += 1;
+    if (multiModeEnabled) count += 1;
+    if (condensedView) count += 1;
+    if (showPreviewSplit) count += 1;
+    return count;
+  }, [
+    activeFilterCount,
+    condensedView,
+    crossSetSearch,
+    inspectMode,
+    multiModeEnabled,
+    showPreviewSplit,
+    sortOrder,
+  ]);
 
   // Sync displayedLeafNodesRef
   displayedLeafNodesRef.current = displayedLeafNodes;
@@ -2370,378 +2358,273 @@ export function TokenList({
           </div>
         )}
 
-        {/* Unified toolbar — view modes, search, filters, and actions in one compact bar */}
+        {/* Search-first library toolbar with advanced controls collapsed behind one entry */}
         {tokens.length > 0 && !selectMode && viewMode === 'tree' && (
           <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            {/* Row 1: Tree controls + actions */}
-            <div className="flex items-center gap-0.5 px-2 py-1">
-              {/* Expand/Collapse (tree view only) */}
-              {viewMode === 'tree' && tokens.some(n => n.isGroup) && (
-                <>
+            <div className="flex items-center gap-2 px-2 py-2">
+              <div className="relative min-w-0 flex-1">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                  <circle cx="4" cy="4" r="3"/>
+                  <path d="M6.5 6.5L9 9" strokeLinecap="round"/>
+                </svg>
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    setHintIndex(0);
+                  }}
+                  onFocus={() => { setShowQualifierHints(true); }}
+                  onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      if (searchQuery) { setSearchQuery(''); setHintIndex(0); }
+                      searchRef.current?.blur();
+                      return;
+                    }
+                    if (!showQualifierHints || qualifierHints.length === 0) return;
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
+                    else if (e.key === 'ArrowUp') { e.preventDefault(); setHintIndex(i => Math.max(i - 1, 0)); }
+                    else if (e.key === 'Tab' || (e.key === 'Enter' && qualifierHints.length > 0)) {
+                      const hint = qualifierHints[hintIndex];
+                      if (!hint?.replacement) return;
+                      e.preventDefault();
+                      setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
+                      setHintIndex(0);
+                    }
+                  }}
+                  placeholder="Search tokens"
+                  title={searchTooltip}
+                  className={`w-full rounded border bg-[var(--color-figma-bg)] py-1.5 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery ? 'pr-6' : 'pr-2'} ${structuredFilterChips.length > 0 ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                />
+                {searchQuery && (
                   <button
-                    onClick={handleExpandAll}
-                    title="Expand all groups"
-                    aria-label="Expand all groups"
-                    className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                      <path d="M2 3.5l3 3 3-3"/>
-                      <path d="M2 6.5l3 3 3-3"/>
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleCollapseAll}
-                    title="Collapse all groups"
-                    aria-label="Collapse all groups"
-                    className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                      <path d="M2 6.5l3-3 3 3"/>
-                      <path d="M2 3.5l3-3 3 3"/>
-                    </svg>
-                  </button>
-                </>
-              )}
-
-              {/* Density toggle */}
-              {viewMode === 'tree' && (
-                <>
-                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
-                  <button
-                    onClick={() => {
-                      const cycle: Density[] = ['compact', 'comfortable'];
-                      setDensity(cycle[(cycle.indexOf(density) + 1) % cycle.length]);
-                    }}
-                    title={`Row density: ${density === 'comfortable' ? 'comfortable' : 'compact'} — click to cycle`}
-                    aria-label={`Row density: ${density === 'comfortable' ? 'comfortable' : 'compact'}`}
-                    className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-                      {density === 'compact' ? (
-                        <>
-                          <line x1="1" y1="1.5" x2="9" y2="1.5" />
-                          <line x1="1" y1="3.5" x2="9" y2="3.5" />
-                          <line x1="1" y1="5.5" x2="9" y2="5.5" />
-                          <line x1="1" y1="7.5" x2="9" y2="7.5" />
-                        </>
-                      ) : (
-                        <>
-                          <line x1="1" y1="1" x2="9" y2="1" />
-                          <line x1="1" y1="3.7" x2="9" y2="3.7" />
-                          <line x1="1" y1="6.3" x2="9" y2="6.3" />
-                          <line x1="1" y1="9" x2="9" y2="9" />
-                        </>
-                      )}
-                    </svg>
-                  </button>
-                </>
-              )}
-
-              {/* Multi-mode toggle — show per-theme columns */}
-              {dimensions.length > 0 && viewMode === 'tree' && (
-                <>
-                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
-                  <button
-                    onClick={toggleMultiMode}
-                    title={multiModeEnabled ? 'Hide mode columns' : 'Show values per theme mode side-by-side'}
-                    aria-pressed={multiModeEnabled}
-                    className={`px-1.5 py-1 rounded text-[10px] transition-colors flex items-center gap-0.5 ${multiModeEnabled ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    onClick={() => { setSearchQuery(''); setHintIndex(0); searchRef.current?.focus(); }}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                    title="Clear search"
+                    aria-label="Clear search"
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="3" y="3" width="7" height="18" rx="1" />
-                      <rect x="14" y="3" width="7" height="18" rx="1" />
-                    </svg>
-                    Modes
-                  </button>
-                  {multiModeEnabled && dimensions.length > 1 && (
-                    <select
-                      value={multiModeDimId ?? ''}
-                      onChange={e => setMultiModeDimId(e.target.value)}
-                      className="text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] outline-none"
-                    >
-                      {dimensions.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </>
-              )}
-
-              {/* Condensed view toggle — caps indent at CONDENSED_MAX_DEPTH levels for deeply nested trees */}
-              {viewMode === 'tree' && (
-                <>
-                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
-                  <button
-                    onClick={() => setCondensedView(!condensedView)}
-                    title={condensedView ? 'Condensed view: on — indentation capped at 3 levels. Click to restore full indentation.' : 'Condense deep nesting — caps indentation at 3 levels and shows ancestor path inline. Useful when tokens are nested 5+ levels deep.'}
-                    aria-pressed={condensedView}
-                    className={`px-1.5 py-1 rounded text-[10px] transition-colors flex items-center gap-0.5 ${condensedView ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
-                      <line x1="4" y1="2" x2="9" y2="2" />
-                      <line x1="4" y1="5" x2="9" y2="5" />
-                      <line x1="4" y1="8" x2="9" y2="8" />
-                      <polyline points="1,3.5 2.5,2 1,0.5" />
-                    </svg>
-                    Condense
-                  </button>
-                </>
-              )}
-
-              {/* Compare button — enters multi-select mode to compare tokens */}
-              {viewMode === 'tree' && (
-                <>
-                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
-                  <button
-                    onClick={() => { setSelectMode(true); setShowBatchEditor(false); }}
-                    title="Compare tokens — enter select mode to compare two or more tokens side-by-side"
-                    aria-label="Compare tokens"
-                    className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/>
-                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                      <line x1="12" y1="3" x2="12" y2="21"/>
+                      <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                   </button>
-                </>
-              )}
-
-              {/* Spacer */}
-              <div className="flex-1" />
-
-              {/* Sync changed indicator */}
-              {syncSnapshot && syncChangedCount > 0 && (
-                <span
-                  title="Tokens edited locally since the last sync"
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-warning)] mr-0.5"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] shrink-0" />
-                  {syncChangedCount}
-                </span>
-              )}
-
-              {/* Lint issue count badge */}
-              {lintViolations.length > 0 && (
-                <button
-                  onClick={onToggleIssuesOnly}
-                  title={`${lintViolations.length} lint issue${lintViolations.length !== 1 ? 's' : ''} — click to filter`}
-                  aria-label={`${lintViolations.length} lint issue${lintViolations.length !== 1 ? 's' : ''}`}
-                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showIssuesOnly ? 'bg-[var(--color-figma-error)] text-white' : 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 hover:bg-[var(--color-figma-error)]/20'}`}
-                >
-                  <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
-                    <path d="M5 1L0.5 9h9L5 1zM5 3.5v2.5M5 7.5v.5"/>
-                  </svg>
-                  {lintViolations.length}
-                </button>
-              )}
-
-              {/* Sort */}
-              <select
-                value={sortOrder}
-                onChange={e => setSortOrder(e.target.value as SortOrder)}
-                aria-label="Sort order"
-                className={`text-[10px] bg-transparent border-none outline-none cursor-pointer shrink-0 ${sortOrder !== 'default' ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-              >
-                <option value="default">Sort</option>
-                <option value="alpha-asc">A → Z</option>
-                <option value="by-type">By type</option>
-              </select>
-
-              {/* Recently touched filter */}
-              {recentlyTouched.count > 0 && (
-                <button
-                  onClick={() => setShowRecentlyTouched(v => !v)}
-                  title={showRecentlyTouched ? 'Show all tokens' : `Show ${recentlyTouched.count} recently touched token${recentlyTouched.count !== 1 ? 's' : ''}`}
-                  aria-label={showRecentlyTouched ? 'Show all tokens' : 'Show recently touched tokens'}
-                  aria-pressed={showRecentlyTouched}
-                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showRecentlyTouched ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-                    <circle cx="5" cy="5" r="4" />
-                    <path d="M5 3v2.5l1.5 1" />
-                  </svg>
-                  <span>Recent</span>
-                  <span className={`min-w-[14px] rounded-full px-1 text-[8px] leading-3 ${showRecentlyTouched ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
-                    {recentlyTouched.count}
-                  </span>
-                </button>
-              )}
-
-              {/* Selection filter */}
-              <button
-                onClick={() => setInspectMode(v => !v)}
-                title={inspectMode ? 'Show all tokens' : 'Show only tokens bound to selection'}
-                aria-label={inspectMode ? 'Show all tokens' : 'Show only tokens bound to selection'}
-                aria-pressed={inspectMode}
-                className={`p-1 rounded transition-colors ${inspectMode ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/15' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
-              >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-                  <rect x="1" y="1" width="8" height="8" rx="1" />
-                  <path d="M3.5 5l1.5 1.5 2-2.5"/>
-                </svg>
-              </button>
-
-              {/* Multi-select toggle */}
-              <button
-                onClick={() => setSelectMode(true)}
-                title="Select multiple tokens (M)"
-                aria-label="Select multiple tokens"
-                className="flex items-center gap-1 px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-              >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-                  <rect x="0.5" y="0.5" width="4" height="3.5" rx="0.5"/>
-                  <path d="M1.5 2.25l0.8 0.8 1.5-1.5"/>
-                  <rect x="0.5" y="5.5" width="4" height="3.5" rx="0.5"/>
-                  <path d="M1.5 7.25l0.8 0.8 1.5-1.5"/>
-                  <line x1="6.5" y1="2.25" x2="9.5" y2="2.25"/>
-                  <line x1="6.5" y1="7.25" x2="9.5" y2="7.25"/>
-                </svg>
-                Select
-              </button>
-
-              {/* More actions menu */}
-              <div className="relative shrink-0" ref={moreFiltersRef}>
-                <button
-                  title="More actions"
-                  aria-label="More actions"
-                  aria-haspopup="menu"
-                  aria-expanded={moreFiltersOpen}
-                  onClick={() => setMoreFiltersOpen(v => !v)}
-                  className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
-                    <circle cx="2" cy="5" r="1"/>
-                    <circle cx="5" cy="5" r="1"/>
-                    <circle cx="8" cy="5" r="1"/>
-                  </svg>
-                </button>
-                {moreFiltersOpen && (
-                  <div ref={filterMenuRef} role="menu" className="absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex flex-col py-1 min-w-[160px]">
-                    <button role="menuitem" tabIndex={-1} onClick={() => { onOpenStartHere?.('template-library'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Foundation templates…</button>
-                    <button role="menuitem" tabIndex={-1} onClick={() => { setShowFindReplace(true); setMoreFiltersOpen(false); }} disabled={!connected} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Find &amp; Replace…</button>
-                    <div className="border-t border-[var(--color-figma-border)] my-1" />
-                    <button role="menuitem" tabIndex={-1} onClick={() => { setMoreFiltersOpen(false); handleApplyVariables(); }} disabled={applying || varDiffLoading || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">{varDiffLoading ? 'Comparing…' : 'Apply as Variables'}</button>
-                    <button role="menuitem" tabIndex={-1} onClick={() => { handleApplyStyles(); setMoreFiltersOpen(false); }} disabled={applying || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Apply as Styles</button>
-                    <div className="border-t border-[var(--color-figma-border)] my-1" />
-                    {refFilter === 'all' && (
-                      <>
-                        <button role="menuitem" tabIndex={-1} onClick={() => { setRefFilter('aliases'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show references only</button>
-                        <button role="menuitem" tabIndex={-1} onClick={() => { setRefFilter('direct'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show direct values only</button>
-                      </>
-                    )}
-                    {!showDuplicates && (
-                      <button role="menuitem" tabIndex={-1} onClick={() => { setShowDuplicates(true); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show duplicates</button>
-                    )}
+                )}
+                {showQualifierHints && activeQueryToken.token.includes(':') && qualifierHints.length > 0 && (
+                  <div ref={qualifierHintsRef} className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg">
+                    {qualifierHints.map((hint, i) => (
+                      <button
+                        key={hint.id}
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => {
+                          if (!hint.replacement) return;
+                          setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
+                          setHintIndex(0);
+                          searchRef.current?.focus();
+                        }}
+                        className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[10px] ${i === hintIndex ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'} ${hint.replacement ? '' : 'cursor-default'}`}
+                      >
+                        <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.label}</span>
+                        <span className="truncate">{hint.desc}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Row 2: Search + active filters (only in non-json views) */}
-            {viewMode !== 'json' && (<>
-              <div className="flex items-center gap-1 px-2 pb-1">
-                <div className="flex-1 min-w-0 relative">
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
-                    <circle cx="4" cy="4" r="3"/>
-                    <path d="M6.5 6.5L9 9" strokeLinecap="round"/>
+              <div className="relative shrink-0" ref={viewOptionsRef}>
+                <button
+                  onClick={() => setViewOptionsOpen(v => !v)}
+                  aria-expanded={viewOptionsOpen}
+                  aria-haspopup="dialog"
+                  className={`inline-flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${viewOptionsOpen ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'}`}
+                  title="View options and advanced actions"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="4" y1="21" x2="4" y2="14" />
+                    <line x1="4" y1="10" x2="4" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12" y2="3" />
+                    <line x1="20" y1="21" x2="20" y2="16" />
+                    <line x1="20" y1="12" x2="20" y2="3" />
+                    <line x1="1" y1="14" x2="7" y2="14" />
+                    <line x1="9" y1="8" x2="15" y2="8" />
+                    <line x1="17" y1="16" x2="23" y2="16" />
                   </svg>
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={e => {
-                      setSearchQuery(e.target.value);
-                      setHintIndex(0);
-                    }}
-                    onFocus={() => { setShowQualifierHints(true); }}
-                    onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); }}
-                    onKeyDown={e => {
-                      if (e.key === 'Escape') {
-                        e.preventDefault();
-                        if (searchQuery) { setSearchQuery(''); setHintIndex(0); }
-                        searchRef.current?.blur();
-                        return;
-                      }
-                      if (!showQualifierHints || qualifierHints.length === 0) return;
-                      if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
-                      else if (e.key === 'ArrowUp') { e.preventDefault(); setHintIndex(i => Math.max(i - 1, 0)); }
-                      else if (e.key === 'Tab' || (e.key === 'Enter' && qualifierHints.length > 0)) {
-                        const hint = qualifierHints[hintIndex];
-                        if (!hint?.replacement) return;
-                        e.preventDefault();
-                        setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
-                        setHintIndex(0);
-                      }
-                    }}
-                    placeholder="Search… (type: has: value:)"
-                    title={searchTooltip}
-                    className={`w-full pl-6 ${searchQuery ? 'pr-6' : 'pr-2'} py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${structuredFilterChips.length > 0 ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => { setSearchQuery(''); setHintIndex(0); searchRef.current?.focus(); }}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-                      title="Clear search"
-                      aria-label="Clear search"
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M18 6L6 18M6 6l12 12" />
-                      </svg>
-                    </button>
+                  <span>View options</span>
+                  {viewOptionsActiveCount > 0 && (
+                    <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
+                      {viewOptionsActiveCount}
+                    </span>
                   )}
-                  {/* Qualifier autocomplete hints */}
-                  {showQualifierHints && activeQueryToken.token.includes(':') && qualifierHints.length > 0 && (
-                    <div ref={qualifierHintsRef} className="absolute left-0 top-full mt-0.5 w-full z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-                      {qualifierHints.map((hint, i) => (
-                        <button
-                          key={hint.id}
-                          onMouseDown={e => e.preventDefault()}
-                          onClick={() => {
-                            if (!hint.replacement) return;
-                            setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
-                            setHintIndex(0);
-                            searchRef.current?.focus();
-                          }}
-                          className={`w-full text-left px-2 py-1 text-[10px] flex items-center gap-2 ${i === hintIndex ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'} ${hint.replacement ? '' : 'cursor-default'}`}
-                        >
-                          <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.label}</span>
-                          <span className="truncate">{hint.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="relative shrink-0" ref={filterPanelRef}>
-                  <button
-                    onClick={() => setFilterPanelOpen(v => !v)}
-                    title="Structured filters"
-                    aria-label="Structured filters"
-                    aria-expanded={filterPanelOpen}
-                    className={`flex items-center justify-center w-5 h-5 rounded border text-[10px] cursor-pointer transition-colors ${filterPanelOpen || selectedTypeQualifiers.length > 0 || selectedHasQualifiers.length > 0 ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-tertiary)]'}`}
-                  >
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
-                    </svg>
-                  </button>
-                  {filterPanelOpen && (
-                    <div className="absolute right-0 top-full mt-1 w-64 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
-                      <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)]">
-                        <div className="text-[10px] font-semibold text-[var(--color-figma-text)]">Structured filters</div>
-                        <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">Selecting options writes `type:` and `has:` into the search field.</div>
+                </button>
+
+                {viewOptionsOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-[320px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+                    <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+                      <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Library options</div>
+                      <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        Keep the main library flow focused on sets, theme mode, search, and creation. Advanced controls live here.
                       </div>
-                      <div className="px-2 py-2 flex flex-col gap-3 max-h-72 overflow-y-auto">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Token types</span>
-                            {selectedTypeQualifiers.length > 0 && (
+                    </div>
+
+                    <div className="max-h-[420px] space-y-4 overflow-y-auto p-3">
+                      <section className="space-y-2">
+                        <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">View</div>
+                        {tokens.some(n => n.isGroup) && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleExpandAll}
+                              className="flex-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                            >
+                              Expand all
+                            </button>
+                            <button
+                              onClick={handleCollapseAll}
+                              className="flex-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                            >
+                              Collapse all
+                            </button>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              const cycle: Density[] = ['compact', 'comfortable'];
+                              setDensity(cycle[(cycle.indexOf(density) + 1) % cycle.length]);
+                            }}
+                            className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${density === 'compact' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                          >
+                            Density: {density === 'compact' ? 'Compact' : 'Comfortable'}
+                          </button>
+                          <button
+                            onClick={() => setCondensedView(v => !v)}
+                            className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${condensedView ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                          >
+                            {condensedView ? 'Condensed on' : 'Condense deep groups'}
+                          </button>
+                        </div>
+                        {dimensions.length > 0 && (
+                          <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">Mode columns</div>
+                                <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">Compare resolved values across theme options inline.</div>
+                              </div>
                               <button
-                                onClick={() => setSearchQuery(structuredFilterChips.length > 0 ? searchQuery.replace(/\btype:\S+/gi, '').replace(/\s+/g, ' ').trim() : searchQuery)}
-                                className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                                onClick={toggleMultiMode}
+                                className={`rounded-full px-2 py-1 text-[10px] font-medium transition-colors ${multiModeEnabled ? 'bg-[var(--color-figma-accent)] text-white' : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
                               >
-                                Clear
+                                {multiModeEnabled ? 'On' : 'Off'}
                               </button>
+                            </div>
+                            {multiModeEnabled && dimensions.length > 1 && (
+                              <label className="flex flex-col gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                Dimension
+                                <select
+                                  value={multiModeDimId ?? ''}
+                                  onChange={e => setMultiModeDimId(e.target.value)}
+                                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none"
+                                >
+                                  {dimensions.map(d => (
+                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                  ))}
+                                </select>
+                              </label>
                             )}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => {
+                            onTogglePreviewSplit?.();
+                            setViewOptionsOpen(false);
+                          }}
+                          className={`w-full rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showPreviewSplit ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                        >
+                          {showPreviewSplit ? 'Hide preview split' : 'Show preview split'}
+                        </button>
+                      </section>
+
+                      <section className="space-y-2">
+                        <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Filters</div>
+                        <label className="flex flex-col gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          Sort
+                          <select
+                            value={sortOrder}
+                            onChange={e => setSortOrder(e.target.value as SortOrder)}
+                            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none"
+                          >
+                            <option value="default">Default order</option>
+                            <option value="alpha-asc">A to Z</option>
+                            <option value="by-type">Group by type</option>
+                          </select>
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {lintViolations.length > 0 && (
+                            <button
+                              onClick={() => onToggleIssuesOnly?.()}
+                              className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showIssuesOnly ? 'border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                            >
+                              Issues only ({lintViolations.length})
+                            </button>
+                          )}
+                          {recentlyTouched.count > 0 && (
+                            <button
+                              onClick={() => setShowRecentlyTouched(v => !v)}
+                              className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showRecentlyTouched ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                            >
+                              Recent ({recentlyTouched.count})
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setInspectMode(v => !v)}
+                            className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${inspectMode ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                          >
+                            Selection only
+                          </button>
+                          {sets.length > 1 && (
+                            <button
+                              onClick={() => setCrossSetSearch(v => !v)}
+                              className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${crossSetSearch ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                            >
+                              Search all sets
+                            </button>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">Values shown</div>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => setRefFilter('all')}
+                              className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${refFilter === 'all' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                            >
+                              All
+                            </button>
+                            <button
+                              onClick={() => setRefFilter('aliases')}
+                              className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${refFilter === 'aliases' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                            >
+                              References
+                            </button>
+                            <button
+                              onClick={() => setRefFilter('direct')}
+                              className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${refFilter === 'direct' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                            >
+                              Direct
+                            </button>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setShowDuplicates(v => !v)}
+                          className={`w-full rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showDuplicates ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                        >
+                          Duplicate values
+                        </button>
+                        <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                          <div>
+                            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">Structured filters</div>
+                            <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">Choose filters here and TokenManager writes the matching `type:` and `has:` clauses into search.</div>
                           </div>
                           <div className="grid grid-cols-2 gap-x-2 gap-y-1">
                             {qualifierTypeOptions.map(type => (
@@ -2756,10 +2639,7 @@ export function TokenList({
                               </label>
                             ))}
                           </div>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">has:</span>
-                          <div className="flex flex-col gap-1">
+                          <div className="space-y-1">
                             {FILTER_PANEL_HAS_OPTIONS.map(option => {
                               const qualifier = QUERY_QUALIFIERS.find(def => def.qualifier === `has:${option}`);
                               return (
@@ -2772,263 +2652,253 @@ export function TokenList({
                                   />
                                   <span className="leading-snug">
                                     <span className="font-mono text-[var(--color-figma-accent)]">has:{option}</span>
-                                    <span className="block text-[var(--color-figma-text-tertiary)]">{qualifier?.desc}</span>
+                                    <span className="block text-[9px] text-[var(--color-figma-text-tertiary)]">{qualifier?.desc}</span>
                                   </span>
                                 </label>
                               );
                             })}
                           </div>
                         </div>
-                      </div>
-                      <div className="px-2 py-1.5 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)]">
-                        Hover the search field to see the full syntax guide.
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {/* Filter presets */}
-                <div className="relative shrink-0">
-                  <button
-                    onClick={() => setShowPresetDropdown(v => !v)}
-                    onBlur={() => { setTimeout(() => setShowPresetDropdown(false), 150); }}
-                    title="Filter presets"
-                    aria-label="Filter presets"
-                    className={`flex items-center justify-center w-5 h-5 rounded border text-[10px] cursor-pointer transition-colors ${showPresetDropdown || filterPresets.length > 0 ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-tertiary)]'}`}
-                  >
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                    </svg>
-                  </button>
-                  {showPresetDropdown && (
-                    <div ref={presetDropdownRef} className="absolute right-0 top-full mt-1 w-52 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
-                      <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)]">
-                        <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Filter Presets</span>
-                      </div>
-                      {filterPresets.length === 0 ? (
-                        <div className="px-2 py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">No saved presets yet.</div>
-                      ) : (
-                        <div className="max-h-40 overflow-y-auto">
-                          {filterPresets.map(preset => (
-                            <div key={preset.id} className="flex items-center gap-1 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] group">
-                              <button
-                                onMouseDown={e => e.preventDefault()}
-                                onClick={() => applyFilterPreset(preset)}
-                                className="flex-1 min-w-0 text-left"
-                                title={`Apply: ${preset.query}`}
-                              >
-                                <div className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{preset.name}</div>
-                                <div className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)] truncate">{preset.query}</div>
-                              </button>
-                              <button
-                                onMouseDown={e => e.preventDefault()}
-                                onClick={() => deleteFilterPreset(preset.id)}
-                                title="Delete preset"
-                                aria-label={`Delete preset "${preset.name}"`}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] shrink-0"
-                              >
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M18 6L6 18M6 6l12 12"/>
-                                </svg>
-                              </button>
+                        <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                          <div>
+                            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">Filter presets</div>
+                            <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">Save the current search state for repeated library reviews.</div>
+                          </div>
+                          {filterPresets.length === 0 ? (
+                            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">No saved presets yet.</div>
+                          ) : (
+                            <div className="space-y-1">
+                              {filterPresets.map(preset => (
+                                <div key={preset.id} className="flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
+                                  <button
+                                    onClick={() => {
+                                      applyFilterPreset(preset);
+                                      setViewOptionsOpen(false);
+                                    }}
+                                    className="min-w-0 flex-1 text-left"
+                                    title={`Apply: ${preset.query}`}
+                                  >
+                                    <div className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">{preset.name}</div>
+                                    <div className="truncate font-mono text-[9px] text-[var(--color-figma-text-tertiary)]">{preset.query}</div>
+                                  </button>
+                                  <button
+                                    onClick={() => deleteFilterPreset(preset.id)}
+                                    title="Delete preset"
+                                    aria-label={`Delete preset "${preset.name}"`}
+                                    className="shrink-0 text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+                                  >
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <path d="M18 6L6 18M6 6l12 12"/>
+                                    </svg>
+                                  </button>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="px-2 py-1.5 border-t border-[var(--color-figma-border)]">
-                        <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1">
-                          {searchQuery.trim() ? 'Save current filter as preset:' : 'Enter a search query to save as preset.'}
-                        </div>
-                        {searchQuery.trim() && (
+                          )}
                           <form
-                            onSubmit={e => { e.preventDefault(); saveFilterPreset(presetNameInput); }}
+                            onSubmit={e => {
+                              e.preventDefault();
+                              saveFilterPreset(presetNameInput);
+                            }}
                             className="flex gap-1"
                           >
                             <input
                               type="text"
                               value={presetNameInput}
                               onChange={e => setPresetNameInput(e.target.value)}
-                              placeholder="Preset name…"
-                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[10px] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                              autoFocus
+                              placeholder={searchQuery.trim() ? 'Preset name…' : 'Search first to save a preset'}
+                              disabled={!searchQuery.trim()}
+                              className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none disabled:cursor-not-allowed disabled:opacity-50"
                             />
                             <button
                               type="submit"
-                              disabled={!presetNameInput.trim()}
-                              className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                              disabled={!searchQuery.trim() || !presetNameInput.trim()}
+                              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               Save
                             </button>
                           </form>
-                        )}
-                      </div>
+                        </div>
+                      </section>
+
+                      <section className="space-y-2">
+                        <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Advanced actions</div>
+                        <button
+                          onClick={() => {
+                            setSelectMode(true);
+                            setShowBatchEditor(false);
+                            setViewOptionsOpen(false);
+                          }}
+                          className="w-full rounded border border-[var(--color-figma-border)] px-2 py-1 text-left text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                        >
+                          Select, compare, or batch edit tokens
+                        </button>
+                        <button
+                          onClick={() => {
+                            onOpenStartHere?.('template-library');
+                            setViewOptionsOpen(false);
+                          }}
+                          className="w-full rounded border border-[var(--color-figma-border)] px-2 py-1 text-left text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                        >
+                          Foundation templates…
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowFindReplace(true);
+                            setViewOptionsOpen(false);
+                          }}
+                          disabled={!connected}
+                          className="w-full rounded border border-[var(--color-figma-border)] px-2 py-1 text-left text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Find &amp; Replace…
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              handleApplyVariables();
+                              setViewOptionsOpen(false);
+                            }}
+                            disabled={applying || varDiffLoading || tokens.length === 0}
+                            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {varDiffLoading ? 'Comparing…' : 'Apply as Variables'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleApplyStyles();
+                              setViewOptionsOpen(false);
+                            }}
+                            disabled={applying || tokens.length === 0}
+                            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Apply as Styles
+                          </button>
+                        </div>
+                      </section>
                     </div>
-                  )}
-                </div>
-                {/* Cross-set search toggle (only with multiple sets) */}
-                {sets.length > 1 && (
-                  <button
-                    onClick={() => setCrossSetSearch(v => !v)}
-                    title={crossSetSearch ? 'Search current set only' : 'Search across all sets'}
-                    className={`shrink-0 px-1.5 py-1 rounded border text-[10px] outline-none cursor-pointer transition-colors ${crossSetSearch ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}
-                  >
-                    All sets
-                  </button>
-                )}
-                {/* Compact filter indicator — when ≥2 non-search filters active, collapse pills into a single badge */}
-                {activeFilterCount >= 2 ? (
-                  <>
-                    <button
-                      onClick={() => setFilterDrawerOpen(v => !v)}
-                      title={filterDrawerOpen ? 'Hide active filters' : 'Show active filters'}
-                      aria-label={`${activeFilterCount} filters active, click to ${filterDrawerOpen ? 'hide' : 'show'} details`}
-                      aria-expanded={filterDrawerOpen}
-                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 flex items-center gap-1"
-                    >
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-                        <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
-                      </svg>
-                      Filters ({activeFilterCount})
-                    </button>
-                    <button
-                      onClick={() => { clearFilters(); setFilterDrawerOpen(false); }}
-                      title="Clear all filters"
-                      aria-label="Clear all filters"
-                      className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] shrink-0"
-                    >
-                      <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
-                        <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {/* Single filter pills shown inline when ≤1 active */}
-                    {refFilter !== 'all' && (
-                      <button
-                        onClick={() => setRefFilter('all')}
-                        title="Clear reference filter"
-                        aria-label="Clear reference filter"
-                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                      >
-                        {refFilter === 'aliases' ? 'Refs' : 'Direct'} ✕
-                      </button>
-                    )}
-                    {showDuplicates && (
-                      <button
-                        onClick={() => setShowDuplicates(false)}
-                        title="Clear duplicate filter"
-                        aria-label="Clear duplicate filter"
-                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                      >
-                        Dups ✕
-                      </button>
-                    )}
-                    {showIssuesOnly && (
-                      <button
-                        onClick={onToggleIssuesOnly}
-                        title="Clear issues filter"
-                        aria-label="Clear issues filter"
-                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
-                      >
-                        Issues ✕
-                      </button>
-                    )}
-                    {showRecentlyTouched && (
-                      <button
-                        onClick={() => setShowRecentlyTouched(false)}
-                        title="Clear recently touched filter"
-                        aria-label="Clear recently touched filter"
-                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                      >
-                        Recent ✕
-                      </button>
-                    )}
-                    {typeFilter !== '' && (
-                      <button
-                        onClick={() => setTypeFilter('')}
-                        title="Clear type filter"
-                        aria-label={`Clear ${typeFilter} type filter`}
-                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                      >
-                        {typeFilter} ✕
-                      </button>
-                    )}
-                  </>
+                  </div>
                 )}
               </div>
-              {/* Expandable filter drawer — shows individual pills when compact indicator is clicked */}
-              {activeFilterCount >= 2 && filterDrawerOpen && (
-                <div className="flex items-center gap-1 px-2 pb-1 flex-wrap">
-                  {typeFilter !== '' && (
-                    <button
-                      onClick={() => setTypeFilter('')}
-                      title="Clear type filter"
-                      aria-label={`Clear ${typeFilter} type filter`}
-                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                    >
-                      Type: {typeFilter} ✕
-                    </button>
-                  )}
-                  {refFilter !== 'all' && (
-                    <button
-                      onClick={() => setRefFilter('all')}
-                      title="Clear reference filter"
-                      aria-label="Clear reference filter"
-                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                    >
-                      {refFilter === 'aliases' ? 'Refs' : 'Direct'} ✕
-                    </button>
-                  )}
-                  {showDuplicates && (
-                    <button
-                      onClick={() => setShowDuplicates(false)}
-                      title="Clear duplicate filter"
-                      aria-label="Clear duplicate filter"
-                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                    >
-                      Dups ✕
-                    </button>
-                  )}
-                  {showIssuesOnly && (
-                    <button
-                      onClick={onToggleIssuesOnly}
-                      title="Clear issues filter"
-                      aria-label="Clear issues filter"
-                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
-                    >
-                      Issues ✕
-                    </button>
-                  )}
-                  {showRecentlyTouched && (
-                    <button
-                      onClick={() => setShowRecentlyTouched(false)}
-                      title="Clear recently touched filter"
-                      aria-label="Clear recently touched filter"
-                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                    >
-                      Recent ✕
-                    </button>
-                  )}
-                </div>
-              )}
-              {(structuredFilterChips.length > 0) && (
-                <div className="flex items-center gap-1 px-2 pb-1 flex-wrap">
-                  {structuredFilterChips.map(chip => (
-                    <button
-                      key={chip.token}
-                      onMouseDown={e => {
-                        e.preventDefault();
-                        removeQueryToken(chip.token);
-                        searchRef.current?.focus();
-                      }}
-                      className="px-1.5 py-0.5 rounded text-[9px] font-mono whitespace-nowrap transition-colors border border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5"
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>)}
+            </div>
+
+            {(sortOrder !== 'default' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || typeFilter !== '' || inspectMode || crossSetSearch || multiModeEnabled || condensedView || showPreviewSplit) && (
+              <div className="flex flex-wrap items-center gap-1 px-2 pb-2">
+                {sortOrder !== 'default' && (
+                  <button
+                    onClick={() => setSortOrder('default')}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    {sortOrder === 'alpha-asc' ? 'A to Z' : 'By type'} ✕
+                  </button>
+                )}
+                {refFilter !== 'all' && (
+                  <button
+                    onClick={() => setRefFilter('all')}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    {refFilter === 'aliases' ? 'References' : 'Direct'} ✕
+                  </button>
+                )}
+                {showDuplicates && (
+                  <button
+                    onClick={() => setShowDuplicates(false)}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    Duplicates ✕
+                  </button>
+                )}
+                {showIssuesOnly && (
+                  <button
+                    onClick={() => onToggleIssuesOnly?.()}
+                    className="rounded bg-[var(--color-figma-error)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/20"
+                  >
+                    Issues ✕
+                  </button>
+                )}
+                {showRecentlyTouched && (
+                  <button
+                    onClick={() => setShowRecentlyTouched(false)}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    Recent ✕
+                  </button>
+                )}
+                {typeFilter !== '' && (
+                  <button
+                    onClick={() => setTypeFilter('')}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    {typeFilter} ✕
+                  </button>
+                )}
+                {inspectMode && (
+                  <button
+                    onClick={() => setInspectMode(false)}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    Selection ✕
+                  </button>
+                )}
+                {crossSetSearch && (
+                  <button
+                    onClick={() => setCrossSetSearch(false)}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    All sets ✕
+                  </button>
+                )}
+                {multiModeEnabled && (
+                  <button
+                    onClick={toggleMultiMode}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    Mode columns ✕
+                  </button>
+                )}
+                {condensedView && (
+                  <button
+                    onClick={() => setCondensedView(false)}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    Condensed ✕
+                  </button>
+                )}
+                {showPreviewSplit && (
+                  <button
+                    onClick={() => onTogglePreviewSplit?.()}
+                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    Preview split ✕
+                  </button>
+                )}
+                {filtersActive && (
+                  <button
+                    onClick={clearFilters}
+                    className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            )}
+
+            {structuredFilterChips.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 px-2 pb-2">
+                {structuredFilterChips.map(chip => (
+                  <button
+                    key={chip.token}
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      removeQueryToken(chip.token);
+                      searchRef.current?.focus();
+                    }}
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 hover:text-[var(--color-figma-accent)]"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
