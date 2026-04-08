@@ -96,7 +96,7 @@
 ### UX
 
 - [x] [HIGH] Restructure the Apply workspace into a simple sequence for the target user: selection summary first, best-match suggestions second, property binding third, and advanced tools only on demand
-- [ ] [HIGH] Redesign property rows so bind, replace, remove, and create-from-value actions are consistently positioned and legible without relying on hover-only discovery or dense per-row UI
+- [x] [HIGH] Redesign property rows so bind, replace, remove, and create-from-value actions are consistently positioned and legible without relying on hover-only discovery or dense per-row UI
 - [ ] Rework the suggestion model so the “Suggested” section is easier to trust and scan: explain why a token is suggested, group the best matches, and reduce the current long undifferentiated action list
 - [ ] Simplify advanced tools inside Apply by consolidating layer search, remap, extract, selection sync, deep inspect, and filtering into one secondary tools surface with clearer status and fewer simultaneous toggles
 - [ ] Define how Apply should respond as the canvas selection changes, including empty state, multi-layer mixed state, loading state, successful binding feedback, and when to surface sync status versus hide it

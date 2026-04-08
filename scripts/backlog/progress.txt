@@ -366,3 +366,11 @@
   - If a workspace should feel linear, keep every primary stage visible in order even when one stage has no results; use an explicit empty state instead of dropping that stage from the flow.
   - When a shared shell needs to steer a child panel through sequential sections, pair shell-side workflow cards with an imperative `focusStage()` handle in the child instead of lifting the full panel state upward.
 ---
+## 2026-04-08 - [HIGH] Redesign property rows so bind, replace, remove, and create-from-value actions are consistently positioned and legible without relying on hover-only discovery or dense per-row UI
+- Rebuilt `PropertyRow` around a two-level layout with explicit state badges and a persistent action rail, replacing the old hover-only icon cluster so bind, replace, remove, create-from-value, mixed-review, and view-token actions stay in one predictable position.
+- Kept the existing inline bind/create editors intact, but made the summary row clearer for bound, mixed, and value-only states so the action rail can stay lightweight without hiding critical context.
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L56, ~L141, ~L318; `scripts/backlog/patterns.md` ~L166
+- **Learnings for future iterations:**
+  - In narrow inspector rows, put status in the summary line and move row-level actions into a second-line rail instead of forcing hover-only controls into the top row.
+  - Labeled action buttons with a minimum 24px hit area stay legible in dense plugin UIs while still reading lighter than a full toolbar.
+---

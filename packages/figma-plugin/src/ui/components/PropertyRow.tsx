@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect, type ReactNode } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
@@ -53,6 +53,46 @@ interface PropertyRowProps {
   onNewTokenNameChange: (name: string) => void;
 }
 
+const ACTION_BUTTON_BASE_CLASS =
+  'inline-flex min-h-[24px] items-center gap-1 rounded-md border px-2 py-1 text-[9px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]';
+
+const ACTION_BUTTON_TONE_CLASS = {
+  default:
+    'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-accent)]/10 hover:text-[var(--color-figma-text)]',
+  primary:
+    'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
+  danger:
+    'border-[var(--color-figma-error,#f56565)]/25 bg-[var(--color-figma-error,#f56565)]/10 text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-error,#f56565)]/20',
+} as const;
+
+interface PropertyActionButtonProps {
+  label: string;
+  title: string;
+  icon: ReactNode;
+  onClick: () => void;
+  tone?: keyof typeof ACTION_BUTTON_TONE_CLASS;
+}
+
+function PropertyActionButton({
+  label,
+  title,
+  icon,
+  onClick,
+  tone = 'default',
+}: PropertyActionButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_TONE_CLASS[tone]}`}
+    >
+      <span className="shrink-0" aria-hidden="true">{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
 export function PropertyRow({
   prop,
   rootNodes,
@@ -98,6 +138,34 @@ export function PropertyRow({
   const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && activeSet && !isThisPropActive;
   const canBind = !isBound && connected && hasAnyTokens && !isThisPropActive;
   const canChangeBind = isBound && connected && hasAnyTokens && !isThisPropActive;
+  const rowStateClass = isThisPropActive
+    ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5'
+    : isBound
+      ? 'border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
+      : 'border-transparent hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]';
+  const statusBadgeClass = bindingFromProp === prop
+    ? 'bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]'
+    : creatingFromProp === prop
+      ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
+      : lastBoundProp === prop
+        ? 'bg-[var(--color-figma-success,#18a058)]/12 text-[var(--color-figma-success,#18a058)]'
+        : isBound
+          ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+          : isMixed
+            ? 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]'
+            : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
+  const statusLabel = bindingFromProp === prop
+    ? 'Picking token'
+    : creatingFromProp === prop
+      ? 'Creating token'
+      : lastBoundProp === prop
+        ? 'Bound now'
+        : isBound
+          ? 'Bound'
+          : isMixed
+            ? 'Mixed'
+            : 'Value only';
+  const showActionRail = canBind || canChangeBind || hasExtractableValue || isBound || isMixed;
 
   // Resolve binding display
   const { resolvedDisplay, resolvedColor } = isBound
@@ -251,145 +319,148 @@ export function PropertyRow({
     <div>
       {/* Property row */}
       <div
-        className={`flex items-center gap-1.5 px-2 py-1 rounded group transition-colors ${
-          isBound
-            ? 'bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
-            : isThisPropActive
-            ? 'bg-[var(--color-figma-bg-hover)]'
-            : 'hover:bg-[var(--color-figma-bg-hover)]'
-        }`}
+        className={`rounded-md border px-2 py-1.5 transition-colors ${rowStateClass}`}
       >
-        {/* Color swatch */}
-        {swatchColor ? (
-          <div
-            className="w-4 h-4 rounded border border-[var(--color-figma-border)] ring-1 ring-white/50 ring-inset shrink-0"
-            style={{ backgroundColor: swatchColor }}
-          />
-        ) : (
-          <div className="w-4 h-4 shrink-0" />
-        )}
+        <div className="flex items-start gap-2">
+          {/* Color swatch */}
+          {swatchColor ? (
+            <div
+              className="mt-0.5 w-4 h-4 rounded border border-[var(--color-figma-border)] ring-1 ring-white/50 ring-inset shrink-0"
+              style={{ backgroundColor: swatchColor }}
+            />
+          ) : (
+            <div className="w-4 h-4 shrink-0" />
+          )}
 
-        {/* Property name + value */}
-        <div className="flex flex-col min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-[var(--color-figma-text)] font-medium w-[72px] shrink-0 truncate">
-              {PROPERTY_LABELS[prop]}
-            </span>
-            {isBound ? (
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={resolvedDisplay ?? undefined}>
-                {resolvedDisplay ?? formatCurrentValue(prop, value)}
-              </span>
-            ) : isMixed ? (
-              <button
-                onClick={() => setShowMixedDetail(v => !v)}
-                title="Click to see distinct bindings across selected layers"
-                className="flex items-center gap-0.5 text-[10px] text-[var(--color-figma-warning,#f5a623)] italic hover:underline"
-              >
-                Mixed
-                <svg
-                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-                  className={`shrink-0 transition-transform ${showMixedDetail ? 'rotate-90' : ''}`}
-                  aria-hidden="true"
-                >
-                  <path d="M2 1l4 3-4 3V1z" />
-                </svg>
-              </button>
-            ) : (
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
-                {formatCurrentValue(prop, value)}
-              </span>
-            )}
-          </div>
-          {isBound && (
-            <div className="flex items-center gap-1 mt-0.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
-                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-              </svg>
-              <span className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
-                {binding as string}
+          {/* Property name + value */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-[var(--color-figma-text)] font-medium truncate">
+                    {PROPERTY_LABELS[prop]}
+                  </span>
+                </div>
+                <div className="mt-0.5 min-w-0">
+                  {isBound ? (
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate block" title={resolvedDisplay ?? undefined}>
+                      {resolvedDisplay ?? formatCurrentValue(prop, value)}
+                    </span>
+                  ) : isMixed ? (
+                    <span className="text-[10px] text-[var(--color-figma-warning,#f5a623)] block">
+                      Different bindings across {rootNodes.length} selected {rootNodes.length === 1 ? 'layer' : 'layers'}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate block">
+                      {formatCurrentValue(prop, value)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${statusBadgeClass}`}>
+                {statusLabel}
               </span>
             </div>
-          )}
+            {isBound && (
+              <div className="flex items-center gap-1 mt-1">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+                  <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                </svg>
+                <span className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
+                  {binding as string}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Actions — post-bind flash, always-visible bind chip, or hover-only controls */}
-        {lastBoundProp === prop ? (
-          <div className="flex items-center gap-1 shrink-0 text-[10px] text-[var(--color-figma-success,#18a058)]">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-            Bound
-          </div>
-        ) : (
-        <>
-          {/* Always-visible search-to-bind chip for unbound properties */}
-          {canBind && (
-            <button
-              onClick={() => onOpenBind(prop)}
-              title={`Search for a token to bind to ${PROPERTY_LABELS[prop]}`}
-              aria-label={`Search for token to bind to ${PROPERTY_LABELS[prop]}`}
-              className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 transition-colors"
-            >
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-              </svg>
-              bind
-            </button>
-          )}
-          {/* Hover-only controls: navigate, remove, remap, create */}
-          <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
-            {isBound && onNavigateToToken && (
-              <button
-                onClick={() => onNavigateToToken(binding as string)}
-                title="Go to token"
-                aria-label="Go to token"
-                className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-            )}
-            {isBound && (
-              <button
-                onClick={() => onRemoveBinding(prop)}
-                title="Remove binding"
-                aria-label="Remove binding"
-                className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
+        {showActionRail && (
+          <div className="mt-2 flex flex-wrap items-center gap-1 pl-6">
+            {canBind && (
+              <PropertyActionButton
+                label={isMixed ? 'Bind token' : 'Bind'}
+                title={`Search for a token to bind to ${PROPERTY_LABELS[prop]}`}
+                tone="primary"
+                onClick={() => onOpenBind(prop)}
+                icon={
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                  </svg>
+                }
+              />
             )}
             {canChangeBind && (
-              <button
+              <PropertyActionButton
+                label="Replace"
+                title="Replace with another token"
+                tone="primary"
                 onClick={() => onOpenBind(prop)}
-                title="Remap to another token"
-                aria-label="Remap to another token"
-                className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
+                icon={
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                }
+              />
             )}
             {hasExtractableValue && (
-              <button
-                onClick={() => onOpenCreate(prop)}
+              <PropertyActionButton
+                label="Create from value"
                 title="Create token from this value"
-                aria-label="Create token from this value"
-                className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
+                onClick={() => onOpenCreate(prop)}
+                icon={
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                }
+              />
+            )}
+            {isBound && (
+              <PropertyActionButton
+                label="Remove"
+                title="Remove binding"
+                tone="danger"
+                onClick={() => onRemoveBinding(prop)}
+                icon={
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                }
+              />
+            )}
+            {isMixed && (
+              <PropertyActionButton
+                label={showMixedDetail ? 'Hide details' : 'Review mixed'}
+                title="Show distinct bindings across selected layers"
+                onClick={() => setShowMixedDetail(v => !v)}
+                icon={
+                  <svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 8 8"
+                    fill="currentColor"
+                    className={`transition-transform ${showMixedDetail ? 'rotate-90' : ''}`}
+                  >
+                    <path d="M2 1l4 3-4 3V1z" />
+                  </svg>
+                }
+              />
+            )}
+            {isBound && onNavigateToToken && (
+              <PropertyActionButton
+                label="View token"
+                title="Go to token"
+                onClick={() => onNavigateToToken(binding as string)}
+                icon={
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                }
+              />
             )}
           </div>
-        </>
         )}
       </div>
 
