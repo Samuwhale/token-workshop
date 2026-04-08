@@ -38,6 +38,7 @@ import { HistoryPanel } from '../components/HistoryPanel';
 import { HealthPanel } from '../components/HealthPanel';
 import { PreviewPanel } from '../components/PreviewPanel';
 import { EmptyState } from '../components/EmptyState';
+import type { StartHereBranch } from '../components/WelcomePrompt';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useConnectionContext, useSyncContext } from '../contexts/ConnectionContext';
@@ -169,9 +170,8 @@ export interface PanelRouterProps {
   starredTokens: StarredTokensState;
   // Modal openers (for EmptyState + other panels that trigger global modals)
   onShowPasteModal: () => void;
-  onShowScaffoldWizard: () => void;
   onShowColorScaleGen: () => void;
-  onShowGuidedSetup: () => void;
+  onOpenStartHere: (branch?: StartHereBranch) => void;
 
   onRestartGuidedSetup: () => void;
   /** Called after "Clear all data" — navigate away and refresh tokens */
@@ -300,6 +300,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onOpenCompare: p.handleOpenTokenCompare,
     onOpenCrossThemeCompare: p.handleOpenCrossThemeCompare,
     onOpenCommandPaletteWithQuery: p.openCommandPaletteWithQuery,
+    onOpenStartHere: p.onOpenStartHere,
     onTokenDragStart: p.onTokenDragStart,
     onTokenDragEnd: p.onTokenDragEnd,
   };
@@ -482,13 +483,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             serverUrl={serverUrl}
             checking={checking}
             onConnect={updateServerUrlAndConnect}
-            onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
-            onPasteJSON={p.onShowPasteModal}
-            onImportFigma={() => setOverflowPanel('import')}
-            onUsePreset={p.onShowScaffoldWizard}
-            onGenerateColorScale={p.onShowColorScaleGen}
-            onGoToGraph={() => { navigateTo('define', 'generators'); p.onShowScaffoldWizard(); }}
-            onGuidedSetup={p.onShowGuidedSetup}
+            onOpenStartHere={() => p.onOpenStartHere('root')}
           />
         )}
         {/* Main content: TokenList variants */}

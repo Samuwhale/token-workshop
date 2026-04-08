@@ -223,6 +223,58 @@ export function TemplateIcon({ id }: { id: string }) {
   }
 }
 
+interface TemplateCatalogProps {
+  onSelect: (template: GeneratorTemplate) => void;
+}
+
+function TemplateCatalog({ onSelect }: TemplateCatalogProps) {
+  return (
+    <div className="flex-1 overflow-y-auto">
+      {QUICK_START_TEMPLATES.map(template => {
+        const count = getTokenCount(template);
+        const stepNames = getTemplateStepNames(template);
+        return (
+          <button
+            key={template.id}
+            onClick={() => onSelect(template)}
+            className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="shrink-0 w-14">
+                <TemplateIcon id={template.id} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
+                  {count > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
+                      {count} tokens
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</div>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-[10px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                    {template.defaultPrefix}.*
+                  </span>
+                  {stepNames.length > 0 && (
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
+                      {formatStepPreview(stepNames)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
+                <path d="M4.5 2.5L8 6l-3.5 3.5" />
+              </svg>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -235,6 +287,10 @@ interface QuickStartDialogProps {
   onConfirm: (firstPath?: string) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog */
   onInterceptSemanticMapping?: (data: { tokens: import('../hooks/useGenerators').GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: import('../hooks/useGenerators').GeneratorType }) => void;
+  embedded?: boolean;
+  title?: string;
+  description?: string;
+  onBack?: () => void;
 }
 
 export function QuickStartDialog({
@@ -244,6 +300,10 @@ export function QuickStartDialog({
   onClose,
   onConfirm,
   onInterceptSemanticMapping,
+  embedded = false,
+  title = 'Foundation templates',
+  description = 'Choose a starting structure for your token system. Each option creates a live generator in the active set.',
+  onBack,
 }: QuickStartDialogProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<GeneratorTemplate | null>(null);
 
@@ -269,64 +329,48 @@ export function QuickStartDialog({
     );
   }
 
+  const content = (
+    <>
+      <div className="px-4 py-3 border-b border-[var(--color-figma-border)]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">{title}</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
+              {description}
+            </div>
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-1">
+              Destination set: <span className="font-mono text-[var(--color-figma-text)]">{activeSet}</span>
+            </div>
+          </div>
+          {!embedded && (
+            <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          )}
+        </div>
+      </div>
+      <TemplateCatalog onSelect={setSelectedTemplate} />
+      {embedded && onBack && (
+        <div className="px-4 py-3 border-t border-[var(--color-figma-border)]">
+          <button
+            onClick={onBack}
+            className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Back
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="flex h-full min-h-0 flex-col">{content}</div>;
+  }
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
-        <div className="p-4 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-          <div>
-            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Quick start</div>
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-              Pick a template — creates a live generator in <span className="font-mono text-[var(--color-figma-text)]">{activeSet}</span>
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {QUICK_START_TEMPLATES.map(template => {
-            const count = getTokenCount(template);
-            const stepNames = getTemplateStepNames(template);
-            return (
-              <button
-                key={template.id}
-                onClick={() => setSelectedTemplate(template)}
-                className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="shrink-0 w-14">
-                    <TemplateIcon id={template.id} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
-                      {count > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
-                          {count} tokens
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</div>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[10px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
-                        {template.defaultPrefix}.*
-                      </span>
-                      {stepNames.length > 0 && (
-                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
-                          {formatStepPreview(stepNames)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
-                    <path d="M4.5 2.5L8 6l-3.5 3.5" />
-                  </svg>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        {content}
       </div>
     </div>
   );

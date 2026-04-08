@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import type { Command, TokenEntry } from '../components/CommandPalette';
 import type { TokenListImperativeHandle } from '../components/tokenListTypes';
 import type { ThemeManagerHandle } from '../components/ThemeManager';
+import type { StartHereBranch } from '../components/WelcomePrompt';
 import type { OperationEntry } from './useRecentOperations';
 import type { UndoSlot } from './useUndo';
 import type { LintViolation } from './useLint';
@@ -40,14 +41,13 @@ export interface CommandPaletteCommandsOptions {
   // Local App state
   themeGapCount: number;
   tokenListSelection: string[];
-  setShowWelcome: (v: boolean) => void;
+  openStartHere: (branch?: StartHereBranch, firstRun?: boolean) => void;
   setFlowPanelInitialPath: (v: string | null) => void;
   setPaletteDeleteConfirm: (v: { paths: string[]; label: string } | null) => void;
   // From useAnalyticsState (local state in App)
   setShowIssuesOnly: (updater: boolean | ((v: boolean) => boolean)) => void;
   // From useModalVisibility (local state in App — not a context)
   setShowPasteModal: (v: boolean) => void;
-  setShowGuidedSetup: (v: boolean) => void;
   setShowColorScaleGen: (v: boolean) => void;
   setShowKeyboardShortcuts: (v: boolean | ((v: boolean) => boolean)) => void;
   setShowQuickApply: (v: boolean) => void;
@@ -94,9 +94,9 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
   const {
     showPreviewSplit, setShowPreviewSplit,
     lintViolations, themeGapCount, tokenListSelection,
-    setShowIssuesOnly, setShowWelcome,
+    setShowIssuesOnly, openStartHere,
     setFlowPanelInitialPath, setPaletteDeleteConfirm,
-    setShowPasteModal, setShowGuidedSetup, setShowColorScaleGen,
+    setShowPasteModal, setShowColorScaleGen,
     setShowKeyboardShortcuts, setShowQuickApply, setShowSetSwitcher, setShowManageSets,
     setPendingGraphTemplate,
     refreshValidation, jumpToNextIssue, openOverflowPanel,
@@ -272,9 +272,9 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
       {
         id: 'restart-guided-setup',
         label: 'Restart guided setup',
-        description: 'Re-run the onboarding wizard \u2014 connect to the server, create a token set, and map semantic tokens',
+        description: 'Jump back into the guided system setup flow for foundations, semantics, and themes',
         category: 'Settings',
-        handler: () => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, ''); setShowWelcome(true); setOverflowPanel(null); },
+        handler: () => { setOverflowPanel(null); openStartHere('guided-setup'); },
       },
       {
         id: 'quick-apply',
@@ -411,10 +411,10 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
       })),
       {
         id: 'guided-setup',
-        label: 'Guided Setup',
-        description: 'Step-by-step wizard: generate primitives, map semantics, set up themes',
+        label: 'Guided setup',
+        description: 'Step through foundations, semantic roles, and theme modes',
         category: 'Help',
-        handler: () => setShowGuidedSetup(true),
+        handler: () => openStartHere('guided-setup'),
       },
       {
         id: 'view-style-guide',
@@ -439,7 +439,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCompareMode(); },
       },
     ];
-  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount, refreshValidation, setEditingToken, setOverflowPanel, setPendingGraphTemplate, setShowColorScaleGen, setShowGuidedSetup, setShowIssuesOnly, setShowKeyboardShortcuts, setShowManageSets, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, setShowWelcome, themeManagerHandleRef, tokenListCompareRef, tokenListViewRev]);
+  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount, refreshValidation, setEditingToken, setOverflowPanel, setPendingGraphTemplate, setShowColorScaleGen, setShowIssuesOnly, setShowKeyboardShortcuts, setShowManageSets, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, openStartHere, themeManagerHandleRef, tokenListCompareRef, tokenListViewRev]);
 
   // Per-set switch commands — rebuilds when the set list or token counts change.
   const setCommands = useMemo<Command[]>(() => {

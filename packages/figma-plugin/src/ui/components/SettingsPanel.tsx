@@ -867,7 +867,7 @@ export function SettingsPanel({
           {/* ---- Guided Setup ---- */}
           {showSection('guided-setup') && <Section title="Guided Setup" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Re-run the guided setup wizard to connect to the local server, create your first token set, and map semantic tokens.
+              Re-open the guided system setup flow to connect the server, create a foundation set, map semantic roles, and add theme modes.
             </p>
             <button
               onClick={onRestartGuidedSetup}
@@ -876,7 +876,7 @@ export function SettingsPanel({
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
               </svg>
-              Restart guided setup
+              Open guided setup
             </button>
           </Section>}
 

@@ -5,6 +5,7 @@ import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
+import type { StartHereBranch } from './WelcomePrompt';
 import type { ThemeDimension } from '@tokenmanager/core';
 
 /** Per-option resolved value for a single token in multi-mode view */
@@ -151,6 +152,8 @@ export interface TokenListActions {
   onTokenDragStart?: (paths: string[], fromSet: string) => void;
   /** Called when a token drag ends (drop or cancel) — lets the parent hide drop zones */
   onTokenDragEnd?: () => void;
+  /** Open the unified start-here flow from token-level empty states */
+  onOpenStartHere?: (branch?: StartHereBranch) => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */

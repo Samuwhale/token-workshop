@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
-import { QuickStartDialog } from './QuickStartDialog';
 import { ValuePreview } from './ValuePreview';
 import { isAlias } from '../../shared/resolveAlias';
 import type { TokenMapEntry } from '../../shared/types';
@@ -12,13 +11,8 @@ import { FieldMessage } from '../shared/FieldMessage';
 import { fieldBorderClass } from '../shared/editorClasses';
 
 export interface TokenListModalsProps {
-  // Quick Start Dialog
-  showScaffold: boolean;
-  onSetShowScaffold: (v: boolean) => void;
-  serverUrl: string;
   setName: string;
   sets: string[];
-  onRefresh: () => void;
   allTokensFlat: Record<string, TokenMapEntry>;
   connected: boolean;
 
@@ -605,12 +599,8 @@ function CollapsibleSection({
 
 export function TokenListModals() {
   const {
-    showScaffold,
-    onSetShowScaffold,
-    serverUrl,
     setName,
     sets,
-    onRefresh,
     allTokensFlat: _allTokensFlat,
     connected: _connected,
     deleteConfirm,
@@ -715,17 +705,6 @@ export function TokenListModals() {
 
   return (
     <>
-      {/* Quick Start Dialog */}
-      {showScaffold && (
-        <QuickStartDialog
-          serverUrl={serverUrl}
-          activeSet={setName}
-          allSets={sets}
-          onClose={() => onSetShowScaffold(false)}
-          onConfirm={() => { onSetShowScaffold(false); onRefresh(); }}
-        />
-      )}
-
       {/* Delete confirmation modal */}
       {deleteConfirm && modalProps && (
         <ConfirmModal

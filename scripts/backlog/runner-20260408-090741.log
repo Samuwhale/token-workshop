@@ -25,3 +25,27 @@
     Rebuilt the shell around Tokens/Themes/Apply/Sync/Audit workspaces, moved header toggles into contextual actions plus a single Utilities surface, and validated all backlog gates successfully.
 
   Committing: App shell navigation mixes task navigation, section navigation, utilities, and status indicators into one crowded header
+[main 7b02a01c] chore(backlog): done – App shell navigation mixes task navigation, section navigation, utilities, and status indicators into one crowded header
+ 16 files changed, 1159 insertions(+), 433 deletions(-)
+ create mode 100644 README.md
+ create mode 100644 demo/tokens/primitives.tokens.json
+ create mode 100644 demo/tokens/semantic.tokens.json
+ create mode 100644 scripts/agent-preview.mjs
+ create mode 100644 scripts/backlog/runner-20260408-090741.log
+  ✓ Committed and marked done
+
+## 2026-04-08 - App shell navigation mixes task navigation, section navigation, utilities, and status indicators into one crowded header
+- Rebuilt the shell around five job-based workspaces (`Tokens`, `Themes`, `Apply`, `Sync`, `Audit`), added tightly-scoped section tabs per workspace, and remapped `Dependencies` into `Audit` so the header now reflects user goals instead of internal app buckets like `Inspect` and `Ship`.
+- Collapsed the old header utility strip into a single `Utilities` surface, moved token-specific controls into the `Tokens` workspace context, and replaced scattered tab badges with workspace-level summary pills and safer audit fallback routes.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L56; `packages/figma-plugin/src/ui/App.tsx` ~L173, ~L892, ~L1087; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L761, ~L819, ~L844
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  13 queued · 0 in-progress · last took 15m20s
+═══════════════════════════════════════════════════════════════
+  → Onboarding and empty-state entry points are fragmented and compete with each other — the app currently has a first-run welcome prompt, a guided setup wizard, an empty-state action list, a quick-start template dialog, manual create paths, and generator/template-driven starts; these overlap conceptually and make the first user decision much harder than it should be; replace them with a single canonical “start here” flow that asks one question first: “How do you want to begin?” with at most 3 branches: `Import an existing system`, `Start from a template`, `Start manually`; everything else should become a sub-step within one of those branches rather than a parallel top-level entry point; required constraints: (1) keep the guided setup path for true first-time users, but make it one branch of the unified start flow, (2) quick-start templates should live under `Start from a template`, not as a separate competing modal, (3) manual token creation should not appear as a peer to more strategic setup choices unless the user explicitly chooses manual setup; this task should also rewrite the copy so the mental model is design-system-first rather than implementation-first; files: `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx`, `packages/figma-plugin/src/ui/components/EmptyState.tsx`, `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx`, `packages/figma-plugin/src/ui/components/QuickStartWizard.tsx`, `packages/figma-plugin/src/ui/App.tsx`
+  Running agent… (started 09:23:01)
+
+  ✓ done: Onboarding and empty-state entry points are fragmented and compete with each other
+    Unified onboarding into one Start here flow with import/template/manual branches, folded guided setup and templates underneath it, rewired empty-state and command entry points, and passed full validation.
+
+  Committing: Onboarding and empty-state entry points are fragmented and compete with each other

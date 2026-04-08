@@ -77,7 +77,7 @@ function dispatchTokenListViewChanged(setName: string): void {
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, generatorsByTargetGroup, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onToggleStar, starredPaths, onError, onViewTokenHistory, onEditGenerator, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onToggleStar, starredPaths, onError, onViewTokenHistory, onEditGenerator, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd, onOpenStartHere },
   recentlyTouched,
   defaultCreateOpen,
   highlightedToken,
@@ -96,7 +96,6 @@ export function TokenList({
   // selectMode/selectedPaths/showBatchEditor/lastSelectedPathRef managed by useTokenSelection (called below)
   const varReadPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
   // Drag/drop state is managed by useDragDrop hook (called below after dependencies)
-  const [showScaffold, setShowScaffold] = useState(false);
   // Find/replace state is managed by useFindReplace hook (called below after dependencies)
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [copyCssFeedback, setCopyCssFeedback] = useState(false);
@@ -1961,12 +1960,8 @@ export function TokenList({
   // Build modal context value — memoized so TokenListModals only re-renders when
   // modal-related state actually changes, not on every TokenList render.
   const modalContextValue = useMemo<TokenListModalsState>(() => ({
-    showScaffold,
-    onSetShowScaffold: setShowScaffold,
-    serverUrl,
     setName,
     sets,
-    onRefresh,
     allTokensFlat,
     connected,
     deleteConfirm,
@@ -2082,7 +2077,7 @@ export function TokenList({
     onSetShowBatchCopyToSet: setShowBatchCopyToSet,
     handleBatchCopyToSet,
   }), [
-    showScaffold, serverUrl, setName, sets, onRefresh, allTokensFlat, connected,
+    setName, sets, allTokensFlat, connected,
     deleteConfirm, modalProps, executeDelete,
     newGroupDialogParent, newGroupName, newGroupError, handleCreateGroup,
     renameTokenConfirm, executeTokenRename,
@@ -2521,7 +2516,7 @@ export function TokenList({
                 </button>
                 {moreFiltersOpen && (
                   <div ref={filterMenuRef} role="menu" className="absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex flex-col py-1 min-w-[160px]">
-                    <button role="menuitem" tabIndex={-1} onClick={() => { setShowScaffold(true); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Use preset…</button>
+                    <button role="menuitem" tabIndex={-1} onClick={() => { onOpenStartHere?.('template-library'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Foundation templates…</button>
                     <button role="menuitem" tabIndex={-1} onClick={() => { setShowFindReplace(true); setMoreFiltersOpen(false); }} disabled={!connected} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Find &amp; Replace…</button>
                     <div className="border-t border-[var(--color-figma-border)] my-1" />
                     <button role="menuitem" tabIndex={-1} onClick={() => { setMoreFiltersOpen(false); handleApplyVariables(); }} disabled={applying || varDiffLoading || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">{varDiffLoading ? 'Comparing…' : 'Apply as Variables'}</button>
@@ -3252,48 +3247,25 @@ export function TokenList({
               </div>
             </div>
 
-            {/* Quick-start actions */}
+            {/* Start-here actions */}
             <div className="flex flex-col gap-1.5 w-full max-w-[240px]">
               <button
-                onClick={() => setShowScaffold(true)}
-                disabled={!connected}
-                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                onClick={() => onOpenStartHere?.('root')}
+                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="2.5" cy="6" r="1.5" />
-                    <path d="M4 6h4" />
-                    <circle cx="9.5" cy="6" r="1.5" />
-                    <circle cx="6" cy="2.5" r="1.5" />
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 6h16" />
+                    <path d="M4 12h10" />
+                    <path d="M4 18h7" />
                   </svg>
-                  <span className="text-[11px] font-medium">Use a preset</span>
+                  <span className="text-[11px] font-medium">Start here</span>
                 </div>
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-                  Color ramp, spacing scale, typography, and more
+                  Import an existing system, generate foundations from templates, or start manually
                 </p>
               </button>
 
-              <button
-                onClick={() => onCreateNew ? onCreateNew() : setShowCreateForm(true)}
-                disabled={!connected}
-                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <path d="M6 1v10M1 6h10" />
-                </svg>
-                <span className="text-[11px] font-medium">Create a token manually</span>
-              </button>
-
-              <button
-                onClick={() => setNewGroupDialogParent('')}
-                disabled={!connected}
-                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1.5 3.5h3L6 2h4.5v8h-9z" />
-                </svg>
-                <span className="text-[11px] font-medium">Create a group</span>
-              </button>
             </div>
           </div>
         ) : displayedTokens.length === 0 && filtersActive ? (

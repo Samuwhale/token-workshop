@@ -36,6 +36,8 @@ interface QuickStartWizardProps {
   onComplete: () => void;
   onSetCreated?: (name: string) => void;
   onRetryConnection?: () => void;
+  embedded?: boolean;
+  onBack?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,9 +45,9 @@ interface QuickStartWizardProps {
 // ---------------------------------------------------------------------------
 
 const STEPS: { step: WizardStep; label: string; description: string }[] = [
-  { step: 1, label: 'Generate Primitives', description: 'Create a color ramp, spacing scale, or type scale from a template' },
-  { step: 2, label: 'Map Semantics', description: 'Create reference tokens that give meaning to your primitives' },
-  { step: 3, label: 'Set Up Theme', description: 'Create a theme axis (e.g. Mode: light, dark) to switch token sets' },
+  { step: 1, label: 'Build Foundations', description: 'Generate the primitive scales your system will rely on' },
+  { step: 2, label: 'Name Semantics', description: 'Map reusable roles onto those foundations' },
+  { step: 3, label: 'Add Themes', description: 'Set up modes or brands that switch across token sets' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -72,7 +74,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
         <div>
           <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Start the Token Manager server</p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-            Token Manager needs a local server to read and write your token files.
+            Token Manager needs a local server to read and write the token files that define your system.
             Run the following in your project directory:
           </p>
         </div>
@@ -158,8 +160,8 @@ function CreateSetStep({ serverUrl, onCreated }: {
         <div>
           <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token set</p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-            Token sets are JSON files that hold your design tokens.
-            Give your first set a name — you can add more later.
+            Token sets are JSON files that hold the foundations of your design system.
+            Give your first set a clear name. You can add more sets later for semantics, themes, or brands.
           </p>
         </div>
       </div>
@@ -501,6 +503,8 @@ export function QuickStartWizard({
   onComplete,
   onSetCreated,
   onRetryConnection,
+  embedded = false,
+  onBack,
 }: QuickStartWizardProps) {
   // Track initial prereq needs so PrereqBar shows correct steps
   const initialNeedsConnect = useRef(!connected);
@@ -610,50 +614,58 @@ export function QuickStartWizard({
   // -- Prereq phase rendering --
 
   if (prereqPhase === 'connect' || prereqPhase === 'create-set') {
-    return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col">
-
-          {/* Header */}
+    const prereqContent = (
+      <>
+        {!embedded && (
           <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
             <div>
               <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Before You Begin</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
                 {prereqPhase === 'connect'
                   ? 'A running server is required to manage token files'
-                  : 'You need at least one token set to store your tokens'}
+                  : 'You need at least one token set to store your system foundations'}
               </div>
             </div>
             <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
           </div>
+        )}
 
-          {/* Prereq progress bar */}
-          <PrereqBar
-            phase={prereqPhase}
-            needsConnect={initialNeedsConnect.current}
-            needsSet={initialNeedsSet.current || prereqPhase === 'create-set'}
-          />
-          <div className="border-t border-[var(--color-figma-border)]" />
+        <PrereqBar
+          phase={prereqPhase}
+          needsConnect={initialNeedsConnect.current}
+          needsSet={initialNeedsSet.current || prereqPhase === 'create-set'}
+        />
+        <div className="border-t border-[var(--color-figma-border)]" />
 
-          {/* Step content */}
-          <div className="p-4">
-            {prereqPhase === 'connect' && (
-              <ConnectStep
-                serverUrl={serverUrl}
-                checking={checking}
-                onRetry={onRetryConnection}
-                onClose={onClose}
-              />
-            )}
-            {prereqPhase === 'create-set' && (
-              <CreateSetStep
-                serverUrl={serverUrl}
-                onCreated={handleSetCreated}
-              />
-            )}
-          </div>
+        <div className="p-4">
+          {prereqPhase === 'connect' && (
+            <ConnectStep
+              serverUrl={serverUrl}
+              checking={checking}
+              onRetry={onRetryConnection}
+              onClose={embedded && onBack ? onBack : onClose}
+            />
+          )}
+          {prereqPhase === 'create-set' && (
+            <CreateSetStep
+              serverUrl={serverUrl}
+              onCreated={handleSetCreated}
+            />
+          )}
+        </div>
+      </>
+    );
+
+    if (embedded) {
+      return <div className="flex h-full min-h-0 flex-col">{prereqContent}</div>;
+    }
+
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col">
+          {prereqContent}
         </div>
       </div>
     );
@@ -703,36 +715,33 @@ export function QuickStartWizard({
   const sourceTemplates = QUICK_START_TEMPLATES.filter(t => t.requiresSource);
   const standaloneTemplates = QUICK_START_TEMPLATES.filter(t => !t.requiresSource);
 
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
-
-        {/* Header */}
+  const wizardContent = (
+    <>
+      {!embedded && (
         <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
           <div>
-            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Guided Setup</div>
+            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Guided setup</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-              Set up your design tokens in 3 steps
+              Build a usable token system in three focused steps
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
+      )}
 
-        {/* Stepper */}
-        <StepperBar currentStep={currentStep} completedSteps={completedSteps} onStepClick={handleStepClick} />
-        <div className="border-t border-[var(--color-figma-border)]" />
+      <StepperBar currentStep={currentStep} completedSteps={completedSteps} onStepClick={handleStepClick} />
+      <div className="border-t border-[var(--color-figma-border)]" />
 
-        {/* Step content */}
-        <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
           {currentStep === 1 && (
             <>
               {/* Template list — inlined directly as step 1 */}
               <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Derived from a source token</div>
-                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Pick a base token, then generate a scale from it</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Seeded from a source token</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Use an existing token as the starting point for a reusable foundation</div>
                 </div>
               </div>
               {sourceTemplates.map(template => (
@@ -743,8 +752,8 @@ export function QuickStartWizard({
                 />
               ))}
               <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Standalone</div>
-                <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Ready to use — no source token needed</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Ready-made foundations</div>
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Start with a complete scale and refine it after generation</div>
               </div>
               {standaloneTemplates.map(template => (
                 <TemplateButton
@@ -759,7 +768,7 @@ export function QuickStartWizard({
                   onClick={handleStep1Skip}
                   className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
                 >
-                  Skip — I'll add tokens manually
+                  Skip for now
                 </button>
               </div>
             </>
@@ -774,9 +783,9 @@ export function QuickStartWizard({
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Map Semantics</p>
+                  <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Name semantic roles</p>
                   <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                    No primitives were generated in step 1. You can set up semantic tokens later from the token list or graph view.
+                    No foundations were generated in step 1. You can map semantic roles later from the token list or graph view.
                   </p>
                 </div>
               </div>
@@ -800,9 +809,9 @@ export function QuickStartWizard({
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Set Up Theme</p>
+                  <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add theme modes</p>
                   <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                    Create a theme axis (e.g. Mode: light, dark) to support switching token sets.
+                    Create a theme axis such as light and dark so your token system can switch across contexts.
                   </p>
                 </div>
               </div>
@@ -814,7 +823,18 @@ export function QuickStartWizard({
               />
             </div>
           )}
-        </div>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="flex h-full min-h-0 flex-col">{wizardContent}</div>;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
+        {wizardContent}
       </div>
     </div>
   );

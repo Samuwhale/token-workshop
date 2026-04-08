@@ -10,9 +10,7 @@ import { useToastStack } from './hooks/useToastStack';
 import { useToastBusListener } from './shared/toastBus';
 import { ConfirmModal } from './components/ConfirmModal';
 import { PasteTokensModal } from './components/PasteTokensModal';
-import { QuickStartDialog } from './components/QuickStartDialog';
-import { QuickStartWizard } from './components/QuickStartWizard';
-import { WelcomePrompt } from './components/WelcomePrompt';
+import { WelcomePrompt, type StartHereBranch } from './components/WelcomePrompt';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { TokenEntry } from './components/CommandPalette';
@@ -116,17 +114,29 @@ export function App() {
   const [bannerUrlInput, setBannerUrlInput] = useState(serverUrl);
   const [bannerConnectResult, setBannerConnectResult] = useState<'ok' | 'fail' | null>(null);
   const [showBannerUrlEditor, setShowBannerUrlEditor] = useState(false);
-  const { showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
+  const { showPasteModal, setShowPasteModal, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
   const recentlyTouched = useRecentlyTouched();
   const starredTokens = useStarredTokens();
   const palettePinnedTokens = usePinnedTokens(activeSet);
-  const [showWelcome, setShowWelcome] = useState(() => !lsGet(STORAGE_KEYS.FIRST_RUN_DONE));
+  const initialFirstRun = !lsGet(STORAGE_KEYS.FIRST_RUN_DONE);
+  const [startHereState, setStartHereState] = useState<{ open: boolean; initialBranch: StartHereBranch; firstRun: boolean }>(() => ({
+    open: initialFirstRun,
+    initialBranch: 'root',
+    firstRun: initialFirstRun,
+  }));
   // undoMaxHistory is managed by SettingsPanel; App re-reads from localStorage when it changes
   const undoHistoryRev = useSettingsListener(STORAGE_KEYS.UNDO_MAX_HISTORY);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const undoMaxHistory = useMemo(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20) ?? 20, [undoHistoryRev]);
   const [pendingPublishCount, setPendingPublishCount] = useState(0);
+  const openStartHere = useCallback((initialBranch: StartHereBranch = 'root', firstRun = false) => {
+    setStartHereState({ open: true, initialBranch, firstRun });
+  }, []);
+  const closeStartHere = useCallback(() => {
+    lsSet(STORAGE_KEYS.FIRST_RUN_DONE, '1');
+    setStartHereState({ open: false, initialBranch: 'root', firstRun: false });
+  }, []);
   const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast, history: notificationHistory, clearHistory: clearNotificationHistory } = useToastStack();
   // Listen for PublishPanel's broadcast of how many changes are pending sync
   useEffect(() => {
@@ -813,11 +823,10 @@ export function App() {
     themeGapCount,
     tokenListSelection,
     setShowIssuesOnly,
-    setShowWelcome,
+    openStartHere,
     setFlowPanelInitialPath,
     setPaletteDeleteConfirm,
     setShowPasteModal,
-    setShowGuidedSetup,
     setShowColorScaleGen,
     setShowKeyboardShortcuts,
     setShowQuickApply,
@@ -2052,10 +2061,9 @@ export function App() {
               recentlyTouched={recentlyTouched}
               starredTokens={starredTokens}
               onShowPasteModal={() => setShowPasteModal(true)}
-              onShowScaffoldWizard={() => setShowScaffoldWizard(true)}
               onShowColorScaleGen={() => setShowColorScaleGen(true)}
-              onShowGuidedSetup={() => setShowGuidedSetup(true)}
-              onRestartGuidedSetup={() => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, ''); setShowWelcome(true); setOverflowPanel(null); }}
+              onOpenStartHere={(branch) => openStartHere(branch)}
+              onRestartGuidedSetup={() => { setOverflowPanel(null); openStartHere('guided-setup'); }}
               onClearAllComplete={() => { setOverflowPanel(null); navigateTo('define', 'tokens'); refreshTokens(); }}
             />
           </div>
@@ -2668,38 +2676,32 @@ export function App() {
         <KeyboardShortcutsModal onClose={() => setShowKeyboardShortcuts(false)} />
       )}
 
-      {/* Quick Start Dialog (from empty state) */}
-      {showScaffoldWizard && (
-        <QuickStartDialog
-          serverUrl={serverUrl}
-          activeSet={activeSet}
-          allSets={sets}
-          onClose={() => setShowScaffoldWizard(false)}
-          onConfirm={(firstPath) => { setShowScaffoldWizard(false); refreshAll(); if (firstPath) setPendingHighlight(firstPath); }}
-        />
-      )}
-
-      {/* First-run welcome prompt */}
-      {showWelcome && (
+      {/* Unified start flow */}
+      {startHereState.open && (
         <WelcomePrompt
           connected={connected}
-          onStartSetup={() => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, '1'); setShowWelcome(false); setShowGuidedSetup(true); }}
-          onDismiss={() => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, '1'); setShowWelcome(false); }}
-        />
-      )}
-
-      {/* Guided Setup Wizard */}
-      {showGuidedSetup && (
-        <QuickStartWizard
+          checking={checking}
           serverUrl={serverUrl}
           activeSet={activeSet}
           allSets={sets}
-          connected={connected}
-          checking={checking}
-          onClose={() => setShowGuidedSetup(false)}
-          onComplete={() => { setShowGuidedSetup(false); refreshAll(); }}
-          onSetCreated={(name) => { addSetToState(name, 0); setActiveSet(name); }}
+          initialBranch={startHereState.initialBranch}
+          isFirstRun={startHereState.firstRun}
+          onClose={closeStartHere}
           onRetryConnection={retryConnection}
+          onImportFigma={() => setOverflowPanel('import')}
+          onPasteJSON={() => setShowPasteModal(true)}
+          onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
+          onGenerateColorScale={() => setShowColorScaleGen(true)}
+          onTemplateCreated={(firstPath) => {
+            closeStartHere();
+            refreshAll();
+            if (firstPath) setPendingHighlight(firstPath);
+          }}
+          onGuidedSetupComplete={() => {
+            closeStartHere();
+            refreshAll();
+          }}
+          onSetCreated={(name) => { addSetToState(name, 0); setActiveSet(name); }}
         />
       )}
 
