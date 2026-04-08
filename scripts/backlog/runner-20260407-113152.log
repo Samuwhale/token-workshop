@@ -1,8 +1,0 @@
-Validating backlog runner setup for tool: claude
-
-  ✓ claude 2.1.92 (Claude Code)
-  ✓ jq installed
-  → Resolved model: claude-sonnet-4-6
-  ✓ backlog.md found
-  ✓ patterns.md found
-  ✓ models.json found

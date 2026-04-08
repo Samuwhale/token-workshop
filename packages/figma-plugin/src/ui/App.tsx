@@ -1039,6 +1039,7 @@ export function App() {
     : connected
       ? `Connected to ${serverUrl}`
       : `Cannot reach ${serverUrl}`;
+  const workspaceActions = renderWorkspaceActions();
 
   const pillToneClasses: Record<'neutral' | 'accent' | 'warning' | 'danger' | 'success', string> = {
     neutral: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]',
@@ -1118,26 +1119,35 @@ export function App() {
 
       {/* Workspace shell */}
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-        <div className="flex items-center justify-between gap-3 px-2 py-1.5">
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto" role="tablist" aria-label="Workspaces">
-            {APP_SHELL_NAVIGATION.workspaces.map(workspace => {
-              const isActive = workspace.id === activeWorkspaceId;
-              return (
-                <button
-                  key={workspace.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => guardEditorAction(() => navigateTo(workspace.topTab, workspace.subTab))}
-                  className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                    isActive
-                      ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
-                      : 'border-transparent text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-                  }`}
-                >
-                  {workspace.label}
-                </button>
-              );
-            })}
+        <div className="flex items-start justify-between gap-3 px-3 py-2.5">
+          <div className="min-w-0 flex-1">
+            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+              Workspaces
+            </div>
+            <div
+              className="mt-1 flex min-w-0 items-center gap-1 overflow-x-auto rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-1"
+              role="tablist"
+              aria-label="Workspaces"
+            >
+              {APP_SHELL_NAVIGATION.workspaces.map(workspace => {
+                const isActive = workspace.id === activeWorkspaceId;
+                return (
+                  <button
+                    key={workspace.id}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => guardEditorAction(() => navigateTo(workspace.topTab, workspace.subTab))}
+                    className={`shrink-0 rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm ring-1 ring-[var(--color-figma-border)]'
+                        : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+                    }`}
+                  >
+                    {workspace.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="relative shrink-0" ref={menuRef}>
@@ -1146,10 +1156,10 @@ export function App() {
                 setShowNotificationHistory(false);
                 setMenuOpen(v => !v);
               }}
-              className={`relative inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              className={`relative inline-flex min-h-[36px] items-center gap-2 rounded-[12px] border px-3 py-1.5 text-[11px] font-medium transition-colors ${
                 menuOpen
-                  ? 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
-                  : 'border-transparent text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+                  ? 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'
+                  : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
               }`}
               aria-label="Open utilities"
               aria-haspopup="menu"
@@ -1206,56 +1216,84 @@ export function App() {
         </div>
 
         <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="flex flex-wrap items-center gap-2 px-2 py-1.5">
-            <div className="min-w-[180px] flex-1">
-              <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                {activeWorkspace.label}
+          <div className="flex flex-col gap-2 px-3 py-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                  Current workspace
+                </div>
+                <div className="mt-1 flex min-w-0 items-center gap-2">
+                  <div className="truncate text-[13px] font-semibold text-[var(--color-figma-text)]">
+                    {activeWorkspace.label}
+                  </div>
+                  {activeWorkspaceSection && (
+                    <span className="shrink-0 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.06em] text-[var(--color-figma-text-secondary)]">
+                      {activeWorkspaceSection.label}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)]">
+                  {activeWorkspaceSection?.description ?? activeWorkspace.description}
+                </div>
               </div>
-              <div className="truncate text-[11px] text-[var(--color-figma-text)]">
-                {activeWorkspaceSection?.description ?? activeWorkspace.description}
-              </div>
+
+              {workspaceActions && (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                  {workspaceActions}
+                </div>
+              )}
             </div>
 
-            {activeWorkspace.sections && activeWorkspace.sections.length > 1 && (
-              <div className="flex items-center gap-0.5" role="tablist" aria-label={`${activeWorkspace.label} sections`}>
-                {activeWorkspace.sections.map(section => {
-                  const isSectionActive = section.topTab === activeTopTab && section.subTab === activeSubTab;
-                  return (
-                    <button
-                      key={`${section.topTab}:${section.subTab}`}
-                      role="tab"
-                      aria-selected={isSectionActive}
-                      onClick={() => {
-                        guardEditorAction(() => {
-                          navigateTo(section.topTab, section.subTab);
-                          if (section.subTab === 'canvas-analysis') triggerHeatmapScan();
-                        });
-                      }}
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
-                        isSectionActive
-                          ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
-                          : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-                      }`}
-                    >
-                      {section.label}
-                    </button>
-                  );
-                })}
+            {(activeWorkspace.sections && activeWorkspace.sections.length > 1) || workspacePills.length > 0 ? (
+              <div className="flex items-center gap-3 overflow-x-auto pb-0.5">
+                {activeWorkspace.sections && activeWorkspace.sections.length > 1 && (
+                  <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1" role="tablist" aria-label={`${activeWorkspace.label} sections`}>
+                    <span className="pl-2 pr-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                      Sections
+                    </span>
+                    {activeWorkspace.sections.map(section => {
+                      const isSectionActive = section.topTab === activeTopTab && section.subTab === activeSubTab;
+                      return (
+                        <button
+                          key={`${section.topTab}:${section.subTab}`}
+                          role="tab"
+                          aria-selected={isSectionActive}
+                          onClick={() => {
+                            guardEditorAction(() => {
+                              navigateTo(section.topTab, section.subTab);
+                              if (section.subTab === 'canvas-analysis') triggerHeatmapScan();
+                            });
+                          }}
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                            isSectionActive
+                              ? 'bg-[var(--color-figma-accent)] text-white'
+                              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+                          }`}
+                        >
+                          {section.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {workspacePills.length > 0 && (
+                  <div className="inline-flex min-w-0 items-center gap-1.5">
+                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                      Status
+                    </span>
+                    {workspacePills.map((pill, index) => (
+                      <span
+                        key={`${pill.label}-${index}`}
+                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium ${pillToneClasses[pill.tone]}`}
+                      >
+                        {pill.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-
-            {workspacePills.map((pill, index) => (
-              <span
-                key={`${pill.label}-${index}`}
-                className={`rounded-full border px-2.5 py-1 text-[10px] font-medium ${pillToneClasses[pill.tone]}`}
-              >
-                {pill.label}
-              </span>
-            ))}
-
-            <div className="ml-auto flex items-center gap-1">
-              {renderWorkspaceActions()}
-            </div>
+            ) : null}
           </div>
         </div>
       </div>

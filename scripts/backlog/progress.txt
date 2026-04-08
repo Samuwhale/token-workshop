@@ -285,3 +285,11 @@
   - Keep primary workspaces and secondary utility/admin surfaces in the same navigation module so shell chrome changes do not drift into ad hoc button lists inside `App.tsx`.
   - When internal route names are intentionally preserved for compatibility, scrub nearby user-facing copy and shortcut labels so the IA still reads consistently as workspaces rather than legacy tab buckets.
 ---
+## 2026-04-08 - Replace the current multi-row shell chrome with the new navigation structure from the blueprint: primary workspace nav, one secondary utilities/admin entry point, and a calmer header area that no longer stacks competing rows of pills and section controls
+- Reworked the shell chrome in `App.tsx` so the header now reads as two deliberate layers: a primary workspace rail plus a single `Utilities` entry point, followed by a calmer workspace summary strip with clearer title/description hierarchy and workspace-scoped actions.
+- Replaced the wrap-heavy summary controls with one horizontal overflow rail for section tabs and status pills, so narrow plugin widths no longer turn those controls into accidental extra header rows.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1042, ~L1120, ~L1218; `scripts/backlog/patterns.md` ~L174
+- **Learnings for future iterations:**
+  - When a plugin header mixes section tabs and status pills, prefer a single horizontal overflow rail over `flex-wrap`; scroll preserves hierarchy better than stacked chrome rows.
+  - Utility/admin surfaces can stay behind one global trigger as long as the active workspace remains visually dominant and the summary strip carries the per-workspace context.
+---
