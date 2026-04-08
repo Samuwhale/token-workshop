@@ -797,7 +797,7 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipPublish(): ReactNode {
     return (
-      <ErrorBoundary panelName="Sync to Figma" onReset={() => navigateTo('define', 'tokens')}>
+      <ErrorBoundary panelName="Figma Sync" onReset={() => navigateTo('ship', 'publish')}>
         <PublishPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -813,7 +813,7 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipExport(): ReactNode {
     return (
-      <ErrorBoundary panelName="Export" onReset={() => navigateTo('ship', 'publish')}>
+      <ErrorBoundary panelName="Repo / Handoff" onReset={() => navigateTo('ship', 'export')}>
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );

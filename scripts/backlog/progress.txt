@@ -342,3 +342,11 @@
   - When a workflow-first panel still needs diagnostics and expert paths, give the main surface one small context-aware tools menu instead of scattering compare/review buttons and drawers through every card.
   - If review subviews already exist, prefer replacing inline diagnostic details with status chips plus direct jumps into those subviews; this keeps the authoring route legible without inventing another navigation layer.
 ---
+## 2026-04-08 - [HIGH] Split the current Sync shell into two explicit subflows: primary Figma Sync and secondary Repo / Handoff, with designers able to complete Figma publishing without parsing Git-specific controls
+- Reframed the Sync shell metadata and panel copy around two explicit sections, then stripped `PublishPanel` down to Figma-only readiness, compare, preview, and apply flows so the default designer route no longer carries Git banners, Git review choices, or repository recovery prompts.
+- Added a dedicated repository mode to `ExportPanel` and a new `GitWorkflowPanel` that now owns the existing Git subpanel plus commit/pull/push/apply confirmations, keeping repo and handoff work available in the secondary `Repo / Handoff` flow without deleting any advanced capabilities.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L32, ~L195; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L313, ~L376, ~L481, ~L684, ~L957; `packages/figma-plugin/src/ui/hooks/usePublishAll.ts` ~L3, ~L47, ~L83; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L15, ~L17, ~L169, ~L187, ~L314; `packages/figma-plugin/src/ui/components/publish/GitWorkflowPanel.tsx` ~L15; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L800, ~L816; `packages/figma-plugin/src/ui/App.tsx` ~L920; `scripts/backlog/patterns.md` ~L201
+- **Learnings for future iterations:**
+  - If a workspace mixes publishing with repository mechanics, keep the primary route scoped to the publish destination and move Git/export/handoff controls into a separate secondary route or mode.
+  - When advanced tooling already exists, rehost it behind the secondary flow rather than inventing new publish-surface toggles; that preserves capability while keeping the main route readable.
+---

@@ -920,6 +920,8 @@ export function App() {
           } else {
             pills.push({ label: 'No Figma changes pending', tone: 'success' });
           }
+        } else if (activeWorkspaceSection?.id === 'export') {
+          pills.push({ label: 'Repo / handoff tools', tone: 'neutral' });
         }
         break;
       case 'audit':

@@ -1,14 +1,13 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { describeError } from '../shared/utils';
 
-export type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'git-commit' | 'apply-diff' | 'publish-all' | null;
+export type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'publish-all' | null;
 
-export type PublishAllStep = 'variables' | 'styles' | 'git' | null;
+export type PublishAllStep = 'variables' | 'styles' | null;
 
 export interface PublishAllSections {
   vars: boolean;
   styles: boolean;
-  git: boolean;
 }
 
 interface SyncLike {
@@ -19,19 +18,9 @@ interface SyncLike {
   applyDiff: () => Promise<void>;
 }
 
-interface GitSyncLike {
-  diffView: any;
-  diffLoading: boolean;
-  diffChoices: Record<string, string>;
-  mergeConflicts: any[];
-  computeDiff: () => Promise<void>;
-  applyDiff: () => Promise<void>;
-}
-
 interface UsePublishAllParams {
   varSync: SyncLike;
   styleSync: SyncLike;
-  git: GitSyncLike;
   setConfirmAction: (action: ConfirmAction) => void;
   /** Called after all publish steps complete — typically marks readiness checks as stale. */
   markChecksStale: () => void;
@@ -40,18 +29,12 @@ interface UsePublishAllParams {
 export interface UsePublishAllReturn {
   publishAllStep: PublishAllStep;
   publishAllError: string | null;
-  publishAllGitSkipped: boolean;
-  setPublishAllGitSkipped: React.Dispatch<React.SetStateAction<boolean>>;
   compareAllLoading: boolean;
   hasVarChanges: boolean;
   hasStyleChanges: boolean;
-  hasGitDiffChanges: boolean;
-  effectiveHasGitDiffChanges: boolean;
-  hasMergeConflicts: boolean;
   publishAllSections: number;
   publishAllAvailable: boolean;
   publishAllBusy: boolean;
-  gitDiffPendingCount: number;
   handleOpenPublishAll: () => Promise<void>;
   runPublishAll: (sections?: PublishAllSections) => Promise<void>;
   /** Compare both Figma sync targets in parallel without opening a modal or applying changes. */
@@ -64,35 +47,24 @@ export interface UsePublishAllReturn {
 export function usePublishAll({
   varSync,
   styleSync,
-  git,
   setConfirmAction,
   markChecksStale,
 }: UsePublishAllParams): UsePublishAllReturn {
   const [publishAllStep, setPublishAllStep] = useState<PublishAllStep>(null);
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
-  const [publishAllGitSkipped, setPublishAllGitSkipped] = useState(false);
   const [compareAllLoading, setCompareAllLoading] = useState(false);
   const [quickSyncing, setQuickSyncing] = useState(false);
 
   const hasVarChanges = varSync.checked && varSync.syncCount > 0;
   const hasStyleChanges = styleSync.checked && styleSync.syncCount > 0;
-  const gitDiffPendingCount = useMemo(
-    () => Object.values(git.diffChoices).filter(c => c !== 'skip').length,
-    [git.diffChoices],
-  );
-  const hasGitDiffChanges = git.diffView != null && gitDiffPendingCount > 0;
-  const hasMergeConflicts = git.mergeConflicts.length > 0;
-  // When merge conflicts exist, exclude git from publish-all so Variables + Styles can still proceed
-  const effectiveHasGitDiffChanges = hasGitDiffChanges && !hasMergeConflicts;
-  const publishAllSections = (hasVarChanges ? 1 : 0) + (hasStyleChanges ? 1 : 0) + (effectiveHasGitDiffChanges ? 1 : 0);
+  const publishAllSections = (hasVarChanges ? 1 : 0) + (hasStyleChanges ? 1 : 0);
   // Show the Publish All banner when any single compared target has pending changes.
   // Auto-compare is enabled for variables, so this typically appears right after connecting.
   const publishAllAvailable = publishAllSections >= 1;
   const publishAllBusy = publishAllStep !== null;
 
   // "Review sync plan" fast path: compare the Figma destinations first, then open the
-  // combined modal. Git remains opt-in; it is only included if the user has already
-  // opened the Git workflow and loaded a diff there.
+  // combined modal.
   const handleOpenPublishAll = useCallback(async () => {
     const toCompare: Promise<void>[] = [];
     if (!varSync.checked && !varSync.loading) toCompare.push(varSync.computeDiff());
@@ -111,9 +83,8 @@ export function usePublishAll({
     setConfirmAction('publish-all');
   }, [setConfirmAction, styleSync, varSync]);
 
-  const runPublishAll = useCallback(async (sections: PublishAllSections = { vars: true, styles: true, git: true }) => {
+  const runPublishAll = useCallback(async (sections: PublishAllSections = { vars: true, styles: true }) => {
     setPublishAllError(null);
-    setPublishAllGitSkipped(false);
 
     try {
       if (sections.vars && hasVarChanges) {
@@ -124,23 +95,15 @@ export function usePublishAll({
         setPublishAllStep('styles');
         await styleSync.applyDiff();
       }
-      // Skip git when merge conflicts exist — partial publish (Variables + Styles only)
-      if (sections.git && hasGitDiffChanges && !hasMergeConflicts) {
-        setPublishAllStep('git');
-        await git.applyDiff();
-      } else if (sections.git && hasMergeConflicts && hasGitDiffChanges) {
-        setPublishAllGitSkipped(true);
-      }
       markChecksStale();
     } catch (err) {
       setPublishAllError(describeError(err));
     } finally {
       setPublishAllStep(null);
     }
-  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, markChecksStale, git, styleSync, varSync]);
+  }, [hasVarChanges, hasStyleChanges, markChecksStale, styleSync, varSync]);
 
   // "Compare all": force re-run the two Figma sync comparisons in parallel.
-  // Git stays in its own advanced flow and is compared inside the Git section.
   const compareAll = useCallback(async () => {
     const toCompare: Promise<void>[] = [];
     if (!varSync.loading) toCompare.push(varSync.computeDiff());
@@ -196,18 +159,12 @@ export function usePublishAll({
   return {
     publishAllStep,
     publishAllError,
-    publishAllGitSkipped,
-    setPublishAllGitSkipped,
     compareAllLoading,
     hasVarChanges,
     hasStyleChanges,
-    hasGitDiffChanges,
-    effectiveHasGitDiffChanges,
-    hasMergeConflicts,
     publishAllSections,
     publishAllAvailable,
     publishAllBusy,
-    gitDiffPendingCount,
     handleOpenPublishAll,
     compareAll,
     runPublishAll,
