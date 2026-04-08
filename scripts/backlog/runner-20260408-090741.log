@@ -125,3 +125,22 @@
     Reframed the shell around Sync and Audit, made the main sync flow Figma-first, and demoted Git to an optional advanced workflow while keeping readiness gates and destination review intact.
 
   Committing: Publishing is overloaded because Figma sync, Git operations, readiness checks, history, export, and “health” are grouped too tightly
+[main 7b953cf8] chore(backlog): done – Publishing is overloaded because Figma sync, Git operations, readiness checks, history, export, and “health” are grouped too tightly
+ 13 files changed, 168 insertions(+), 96 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-08 - Coverage and compare feel like parallel theme products instead of contextual tools
+- Refocused `ThemeManager` around one authoring home by removing the top-level coverage/compare buttons, tracking the active axis/option in local context state, and launching both tools from the axis or option the user is editing.
+- Reframed coverage around the current axis by default, added a scoped coverage header with optional `Show all axes`, and made compare default to the selected option inside the current axis while preserving back-navigation to the same authoring context.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L77, ~L188, ~L627, ~L718, ~L782, ~L1237, ~L1510, ~L2024
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  8 queued · 0 in-progress · last took 16m16s
+═══════════════════════════════════════════════════════════════
+  → The Selection Inspector exposes too many secondary operations in the main toolbar and obscures the primary binding flow — the surface currently mixes layer search, deep inspect, selection/page sync, extract-all-unbound, extract tokens, remap bindings, clear-all, suggested tokens, and property filtering in one dense stack; keep the capability set, but reorganize it around the main user task: inspect a selected layer, understand current bindings, and apply or replace a token; secondary maintenance actions such as page sync, extract, remap, and bulk clear should move into an `Advanced tools` drawer or overflow action group; target flow: selected layer summary → current bindings → suggested/applicable tokens → apply/remove action → optional advanced maintenance tools; constraints: (1) do not remove power-user functionality, (2) preserve page-wide sync and extract/remap capabilities, (3) make the default visual hierarchy communicate “bind tokens to selection” first; files: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx`
+  Running agent… (started 10:49:23)
+
+  ✓ done: The Selection Inspector exposes too many secondary operations in the main toolbar and obscures the primary binding flow
+    Reframed SelectionInspector around summary, current bindings, suggestions, and per-property binding, with sync/search/extract/remap/clear/filter tools moved into an Advanced tools drawer; validation passed.
+
+  Committing: The Selection Inspector exposes too many secondary operations in the main toolbar and obscures the primary binding flow

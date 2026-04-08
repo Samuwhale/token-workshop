@@ -414,3 +414,11 @@
   - If a secondary analysis tool still needs a dedicated screen, launch it from the current object and carry that object into the screen header and back-navigation instead of presenting it as a parallel home.
   - When a review tool can expand from local context to global scope, default to the local scope first and make the broader audit an explicit toggle rather than the starting point.
 ---
+## 2026-04-08 - The Selection Inspector exposes too many secondary operations in the main toolbar and obscures the primary binding flow
+- Reorganized `SelectionInspector` around the main job sequence: selected-layer summary, current binding overview, suggested tokens, and the per-property bind/replace surface now lead the panel, while layer search, page/selection sync, deep inspect, extract, remap, clear-all, and property filters moved into a single collapsible `Advanced tools` drawer.
+- Preserved all existing power-user capabilities inside the new drawer, including page sync, extract-and-bind unbound properties, full extract/remap panels, deep nested inspection, and property filtering, while keeping status badges and filter state visible in the primary summary cards.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L209, ~L970, ~L998, ~L1043, ~L1166, ~L1178, ~L1252, ~L1316, ~L1407
+- **Learnings for future iterations:**
+  - When a panel mixes a primary task with maintenance workflows, keep the primary narrative visible as stacked summary and action sections, then collapse the maintenance tools into one drawer instead of scattering secondary buttons across the header.
+  - If advanced filters still affect the primary surface, surface the active filter state in the primary summary area so hidden advanced controls never make the main list feel mysteriously incomplete.
+---

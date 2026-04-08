@@ -31,6 +31,8 @@ import { RemapBindingsPanel } from './RemapBindingsPanel';
 import { ExtractTokensPanel } from './ExtractTokensPanel';
 import { ConfirmModal } from './ConfirmModal';
 
+type InspectorPropFilterMode = 'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions';
+
 /* ── Layer Search Panel ─────────────────────────────── */
 
 function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) {
@@ -204,6 +206,7 @@ export function SelectionInspector({
 
   // Remap bindings state
   const [showRemapPanel, setShowRemapPanel] = useState(false);
+  const [showAdvancedTools, setShowAdvancedTools] = useState(false);
 
   // Binding error feedback from the plugin sandbox
   const [bindingErrors, setBindingErrors] = useState<Partial<Record<BindableProperty, string>>>({});
@@ -220,11 +223,11 @@ export function SelectionInspector({
 
   // Property filter state — persisted across selection changes
   const [propFilter, setPropFilterState] = useState(() => lsGet(STORAGE_KEYS.INSPECT_PROP_FILTER) ?? '');
-  const [propFilterMode, setPropFilterModeState] = useState<'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions'>(
-    () => (lsGet(STORAGE_KEYS.INSPECT_PROP_FILTER_MODE) as 'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions') ?? 'all'
+  const [propFilterMode, setPropFilterModeState] = useState<InspectorPropFilterMode>(
+    () => (lsGet(STORAGE_KEYS.INSPECT_PROP_FILTER_MODE) as InspectorPropFilterMode) ?? 'all'
   );
   const setPropFilter = (v: string) => { lsSet(STORAGE_KEYS.INSPECT_PROP_FILTER, v); setPropFilterState(v); };
-  const setPropFilterMode = (v: 'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions') => { lsSet(STORAGE_KEYS.INSPECT_PROP_FILTER_MODE, v); setPropFilterModeState(v); };
+  const setPropFilterMode = (v: InspectorPropFilterMode) => { lsSet(STORAGE_KEYS.INSPECT_PROP_FILTER_MODE, v); setPropFilterModeState(v); };
 
   // Persistent peer suggestion — survives until dismissed or selection changes
   const [peerSuggestion, setPeerSuggestion] = useState<{
@@ -862,416 +865,606 @@ export function SelectionInspector({
   };
 
   const isFilterActive = propFilter !== '' || propFilterMode !== 'all';
+  const nextUnboundProperty = hasSelection ? getNextUnboundProperty(null, rootNodes, caps) : null;
+
+  const visiblePropertyStats = useMemo(() => {
+    let visible = 0;
+    let bound = 0;
+    let mixed = 0;
+    let unbound = 0;
+
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
+      const binding = getBindingForProperty(rootNodes, prop);
+      const value = getCurrentValue(rootNodes, prop);
+      if (!binding && value === undefined) continue;
+      visible++;
+      if (binding === 'mixed') mixed++;
+      else if (binding) bound++;
+      else unbound++;
+    }
+
+    return { visible, bound, mixed, unbound };
+  }, [rootNodes]);
+
+  const summaryGuidance = !connected
+    ? 'Connect to the token server to bind, extract, or sync tokens for this selection.'
+    : nextUnboundProperty
+    ? `Start with ${PROPERTY_LABELS[nextUnboundProperty]} below, or apply one of the suggested tokens if it already matches.`
+    : visiblePropertyStats.bound > 0
+    ? 'Everything visible is already tokenized. Replace a binding below or use advanced tools for maintenance work.'
+    : 'Review the visible properties below and bind or create tokens where needed.';
+
+  const syncStatusToneClass = syncing
+    ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+    : syncError
+    ? 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'
+    : syncResult
+    ? syncResult.errors > 0
+      ? 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'
+      : syncResult.missingTokens.length > 0
+      ? 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]'
+      : 'bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]'
+    : freshSyncResult && freshSyncResult.missingTokens.length === 0
+    ? 'bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]'
+    : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
+
+  const syncStatusLabel = syncing && syncProgress
+    ? `Syncing ${syncProgress.processed}/${syncProgress.total}`
+    : syncError
+    ? 'Sync failed'
+    : syncResult
+    ? syncResult.errors > 0
+      ? `${syncResult.errors} failed`
+      : syncResult.updated === 0 && syncResult.missingTokens.length === 0
+      ? 'Up to date'
+      : `Updated ${syncResult.updated}`
+    : freshSyncResult && freshSyncResult.missingTokens.length === 0
+    ? 'Selection in sync'
+    : totalBindings > 0 && connected
+    ? 'Ready to sync'
+    : connected
+    ? 'No sync pending'
+    : 'Disconnected';
+
+  const advancedStatusCount = [
+    isFilterActive,
+    deepInspect,
+    showLayerSearch,
+    showExtractPanel,
+    showRemapPanel,
+  ].filter(Boolean).length;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header bar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+      <div className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Bind Tokens To Selection</p>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">{headerLabel}</p>
+        </div>
         <button
-          onClick={() => setShowLayerSearch(prev => !prev)}
-          title="Search layers on this page"
-          className={`p-0.5 rounded transition-colors shrink-0 ${
-            showLayerSearch
-              ? 'text-[var(--color-figma-accent)]'
-              : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+          onClick={() => setShowAdvancedTools(prev => !prev)}
+          className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded border text-[10px] transition-colors ${
+            showAdvancedTools
+              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
           }`}
+          aria-expanded={showAdvancedTools}
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showAdvancedTools ? 'rotate-90' : ''}`} aria-hidden="true">
+            <path d="M2 1l4 3-4 3V1z" />
           </svg>
-        </button>
-        <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate flex-1">
-          {headerLabel}
-        </span>
-        {(totalBindings > 0 || mixedBindings > 0) && (
-          <span className="text-[10px] shrink-0 flex items-center gap-1">
-            {totalBindings > 0 && (
-              <span className="bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
-                {selectedNodes.length > 1
-                  ? `${totalBindings} shared`
-                  : `${totalBindings} bound`
-                }
-              </span>
-            )}
-            {mixedBindings > 0 && (
-              <button
-                onClick={() => setPropFilterMode(propFilterMode === 'mixed' ? 'all' : 'mixed')}
-                title={propFilterMode === 'mixed' ? 'Show all properties' : 'Show only mixed properties'}
-                className={`px-1.5 py-0.5 rounded-full font-medium transition-colors ${
-                  propFilterMode === 'mixed'
-                    ? 'bg-[var(--color-figma-warning,#f5a623)]/40 text-[var(--color-figma-warning,#f5a623)] ring-1 ring-[var(--color-figma-warning,#f5a623)]/50'
-                    : 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)] hover:bg-[var(--color-figma-warning,#f5a623)]/30'
-                }`}
-              >
-                {mixedBindings} mixed
-              </button>
-            )}
-          </span>
-        )}
-      </div>
-
-      {/* Layer search panel */}
-      {showLayerSearch && (
-        <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">
-          <LayerSearchPanel onSelect={handleSelectLayer} />
-        </div>
-      )}
-
-      {/* Sync controls */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">
-        {/* Deep inspect toggle */}
-        <button
-          onClick={() => {
-            const next = !deepInspect;
-            setDeepInspect(next);
-            lsSet(STORAGE_KEYS.DEEP_INSPECT, String(next));
-            parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
-          }}
-          title={deepInspect ? `Deep inspect on — showing nested children (${adaptShortcut(SHORTCUT_KEYS.TOGGLE_DEEP_INSPECT)})` : `Enable deep inspect to show nested children (${adaptShortcut(SHORTCUT_KEYS.TOGGLE_DEEP_INSPECT)})`}
-          className={`text-[10px] px-1.5 py-0.5 rounded transition-colors mr-1 ${
-            deepInspect
-              ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
-              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-          }`}
-        >
-          Deep
-        </button>
-        <span aria-live="polite">{syncing && syncProgress ? (
-          <span className="inline-flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-            <span className="inline-block w-16 h-1 rounded-full bg-[var(--color-figma-border)] overflow-hidden align-middle">
-              <span
-                className="block h-full rounded-full bg-[var(--color-figma-accent)] transition-all"
-                style={{ width: `${Math.round((syncProgress.processed / syncProgress.total) * 100)}%` }}
-              />
+          Advanced tools
+          {advancedStatusCount > 0 && (
+            <span className="rounded-full bg-[var(--color-figma-accent)]/15 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)]">
+              {advancedStatusCount}
             </span>
-            {syncProgress.processed}/{syncProgress.total}
-          </span>
-        ) : syncError ? (
-          <span role="alert" className="text-[10px] text-[var(--color-figma-error)]" title={syncError}>
-            Sync failed — {syncError}
-          </span>
-        ) : syncResult ? (
-          <span className={`text-[10px] ${syncResult.errors > 0 ? 'text-[var(--color-figma-error)]' : syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}
-            title={
-              syncResult.errors > 0
-                ? `${syncResult.errors} binding(s) could not be applied — the token type may not be compatible with the layer property`
-                : syncResult.missingTokens.length > 0
-                  ? `Missing tokens (not in token server):\n${syncResult.missingTokens.join('\n')}`
-                  : undefined
-            }
-          >
-            {syncResult.errors > 0
-              ? `${syncResult.errors} binding${syncResult.errors !== 1 ? 's' : ''} failed — check token types`
-              : syncResult.updated === 0 && syncResult.missingTokens.length === 0
-                ? 'Up to date'
-                : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` · ${syncResult.missingTokens.length} missing` : ''}`
-            }
-          </span>
-        ) : (
-          <>
-            {freshSyncResult && freshSyncResult.missingTokens.length === 0 && (
-              <span className="text-[10px] text-[var(--color-figma-success)] select-none" title="Bindings are up to date">✓</span>
-            )}
-            {totalBindings > 0 && connected && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onSync('selection'); }}
-                disabled={syncing}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors disabled:opacity-50"
-              >
-                Sync Selection
-              </button>
-            )}
-            {connected && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onSync('page'); }}
-                disabled={syncing}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors disabled:opacity-50"
-              >
-                Sync Page
-              </button>
-            )}
-          </>
-        )}</span>
-        {/* Extract & Bind All Unbound fast-path */}
-        {connected && activeSet && unboundWithValueCount > 0 && !extractingUnbound && !extractUnboundResult && !extractUnboundError && (
-          <button
-            onClick={handleExtractAllUnbound}
-            title={`Create tokens for all ${unboundWithValueCount} unbound propert${unboundWithValueCount !== 1 ? 'ies' : 'y'} and bind them to selected layers in one step`}
-            className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
-          >
-            Extract {unboundWithValueCount} unbound
-          </button>
-        )}
-        {extractingUnbound && (
-          <span className="ml-auto text-[10px] text-[var(--color-figma-text-secondary)]">Extracting…</span>
-        )}
-        {extractUnboundResult && (
-          <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--color-figma-success,#18a058)]">
-            ✓ Created {extractUnboundResult.created}, bound {extractUnboundResult.bound}
-            <button
-              onClick={() => setExtractUnboundResult(null)}
-              className="opacity-50 hover:opacity-100 leading-none"
-              aria-label="Dismiss"
-            >×</button>
-          </span>
-        )}
-        {extractUnboundError && (
-          <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--color-figma-error,#f56565)]" title={extractUnboundError}>
-            Extract failed
-            <button
-              onClick={() => setExtractUnboundError(null)}
-              className="opacity-50 hover:opacity-100 leading-none"
-              aria-label="Dismiss"
-            >×</button>
-          </span>
-        )}
-        {/* Extract tokens from selection button */}
-        {connected && activeSet && (
-          <button
-            onClick={() => { setShowExtractPanel(prev => !prev); setShowRemapPanel(false); }}
-            title="Extract tokens from selected layers (fills, fonts, dimensions, shadows, borders)"
-            className={`${!extractingUnbound && !extractUnboundResult && !extractUnboundError && unboundWithValueCount === 0 ? 'ml-auto' : ''} text-[10px] px-1.5 py-0.5 rounded transition-colors ${
-              showExtractPanel
-                ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
-                : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-            }`}
-          >
-            Extract
-          </button>
-        )}
-        {/* Remap bindings button */}
-        <button
-          onClick={() => { setShowRemapPanel(prev => !prev); setShowExtractPanel(false); }}
-          title="Bulk-remap token binding paths (useful after renaming tokens)"
-          className={`${!connected || !activeSet ? 'ml-auto ' : ''}text-[10px] px-1.5 py-0.5 rounded transition-colors ${
-            showRemapPanel
-              ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
-              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-          }`}
-        >
-          Remap
+          )}
         </button>
-        {totalBindings > 0 && (
-          <button
-            onClick={() => setShowClearConfirm(true)}
-            title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? 's' : ''} from selection`}
-            className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            Clear all
-          </button>
-        )}
       </div>
 
-      {/* Remap bindings panel */}
-      {showRemapPanel && (
-        <RemapBindingsPanel
-          tokenMap={tokenMap}
-          initialMissingTokens={freshSyncResult?.missingTokens}
-          onClose={() => setShowRemapPanel(false)}
-        />
-      )}
+      <div className="flex-1 overflow-y-auto px-3 py-3">
+        <div className="flex flex-col gap-3">
+          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Selected layer summary</p>
+                <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">{summaryGuidance}</p>
+              </div>
+              <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${syncStatusToneClass}`}>
+                {syncStatusLabel}
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-[var(--color-figma-accent)]/15 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-accent)]">
+                {visiblePropertyStats.bound} bound
+              </span>
+              <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                {visiblePropertyStats.unbound} unbound
+              </span>
+              {visiblePropertyStats.mixed > 0 && (
+                <span className="rounded-full bg-[var(--color-figma-warning,#f5a623)]/15 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-warning,#f5a623)]">
+                  {visiblePropertyStats.mixed} mixed
+                </span>
+              )}
+              <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                {visiblePropertyStats.visible} visible properties
+              </span>
+            </div>
+          </section>
 
-      {/* Extract tokens panel */}
-      {showExtractPanel && (
-        <ExtractTokensPanel
-          connected={connected}
-          activeSet={activeSet}
-          serverUrl={serverUrl}
-          tokenMap={tokenMap}
-          onTokenCreated={onTokenCreated}
-          onClose={() => setShowExtractPanel(false)}
-        />
-      )}
-
-      {/* Context-aware suggested tokens */}
-      {suggestions.length > 0 && (
-        <SuggestedTokens
-          suggestions={suggestions}
-          onApply={(tokenPath, property) => handleBindToken(property, tokenPath)}
-          onNavigateToToken={onNavigateToToken}
-        />
-      )}
-
-      {/* Property filter bar */}
-      {hasVisibleProperties && (
-        <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">
-          <div className="relative flex-1 min-w-0">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-secondary)] pointer-events-none" aria-hidden="true">
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-            </svg>
-            <input
-              type="text"
-              value={propFilter}
-              onChange={e => setPropFilter(e.target.value)}
-              placeholder="Filter properties…"
-              aria-label="Filter properties"
-              className="w-full pl-5 pr-5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:focus-visible:border-[var(--color-figma-accent)]"
-            />
-            {propFilter && (
-              <button
-                onClick={() => setPropFilter('')}
-                className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                aria-label="Clear filter"
-              >
-                <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-          {(['bound', 'unbound', 'colors', 'dimensions'] as const).map(mode => (
-            <button
-              key={mode}
-              onClick={() => setPropFilterMode(propFilterMode === mode ? 'all' : mode)}
-              className={`text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-colors ${
-                propFilterMode === mode
-                  ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
-                  : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
-              }`}
-            >
-              {mode === 'bound' ? 'Bound' : mode === 'unbound' ? 'Unbound' : mode === 'colors' ? 'Colors' : 'Dims'}
-            </button>
-          ))}
-          {mixedBindings > 0 && (
-            <button
-              onClick={() => setPropFilterMode(propFilterMode === 'mixed' ? 'all' : 'mixed')}
-              className={`text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-colors ${
-                propFilterMode === 'mixed'
-                  ? 'bg-[var(--color-figma-warning,#f5a623)]/20 text-[var(--color-figma-warning,#f5a623)] font-medium'
-                  : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
-              }`}
-            >
-              Mixed
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-1 pb-1">
-        {!hasVisibleProperties && totalBindings === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] opacity-40" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-            <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">No tokens applied</p>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Apply tokens from the Tokens tab to see bindings here.
-            </p>
-            {onGoToTokens && (
-              <button
-                onClick={onGoToTokens}
-                className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
-              >
-                Go to Tokens →
-              </button>
-            )}
-          </div>
-        ) : (
-          <div>
-          {PROPERTY_GROUPS.map((group, groupIdx) => {
-            if (!shouldShowGroup(group.condition, caps)) return null;
-
-            const visibleProps = group.properties.filter(prop => {
-              const binding = getBindingForProperty(rootNodes, prop);
-              const value = getCurrentValue(rootNodes, prop);
-              if (!binding && value === undefined) return false;
-              return matchesPropFilter(prop);
-            });
-
-            if (visibleProps.length === 0) return null;
-
-            const boundPropsInGroup = visibleProps.filter(prop => {
-              const binding = getBindingForProperty(rootNodes, prop);
-              return binding && binding !== 'mixed';
-            });
-
-            return (
-              <div key={group.label} className={groupIdx > 0 ? 'mt-1 pt-1 border-t border-[var(--color-figma-border)]/50' : ''}>
-                <div className="relative group/groupheader px-2 py-1 flex items-center">
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide flex-1">
-                    {group.label}
+          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Current bindings</p>
+                <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                  {totalBindings > 0
+                    ? `${totalBindings} propert${totalBindings === 1 ? 'y is' : 'ies are'} currently bound to tokens.`
+                    : 'No visible properties are bound yet.'}
+                  {mixedBindings > 0 ? ` ${mixedBindings} propert${mixedBindings === 1 ? 'y varies' : 'ies vary'} across the selection.` : ''}
+                </p>
+              </div>
+              {isFilterActive && (
+                <button
+                  onClick={() => { setPropFilter(''); setPropFilterMode('all'); }}
+                  className="shrink-0 text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+            {isFilterActive && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {propFilter && (
+                  <span className="rounded-full bg-[var(--color-figma-accent)]/10 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-accent)]">
+                    Search: {propFilter}
                   </span>
-                  {boundPropsInGroup.length > 0 && (
+                )}
+                {propFilterMode !== 'all' && (
+                  <span className="rounded-full bg-[var(--color-figma-accent)]/10 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-accent)]">
+                    {propFilterMode === 'dimensions' ? 'Dimensions only' : propFilterMode === 'colors' ? 'Colors only' : `${propFilterMode[0].toUpperCase()}${propFilterMode.slice(1)} only`}
+                  </span>
+                )}
+              </div>
+            )}
+          </section>
+
+          {suggestions.length > 0 && (
+            <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+              <SuggestedTokens
+                suggestions={suggestions}
+                onApply={(tokenPath, property) => handleBindToken(property, tokenPath)}
+                onNavigateToToken={onNavigateToToken}
+              />
+            </section>
+          )}
+
+          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+            <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+              <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Apply or replace bindings</p>
+              <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                Inspect each property, then bind, replace, remove, or create a token directly from the current value.
+              </p>
+            </div>
+            <div className="px-1.5 py-1.5">
+              {!hasVisibleProperties && totalBindings === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] opacity-40" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+                  </svg>
+                  <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">No token-ready properties found</p>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                    Apply tokens from the Tokens tab or expose more design properties on the selected layer to work here.
+                  </p>
+                  {onGoToTokens && (
                     <button
-                      onClick={() => handleUnbindAllInGroup(boundPropsInGroup)}
-                      className="opacity-0 group-hover/groupheader:opacity-100 pointer-events-none group-hover/groupheader:pointer-events-auto transition-opacity text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1 py-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] shrink-0"
-                      title={`Unbind all ${group.label.toLowerCase()} properties`}
+                      onClick={onGoToTokens}
+                      className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
                     >
-                      Unbind all
+                      Go to Tokens →
                     </button>
                   )}
                 </div>
-                {visibleProps.map(prop => (
-                  <PropertyRow
-                    key={prop}
-                    prop={prop}
-                    rootNodes={rootNodes}
-                    selectedNodes={selectedNodes}
-                    tokenMap={tokenMap}
-                    connected={connected}
-                    activeSet={activeSet}
-                    serverUrl={serverUrl}
-                    hasAnyTokens={hasAnyTokens}
-                    creatingFromProp={creatingFromProp}
-                    bindingFromProp={bindingFromProp}
-                    lastBoundProp={lastBoundProp}
-                    bindingError={bindingErrors[prop] ?? null}
-                    onOpenCreate={openCreateFromProp}
-                    onOpenBind={openBindFromProp}
-                    onCancelCreate={cancelCreate}
-                    onCancelBind={cancelBind}
-                    onBindToken={handleBindToken}
-                    onTokenCreated={handleTokenCreated}
-                    onRemoveBinding={handleRemoveBinding}
-                    onDismissBindingError={(p) => setBindingErrors(prev => { const n = { ...prev }; delete n[p]; return n; })}
-                    onNavigateToToken={onNavigateToToken}
-                    newTokenName={newTokenName}
-                    onNewTokenNameChange={setNewTokenName}
-                  />
-                ))}
-              </div>
-            );
-          })}
-          {isFilterActive && !PROPERTY_GROUPS.some(group =>
-            shouldShowGroup(group.condition, caps) &&
-            group.properties.some(prop => {
-              const binding = getBindingForProperty(rootNodes, prop);
-              const value = getCurrentValue(rootNodes, prop);
-              return (binding || value !== undefined) && matchesPropFilter(prop);
-            })
-          ) && (
-            <div className="flex flex-col items-center gap-1 px-4 py-6 text-center">
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No properties match filter</p>
-              <button
-                onClick={() => { setPropFilter(''); setPropFilterMode('all'); }}
-                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-              >
-                Clear filter
-              </button>
+              ) : (
+                <div>
+                  {PROPERTY_GROUPS.map((group, groupIdx) => {
+                    if (!shouldShowGroup(group.condition, caps)) return null;
+
+                    const visibleProps = group.properties.filter(prop => {
+                      const binding = getBindingForProperty(rootNodes, prop);
+                      const value = getCurrentValue(rootNodes, prop);
+                      if (!binding && value === undefined) return false;
+                      return matchesPropFilter(prop);
+                    });
+
+                    if (visibleProps.length === 0) return null;
+
+                    const boundPropsInGroup = visibleProps.filter(prop => {
+                      const binding = getBindingForProperty(rootNodes, prop);
+                      return binding && binding !== 'mixed';
+                    });
+
+                    return (
+                      <div key={group.label} className={groupIdx > 0 ? 'mt-1 pt-1 border-t border-[var(--color-figma-border)]/50' : ''}>
+                        <div className="relative group/groupheader px-2 py-1 flex items-center">
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide flex-1">
+                            {group.label}
+                          </span>
+                          {boundPropsInGroup.length > 0 && (
+                            <button
+                              onClick={() => handleUnbindAllInGroup(boundPropsInGroup)}
+                              className="opacity-0 group-hover/groupheader:opacity-100 pointer-events-none group-hover/groupheader:pointer-events-auto transition-opacity text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1 py-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                              title={`Unbind all ${group.label.toLowerCase()} properties`}
+                            >
+                              Unbind all
+                            </button>
+                          )}
+                        </div>
+                        {visibleProps.map(prop => (
+                          <PropertyRow
+                            key={prop}
+                            prop={prop}
+                            rootNodes={rootNodes}
+                            selectedNodes={selectedNodes}
+                            tokenMap={tokenMap}
+                            connected={connected}
+                            activeSet={activeSet}
+                            serverUrl={serverUrl}
+                            hasAnyTokens={hasAnyTokens}
+                            creatingFromProp={creatingFromProp}
+                            bindingFromProp={bindingFromProp}
+                            lastBoundProp={lastBoundProp}
+                            bindingError={bindingErrors[prop] ?? null}
+                            onOpenCreate={openCreateFromProp}
+                            onOpenBind={openBindFromProp}
+                            onCancelCreate={cancelCreate}
+                            onCancelBind={cancelBind}
+                            onBindToken={handleBindToken}
+                            onTokenCreated={handleTokenCreated}
+                            onRemoveBinding={handleRemoveBinding}
+                            onDismissBindingError={(p) => setBindingErrors(prev => { const n = { ...prev }; delete n[p]; return n; })}
+                            onNavigateToToken={onNavigateToToken}
+                            newTokenName={newTokenName}
+                            onNewTokenNameChange={setNewTokenName}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
+                  {isFilterActive && !PROPERTY_GROUPS.some(group =>
+                    shouldShowGroup(group.condition, caps) &&
+                    group.properties.some(prop => {
+                      const binding = getBindingForProperty(rootNodes, prop);
+                      const value = getCurrentValue(rootNodes, prop);
+                      return (binding || value !== undefined) && matchesPropFilter(prop);
+                    })
+                  ) && (
+                    <div className="flex flex-col items-center gap-1 px-4 py-6 text-center">
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No properties match the current filter.</p>
+                      <button
+                        onClick={() => { setPropFilter(''); setPropFilterMode('all'); }}
+                        className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                      >
+                        Clear filter
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-          </div>
-        )}
+          </section>
 
-        {/* Deep inspect: nested layers with token bindings */}
-        {deepInspect && (
-          <DeepInspectSection
-            deepChildNodes={deepChildNodes}
-            tokenMap={tokenMap}
-            onNavigateToToken={onNavigateToToken}
-            onRemoveBinding={handleDeepRemoveBinding}
-            onBindToken={handleDeepBindToken}
-            onSelectNode={handleSelectDeepNode}
-          />
-        )}
+          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+            <button
+              onClick={() => setShowAdvancedTools(prev => !prev)}
+              className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              aria-expanded={showAdvancedTools}
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`mt-0.5 shrink-0 transition-transform ${showAdvancedTools ? 'rotate-90' : ''}`} aria-hidden="true">
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Advanced tools</p>
+                <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                  Search layers, sync the page, extract or remap bindings, inspect nested children, and filter the property list without crowding the primary binding flow.
+                </p>
+              </div>
+            </button>
 
-        {/* Deep-remove binding error */}
-        {deepRemoveError && (
-          <div className="px-3 py-1.5 text-[10px] text-red-600 bg-red-50 border-t border-red-200 shrink-0">
-            {deepRemoveError}
-          </div>
-        )}
+            {showAdvancedTools && (
+              <div className="border-t border-[var(--color-figma-border)] px-3 py-3 flex flex-col gap-3">
+                <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Selection sync</p>
+                      <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        Refresh bound values from the token server for the current selection or the whole page.
+                      </p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${syncStatusToneClass}`}>
+                      {syncStatusLabel}
+                    </span>
+                  </div>
+                  <div className="mt-2" aria-live="polite">
+                    {syncing && syncProgress ? (
+                      <div className="inline-flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        <span className="inline-block h-1 w-20 overflow-hidden rounded-full bg-[var(--color-figma-border)] align-middle">
+                          <span
+                            className="block h-full rounded-full bg-[var(--color-figma-accent)] transition-all"
+                            style={{ width: `${Math.round((syncProgress.processed / syncProgress.total) * 100)}%` }}
+                          />
+                        </span>
+                        {syncProgress.processed}/{syncProgress.total}
+                      </div>
+                    ) : syncError ? (
+                      <span role="alert" className="text-[10px] text-[var(--color-figma-error)]" title={syncError}>
+                        Sync failed — {syncError}
+                      </span>
+                    ) : syncResult ? (
+                      <span
+                        className={`text-[10px] ${syncResult.errors > 0 ? 'text-[var(--color-figma-error)]' : syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}
+                        title={
+                          syncResult.errors > 0
+                            ? `${syncResult.errors} binding(s) could not be applied — the token type may not be compatible with the layer property`
+                            : syncResult.missingTokens.length > 0
+                            ? `Missing tokens (not in token server):\n${syncResult.missingTokens.join('\n')}`
+                            : undefined
+                        }
+                      >
+                        {syncResult.errors > 0
+                          ? `${syncResult.errors} binding${syncResult.errors !== 1 ? 's' : ''} failed — check token types`
+                          : syncResult.updated === 0 && syncResult.missingTokens.length === 0
+                          ? 'Up to date'
+                          : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` · ${syncResult.missingTokens.length} missing` : ''}`}
+                      </span>
+                    ) : freshSyncResult && freshSyncResult.missingTokens.length === 0 ? (
+                      <span className="text-[10px] text-[var(--color-figma-success)]">Latest selection sync completed successfully.</span>
+                    ) : (
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        {totalBindings > 0 ? 'Run selection sync after token edits, or sync the full page when you need a broader refresh.' : 'Sync becomes useful once the selection has token bindings.'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {totalBindings > 0 && connected && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSync('selection'); }}
+                        disabled={syncing}
+                        className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors disabled:opacity-50"
+                      >
+                        Sync selection
+                      </button>
+                    )}
+                    {connected && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSync('page'); }}
+                        disabled={syncing}
+                        className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-50"
+                      >
+                        Sync page
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Search and inspect</p>
+                      <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        Jump to a different layer or inspect nested child bindings when the current selection needs deeper maintenance.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        onClick={() => setShowLayerSearch(prev => !prev)}
+                        className={`text-[10px] px-2 py-1 rounded transition-colors ${
+                          showLayerSearch
+                            ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                            : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+                        }`}
+                      >
+                        {showLayerSearch ? 'Hide layer search' : 'Search layers'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const next = !deepInspect;
+                          setDeepInspect(next);
+                          lsSet(STORAGE_KEYS.DEEP_INSPECT, String(next));
+                          parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
+                        }}
+                        title={deepInspect ? `Deep inspect on — showing nested children (${adaptShortcut(SHORTCUT_KEYS.TOGGLE_DEEP_INSPECT)})` : `Enable deep inspect to show nested children (${adaptShortcut(SHORTCUT_KEYS.TOGGLE_DEEP_INSPECT)})`}
+                        className={`text-[10px] px-2 py-1 rounded transition-colors ${
+                          deepInspect
+                            ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                            : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+                        }`}
+                      >
+                        {deepInspect ? 'Deep inspect on' : 'Enable deep inspect'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {showLayerSearch && (
+                    <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2">
+                      <LayerSearchPanel onSelect={handleSelectLayer} />
+                    </div>
+                  )}
+
+                  {deepInspect && (
+                    <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 pb-1">
+                      <DeepInspectSection
+                        deepChildNodes={deepChildNodes}
+                        tokenMap={tokenMap}
+                        onNavigateToToken={onNavigateToToken}
+                        onRemoveBinding={handleDeepRemoveBinding}
+                        onBindToken={handleDeepBindToken}
+                        onSelectNode={handleSelectDeepNode}
+                      />
+                    </div>
+                  )}
+
+                  {deepRemoveError && (
+                    <div className="mt-2 rounded border border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
+                      {deepRemoveError}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Maintenance actions</p>
+                      <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        Extract raw values into tokens, remap binding paths after renames, or clear the selection before rebinding.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {connected && activeSet && (
+                        <button
+                          onClick={() => { setShowExtractPanel(prev => !prev); setShowRemapPanel(false); }}
+                          className={`text-[10px] px-2 py-1 rounded transition-colors ${
+                            showExtractPanel
+                              ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+                          }`}
+                        >
+                          {showExtractPanel ? 'Hide extract panel' : 'Extract tokens'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { setShowRemapPanel(prev => !prev); setShowExtractPanel(false); }}
+                        className={`text-[10px] px-2 py-1 rounded transition-colors ${
+                          showRemapPanel
+                            ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                            : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+                        }`}
+                      >
+                        {showRemapPanel ? 'Hide remap panel' : 'Remap bindings'}
+                      </button>
+                      {totalBindings > 0 && (
+                        <button
+                          onClick={() => setShowClearConfirm(true)}
+                          title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? 's' : ''} from selection`}
+                          className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] transition-colors"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {connected && activeSet && unboundWithValueCount > 0 && !extractingUnbound && !extractUnboundResult && !extractUnboundError && (
+                    <button
+                      onClick={handleExtractAllUnbound}
+                      title={`Create tokens for all ${unboundWithValueCount} unbound propert${unboundWithValueCount !== 1 ? 'ies' : 'y'} and bind them to selected layers in one step`}
+                      className="mt-2 text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+                    >
+                      Extract and bind {unboundWithValueCount} unbound propert{unboundWithValueCount !== 1 ? 'ies' : 'y'}
+                    </button>
+                  )}
+                  {extractingUnbound && (
+                    <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">Extracting and binding unbound properties…</p>
+                  )}
+                  {extractUnboundResult && (
+                    <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--color-figma-success,#18a058)]">
+                      <span>Created {extractUnboundResult.created}, bound {extractUnboundResult.bound}</span>
+                      <button onClick={() => setExtractUnboundResult(null)} className="opacity-60 hover:opacity-100" aria-label="Dismiss extract result">×</button>
+                    </div>
+                  )}
+                  {extractUnboundError && (
+                    <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--color-figma-error,#f56565)]" title={extractUnboundError}>
+                      <span>Extract failed</span>
+                      <button onClick={() => setExtractUnboundError(null)} className="opacity-60 hover:opacity-100" aria-label="Dismiss extract error">×</button>
+                    </div>
+                  )}
+
+                  {showExtractPanel && (
+                    <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2">
+                      <ExtractTokensPanel
+                        connected={connected}
+                        activeSet={activeSet}
+                        serverUrl={serverUrl}
+                        tokenMap={tokenMap}
+                        onTokenCreated={onTokenCreated}
+                        onClose={() => setShowExtractPanel(false)}
+                      />
+                    </div>
+                  )}
+
+                  {showRemapPanel && (
+                    <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2">
+                      <RemapBindingsPanel
+                        tokenMap={tokenMap}
+                        initialMissingTokens={freshSyncResult?.missingTokens}
+                        onClose={() => setShowRemapPanel(false)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {hasVisibleProperties && (
+                  <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+                    <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Property filters</p>
+                    <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      Narrow the property list when you need to focus on a subset of bindable values.
+                    </p>
+                    <div className="mt-2 flex items-center gap-1">
+                      <div className="relative flex-1 min-w-0">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-secondary)] pointer-events-none" aria-hidden="true">
+                          <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                        </svg>
+                        <input
+                          type="text"
+                          value={propFilter}
+                          onChange={e => setPropFilter(e.target.value)}
+                          placeholder="Filter properties…"
+                          aria-label="Filter properties"
+                          className="w-full pl-5 pr-5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+                        />
+                        {propFilter && (
+                          <button
+                            onClick={() => setPropFilter('')}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                            aria-label="Clear filter"
+                          >
+                            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                              <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      {(['bound', 'unbound', 'colors', 'dimensions'] as const).map(mode => (
+                        <button
+                          key={mode}
+                          onClick={() => setPropFilterMode(propFilterMode === mode ? 'all' : mode)}
+                          className={`text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-colors ${
+                            propFilterMode === mode
+                              ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
+                              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+                          }`}
+                        >
+                          {mode === 'bound' ? 'Bound' : mode === 'unbound' ? 'Unbound' : mode === 'colors' ? 'Colors' : 'Dims'}
+                        </button>
+                      ))}
+                      {mixedBindings > 0 && (
+                        <button
+                          onClick={() => setPropFilterMode(propFilterMode === 'mixed' ? 'all' : 'mixed')}
+                          className={`text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-colors ${
+                            propFilterMode === 'mixed'
+                              ? 'bg-[var(--color-figma-warning,#f5a623)]/20 text-[var(--color-figma-warning,#f5a623)] font-medium'
+                              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+                          }`}
+                        >
+                          Mixed
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
 
       {/* Persistent peer suggestion — stays until dismissed or selection changes */}
