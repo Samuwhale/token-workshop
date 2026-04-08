@@ -23,9 +23,9 @@ export async function validateBacklogRunner(
   const providerValidation = await validateProvider(runOptions.tool, commandRunner, runOptions.model);
 
   const messages = [...providerValidation.messages];
-  messages.push(`  → Resolved model: ${runOptions.model}`);
+  messages.push(`  → Model: ${runOptions.model ?? 'CLI default'}`);
   if (runOptions.passModel !== runOptions.model) {
-    messages.push(`  → Pass model: ${runOptions.passModel}`);
+    messages.push(`  → Pass model: ${runOptions.passModel ?? 'CLI default'}`);
   }
 
   const requiredFiles = [

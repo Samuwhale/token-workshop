@@ -32,7 +32,7 @@ describe('interactive helpers', () => {
   it('renders a readable summary of selected options', () => {
     const summary = summarizeRunOverrides(config, {
       tool: 'codex',
-      model: 'gpt-5.4',
+      model: '',
       passModel: '',
       passes: true,
       passFrequency: 10,
@@ -40,7 +40,8 @@ describe('interactive helpers', () => {
     });
 
     expect(summary).toContain('Tool:           codex');
-    expect(summary).toContain('Pass model:     same as main model');
+    expect(summary).toContain('Model:          CLI default');
+    expect(summary).toContain('Pass model:     same as main model / CLI default');
     expect(summary).toContain('Worktrees:      disabled');
   });
 });

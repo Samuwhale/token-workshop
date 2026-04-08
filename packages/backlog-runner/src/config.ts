@@ -119,9 +119,13 @@ type ModelsFileShape = {
 
 export async function resolveModelAlias(
   config: BacklogRunnerConfig,
-  alias: string,
+  alias: string | undefined,
   tool: ResolvedRunOptions['tool'],
-): Promise<string> {
+): Promise<string | undefined> {
+  if (!alias?.trim()) {
+    return undefined;
+  }
+
   const fallback = DEFAULT_MODEL_MAP[alias as keyof typeof DEFAULT_MODEL_MAP]?.[tool];
   const modelsFile = config.files.models;
 

@@ -116,7 +116,7 @@ export function normalizeAgentResult(stdout: string, stderr: string): AgentResul
 
 export interface ProviderAdapter {
   readonly tool: BacklogTool;
-  validate(commandRunner: CommandRunner, model: string): Promise<ToolValidationResult>;
+  validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult>;
   run(commandRunner: CommandRunner, request: AgentRunRequest): Promise<AgentResult>;
 }
 

@@ -58,8 +58,8 @@ export interface BacklogRunnerConfig {
   validationCommand: string;
   defaults: {
     tool: BacklogTool;
-    model: string;
-    passModel: string;
+    model?: string;
+    passModel?: string;
     passes: boolean;
     passFrequency: number;
     worktrees: boolean;
@@ -83,8 +83,8 @@ export interface RunOverrides {
 
 export interface ResolvedRunOptions {
   tool: BacklogTool;
-  model: string;
-  passModel: string;
+  model?: string;
+  passModel?: string;
   passes: boolean;
   passFrequency: number;
   worktrees: boolean;
@@ -103,7 +103,7 @@ export interface AgentResult {
 
 export interface AgentRunRequest {
   tool: BacklogTool;
-  model: string;
+  model?: string;
   context: string;
   prompt: string;
   cwd: string;

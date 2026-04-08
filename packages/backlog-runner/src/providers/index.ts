@@ -19,7 +19,7 @@ export function getProvider(tool: BacklogTool): ProviderAdapter {
 export async function validateProvider(
   tool: BacklogTool,
   commandRunner: CommandRunner,
-  model: string,
+  model?: string,
 ): Promise<ToolValidationResult> {
   return getProvider(tool).validate(commandRunner, model);
 }

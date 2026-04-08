@@ -7,7 +7,7 @@ import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
 import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
-import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsRemove, lsSet } from '../shared/storage';
 import { useSettingsListener, type PreferredCopyFormat } from './SettingsPanel';
 import type { SortOrder } from './tokenListUtils';
 import {
@@ -49,6 +49,7 @@ import { useTokenExpansion } from '../hooks/useTokenExpansion';
 import { useTokenVirtualScroll } from '../hooks/useTokenVirtualScroll';
 import { useTokenSearch } from '../hooks/useTokenSearch';
 import { useTokenSelection } from '../hooks/useTokenSelection';
+import { dispatchToast } from '../shared/toastBus';
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
@@ -109,6 +110,7 @@ export function TokenList({
   const [showBatchCopyToSet, setShowBatchCopyToSet] = useState(false);
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState('');
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
+  const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
@@ -141,6 +143,30 @@ export function TokenList({
     }
     return map;
   }, [generators]);
+
+  const staleGeneratorsForSet = useMemo(
+    () => (generators ?? []).filter(generator => generator.targetSet === setName && generator.isStale === true),
+    [generators, setName],
+  );
+
+  const staleGeneratorBannerStorageKey = useMemo(
+    () => STORAGE_KEY.staleGeneratorBannerDismissed(setName),
+    [setName],
+  );
+
+  const staleGeneratorSignature = useMemo(() => (
+    stableStringify(staleGeneratorsForSet.map(generator => ({
+      id: generator.id,
+      sourceToken: generator.sourceToken ?? null,
+      currentSourceValue: generator.sourceToken ? (allTokensFlat[generator.sourceToken]?.$value ?? null) : null,
+      lastRunAt: generator.lastRunAt ?? null,
+      lastRunSourceValue: generator.lastRunSourceValue ?? null,
+    })))
+  ), [staleGeneratorsForSet, allTokensFlat]);
+
+  const [dismissedStaleGeneratorSignature, setDismissedStaleGeneratorSignature] = useState<string | null>(
+    () => lsGet(STORAGE_KEY.staleGeneratorBannerDismissed(setName)),
+  );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
@@ -217,6 +243,32 @@ export function TokenList({
     const stored = lsGet(STORAGE_KEY.tokenSort(setName));
     setSortOrderState(VALID_SORT_ORDERS.includes(stored as SortOrder) ? stored as SortOrder : 'default');
   }, [setName]);
+
+  useEffect(() => {
+    setDismissedStaleGeneratorSignature(lsGet(staleGeneratorBannerStorageKey));
+  }, [staleGeneratorBannerStorageKey]);
+
+  useEffect(() => {
+    if (staleGeneratorsForSet.length === 0) {
+      if (dismissedStaleGeneratorSignature !== null) {
+        setDismissedStaleGeneratorSignature(null);
+        lsRemove(staleGeneratorBannerStorageKey);
+      }
+      return;
+    }
+    if (
+      dismissedStaleGeneratorSignature !== null &&
+      dismissedStaleGeneratorSignature !== staleGeneratorSignature
+    ) {
+      setDismissedStaleGeneratorSignature(null);
+      lsRemove(staleGeneratorBannerStorageKey);
+    }
+  }, [
+    dismissedStaleGeneratorSignature,
+    staleGeneratorBannerStorageKey,
+    staleGeneratorSignature,
+    staleGeneratorsForSet.length,
+  ]);
 
   const setSortOrder = useCallback((order: SortOrder) => {
     setSortOrderState(order);
@@ -946,11 +998,52 @@ export function TokenList({
   const handleRegenerateGenerator = useCallback(async (generatorId: string) => {
     try {
       await apiFetch(`${serverUrl}/api/generators/${generatorId}/run`, { method: 'POST' });
-      onRefreshGenerators?.();
+      onRefresh();
     } catch {
       onError?.('Failed to regenerate — check server connection');
     }
-  }, [serverUrl, onRefreshGenerators, onError]);
+  }, [serverUrl, onRefresh, onError]);
+
+  const handleDismissStaleGeneratorBanner = useCallback(() => {
+    lsSet(staleGeneratorBannerStorageKey, staleGeneratorSignature);
+    setDismissedStaleGeneratorSignature(staleGeneratorSignature);
+  }, [staleGeneratorBannerStorageKey, staleGeneratorSignature]);
+
+  const handleRegenerateAllStaleGenerators = useCallback(async () => {
+    if (runningStaleGenerators || staleGeneratorsForSet.length === 0) return;
+    setRunningStaleGenerators(true);
+    let successCount = 0;
+    let totalUpdatedTokens = 0;
+    const failedGenerators: string[] = [];
+    try {
+      for (const generator of staleGeneratorsForSet) {
+        try {
+          const result = await apiFetch<{ count?: number }>(
+            `${serverUrl}/api/generators/${generator.id}/run`,
+            { method: 'POST' },
+          );
+          successCount += 1;
+          totalUpdatedTokens += result.count ?? 0;
+        } catch {
+          failedGenerators.push(generator.name);
+        }
+      }
+      if (failedGenerators.length === 0) {
+        dispatchToast(
+          `Re-ran ${successCount} stale generator${successCount !== 1 ? 's' : ''}${totalUpdatedTokens > 0 ? ` — ${totalUpdatedTokens} token${totalUpdatedTokens !== 1 ? 's' : ''} updated` : ''}`,
+          'success',
+        );
+      } else {
+        dispatchToast(
+          `${failedGenerators.length} generator${failedGenerators.length !== 1 ? 's' : ''} failed: ${failedGenerators.join(', ')}`,
+          'error',
+        );
+      }
+      onRefresh();
+    } finally {
+      setRunningStaleGenerators(false);
+    }
+  }, [runningStaleGenerators, staleGeneratorsForSet, serverUrl, onRefresh]);
 
   const tokenPromotion = useTokenPromotion({
     connected,
@@ -2114,6 +2207,10 @@ export function TokenList({
     setPromoteRows, setRenameGroupConfirm, setRenameTokenConfirm, setShowFindReplace,
   ]);
 
+  const showStaleGeneratorBanner =
+    staleGeneratorsForSet.length > 0 &&
+    dismissedStaleGeneratorSignature !== staleGeneratorSignature;
+
   return (
     <div className="flex flex-col h-full relative" onKeyDown={handleListKeyDown}>
       {/* ⌘⌥C alias-ref copy feedback toast */}
@@ -2935,6 +3032,52 @@ export function TokenList({
           </div>
         )}
       </div>
+      {showStaleGeneratorBanner && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-2 px-3 py-1.5 border-b border-amber-500/60 bg-amber-500/10 text-[11px] text-amber-700 shrink-0"
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="shrink-0"
+            aria-hidden="true"
+          >
+            <path d="M12 9v4M12 17h.01" />
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <span className="flex-1 min-w-0 text-[var(--color-figma-text)]">
+            {staleGeneratorsForSet.length === 1 ? '1 generator' : `${staleGeneratorsForSet.length} generators`} in{' '}
+            <strong>{setName}</strong> {staleGeneratorsForSet.length === 1 ? 'is' : 'are'} out of date
+          </span>
+          <button
+            type="button"
+            onClick={handleRegenerateAllStaleGenerators}
+            disabled={runningStaleGenerators}
+            className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-amber-500/15 text-amber-700 font-medium hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {runningStaleGenerators && <Spinner size="xs" />}
+            <span>{runningStaleGenerators ? 'Regenerating…' : 'Regenerate all'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDismissStaleGeneratorBanner}
+            disabled={runningStaleGenerators}
+            className="shrink-0 px-2 py-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            aria-label="Dismiss stale generator notice"
+            title="Dismiss"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       {/* Token stats bar — opened from the command palette to avoid permanent toolbar clutter */}
       {statsBarOpen && statsTotalTokens > 0 && (
         <div className="shrink-0 border-b border-[var(--color-figma-border)]">

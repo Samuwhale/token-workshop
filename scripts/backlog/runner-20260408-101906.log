@@ -1,0 +1,23 @@
+
+║  Backlog Runner                                             ║
+╔═══════════════════════════════════════════════════════════════╗
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    74347
+  Mode:   single (no worktrees)
+  Model:  undefined
+  Tool:   codex
+  Passes: disabled
+  Queue:    5 ready · 0 in-progress · 0 failed
+  Done:     1660 total
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/Projects/TokenManager/backlog-stop)
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  5 queued · 0 in-progress
+═══════════════════════════════════════════════════════════════
+  → Stale generator notification is easy to miss — when a source token changes, the staleness signal is an amber-bordered tag on the generator's target group header (`TokenTreeNode.tsx` ~L628–634, `border-amber-500/30`); in a dense tree with many groups this tag is easy to overlook, and there is no signal at the top of the list or in the tab bar beyond the tab badge count; add a dismissable notification bar between the search/filter row and the token list: "N generator(s) in [set name] are out of date — [Regenerate all] [Dismiss]"; "Regenerate all" should run only generators where `targetSet === activeSet` and `isStale === true` (call `POST /api/generators/{id}/run` for each in sequence, show a spinner during); bar should be dismissable per-session (localStorage key) and re-appear if staleness changes; the existing amber border on the tag should also be made slightly more visible (increase opacity from 30% to 60%, `border-amber-500/60`); files: `TokenList.tsx` (add banner between filter row and virtual list), `useGenerators.ts` (generators array and isStale field), `storage.ts` (add a key for dismissed stale banner)
+  Running agent… (started 12:19:06)
+
+  ✓ done: Stale generator notification is easy to miss
+    Added a dismissible stale-generator banner with sequential regenerate-all, stronger stale tags, passed full validation, and logged the work.
+
+  Committing: Stale generator notification is easy to miss

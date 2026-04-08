@@ -755,6 +755,25 @@ export function SelectionInspector({
     parent.postMessage({ pluginMessage: { type: 'extract-tokens-from-selection' } }, '*');
   }, [connected, activeSet, extractingUnbound, rootNodes, tokenMap, serverUrl, onTokenCreated]);
 
+  const visiblePropertyStats = useMemo(() => {
+    let visible = 0;
+    let bound = 0;
+    let mixed = 0;
+    let unbound = 0;
+
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
+      const binding = getBindingForProperty(rootNodes, prop);
+      const value = getCurrentValue(rootNodes, prop);
+      if (!binding && value === undefined) continue;
+      visible++;
+      if (binding === 'mixed') mixed++;
+      else if (binding) bound++;
+      else unbound++;
+    }
+
+    return { visible, bound, mixed, unbound };
+  }, [rootNodes]);
+
   // No selection — full empty state
   if (!hasSelection) {
     return (
@@ -866,25 +885,6 @@ export function SelectionInspector({
 
   const isFilterActive = propFilter !== '' || propFilterMode !== 'all';
   const nextUnboundProperty = hasSelection ? getNextUnboundProperty(null, rootNodes, caps) : null;
-
-  const visiblePropertyStats = useMemo(() => {
-    let visible = 0;
-    let bound = 0;
-    let mixed = 0;
-    let unbound = 0;
-
-    for (const prop of ALL_BINDABLE_PROPERTIES) {
-      const binding = getBindingForProperty(rootNodes, prop);
-      const value = getCurrentValue(rootNodes, prop);
-      if (!binding && value === undefined) continue;
-      visible++;
-      if (binding === 'mixed') mixed++;
-      else if (binding) bound++;
-      else unbound++;
-    }
-
-    return { visible, bound, mixed, unbound };
-  }, [rootNodes]);
 
   const summaryGuidance = !connected
     ? 'Connect to the token server to bind, extract, or sync tokens for this selection.'

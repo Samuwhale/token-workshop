@@ -438,3 +438,11 @@
   - When import options span distinct mental models, group them by family first and defer format-specific choices until the family is chosen; this reduces scan load without removing any capabilities.
   - Keep file drag-and-drop detection at the panel boundary rather than inside the selector so the import UI can be reorganized freely without touching parser routing.
 ---
+## 2026-04-08 - Stale generator notification is easy to miss
+- Added a dismissible stale-generator banner to the token list header area, keyed its dismissal per set by a staleness signature so it reappears when stale generator state changes, and wired `Regenerate all` to run stale generators for the active set sequentially with in-plugin toast feedback and a loading spinner.
+- Increased the stale generator tag border contrast in the token tree, and fixed a pre-existing `SelectionInspector` hook-order lint failure so the backlog validation gate passes again.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L113, ~L153, ~L1012, ~L2210, ~L3035; `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L187, ~L833; `packages/figma-plugin/src/ui/shared/storage.ts` ~L69; `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L758
+- **Learnings for future iterations:**
+  - For dismissible warning banners tied to live data, persist a signature of the current problem state instead of a boolean so the banner can auto-return when the underlying condition changes.
+  - Batch regenerate actions should refresh the full token state after completion, not just the generator list, otherwise the surrounding UI can keep showing stale generated output.
+---

@@ -16,19 +16,20 @@ export const geminiProvider: ProviderAdapter = {
   async run(commandRunner, request: AgentRunRequest) {
     return withTempDir('backlog-gemini-', async dir => {
       const policyFile = await writeTempFile(dir, 'policy.md', request.context);
+      const args = [
+        '--yolo',
+        '--prompt',
+        'Execute the instructions from stdin.',
+        '--output-format',
+        'json',
+      ];
+      if (request.model) {
+        args.push('--model', request.model);
+      }
+      args.push('--policy', policyFile);
       const result = await commandRunner.run(
         'gemini',
-        [
-          '--yolo',
-          '--prompt',
-          'Execute the instructions from stdin.',
-          '--output-format',
-          'json',
-          '--model',
-          request.model,
-          '--policy',
-          policyFile,
-        ],
+        args,
         {
           cwd: request.cwd,
           input: request.prompt,

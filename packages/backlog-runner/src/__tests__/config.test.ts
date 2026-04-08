@@ -101,4 +101,42 @@ describe('config', () => {
     expect(options.passModel).toBe('gpt-5.5');
     expect(options.worktrees).toBe(false);
   });
+
+  it('uses CLI defaults when no model is configured', async () => {
+    const root = await makeTempDir();
+    const config = normalizeBacklogRunnerConfig(
+      {
+        files: {
+          backlog: './backlog.md',
+          inbox: './backlog-inbox.md',
+          stop: './backlog-stop',
+          patterns: './scripts/backlog/patterns.md',
+          progress: './scripts/backlog/progress.txt',
+          archive: './scripts/backlog/archive.md',
+          counter: './scripts/backlog/.completed-count',
+        },
+        prompts: {
+          agent: './scripts/backlog/agent.md',
+          product: './scripts/backlog/product.md',
+          ux: './scripts/backlog/ux.md',
+          code: './scripts/backlog/code.md',
+        },
+        validationCommand: 'bash scripts/backlog/validate.sh',
+        defaults: {
+          tool: 'codex',
+          model: '',
+          passModel: '',
+          passes: true,
+          passFrequency: 10,
+          worktrees: true,
+        },
+      },
+      path.join(root, 'backlog.config.mjs'),
+    );
+
+    const options = await resolveRunOptions(config);
+
+    expect(options.model).toBeUndefined();
+    expect(options.passModel).toBeUndefined();
+  });
 });

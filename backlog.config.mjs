@@ -21,7 +21,7 @@ export default {
   validationCommand: 'bash scripts/backlog/validate.sh',
   defaults: {
     tool: 'claude',
-    model: 'claude-sonnet-4-6',
+    model: '',
     passModel: '',
     passes: true,
     passFrequency: 10,

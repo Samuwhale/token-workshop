@@ -12,7 +12,7 @@ import {
 
 export const codexProvider: ProviderAdapter = {
   tool: 'codex',
-  async validate(commandRunner: CommandRunner, model: string): Promise<ToolValidationResult> {
+  async validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult> {
     const base = await simpleVersionValidation(commandRunner, 'codex', 'codex');
     if (!base.ok) return base;
 
@@ -30,14 +30,13 @@ export const codexProvider: ProviderAdapter = {
           'danger-full-access',
           '--skip-git-repo-check',
           '--ephemeral',
-          '--model',
-          model,
           '--output-schema',
           schemaFile,
           '--output-last-message',
           outputFile,
           '-C',
           dir,
+          ...(model ? ['--model', model] : []),
         ],
         {
           cwd: dir,
@@ -76,14 +75,13 @@ export const codexProvider: ProviderAdapter = {
           'danger-full-access',
           '--skip-git-repo-check',
           '--ephemeral',
-          '--model',
-          request.model,
           '--output-schema',
           schemaFile,
           '--output-last-message',
           outputFile,
           '-C',
           request.cwd,
+          ...(request.model ? ['--model', request.model] : []),
         ],
         {
           cwd: request.cwd,

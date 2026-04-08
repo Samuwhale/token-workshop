@@ -66,6 +66,7 @@ export const STORAGE_KEY = {
   pinnedTokens:    (setName: string) => `tm_pinned:${setName}`,
   tokenViewMode:   (setName: string) => `tm_view-mode:${setName}`,
   tokenShowResolvedValues: (setName: string) => `tm_show_resolved_values:${setName}`,
+  staleGeneratorBannerDismissed: (setName: string) => `tm_stale_generator_banner_dismissed:${setName}`,
 };
 
 /** Key prefix strings used for bulk-delete operations */

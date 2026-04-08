@@ -34,14 +34,21 @@ export function resolveToolChoice(value: string, fallback: BacklogTool): Backlog
 
 export function summarizeRunOverrides(
   config: BacklogRunnerConfig,
-  overrides: Required<Pick<RunOverrides, 'tool' | 'model' | 'passModel' | 'passes' | 'passFrequency' | 'worktrees'>>,
+  overrides: {
+    tool: BacklogTool;
+    model?: string;
+    passModel?: string;
+    passes: boolean;
+    passFrequency: number;
+    worktrees: boolean;
+  },
 ): string {
   return [
     'Selected options',
     SUMMARY_DIVIDER,
     `Tool:           ${overrides.tool}`,
-    `Model:          ${overrides.model}`,
-    `Pass model:     ${overrides.passModel || config.defaults.passModel || 'same as main model'}`,
+    `Model:          ${overrides.model || 'CLI default'}`,
+    `Pass model:     ${overrides.passModel || 'same as main model / CLI default'}`,
     `Passes:         ${overrides.passes ? 'enabled' : 'disabled'}`,
     `Pass frequency: ${overrides.passFrequency}`,
     `Worktrees:      ${overrides.worktrees ? 'enabled' : 'disabled'}`,
@@ -90,11 +97,12 @@ export async function promptForRunOverrides(
       const nextTool = resolveToolChoice(toolAnswer, defaultTool);
 
       const defaultModel = previous.model ?? config.defaults.model;
-      const modelAnswer = await rl.question(`Model (${defaultModel}): `);
+      const modelLabel = defaultModel || 'CLI default';
+      const modelAnswer = await rl.question(`Model (${modelLabel}): `);
       const nextModel = modelAnswer.trim() || defaultModel;
 
       const defaultPassModel = previous.passModel ?? config.defaults.passModel;
-      const passModelLabel = defaultPassModel || 'same as main model';
+      const passModelLabel = defaultPassModel || 'same as main model / CLI default';
       const passModelAnswer = await rl.question(`Pass model (${passModelLabel}): `);
       const nextPassModel = passModelAnswer.trim() || defaultPassModel;
 
