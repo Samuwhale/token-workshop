@@ -49,6 +49,8 @@ import { useTokenVirtualScroll } from '../hooks/useTokenVirtualScroll';
 import { useTokenSearch } from '../hooks/useTokenSearch';
 import { useTokenSelection } from '../hooks/useTokenSelection';
 import { dispatchToast } from '../shared/toastBus';
+import { TokenSearchFilterBuilder } from './TokenSearchFilterBuilder';
+import type { FilterBuilderSection } from './TokenSearchFilterBuilder';
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
@@ -68,7 +70,6 @@ const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
 const VALID_SORT_ORDERS: SortOrder[] = ['default', 'alpha-asc', 'by-type'];
-const FILTER_PANEL_HAS_OPTIONS = ['alias', 'unused', 'duplicate', 'generated'] as const;
 
 function dispatchTokenListViewChanged(setName: string): void {
   window.dispatchEvent(new CustomEvent('tm-token-list-view-changed', { detail: { setName } }));
@@ -111,6 +112,8 @@ export function TokenList({
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState('');
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
+  const [filterBuilderOpen, setFilterBuilderOpen] = useState(false);
+  const [activeFilterBuilderSection, setActiveFilterBuilderSection] = useState<FilterBuilderSection | null>(null);
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
@@ -816,15 +819,19 @@ export function TokenList({
     setRefFilter,
     setShowDuplicates,
     toggleQueryQualifierValue,
-    removeQueryToken,
+    addQueryQualifierValue,
+    removeQueryQualifierValue,
+    clearQueryQualifier,
     filtersActive,
     activeFilterCount,
     duplicateValuePaths,
     duplicateCounts,
     availableTypes,
     qualifierTypeOptions,
+    generatorNames,
     qualifierHints,
     activeQueryToken,
+    parsedSearchQuery,
     selectedTypeQualifiers,
     selectedHasQualifiers,
     structuredFilterChips,
@@ -890,6 +897,44 @@ export function TokenList({
     if (showPreviewSplit) items.push('Preview split');
     return items;
   }, [condensedView, multiModeDimensionName, multiModeEnabled, showPreviewSplit]);
+
+  const hasStructuredFilters = structuredFilterChips.length > 0;
+
+  const getPreferredFilterBuilderSection = useCallback((): FilterBuilderSection => {
+    if (parsedSearchQuery.types.length > 0) return 'type';
+    if (selectedHasQualifiers.length > 0) return 'has';
+    if (parsedSearchQuery.paths.length > 0) return 'path';
+    if (parsedSearchQuery.names.length > 0) return 'name';
+    if (parsedSearchQuery.values.length > 0) return 'value';
+    if (parsedSearchQuery.descs.length > 0) return 'desc';
+    if (parsedSearchQuery.generators.length > 0) return 'generator';
+    return 'type';
+  }, [parsedSearchQuery, selectedHasQualifiers.length]);
+
+  const openFilterBuilderSection = useCallback((section: FilterBuilderSection) => {
+    setFilterBuilderOpen(true);
+    setActiveFilterBuilderSection(section);
+  }, []);
+
+  const toggleFilterBuilder = useCallback(() => {
+    setFilterBuilderOpen(open => {
+      const next = !open;
+      if (next) {
+        setActiveFilterBuilderSection(current => current ?? getPreferredFilterBuilderSection());
+      }
+      return next;
+    });
+  }, [getPreferredFilterBuilderSection]);
+
+  useEffect(() => {
+    if (!filterBuilderOpen && !hasStructuredFilters) {
+      setActiveFilterBuilderSection(null);
+      return;
+    }
+    if (activeFilterBuilderSection === null) {
+      setActiveFilterBuilderSection(getPreferredFilterBuilderSection());
+    }
+  }, [activeFilterBuilderSection, filterBuilderOpen, getPreferredFilterBuilderSection, hasStructuredFilters]);
 
   // Sync displayedLeafNodesRef
   displayedLeafNodesRef.current = displayedLeafNodes;
@@ -1483,10 +1528,14 @@ export function TokenList({
     setCrossSetSearch(false);
     setInspectMode(false);
     setShowRecentlyTouched(false);
+    setFilterBuilderOpen(false);
+    setActiveFilterBuilderSection(null);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
   }, [
     onToggleIssuesOnly,
+    setActiveFilterBuilderSection,
     setCrossSetSearch,
+    setFilterBuilderOpen,
     setInspectMode,
     setRefFilter,
     setSearchQuery,
@@ -2426,76 +2475,81 @@ export function TokenList({
         {/* Search-first library toolbar with advanced controls collapsed behind one entry */}
         {tokens.length > 0 && !selectMode && viewMode === 'tree' && (
           <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <div className="flex flex-wrap items-center gap-2 px-2 py-2">
-              <div className="relative min-w-[180px] flex-[999_1_0%]">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
-                  <circle cx="4" cy="4" r="3"/>
-                  <path d="M6.5 6.5L9 9" strokeLinecap="round"/>
-                </svg>
-                <input
-                  ref={searchRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => {
-                    setSearchQuery(e.target.value);
-                    setHintIndex(0);
-                  }}
-                  onFocus={() => { setShowQualifierHints(true); }}
-                  onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); }}
-                  onKeyDown={e => {
-                    if (e.key === 'Escape') {
-                      e.preventDefault();
-                      if (searchQuery) { setSearchQuery(''); setHintIndex(0); }
-                      searchRef.current?.blur();
-                      return;
-                    }
-                    if (!showQualifierHints || qualifierHints.length === 0) return;
-                    if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
-                    else if (e.key === 'ArrowUp') { e.preventDefault(); setHintIndex(i => Math.max(i - 1, 0)); }
-                    else if (e.key === 'Tab' || (e.key === 'Enter' && qualifierHints.length > 0)) {
-                      const hint = qualifierHints[hintIndex];
-                      if (!hint?.replacement) return;
-                      e.preventDefault();
-                      setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
+            <div className="flex flex-wrap items-start gap-2 px-2 py-2">
+              <div className="min-w-[180px] flex-[999_1_0%]">
+                <div className="relative">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                    <circle cx="4" cy="4" r="3"/>
+                    <path d="M6.5 6.5L9 9" strokeLinecap="round"/>
+                  </svg>
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => {
+                      setSearchQuery(e.target.value);
                       setHintIndex(0);
-                    }
-                  }}
-                  placeholder="Search tokens"
-                  title={searchTooltip}
-                  className={`w-full rounded border bg-[var(--color-figma-bg)] py-1.5 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery ? 'pr-6' : 'pr-2'} ${structuredFilterChips.length > 0 ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => { setSearchQuery(''); setHintIndex(0); searchRef.current?.focus(); }}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-                    title="Clear search"
-                    aria-label="Clear search"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-                {showQualifierHints && activeQueryToken.token.includes(':') && qualifierHints.length > 0 && (
-                  <div ref={qualifierHintsRef} className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg">
-                    {qualifierHints.map((hint, i) => (
-                      <button
-                        key={hint.id}
-                        onMouseDown={e => e.preventDefault()}
-                        onClick={() => {
-                          if (!hint.replacement) return;
-                          setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
-                          setHintIndex(0);
-                          searchRef.current?.focus();
-                        }}
-                        className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[10px] ${i === hintIndex ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'} ${hint.replacement ? '' : 'cursor-default'}`}
-                      >
-                        <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.label}</span>
-                        <span className="truncate">{hint.desc}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                    }}
+                    onFocus={() => { setShowQualifierHints(true); }}
+                    onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); }}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        if (searchQuery) { setSearchQuery(''); setHintIndex(0); }
+                        searchRef.current?.blur();
+                        return;
+                      }
+                      if (!showQualifierHints || qualifierHints.length === 0) return;
+                      if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
+                      else if (e.key === 'ArrowUp') { e.preventDefault(); setHintIndex(i => Math.max(i - 1, 0)); }
+                      else if (e.key === 'Tab' || (e.key === 'Enter' && qualifierHints.length > 0)) {
+                        const hint = qualifierHints[hintIndex];
+                        if (!hint || hint.kind !== 'replacement') return;
+                        e.preventDefault();
+                        setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
+                        setHintIndex(0);
+                      }
+                    }}
+                    placeholder="Search names, paths, or descriptions"
+                    title={searchTooltip}
+                    className={`w-full rounded border bg-[var(--color-figma-bg)] py-1.5 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery ? 'pr-6' : 'pr-2'} ${structuredFilterChips.length > 0 ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => { setSearchQuery(''); setHintIndex(0); searchRef.current?.focus(); }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                      title="Clear search"
+                      aria-label="Clear search"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                  {showQualifierHints && activeQueryToken.token.includes(':') && qualifierHints.length > 0 && (
+                    <div ref={qualifierHintsRef} className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg">
+                      {qualifierHints.map((hint, i) => (
+                        <button
+                          key={hint.id}
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => {
+                            if (hint.kind !== 'replacement') return;
+                            setSearchQuery(replaceQueryToken(searchQuery, activeQueryToken, hint.replacement));
+                            setHintIndex(0);
+                            searchRef.current?.focus();
+                          }}
+                          className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[10px] ${i === hintIndex ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'} ${hint.kind === 'replacement' ? '' : 'cursor-default'}`}
+                        >
+                          <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.label}</span>
+                          <span className="truncate">{hint.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-1 pl-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  Search text stays simple. Use <span className="font-medium text-[var(--color-figma-text-secondary)]">Add filter</span> for type, token-state, path, value, description, or generator filters.
+                </div>
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -2509,35 +2563,53 @@ export function TokenList({
                   <span>New token</span>
                 </button>
 
-                <div className="relative shrink-0" ref={viewOptionsRef}>
                 <button
-                  onClick={() => setViewOptionsOpen(v => !v)}
-                  aria-expanded={viewOptionsOpen}
+                  onClick={toggleFilterBuilder}
+                  aria-expanded={filterBuilderOpen || hasStructuredFilters}
                   aria-haspopup="dialog"
-                  className={`inline-flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${viewOptionsOpen ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'}`}
-                  title="View options and advanced actions"
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${(filterBuilderOpen || hasStructuredFilters) ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'}`}
+                  title="Build filters without typing query clauses"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="4" y1="21" x2="4" y2="14" />
-                    <line x1="4" y1="10" x2="4" y2="3" />
-                    <line x1="12" y1="21" x2="12" y2="12" />
-                    <line x1="12" y1="8" x2="12" y2="3" />
-                    <line x1="20" y1="21" x2="20" y2="16" />
-                    <line x1="20" y1="12" x2="20" y2="3" />
-                    <line x1="1" y1="14" x2="7" y2="14" />
-                    <line x1="9" y1="8" x2="15" y2="8" />
-                    <line x1="17" y1="16" x2="23" y2="16" />
+                    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
                   </svg>
-                  <span>View options</span>
-                  {viewOptionsActiveCount > 0 && (
+                  <span>{hasStructuredFilters ? 'Filters' : 'Add filter'}</span>
+                  {structuredFilterChips.length > 0 && (
                     <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
-                      {viewOptionsActiveCount}
+                      {structuredFilterChips.length}
                     </span>
                   )}
                 </button>
 
-                {viewOptionsOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 w-[320px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+                <div className="relative shrink-0" ref={viewOptionsRef}>
+                  <button
+                    onClick={() => setViewOptionsOpen(v => !v)}
+                    aria-expanded={viewOptionsOpen}
+                    aria-haspopup="dialog"
+                    className={`inline-flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${viewOptionsOpen ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'}`}
+                    title="View options and advanced actions"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="21" x2="4" y2="14" />
+                      <line x1="4" y1="10" x2="4" y2="3" />
+                      <line x1="12" y1="21" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12" y2="3" />
+                      <line x1="20" y1="21" x2="20" y2="16" />
+                      <line x1="20" y1="12" x2="20" y2="3" />
+                      <line x1="1" y1="14" x2="7" y2="14" />
+                      <line x1="9" y1="8" x2="15" y2="8" />
+                      <line x1="17" y1="16" x2="23" y2="16" />
+                    </svg>
+                    <span>View options</span>
+                    {viewOptionsActiveCount > 0 && (
+                      <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
+                        {viewOptionsActiveCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {viewOptionsOpen && (
+                    <div className="absolute right-0 top-full z-50 mt-1 w-[320px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
                     <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
                       <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Library options</div>
                       <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -2661,7 +2733,7 @@ export function TokenList({
                           </button>
                           {sets.length > 1 && (
                             <button
-                              onClick={() => setCrossSetSearch(v => !v)}
+                              onClick={() => setCrossSetSearch(!crossSetSearch)}
                               className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${crossSetSearch ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
                             >
                               Search all sets
@@ -2692,49 +2764,11 @@ export function TokenList({
                           </div>
                         </div>
                         <button
-                          onClick={() => setShowDuplicates(v => !v)}
+                          onClick={() => setShowDuplicates(!showDuplicates)}
                           className={`w-full rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showDuplicates ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
                         >
                           Duplicate values
                         </button>
-                        <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                          <div>
-                            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">Structured filters</div>
-                            <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">Choose filters here and TokenManager writes the matching `type:` and `has:` clauses into search.</div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                            {qualifierTypeOptions.map(type => (
-                              <label key={type} className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedTypeQualifiers.includes(type.toLowerCase())}
-                                  onChange={() => toggleQueryQualifierValue('type', type)}
-                                  className="rounded border-[var(--color-figma-border)]"
-                                />
-                                <span>{type}</span>
-                              </label>
-                            ))}
-                          </div>
-                          <div className="space-y-1">
-                            {FILTER_PANEL_HAS_OPTIONS.map(option => {
-                              const qualifier = QUERY_QUALIFIERS.find(def => def.qualifier === `has:${option}`);
-                              return (
-                                <label key={option} className="flex items-start gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedHasQualifiers.includes(option)}
-                                    onChange={() => toggleQueryQualifierValue('has', option)}
-                                    className="mt-[1px] rounded border-[var(--color-figma-border)]"
-                                  />
-                                  <span className="leading-snug">
-                                    <span className="font-mono text-[var(--color-figma-accent)]">has:{option}</span>
-                                    <span className="block text-[9px] text-[var(--color-figma-text-tertiary)]">{qualifier?.desc}</span>
-                                  </span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </div>
                         <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
                           <div>
                             <div className="text-[10px] font-medium text-[var(--color-figma-text)]">Filter presets</div>
@@ -2852,13 +2886,33 @@ export function TokenList({
                         </div>
                       </section>
                     </div>
-                  </div>
-                )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {(activeFilterSummary.length > 0 || activeViewSummary.length > 0 || structuredFilterChips.length > 0) && (
+            {(filterBuilderOpen || hasStructuredFilters) && (
+              <div className="px-2 pb-2">
+                <TokenSearchFilterBuilder
+                  isOpen={filterBuilderOpen}
+                  selectedSection={activeFilterBuilderSection}
+                  onSelectSection={openFilterBuilderSection}
+                  onToggleOpen={toggleFilterBuilder}
+                  parsedSearchQuery={parsedSearchQuery}
+                  selectedTypeQualifiers={selectedTypeQualifiers}
+                  selectedHasQualifiers={selectedHasQualifiers}
+                  qualifierTypeOptions={qualifierTypeOptions}
+                  generatorNames={generatorNames}
+                  onToggleQualifierValue={toggleQueryQualifierValue}
+                  onAddQualifierValue={addQueryQualifierValue}
+                  onRemoveQualifierValue={removeQueryQualifierValue}
+                  onClearQualifier={clearQueryQualifier}
+                />
+              </div>
+            )}
+
+            {(activeFilterSummary.length > 0 || activeViewSummary.length > 0 || hasStructuredFilters) && (
               <div className="flex flex-wrap items-start gap-2 px-2 pb-2">
                 {activeFilterSummary.length > 0 && (
                   <button
@@ -2908,28 +2962,7 @@ export function TokenList({
                   </button>
                 )}
 
-                {structuredFilterChips.length > 0 && (
-                  <div className="min-w-[180px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Search clauses</div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {structuredFilterChips.map(chip => (
-                        <button
-                          key={chip.token}
-                          onMouseDown={e => {
-                            e.preventDefault();
-                            removeQueryToken(chip.token);
-                            searchRef.current?.focus();
-                          }}
-                          className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 hover:text-[var(--color-figma-accent)]"
-                        >
-                          {chip.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(activeFilterSummary.length > 0 || structuredFilterChips.length > 0) && (
+                {(activeFilterSummary.length > 0 || hasStructuredFilters) && (
                   <button
                     onClick={clearFilters}
                     className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -3409,22 +3442,42 @@ export function TokenList({
               const looksLikeValue = /^#[0-9a-fA-F]{3,8}$/.test(q) || /^\d+(\.\d+)?(px|rem|em|%)?$/.test(q);
               if (looksLikeValue) {
                 suggestions.push({
-                  label: `Search by value: ${q}`,
+                  label: `Add value filter for "${q}"`,
                   icon: 'value',
-                  action: () => setSearchQuery(`value:${q}`),
+                  action: () => {
+                    addQueryQualifierValue('value', q);
+                    openFilterBuilderSection('value');
+                  },
                 });
               }
 
-              // Qualifier hint → if query partially matches a qualifier keyword
+              // Filter-builder hint → if query partially matches a qualifier keyword
               if (!q.includes(':')) {
-                const matchingQualifiers = QUERY_QUALIFIERS.filter(qf =>
-                  qf.qualifier.toLowerCase().startsWith(qLower) && qf.qualifier.toLowerCase() !== qLower
-                );
-                for (const mq of matchingQualifiers.slice(0, 2)) {
+                const sectionLabels: Record<FilterBuilderSection, string> = {
+                  type: 'Type',
+                  has: 'Token state',
+                  path: 'Path',
+                  name: 'Leaf name',
+                  value: 'Value',
+                  desc: 'Description',
+                  generator: 'Generator',
+                };
+                const matchingSections = new Map<FilterBuilderSection, string>();
+                for (const qualifier of QUERY_QUALIFIERS) {
+                  if (qualifier.key === 'group') continue;
+                  if (
+                    qualifier.qualifier.toLowerCase().startsWith(qLower)
+                    || qualifier.key.toLowerCase().startsWith(qLower)
+                    || qualifier.desc.toLowerCase().includes(qLower)
+                  ) {
+                    matchingSections.set(qualifier.key, sectionLabels[qualifier.key]);
+                  }
+                }
+                for (const [sectionKey, label] of Array.from(matchingSections.entries()).slice(0, 2)) {
                   suggestions.push({
-                    label: `Try qualifier: ${mq.qualifier} — ${mq.desc}`,
+                    label: `Open ${label} filter`,
                     icon: 'hint',
-                    action: () => setSearchQuery(mq.example || mq.qualifier),
+                    action: () => openFilterBuilderSection(sectionKey),
                   });
                 }
               }

@@ -14,7 +14,7 @@ import {
   flattenLeafNodes, filterTokenNodes, filterByDuplicatePaths,
   findGroupByPath, parseStructuredQuery, QUERY_QUALIFIERS,
   getActiveQueryToken, getQualifierDefinitionForToken, getQueryQualifierValues,
-  normalizeHasQualifier, setQueryQualifierValues,
+  normalizeHasQualifier, removeQueryQualifierValues, setQueryQualifierValues,
 } from '../components/tokenListUtils';
 import { stableStringify } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
@@ -386,6 +386,33 @@ export function useTokenSearch({
     setSearchQuery(setQueryQualifierValues(searchQuery, qualifier, nextValues));
   }, [searchQuery, setSearchQuery]);
 
+  const addQueryQualifierValue = useCallback((
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    value: string,
+  ) => {
+    const normalizedValue = value.trim().toLowerCase();
+    if (!normalizedValue) return;
+    const currentValues = getQueryQualifierValues(searchQuery, qualifier);
+    if (currentValues.includes(normalizedValue)) return;
+    setSearchQuery(setQueryQualifierValues(searchQuery, qualifier, [...currentValues, normalizedValue]));
+  }, [searchQuery, setSearchQuery]);
+
+  const removeQueryQualifierValue = useCallback((
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    value: string,
+  ) => {
+    const normalizedValue = value.trim().toLowerCase();
+    const currentValues = getQueryQualifierValues(searchQuery, qualifier);
+    const nextValues = currentValues.filter(current => current !== normalizedValue);
+    setSearchQuery(setQueryQualifierValues(searchQuery, qualifier, nextValues));
+  }, [searchQuery, setSearchQuery]);
+
+  const clearQueryQualifier = useCallback((
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+  ) => {
+    setSearchQuery(removeQueryQualifierValues(searchQuery, qualifier));
+  }, [searchQuery, setSearchQuery]);
+
   const removeQueryToken = useCallback((token: string) => {
     const next = searchQuery
       .split(/\s+/)
@@ -407,7 +434,7 @@ export function useTokenSearch({
     return chips;
   }, [parsedSearchQuery, selectedHasQualifiers]);
 
-  const searchTooltip = 'Structured search supports type:, has:, value:, desc:, path:, name:, generator:, and group:. Example: type:color has:duplicate value:#ff0000';
+  const searchTooltip = 'Search names, paths, and descriptions. Use the filter builder for type, token-state, value, path, description, and generator filters, or type clauses such as type:color and has:alias directly.';
 
   // displayedTokens: derived from search/filter state and component-level state
   const displayedTokens = useMemo(() => {
@@ -482,6 +509,9 @@ export function useTokenSearch({
     setRefFilter,
     setShowDuplicates,
     toggleQueryQualifierValue,
+    addQueryQualifierValue,
+    removeQueryQualifierValue,
+    clearQueryQualifier,
     removeQueryToken,
     // Computed
     filtersActive,
@@ -490,6 +520,7 @@ export function useTokenSearch({
     duplicateCounts,
     availableTypes,
     qualifierTypeOptions,
+    generatorNames,
     qualifierHints,
     activeQueryToken,
     parsedSearchQuery,
