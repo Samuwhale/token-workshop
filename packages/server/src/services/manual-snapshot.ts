@@ -93,6 +93,10 @@ export class ManualSnapshotStore {
     await fs.unlink(this.journalPath).catch(() => {});
   }
 
+  private async cleanupStoreDir(): Promise<void> {
+    await fs.rmdir(path.dirname(this.filePath)).catch(() => {});
+  }
+
   /** Capture the current state of all token sets. */
   save(label: string, tokenStore: TokenStore): Promise<ManualSnapshotEntry> {
     return this.lock.withLock(async () => {
@@ -150,6 +154,16 @@ export class ManualSnapshotStore {
   async get(id: string): Promise<ManualSnapshotEntry | undefined> {
     await this.ensureLoaded();
     return this.snapshots.find(s => s.id === id);
+  }
+
+  reset(): Promise<void> {
+    return this.lock.withLock(async () => {
+      await this.ensureLoaded();
+      await fs.rm(this.filePath, { force: true });
+      await fs.rm(this.journalPath, { force: true });
+      this.snapshots = [];
+      await this.cleanupStoreDir();
+    });
   }
 
   delete(id: string): Promise<boolean> {

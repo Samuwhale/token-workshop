@@ -12,6 +12,7 @@ export interface DimensionsStore {
   filePath: string;
   load(): Promise<ThemeDimension[]>;
   save(dimensions: ThemeDimension[]): Promise<void>;
+  reset(): Promise<void>;
   /** Run an exclusive load-modify-save transaction. Prevents concurrent mutations from racing. */
   withLock<T>(fn: (dims: ThemeDimension[]) => Promise<{ dims: ThemeDimension[]; result: T }>): Promise<T>;
 }
@@ -56,6 +57,14 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
       await fs.rename(tmp, filePath);
       cache = structuredClone(dimensions);
       cachedMtimeMs = await fileMtimeMs();
+    },
+
+    reset(): Promise<void> {
+      return lock.withLock(async () => {
+        await fs.rm(filePath, { force: true });
+        cache = [];
+        cachedMtimeMs = null;
+      });
     },
 
     withLock<T>(fn: (dims: ThemeDimension[]) => Promise<{ dims: ThemeDimension[]; result: T }>): Promise<T> {

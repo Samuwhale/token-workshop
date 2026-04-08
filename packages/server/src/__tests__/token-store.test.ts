@@ -86,13 +86,16 @@ describe('TokenStore — set CRUD', () => {
     expect(deleted).toBe(false);
   });
 
-  it('clearAll removes all sets and files', async () => {
+  it('clearAll removes all token files, nested folders, and rename markers', async () => {
     await store.createSet('a');
-    await store.createSet('b');
+    await store.createSet('nested/b');
+    fs.writeFileSync(path.join(dir, '$rename-pending.json'), JSON.stringify({ oldName: 'a', newName: 'b' }));
     await store.clearAll();
     expect(await store.getSets()).toEqual([]);
     expect(fs.existsSync(path.join(dir, 'a.tokens.json'))).toBe(false);
-    expect(fs.existsSync(path.join(dir, 'b.tokens.json'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'nested', 'b.tokens.json'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'nested'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, '$rename-pending.json'))).toBe(false);
   });
 
   it('renameSet renames the file and updates in-memory state', async () => {

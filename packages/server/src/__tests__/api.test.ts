@@ -169,3 +169,143 @@ describe('POST /api/tokens/:set/bulk-rename', () => {
     fs.rmSync(path.join(tokenDir, `${setName}.tokens.json`), { force: true });
   });
 });
+
+describe('DELETE /api/data', () => {
+  it('clears tokens, themes, generators, resolvers, operation history, and manual snapshots', async () => {
+    const nestedSetName = 'reset/base';
+    const resolverName = 'reset/resolver';
+
+    const setRes = await fetch(url('/api/sets'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: nestedSetName,
+        tokens: {
+          color: {
+            brand: { $value: '#3366ff', $type: 'color' },
+          },
+        },
+      }),
+    });
+    expect(setRes.status).toBe(201);
+
+    fs.writeFileSync(
+      path.join(tokenDir, '$themes.json'),
+      JSON.stringify({
+        $themes: [
+          {
+            id: 'brand',
+            name: 'Brand',
+            options: [
+              {
+                id: 'default',
+                name: 'Default',
+                sets: { [nestedSetName]: 'enabled' },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const themesBeforeRes = await fetch(url('/api/themes'));
+    expect(themesBeforeRes.ok).toBe(true);
+    const themesBefore = await themesBeforeRes.json();
+    expect(themesBefore.dimensions).toHaveLength(1);
+
+    const generatorRes = await fetch(url('/api/generators'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'opacityScale',
+        name: 'Reset generator',
+        targetSet: nestedSetName,
+        targetGroup: 'generated.opacity',
+        config: {
+          steps: [{ name: 'soft', value: 0.5 }],
+        },
+      }),
+    });
+    expect(generatorRes.status).toBe(201);
+
+    const resolverRes = await fetch(url('/api/resolvers'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: resolverName,
+        version: '2025.10',
+        sets: {
+          base: {
+            sources: [{ $ref: `${nestedSetName}.tokens.json` }],
+          },
+        },
+        resolutionOrder: [{ $ref: '#/sets/base' }],
+      }),
+    });
+    expect(resolverRes.status).toBe(201);
+
+    const snapshotRes = await fetch(url('/api/snapshots'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: 'Reset snapshot' }),
+    });
+    expect(snapshotRes.status).toBe(201);
+
+    fs.writeFileSync(path.join(tokenDir, '$rename-pending.json'), JSON.stringify({ oldName: 'old', newName: 'new' }));
+    fs.mkdirSync(path.join(tokenDir, '.tokenmanager'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tokenDir, '.tokenmanager', 'restore-journal.json'),
+      JSON.stringify({
+        snapshotId: 'pending',
+        snapshotLabel: 'Pending restore',
+        data: {},
+        completedSets: [],
+      }),
+    );
+
+    const resetRes = await fetch(url('/api/data'), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'DELETE' }),
+    });
+    expect(resetRes.ok).toBe(true);
+
+    const setsRes = await fetch(url('/api/sets'));
+    expect(setsRes.ok).toBe(true);
+    const setsBody = await setsRes.json();
+    expect(setsBody.sets).toEqual([]);
+
+    const themesAfterRes = await fetch(url('/api/themes'));
+    expect(themesAfterRes.ok).toBe(true);
+    expect(await themesAfterRes.json()).toEqual({ dimensions: [] });
+
+    const generatorsAfterRes = await fetch(url('/api/generators'));
+    expect(generatorsAfterRes.ok).toBe(true);
+    expect(await generatorsAfterRes.json()).toEqual([]);
+
+    const resolversAfterRes = await fetch(url('/api/resolvers'));
+    expect(resolversAfterRes.ok).toBe(true);
+    expect(await resolversAfterRes.json()).toEqual({ resolvers: [], loadErrors: {} });
+
+    const operationsAfterRes = await fetch(url('/api/operations'));
+    expect(operationsAfterRes.ok).toBe(true);
+    expect(await operationsAfterRes.json()).toMatchObject({ data: [], total: 0 });
+
+    const snapshotsAfterRes = await fetch(url('/api/snapshots'));
+    expect(snapshotsAfterRes.ok).toBe(true);
+    expect(await snapshotsAfterRes.json()).toEqual({ snapshots: [] });
+
+    expect(fs.existsSync(path.join(tokenDir, `${nestedSetName}.tokens.json`))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, '$themes.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, '$generators.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, `${resolverName}.resolver.json`))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, '$rename-pending.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, '.tokenmanager', 'operations.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, '.tokenmanager', 'snapshots.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, '.tokenmanager', 'restore-journal.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, 'reset'))).toBe(false);
+
+    const tokenManagerDir = path.join(tokenDir, '.tokenmanager');
+    expect(fs.existsSync(tokenManagerDir)).toBe(false);
+  });
+});

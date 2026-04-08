@@ -722,20 +722,39 @@ export class TokenStore {
   }
 
   async clearAll(): Promise<void> {
-    const names = Array.from(this.sets.keys());
-    for (const name of names) {
-      const filePath = path.join(this.dir, `${name}.tokens.json`);
+    if (this._rebuildDebounceTimer !== null) {
+      clearTimeout(this._rebuildDebounceTimer);
+      this._rebuildDebounceTimer = null;
+    }
+    this._pendingWatcherEvents = [];
+
+    const previousSetNames = Array.from(this.sets.keys());
+    const files = await this.listTokenFiles();
+    for (const relativePath of files) {
+      const filePath = path.join(this.dir, relativePath);
       this._startWriteGuard(filePath);
       try {
-        await fs.unlink(filePath).catch(() => {});
+        await fs.rm(filePath, { force: true });
+        await this.removeEmptyParentDirs(filePath);
       } finally {
         this._clearWriteGuard(filePath);
       }
     }
+
+    await fs.rm(path.join(this.dir, '$rename-pending.json'), { force: true });
+
+    for (const timer of this._writingFiles.values()) clearTimeout(timer);
+    this._writingFiles.clear();
+    this._saveChains.clear();
+    this._batchDepth = 0;
     this.sets.clear();
-    this.rebuildFlatTokens();
-    const themesPath = path.join(this.dir, '$themes.json');
-    await fs.unlink(themesPath).catch(() => {});
+    this.flatTokens = new Map();
+    this.resolver = null;
+    this.crossSetDependents = new Map();
+
+    for (const setName of previousSetNames) {
+      this.emit({ type: 'set-removed', setName });
+    }
   }
 
   async renameSet(oldName: string, newName: string): Promise<void> {

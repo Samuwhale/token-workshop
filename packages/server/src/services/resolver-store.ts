@@ -172,6 +172,25 @@ export class ResolverStore {
     return true;
   }
 
+  async reset(): Promise<void> {
+    const files = await this.listResolverFiles();
+    for (const filePath of files) {
+      this._startWriteGuard(filePath);
+      try {
+        await fs.rm(filePath, { force: true });
+        await this.removeEmptyParentDirs(filePath);
+      } finally {
+        this._clearWriteGuard(filePath);
+      }
+    }
+
+    this.resolvers.clear();
+    this.loadErrors.clear();
+    for (const timer of this._writingFiles.values()) clearTimeout(timer);
+    this._writingFiles.clear();
+    this._fileDeleteGen.clear();
+  }
+
   // -----------------------------------------------------------------------
   // Resolution
   // -----------------------------------------------------------------------
@@ -260,6 +279,18 @@ export class ResolverStore {
     const rel = path.relative(this.dir, filePath);
     if (!rel.endsWith('.resolver.json')) return null;
     return rel.slice(0, -'.resolver.json'.length);
+  }
+
+  private async removeEmptyParentDirs(filePath: string): Promise<void> {
+    let dir = path.dirname(filePath);
+    while (dir !== this.dir && dir.startsWith(this.dir)) {
+      try {
+        await fs.rmdir(dir);
+      } catch {
+        break;
+      }
+      dir = path.dirname(dir);
+    }
   }
 
   /**

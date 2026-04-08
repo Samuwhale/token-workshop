@@ -172,7 +172,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // DELETE /api/data — wipe all sets and themes (danger zone)
+  // DELETE /api/data — wipe all persisted state (danger zone)
   // Requires body: { confirm: "DELETE" } to prevent accidental calls
   fastify.delete<{ Body: { confirm?: string } }>('/data', async (request, reply) => {
     if (request.body?.confirm !== 'DELETE') {
@@ -180,7 +180,14 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
-        await fastify.tokenStore.clearAll();
+        await fastify.resolverLock.withLock(async () => {
+          await fastify.tokenStore.clearAll();
+          await fastify.dimensionsStore.reset();
+          await fastify.generatorService.reset();
+          await fastify.resolverStore.reset();
+          await fastify.operationLog.reset();
+          await fastify.manualSnapshots.reset();
+        });
         return { ok: true };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to clear data');

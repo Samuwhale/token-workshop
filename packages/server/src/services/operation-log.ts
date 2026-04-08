@@ -131,6 +131,10 @@ export class OperationLog {
     await fs.rename(tmp, this.filePath);
   }
 
+  private async cleanupStoreDir(): Promise<void> {
+    await fs.rmdir(path.dirname(this.filePath)).catch(() => {});
+  }
+
   /** Push a new entry and persist — must be called while holding the lock. */
   private async pushAndPersist(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
     const full: OperationEntry = {
@@ -151,6 +155,15 @@ export class OperationLog {
   async record(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
     await this.ensureLoaded();
     return this.lock.withLock(() => this.pushAndPersist(entry));
+  }
+
+  async reset(): Promise<void> {
+    await this.ensureLoaded();
+    await this.lock.withLock(async () => {
+      await fs.rm(this.filePath, { force: true });
+      this.entries = [];
+      await this.cleanupStoreDir();
+    });
   }
 
   /** Get recent entries (newest first) as lightweight summaries, with total count. */

@@ -130,6 +130,14 @@ export class GeneratorService {
     return Array.from(this.generators.values());
   }
 
+  async reset(): Promise<void> {
+    await this.saveLock.withLock(async () => {
+      await fs.rm(this.filePath, { force: true });
+      this.generators.clear();
+      this.generatorLocks.clear();
+    });
+  }
+
   async getById(id: string): Promise<TokenGenerator | undefined> {
     return this.generators.get(id);
   }

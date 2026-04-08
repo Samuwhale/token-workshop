@@ -253,3 +253,11 @@
 - Found 8 items — written to backlog-inbox.md
 - Notable: the Figma Variables save flow still reduces every import to create-or-overwrite set slugs, which is a major data-loss risk for the exact power users this product is targeting.
 ---
+## 2026-04-08 - [HIGH] Make `/api/data` a real clean-slate reset in `packages/server/src/routes/sets.ts` and `packages/server/src/services/token-store.ts`
+- Reworked `DELETE /api/data` into a coordinated server reset that clears token files, `$themes.json`, `$generators.json`, resolver files, operation history, manual snapshots, and the `$rename-pending.json` crash marker while also flushing each store's in-memory caches.
+- Added store-level reset paths for themes, generators, resolvers, operation log, and manual snapshots, tightened `TokenStore.clearAll()` so it removes nested token folders and pending watcher state, and covered the full wipe with server/API tests plus `bash scripts/backlog/validate.sh`.
+- Files changed: `packages/server/src/routes/sets.ts` ~L175; `packages/server/src/services/token-store.ts` ~L724; `packages/server/src/routes/themes.ts` ~L15, ~L62; `packages/server/src/services/generator-service.ts` ~L133; `packages/server/src/services/resolver-store.ts` ~L175; `packages/server/src/services/operation-log.ts` ~L160; `packages/server/src/services/manual-snapshot.ts` ~L159; `packages/server/src/__tests__/api.test.ts` ~L173; `packages/server/src/__tests__/token-store.test.ts` ~L92; `scripts/backlog/patterns.md` ~L321
+- **Learnings for future iterations:**
+  - A destructive reset has to flow through every file-backed store's own reset path, otherwise caches, load errors, and recovery markers survive even after the files are gone.
+  - For nested token or resolver names, a clean-slate reset should delete the files and then collapse any empty parent directories so the next workspace truly starts from zero.
+---
