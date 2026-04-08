@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import { describeError } from '../shared/utils';
 import { Spinner } from './Spinner';
@@ -7,12 +7,14 @@ import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { swatchBgColor } from '../shared/colorUtils';
 import { SyncSubPanel } from './publish/SyncSubPanel';
+import { SyncPreflightStep } from './publish/SyncPreflightStep';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
 import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
 import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
 import { FIGMA_SCOPES } from './MetadataEditor';
+import type { PublishPreflightActionId, SyncWorkflowStage } from '../shared/syncWorkflow';
 
 /* ── Sync entity types ───────────────────────────────────────────────────── */
 
@@ -190,6 +192,8 @@ interface PublishPanelProps {
 
 export interface PublishPanelHandle {
   runReadinessChecks: () => void;
+  runCompareAll: () => Promise<void>;
+  focusStage: (stage: SyncWorkflowStage) => void;
 }
 
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
@@ -221,6 +225,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
   // ── Scope overrides: user-edited scopes for variable push rows ──
   const [scopeOverrides, setScopeOverrides] = useState<Record<string, string[]>>({});
+  const [preflightActionBusyId, setPreflightActionBusyId] = useState<PublishPreflightActionId | null>(null);
+  const preflightRef = useRef<HTMLDivElement | null>(null);
+  const compareRef = useRef<HTMLDivElement | null>(null);
+  const applyRef = useRef<HTMLDivElement | null>(null);
 
   // ── Extracted hooks ──
   const varSync = useSyncEntity<DiffRow, VarSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
@@ -251,7 +259,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     },
     successMessage: 'Variable sync applied', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Apply variable sync',
     revertSuccessMessage: 'Variable sync reverted', revertErrorMessage: 'Failed to revert variable sync',
-    autoComputeOnConnect: true,
   });
 
   const styleSync = useSyncEntity<DiffRow, StyleSnapshot>(serverUrl, activeSet, connected, STYLE_MESSAGES, {
@@ -261,7 +268,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     buildRevertPayload: (snapshot) => ({ styleSnapshot: snapshot }),
     successMessage: 'Style sync applied', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Apply style sync',
     revertSuccessMessage: 'Style sync reverted', revertErrorMessage: 'Failed to revert style sync',
-    autoComputeOnConnect: true,
   });
 
   // ── Shared diff filter ──
@@ -291,11 +297,36 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     setOrphanConfirm: orphanCleanup.setOrphanConfirm,
   });
 
+  const {
+    readinessChecks,
+    blockingReadinessChecks,
+    advisoryReadinessChecks,
+    preflightStage,
+    readinessLoading,
+    readinessError,
+    setChecksStale,
+    runReadinessChecks,
+    triggerReadinessAction,
+    readinessBlockingFails,
+    isReadinessOutdated,
+  } = readiness;
+
+  const canProceedToCompare = !readinessLoading && !isReadinessOutdated && (preflightStage === 'advisory' || preflightStage === 'ready');
+  const compareLockedMessage = !readinessChecks.length
+    ? 'Run preflight once for the current token state before comparing Figma variables or styles.'
+    : isReadinessOutdated
+      ? 'Preflight results are outdated. Re-run preflight before comparing differences.'
+      : readinessBlockingFails > 0
+        ? 'Resolve the blocking preflight clusters before comparing or applying Figma changes.'
+        : 'Preflight must finish before compare is available.';
+
   const publishAll = usePublishAll({
     varSync,
     styleSync,
     setConfirmAction,
     markChecksStale: stableMarkChecksStale,
+    canProceed: canProceedToCompare,
+    blockedMessage: compareLockedMessage,
   });
 
   // Wire trampolines to real implementations (runs every render — that's intentional)
@@ -303,11 +334,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   setReadinessErrorRef.current = readiness.setReadinessError;
   markChecksStaleRef.current = () => readiness.setChecksStale(true);
 
-  // Destructure for ergonomic JSX access
-  const {
-    readinessChecks, readinessLoading, readinessError, setChecksStale,
-    runReadinessChecks, readinessFails, readinessPasses, readinessBlockingFails, isReadinessOutdated,
-  } = readiness;
   const { orphansDeleting, orphanConfirm, setOrphanConfirm, executeOrphanDeletion } = orphanCleanup;
   const {
     publishAllStep,
@@ -324,27 +350,89 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     quickSyncing,
   } = publishAll;
   const hasFigmaSyncChanges = hasVarChanges || hasStyleChanges;
+  const hasComparedAnything = varSync.checked || styleSync.checked;
+  const publishPreflightState = useMemo(() => ({
+    stage: preflightStage,
+    isOutdated: isReadinessOutdated,
+    blockingCount: blockingReadinessChecks.length,
+    advisoryCount: advisoryReadinessChecks.length,
+    canProceed: canProceedToCompare,
+  }), [
+    advisoryReadinessChecks.length,
+    blockingReadinessChecks.length,
+    canProceedToCompare,
+    isReadinessOutdated,
+    preflightStage,
+  ]);
+
+  const focusStage = useCallback((stage: SyncWorkflowStage) => {
+    const target =
+      stage === 'preflight' ? preflightRef.current :
+      stage === 'compare' ? compareRef.current :
+      applyRef.current;
+    target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, []);
+
+  const handlePreflightAction = useCallback(async (actionId: PublishPreflightActionId) => {
+    setPreflightActionBusyId(actionId);
+    try {
+      if (actionId === 'review-variable-scopes') {
+        setOpenSections(new Set(['figma-variables', 'figma-styles']));
+        await varSync.computeDiff();
+        focusStage('compare');
+        return;
+      }
+
+      if (actionId === 'add-token-descriptions') {
+        dispatchToast('Descriptions are edited in the Tokens workspace. Add them there, then return to re-run preflight.', 'success');
+        return;
+      }
+
+      await triggerReadinessAction(actionId);
+      focusStage('preflight');
+    } finally {
+      setPreflightActionBusyId(null);
+    }
+  }, [focusStage, triggerReadinessAction, varSync]);
+
+  const preflightActionHandlers = useMemo(() => ({
+    'push-missing-variables': () => void handlePreflightAction('push-missing-variables'),
+    'delete-orphan-variables': () => void handlePreflightAction('delete-orphan-variables'),
+    'review-variable-scopes': () => void handlePreflightAction('review-variable-scopes'),
+    'add-token-descriptions': () => void handlePreflightAction('add-token-descriptions'),
+  }), [handlePreflightAction]);
 
   useEffect(() => {
     if (!publishPanelHandle) return;
     publishPanelHandle.current = {
       runReadinessChecks,
+      runCompareAll: compareAll,
+      focusStage,
     };
     return () => {
       publishPanelHandle.current = null;
     };
-  }, [publishPanelHandle, runReadinessChecks]);
+  }, [compareAll, focusStage, publishPanelHandle, runReadinessChecks]);
 
   // ── Broadcast pending count to Ship tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
   useEffect(() => {
-    const varCount = varSync.checked ? varSync.syncCount : 0;
-    const styleCount = styleSync.checked ? styleSync.syncCount : 0;
+    const varCount = canProceedToCompare && varSync.checked ? varSync.syncCount : 0;
+    const styleCount = canProceedToCompare && styleSync.checked ? styleSync.syncCount : 0;
     window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: varCount + styleCount } }));
     return () => {
       window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: 0 } }));
     };
-  }, [varSync.checked, varSync.syncCount, styleSync.checked, styleSync.syncCount]);
+  }, [canProceedToCompare, varSync.checked, varSync.syncCount, styleSync.checked, styleSync.syncCount]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('publish-preflight-state', { detail: publishPreflightState }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('publish-preflight-state', {
+        detail: { stage: 'idle', isOutdated: false, blockingCount: 0, advisoryCount: 0, canProceed: false },
+      }));
+    };
+  }, [publishPreflightState]);
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
@@ -360,258 +448,123 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
   return (
     <>
-    <div className="flex flex-col h-full">
-      {/* ── Pre-publish readiness gate ──────────────────────────────────── */}
-      <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-              readinessLoading ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' :
-              isReadinessOutdated ? 'bg-yellow-400' :
-              readinessFails === 0 && readinessPasses > 0 ? 'bg-[var(--color-figma-success)]' :
-              readinessBlockingFails > 0 ? 'bg-[var(--color-figma-error)]' :
-              readinessFails > 0 ? 'bg-yellow-500' :
-              'bg-[var(--color-figma-border)]'
-            }`} />
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Figma Sync Readiness</span>
-            {readinessBlockingFails > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] font-medium">{readinessBlockingFails} blocking</span>
-            )}
-            {readinessFails > readinessBlockingFails && readinessBlockingFails === 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-400/15 text-yellow-700 font-medium">{readinessFails} optional</span>
-            )}
-            {readinessFails > readinessBlockingFails && readinessBlockingFails > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-400/15 text-yellow-700 font-medium">+{readinessFails - readinessBlockingFails} optional</span>
-            )}
-            {readinessFails === 0 && readinessPasses > 0 && !isReadinessOutdated && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Ready</span>
-            )}
-            {isReadinessOutdated && !readinessLoading && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-700 font-medium" title="Tokens changed since last check">Outdated</span>
-            )}
-          </div>
-          <PanelHelpIcon panelKey="publish" title="Figma Sync" expanded={help.expanded} onToggle={help.toggle} />
-        </div>
-
-        {readinessError && (
-          <div role="alert" className="mt-1.5 text-[10px] text-[var(--color-figma-error)]">{readinessError}</div>
-        )}
-
-        {readinessChecks.length > 0 && (
-          <>
-            {readinessBlockingFails > 0 && (
-              <div className="mt-2 flex items-start gap-1.5 px-2.5 py-2 rounded bg-[var(--color-figma-error)]/8 border border-[var(--color-figma-error)]/20">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-0.5 text-[var(--color-figma-error)]">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
-                </svg>
-                <div className="text-[10px] text-[var(--color-figma-error)] leading-relaxed">
-                  <span className="font-medium">{readinessBlockingFails} required {readinessBlockingFails === 1 ? 'issue' : 'issues'} must be resolved before syncing to Figma.</span>
-                  {' '}Fix items marked <span className="font-medium">Required</span> first, then re-check.
-                </div>
-              </div>
-            )}
-            {readinessFails > 0 && readinessBlockingFails === 0 && (
-              <div className="mt-2 flex items-center gap-1.5 px-2.5 py-2 rounded bg-[var(--color-figma-warning)]/8 border border-[var(--color-figma-warning)]/20">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-yellow-600">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
-                </svg>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                  Optional improvements remain. You can sync to Figma now or address them first.
-                </span>
-              </div>
-            )}
-            <div className="mt-2 divide-y divide-[var(--color-figma-border)] rounded border border-[var(--color-figma-border)] overflow-hidden">
-              {readinessChecks.map(check => (
-                <div key={check.id} className={`px-3 py-2 ${check.status === 'fail' ? 'bg-[var(--color-figma-bg)]' : 'bg-[var(--color-figma-bg)]'}`}>
-                  <div className="flex items-start gap-2">
-                    <span className={`shrink-0 mt-0.5 ${check.status === 'pass' ? 'text-[var(--color-figma-success)]' : check.blocking ? 'text-[var(--color-figma-error)]' : 'text-yellow-600'}`}>
-                      {check.status === 'pass' ? (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      ) : (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                      )}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] text-[var(--color-figma-text)]">{check.label}</span>
-                        {check.status === 'fail' && (
-                          <span className={`text-[9px] px-1 py-0 rounded font-medium leading-4 ${
-                            check.blocking
-                              ? 'bg-[var(--color-figma-error)]/12 text-[var(--color-figma-error)]'
-                              : 'bg-yellow-400/15 text-yellow-700'
-                          }`}>
-                            {check.blocking ? 'Required' : 'Optional'}
-                          </span>
-                        )}
-                        {check.count !== undefined && check.status === 'fail' && (
-                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{check.count} affected</span>
-                        )}
-                      </div>
-                      {check.detail && check.status === 'fail' && (
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">{check.detail}</div>
-                      )}
-                    </div>
-                    {check.fixLabel && check.onFix && (
-                      <button
-                        onClick={check.onFix}
-                        disabled={orphansDeleting}
-                        className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0 disabled:opacity-40 mt-0.5"
-                      >
-                        {orphansDeleting && check.id === 'orphans' ? 'Deleting\u2026' : check.fixLabel}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
-          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Use the workspace action to run readiness checks before syncing to Figma.
-          </div>
-        )}
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-end border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5">
+        <PanelHelpIcon panelKey="publish" title="Figma Sync" expanded={help.expanded} onToggle={help.toggle} />
       </div>
-
-      {/* ── Publish all banner ──────────────────────────────────────────── */}
-      {(publishAllAvailable || publishAllBusy || quickSyncing || compareAllLoading) && (
-        <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
-          <div className="flex flex-col gap-1.5 rounded-lg border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 p-2.5">
-            {(publishAllBusy || quickSyncing || compareAllLoading) ? (
-              <div className="flex items-center gap-2">
-                <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
-                <span className="text-[10px] text-[var(--color-figma-text)] font-medium">
-                  {compareAllLoading && 'Comparing\u2026'}
-                  {!compareAllLoading && publishAllStep === 'variables' && (quickSyncing ? 'Syncing variables to Figma\u2026' : 'Applying variable sync changes\u2026')}
-                  {!compareAllLoading && publishAllStep === 'styles' && (quickSyncing ? 'Syncing styles to Figma\u2026' : 'Applying style sync changes\u2026')}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Figma sync ready</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    {[
-                      hasVarChanges ? `${varSync.syncCount} variable change${varSync.syncCount !== 1 ? 's' : ''}` : null,
-                      hasStyleChanges ? `${styleSync.syncCount} style change${styleSync.syncCount !== 1 ? 's' : ''}` : null,
-                    ].filter(Boolean).join(', ')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {hasFigmaSyncChanges && (
-                    <button
-                      onClick={quickSync}
-                      title="Compare and apply all variable and style changes to Figma immediately, without preview"
-                      className="text-[10px] px-2.5 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-                    >
-                      Sync Figma now
-                    </button>
-                  )}
-                  <button
-                    onClick={handleOpenPublishAll}
-                    className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)]"
-                  >
-                    Review Figma sync
-                  </button>
-                </div>
-              </div>
-            )}
-            {publishAllError && (
-              <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">
-                Sync failed: {publishAllError}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {help.expanded && (
         <PanelHelpBanner
           title="Figma Sync"
-          description="Run readiness checks, compare local tokens against Figma variables and styles, and sync the destinations you choose. Repository and handoff work now lives in the separate Repo / Handoff flow."
+          description="Run preflight first, then compare local tokens against Figma variables and styles, then apply the destinations you choose. Repository and handoff work now lives in the separate Repo / Handoff flow."
           onDismiss={help.dismiss}
         />
       )}
 
-      {/* ── Compare Figma destinations toolbar ─────────────────────────── */}
-      <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center justify-end">
-        <button
-          onClick={async () => {
-            setOpenSections(new Set(['figma-variables', 'figma-styles']));
-            await compareAll();
-          }}
-          disabled={compareAllLoading || varSync.loading || styleSync.loading}
-          title="Compare variables and styles in parallel"
-          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] disabled:opacity-40 transition-colors flex items-center gap-1"
-        >
-          {compareAllLoading ? (
-            <>
-              <Spinner size="sm" />
-              Comparing\u2026
-            </>
-          ) : (
-            <>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M1 4v6h6M23 20v-6h-6" />
-                <path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15" />
-              </svg>
-              Compare Figma targets
-            </>
-          )}
-        </button>
+      <div ref={preflightRef}>
+        <SyncPreflightStep
+          stage={preflightStage}
+          isOutdated={isReadinessOutdated}
+          error={readinessError}
+          blockingClusters={blockingReadinessChecks}
+          advisoryClusters={advisoryReadinessChecks}
+          onRunChecks={() => void runReadinessChecks()}
+          running={readinessLoading}
+          actionHandlers={preflightActionHandlers}
+          actionBusyId={orphansDeleting ? 'delete-orphan-variables' : preflightActionBusyId}
+        />
       </div>
 
-      {/* ── Sections ────────────────────────────────────────────────────── */}
+      <div ref={compareRef} className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-figma-bg-secondary)] text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">
+                2
+              </span>
+              <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Compare and review</h2>
+              {canProceedToCompare && (
+                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                  Unlocked
+                </span>
+              )}
+            </div>
+            <p className="mt-1.5 max-w-[560px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              Compare variables and styles only after preflight is clear. Choose whether each difference should push to Figma, pull back locally, or be skipped.
+            </p>
+            {!canProceedToCompare && (
+              <div className="mt-2 rounded-[12px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                {compareLockedMessage}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={async () => {
+              setOpenSections(new Set(['figma-variables', 'figma-styles']));
+              await compareAll();
+            }}
+            disabled={!canProceedToCompare || compareAllLoading || varSync.loading || styleSync.loading}
+            title="Compare variables and styles in parallel"
+            className="shrink-0 rounded-full border border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)]/35 hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {compareAllLoading ? 'Comparing…' : 'Compare Figma targets'}
+          </button>
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto">
-      {/* ── Section: Figma Variables ─────────────────────────────────────── */}
         <Section
           title="Figma Variables"
-        open={openSections.has('figma-variables')}
-        onToggle={() => toggleSection('figma-variables')}
-        badge={
-          varSync.loading ? null :
-          varSync.checked && varSync.rows.length === 0
-            ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
-            : varSync.rows.length > 0
-              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varSync.rows.length} differ</span>
-              : null
-        }
-      >
-        <SyncSubPanel
-          sync={varSync}
-          activeSet={activeSet}
-          diffFilter={diffFilter}
-          onRequestConfirm={(action) => setConfirmAction(action as ConfirmAction)}
-          onRevert={varSync.revert}
-          description="Keep local tokens and Figma variables in sync. Push local changes to Figma, or pull Figma changes back."
-          sectionLabel="Token differences"
-          previewAction="preview-vars"
-          applyAction="apply-vars"
-          inSyncMessage="Local tokens match Figma variables."
-          notCheckedMessage={<>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which tokens differ between local files and Figma.</>}
-          revertDescription="Restore Figma variables to their pre-sync state"
-          scopeOverrides={scopeOverrides}
-          onScopesChange={(path, scopes) => setScopeOverrides(prev => ({ ...prev, [path]: scopes }))}
-          getScopeOptions={(type) => FIGMA_SCOPES[type ?? ''] ?? []}
-        />
-      </Section>
+          open={openSections.has('figma-variables')}
+          onToggle={() => toggleSection('figma-variables')}
+          badge={
+            !canProceedToCompare ? (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium">Locked</span>
+            ) : varSync.loading ? null : (
+              varSync.checked && varSync.rows.length === 0
+                ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
+                : varSync.rows.length > 0
+                  ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varSync.rows.length} differ</span>
+                  : null
+            )
+          }
+        >
+          <SyncSubPanel
+            sync={varSync}
+            activeSet={activeSet}
+            diffFilter={diffFilter}
+            onRequestConfirm={(action) => setConfirmAction(action as ConfirmAction)}
+            onRevert={varSync.revert}
+            description="Keep local tokens and Figma variables in sync. Push local changes to Figma, or pull Figma changes back."
+            sectionLabel="Token differences"
+            previewAction="preview-vars"
+            applyAction="apply-vars"
+            inSyncMessage="Local tokens match Figma variables."
+            notCheckedMessage={<>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which tokens differ between local files and Figma.</>}
+            revertDescription="Restore Figma variables to their pre-sync state"
+            locked={!canProceedToCompare}
+            lockedMessage={compareLockedMessage}
+            scopeOverrides={scopeOverrides}
+            onScopesChange={(path, scopes) => setScopeOverrides(prev => ({ ...prev, [path]: scopes }))}
+            getScopeOptions={(type) => FIGMA_SCOPES[type ?? ''] ?? []}
+          />
+        </Section>
 
-        {/* ── Section: Figma Styles ────────────────────────────────────── */}
         <Section
           title="Figma Styles"
           open={openSections.has('figma-styles')}
           onToggle={() => toggleSection('figma-styles')}
           badge={
-            styleSync.checked && styleSync.rows.length === 0
-              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
-              : styleSync.rows.length > 0
-                ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleSync.rows.length} differ</span>
-                : null
+            !canProceedToCompare ? (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium">Locked</span>
+            ) : (
+              styleSync.checked && styleSync.rows.length === 0
+                ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
+                : styleSync.rows.length > 0
+                  ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleSync.rows.length} differ</span>
+                  : null
+            )
           }
         >
           <SyncSubPanel
@@ -627,8 +580,82 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             inSyncMessage="Local tokens match Figma styles."
             notCheckedMessage={<>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which color, text, and effect styles differ.</>}
             revertDescription="Restore Figma styles to their pre-sync state"
+            locked={!canProceedToCompare}
+            lockedMessage={compareLockedMessage}
           />
         </Section>
+      </div>
+
+      <div ref={applyRef} className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-3">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-figma-bg)] text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">
+              3
+            </span>
+            <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Apply to Figma</h2>
+          </div>
+
+          {!canProceedToCompare ? (
+            <div className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              Finish Step 1 before any apply actions unlock.
+            </div>
+          ) : (publishAllAvailable || publishAllBusy || quickSyncing || compareAllLoading) ? (
+            <div className="flex flex-col gap-1.5 rounded-lg border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 p-2.5">
+              {(publishAllBusy || quickSyncing || compareAllLoading) ? (
+                <div className="flex items-center gap-2">
+                  <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
+                  <span className="text-[10px] text-[var(--color-figma-text)] font-medium">
+                    {compareAllLoading && 'Comparing…'}
+                    {!compareAllLoading && publishAllStep === 'variables' && (quickSyncing ? 'Syncing variables to Figma…' : 'Applying variable sync changes…')}
+                    {!compareAllLoading && publishAllStep === 'styles' && (quickSyncing ? 'Syncing styles to Figma…' : 'Applying style sync changes…')}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Apply the reviewed sync plan</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      {[
+                        hasVarChanges ? `${varSync.syncCount} variable change${varSync.syncCount !== 1 ? 's' : ''}` : null,
+                        hasStyleChanges ? `${styleSync.syncCount} style change${styleSync.syncCount !== 1 ? 's' : ''}` : null,
+                      ].filter(Boolean).join(', ')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {hasFigmaSyncChanges && (
+                      <button
+                        onClick={quickSync}
+                        title="Compare and apply all variable and style changes to Figma immediately, without preview"
+                        className="text-[10px] px-2.5 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                      >
+                        Sync Figma now
+                      </button>
+                    )}
+                    <button
+                      onClick={handleOpenPublishAll}
+                      className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                    >
+                      Review Figma sync
+                    </button>
+                  </div>
+                </div>
+              )}
+              {publishAllError && (
+                <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">
+                  Sync failed: {publishAllError}
+                </div>
+              )}
+            </div>
+          ) : hasComparedAnything ? (
+            <div className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              No combined Figma changes are pending after compare. Adjust row directions if you want to apply something, or re-run compare against the current file.
+            </div>
+          ) : (
+            <div className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              Compare variables or styles first. Step 3 becomes available after at least one sync target has a reviewed diff.
+            </div>
+          )}
+        </div>
       </div>
     </div>
 

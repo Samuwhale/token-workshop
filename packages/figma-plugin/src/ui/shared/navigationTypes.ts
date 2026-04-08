@@ -201,9 +201,9 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       {
         id: 'publish',
         label: 'Figma Sync',
-        description: 'Run readiness checks and sync variables or styles to the current Figma file.',
+        description: 'Run preflight, compare variables or styles, then sync the reviewed plan to the current Figma file.',
         summaryTitle: 'Figma Sync',
-        summaryGuidance: 'Run readiness checks, compare local tokens against Figma variables and styles, and publish to the current file without parsing repo controls.',
+        summaryGuidance: 'Start with preflight, then compare local tokens against Figma variables and styles, and finally apply the reviewed sync plan to the current file.',
         topTab: 'ship',
         subTab: 'publish',
       },

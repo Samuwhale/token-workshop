@@ -69,7 +69,7 @@
 ### UX
 
 - [x] [HIGH] Split the current Sync shell into two explicit subflows: primary Figma Sync and secondary Repo / Handoff, with designers able to complete Figma publishing without parsing Git-specific controls
-- [ ] [HIGH] Implement a dedicated sync preflight step ahead of compare/apply actions, with explicit blocking versus advisory states, grouped fixes, and one recommended next action per failing cluster
+- [x] [HIGH] Implement a dedicated sync preflight step ahead of compare/apply actions, with explicit blocking versus advisory states, grouped fixes, and one recommended next action per failing cluster
 - [ ] Rework the Figma Variables and Figma Styles compare/apply flow so “compare”, “review differences”, and “apply” form one guided sequence rather than several accordions and banners that the user must mentally stitch together
 - [ ] Redesign Export as a dedicated handoff surface with a narrower control set, clearer preset behavior, and more obvious output expectations, rather than an advanced sub-view bolted onto the sync workspace
 - [ ] Write `docs/redesign/repo-handoff-decision.md` to decide whether the Git-based handoff workflow remains inside the plugin or moves out of the primary UX, documenting the target user, rationale, and chosen product direction

@@ -350,3 +350,11 @@
   - If a workspace mixes publishing with repository mechanics, keep the primary route scoped to the publish destination and move Git/export/handoff controls into a separate secondary route or mode.
   - When advanced tooling already exists, rehost it behind the secondary flow rather than inventing new publish-surface toggles; that preserves capability while keeping the main route readable.
 ---
+## 2026-04-08 - [HIGH] Implement a dedicated sync preflight step ahead of compare/apply actions, with explicit blocking versus advisory states, grouped fixes, and one recommended next action per failing cluster
+- Rebuilt the Figma Sync surface into an explicit Step 1 preflight, Step 2 compare, Step 3 apply flow, replaced the old flat readiness strip with grouped blocking/advisory preflight clusters plus recommended actions, and locked compare/apply paths until preflight is current and clear of blockers.
+- Wired the shared shell header to the new sync preflight state so the Sync workspace now surfaces stage-aware guidance, pills, workflow cards, and a CTA that changes between running preflight, reviewing blockers, and moving into compare.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L226, ~L293, ~L449; `packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts` ~L36, ~L75, ~L185; `packages/figma-plugin/src/ui/hooks/usePublishAll.ts` ~L21, ~L72, ~L120; `packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx` ~L22, ~L109, ~L124; `packages/figma-plugin/src/ui/components/publish/SyncPreflightStep.tsx` ~L4; `packages/figma-plugin/src/ui/components/publish/SyncWorkflowControls.tsx` ~L3; `packages/figma-plugin/src/ui/shared/syncWorkflow.ts` ~L1; `packages/figma-plugin/src/ui/App.tsx` ~L109, ~L201, ~L1111, ~L1278; `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L202; `scripts/backlog/patterns.md` ~L211
+- **Learnings for future iterations:**
+  - If a sync or publish surface needs prerequisite checks, make them a first-class preflight step and lock later actions instead of leaving compare/apply affordances visible with a warning banner.
+  - When the shared shell needs to narrate a child panel’s readiness state, broadcast a compact summary event from the panel and keep the shell limited to guidance, pills, stage cards, and CTA routing.
+---

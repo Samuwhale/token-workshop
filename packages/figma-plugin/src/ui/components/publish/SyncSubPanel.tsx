@@ -19,6 +19,8 @@ interface SyncSubPanelProps {
   inSyncMessage: string;
   notCheckedMessage: React.ReactNode;
   revertDescription: string;
+  locked?: boolean;
+  lockedMessage?: React.ReactNode;
 
   // Optional scope editing (variable sync only)
   scopeOverrides?: Record<string, string[]>;
@@ -39,6 +41,8 @@ export function SyncSubPanel({
   inSyncMessage,
   notCheckedMessage,
   revertDescription,
+  locked = false,
+  lockedMessage,
   scopeOverrides,
   onScopesChange,
   getScopeOptions,
@@ -106,10 +110,10 @@ export function SyncSubPanel({
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">{sectionLabel}</span>
         <button
           onClick={sync.computeDiff}
-          disabled={sync.loading || !activeSet}
+          disabled={locked || sync.loading || !activeSet}
           className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
         >
-          {sync.loading ? 'Checking\u2026' : sync.checked ? 'Re-check' : 'Compare'}
+          {locked ? 'Locked' : sync.loading ? 'Checking\u2026' : sync.checked ? 'Re-check' : 'Compare'}
         </button>
       </div>
 
@@ -117,7 +121,15 @@ export function SyncSubPanel({
         <div role="alert" className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{sync.error}</div>
       )}
 
-      {sync.rows.length > 0 && (() => {
+      {locked && (
+        <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5 leading-relaxed">
+            {lockedMessage ?? 'Run preflight first to unlock compare and apply for this sync target.'}
+          </div>
+        </div>
+      )}
+
+      {!locked && sync.rows.length > 0 && (() => {
         const localOnly = filteredRows.filter(r => r.cat === 'local-only');
         const figmaOnly = filteredRows.filter(r => r.cat === 'figma-only');
         const conflicts = filteredRows.filter(r => r.cat === 'conflict');
@@ -261,14 +273,14 @@ export function SyncSubPanel({
               <span className="flex items-center gap-1.5">
                 <button
                   onClick={() => onRequestConfirm(previewAction)}
-                  disabled={sync.syncCount === 0}
+                  disabled={locked || sync.syncCount === 0}
                   className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                 >
                   Preview
                 </button>
                 <button
                   onClick={() => onRequestConfirm(applyAction)}
-                  disabled={sync.syncing || sync.syncCount === 0}
+                  disabled={locked || sync.syncing || sync.syncCount === 0}
                   className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                 >
                   {sync.syncing
@@ -284,7 +296,7 @@ export function SyncSubPanel({
       })()}
 
       {!sync.loading && !sync.error && (
-        sync.checked && sync.rows.length === 0 ? (
+        sync.checked && sync.rows.length === 0 && !locked ? (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
             <div className="flex items-center gap-1.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
@@ -333,7 +345,7 @@ export function SyncSubPanel({
               </div>
             )}
           </div>
-        ) : !sync.checked && sync.rows.length === 0 ? (
+        ) : !sync.checked && sync.rows.length === 0 && !locked ? (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
             {notCheckedMessage}
           </div>

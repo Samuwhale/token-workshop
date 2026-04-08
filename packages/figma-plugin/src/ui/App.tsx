@@ -9,6 +9,7 @@ import { ToastStack } from './components/ToastStack';
 import { NotificationHistory } from './components/NotificationHistory';
 import { WorkspaceSummaryHeader } from './components/WorkspaceSummaryHeader';
 import { ThemeStageModelControls } from './components/ThemeStageModelControls';
+import { SyncWorkflowControls } from './components/publish/SyncWorkflowControls';
 import { useToastStack } from './hooks/useToastStack';
 import { useToastBusListener } from './shared/toastBus';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -35,6 +36,7 @@ import type { OverflowPanel, SecondaryActionId } from './shared/navigationTypes'
 import { APP_SHELL_NAVIGATION, resolveWorkspace, resolveWorkspaceSection, toWorkspaceId } from './shared/navigationTypes';
 import type { ThemeAuthoringStage, ThemeWorkspaceShellState } from './shared/themeWorkflow';
 import { summarizeThemeWorkflow } from './shared/themeWorkflow';
+import { DEFAULT_PUBLISH_PREFLIGHT_STATE, type PublishPreflightState, type SyncWorkflowStage } from './shared/syncWorkflow';
 import { useConnectionContext } from './contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from './contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from './contexts/ThemeContext';
@@ -66,7 +68,7 @@ import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS, matchesShortcut } from './shared/shortcutRegistry';
 import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch, ApiError } from './shared/apiFetch';
-import { STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from './shared/storage';
+import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from './shared/storage';
 import { findLeafByPath } from './components/tokenListUtils';
 
 export function App() {
@@ -105,6 +107,7 @@ export function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const undoMaxHistory = useMemo(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20) ?? 20, [undoHistoryRev]);
   const [pendingPublishCount, setPendingPublishCount] = useState(0);
+  const [publishPreflightState, setPublishPreflightState] = useState<PublishPreflightState>(DEFAULT_PUBLISH_PREFLIGHT_STATE);
   const openStartHere = useCallback((initialBranch: StartHereBranch = 'root', firstRun = false) => {
     setStartHereState({ open: true, initialBranch, firstRun });
   }, []);
@@ -118,6 +121,11 @@ export function App() {
     const handler = (e: Event) => setPendingPublishCount((e as CustomEvent<{ total: number }>).detail.total);
     window.addEventListener('publish-pending-count', handler);
     return () => window.removeEventListener('publish-pending-count', handler);
+  }, []);
+  useEffect(() => {
+    const handler = (e: Event) => setPublishPreflightState((e as CustomEvent<PublishPreflightState>).detail);
+    window.addEventListener('publish-preflight-state', handler);
+    return () => window.removeEventListener('publish-preflight-state', handler);
   }, []);
   // Close the inline banner URL editor when connection is (re-)established
   useEffect(() => { if (connected) setShowBannerUrlEditor(false); }, [connected]);
@@ -191,6 +199,22 @@ export function App() {
     }
   }, [activeWorkspace.id, defaultWorkspaceSummaryTitle, themeShellState.activeView]);
   const workspaceSummaryGuidance = useMemo(() => {
+    if (activeWorkspace.id === 'sync' && activeWorkspaceSection?.id === 'publish') {
+      if (publishPreflightState.stage === 'running') {
+        return 'Preflight is running now. Wait for the current token set to be checked against Figma before moving into compare or apply.';
+      }
+      if (publishPreflightState.isOutdated || publishPreflightState.stage === 'idle') {
+        return 'Start with preflight. It checks missing variables, orphaned variables, scopes, and descriptions before compare and apply unlock.';
+      }
+      if (publishPreflightState.stage === 'blocked') {
+        return `${publishPreflightState.blockingCount} blocking cluster${publishPreflightState.blockingCount === 1 ? '' : 's'} still need attention before you can compare or apply.`;
+      }
+      if (publishPreflightState.stage === 'advisory') {
+        return 'Preflight passed with advisory cleanup only. Compare differences now, or clear the remaining recommendations before applying.';
+      }
+      return 'Preflight is clear. Compare Figma variables and styles, then apply the reviewed destinations you want to keep.';
+    }
+
     if (activeWorkspace.id !== 'themes') return defaultWorkspaceSummaryGuidance;
     switch (themeShellState.activeView) {
       case 'coverage':
@@ -204,7 +228,16 @@ export function App() {
           ? 'Create axes, add options, map base and override sets, and review the live resolved output below before reaching for advanced logic.'
           : 'Create axes, add options, map base and override sets, and preview the active combination before reaching for advanced logic.';
     }
-  }, [activeWorkspace.id, defaultWorkspaceSummaryGuidance, themeShellState.activeView, themeShellState.showPreview]);
+  }, [
+    activeWorkspace.id,
+    activeWorkspaceSection?.id,
+    defaultWorkspaceSummaryGuidance,
+    publishPreflightState.blockingCount,
+    publishPreflightState.isOutdated,
+    publishPreflightState.stage,
+    themeShellState.activeView,
+    themeShellState.showPreview,
+  ]);
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -915,9 +948,21 @@ export function App() {
         break;
       case 'sync':
         if (activeWorkspaceSection?.id === 'publish') {
-          if (pendingPublishCount > 0) {
-            pills.push({ label: `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? '' : 's'} pending`, tone: 'accent' });
+          if (publishPreflightState.stage === 'running') {
+            pills.push({ label: 'Preflight running', tone: 'accent' });
+          } else if (publishPreflightState.isOutdated || publishPreflightState.stage === 'idle') {
+            pills.push({ label: 'Run preflight', tone: 'neutral' });
+          } else if (publishPreflightState.stage === 'blocked') {
+            pills.push({ label: `${publishPreflightState.blockingCount} blocking cluster${publishPreflightState.blockingCount === 1 ? '' : 's'}`, tone: 'danger' });
+          } else if (publishPreflightState.stage === 'advisory') {
+            pills.push({ label: `${publishPreflightState.advisoryCount} advisory cluster${publishPreflightState.advisoryCount === 1 ? '' : 's'}`, tone: 'warning' });
           } else {
+            pills.push({ label: 'Preflight ready', tone: 'success' });
+          }
+
+          if (publishPreflightState.canProceed && pendingPublishCount > 0) {
+            pills.push({ label: `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? '' : 's'} pending`, tone: 'accent' });
+          } else if (publishPreflightState.canProceed) {
             pills.push({ label: 'No Figma changes pending', tone: 'success' });
           }
         } else if (activeWorkspaceSection?.id === 'export') {
@@ -944,6 +989,11 @@ export function App() {
     healthIssueCount,
     lintViolations.length,
     pendingPublishCount,
+    publishPreflightState.advisoryCount,
+    publishPreflightState.blockingCount,
+    publishPreflightState.canProceed,
+    publishPreflightState.isOutdated,
+    publishPreflightState.stage,
     selectedNodes.length,
     sets.length,
     staleGeneratorCount,
@@ -1058,6 +1108,90 @@ export function App() {
     themeWorkflowSummary,
   ]);
 
+  const handleSelectSyncStage = useCallback((stage: SyncWorkflowStage) => {
+    guardEditorAction(() => {
+      navigateTo('ship', 'publish');
+      setOverflowPanel(null);
+      publishPanelHandleRef.current?.focusStage(stage);
+    });
+  }, [guardEditorAction, navigateTo, setOverflowPanel]);
+
+  const syncContextualControls = useMemo(() => {
+    if (overflowPanel !== null || activeWorkspace.id !== 'sync' || activeWorkspaceSection?.id !== 'publish') return null;
+
+    const stages = [
+      {
+        id: 'preflight' as const,
+        step: 1,
+        label: 'Preflight',
+        detail: publishPreflightState.stage === 'running'
+          ? 'Checks are running against the current file'
+          : publishPreflightState.isOutdated || publishPreflightState.stage === 'idle'
+            ? 'Run the readiness pass first'
+            : publishPreflightState.stage === 'blocked'
+              ? `${publishPreflightState.blockingCount} blocking cluster${publishPreflightState.blockingCount === 1 ? '' : 's'} found`
+              : publishPreflightState.stage === 'advisory'
+                ? `${publishPreflightState.advisoryCount} advisory cluster${publishPreflightState.advisoryCount === 1 ? '' : 's'} remain`
+                : 'Preflight is clear',
+        tone: publishPreflightState.stage === 'running' || publishPreflightState.isOutdated || publishPreflightState.stage === 'idle'
+          ? 'current'
+          : publishPreflightState.stage === 'blocked'
+            ? 'blocked'
+            : 'complete',
+      },
+      {
+        id: 'compare' as const,
+        step: 2,
+        label: 'Compare',
+        detail: !publishPreflightState.canProceed
+          ? 'Locked until preflight is clear'
+          : pendingPublishCount > 0
+            ? `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? '' : 's'} ready to review`
+            : 'Compare variables and styles against Figma',
+        tone: !publishPreflightState.canProceed
+          ? 'blocked'
+          : pendingPublishCount > 0
+            ? 'current'
+            : 'pending',
+        disabled: !publishPreflightState.canProceed,
+      },
+      {
+        id: 'apply' as const,
+        step: 3,
+        label: 'Apply',
+        detail: !publishPreflightState.canProceed
+          ? 'Still blocked by preflight'
+          : pendingPublishCount > 0
+            ? 'Apply the reviewed sync plan'
+            : 'Apply unlocks after compare finds changes',
+        tone: !publishPreflightState.canProceed
+          ? 'blocked'
+          : pendingPublishCount > 0
+            ? 'current'
+            : 'pending',
+        disabled: !publishPreflightState.canProceed,
+      },
+    ];
+
+    return (
+      <SyncWorkflowControls
+        stages={stages}
+        onSelectStage={handleSelectSyncStage}
+      />
+    );
+  }, [
+    activeWorkspace.id,
+    activeWorkspaceSection?.id,
+    handleSelectSyncStage,
+    overflowPanel,
+    pendingPublishCount,
+    publishPreflightState.advisoryCount,
+    publishPreflightState.blockingCount,
+    publishPreflightState.canProceed,
+    publishPreflightState.isOutdated,
+    publishPreflightState.stage,
+  ]);
+
   const workspacePrimaryAction = useMemo(() => {
     if (overflowPanel === null && activeWorkspace.id === 'tokens' && activeWorkspaceSection?.id === 'tokens') {
       return {
@@ -1142,9 +1276,38 @@ export function App() {
     }
 
     if (overflowPanel === null && activeWorkspace.id === 'sync' && activeWorkspaceSection?.id === 'publish') {
+      if (publishPreflightState.stage === 'running') {
+        return {
+          label: 'Running preflight…',
+          onClick: () => {},
+          disabled: true,
+        };
+      }
+
+      if (publishPreflightState.isOutdated || publishPreflightState.stage === 'idle') {
+        return {
+          label: 'Run preflight',
+          onClick: () => publishPanelHandleRef.current?.runReadinessChecks(),
+        };
+      }
+
+      if (publishPreflightState.stage === 'blocked') {
+        return {
+          label: 'Review blockers',
+          onClick: () => publishPanelHandleRef.current?.focusStage('preflight'),
+        };
+      }
+
+      if (pendingPublishCount > 0) {
+        return {
+          label: 'Review differences',
+          onClick: () => publishPanelHandleRef.current?.focusStage('compare'),
+        };
+      }
+
       return {
-        label: 'Run checks',
-        onClick: () => publishPanelHandleRef.current?.runReadinessChecks(),
+        label: 'Compare Figma',
+        onClick: () => publishPanelHandleRef.current?.runCompareAll(),
       };
     }
 
@@ -1164,6 +1327,9 @@ export function App() {
     navigateTo,
     overflowPanel,
     refreshValidation,
+    pendingPublishCount,
+    publishPreflightState.isOutdated,
+    publishPreflightState.stage,
     selectedNodes.length,
     setEditingGenerator,
     setEditingToken,
@@ -1175,7 +1341,11 @@ export function App() {
     themeWorkflowSummary.currentStage,
   ]);
 
-  const workspaceContextualControls = themeContextualControls;
+  const workspaceContextualControls = activeWorkspace.id === 'themes'
+    ? themeContextualControls
+    : activeWorkspace.id === 'sync'
+      ? syncContextualControls
+      : null;
 
   const handleSecondaryAction = useCallback((actionId: SecondaryActionId) => {
     setMenuOpen(false);

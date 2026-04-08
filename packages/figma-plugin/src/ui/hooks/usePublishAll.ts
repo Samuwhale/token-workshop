@@ -24,6 +24,8 @@ interface UsePublishAllParams {
   setConfirmAction: (action: ConfirmAction) => void;
   /** Called after all publish steps complete — typically marks readiness checks as stale. */
   markChecksStale: () => void;
+  canProceed: boolean;
+  blockedMessage: string;
 }
 
 export interface UsePublishAllReturn {
@@ -49,6 +51,8 @@ export function usePublishAll({
   styleSync,
   setConfirmAction,
   markChecksStale,
+  canProceed,
+  blockedMessage,
 }: UsePublishAllParams): UsePublishAllReturn {
   const [publishAllStep, setPublishAllStep] = useState<PublishAllStep>(null);
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
@@ -66,6 +70,11 @@ export function usePublishAll({
   // "Review sync plan" fast path: compare the Figma destinations first, then open the
   // combined modal.
   const handleOpenPublishAll = useCallback(async () => {
+    if (!canProceed) {
+      setPublishAllError(blockedMessage);
+      return;
+    }
+
     const toCompare: Promise<void>[] = [];
     if (!varSync.checked && !varSync.loading) toCompare.push(varSync.computeDiff());
     if (!styleSync.checked && !styleSync.loading) toCompare.push(styleSync.computeDiff());
@@ -81,10 +90,14 @@ export function usePublishAll({
       }
     }
     setConfirmAction('publish-all');
-  }, [setConfirmAction, styleSync, varSync]);
+  }, [blockedMessage, canProceed, setConfirmAction, styleSync, varSync]);
 
   const runPublishAll = useCallback(async (sections: PublishAllSections = { vars: true, styles: true }) => {
     setPublishAllError(null);
+    if (!canProceed) {
+      setPublishAllError(blockedMessage);
+      return;
+    }
 
     try {
       if (sections.vars && hasVarChanges) {
@@ -101,10 +114,15 @@ export function usePublishAll({
     } finally {
       setPublishAllStep(null);
     }
-  }, [hasVarChanges, hasStyleChanges, markChecksStale, styleSync, varSync]);
+  }, [blockedMessage, canProceed, hasVarChanges, hasStyleChanges, markChecksStale, styleSync, varSync]);
 
   // "Compare all": force re-run the two Figma sync comparisons in parallel.
   const compareAll = useCallback(async () => {
+    if (!canProceed) {
+      setPublishAllError(blockedMessage);
+      return;
+    }
+
     const toCompare: Promise<void>[] = [];
     if (!varSync.loading) toCompare.push(varSync.computeDiff());
     if (!styleSync.loading) toCompare.push(styleSync.computeDiff());
@@ -118,7 +136,7 @@ export function usePublishAll({
     } finally {
       setCompareAllLoading(false);
     }
-  }, [styleSync, varSync]);
+  }, [blockedMessage, canProceed, styleSync, varSync]);
 
   // One-click "Sync all changes": auto-compare variables + styles, then apply immediately.
   // Git is intentionally excluded — git operations (push/pull/commit) require deliberate review.
@@ -126,6 +144,11 @@ export function usePublishAll({
   // so calling applyDiff right after computeDiff sees the fresh computed rows.
   const quickSync = useCallback(async () => {
     setPublishAllError(null);
+    if (!canProceed) {
+      setPublishAllError(blockedMessage);
+      return;
+    }
+
     setQuickSyncing(true);
     setCompareAllLoading(true);
 
@@ -154,7 +177,7 @@ export function usePublishAll({
       setPublishAllStep(null);
       setQuickSyncing(false);
     }
-  }, [markChecksStale, styleSync, varSync]);
+  }, [blockedMessage, canProceed, markChecksStale, styleSync, varSync]);
 
   return {
     publishAllStep,

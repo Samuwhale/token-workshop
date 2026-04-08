@@ -2,18 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
-
-export interface ReadinessCheck {
-  id: string;
-  label: string;
-  status: 'pass' | 'fail' | 'pending';
-  /** true = must fix before publish; false = recommended but not blocking */
-  blocking: boolean;
-  count?: number;
-  detail?: string;
-  fixLabel?: string;
-  onFix?: () => void;
-}
+import type {
+  PublishPreflightActionId,
+  PublishPreflightCluster,
+  PublishPreflightStage,
+} from '../shared/syncWorkflow';
 
 export const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
 
@@ -26,20 +19,33 @@ interface UseReadinessChecksParams {
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
   tokenChangeKey?: number;
-  /** Reads Figma variables — from varSync.readFigmaTokens */
   readFigmaTokens: () => Promise<any[]>;
-  /** Sets the orphan confirmation modal — from useOrphanCleanup */
   setOrphanConfirm: (val: { orphanPaths: string[]; localPaths: Set<string> } | null) => void;
 }
 
+interface ClusterDraft {
+  id: string;
+  label: string;
+  severity: PublishPreflightCluster['severity'];
+  affectedCount?: number;
+  detail?: string;
+  recommendedActionLabel?: string;
+  recommendedActionId?: PublishPreflightActionId;
+}
+
 export interface UseReadinessChecksReturn {
-  readinessChecks: ReadinessCheck[];
+  readinessChecks: PublishPreflightCluster[];
+  failingReadinessChecks: PublishPreflightCluster[];
+  blockingReadinessChecks: PublishPreflightCluster[];
+  advisoryReadinessChecks: PublishPreflightCluster[];
+  preflightStage: PublishPreflightStage;
   readinessLoading: boolean;
   readinessError: string | null;
   setReadinessError: React.Dispatch<React.SetStateAction<string | null>>;
   checksStale: boolean;
   setChecksStale: React.Dispatch<React.SetStateAction<boolean>>;
   runReadinessChecks: () => Promise<void>;
+  triggerReadinessAction: (actionId: PublishPreflightActionId) => Promise<void>;
   readinessFails: number;
   readinessPasses: number;
   readinessBlockingFails: number;
@@ -56,21 +62,13 @@ export function useReadinessChecks({
   readFigmaTokens,
   setOrphanConfirm,
 }: UseReadinessChecksParams): UseReadinessChecksReturn {
-  const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
+  const [readinessChecks, setReadinessChecks] = useState<PublishPreflightCluster[]>([]);
   const [readinessLoading, setReadinessLoading] = useState(false);
   const [readinessError, setReadinessError] = useState<string | null>(null);
-  /** tokenChangeKey value at the time checks last completed successfully */
   const [checksRunAtKey, setChecksRunAtKey] = useState<number | null>(null);
-  /** True when a sync/apply happened after checks ran, making results outdated */
   const [checksStale, setChecksStale] = useState(false);
 
-  /** Prevents concurrent check runs (e.g. when multiple auto-rerun triggers fire together) */
   const isRunningRef = useRef(false);
-
-  /**
-   * Tracks the latest tokenChangeKey at all times so the check's finally-block
-   * can detect edits that accumulated *during* a run and schedule a follow-up.
-   */
   const latestTokenChangeKeyRef = useRef<number | undefined>(tokenChangeKey);
   useEffect(() => { latestTokenChangeKeyRef.current = tokenChangeKey; }, [tokenChangeKey]);
 
@@ -79,6 +77,7 @@ export function useReadinessChecks({
     isRunningRef.current = true;
     setReadinessLoading(true);
     setReadinessError(null);
+
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('No response from Figma after 15 s — make sure the plugin is open and try again.')), READINESS_TIMEOUT_MS)
@@ -88,63 +87,83 @@ export function useReadinessChecks({
       const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       const localTokens = flattenTokenGroup(data.tokens || {});
       const localFlat = Array.from(localTokens, ([path, token]) => ({
-        path, value: String(token.$value), type: String(token.$type ?? 'string'),
+        path,
+        value: String(token.$value),
+        type: String(token.$type ?? 'string'),
       }));
 
-      const figmaMap = new Map<string, any>(figmaTokens.map(t => [t.path, t]));
+      const figmaMap = new Map<string, any>(figmaTokens.map((token) => [token.path, token]));
       const localPaths = new Set(localTokens.keys());
 
-      const missingInFigma = localFlat.filter(t => !figmaMap.has(t.path));
-      const missingScopes = figmaTokens.filter(t =>
-        !t.$scopes || t.$scopes.length === 0 || (t.$scopes.length === 1 && t.$scopes[0] === 'ALL_SCOPES')
+      const missingInFigma = localFlat.filter((token) => !figmaMap.has(token.path));
+      const missingScopes = figmaTokens.filter((token) =>
+        !token.$scopes || token.$scopes.length === 0 || (token.$scopes.length === 1 && token.$scopes[0] === 'ALL_SCOPES')
       );
-      const missingDescriptions = figmaTokens.filter(t => !t.$description);
-      const orphans = figmaTokens.filter(t => !localPaths.has(t.path));
+      const missingDescriptions = figmaTokens.filter((token) => !token.$description);
+      const orphans = figmaTokens.filter((token) => !localPaths.has(token.path));
 
-      const checks: ReadinessCheck[] = [
+      const drafts: ClusterDraft[] = [
         {
           id: 'all-vars',
-          label: 'All tokens have Figma variables',
-          blocking: true,
-          status: missingInFigma.length === 0 ? 'pass' : 'fail',
-          count: missingInFigma.length || undefined,
-          detail: missingInFigma.length > 0 ? 'Some local tokens are not yet pushed to Figma. Use the fix button to create the missing variables now.' : undefined,
-          fixLabel: missingInFigma.length > 0 ? `Push ${missingInFigma.length} missing` : undefined,
-          onFix: missingInFigma.length > 0 ? () => {
-            const tokens = missingInFigma.map(t => ({ path: t.path, $type: t.type, $value: t.value, setName: activeSet }));
-            parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
-          } : undefined,
+          label: 'Missing Figma variables',
+          severity: 'blocking',
+          affectedCount: missingInFigma.length || undefined,
+          detail: missingInFigma.length > 0
+            ? 'Some local tokens are not yet published as Figma variables. Push them first so compare/apply runs against the full set.'
+            : undefined,
+          recommendedActionLabel: missingInFigma.length > 0
+            ? `Push ${missingInFigma.length} missing variable${missingInFigma.length === 1 ? '' : 's'}`
+            : undefined,
+          recommendedActionId: missingInFigma.length > 0 ? 'push-missing-variables' : undefined,
         },
         {
           id: 'orphans',
-          label: 'No orphan Figma variables',
-          blocking: true,
-          status: orphans.length === 0 ? 'pass' : 'fail',
-          count: orphans.length || undefined,
-          detail: orphans.length > 0 ? 'Figma contains variables that no longer exist in the token set. Delete them to keep Figma in sync.' : undefined,
-          fixLabel: orphans.length > 0 ? `Delete ${orphans.length} orphan${orphans.length !== 1 ? 's' : ''}` : undefined,
-          onFix: orphans.length > 0 ? () => {
-            setOrphanConfirm({ orphanPaths: orphans.map(o => o.path), localPaths });
-          } : undefined,
+          label: 'Orphaned Figma variables',
+          severity: 'blocking',
+          affectedCount: orphans.length || undefined,
+          detail: orphans.length > 0
+            ? 'Figma still contains variables that no longer exist in this token set. Review or delete them before syncing again.'
+            : undefined,
+          recommendedActionLabel: orphans.length > 0
+            ? `Delete ${orphans.length} orphan variable${orphans.length === 1 ? '' : 's'}`
+            : undefined,
+          recommendedActionId: orphans.length > 0 ? 'delete-orphan-variables' : undefined,
         },
         {
           id: 'scopes',
-          label: 'Scopes set for every variable',
-          blocking: true,
-          status: missingScopes.length === 0 ? 'pass' : 'fail',
-          count: missingScopes.length || undefined,
-          detail: missingScopes.length > 0 ? 'Open the Figma Variables panel \u2192 select each variable \u2192 set scopes to control where it can be applied (e.g. Fill, Stroke, Gap).' : undefined,
+          label: 'Unscoped variables',
+          severity: 'blocking',
+          affectedCount: missingScopes.length || undefined,
+          detail: missingScopes.length > 0
+            ? 'Some Figma variables still allow every binding. Review the variable differences and assign the scopes designers should actually use.'
+            : undefined,
+          recommendedActionLabel: missingScopes.length > 0 ? 'Review variable scopes' : undefined,
+          recommendedActionId: missingScopes.length > 0 ? 'review-variable-scopes' : undefined,
         },
         {
           id: 'descriptions',
-          label: 'Descriptions populated',
-          blocking: false,
-          status: missingDescriptions.length === 0 ? 'pass' : 'fail',
-          count: missingDescriptions.length || undefined,
-          detail: missingDescriptions.length > 0 ? 'Add $description fields to tokens in the token editor, then re-sync to Figma. Descriptions help designers understand how to use each variable.' : undefined,
+          label: 'Missing descriptions',
+          severity: 'advisory',
+          affectedCount: missingDescriptions.length || undefined,
+          detail: missingDescriptions.length > 0
+            ? 'Descriptions are optional for publishing, but they make the synced variables much easier to understand inside Figma.'
+            : undefined,
+          recommendedActionLabel: missingDescriptions.length > 0 ? 'Add token descriptions in the Tokens workspace' : undefined,
+          recommendedActionId: missingDescriptions.length > 0 ? 'add-token-descriptions' : undefined,
         },
       ];
-      setReadinessChecks(checks);
+
+      setReadinessChecks(drafts.map((draft) => ({
+        id: draft.id,
+        label: draft.label,
+        severity: draft.severity,
+        status: draft.affectedCount && draft.affectedCount > 0 ? 'fail' : 'pass',
+        affectedCount: draft.affectedCount,
+        detail: draft.detail,
+        recommendedActionLabel: draft.recommendedActionLabel,
+        recommendedActionId: draft.recommendedActionId,
+      })));
+
       const runKey = tokenChangeKey ?? 0;
       setChecksRunAtKey(runKey);
       setChecksStale(false);
@@ -154,22 +173,58 @@ export function useReadinessChecks({
     } finally {
       setReadinessLoading(false);
       isRunningRef.current = false;
-      // If token changes accumulated while this run was in-flight, kick off a
-      // follow-up so results never stay silently outdated after concurrent edits.
+
       const thisRunKey = tokenChangeKey ?? 0;
       const latestKey = latestTokenChangeKeyRef.current ?? 0;
       if (latestKey !== thisRunKey) {
         Promise.resolve().then(() => runReadinessChecksRef.current());
       }
     }
-  }, [serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap, tokenChangeKey, setOrphanConfirm]);
+  }, [activeSet, readFigmaTokens, serverUrl, tokenChangeKey]);
 
-  /* ── Auto-run checks when tab activates after token edits ───────────── */
+  const triggerReadinessAction = useCallback(async (actionId: PublishPreflightActionId) => {
+    if (!activeSet) return;
+
+    try {
+      if (actionId === 'push-missing-variables') {
+        const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
+        const localTokens = flattenTokenGroup(data.tokens || {});
+        const figmaTokens = await readFigmaTokens();
+        const figmaPaths = new Set(figmaTokens.map((token) => token.path));
+        const tokens = Array.from(localTokens, ([path, token]) => ({
+          path,
+          $type: String(token.$type ?? 'string'),
+          $value: String(token.$value),
+          setName: activeSet,
+        })).filter((token) => !figmaPaths.has(token.path));
+
+        if (tokens.length === 0) return;
+
+        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
+        return;
+      }
+
+      if (actionId === 'delete-orphan-variables') {
+        const figmaTokens = await readFigmaTokens();
+        const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
+        const localTokens = flattenTokenGroup(data.tokens || {});
+        const localPaths = new Set(localTokens.keys());
+        const orphanPaths = figmaTokens
+          .filter((token) => !localPaths.has(token.path))
+          .map((token) => token.path);
+
+        if (orphanPaths.length === 0) return;
+
+        setOrphanConfirm({ orphanPaths, localPaths });
+      }
+    } catch (error) {
+      setReadinessError(describeError(error, 'Readiness action'));
+    }
+  }, [activeSet, collectionMap, modeMap, readFigmaTokens, serverUrl, setOrphanConfirm]);
 
   const runReadinessChecksRef = useRef(runReadinessChecks);
   useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);
 
-  // On mount: auto-run if tokens changed since the last check (user edited then navigated here)
   useEffect(() => {
     if (!connected || !activeSet || tokenChangeKey === undefined) return;
     const stored = localStorage.getItem(LAST_READINESS_CHANGE_KEY);
@@ -177,25 +232,21 @@ export function useReadinessChecks({
       runReadinessChecksRef.current();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally runs only on mount
+  }, []);
 
-  // While mounted: auto-recheck whenever tokenChangeKey increments (after at least one prior check)
   useEffect(() => {
     if (!connected || !activeSet || tokenChangeKey === undefined) return;
-    if (checksRunAtKey === null) return; // skip until the user has triggered at least one check
-    if (tokenChangeKey === checksRunAtKey) return; // already current
+    if (checksRunAtKey === null) return;
+    if (tokenChangeKey === checksRunAtKey) return;
     runReadinessChecksRef.current();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokenChangeKey]); // re-run when token data changes
+  }, [tokenChangeKey]);
 
-  // Auto-rerun when a sync/apply operation marks checks stale (e.g. after varSync.applyDiff)
   useEffect(() => {
     if (!checksStale || !connected || !activeSet) return;
     runReadinessChecksRef.current();
-   
   }, [checksStale, connected, activeSet]);
 
-  // Auto-rerun after Figma confirms variables were applied (from the "Push missing" fix button)
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       const msg = (event.data as { pluginMessage?: { type: string } })?.pluginMessage;
@@ -205,24 +256,38 @@ export function useReadinessChecks({
     }
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []); // stable — uses ref; runReadinessChecks guards activeSet
+  }, []);
 
-  const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
-  const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
-  const readinessBlockingFails = readinessChecks.filter(c => c.status === 'fail' && c.blocking).length;
+  const failingReadinessChecks = readinessChecks.filter((check) => check.status === 'fail');
+  const blockingReadinessChecks = failingReadinessChecks.filter((check) => check.severity === 'blocking');
+  const advisoryReadinessChecks = failingReadinessChecks.filter((check) => check.severity === 'advisory');
+  const readinessFails = failingReadinessChecks.length;
+  const readinessPasses = readinessChecks.filter((check) => check.status === 'pass').length;
+  const readinessBlockingFails = blockingReadinessChecks.length;
   const isReadinessOutdated = readinessChecks.length > 0 && (
     checksStale ||
     (tokenChangeKey !== undefined && checksRunAtKey !== null && tokenChangeKey !== checksRunAtKey)
   );
+  const preflightStage: PublishPreflightStage =
+    readinessLoading ? 'running'
+      : readinessChecks.length === 0 ? 'idle'
+        : readinessBlockingFails > 0 ? 'blocked'
+          : readinessFails > 0 ? 'advisory'
+            : 'ready';
 
   return {
     readinessChecks,
+    failingReadinessChecks,
+    blockingReadinessChecks,
+    advisoryReadinessChecks,
+    preflightStage,
     readinessLoading,
     readinessError,
     setReadinessError,
     checksStale,
     setChecksStale,
     runReadinessChecks,
+    triggerReadinessAction,
     readinessFails,
     readinessPasses,
     readinessBlockingFails,
