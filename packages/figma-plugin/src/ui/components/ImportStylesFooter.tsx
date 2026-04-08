@@ -2,18 +2,12 @@ import { useState } from 'react';
 import { useImportPanel } from './ImportPanelContext';
 import { ImportConflictResolver } from './ImportConflictResolver';
 import { renderConflictValue } from './importPanelHelpers';
-import { SET_NAME_RE } from '../shared/utils';
 
 const MAX_PREVIEW_CONFLICTS = 60;
 
 export function ImportStylesFooter() {
   const {
     targetSet,
-    sets,
-    setsError,
-    newSetInputVisible,
-    newSetDraft,
-    newSetError,
     existingPathsFetching,
     existingTokenMapError,
     existingTokenMap,
@@ -25,15 +19,7 @@ export function ImportStylesFooter() {
     selectedTokens,
     checkingConflicts,
     tokens,
-    setNewSetInputVisible,
-    setNewSetDraft,
-    setNewSetError,
     handleImportStyles,
-    commitNewSet,
-    cancelNewSet,
-    clearConflictState,
-    setTargetSetAndPersist,
-    fetchSets,
   } = useImportPanel();
 
   const [previewConflictsExpanded, setPreviewConflictsExpanded] = useState(false);
@@ -58,87 +44,9 @@ export function ImportStylesFooter() {
 
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
-
-      {/* Target set row */}
-      {newSetInputVisible ? (
-        <div className="flex flex-col gap-1">
-          <div className="flex gap-1.5">
-            <input
-              autoFocus
-              type="text"
-              value={newSetDraft}
-              onChange={e => {
-                const val = e.target.value;
-                setNewSetDraft(val);
-                const trimmed = val.trim();
-                if (!trimmed) {
-                  setNewSetError(null);
-                } else if (!SET_NAME_RE.test(trimmed)) {
-                  setNewSetError('Use letters, numbers, - _ (/ for folders)');
-                } else {
-                  setNewSetError(null);
-                }
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') commitNewSet();
-                if (e.key === 'Escape') cancelNewSet();
-              }}
-              placeholder="New set name…"
-              aria-invalid={newSetError ? true : undefined}
-              className={`flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none ${newSetError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
-            />
-            <button
-              onClick={commitNewSet}
-              disabled={!newSetDraft.trim() || !!newSetError}
-              className="px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40"
-            >
-              Create
-            </button>
-            <button
-              onClick={cancelNewSet}
-              className="px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              Cancel
-            </button>
-          </div>
-          {newSetError && <p role="alert" className="text-[10px] text-[var(--color-figma-error,#e53935)]">{newSetError}</p>}
-          {!newSetError && newSetDraft.trim() && sets.includes(newSetDraft.trim()) && (
-            <p className="text-[10px] text-[var(--color-figma-warning,#e8a100)]">Set already exists — tokens will be merged in</p>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <label className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">To</label>
-            <select
-              value={sets.includes(targetSet) ? targetSet : targetSet}
-              onChange={e => {
-                clearConflictState();
-                if (e.target.value === '__new__') {
-                  setNewSetInputVisible(true);
-                } else {
-                  setTargetSetAndPersist(e.target.value);
-                }
-              }}
-              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none"
-            >
-              {sets.map(s => <option key={s} value={s}>{s}</option>)}
-              {!sets.includes(targetSet) && targetSet && (
-                <option value={targetSet}>{targetSet} (new)</option>
-              )}
-              <option value="__new__">+ New set…</option>
-            </select>
-          </div>
-          {setsError ? (
-            <p className="text-[10px] text-[var(--color-figma-text-danger,#e53935)] pl-[26px]">
-              Could not load sets.{' '}
-              <button type="button" onClick={fetchSets} className="underline hover:opacity-80">Retry</button>
-            </p>
-          ) : (
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] pl-[26px]">Pick an existing set or choose <button type="button" onClick={() => setNewSetInputVisible(true)} className="underline hover:text-[var(--color-figma-text-secondary)]">+ New set…</button> to create one</p>
-          )}
-        </div>
-      )}
+      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+        Destination set: <span className="font-mono text-[var(--color-figma-text)]">{targetSet}</span>
+      </div>
 
       {/* Import preview summary */}
       {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null || existingTokenMapError !== null) && (

@@ -111,7 +111,7 @@
 
 ### UX
 
-- [ ] [HIGH] Rebuild the import flow as a family-first experience: choose the source family first, then the exact format, then the destination rules, instead of presenting Figma, token files, code extraction, and migration sources as equal-weight options in one flat chooser
+- [x] [HIGH] Rebuild the import flow as a family-first experience: choose the source family first, then the exact format, then the destination rules, instead of presenting Figma, token files, code extraction, and migration sources as equal-weight options in one flat chooser
 - [ ] Redesign the post-import handoff so the user always lands in a sensible next step with a summary of what was created, what needs review, and whether they should go to Tokens, Themes, or Sync next
 - [ ] Clarify drag-and-drop import behavior with visible supported formats, drop affordances, validation feedback, and conflict resolution patterns that do not feel like a hidden expert feature
 

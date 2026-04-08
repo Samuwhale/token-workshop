@@ -22,7 +22,132 @@ export interface CollectionData {
   modes: ModeData[];
 }
 
+export type ImportSource = 'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio';
+export type SourceFamily = 'figma' | 'token-files' | 'code' | 'migration';
+export type ImportWorkflowStage = 'family' | 'format' | 'destination' | 'preview';
+
+export interface ImportFamilyDefinition {
+  family: SourceFamily;
+  title: string;
+  description: string;
+  destinationLabel: string;
+  destinationDescription: string;
+}
+
+export interface ImportSourceDefinition {
+  source: ImportSource;
+  family: SourceFamily;
+  label: string;
+  shortLabel: string;
+  description: string;
+  destinationLabel: string;
+  destinationDescription: string;
+}
+
+export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinition> = {
+  figma: {
+    family: 'figma',
+    title: 'From Figma',
+    description: 'Read variables or styles from the current file',
+    destinationLabel: 'Map destinations',
+    destinationDescription: 'Choose which sets receive each collection or style payload.',
+  },
+  'token-files': {
+    family: 'token-files',
+    title: 'From token files',
+    description: 'Bring in DTCG-compatible token exports from JSON',
+    destinationLabel: 'Choose destination',
+    destinationDescription: 'Pick the set that should receive the imported token file.',
+  },
+  code: {
+    family: 'code',
+    title: 'From code',
+    description: 'Extract tokens from CSS custom properties or Tailwind config',
+    destinationLabel: 'Choose destination',
+    destinationDescription: 'Decide where the extracted code tokens should land before import.',
+  },
+  migration: {
+    family: 'migration',
+    title: 'Migrate from another tool',
+    description: 'Bring in token exports from tools such as Tokens Studio',
+    destinationLabel: 'Choose destination',
+    destinationDescription: 'Route the imported migration data into new or existing token sets.',
+  },
+};
+
+export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinition> = {
+  variables: {
+    source: 'variables',
+    family: 'figma',
+    label: 'Figma Variables',
+    shortLabel: 'Variables',
+    description: 'Read variables from this file and map them to token sets',
+    destinationLabel: 'Map collections to sets',
+    destinationDescription: 'Each enabled mode becomes its own destination token set.',
+  },
+  styles: {
+    source: 'styles',
+    family: 'figma',
+    label: 'Figma Styles',
+    shortLabel: 'Styles',
+    description: 'Read paint, text, and effect styles from this file',
+    destinationLabel: 'Choose target set',
+    destinationDescription: 'Send the selected styles into one existing set or create a new one.',
+  },
+  json: {
+    source: 'json',
+    family: 'token-files',
+    label: 'DTCG JSON file',
+    shortLabel: 'DTCG JSON',
+    description: 'Load a DTCG-format JSON token file',
+    destinationLabel: 'Choose target set',
+    destinationDescription: 'Import the parsed token file into one destination set.',
+  },
+  css: {
+    source: 'css',
+    family: 'code',
+    label: 'CSS custom properties',
+    shortLabel: 'CSS',
+    description: 'Parse static CSS custom properties from a stylesheet',
+    destinationLabel: 'Choose target set',
+    destinationDescription: 'Import the parsed CSS variables into one destination set.',
+  },
+  tailwind: {
+    source: 'tailwind',
+    family: 'code',
+    label: 'Tailwind config',
+    shortLabel: 'Tailwind',
+    description: 'Parse theme values from a Tailwind config file',
+    destinationLabel: 'Choose target set',
+    destinationDescription: 'Import the extracted Tailwind theme tokens into one destination set.',
+  },
+  'tokens-studio': {
+    source: 'tokens-studio',
+    family: 'migration',
+    label: 'Tokens Studio export',
+    shortLabel: 'Tokens Studio',
+    description: 'Load a Tokens Studio JSON export, including multi-set exports',
+    destinationLabel: 'Choose destination',
+    destinationDescription: 'Single-set exports go into one set; multi-set exports keep their own set mapping.',
+  },
+};
+
 // ── Pure utility functions ────────────────────────────────────────────────────
+
+export function getSourceFamily(source: ImportSource | null): SourceFamily | null {
+  if (!source) return null;
+  return IMPORT_SOURCE_DEFINITIONS[source].family;
+}
+
+export function getFamilyDefinition(family: SourceFamily | null): ImportFamilyDefinition | null {
+  if (!family) return null;
+  return IMPORT_FAMILY_DEFINITIONS[family];
+}
+
+export function getSourceDefinition(source: ImportSource | null): ImportSourceDefinition | null {
+  if (!source) return null;
+  return IMPORT_SOURCE_DEFINITIONS[source];
+}
 
 export function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '\u2026' : v;

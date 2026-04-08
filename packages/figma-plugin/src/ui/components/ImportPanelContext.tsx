@@ -2,6 +2,8 @@ import { createContext, useContext, useRef, useCallback, useMemo } from 'react';
 import {
   type ImportToken,
   type CollectionData,
+  type SourceFamily,
+  type ImportWorkflowStage,
   modeKey,
 } from './importPanelTypes';
 import type { SkippedEntry } from '../shared/tokenParsers';
@@ -10,6 +12,7 @@ import { useImportSource } from '../hooks/useImportSource';
 import { useImportConflicts } from '../hooks/useImportConflicts';
 import { useImportApply } from '../hooks/useImportApply';
 import type { UndoSlot } from '../hooks/useUndo';
+import { SET_NAME_RE } from '../shared/utils';
 
 export interface ImportPanelProps {
   serverUrl: string;
@@ -41,7 +44,9 @@ export interface ImportPanelContextValue {
   loading: boolean;
   importing: boolean;
   error: string | null;
+  sourceFamily: SourceFamily | null;
   source: 'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio' | null;
+  workflowStage: ImportWorkflowStage;
 
   // Sets state
   targetSet: string;
@@ -106,6 +111,9 @@ export interface ImportPanelContextValue {
   totalEnabledTokens: number;
   previewNewCount: number | null;
   previewOverwriteCount: number | null;
+  usesCollectionDestination: boolean;
+  destinationReady: boolean;
+  canContinueToPreview: boolean;
 
   // File input refs
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -130,6 +138,8 @@ export interface ImportPanelContextValue {
   handleDragOver: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
   handleBack: () => void;
+  selectSourceFamily: (family: SourceFamily) => void;
+  continueToPreview: () => void;
   handleImportVariables: (strategy?: 'overwrite' | 'skip' | 'merge') => Promise<void>;
   handleImportStyles: () => Promise<void>;
   executeImport: (strategy: 'skip' | 'overwrite', excludePaths?: Set<string>, mergePaths?: Set<string>) => Promise<void>;
@@ -272,6 +282,30 @@ export function ImportPanelProvider({
     return { totalEnabledSets: enabledSetCount, totalEnabledTokens: toks };
   }, [src.collectionData, src.modeEnabled]);
 
+  const usesCollectionDestination = src.collectionData.length > 0;
+
+  const hasInvalidModeSetNames = useMemo(() => (
+    src.collectionData.some(col =>
+      col.modes.some(mode => {
+        const key = modeKey(col.name, mode.modeId);
+        if (!(src.modeEnabled[key] ?? true)) return false;
+        const candidate = (src.modeSetNames[key] ?? '').trim();
+        return !candidate || !SET_NAME_RE.test(candidate);
+      })
+    )
+  ), [src.collectionData, src.modeEnabled, src.modeSetNames]);
+
+  const hasValidSingleSetDestination = useMemo(() => {
+    const trimmedTarget = setsHook.targetSet.trim();
+    return !setsHook.newSetInputVisible && !!trimmedTarget && SET_NAME_RE.test(trimmedTarget);
+  }, [setsHook.newSetInputVisible, setsHook.targetSet]);
+
+  const destinationReady = usesCollectionDestination
+    ? totalEnabledSets > 0 && !hasInvalidModeSetNames
+    : hasValidSingleSetDestination;
+
+  const canContinueToPreview = src.tokens.length > 0 && !usesCollectionDestination && hasValidSingleSetDestination;
+
   // ── Context value ─────────────────────────────────────────────────────────
 
   const value = useMemo<ImportPanelContextValue>(() => ({
@@ -289,7 +323,9 @@ export function ImportPanelProvider({
     loading: src.loading,
     importing: apply.importing,
     error: src.error,
+    sourceFamily: src.sourceFamily,
     source: src.source,
+    workflowStage: src.workflowStage,
     targetSet: setsHook.targetSet,
     sets: setsHook.sets,
     setsError: setsHook.setsError,
@@ -336,6 +372,9 @@ export function ImportPanelProvider({
     totalEnabledTokens,
     previewNewCount: conflicts.previewNewCount,
     previewOverwriteCount: conflicts.previewOverwriteCount,
+    usesCollectionDestination,
+    destinationReady,
+    canContinueToPreview,
     fileInputRef: src.fileInputRef,
     cssFileInputRef: src.cssFileInputRef,
     tailwindFileInputRef: src.tailwindFileInputRef,
@@ -356,6 +395,8 @@ export function ImportPanelProvider({
     handleDragOver: src.handleDragOver,
     handleDrop: src.handleDrop,
     handleBack: src.handleBack,
+    selectSourceFamily: src.selectSourceFamily,
+    continueToPreview: src.continueToPreview,
     handleImportVariables,
     handleImportStyles,
     executeImport,
@@ -373,12 +414,12 @@ export function ImportPanelProvider({
     serverUrl, connected,
     src.collectionData, src.modeSetNames, src.modeEnabled, src.setModeSetNames, src.setModeEnabled,
     src.tokens, src.selectedTokens, src.typeFilter, src.setTypeFilter,
-    src.loading, src.error, src.source, src.skippedEntries, src.skippedExpanded, src.setSkippedExpanded,
+    src.loading, src.error, src.sourceFamily, src.source, src.workflowStage, src.skippedEntries, src.skippedExpanded, src.setSkippedExpanded,
     src.isDragging, src.fileInputRef, src.cssFileInputRef, src.tailwindFileInputRef, src.tokensStudioFileInputRef,
     src.handleReadVariables, src.handleReadStyles, src.handleReadJson, src.handleReadCSS,
     src.handleReadTailwind, src.handleReadTokensStudio, src.handleJsonFileChange, src.handleCSSFileChange,
     src.handleTailwindFileChange, src.handleTokensStudioFileChange, src.handleDragEnter, src.handleDragLeave,
-    src.handleDragOver, src.handleDrop, src.handleBack, src.toggleToken, src.toggleAll,
+    src.handleDragOver, src.handleDrop, src.handleBack, src.selectSourceFamily, src.continueToPreview, src.toggleToken, src.toggleAll,
     apply.importing, apply.importProgress, apply.successMessage, apply.failedImportPaths,
     apply.failedImportBatches, apply.failedImportStrategy, apply.succeededImportCount,
     apply.retrying, apply.copyFeedback, apply.lastImport, apply.undoing,
@@ -395,7 +436,7 @@ export function ImportPanelProvider({
     conflicts.varConflictPreview, conflicts.varConflictDetails, conflicts.varConflictDetailsExpanded,
     conflicts.setVarConflictDetailsExpanded, conflicts.checkingVarConflicts,
     conflicts.clearConflictState, conflicts.previewNewCount, conflicts.previewOverwriteCount,
-    totalEnabledSets, totalEnabledTokens,
+    totalEnabledSets, totalEnabledTokens, usesCollectionDestination, destinationReady, canContinueToPreview,
     handleImportVariables, handleImportStyles, executeImport, handleUndoImport, handleRetryFailed,
   ]);
 

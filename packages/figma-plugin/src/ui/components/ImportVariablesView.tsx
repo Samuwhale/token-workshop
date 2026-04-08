@@ -1,5 +1,5 @@
 import { useImportPanel } from './ImportPanelContext';
-import { defaultSetName, modeKey } from './importPanelTypes';
+import { defaultSetName, getSourceDefinition, modeKey } from './importPanelTypes';
 import { SET_NAME_RE } from '../shared/utils';
 
 export function ImportVariablesView() {
@@ -8,10 +8,15 @@ export function ImportVariablesView() {
     modeEnabled,
     modeSetNames,
     sets,
+    source,
     handleBack,
     setModeEnabled,
     setModeSetNames,
   } = useImportPanel();
+
+  const sourceDefinition = getSourceDefinition(source);
+  const sourceLabel = sourceDefinition?.label ?? 'Imported collections';
+  const destinationDescription = sourceDefinition?.destinationDescription ?? 'Each enabled mode will be imported as a separate token set.';
 
   return (
     <>
@@ -27,7 +32,7 @@ export function ImportVariablesView() {
           Back
         </button>
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
-          Figma Variables
+          {sourceLabel}
         </span>
       </div>
 
@@ -35,7 +40,7 @@ export function ImportVariablesView() {
         Map to Token Sets
       </div>
       <div className="text-[10px] text-[var(--color-figma-text-secondary)] -mt-2">
-        Each enabled mode will be imported as a separate token set.
+        {destinationDescription}
       </div>
 
       {collectionData.map(col => (

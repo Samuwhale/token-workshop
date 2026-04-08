@@ -12,6 +12,8 @@ import {
   type ImportToken,
   type ModeData,
   type CollectionData,
+  type SourceFamily,
+  type ImportWorkflowStage,
   markDuplicatePaths,
   defaultSetName,
   modeKey,
@@ -25,6 +27,8 @@ export interface UseImportSourceParams {
 
 export function useImportSource({ onClearConflictState, onResetExistingPathsCache }: UseImportSourceParams) {
   const [source, setSource] = useState<'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio' | null>(null);
+  const [sourceFamily, setSourceFamily] = useState<SourceFamily | null>(null);
+  const [workflowStage, setWorkflowStage] = useState<ImportWorkflowStage>('family');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tokens, setTokens] = useState<ImportToken[]>([]);
@@ -45,6 +49,46 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
   const correlationIdRef = useRef<string | null>(null);
+
+  const resetLoadedImportState = useCallback(() => {
+    if (readTimeoutRef.current) {
+      clearTimeout(readTimeoutRef.current);
+      readTimeoutRef.current = null;
+    }
+    pendingSourceRef.current = null;
+    correlationIdRef.current = null;
+    setLoading(false);
+    setSource(null);
+    setCollectionData([]);
+    setTokens([]);
+    setSelectedTokens(new Set());
+    setTypeFilter(null);
+    setSkippedEntries([]);
+    setSkippedExpanded(false);
+  }, []);
+
+  const resetImportFlow = useCallback(() => {
+    resetLoadedImportState();
+    setSourceFamily(null);
+    setWorkflowStage('family');
+    setError(null);
+    onClearConflictState();
+  }, [onClearConflictState, resetLoadedImportState]);
+
+  const selectSourceFamily = useCallback((family: SourceFamily) => {
+    onClearConflictState();
+    if (sourceFamily !== family || source !== null || tokens.length > 0 || collectionData.length > 0) {
+      resetLoadedImportState();
+    }
+    setError(null);
+    setSourceFamily(family);
+    setWorkflowStage('format');
+  }, [collectionData.length, onClearConflictState, resetLoadedImportState, source, sourceFamily, tokens.length]);
+
+  const continueToPreview = useCallback(() => {
+    onClearConflictState();
+    setWorkflowStage('preview');
+  }, [onClearConflictState]);
 
   const startReadTimeout = useCallback((timedOutSource: 'variables' | 'styles' | null) => {
     if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
@@ -91,6 +135,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         }
         setModeSetNames(names);
         setModeEnabled(enabled);
+        setSourceFamily('figma');
+        setWorkflowStage('destination');
         setLoading(false);
       }
       if (msg.type === 'styles-read-error' && pendingSourceRef.current === 'styles' && msg.correlationId === correlationIdRef.current) {
@@ -108,6 +154,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setTokens(markedTokens);
         setSelectedTokens(new Set((msg.tokens || []).map((t: ImportToken) => t.path)));
         setTypeFilter(null);
+        setSourceFamily('figma');
+        setWorkflowStage('destination');
         setLoading(false);
         onResetExistingPathsCache();
       }
@@ -124,6 +172,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     pendingSourceRef.current = 'variables';
     const cid = `import-${Date.now()}-${Math.random()}`;
     correlationIdRef.current = cid;
+    setSourceFamily('figma');
     setSource('variables');
     setLoading(true);
     setCollectionData([]);
@@ -137,6 +186,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     pendingSourceRef.current = 'styles';
     const cid = `import-${Date.now()}-${Math.random()}`;
     correlationIdRef.current = cid;
+    setSourceFamily('figma');
     setSource('styles');
     setLoading(true);
     setTokens([]);
@@ -154,6 +204,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setError(null);
     onResetExistingPathsCache();
     setCollectionData([]);
+    setSourceFamily('migration');
+    setWorkflowStage('destination');
 
     if (parsedSets.size === 1) {
       const [, setTokenList] = [...parsedSets.entries()][0];
@@ -232,6 +284,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setTypeFilter(null);
         setError(null);
         setCollectionData([]);
+        setSourceFamily('token-files');
+        setWorkflowStage('destination');
         onResetExistingPathsCache();
       } catch (err) {
         setError(`Failed to process token file: ${getErrorMessage(err)}`);
@@ -269,6 +323,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setSkippedExpanded(false);
         setError(null);
         setCollectionData([]);
+        setSourceFamily('code');
+        setWorkflowStage('destination');
         onResetExistingPathsCache();
       } catch (err) {
         setError(`Could not parse CSS file: ${getErrorMessage(err)}`);
@@ -304,6 +360,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setSkippedExpanded(false);
         setError(null);
         setCollectionData([]);
+        setSourceFamily('code');
+        setWorkflowStage('destination');
         onResetExistingPathsCache();
       } catch (err) {
         setError(`Could not parse Tailwind config: ${getErrorMessage(err)}`);
@@ -394,14 +452,28 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   }, [processJsonFile, processCSSFile, processTailwindFile]);
 
   const handleBack = useCallback(() => {
-    setCollectionData([]);
-    setTokens([]);
-    setSource(null);
-    setTypeFilter(null);
-    setSkippedEntries([]);
-    setSkippedExpanded(false);
-    onClearConflictState();
-  }, [onClearConflictState]);
+    if (workflowStage === 'preview') {
+      onClearConflictState();
+      setWorkflowStage('destination');
+      return;
+    }
+    if (workflowStage === 'destination') {
+      resetLoadedImportState();
+      setError(null);
+      onClearConflictState();
+      setWorkflowStage(sourceFamily ? 'format' : 'family');
+      return;
+    }
+    if (workflowStage === 'format') {
+      resetLoadedImportState();
+      setSourceFamily(null);
+      setError(null);
+      onClearConflictState();
+      setWorkflowStage('family');
+      return;
+    }
+    resetImportFlow();
+  }, [onClearConflictState, resetImportFlow, resetLoadedImportState, sourceFamily, workflowStage]);
 
   const toggleToken = useCallback((path: string) => {
     onClearConflictState();
@@ -421,14 +493,18 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   }, [onClearConflictState, tokens]);
 
   const resetAfterImport = useCallback(() => {
-    setTokens([]);
-    setSource(null);
-    setCollectionData([]);
-  }, []);
+    resetLoadedImportState();
+    setSourceFamily(null);
+    setWorkflowStage('family');
+  }, [resetLoadedImportState]);
 
   return {
     source,
     setSource,
+    sourceFamily,
+    setSourceFamily,
+    workflowStage,
+    setWorkflowStage,
     loading,
     setLoading,
     error,
@@ -468,8 +544,11 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     handleDragOver,
     handleDrop,
     handleBack,
+    continueToPreview,
+    selectSourceFamily,
     toggleToken,
     toggleAll,
     resetAfterImport,
+    resetImportFlow,
   };
 }

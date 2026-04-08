@@ -18,6 +18,10 @@ export function useImportSets({ serverUrl, connected, onClearConflictState }: Us
 
   const targetSetRef = useRef(targetSet);
 
+  useEffect(() => {
+    targetSetRef.current = targetSet;
+  }, [targetSet]);
+
   const fetchSets = useCallback(async () => {
     if (!connected) return;
     setSetsError(null);

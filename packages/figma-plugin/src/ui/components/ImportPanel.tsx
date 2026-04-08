@@ -7,6 +7,9 @@ import { ImportVariablesView } from './ImportVariablesView';
 import { ImportVariablesFooter } from './ImportVariablesFooter';
 import { ImportTokenListView } from './ImportTokenListView';
 import { ImportStylesFooter } from './ImportStylesFooter';
+import { ImportFileDestinationRules } from './ImportFileDestinationRules';
+import { ImportWorkflowSteps } from './ImportWorkflowSteps';
+import { getSourceDefinition } from './importPanelTypes';
 
 function ImportPanelRoot() {
   const {
@@ -15,10 +18,14 @@ function ImportPanelRoot() {
     tokens,
     loading,
     error,
+    sourceFamily,
     source,
+    workflowStage,
     successMessage,
     isDragging,
     conflictPaths,
+    destinationReady,
+    usesCollectionDestination,
     handleDragEnter,
     handleDragLeave,
     handleDragOver,
@@ -27,10 +34,12 @@ function ImportPanelRoot() {
     clearSuccessState,
   } = useImportPanel();
 
-  const showSourceSelector = collectionData.length === 0 && tokens.length === 0 && !loading && !successMessage;
   const showSuccess = collectionData.length === 0 && tokens.length === 0 && !loading && !!successMessage;
-  const showVariables = collectionData.length > 0 && !loading;
-  const showTokenList = tokens.length > 0 && !loading;
+  const showSourceSelector = !showSuccess && !loading && (workflowStage === 'family' || workflowStage === 'format');
+  const showDestinationRules = !showSuccess && !loading && workflowStage === 'destination' && !usesCollectionDestination && tokens.length > 0;
+  const showVariables = !showSuccess && !loading && workflowStage === 'destination' && usesCollectionDestination;
+  const showTokenList = !showSuccess && !loading && workflowStage === 'preview' && tokens.length > 0;
+  const sourceDefinition = getSourceDefinition(source);
 
   // Escape key: go back from data views or dismiss success screen.
   // Let ImportConflictResolver handle Escape when conflicts are active.
@@ -85,6 +94,16 @@ function ImportPanelRoot() {
           </div>
         )}
 
+        {!showSuccess && (
+          <ImportWorkflowSteps
+            sourceFamily={sourceFamily}
+            source={source}
+            workflowStage={workflowStage}
+            destinationReady={workflowStage === 'preview' ? true : destinationReady}
+            destinationLabel={sourceDefinition?.destinationLabel}
+          />
+        )}
+
         {showSourceSelector && <ImportSourceSelector />}
         {showSuccess && <ImportSuccessView />}
 
@@ -102,6 +121,7 @@ function ImportPanelRoot() {
         )}
 
         {showVariables && <ImportVariablesView />}
+        {showDestinationRules && <ImportFileDestinationRules />}
         {showTokenList && <ImportTokenListView />}
       </div>
 

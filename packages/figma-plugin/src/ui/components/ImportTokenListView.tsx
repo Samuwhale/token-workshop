@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useImportPanel } from './ImportPanelContext';
-import { type ImportToken } from './importPanelTypes';
+import { type ImportToken, getSourceDefinition } from './importPanelTypes';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 
 function resolveAlias(token: ImportToken, tokensByPath: Map<string, ImportToken>, depth = 0): string | null {
@@ -94,6 +94,9 @@ export function ImportTokenListView() {
   } = useImportPanel();
 
   const [searchText, setSearchText] = useState('');
+  const sourceDefinition = getSourceDefinition(source);
+  const sourceLabel = sourceDefinition?.label
+    ?? (source === 'json' ? 'JSON File' : source === 'css' ? 'CSS File' : source === 'tailwind' ? 'Tailwind Config' : 'Imported Tokens');
 
   const tokensByPath = new Map(tokens.map(t => [t.path, t]));
 
@@ -124,14 +127,14 @@ export function ImportTokenListView() {
           Back
         </button>
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
-          {source === 'json' ? 'JSON File' : source === 'css' ? 'CSS File' : source === 'tailwind' ? 'Tailwind Config' : 'Figma Styles'}
+          {sourceLabel}
         </span>
       </div>
 
       {/* Preview header */}
       <div className="flex items-center justify-between">
         <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-          Preview ({selectedTokens.size}/{tokens.length} selected)
+          Preview parsed tokens ({selectedTokens.size}/{tokens.length} selected)
         </div>
         <button
           onClick={toggleAll}
