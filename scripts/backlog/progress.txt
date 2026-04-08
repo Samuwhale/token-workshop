@@ -390,3 +390,11 @@
   - When a settings surface mixes daily defaults with setup or recovery flows, collapse the IA to a small preferences area plus one explicitly framed advanced area instead of splitting everything into equal-weight tabs.
   - If tab IDs change during a settings IA rewrite, map legacy persisted values onto the new structure so reopening the panel does not strand users on a missing category.
 ---
+## 2026-04-08 - [HIGH] Rework the offline / server-connection experience so connection problems do not add a permanent global warning banner to every screen; show blocking empty states only where a server-backed action is required and keep lightweight passive status elsewhere
+- Removed the shell-wide disconnect banner, moved recovery into the utilities menu with retry and URL editing, and surfaced offline/checking state as lightweight workspace status pills instead of a permanent warning strip.
+- Simplified the token empty state so it no longer turns disconnection into a blocking connection form; it now stays focused on onboarding and only shows a passive note that server-backed flows will prompt for reconnection when needed.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L93, ~L967, ~L1603; `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L1, ~L24; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L487; `scripts/backlog/patterns.md` ~L247
+- **Learnings for future iterations:**
+  - Keep global connection feedback lightweight and actionable; a status pill plus a utilities recovery surface is enough for shell-wide awareness.
+  - If a screen can still do useful work offline or guide the user into a manual path, keep the empty state about that job and let server-required routes own their own blocking reconnect states.
+---

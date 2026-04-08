@@ -487,9 +487,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         {tokens.length === 0 && !createFromEmpty && !editingToken && (
           <EmptyState
             connected={connected}
-            serverUrl={serverUrl}
-            checking={checking}
-            onConnect={updateServerUrlAndConnect}
             onOpenStartHere={() => p.onOpenStartHere('root')}
           />
         )}

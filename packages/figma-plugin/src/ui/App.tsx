@@ -90,10 +90,11 @@ export function App() {
   const { triggerHeatmapScan } = useHeatmapContext();
   const { triggerUsageScan, tokenUsageCounts } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
-  // Banner URL editor has its own local state (separate from SettingsPanel's connection state)
-  const [bannerUrlInput, setBannerUrlInput] = useState(serverUrl);
-  const [bannerConnectResult, setBannerConnectResult] = useState<'ok' | 'fail' | null>(null);
-  const [showBannerUrlEditor, setShowBannerUrlEditor] = useState(false);
+  // Utilities menu owns the connection editor so recovery stays available without
+  // pinning a disconnect banner across every workspace.
+  const [connectionUrlInput, setConnectionUrlInput] = useState(serverUrl);
+  const [connectionConnectResult, setConnectionConnectResult] = useState<'ok' | 'fail' | null>(null);
+  const [showConnectionEditor, setShowConnectionEditor] = useState(false);
   const { showPasteModal, setShowPasteModal, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher } = useModalVisibility();
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
   const recentlyTouched = useRecentlyTouched();
@@ -130,8 +131,12 @@ export function App() {
     window.addEventListener('publish-preflight-state', handler);
     return () => window.removeEventListener('publish-preflight-state', handler);
   }, []);
-  // Close the inline banner URL editor when connection is (re-)established
-  useEffect(() => { if (connected) setShowBannerUrlEditor(false); }, [connected]);
+  // Collapse the utilities connection editor once the server is reachable again.
+  useEffect(() => {
+    if (!connected) return;
+    setShowConnectionEditor(false);
+    setConnectionConnectResult(null);
+  }, [connected]);
   // Wire the alias-not-found toast into EditorContext (setErrorToast is stable)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setAliasNotFoundHandler((p) => setErrorToast(`Alias target not found: ${p}`)); }, []);
@@ -961,6 +966,11 @@ export function App() {
 
   const workspacePills = useMemo(() => {
     const pills: Array<{ label: string; tone: 'neutral' | 'accent' | 'warning' | 'danger' | 'success' }> = [];
+    if (checking) {
+      pills.push({ label: 'Server checking…', tone: 'neutral' });
+    } else if (!connected) {
+      pills.push({ label: 'Server offline', tone: 'warning' });
+    }
     switch (activeWorkspace.id) {
       case 'tokens':
         pills.push({ label: `${sets.length} set${sets.length === 1 ? '' : 's'}`, tone: 'neutral' });
@@ -1049,6 +1059,8 @@ export function App() {
     applyWorkflowSummary.selectionCount,
     applyWorkflowSummary.suggestionCount,
     applyWorkflowSummary.unboundPropertyCount,
+    checking,
+    connected,
     dimensions.length,
     healthIssueCount,
     lintViolations.length,
@@ -1590,79 +1602,13 @@ export function App() {
 
   const utilitiesAttention = !connected || notificationHistory.length > 0;
   const utilitiesStatusLabel = checking
-    ? 'Connecting…'
+    ? `Checking ${serverUrl}`
     : connected
       ? `Connected to ${serverUrl}`
-      : `Cannot reach ${serverUrl}`;
+      : `Server offline · ${serverUrl}`;
 
   return (
     <div className="relative flex flex-col h-screen">
-      {/* Connection status — only shown when not connected */}
-      {!connected && (
-        <div className={`flex flex-col text-[10px] ${checking ? 'bg-[var(--color-figma-text-secondary)]/5 text-[var(--color-figma-text-secondary)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
-          {/* Status row */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
-            <span className="flex-1">{checking ? 'Connecting\u2026' : `Cannot reach ${serverUrl} \u2014 read-only mode`}</span>
-            {!checking && (
-              <>
-                <button
-                  onClick={retryConnection}
-                  className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
-                >
-                  Retry
-                </button>
-                <span className="opacity-40">·</span>
-                <button
-                  onClick={() => { setShowBannerUrlEditor(v => !v); setBannerUrlInput(serverUrl); setBannerConnectResult(null); }}
-                  className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
-                >
-                  {showBannerUrlEditor ? 'Cancel' : 'Change URL'}
-                </button>
-              </>
-            )}
-          </div>
-          {/* Inline URL editor — expands when "Change URL" is clicked */}
-          {showBannerUrlEditor && !checking && (
-            <div className="flex flex-col gap-1.5 px-3 pb-2.5 pt-0.5">
-              <div className="flex gap-1.5">
-                <input
-                  type="text"
-                  value={bannerUrlInput}
-                  onChange={e => { setBannerUrlInput(e.target.value); setBannerConnectResult(null); }}
-                  onKeyDown={async e => {
-                    if (e.key === 'Enter') {
-                      setBannerConnectResult(null);
-                      const ok = await updateServerUrlAndConnect(bannerUrlInput.trim());
-                      setBannerConnectResult(ok ? 'ok' : 'fail');
-                      if (ok) setShowBannerUrlEditor(false);
-                    }
-                  }}
-                  placeholder="http://localhost:9400"
-                  autoFocus
-                  className="flex-1 min-w-0 px-2 py-1 rounded border border-current/30 bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[11px] placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] outline-none"
-                />
-                <button
-                  onClick={async () => {
-                    setBannerConnectResult(null);
-                    const ok = await updateServerUrlAndConnect(bannerUrlInput.trim());
-                    setBannerConnectResult(ok ? 'ok' : 'fail');
-                    if (ok) setShowBannerUrlEditor(false);
-                  }}
-                  disabled={checking || !bannerUrlInput.trim()}
-                  className="px-2.5 py-1 text-[11px] font-medium rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                >
-                  Connect
-                </button>
-              </div>
-              {bannerConnectResult === 'fail' && (
-                <span className="text-[10px] text-[var(--color-figma-error)]">Cannot reach server — check the URL and try again</span>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Workspace shell */}
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
         <div className="flex items-start justify-between gap-3 px-3 py-2.5">
@@ -1733,6 +1679,75 @@ export function App() {
                 <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
                   <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">{APP_SHELL_NAVIGATION.secondaryArea.label}</div>
                   <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
+                  {!connected && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={retryConnection}
+                        disabled={checking}
+                        className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {checking ? 'Checking…' : 'Retry'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowConnectionEditor(v => !v);
+                          setConnectionUrlInput(serverUrl);
+                          setConnectionConnectResult(null);
+                        }}
+                        className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        {showConnectionEditor ? 'Hide URL' : 'Change URL'}
+                      </button>
+                    </div>
+                  )}
+                  {showConnectionEditor && (
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        Server URL
+                      </label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={connectionUrlInput}
+                          onChange={e => {
+                            setConnectionUrlInput(e.target.value);
+                            setConnectionConnectResult(null);
+                          }}
+                          onKeyDown={async e => {
+                            if (e.key !== 'Enter') return;
+                            const url = connectionUrlInput.trim();
+                            if (!url) return;
+                            setConnectionConnectResult(null);
+                            const ok = await updateServerUrlAndConnect(url);
+                            setConnectionConnectResult(ok ? 'ok' : 'fail');
+                            if (ok) setShowConnectionEditor(false);
+                          }}
+                          placeholder="http://localhost:9400"
+                          autoFocus
+                          className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
+                        />
+                        <button
+                          onClick={async () => {
+                            const url = connectionUrlInput.trim();
+                            if (!url) return;
+                            setConnectionConnectResult(null);
+                            const ok = await updateServerUrlAndConnect(url);
+                            setConnectionConnectResult(ok ? 'ok' : 'fail');
+                            if (ok) setShowConnectionEditor(false);
+                          }}
+                          disabled={checking || !connectionUrlInput.trim()}
+                          className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Connect
+                        </button>
+                      </div>
+                      {connectionConnectResult === 'fail' && (
+                        <span className="text-[10px] text-[var(--color-figma-error)]">
+                          Cannot reach server. Check the URL and try again.
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {APP_SHELL_NAVIGATION.secondaryArea.sections.map((section, sectionIndex) => (
                   <div key={section.id}>
