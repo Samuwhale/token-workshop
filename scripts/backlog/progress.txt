@@ -422,3 +422,16 @@
   - When shell navigation grows across multiple rails and panels, extract interaction states into a shared helper instead of tuning each surface independently.
   - Keep selected states subtle but explicit, and let metadata text and count badges inherit from the same active-state system so pills do not drift visually.
 ---
+## 2026-04-08 - code-pass
+- Areas explored: packages/server/src/routes/sets.ts, packages/server/src/services/token-store.ts, packages/server/src/services/operation-log.ts, packages/server/src/routes/operations.ts, packages/server/src/routes/generators.ts, packages/server/src/services/generator-service.ts, packages/figma-plugin/src/ui/components/ImportPanelContext.tsx, packages/figma-plugin/src/ui/hooks/useImportSource.ts, packages/figma-plugin/src/ui/hooks/useImportConflicts.ts, packages/figma-plugin/src/ui/hooks/useImportApply.ts, packages/figma-plugin/src/ui/hooks/useTokensImport.ts, packages/figma-plugin/src/ui/components/PublishPanel.tsx, packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts, packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts, packages/figma-plugin/src/ui/hooks/useTokenEditorSave.ts
+- Found 5 items — written to backlog-inbox.md
+- Notable: the destructive `/api/data` reset leaves generators, resolvers, snapshots, and operation history behind, so a supposedly empty workspace can boot back up with stale cross-file state immediately.
+---
+## 2026-04-08 - Simplify the token list toolbar so the row of pills and toggles becomes a small number of grouped controls with clearer hierarchy; remove equal visual weight between primary creation actions and secondary viewing modes
+- Reworked the token-list chrome so active hidden state now collapses into grouped `Filters`, `View`, and `Search clauses` summaries, promoted `New token` into the main toolbar beside the quieter `View options` trigger, and demoted bulk/group creation into a separate secondary create cluster.
+- Validation passed via `bash scripts/backlog/validate.sh`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L856, ~L972, ~L1480, ~L2425, ~L2860, ~L3932; `scripts/backlog/patterns.md` ~L160
+- **Learnings for future iterations:**
+  - After moving expert controls behind one overflow entry, summarize their active state in a few labeled groups instead of reintroducing a flat chip strip.
+  - Keep the primary create action in the same visual rail as search, and push secondary creation/view tools into quieter grouped containers so the main job stays obvious.
+---

@@ -853,6 +853,44 @@ export function TokenList({
     sortOrder,
   ]);
 
+  const multiModeDimensionName = useMemo(
+    () => dimensions.find(d => d.id === multiModeDimId)?.name ?? null,
+    [dimensions, multiModeDimId],
+  );
+
+  const activeFilterSummary = useMemo(() => {
+    const items: string[] = [];
+    if (sortOrder !== 'default') items.push(sortOrder === 'alpha-asc' ? 'A to Z' : 'By type');
+    if (refFilter !== 'all') items.push(refFilter === 'aliases' ? 'References only' : 'Direct only');
+    if (showDuplicates) items.push('Duplicates');
+    if (showIssuesOnly) items.push(lintViolations.length > 0 ? `Issues (${lintViolations.length})` : 'Issues');
+    if (showRecentlyTouched) items.push('Recent');
+    if (typeFilter !== '') items.push(typeFilter);
+    if (inspectMode) items.push('Selection only');
+    if (crossSetSearch) items.push('All sets');
+    return items;
+  }, [
+    crossSetSearch,
+    inspectMode,
+    lintViolations.length,
+    refFilter,
+    showDuplicates,
+    showIssuesOnly,
+    showRecentlyTouched,
+    sortOrder,
+    typeFilter,
+  ]);
+
+  const activeViewSummary = useMemo(() => {
+    const items: string[] = [];
+    if (multiModeEnabled) {
+      items.push(multiModeDimensionName ? `Mode columns · ${multiModeDimensionName}` : 'Mode columns');
+    }
+    if (condensedView) items.push('Condensed');
+    if (showPreviewSplit) items.push('Preview split');
+    return items;
+  }, [condensedView, multiModeDimensionName, multiModeEnabled, showPreviewSplit]);
+
   // Sync displayedLeafNodesRef
   displayedLeafNodesRef.current = displayedLeafNodes;
 
@@ -933,6 +971,8 @@ export function TokenList({
     handleSelectAll,
     handleSelectGroupChildren,
   } = tokenSelection;
+
+  const primaryCreateInToolbar = tokens.length > 0 && !selectMode && viewMode === 'tree';
 
   // Wire up the clearSelection ref now that useTokenSelection has been called
   clearSelectionRef.current = () => { setSelectMode(false); setSelectedPaths(new Set()); };
@@ -1440,10 +1480,35 @@ export function TokenList({
     setTypeFilter('');
     setRefFilter('all');
     setShowDuplicates(false);
+    setCrossSetSearch(false);
+    setInspectMode(false);
     setShowRecentlyTouched(false);
-    setShowPinnedOnly(false);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
-  }, [setSearchQuery, setTypeFilter, setRefFilter, setShowDuplicates, showIssuesOnly, onToggleIssuesOnly]);
+  }, [
+    onToggleIssuesOnly,
+    setCrossSetSearch,
+    setInspectMode,
+    setRefFilter,
+    setSearchQuery,
+    setShowDuplicates,
+    setShowRecentlyTouched,
+    setTypeFilter,
+    showIssuesOnly,
+  ]);
+
+  const clearViewModes = useCallback(() => {
+    if (multiModeEnabled) toggleMultiMode();
+    if (condensedView) setCondensedView(false);
+    if (showPreviewSplit) onTogglePreviewSplit?.();
+  }, [condensedView, multiModeEnabled, onTogglePreviewSplit, setCondensedView, showPreviewSplit, toggleMultiMode]);
+
+  const handleOpenPrimaryCreate = useCallback(() => {
+    if (onCreateNew) {
+      onCreateNew();
+      return;
+    }
+    setShowCreateForm(true);
+  }, [onCreateNew, setShowCreateForm]);
 
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities = useMemo<NodeCapabilities | null>(() => selectedNodes.length > 0
@@ -1896,7 +1961,6 @@ export function TokenList({
       },
       showRecentlyTouched: () => {
         setShowRecentlyTouched(true);
-        setShowPinnedOnly(false);
       },
       toggleJsonView: () => {
         setViewMode(viewMode === 'json' ? 'tree' : 'json');
@@ -2361,8 +2425,8 @@ export function TokenList({
         {/* Search-first library toolbar with advanced controls collapsed behind one entry */}
         {tokens.length > 0 && !selectMode && viewMode === 'tree' && (
           <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <div className="flex items-center gap-2 px-2 py-2">
-              <div className="relative min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2 px-2 py-2">
+              <div className="relative min-w-[180px] flex-[999_1_0%]">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
                   <circle cx="4" cy="4" r="3"/>
                   <path d="M6.5 6.5L9 9" strokeLinecap="round"/>
@@ -2433,7 +2497,18 @@ export function TokenList({
                 )}
               </div>
 
-              <div className="relative shrink-0" ref={viewOptionsRef}>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleOpenPrimaryCreate}
+                  disabled={!connected}
+                  title="Create a new token (N)"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span className="text-[11px] leading-none">+</span>
+                  <span>New token</span>
+                </button>
+
+                <div className="relative shrink-0" ref={viewOptionsRef}>
                 <button
                   onClick={() => setViewOptionsOpen(v => !v)}
                   aria-expanded={viewOptionsOpen}
@@ -2778,125 +2853,98 @@ export function TokenList({
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             </div>
 
-            {(sortOrder !== 'default' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || typeFilter !== '' || inspectMode || crossSetSearch || multiModeEnabled || condensedView || showPreviewSplit) && (
-              <div className="flex flex-wrap items-center gap-1 px-2 pb-2">
-                {sortOrder !== 'default' && (
+            {(activeFilterSummary.length > 0 || activeViewSummary.length > 0 || structuredFilterChips.length > 0) && (
+              <div className="flex flex-wrap items-start gap-2 px-2 pb-2">
+                {activeFilterSummary.length > 0 && (
                   <button
-                    onClick={() => setSortOrder('default')}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                    onClick={() => setViewOptionsOpen(true)}
+                    className="min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-left transition-colors hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)]"
                   >
-                    {sortOrder === 'alpha-asc' ? 'A to Z' : 'By type'} ✕
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Filters</div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {activeFilterSummary.slice(0, 3).map(label => (
+                        <span
+                          key={label}
+                          className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)]"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                      {activeFilterSummary.length > 3 && (
+                        <span className="rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          +{activeFilterSummary.length - 3} more
+                        </span>
+                      )}
+                    </div>
                   </button>
                 )}
-                {refFilter !== 'all' && (
+
+                {activeViewSummary.length > 0 && (
                   <button
-                    onClick={() => setRefFilter('all')}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+                    onClick={() => setViewOptionsOpen(true)}
+                    className="min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-left transition-colors hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)]"
                   >
-                    {refFilter === 'aliases' ? 'References' : 'Direct'} ✕
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">View</div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {activeViewSummary.slice(0, 2).map(label => (
+                        <span
+                          key={label}
+                          className="rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                      {activeViewSummary.length > 2 && (
+                        <span className="rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          +{activeViewSummary.length - 2} more
+                        </span>
+                      )}
+                    </div>
                   </button>
                 )}
-                {showDuplicates && (
-                  <button
-                    onClick={() => setShowDuplicates(false)}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Duplicates ✕
-                  </button>
+
+                {structuredFilterChips.length > 0 && (
+                  <div className="min-w-[180px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Search clauses</div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {structuredFilterChips.map(chip => (
+                        <button
+                          key={chip.token}
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            removeQueryToken(chip.token);
+                            searchRef.current?.focus();
+                          }}
+                          className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 hover:text-[var(--color-figma-accent)]"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
-                {showIssuesOnly && (
-                  <button
-                    onClick={() => onToggleIssuesOnly?.()}
-                    className="rounded bg-[var(--color-figma-error)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/20"
-                  >
-                    Issues ✕
-                  </button>
-                )}
-                {showRecentlyTouched && (
-                  <button
-                    onClick={() => setShowRecentlyTouched(false)}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Recent ✕
-                  </button>
-                )}
-                {typeFilter !== '' && (
-                  <button
-                    onClick={() => setTypeFilter('')}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    {typeFilter} ✕
-                  </button>
-                )}
-                {inspectMode && (
-                  <button
-                    onClick={() => setInspectMode(false)}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Selection ✕
-                  </button>
-                )}
-                {crossSetSearch && (
-                  <button
-                    onClick={() => setCrossSetSearch(false)}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    All sets ✕
-                  </button>
-                )}
-                {multiModeEnabled && (
-                  <button
-                    onClick={toggleMultiMode}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Mode columns ✕
-                  </button>
-                )}
-                {condensedView && (
-                  <button
-                    onClick={() => setCondensedView(false)}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Condensed ✕
-                  </button>
-                )}
-                {showPreviewSplit && (
-                  <button
-                    onClick={() => onTogglePreviewSplit?.()}
-                    className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Preview split ✕
-                  </button>
-                )}
-                {filtersActive && (
+
+                {(activeFilterSummary.length > 0 || structuredFilterChips.length > 0) && (
                   <button
                     onClick={clearFilters}
-                    className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                   >
                     Clear filters
                   </button>
                 )}
-              </div>
-            )}
 
-            {structuredFilterChips.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1 px-2 pb-2">
-                {structuredFilterChips.map(chip => (
+                {activeViewSummary.length > 0 && (
                   <button
-                    key={chip.token}
-                    onMouseDown={e => {
-                      e.preventDefault();
-                      removeQueryToken(chip.token);
-                      searchRef.current?.focus();
-                    }}
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 hover:text-[var(--color-figma-accent)]"
+                    onClick={clearViewModes}
+                    className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                   >
-                    {chip.label}
+                    Reset view
                   </button>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -3883,33 +3931,44 @@ export function TokenList({
 
       {/* Bottom actions — streamlined primary actions only */}
       {!showCreateForm && !showTableCreate && (
-        <div className="px-2 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-1.5">
-          <button
-            onClick={() => { onCreateNew ? onCreateNew() : setShowCreateForm(true); }}
-            disabled={!connected}
-            title="Create a new token (N)"
-            className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-          >
-            + New Token
-          </button>
-          <button
-            onClick={() => { resetCreateForm(); openTableCreate(); }}
-            disabled={!connected}
-            title="Create multiple tokens at once in a spreadsheet-like table (Tab between cells)"
-            className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-          >
-            Bulk
-          </button>
-          <button
-            onClick={() => { setNewGroupDialogParent(''); setNewGroupName(''); setNewGroupError(''); }}
-            disabled={!connected}
-            title="Create an empty group to organize tokens"
-            className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-          >
-            New Group
-          </button>
+        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            {!primaryCreateInToolbar && (
+              <button
+                onClick={handleOpenPrimaryCreate}
+                disabled={!connected}
+                title="Create a new token (N)"
+                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+              >
+                + New Token
+              </button>
+            )}
+            <div className={`min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 ${primaryCreateInToolbar ? 'flex-1' : 'shrink-0'}`}>
+              <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                {primaryCreateInToolbar ? 'More creation' : 'Create tools'}
+              </div>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => { resetCreateForm(); openTableCreate(); }}
+                  disabled={!connected}
+                  title="Create multiple tokens at once in a spreadsheet-like table (Tab between cells)"
+                  className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                >
+                  Bulk
+                </button>
+                <button
+                  onClick={() => { setNewGroupDialogParent(''); setNewGroupName(''); setNewGroupError(''); }}
+                  disabled={!connected}
+                  title="Create an empty group to organize tokens"
+                  className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                >
+                  New Group
+                </button>
+              </div>
+            </div>
+          </div>
           {applyResult && (
-            <span role="status" aria-live="polite" className="text-[10px] text-[var(--color-figma-accent)] ml-auto shrink-0">
+            <span role="status" aria-live="polite" className="mt-1 block text-[10px] text-[var(--color-figma-accent)]">
               Applied {applyResult.count} {applyResult.type === 'variables' ? 'variables' : 'styles'}
             </span>
           )}

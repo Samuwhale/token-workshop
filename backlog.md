@@ -36,7 +36,7 @@
 
 - [x] [HIGH] Rebuild the default Tokens workspace header and toolbar around the primary library flow only: set selection, search, theme mode, and token creation remain visible by default, while sorting, compare, batch selection, issue filtering, and other power features move behind one View Options / More Actions entry
 - [x] [HIGH] Implement a dedicated token set manager surface with one consistent entry point, and keep the always-visible set switcher lightweight; the manager should own rename, duplicate, merge, split, reorder, metadata, and bulk operations instead of scattering them across the main workspace
-- [ ] Simplify the token list toolbar so the row of pills and toggles becomes a small number of grouped controls with clearer hierarchy; remove equal visual weight between primary creation actions and secondary viewing modes
+- [x] Simplify the token list toolbar so the row of pills and toggles becomes a small number of grouped controls with clearer hierarchy; remove equal visual weight between primary creation actions and secondary viewing modes
 - [ ] Redesign token rows and group rows to reduce simultaneous indicators, badges, and hover actions; define which metadata is always visible, which appears on selection, and which belongs in a detail preview instead of the list
 - [ ] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [ ] Rework token creation entry points so “new token”, “new group”, quick generators, inline creation, and manual start flows all feel like one product model instead of several unrelated creation patterns
