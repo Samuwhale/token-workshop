@@ -5,6 +5,7 @@ export default {
     candidateQueue: './backlog/inbox.jsonl',
     taskSpecsDir: './backlog/tasks',
     stop: './backlog-stop',
+    runtimeReport: './.backlog-runner/runtime-report.md',
     patterns: './scripts/backlog/patterns.md',
     progress: './scripts/backlog/progress.txt',
     stateDb: './.backlog-runner/state.sqlite',

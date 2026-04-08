@@ -10,6 +10,7 @@ export interface BacklogRunnerConfigInput {
     candidateQueue: string;
     taskSpecsDir?: string;
     stop: string;
+    runtimeReport?: string;
     patterns: string;
     progress: string;
     stateDb?: string;
@@ -43,6 +44,7 @@ export interface BacklogRunnerConfig {
     candidateQueue: string;
     taskSpecsDir: string;
     stop: string;
+    runtimeReport: string;
     patterns: string;
     progress: string;
     stateDb: string;
@@ -204,6 +206,15 @@ export interface BacklogTaskLease {
 export interface BacklogTaskClaim {
   task: BacklogTaskSpec;
   lease: BacklogTaskLease;
+}
+
+export interface TaskLeaseSnapshot {
+  taskId: string;
+  title: string;
+  runnerId: string;
+  claimedAt: string;
+  heartbeatAt: string;
+  expiresAt: string;
 }
 
 export interface TaskReservationSnapshot {

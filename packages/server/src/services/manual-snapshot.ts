@@ -2,11 +2,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { flattenTokenGroup } from '@tokenmanager/core';
-import type { Token } from '@tokenmanager/core';
+import type { Token, TokenGroup } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
 import { stableStringify } from './stable-stringify.js';
 import { NotFoundError } from '../errors.js';
 import { PromiseChainLock } from '../utils/promise-chain-lock.js';
+import { setTokenAtPath } from './token-tree-utils.js';
 
 export interface ManualSnapshotToken {
   $value: unknown;
@@ -18,10 +19,14 @@ export interface ManualSnapshotToken {
 interface RestoreJournal {
   snapshotId: string;
   snapshotLabel: string;
-  /** Full snapshot data copied at the time restore began */
+  /** Full snapshot data copied at the time restore began for sets that should exist after restore */
   data: Record<string, Record<string, ManualSnapshotToken>>;
   /** Set names that have already been fully written to disk */
   completedSets: string[];
+  /** Set names present at restore start that must be deleted because they were created after the snapshot */
+  deleteSetNames: string[];
+  /** Set deletions that have already completed (or were quarantined after repeated failures) */
+  completedDeletes: string[];
   /** Number of consecutive recovery failures per set — sets reaching MAX_RECOVERY_RETRIES are quarantined */
   failedSets?: Record<string, number>;
 }
@@ -52,6 +57,14 @@ export interface TokenDiff {
 
 const MAX_SNAPSHOTS = 20;
 const MAX_RECOVERY_RETRIES = 3;
+
+function inflateSnapshotTokens(flatTokens: Record<string, ManualSnapshotToken>): TokenGroup {
+  const tokens: TokenGroup = {};
+  for (const [tokenPath, token] of Object.entries(flatTokens)) {
+    setTokenAtPath(tokens, tokenPath, structuredClone(token as Token));
+  }
+  return tokens;
+}
 
 export class ManualSnapshotStore {
   private filePath: string;
@@ -256,12 +269,34 @@ export class ManualSnapshotStore {
     return diffs;
   }
 
+  private async restoreSet(
+    tokenStore: TokenStore,
+    setName: string,
+    flatTokens: Record<string, ManualSnapshotToken>,
+  ): Promise<void> {
+    const set = await tokenStore.getSet(setName);
+    if (!set) {
+      await tokenStore.createSet(setName, {});
+    }
+    await tokenStore.replaceSetTokens(setName, inflateSnapshotTokens(flatTokens));
+  }
+
+  private async listSetsOutsideSnapshot(
+    tokenStore: TokenStore,
+    snapshotData: Record<string, Record<string, ManualSnapshotToken>>,
+  ): Promise<string[]> {
+    const snapshotSets = new Set(Object.keys(snapshotData));
+    const currentSets = await tokenStore.getSets();
+    return currentSets.filter(setName => !snapshotSets.has(setName));
+  }
+
   /** Restore a snapshot by overwriting current token files. */
-  restore(id: string, tokenStore: TokenStore): Promise<{ restoredSets: string[] }> {
+  restore(id: string, tokenStore: TokenStore): Promise<{ restoredSets: string[]; deletedSets: string[] }> {
     return this.lock.withLock(async () => {
       await this.ensureLoaded();
       const snapshot = this.snapshots.find(s => s.id === id);
       if (!snapshot) throw new NotFoundError(`Snapshot "${id}" not found`);
+      const deleteSetNames = await this.listSetsOutsideSnapshot(tokenStore, snapshot.data);
 
       // Write journal BEFORE touching any token files. On crash, startup reads this
       // and replays the sets not yet in completedSets.
@@ -270,6 +305,8 @@ export class ManualSnapshotStore {
         snapshotLabel: snapshot.label,
         data: snapshot.data,
         completedSets: [],
+        deleteSetNames,
+        completedDeletes: [],
       };
       await this.writeRestoreJournal(journal);
 
@@ -277,20 +314,24 @@ export class ManualSnapshotStore {
       // If this loop throws, the journal is left intact so startup recovery can
       // replay the remaining sets. deleteRestoreJournal() only runs on success.
       for (const [setName, flatTokens] of Object.entries(snapshot.data)) {
-        const items = Object.entries(flatTokens).map(([p, token]) => ({
-          path: p,
-          token: token as Token,
-        }));
-        await tokenStore.restoreSnapshot(setName, items);
+        await this.restoreSet(tokenStore, setName, flatTokens);
         restoredSets.push(setName);
         // Advance the journal checkpoint after each successful set write.
         journal.completedSets.push(setName);
         await this.writeRestoreJournal(journal);
       }
 
+      const deletedSets: string[] = [];
+      for (const setName of deleteSetNames) {
+        await tokenStore.deleteSet(setName);
+        deletedSets.push(setName);
+        journal.completedDeletes.push(setName);
+        await this.writeRestoreJournal(journal);
+      }
+
       // All sets written — journal is no longer needed.
       await this.deleteRestoreJournal();
-      return { restoredSets };
+      return { restoredSets, deletedSets };
     });
   }
 
@@ -311,8 +352,11 @@ export class ManualSnapshotStore {
     const pending = Object.keys(journal.data).filter(
       setName => !journal.completedSets.includes(setName)
     );
+    const pendingDeletes = journal.deleteSetNames.filter(
+      setName => !journal.completedDeletes.includes(setName)
+    );
 
-    if (pending.length === 0) {
+    if (pending.length === 0 && pendingDeletes.length === 0) {
       // All sets were written — crash happened just before journal deletion.
       console.warn(
         `[ManualSnapshotStore] Stale restore journal for "${journal.snapshotLabel}" found; ` +
@@ -324,7 +368,9 @@ export class ManualSnapshotStore {
 
     console.warn(
       `[ManualSnapshotStore] Recovering incomplete restore of snapshot "${journal.snapshotLabel}" ` +
-      `(${journal.snapshotId}): replaying ${pending.length} set(s): ${pending.join(', ')}`
+      `(${journal.snapshotId}): replaying ${pending.length} set(s)` +
+      (pending.length > 0 ? `: ${pending.join(', ')}` : '') +
+      (pendingDeletes.length > 0 ? `; deleting ${pendingDeletes.length} extra set(s): ${pendingDeletes.join(', ')}` : '')
     );
 
     if (!journal.failedSets) journal.failedSets = {};
@@ -343,18 +389,41 @@ export class ManualSnapshotStore {
         continue;
       }
 
-      const flatTokens = journal.data[setName];
-      const items = Object.entries(flatTokens).map(([p, token]) => ({
-        path: p,
-        token: token as Token,
-      }));
       try {
-        await tokenStore.restoreSnapshot(setName, items);
+        await this.restoreSet(tokenStore, setName, journal.data[setName]);
         journal.completedSets.push(setName);
         await this.writeRestoreJournal(journal);
       } catch (err) {
         console.error(
           `[ManualSnapshotStore] Recovery failed for set "${setName}" ` +
+          `(attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
+          err
+        );
+        journal.failedSets[setName] = retries + 1;
+        await this.writeRestoreJournal(journal);
+        allResolved = false;
+      }
+    }
+
+    for (const setName of pendingDeletes) {
+      const retries = journal.failedSets[setName] ?? 0;
+      if (retries >= MAX_RECOVERY_RETRIES) {
+        console.error(
+          `[ManualSnapshotStore] Extra set "${setName}" has failed deletion ${retries} time(s) — ` +
+          `quarantining. Manual intervention required.`
+        );
+        journal.completedDeletes.push(setName);
+        await this.writeRestoreJournal(journal);
+        continue;
+      }
+
+      try {
+        await tokenStore.deleteSet(setName);
+        journal.completedDeletes.push(setName);
+        await this.writeRestoreJournal(journal);
+      } catch (err) {
+        console.error(
+          `[ManualSnapshotStore] Deleting extra set "${setName}" during snapshot recovery failed ` +
           `(attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
           err
         );

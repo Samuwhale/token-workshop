@@ -31,6 +31,7 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
   const candidateQueue = resolvePath(baseDir, config.files.candidateQueue ?? path.join('backlog', 'inbox.jsonl'));
   const taskSpecsDir = resolvePath(baseDir, config.files.taskSpecsDir ?? path.join('backlog', 'tasks'));
   const stateDb = resolvePath(baseDir, config.files.stateDb ?? path.join(runtimeDir, 'state.sqlite'));
+  const runtimeReport = resolvePath(baseDir, config.files.runtimeReport ?? path.join(runtimeDir, 'runtime-report.md'));
 
   return {
     projectRoot,
@@ -39,6 +40,7 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
       candidateQueue,
       taskSpecsDir,
       stop: resolvePath(baseDir, config.files.stop),
+      runtimeReport,
       patterns: resolvePath(baseDir, config.files.patterns),
       progress: resolvePath(baseDir, config.files.progress),
       stateDb,
@@ -92,6 +94,7 @@ export async function ensureConfigReady(config: BacklogRunnerConfig): Promise<vo
   await mkdir(config.files.locksDir, { recursive: true });
   await mkdir(config.files.taskSpecsDir, { recursive: true });
   await mkdir(path.dirname(config.files.candidateQueue), { recursive: true });
+  await mkdir(path.dirname(config.files.runtimeReport), { recursive: true });
 }
 
 type ModelsFileShape = {

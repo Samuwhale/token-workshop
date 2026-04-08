@@ -82,15 +82,15 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         // Snapshot current state of all affected sets for undo
-        const affectedSets = Object.keys(snapshot.data);
+        const snapshotSets = Object.keys(snapshot.data);
         const beforeSnapshot: Record<string, { token: import('@tokenmanager/core').Token | null; setName: string }> = {};
-        for (const setName of affectedSets) {
+        for (const setName of snapshotSets) {
           Object.assign(beforeSnapshot, await snapshotSet(fastify.tokenStore, setName));
         }
         // Also snapshot sets that exist currently but aren't in the snapshot (they'll lose tokens)
         const currentSets = await fastify.tokenStore.getSets();
         for (const setName of currentSets) {
-          if (!affectedSets.includes(setName)) {
+          if (!snapshotSets.includes(setName)) {
             Object.assign(beforeSnapshot, await snapshotSet(fastify.tokenStore, setName));
           }
         }
@@ -101,7 +101,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         // Snapshot after state
         const afterSnapshot: Record<string, { token: import('@tokenmanager/core').Token | null; setName: string }> = {};
         const afterSets = await fastify.tokenStore.getSets();
-        const allSets = new Set([...affectedSets, ...currentSets, ...afterSets]);
+        const allSets = new Set([...snapshotSets, ...currentSets, ...afterSets]);
         for (const setName of allSets) {
           Object.assign(afterSnapshot, await snapshotSet(fastify.tokenStore, setName));
         }
@@ -111,7 +111,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         const opEntry = await fastify.operationLog.record({
           type: 'snapshot-restore',
           description: `Restore snapshot "${snapshot.label}"`,
-          setName: affectedSets.join(', '),
+          setName: Array.from(allSets).join(', '),
           affectedPaths: allPaths,
           beforeSnapshot,
           afterSnapshot,

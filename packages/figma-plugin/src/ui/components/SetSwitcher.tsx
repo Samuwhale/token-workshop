@@ -3,7 +3,9 @@ import type { RefObject, ReactNode } from 'react';
 import type { ThemeDimension, ThemeSetStatus } from '@tokenmanager/core';
 import { SET_NAME_RE } from '../shared/utils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
-import { ConfirmModal } from './ConfirmModal';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
+import { useConnectionContext } from '../contexts/ConnectionContext';
+import type { SetPreflightImpact, SetStructuralOperation, SetStructuralPreflight } from '../shared/setStructuralPreflight';
 
 interface FolderGroup {
   folder: string;
@@ -85,6 +87,264 @@ interface SetManagerProps {
   setSplitDeleteOriginal?: (value: boolean) => void;
   onSplitConfirm?: () => void | Promise<void>;
   onSplitClose?: () => void;
+}
+
+function useSetStructuralPreflight({
+  operation,
+  setName,
+  targetSet,
+  deleteOriginal,
+  enabled,
+}: {
+  operation: SetStructuralOperation;
+  setName: string | null;
+  targetSet?: string;
+  deleteOriginal?: boolean;
+  enabled: boolean;
+}) {
+  const { connected, serverUrl, getDisconnectSignal } = useConnectionContext();
+  const [data, setData] = useState<SetStructuralPreflight | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled || !connected || !setName) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    if (operation === 'merge' && !targetSet) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    apiFetch<SetStructuralPreflight>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}/preflight`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operation,
+        ...(targetSet ? { targetSet } : {}),
+        ...(typeof deleteOriginal === 'boolean' ? { deleteOriginal } : {}),
+      }),
+      signal: createFetchSignal(AbortSignal.any([controller.signal, getDisconnectSignal()])),
+    })
+      .then((response) => {
+        if (!controller.signal.aborted) {
+          setData(response);
+        }
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) {
+          setData(null);
+          setError(err instanceof Error ? err.message : 'Failed to inspect set dependencies');
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [connected, deleteOriginal, enabled, getDisconnectSignal, operation, serverUrl, setName, targetSet]);
+
+  return { data, loading, error };
+}
+
+function formatThemeStatus(status: ThemeSetStatus): string {
+  if (status === 'enabled') return 'enabled';
+  if (status === 'source') return 'source';
+  return 'disabled';
+}
+
+function ThemeStatusBadge({ status }: { status: ThemeSetStatus }) {
+  const className = status === 'enabled'
+    ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+    : status === 'source'
+      ? 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'
+      : 'border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]';
+  return (
+    <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase tracking-[0.08em] ${className}`}>
+      {formatThemeStatus(status)}
+    </span>
+  );
+}
+
+function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
+  const hasDependencies = impact.themeOptions.length > 0
+    || impact.resolverRefs.length > 0
+    || impact.generatedOwnership.length > 0
+    || impact.generatorTargets.length > 0
+    || !!impact.metadata.description
+    || !!impact.metadata.collectionName
+    || !!impact.metadata.modeName;
+
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">{impact.name}</div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            {impact.tokenCount} token{impact.tokenCount === 1 ? '' : 's'}
+          </div>
+        </div>
+        {(impact.metadata.collectionName || impact.metadata.modeName) && (
+          <div className="text-right text-[9px] text-[var(--color-figma-text-secondary)]">
+            {impact.metadata.collectionName && <div>Collection: {impact.metadata.collectionName}</div>}
+            {impact.metadata.modeName && <div>Mode: {impact.metadata.modeName}</div>}
+          </div>
+        )}
+      </div>
+      {impact.metadata.description && (
+        <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">{impact.metadata.description}</p>
+      )}
+      {!hasDependencies ? (
+        <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+          No theme, resolver, metadata, or generator dependencies detected.
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-col gap-3">
+          {impact.themeOptions.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                Theme options ({impact.themeOptions.length})
+              </div>
+              <div className="flex flex-col gap-1">
+                {impact.themeOptions.map((themeImpact) => (
+                  <div key={`${themeImpact.dimensionId}-${themeImpact.optionName}`} className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <span className="truncate">
+                      {themeImpact.dimensionName} / {themeImpact.optionName}
+                    </span>
+                    <ThemeStatusBadge status={themeImpact.status} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {impact.resolverRefs.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                Resolver refs ({impact.resolverRefs.length})
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {impact.resolverRefs.map((resolver) => (
+                  <span key={resolver.name} className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {resolver.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {impact.generatedOwnership.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                Generated token ownership ({impact.generatedOwnership.length})
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {impact.generatedOwnership.map((ownership) => (
+                  <div key={ownership.generatorId} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-[var(--color-figma-text)]">{ownership.generatorName}</span>
+                      <span>{ownership.tokenCount} token{ownership.tokenCount === 1 ? '' : 's'}</span>
+                    </div>
+                    {ownership.targetGroup && (
+                      <div className="mt-0.5 truncate font-mono text-[9px]">{ownership.targetGroup}</div>
+                    )}
+                    {ownership.samplePaths.length > 0 && (
+                      <div className="mt-1 truncate text-[9px] opacity-80">
+                        {ownership.samplePaths.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {impact.generatorTargets.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                Generator targets ({impact.generatorTargets.length})
+              </div>
+              <div className="flex flex-col gap-1">
+                {impact.generatorTargets.map((generator) => (
+                  <div key={generator.generatorId} className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <span className="truncate">{generator.generatorName}</span>
+                    <span className="truncate font-mono text-[9px]">{generator.targetGroup}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StructuralPreflightSummary({
+  preflight,
+  loading,
+  error,
+}: {
+  preflight: SetStructuralPreflight | null;
+  loading: boolean;
+  error: string | null;
+}) {
+  if (loading) {
+    return (
+      <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+        Loading dependency preflight…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] text-red-500">
+        {error}
+      </div>
+    );
+  }
+  if (!preflight) return null;
+
+  return (
+    <div className="flex flex-col gap-3">
+      {preflight.blockers.length > 0 && (
+        <div className="rounded border border-red-500/40 bg-red-500/10 p-3">
+          <div className="text-[10px] font-medium text-red-500">Blocking dependencies</div>
+          <div className="mt-1 flex flex-col gap-1">
+            {preflight.blockers.map((blocker) => (
+              <div key={`${blocker.generatorId}-${blocker.setName}`} className="text-[10px] text-red-500">
+                {blocker.message}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {preflight.warnings.length > 0 && (
+        <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3">
+          <div className="text-[10px] font-medium text-amber-500">Warnings</div>
+          <div className="mt-1 flex flex-col gap-1">
+            {preflight.warnings.map((warning, index) => (
+              <div key={`${index}-${warning}`} className="text-[10px] text-amber-600">
+                {warning}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="flex flex-col gap-2">
+        {preflight.affectedSets.map((impact) => (
+          <SetPreflightCard key={impact.name} impact={impact} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function buildFolderGroups(sets: string[]): GroupItem[] {
@@ -382,7 +642,7 @@ function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect, 
   };
 
   return (
-    <div ref={listRef} className="flex-1 overflow-y-auto" role="listbox" aria-label="Token sets">
+    <div ref={listRef as RefObject<HTMLDivElement>} className="flex-1 overflow-y-auto" role="listbox" aria-label="Token sets">
       {filtered.length === 0 ? (
         <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
           No sets match &ldquo;{query}&rdquo;
@@ -494,6 +754,23 @@ export function SetManager({
   const [newSetError, setNewSetError] = useState('');
   const [createPending, setCreatePending] = useState(false);
   const newSetInputRef = useRef<HTMLInputElement>(null);
+  const deletePreflight = useSetStructuralPreflight({
+    operation: 'delete',
+    setName: deletingSet,
+    enabled: !!deletingSet && !!onDeleteConfirm,
+  });
+  const mergePreflight = useSetStructuralPreflight({
+    operation: 'merge',
+    setName: mergingSet,
+    targetSet: mergeTargetSet,
+    enabled: !!mergingSet && !!mergeTargetSet && !!onMergeConfirm,
+  });
+  const splitPreflight = useSetStructuralPreflight({
+    operation: 'split',
+    setName: splittingSet,
+    deleteOriginal: splitDeleteOriginal,
+    enabled: !!splittingSet && !!onSplitConfirm,
+  });
 
   const filtered = useMemo(() => filterSets(sets, query), [sets, query]);
 
@@ -684,11 +961,11 @@ export function SetManager({
       />
     )}
     {deletingSet && onDeleteConfirm && onDeleteCancel && (
-      <ConfirmModal
-        title={`Delete "${deletingSet}"?`}
-        description="All tokens in this set will be permanently deleted."
-        confirmLabel="Delete set"
-        danger
+      <SetDeleteDialog
+        deletingSet={deletingSet}
+        preflight={deletePreflight.data}
+        preflightLoading={deletePreflight.loading}
+        preflightError={deletePreflight.error}
         onConfirm={onDeleteConfirm}
         onCancel={onDeleteCancel}
       />
@@ -697,6 +974,9 @@ export function SetManager({
       <SetMergeDialog
         sets={sets}
         mergingSet={mergingSet}
+        preflight={mergePreflight.data}
+        preflightLoading={mergePreflight.loading}
+        preflightError={mergePreflight.error}
         mergeTargetSet={mergeTargetSet}
         mergeConflicts={mergeConflicts}
         mergeResolutions={mergeResolutions}
@@ -713,6 +993,9 @@ export function SetManager({
       <SetSplitDialog
         sets={sets}
         splittingSet={splittingSet}
+        preflight={splitPreflight.data}
+        preflightLoading={splitPreflight.loading}
+        preflightError={splitPreflight.error}
         splitPreview={splitPreview}
         splitDeleteOriginal={splitDeleteOriginal}
         splitLoading={splitLoading}
@@ -1130,7 +1413,7 @@ function ManageView({
               {isRenaming ? (
                 <div className="flex flex-col gap-1">
                   <input
-                    ref={renameInputRef}
+                    ref={renameInputRef as RefObject<HTMLInputElement> | undefined}
                     value={renameValue}
                     onChange={e => {
                       setRenameValue?.(e.target.value.trimStart());
@@ -1344,9 +1627,67 @@ function SetMetadataDialog({
   );
 }
 
+function SetDeleteDialog({
+  deletingSet,
+  preflight,
+  preflightLoading,
+  preflightError,
+  onConfirm,
+  onCancel,
+}: {
+  deletingSet: string;
+  preflight: SetStructuralPreflight | null;
+  preflightLoading: boolean;
+  preflightError: string | null;
+  onConfirm: () => void | Promise<void>;
+  onCancel: () => void;
+}) {
+  const hasBlockingPreflight = !!preflightError || preflightLoading || (preflight?.blockers.length ?? 0) > 0;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
+          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Delete "{deletingSet}"?</span>
+          <button onClick={onCancel} className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="flex flex-col gap-3 overflow-y-auto p-4">
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Review linked themes, resolvers, Figma metadata, and generated-token ownership before the set is removed.
+          </p>
+          <StructuralPreflightSummary
+            preflight={preflight}
+            loading={preflightLoading}
+            error={preflightError}
+          />
+        </div>
+        <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={hasBlockingPreflight}
+            className="flex-1 rounded bg-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-white hover:opacity-90 disabled:opacity-50"
+          >
+            Delete set
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SetMergeDialog({
   sets,
   mergingSet,
+  preflight,
+  preflightLoading,
+  preflightError,
   mergeTargetSet,
   mergeConflicts,
   mergeResolutions,
@@ -1360,6 +1701,9 @@ function SetMergeDialog({
 }: {
   sets: string[];
   mergingSet: string;
+  preflight: SetStructuralPreflight | null;
+  preflightLoading: boolean;
+  preflightError: string | null;
   mergeTargetSet: string;
   mergeConflicts: Array<{ path: string; sourceValue: unknown; targetValue: unknown }>;
   mergeResolutions: Record<string, 'source' | 'target'>;
@@ -1371,9 +1715,10 @@ function SetMergeDialog({
   onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }) {
+  const hasBlockingPreflight = !!preflightError || preflightLoading || (preflight?.blockers.length ?? 0) > 0;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="flex max-h-[80vh] w-80 flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+      <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
           <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Merge "{mergingSet}" into…</span>
           <button onClick={onClose} className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">
@@ -1393,6 +1738,11 @@ function SetMergeDialog({
               ))}
             </select>
           </div>
+          <StructuralPreflightSummary
+            preflight={preflight}
+            loading={preflightLoading}
+            error={preflightError}
+          />
           {!mergeChecked && (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
               Tokens from <span className="font-mono font-medium">{mergingSet}</span> will be added to <span className="font-mono font-medium">{mergeTargetSet}</span>. Conflicts where both sets have the same path but different values will be shown for resolution.
@@ -1450,7 +1800,7 @@ function SetMergeDialog({
           {!mergeChecked ? (
             <button
               onClick={onCheckConflicts}
-              disabled={mergeLoading || !mergeTargetSet}
+              disabled={mergeLoading || !mergeTargetSet || hasBlockingPreflight}
               className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
             >
               {mergeLoading ? 'Checking…' : 'Check conflicts'}
@@ -1458,7 +1808,7 @@ function SetMergeDialog({
           ) : (
             <button
               onClick={onConfirm}
-              disabled={mergeLoading}
+              disabled={mergeLoading || hasBlockingPreflight}
               className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
             >
               {mergeLoading ? 'Merging…' : 'Merge'}
@@ -1473,6 +1823,9 @@ function SetMergeDialog({
 function SetSplitDialog({
   sets,
   splittingSet,
+  preflight,
+  preflightLoading,
+  preflightError,
   splitPreview,
   splitDeleteOriginal,
   splitLoading,
@@ -1482,6 +1835,9 @@ function SetSplitDialog({
 }: {
   sets: string[];
   splittingSet: string;
+  preflight: SetStructuralPreflight | null;
+  preflightLoading: boolean;
+  preflightError: string | null;
   splitPreview: Array<{ key: string; newName: string; count: number }>;
   splitDeleteOriginal: boolean;
   splitLoading: boolean;
@@ -1489,9 +1845,10 @@ function SetSplitDialog({
   onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }) {
+  const hasBlockingPreflight = !!preflightError || preflightLoading || (preflight?.blockers.length ?? 0) > 0;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="flex max-h-[80vh] w-72 flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+      <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
           <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Split "{splittingSet}"</span>
           <button onClick={onClose} className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">
@@ -1499,6 +1856,11 @@ function SetSplitDialog({
           </button>
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto p-4">
+          <StructuralPreflightSummary
+            preflight={preflight}
+            loading={preflightLoading}
+            error={preflightError}
+          />
           {splitPreview.length === 0 ? (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No top-level groups found in this set to split.</p>
           ) : (
@@ -1538,7 +1900,7 @@ function SetSplitDialog({
           </button>
           <button
             onClick={onConfirm}
-            disabled={splitLoading || splitPreview.length === 0}
+            disabled={splitLoading || splitPreview.length === 0 || hasBlockingPreflight}
             className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {splitLoading ? 'Splitting…' : 'Split'}

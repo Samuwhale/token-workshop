@@ -22,12 +22,15 @@ import type {
   BacklogTaskSpec,
   TaskBlockage,
   TaskDependencySnapshot,
+  TaskLeaseSnapshot,
   TaskReservationSnapshot,
 } from '../types.js';
 
 type RuntimeSnapshot = {
   tasks: BacklogTaskSpec[];
   activeTaskIds: Set<string>;
+  activeLeases: TaskLeaseSnapshot[];
+  activeReservations: TaskReservationSnapshot[];
   blockages: TaskBlockage[];
   counts: BacklogQueueCounts;
 };
@@ -88,7 +91,7 @@ export class FileBackedTaskStore implements BacklogStore {
   async ensureTaskSpecsReady(): Promise<void> {
     await this.getRuntime();
     await withLock(this.backlogLock, 30, async () => {
-      await this.refreshRuntimeAndWriteReport();
+      await this.refreshEverything();
     });
   }
 
@@ -155,6 +158,7 @@ export class FileBackedTaskStore implements BacklogStore {
     const loadedTasks = tasks ?? await this.loadTasks();
     const taskIndex = this.taskIndex(loadedTasks);
     const activeTaskIds = runtime.listActiveTaskIds();
+    const activeLeases = runtime.listActiveLeases(taskIndex);
     const activeReservations = runtime.listActiveReservations(taskIndex);
     const blockages = this.computeBlockages(loadedTasks, activeReservations, activeTaskIds);
     runtime.syncBlockers(blockages);
@@ -172,33 +176,59 @@ export class FileBackedTaskStore implements BacklogStore {
     return {
       tasks: loadedTasks,
       activeTaskIds,
+      activeLeases,
+      activeReservations,
       blockages,
       counts,
     };
   }
 
-  private async writeBacklogReport(snapshot: RuntimeSnapshot): Promise<void> {
-    const blockageMap = new Map(snapshot.blockages.map(blockage => [blockage.taskId, blockage.reason]));
-    const report = renderGeneratedBacklog(
-      snapshot.tasks.map(task => ({
-        task,
-        marker: snapshot.activeTaskIds.has(task.id)
-          ? '~'
-          : task.state === 'done'
-            ? 'x'
-            : task.state === 'failed'
-              ? '!'
-              : ' ',
-        blockage: blockageMap.get(task.id),
-      })),
-    );
+  private async writeBacklogReport(tasks: BacklogTaskSpec[]): Promise<void> {
+    const report = renderGeneratedBacklog(tasks);
     await atomicWrite(this.config.files.backlog, report);
   }
 
-  private async refreshRuntimeAndWriteReport(tasks?: BacklogTaskSpec[]): Promise<BacklogQueueCounts> {
+  private async writeRuntimeReport(snapshot: RuntimeSnapshot): Promise<void> {
+    const lines = [
+      '# Backlog Runner Runtime Status',
+      '',
+      `Generated: ${new Date().toISOString()}`,
+      '',
+      `Queue: ${snapshot.counts.ready} ready · ${snapshot.counts.blocked} blocked · ${snapshot.counts.planned} planned · ${snapshot.counts.inProgress} in-progress · ${snapshot.counts.failed} failed · ${snapshot.counts.done} done`,
+      '',
+      '## Active Leases',
+      ...(snapshot.activeLeases.length === 0
+        ? ['- None']
+        : snapshot.activeLeases.map(lease => `- ${lease.title} (${lease.taskId}) — runner ${lease.runnerId}; claimed ${lease.claimedAt}; heartbeat ${lease.heartbeatAt}; lease expires ${lease.expiresAt}`)),
+      '',
+      '## Active Reservations',
+      ...(snapshot.activeReservations.length === 0
+        ? ['- None']
+        : snapshot.activeReservations.map(reservation => {
+            const touchPaths = reservation.touchPaths.length > 0 ? reservation.touchPaths.join(', ') : '(none)';
+            const capabilities = reservation.capabilities.length > 0 ? reservation.capabilities.join(', ') : '(none)';
+            return `- ${reservation.title} (${reservation.taskId}) — touch_paths: ${touchPaths}; capabilities: ${capabilities}`;
+          })),
+      '',
+      '## Current Blockages',
+      ...(snapshot.blockages.length === 0
+        ? ['- None']
+        : snapshot.blockages.map(blockage => `- ${blockage.taskId}: ${blockage.reason}`)),
+      '',
+    ];
+    await atomicWrite(this.config.files.runtimeReport, lines.join('\n'));
+  }
+
+  private async refreshRuntimeAndWriteLiveReport(tasks?: BacklogTaskSpec[]): Promise<RuntimeSnapshot> {
     const snapshot = await this.refreshRuntime(tasks);
-    await this.writeBacklogReport(snapshot);
-    return snapshot.counts;
+    await this.writeRuntimeReport(snapshot);
+    return snapshot;
+  }
+
+  private async refreshEverything(tasks?: BacklogTaskSpec[]): Promise<RuntimeSnapshot> {
+    const snapshot = await this.refreshRuntimeAndWriteLiveReport(tasks);
+    await this.writeBacklogReport(snapshot.tasks);
+    return snapshot;
   }
 
   async countReady(): Promise<number> {
@@ -218,19 +248,15 @@ export class FileBackedTaskStore implements BacklogStore {
   }
 
   async getQueueCounts(): Promise<BacklogQueueCounts> {
-    return withLock(this.backlogLock, 30, async () => (await this.refreshRuntime()).counts);
+    return withLock(this.backlogLock, 30, async () => (await this.refreshRuntimeAndWriteLiveReport()).counts);
   }
 
   async claimNextRunnableTask(runnerId: string): Promise<BacklogTaskClaim | null> {
     return withLock(this.backlogLock, 30, async () => {
       const runtime = await this.getRuntime();
       const tasks = await this.loadTasks();
-      const snapshot = await this.refreshRuntime(tasks);
-      const blockages = new Set(
-        tasks
-          .map(task => task.id)
-          .filter(taskId => runtime.getBlockage(taskId) !== null),
-      );
+      const snapshot = await this.refreshRuntimeAndWriteLiveReport(tasks);
+      const blockages = new Set(snapshot.blockages.map(blockage => blockage.taskId));
       const candidate = tasks
         .filter(task => task.state === 'ready' && !snapshot.activeTaskIds.has(task.id) && !blockages.has(task.id))
         .sort(taskSort)[0] ?? null;
@@ -240,10 +266,10 @@ export class FileBackedTaskStore implements BacklogStore {
 
       const lease = runtime.claimTask(candidate, runnerId, randomUUID());
       if (!lease) {
-        await this.refreshRuntimeAndWriteReport(tasks);
+        await this.refreshRuntimeAndWriteLiveReport(tasks);
         return null;
       }
-      await this.refreshRuntimeAndWriteReport(tasks);
+      await this.refreshRuntimeAndWriteLiveReport(tasks);
       return { task: candidate, lease };
     });
   }
@@ -257,7 +283,7 @@ export class FileBackedTaskStore implements BacklogStore {
     await withLock(this.backlogLock, 30, async () => {
       const runtime = await this.getRuntime();
       runtime.releaseClaim(claim);
-      await this.refreshRuntimeAndWriteReport();
+      await this.refreshRuntimeAndWriteLiveReport();
     });
   }
 
@@ -282,7 +308,7 @@ export class FileBackedTaskStore implements BacklogStore {
         statusNotes: [...task.statusNotes, `Completed: ${normalizeWhitespace(note)}`],
       }));
       runtime.releaseClaim(claim);
-      await this.refreshRuntimeAndWriteReport();
+      await this.refreshEverything();
     });
   }
 
@@ -294,7 +320,7 @@ export class FileBackedTaskStore implements BacklogStore {
         statusNotes: [...task.statusNotes, `Failed: ${normalizeWhitespace(note)}`],
       }));
       runtime.releaseClaim(claim);
-      await this.refreshRuntimeAndWriteReport();
+      await this.refreshEverything();
     });
   }
 
@@ -304,13 +330,13 @@ export class FileBackedTaskStore implements BacklogStore {
         state: 'failed',
         statusNotes: [...task.statusNotes, `Failed: ${normalizeWhitespace(note)}`],
       }));
-      await this.refreshRuntimeAndWriteReport();
+      await this.refreshEverything();
     });
   }
 
   async rewriteBacklogReport(): Promise<void> {
     await withLock(this.backlogLock, 30, async () => {
-      await this.refreshRuntimeAndWriteReport();
+      await this.refreshEverything();
     });
   }
 
@@ -357,7 +383,7 @@ export class FileBackedTaskStore implements BacklogStore {
       }
 
       await atomicWrite(this.config.files.candidateQueue, '');
-      await this.refreshRuntimeAndWriteReport(tasks.sort(taskSort));
+      await this.refreshEverything(tasks.sort(taskSort));
       return { drained: true, createdTasks, skippedDuplicates, ignoredInvalidLines };
     });
   }

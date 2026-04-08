@@ -1,3 +1,4 @@
+import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { ReadVariableCollection, ReadVariableToken } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
@@ -25,6 +26,15 @@ export interface ExportedCollection {
   variables: ExportedVariable[];
 }
 
+export type SaveMergeStrategy = 'overwrite' | 'merge' | 'skip';
+
+export interface SavePreviewDiff {
+  totalCount: number;
+  newCount: number;
+  changedCount: number;
+  unchangedCount: number;
+}
+
 export interface SavePreviewItem {
   collectionName: string;
   slug: string;
@@ -32,9 +42,37 @@ export interface SavePreviewItem {
   varCount: number;
   modeName?: string;
   itemKey: string;
+  destinationSet: string;
+  destinationExists: boolean;
+  destinationTokenCount: number;
+  mergeStrategy: SaveMergeStrategy;
+  appendPath: string;
+  diff: SavePreviewDiff;
 }
 
 export type SavePhase = 'idle' | 'preview-loading' | 'preview';
+
+interface TokenPayload {
+  path: string;
+  $type: string;
+  $value: unknown;
+  $description?: string;
+  $extensions?: Record<string, unknown>;
+}
+
+interface ExistingTokenSnapshot {
+  $type?: string;
+  $value: unknown;
+  $description?: string;
+  $extensions?: Record<string, unknown>;
+}
+
+interface SaveTargetPlan {
+  itemKey: string;
+  collectionName: string;
+  modeName: string | null;
+  destinationSet: string;
+}
 
 interface UseFigmaVariablesOptions {
   connected: boolean;
@@ -60,8 +98,14 @@ export interface FigmaVariablesState {
   setSavePhase: Dispatch<SetStateAction<SavePhase>>;
   savePreviewItems: SavePreviewItem[];
   setSavePreviewItems: Dispatch<SetStateAction<SavePreviewItem[]>>;
+  saveDestinationMap: Record<string, string>;
+  setSaveDestinationMap: Dispatch<SetStateAction<Record<string, string>>>;
   slugRenames: Record<string, string>;
   setSlugRenames: Dispatch<SetStateAction<Record<string, string>>>;
+  saveMergeStrategies: Record<string, SaveMergeStrategy>;
+  setSaveMergeStrategies: Dispatch<SetStateAction<Record<string, SaveMergeStrategy>>>;
+  saveAppendPaths: Record<string, string>;
+  setSaveAppendPaths: Dispatch<SetStateAction<Record<string, string>>>;
   handleExportFigmaVariables: () => void;
   buildDTCGJson: (modeOverride?: string | null) => string;
   handleCopyAll: () => Promise<void>;
@@ -126,6 +170,195 @@ function toExportedModeValue(token: ReadVariableToken): ExportedModeValue {
   };
 }
 
+function slugifySetName(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+}
+
+function buildSaveTargetPlans(
+  collections: ExportedCollection[],
+  savePerMode: boolean,
+): SaveTargetPlan[] {
+  return collections.flatMap<SaveTargetPlan>((collection) => {
+    const baseSlug = slugifySetName(collection.name);
+    const isMultiMode = collection.modes.length > 1;
+
+    if (savePerMode && isMultiMode) {
+      return collection.modes.map((modeName, index) => {
+        const modeSlug = slugifySetName(modeName);
+        return {
+          itemKey: `${collection.name}::${modeName}`,
+          collectionName: collection.name,
+          modeName,
+          destinationSet: index === 0 ? baseSlug : `${baseSlug}-${modeSlug}`,
+        };
+      });
+    }
+
+    return [
+      {
+        itemKey: collection.name,
+        collectionName: collection.name,
+        modeName: null,
+        destinationSet: baseSlug,
+      },
+    ];
+  });
+}
+
+function normalizeAppendPath(value: string): string {
+  const normalized = value.trim().replace(/^\.+|\.+$/g, '').replace(/\.+/g, '.');
+  if (!normalized) return '';
+  const segments = normalized.split('.');
+  for (const segment of segments) {
+    if (!segment) {
+      throw new Error(`Invalid append path "${value}"`);
+    }
+    if (segment.startsWith('$')) {
+      throw new Error(`Invalid append path "${value}": "${segment}" starts with "$"`);
+    }
+    if (segment.includes('/') || segment.includes('\\')) {
+      throw new Error(`Invalid append path "${value}": "${segment}" contains a slash`);
+    }
+  }
+  return normalized;
+}
+
+function prefixTokenPath(tokenPath: string, appendPath: string): string {
+  return appendPath ? `${appendPath}.${tokenPath}` : tokenPath;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function areJsonValuesEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (Array.isArray(left) && Array.isArray(right)) {
+    if (left.length !== right.length) return false;
+    for (let i = 0; i < left.length; i++) {
+      if (!areJsonValuesEqual(left[i], right[i])) return false;
+    }
+    return true;
+  }
+  if (isPlainObject(left) && isPlainObject(right)) {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) return false;
+    for (const key of leftKeys) {
+      if (!Object.prototype.hasOwnProperty.call(right, key)) return false;
+      if (!areJsonValuesEqual(left[key], right[key])) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function areTokensEquivalent(
+  incoming: TokenPayload,
+  existing: ExistingTokenSnapshot | undefined,
+): boolean {
+  if (!existing) return false;
+  return (
+    incoming.$type === existing.$type &&
+    areJsonValuesEqual(incoming.$value, existing.$value) &&
+    (incoming.$description ?? undefined) === (existing.$description ?? undefined) &&
+    areJsonValuesEqual(incoming.$extensions ?? undefined, existing.$extensions ?? undefined)
+  );
+}
+
+function buildTokenPayloads(
+  collection: ExportedCollection,
+  modeName: string | null,
+  appendPath: string,
+): TokenPayload[] {
+  const isMultiMode = collection.modes.length > 1;
+
+  return collection.variables.map((variable) => {
+    let $value: unknown;
+    if (modeName !== null) {
+      const modeVal = variable.modeValues[modeName];
+      $value = modeVal.isAlias ? modeVal.reference : modeVal.resolvedValue;
+    } else {
+      const defaultVal = variable.modeValues[collection.modes[0]];
+      $value = defaultVal.isAlias ? defaultVal.reference : defaultVal.resolvedValue;
+    }
+
+    const token: TokenPayload = {
+      path: prefixTokenPath(variable.path, appendPath),
+      $type: variable.$type,
+      $value,
+    };
+
+    if (variable.description) token.$description = variable.description;
+
+    if (modeName === null && isMultiMode) {
+      const modeExtensions: Record<string, unknown> = {};
+      for (const currentModeName of collection.modes) {
+        const modeVal = variable.modeValues[currentModeName];
+        modeExtensions[currentModeName] = modeVal.isAlias ? modeVal.reference : modeVal.resolvedValue;
+      }
+      token.$extensions = {
+        'com.figma': {
+          collection: collection.name,
+          hiddenFromPublishing: variable.hiddenFromPublishing,
+          scopes: variable.scopes,
+          modes: modeExtensions,
+        },
+      };
+    }
+
+    return token;
+  });
+}
+
+function buildExistingTokenMap(
+  tokenGroup: DTCGGroup | undefined,
+): Map<string, ExistingTokenSnapshot> {
+  if (!tokenGroup) return new Map();
+  const flat = flattenTokenGroup(tokenGroup);
+  const result = new Map<string, ExistingTokenSnapshot>();
+
+  for (const [path, token] of flat.entries()) {
+    result.set(path, {
+      $type: (token as { $type?: string }).$type,
+      $value: (token as { $value: unknown }).$value,
+      $description: (token as { $description?: string }).$description,
+      $extensions: (token as { $extensions?: Record<string, unknown> }).$extensions,
+    });
+  }
+
+  return result;
+}
+
+function summarizeDiff(
+  incomingTokens: TokenPayload[],
+  existingTokens: Map<string, ExistingTokenSnapshot>,
+): SavePreviewDiff {
+  let newCount = 0;
+  let changedCount = 0;
+  let unchangedCount = 0;
+
+  for (const token of incomingTokens) {
+    const existing = existingTokens.get(token.path);
+    if (!existing) {
+      newCount++;
+      continue;
+    }
+    if (areTokensEquivalent(token, existing)) {
+      unchangedCount++;
+      continue;
+    }
+    changedCount++;
+  }
+
+  return {
+    totalCount: incomingTokens.length,
+    newCount,
+    changedCount,
+    unchangedCount,
+  };
+}
+
 export function useFigmaVariables({
   connected,
   serverUrl,
@@ -144,7 +377,9 @@ export function useFigmaVariables({
   const [savePerMode, setSavePerMode] = useState(true);
   const [savePhase, setSavePhase] = useState<SavePhase>('idle');
   const [savePreviewItems, setSavePreviewItems] = useState<SavePreviewItem[]>([]);
-  const [slugRenames, setSlugRenames] = useState<Record<string, string>>({});
+  const [saveDestinationMap, setSaveDestinationMap] = useState<Record<string, string>>({});
+  const [saveMergeStrategies, setSaveMergeStrategies] = useState<Record<string, SaveMergeStrategy>>({});
+  const [saveAppendPaths, setSaveAppendPaths] = useState<Record<string, string>>({});
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {
@@ -293,40 +528,71 @@ export function useFigmaVariables({
     if (!connected) return;
     setSavePhase('preview-loading');
     setError(null);
-    setSlugRenames({});
+    setSaveDestinationMap({});
+    setSaveMergeStrategies({});
+    setSaveAppendPaths({});
 
     try {
-      const existingSlugs = new Set(sets);
-      const items: SavePreviewItem[] = [];
+      const existingSetNames = new Set(sets);
+      const plans = buildSaveTargetPlans(figmaCollections, savePerMode);
+      const collectionsByName = new Map(figmaCollections.map(collection => [collection.name, collection]));
+      const existingSetMaps = new Map<string, Map<string, ExistingTokenSnapshot>>();
 
-      for (const collection of figmaCollections) {
-        const baseSlug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
-        const isMultiMode = collection.modes.length > 1;
-        if (savePerMode && isMultiMode) {
-          for (const modeName of collection.modes) {
-            const modeSlug = modeName.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
-            const slug = modeName === collection.modes[0] ? baseSlug : `${baseSlug}-${modeSlug}`;
-            items.push({
-              collectionName: collection.name,
-              slug,
-              action: existingSlugs.has(slug) ? 'overwrite' : 'create',
-              varCount: collection.variables.length,
-              modeName,
-              itemKey: `${collection.name}::${modeName}`,
-            });
-          }
-        } else {
-          items.push({
-            collectionName: collection.name,
-            slug: baseSlug,
-            action: existingSlugs.has(baseSlug) ? 'overwrite' : 'create',
-            varCount: collection.variables.length,
-            itemKey: collection.name,
-          });
+      await Promise.all(
+        [...new Set(plans.map(plan => plan.destinationSet))]
+          .filter(destinationSet => existingSetNames.has(destinationSet))
+          .map(async (destinationSet) => {
+            try {
+              const data = await apiFetch<{ tokens?: DTCGGroup }>(
+                `${serverUrl}/api/tokens/${encodeURIComponent(destinationSet)}`,
+              );
+              existingSetMaps.set(destinationSet, buildExistingTokenMap(data.tokens));
+            } catch (err) {
+              if (err instanceof ApiError && err.status === 404) {
+                existingSetMaps.set(destinationSet, new Map());
+                return;
+              }
+              throw new Error(
+                `Failed to inspect destination "${destinationSet}": ${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
+          }),
+      );
+
+      const defaultMergeStrategies: Record<string, SaveMergeStrategy> = {};
+      const items: SavePreviewItem[] = plans.map((plan) => {
+        const collection = collectionsByName.get(plan.collectionName);
+        if (!collection) {
+          throw new Error(`Collection "${plan.collectionName}" is no longer available`);
         }
-      }
+
+        const destinationExists = existingSetNames.has(plan.destinationSet);
+        const existingTokens = existingSetMaps.get(plan.destinationSet) ?? new Map();
+        const incomingTokens = buildTokenPayloads(collection, plan.modeName, '');
+        const diff = summarizeDiff(incomingTokens, existingTokens);
+        const mergeStrategy: SaveMergeStrategy =
+          destinationExists && diff.changedCount > 0 ? 'merge' : 'overwrite';
+
+        defaultMergeStrategies[plan.itemKey] = mergeStrategy;
+
+        return {
+          collectionName: plan.collectionName,
+          slug: plan.destinationSet,
+          destinationSet: plan.destinationSet,
+          destinationExists,
+          destinationTokenCount: existingTokens.size,
+          action: destinationExists ? 'overwrite' : 'create',
+          varCount: incomingTokens.length,
+          modeName: plan.modeName ?? undefined,
+          itemKey: plan.itemKey,
+          mergeStrategy,
+          appendPath: '',
+          diff,
+        };
+      });
 
       setSavePreviewItems(items);
+      setSaveMergeStrategies(defaultMergeStrategies);
       setSavePhase('preview');
     } catch (err) {
       setError(getErrorMessage(err));
@@ -339,96 +605,101 @@ export function useFigmaVariables({
 
     let totalVarsSaved = 0;
     try {
-      for (const collection of figmaCollections) {
-        const baseSlug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
-        const isMultiMode = collection.modes.length > 1;
+      const collectionsByName = new Map(figmaCollections.map(collection => [collection.name, collection]));
+      const destinationUsage = new Map<string, string>();
 
-        const savePairs: Array<{ modeName: string | null; setName: string }> = [];
+      for (const previewItem of savePreviewItems) {
+        const collection = collectionsByName.get(previewItem.collectionName);
+        if (!collection) {
+          throw new Error(`Collection "${previewItem.collectionName}" is no longer available`);
+        }
 
-        if (savePerMode && isMultiMode) {
-          for (const modeName of collection.modes) {
-            const modeSlug = modeName.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
-            const defaultSlug = modeName === collection.modes[0] ? baseSlug : `${baseSlug}-${modeSlug}`;
-            const itemKey = `${collection.name}::${modeName}`;
-            const previewItem = savePreviewItems.find(i => i.itemKey === itemKey);
-            const setName = slugRenames[itemKey] ?? previewItem?.slug ?? defaultSlug;
-            savePairs.push({ modeName, setName });
+        const setName =
+          saveDestinationMap[previewItem.itemKey] ?? previewItem.destinationSet ?? previewItem.slug;
+        if (!setName) {
+          throw new Error(`Destination set is required for "${previewItem.collectionName}"`);
+        }
+        const duplicateOwner = destinationUsage.get(setName);
+        if (duplicateOwner && duplicateOwner !== previewItem.itemKey) {
+          throw new Error(`Destination "${setName}" is assigned more than once`);
+        }
+        destinationUsage.set(setName, previewItem.itemKey);
+
+        const appendPath = normalizeAppendPath(
+          saveAppendPaths[previewItem.itemKey] ?? previewItem.appendPath,
+        );
+        const mergeStrategy =
+          saveMergeStrategies[previewItem.itemKey] ?? previewItem.mergeStrategy;
+        const incomingTokens = buildTokenPayloads(collection, previewItem.modeName ?? null, appendPath);
+
+        let isNewSet = true;
+        await apiFetch(`${serverUrl}/api/sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: setName }),
+        }).catch((err) => {
+          if (err instanceof ApiError && err.status === 409) {
+            isNewSet = false;
+            return;
           }
-        } else {
-          const itemKey = collection.name;
-          const previewItem = savePreviewItems.find(i => i.itemKey === itemKey);
-          const setName = slugRenames[itemKey] ?? previewItem?.slug ?? baseSlug;
-          savePairs.push({ modeName: null, setName });
+          throw new Error(`Failed to create set "${setName}": ${err instanceof Error ? err.message : String(err)}`);
+        });
+
+        let existingTokens = new Map<string, ExistingTokenSnapshot>();
+        if (!isNewSet) {
+          try {
+            const data = await apiFetch<{ tokens?: DTCGGroup }>(
+              `${serverUrl}/api/tokens/${encodeURIComponent(setName)}`,
+            );
+            existingTokens = buildExistingTokenMap(data.tokens);
+          } catch (err) {
+            if (!(err instanceof ApiError && err.status === 404)) {
+              throw new Error(
+                `Failed to inspect destination "${setName}": ${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
+            isNewSet = true;
+          }
         }
 
-        for (const { modeName, setName } of savePairs) {
-          let isNewSet = true;
-          await apiFetch(`${serverUrl}/api/sets`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: setName }),
-          }).catch((err) => {
-            if (err instanceof ApiError && err.status === 409) { isNewSet = false; return; }
-            throw new Error(`Failed to create set "${setName}": ${err instanceof Error ? err.message : String(err)}`);
-          });
+        const tokensToWrite = incomingTokens.filter((token) => {
+          const existing = existingTokens.get(token.path);
+          if (!existing) return true;
+          if (areTokensEquivalent(token, existing)) return false;
+          return mergeStrategy !== 'skip';
+        });
 
-          const batchTokens = collection.variables.map(variable => {
-            let $value: any;
-            if (modeName !== null) {
-              const modeVal = variable.modeValues[modeName];
-              $value = modeVal.isAlias ? modeVal.reference : modeVal.resolvedValue;
-            } else {
-              const defaultVal = variable.modeValues[collection.modes[0]];
-              $value = defaultVal.isAlias ? defaultVal.reference : defaultVal.resolvedValue;
-            }
-
-            const token: Record<string, any> = {
-              path: variable.path,
-              $type: variable.$type,
-              $value,
-            };
-            if (variable.description) token.$description = variable.description;
-
-            if (modeName === null && isMultiMode) {
-              const modeExtensions: Record<string, any> = {};
-              for (const mn of collection.modes) {
-                const modeVal = variable.modeValues[mn];
-                modeExtensions[mn] = modeVal.isAlias ? modeVal.reference : modeVal.resolvedValue;
-              }
-              token.$extensions = {
-                'com.figma': {
-                  collection: collection.name,
-                  hiddenFromPublishing: variable.hiddenFromPublishing,
-                  scopes: variable.scopes,
-                  modes: modeExtensions,
-                },
-              };
-            }
-
-            return token;
-          });
-
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tokens: batchTokens, strategy: 'overwrite' }),
-          }).catch((err) => {
-            throw new Error(`Failed to save tokens for "${setName}": ${err instanceof Error ? err.message : String(err)}`);
-          });
-
-          if (isNewSet) addSetToState(setName, batchTokens.length);
-          totalVarsSaved += batchTokens.length;
+        if (tokensToWrite.length === 0) {
+          if (isNewSet) addSetToState(setName, 0);
+          continue;
         }
+
+        const strategy = mergeStrategy === 'skip' ? 'overwrite' : mergeStrategy;
+        const result = await apiFetch<{ imported: number; skipped: number }>(
+          `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens: tokensToWrite, strategy }),
+          },
+        ).catch((err) => {
+          throw new Error(`Failed to save tokens for "${setName}": ${err instanceof Error ? err.message : String(err)}`);
+        });
+
+        if (isNewSet) addSetToState(setName, tokensToWrite.length);
+        totalVarsSaved += result.imported;
       }
 
       dispatchToast(`Saved ${totalVarsSaved} variable${totalVarsSaved !== 1 ? 's' : ''} to server`, 'success');
       setSavePhase('idle');
       setSavePreviewItems([]);
-      setSlugRenames({});
+      setSaveDestinationMap({});
+      setSaveMergeStrategies({});
+      setSaveAppendPaths({});
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       dispatchToast(message, 'error');
-      setSavePhase('idle');
+      setSavePhase('preview');
     }
   };
 
@@ -454,8 +725,14 @@ export function useFigmaVariables({
     setSavePhase,
     savePreviewItems,
     setSavePreviewItems,
-    slugRenames,
-    setSlugRenames,
+    saveDestinationMap,
+    setSaveDestinationMap,
+    slugRenames: saveDestinationMap,
+    setSlugRenames: setSaveDestinationMap,
+    saveMergeStrategies,
+    setSaveMergeStrategies,
+    saveAppendPaths,
+    setSaveAppendPaths,
     handleExportFigmaVariables,
     buildDTCGJson,
     handleCopyAll,

@@ -190,6 +190,20 @@ async function countOtherRunners(config: BacklogRunnerConfig, ownRunnerId: strin
   }
 }
 
+async function pruneGitWorktrees(
+  commandRunner: CommandRunner,
+  config: BacklogRunnerConfig,
+  logger: RunnerLogger,
+): Promise<void> {
+  const result = await commandRunner.run('git', ['worktree', 'prune', '--expire', 'now'], {
+    cwd: config.projectRoot,
+    ignoreFailure: true,
+  });
+  if (result.code !== 0) {
+    logger.line('  WARNING: git worktree prune --expire now failed');
+  }
+}
+
 async function runPass(
   config: BacklogRunnerConfig,
   store: ReturnType<typeof createFileBackedTaskStore>,
@@ -290,6 +304,11 @@ export async function runBacklogRunner(
   const workspaceStrategy: WorkspaceStrategy = options.worktrees
     ? new GitWorktreeWorkspaceStrategy(commandRunner, config)
     : new InPlaceWorkspaceStrategy(commandRunner, config);
+
+  if (options.worktrees) {
+    await pruneGitWorktrees(commandRunner, config, logger);
+  }
+
   const { runnerId, registryFile } = await registerRunner(config);
 
   let stopRequested = false;
@@ -313,9 +332,7 @@ export async function runBacklogRunner(
     logger.line(`  Runner: ${runnerId}`);
     logger.line(`  Tool:   ${options.tool}`);
     logger.line(`  Model:  ${options.model}`);
-    if (options.passModel !== options.model) {
-      logger.line(`  Pass model: ${options.passModel}`);
-    }
+    logger.line(`  Pass model: ${options.passModel}`);
     logger.line(`  Mode:   ${options.worktrees ? 'parallel (worktrees)' : 'single (no worktrees)'}`);
     logger.line(`  Passes: ${options.passes ? 'enabled (queue-empty only)' : 'disabled'}`);
     const queue = await store.getQueueCounts();

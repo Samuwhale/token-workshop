@@ -592,7 +592,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                 <TypePill kind="snapshot" />
                 <div className="min-w-0">
                   <p className="text-[10px] text-[var(--color-figma-text)]">Manual snapshots · <span className="font-medium">Restore</span></p>
-                  <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">Replaces all tokens with the snapshot's full state. Persists across sessions but not in git. Best for: "I saved a checkpoint before a big change."</p>
+                  <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">Restores the full workspace to the snapshot's checkpoint, including removing sets created afterward. Persists across sessions but not in git. Best for: "I saved a checkpoint before a big change."</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">

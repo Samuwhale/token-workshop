@@ -13,12 +13,34 @@ import { FigmaVariablesPanel } from './FigmaVariablesPanel';
 import { ExportFooter } from './ExportFooter';
 import { ExportPreviewModal } from './ExportPreviewModal';
 import { GitWorkflowPanel } from './publish/GitWorkflowPanel';
+import { FieldMessage } from '../shared/FieldMessage';
+import { fieldBorderClass } from '../shared/editorClasses';
 
 export type ExportMode = 'platforms' | 'figma-variables' | 'repository';
 
 interface ExportPanelProps {
   serverUrl: string;
   connected: boolean;
+}
+
+function sanitizeDestinationSetName(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_/-]/g, '-').toLowerCase();
+}
+
+function getAppendPathError(value: string): string | null {
+  const normalized = value.trim().replace(/^\.+|\.+$/g, '').replace(/\.+/g, '.');
+  if (!normalized) return null;
+  const segments = normalized.split('.');
+  for (const segment of segments) {
+    if (!segment) return `Invalid append path "${value}"`;
+    if (segment.startsWith('$')) {
+      return `Invalid append path "${value}": "${segment}" starts with "$"`;
+    }
+    if (segment.includes('/') || segment.includes('\\')) {
+      return `Invalid append path "${value}": "${segment}" contains a slash`;
+    }
+  }
+  return null;
 }
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
@@ -365,26 +387,57 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
       {/* Save to server preview confirmation */}
       {figmaVariables.savePhase === 'preview' && (() => {
+        const knownSetNames = new Set(sets);
         const effectiveItems = figmaVariables.savePreviewItems.map(item => ({
           ...item,
-          effectiveSlug: figmaVariables.slugRenames[item.itemKey] ?? item.slug,
+          effectiveDestination:
+            figmaVariables.saveDestinationMap[item.itemKey] ?? item.destinationSet ?? item.slug,
+          effectiveMergeStrategy:
+            figmaVariables.saveMergeStrategies[item.itemKey] ?? item.mergeStrategy,
+          effectiveAppendPath:
+            figmaVariables.saveAppendPaths[item.itemKey] ?? item.appendPath,
         }));
-        const slugCounts = new Map<string, number>();
+        const destinationCounts = new Map<string, number>();
         for (const item of effectiveItems) {
-          slugCounts.set(item.effectiveSlug, (slugCounts.get(item.effectiveSlug) ?? 0) + 1);
+          const destination = item.effectiveDestination.trim();
+          if (!destination) continue;
+          destinationCounts.set(destination, (destinationCounts.get(destination) ?? 0) + 1);
         }
-        const hasConflicts = [...slugCounts.values()].some(c => c > 1);
+        const previewRows = effectiveItems.map((item) => {
+          const destination = item.effectiveDestination.trim();
+          const destinationExists = destination.length > 0 && knownSetNames.has(destination);
+          const duplicateCount = destination ? (destinationCounts.get(destination) ?? 0) : 0;
+          const destinationChanged = destination !== item.destinationSet;
+          const destinationError = !destination
+            ? 'Destination set is required'
+            : duplicateCount > 1
+              ? 'Destination is assigned more than once'
+              : null;
+          const appendPathError = getAppendPathError(item.effectiveAppendPath);
+          return {
+            ...item,
+            destination,
+            destinationExists,
+            destinationChanged,
+            actionLabel: destinationExists ? 'Existing set' : 'New set',
+            destinationError,
+            appendPathError,
+          };
+        });
+        const hasValidationIssues = previewRows.some(item => item.destinationError || item.appendPathError);
         return (
           <ConfirmModal
             title="Save to Token Server"
-            confirmLabel={hasConflicts ? 'Resolve conflicts first' : 'Confirm & Save'}
-            confirmDisabled={hasConflicts}
+            confirmLabel={hasValidationIssues ? 'Resolve issues first' : 'Confirm & Save'}
+            confirmDisabled={hasValidationIssues}
             wide
             onConfirm={figmaVariables.handleConfirmSave}
             onCancel={() => {
               figmaVariables.setSavePhase('idle');
               figmaVariables.setSavePreviewItems([]);
-              figmaVariables.setSlugRenames({});
+              figmaVariables.setSaveDestinationMap({});
+              figmaVariables.setSaveMergeStrategies({});
+              figmaVariables.setSaveAppendPaths({});
             }}
           >
             <div className="mt-3">
@@ -393,71 +446,141 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   Preview
                 </span>
                 <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                  {figmaVariables.savePreviewItems.filter(i => i.action === 'create').length} new &middot;{' '}
-                  {figmaVariables.savePreviewItems.filter(i => i.action === 'overwrite').length} overwrite
+                  {previewRows.filter(item => !item.destinationExists).length} new &middot;{' '}
+                  {previewRows.filter(item => item.destinationExists).length} existing
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto">
-                {effectiveItems.map(item => {
-                  const isConflict = (slugCounts.get(item.effectiveSlug) ?? 0) > 1;
+              <datalist id="figma-save-destination-options">
+                {sets.map(setName => (
+                  <option key={setName} value={setName} />
+                ))}
+              </datalist>
+              <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto">
+                {previewRows.map(item => {
                   return (
                     <div
                       key={item.itemKey}
-                      className={`flex items-center gap-2 px-2.5 py-2 rounded-md border ${isConflict ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5' : 'border-[var(--color-figma-border)]'}`}
+                      className={`px-2.5 py-2 rounded-md border ${
+                        item.destinationError || item.appendPathError
+                          ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5'
+                          : 'border-[var(--color-figma-border)]'
+                      }`}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-[var(--color-figma-text)] truncate font-medium">
-                            {item.collectionName}
-                          </span>
-                          {item.modeName && (
-                            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] shrink-0">
-                              {item.modeName}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-[var(--color-figma-text)] truncate font-medium">
+                              {item.collectionName}
                             </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
-                            <path d="M5 12h14M12 5l7 7-7 7" />
-                          </svg>
-                          {isConflict ? (
-                            <input
-                              type="text"
-                              value={item.effectiveSlug}
-                              onChange={e => {
-                                const val = e.target.value.replace(/[^a-zA-Z0-9_/-]/g, '-').toLowerCase();
-                                figmaVariables.setSlugRenames(prev => ({ ...prev, [item.itemKey]: val }));
-                              }}
-                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-error)]/60 bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors"
-                              spellCheck={false}
-                              aria-label={`Set name for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
-                            />
-                          ) : (
-                            <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
-                              {item.effectiveSlug}
+                            {item.modeName && (
+                              <span className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] shrink-0">
+                                {item.modeName}
+                              </span>
+                            )}
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
+                              item.destinationExists
+                                ? 'bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#b45309)]'
+                                : 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                            }`}>
+                              {item.actionLabel}
                             </span>
-                          )}
-                        </div>
-                        {isConflict && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-error)] shrink-0" aria-hidden="true">
-                              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                            </svg>
-                            <span className="text-[9px] text-[var(--color-figma-error)]">Slug conflict — rename to continue</span>
                           </div>
-                        )}
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                              {item.varCount} var{item.varCount !== 1 ? 's' : ''}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[8px] font-medium text-[var(--color-figma-accent)]">
+                              {item.diff.newCount} new
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/15 text-[8px] font-medium text-[var(--color-figma-warning,#b45309)]">
+                              {item.diff.changedCount} changed
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] font-medium text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
+                              {item.diff.unchangedCount} unchanged
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">
+                          {item.destinationChanged
+                            ? 'Destination changed'
+                            : `${item.destinationTokenCount} existing token${item.destinationTokenCount !== 1 ? 's' : ''}`}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                          {item.varCount} var{item.varCount !== 1 ? 's' : ''}
-                        </span>
-                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                          item.action === 'overwrite'
-                            ? 'bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#b45309)]'
-                            : 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                        }`}>
-                          {item.action === 'overwrite' ? 'Overwrite' : 'Create'}
-                        </span>
+
+                      <div className="mt-2 grid grid-cols-1 gap-2">
+                        <div>
+                          <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                            Destination set
+                          </label>
+                          <input
+                            type="text"
+                            value={item.effectiveDestination}
+                            onChange={e => {
+                              const value = sanitizeDestinationSetName(e.target.value);
+                              figmaVariables.setSaveDestinationMap(prev => ({ ...prev, [item.itemKey]: value }));
+                            }}
+                            list="figma-save-destination-options"
+                            className={`mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[10px] font-mono text-[var(--color-figma-text)] ${fieldBorderClass(!!item.destinationError)}`}
+                            spellCheck={false}
+                            aria-label={`Destination set for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
+                          />
+                          <FieldMessage
+                            error={item.destinationError ?? undefined}
+                            info={
+                              item.destinationChanged
+                                ? 'Diff counts reflect the original preview target until you reopen preview'
+                                : item.destinationExists
+                                  ? 'Writes into an existing set'
+                                  : 'Creates a new set on save'
+                            }
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                            Merge behavior
+                          </label>
+                          <select
+                            value={item.effectiveMergeStrategy}
+                            onChange={e => {
+                              figmaVariables.setSaveMergeStrategies(prev => ({
+                                ...prev,
+                                [item.itemKey]: e.target.value as 'overwrite' | 'merge' | 'skip',
+                              }));
+                            }}
+                            disabled={!item.destinationExists}
+                            className="mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] disabled:opacity-50"
+                            aria-label={`Merge behavior for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
+                          >
+                            <option value="overwrite">Overwrite changed tokens</option>
+                            <option value="merge">Merge and keep untouched tokens</option>
+                            <option value="skip">Skip conflicting tokens</option>
+                          </select>
+                          <FieldMessage
+                            info={item.destinationExists ? 'Applies only when the destination already exists' : 'Not needed for a new destination set'}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                            Append path
+                          </label>
+                          <input
+                            type="text"
+                            value={item.effectiveAppendPath}
+                            onChange={e => {
+                              figmaVariables.setSaveAppendPaths(prev => ({ ...prev, [item.itemKey]: e.target.value }));
+                            }}
+                            placeholder="brand.colors"
+                            className={`mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[10px] font-mono text-[var(--color-figma-text)] ${fieldBorderClass(!!item.appendPathError)}`}
+                            spellCheck={false}
+                            aria-label={`Append path for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
+                          />
+                          <FieldMessage
+                            error={item.appendPathError ?? undefined}
+                            info={!item.appendPathError ? 'Optional dot path prefix inside the destination set' : undefined}
+                          />
+                        </div>
                       </div>
                     </div>
                   );

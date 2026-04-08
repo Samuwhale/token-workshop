@@ -35,6 +35,7 @@ async function makeFixture() {
         candidateQueue: './backlog/inbox.jsonl',
         taskSpecsDir: './backlog/tasks',
         stop: './backlog-stop',
+        runtimeReport: './.backlog-runner/runtime-report.md',
         patterns: './scripts/backlog/patterns.md',
         progress: './scripts/backlog/progress.txt',
         stateDb: './.backlog-runner/state.sqlite',
@@ -157,11 +158,11 @@ describe('task store', () => {
     const storeB = createFileBackedTaskStore(config);
     const claimA = await storeA.claimNextRunnableTask('runner-a');
     const blockedClaim = await storeB.claimNextRunnableTask('runner-b');
-    const reportWhileBlocked = await readFile(config.files.backlog, 'utf8');
+    const runtimeReportWhileBlocked = await readFile(config.files.runtimeReport, 'utf8');
 
     expect(claimA?.task.id).toBe('task-a');
     expect(blockedClaim).toBeNull();
-    expect(reportWhileBlocked).toContain('Blocked: waiting on dependency: Task A');
+    expect(runtimeReportWhileBlocked).toContain('waiting on dependency: Task A');
 
     await storeA.completeClaim(claimA!, 'done');
     const claimB = await storeB.claimNextRunnableTask('runner-b');
@@ -177,11 +178,11 @@ describe('task store', () => {
     const storeB = createFileBackedTaskStore(config);
     const claimA = await storeA.claimNextRunnableTask('runner-a');
     const blockedClaim = await storeB.claimNextRunnableTask('runner-b');
-    const report = await readFile(config.files.backlog, 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
 
     expect(claimA?.task.id).toBe('task-a');
     expect(blockedClaim).toBeNull();
-    expect(report).toContain('Blocked: waiting on active reservation: Task A');
+    expect(runtimeReport).toContain('waiting on active reservation: Task A');
   });
 
   it('blocks shared workspace config surfaces via inferred capabilities', async () => {
@@ -245,7 +246,7 @@ describe('task store', () => {
     expect(reclaimed?.task.id).toBe('task-a');
   });
 
-  it('refreshes queue counts without rewriting backlog.md', async () => {
+  it('refreshes queue counts without rewriting backlog.md and writes runtime-report.md', async () => {
     const { config, store } = await makeFixture();
     await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
     await writeFile(config.files.backlog, 'sentinel backlog', 'utf8');
@@ -254,6 +255,25 @@ describe('task store', () => {
     expect(await store.countReady()).toBe(1);
     expect(await store.countDone()).toBe(0);
     expect(await readFile(config.files.backlog, 'utf8')).toBe('sentinel backlog');
+    expect(await readFile(config.files.runtimeReport, 'utf8')).toContain('Queue: 1 ready');
+  });
+
+  it('keeps backlog.md stable while recording active leases in runtime-report.md', async () => {
+    const { config } = await makeFixture();
+    await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
+
+    const store = createFileBackedTaskStore(config);
+    await store.rewriteBacklogReport();
+    const claim = await store.claimNextRunnableTask('runner-a');
+    const backlogReport = await readFile(config.files.backlog, 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(claim?.task.id).toBe('task-a');
+    expect(backlogReport).toContain('- [ ] Task A');
+    expect(backlogReport).not.toContain('- [~] Task A');
+    expect(backlogReport).not.toContain('Blocked:');
+    expect(runtimeReport).toContain('## Active Leases');
+    expect(runtimeReport).toContain('Task A (task-a) — runner runner-a');
   });
 
   it('closes the runtime store safely more than once', async () => {

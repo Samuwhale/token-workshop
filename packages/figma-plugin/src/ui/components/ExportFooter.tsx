@@ -307,14 +307,14 @@ export function ExportFooter({
               onClick={handlePreviewSave}
               disabled={savePhase === 'preview-loading' || !connected}
               className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
-              title={!connected ? 'Connect to server to save tokens' : 'Preview what will be created or overwritten, then confirm'}
+              title={!connected ? 'Connect to server to save tokens' : 'Review destination mapping, merge behavior, and append paths before saving'}
             >
               {savePhase === 'preview-loading' ? (
                 <>
                   <Spinner />
                   Checking…
                 </>
-              ) : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server…'}
+              ) : !connected ? 'Save to Token Server (offline)' : 'Review Save Plan…'}
             </button>
           </>
         );

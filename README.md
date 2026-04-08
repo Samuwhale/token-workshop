@@ -50,9 +50,12 @@ pnpm backlog:validate
 
 - `pnpm backlog:sync` performs the queue-maintenance step only: drain the structured candidate queue into YAML task specs and rebuild the generated `backlog.md` report.
 - `pnpm backlog` starts the TypeScript runner that claims one backlog item at a time, validates it once at scheduler finalization, and can replenish the queue with discovery passes only when the queue is empty.
-- `pnpm backlog:validate` verifies the runner toolchain, prompts, validation command, and queue state before a longer autonomous run. It now fails fast if any legacy markdown planner files or prompt instructions remain.
-- Task specs now live in [`backlog/tasks`](/Users/samuel/Documents/Projects/TokenManager/backlog/tasks). `backlog.md` is a generated report, not the scheduler database.
-- Runtime coordination now lives in `.backlog-runner/state.sqlite`, which tracks active leases, blockers, and reservations outside the Git worktree.
+- `pnpm backlog:validate` verifies the runner toolchain, prompts, validation command, and queue state before a longer autonomous run. It fails fast if legacy markdown planner files or prompt instructions remain.
+- These are the only supported backlog entrypoints. Do not use legacy Codex skill wrappers or edit generated backlog state by hand.
+- Task specs live in [`backlog/tasks`](/Users/samuel/Documents/Projects/TokenManager/backlog/tasks).
+- [`backlog.md`](/Users/samuel/Documents/Projects/TokenManager/backlog.md) is a stable generated report built from persisted task specs.
+- [`.backlog-runner/runtime-report.md`](/Users/samuel/Documents/Projects/TokenManager/.backlog-runner/runtime-report.md) is the live runtime status view for leases, reservations, blockers, and queue counts.
+- Runtime coordination lives in `.backlog-runner/state.sqlite`, which tracks active leases, blockers, and reservations outside the Git worktree.
 - Discovery passes and implementation follow-ups now write structured JSONL candidate records to [`backlog/inbox.jsonl`](/Users/samuel/Documents/Projects/TokenManager/backlog/inbox.jsonl); the planner step converts those into YAML task specs before they become runnable.
 - The runner now injects compact digests of patterns, recent progress, and backlog state instead of dumping the full journals into every agent run.
 

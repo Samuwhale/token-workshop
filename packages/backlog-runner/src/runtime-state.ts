@@ -6,6 +6,7 @@ import type {
   BacklogTaskLease,
   BacklogTaskSpec,
   TaskBlockage,
+  TaskLeaseSnapshot,
   TaskReservationSnapshot,
 } from './types.js';
 
@@ -109,6 +110,32 @@ export class RuntimeStateStore {
     this.pruneExpiredLeases();
     const rows = this.db.prepare('SELECT task_id FROM leases').all() as { task_id: string }[];
     return new Set(rows.map(row => row.task_id));
+  }
+
+  listActiveLeases(taskIndex: Map<string, BacklogTaskSpec>, excludeTaskId?: string): TaskLeaseSnapshot[] {
+    this.pruneExpiredLeases();
+    const rows = this.db.prepare('SELECT task_id, runner_id, claimed_at, heartbeat_at, expires_at FROM leases').all() as {
+      task_id: string;
+      runner_id: string;
+      claimed_at: string;
+      heartbeat_at: string;
+      expires_at: string;
+    }[];
+
+    return rows
+      .filter(row => row.task_id !== excludeTaskId)
+      .flatMap(row => {
+        const task = taskIndex.get(row.task_id);
+        if (!task) return [];
+        return [{
+          taskId: row.task_id,
+          title: task.title,
+          runnerId: row.runner_id,
+          claimedAt: row.claimed_at,
+          heartbeatAt: row.heartbeat_at,
+          expiresAt: row.expires_at,
+        }];
+      });
   }
 
   listActiveReservations(taskIndex: Map<string, BacklogTaskSpec>, excludeTaskId?: string): TaskReservationSnapshot[] {

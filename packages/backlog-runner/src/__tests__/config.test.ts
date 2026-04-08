@@ -26,6 +26,7 @@ describe('config', () => {
           backlog: './backlog.md',
           candidateQueue: './backlog/inbox.jsonl',
           stop: './backlog-stop',
+          runtimeReport: './.backlog-runner/runtime-report.md',
           patterns: './scripts/backlog/patterns.md',
           progress: './scripts/backlog/progress.txt',
         },
@@ -44,6 +45,7 @@ describe('config', () => {
     expect(config.files.progress).toBe(path.join(root, 'scripts/backlog/progress.txt'));
     expect(config.files.candidateQueue).toBe(path.join(root, 'backlog', 'inbox.jsonl'));
     expect(config.files.taskSpecsDir).toBe(path.join(root, 'backlog', 'tasks'));
+    expect(config.files.runtimeReport).toBe(path.join(root, '.backlog-runner', 'runtime-report.md'));
     expect(config.files.stateDb).toBe(path.join(root, '.backlog-runner', 'state.sqlite'));
     expect(config.prompts.agent).toBe(path.join(root, 'scripts/backlog/agent.md'));
     expect(config.validationProfiles.repo).toBe('bash scripts/backlog/validate.sh');
@@ -69,6 +71,7 @@ describe('config', () => {
           backlog: './backlog.md',
           candidateQueue: './backlog/inbox.jsonl',
           stop: './backlog-stop',
+          runtimeReport: './.backlog-runner/runtime-report.md',
           patterns: './scripts/backlog/patterns.md',
           progress: './scripts/backlog/progress.txt',
           models: './scripts/backlog/models.json',
@@ -109,6 +112,7 @@ describe('config', () => {
           backlog: './backlog.md',
           candidateQueue: './backlog/inbox.jsonl',
           stop: './backlog-stop',
+          runtimeReport: './.backlog-runner/runtime-report.md',
           patterns: './scripts/backlog/patterns.md',
           progress: './scripts/backlog/progress.txt',
         },

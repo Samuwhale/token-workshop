@@ -282,3 +282,35 @@
   - Metadata-only operations need structural rollback steps even when they touch zero token paths; otherwise the undo log can report success while restoring nothing.
   - For rollbackable metadata edits, capture only the fields touched by that operation so undoing an older collection or mode change does not overwrite a newer description edit on the same set.
 ---
+## 2026-04-08 - [HIGH] Add dependency-aware preflight to the set delete / merge / split flows in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/server/src/routes/sets.ts` so users can see affected theme options, resolver refs, Figma collection metadata, and generated token ownership before a structural set change runs.
+- Added a shared server-side `POST /api/sets/:name/preflight` inspector that summarizes theme-option links, resolver references, Figma metadata, generator target blockers, generated-token ownership, merge conflicts, and split previews, then wired the set manager dialogs to render that dependency summary before delete, merge, or split runs.
+- Switched merge conflict checks and split previews to the new preflight route, and made split-with-delete-original re-check blockers before creating any new sets so a generator-targeted source set no longer half-splits before the delete fails.
+- Files changed: `packages/server/src/routes/sets.ts` ~L1, ~L538, ~L639; `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L1, ~L92, ~L757, ~L1630, ~L1685, ~L1823; `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L1, ~L28, ~L87, ~L182, ~L201
+- **Learnings for future iterations:**
+  - Structural set workflows need one server-owned preflight payload that UI dialogs and execution hooks can both consume; otherwise the preview and the write path drift apart.
+  - Split flows that optionally delete the source set should re-run preflight immediately before the write so generator target blockers stop the operation before any derivative sets are created.
+---
+## 2026-04-08 - [HIGH] Make manual snapshot restore in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, `packages/server/src/routes/snapshots.ts`, and `packages/server/src/services/manual-snapshot.ts` a true workspace restore, because the current flow can leave sets created after the snapshot behind even though the UI frames restore as returning to a saved checkpoint.
+- Reworked manual snapshot restore to rebuild each saved set from the snapshot and delete sets that were created afterward, while persisting those pending deletions in the restore journal so crash recovery can finish the same full-workspace restore on startup.
+- Updated the snapshot restore operation log scope to include every touched set and tightened the History legend copy so it now describes restore as returning the whole workspace to the checkpoint, including removing later-created sets.
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L19, ~L61, ~L272, ~L294, ~L343; `packages/server/src/routes/snapshots.ts` ~L84; `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L594
+- **Learnings for future iterations:**
+  - A checkpoint restore has to own both sides of workspace drift: recreating the saved state and explicitly deleting entities that did not exist when the checkpoint was taken.
+  - If a restore can delete whole file-backed entities, persist that deletion plan in the recovery journal instead of recomputing it after a crash, or recovery can drift from the original restore intent.
+---
+## 2026-04-08 - [Replace the slug-only save preview in `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` with per-destination mapping and merge choices, because the current flow can only create or overwrite whole sets and gives no diff, skip, or append path before writing Figma variables into an existing token library.]
+- Reworked the Figma variable save preview model so each preview item now carries a destination set, merge strategy, append path, and diff summary derived from the current server token set instead of only a generated slug.
+- Updated confirm-save to re-evaluate each mapped destination, preserve unchanged tokens, support skip/merge behavior on collisions, and prefix imported token paths when an append path is configured.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` ~L29, ~L177, ~L527, ~L603
+- **Learnings for future iterations:**
+  - Figma variable export needs a token-level diff against the destination set before save, otherwise preview state cannot support merge or skip behavior safely.
+  - When a preview allows destination remapping, confirm-save should re-inspect the resolved destination instead of trusting the initial preview snapshot.
+---
+## 2026-04-08 - [Wire the Figma variable save preview modal to destination mapping and merge controls]
+- Reworked the Figma variable save modal so every preview row now exposes destination set editing, merge behavior selection, append-path input, and inline validation tied directly to `useFigmaVariables` preview state.
+- Surfaced each row's diff summary from the hook with new/changed/unchanged token counts, and updated the footer CTA copy so the workflow reads as reviewing a save plan before confirming.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L26, ~L388; `packages/figma-plugin/src/ui/components/ExportFooter.tsx` ~L306
+- **Learnings for future iterations:**
+  - When a preview row can remap its destination after diffing, show that the counts are tied to the original inspected target unless the preview is regenerated; otherwise the UI implies live recomputation it does not have.
+  - Preview modals that gate writes should validate duplicate targets and append-path syntax inline, not only after the confirm action fails.
+---

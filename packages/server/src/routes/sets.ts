@@ -1,9 +1,267 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { TokenGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, type ThemeDimension, type ThemeSetStatus, type TokenGroup } from '@tokenmanager/core';
 import type { SetMetadataChange, SetMetadataOperationMetadata } from '../services/operation-log.js';
 import type { SetMetadataState } from '../services/token-store.js';
 import { handleRouteError } from '../errors.js';
 import { snapshotSet } from '../services/operation-log.js';
+import { stableStringify } from '../services/stable-stringify.js';
+
+type SetStructuralOperation = 'delete' | 'merge' | 'split';
+
+interface SetResolverMeta {
+  name: string;
+  referencedSets: string[];
+}
+
+interface SetGeneratorMeta {
+  id: string;
+  name: string;
+  targetSet: string;
+  targetGroup: string;
+}
+
+interface SetThemeImpact {
+  dimensionId: string;
+  dimensionName: string;
+  optionName: string;
+  status: ThemeSetStatus;
+}
+
+interface SetResolverImpact {
+  name: string;
+}
+
+interface SetGeneratorOwnershipImpact {
+  generatorId: string;
+  generatorName: string;
+  targetGroup: string;
+  tokenCount: number;
+  samplePaths: string[];
+}
+
+interface SetGeneratorTargetImpact {
+  generatorId: string;
+  generatorName: string;
+  targetGroup: string;
+}
+
+interface SetPreflightImpact {
+  name: string;
+  tokenCount: number;
+  metadata: {
+    description?: string;
+    collectionName?: string;
+    modeName?: string;
+  };
+  themeOptions: SetThemeImpact[];
+  resolverRefs: SetResolverImpact[];
+  generatedOwnership: SetGeneratorOwnershipImpact[];
+  generatorTargets: SetGeneratorTargetImpact[];
+}
+
+interface SetPreflightBlocker {
+  code: 'generator-target-set';
+  setName: string;
+  generatorId: string;
+  generatorName: string;
+  message: string;
+}
+
+interface SetMergeConflict {
+  path: string;
+  sourceValue: unknown;
+  targetValue: unknown;
+}
+
+interface SetSplitPreviewItem {
+  key: string;
+  newName: string;
+  count: number;
+  existing: boolean;
+}
+
+interface SetStructuralPreflightResponse {
+  operation: SetStructuralOperation;
+  affectedSets: SetPreflightImpact[];
+  blockers: SetPreflightBlocker[];
+  warnings: string[];
+  mergeConflicts: SetMergeConflict[];
+  splitPreview: SetSplitPreviewItem[];
+}
+
+function buildThemeImpacts(setName: string, dimensions: ThemeDimension[]): SetThemeImpact[] {
+  const impacts: SetThemeImpact[] = [];
+  for (const dimension of dimensions) {
+    for (const option of dimension.options) {
+      const status = option.sets[setName];
+      if (!status) continue;
+      impacts.push({
+        dimensionId: dimension.id,
+        dimensionName: dimension.name,
+        optionName: option.name,
+        status,
+      });
+    }
+  }
+  return impacts;
+}
+
+function buildGeneratedOwnershipImpacts(
+  setName: string,
+  allOwnedTokens: Array<{ setName: string; path: string; generatorId: string }>,
+  generatorById: Map<string, SetGeneratorMeta>,
+): SetGeneratorOwnershipImpact[] {
+  const grouped = new Map<string, { tokenCount: number; samplePaths: string[] }>();
+  for (const token of allOwnedTokens) {
+    if (token.setName !== setName) continue;
+    const entry = grouped.get(token.generatorId) ?? { tokenCount: 0, samplePaths: [] };
+    entry.tokenCount += 1;
+    if (entry.samplePaths.length < 5) {
+      entry.samplePaths.push(token.path);
+    }
+    grouped.set(token.generatorId, entry);
+  }
+  return [...grouped.entries()]
+    .map(([generatorId, ownership]) => {
+      const generator = generatorById.get(generatorId);
+      return {
+        generatorId,
+        generatorName: generator?.name ?? 'Unknown generator',
+        targetGroup: generator?.targetGroup ?? '',
+        tokenCount: ownership.tokenCount,
+        samplePaths: ownership.samplePaths.sort((a, b) => a.localeCompare(b)),
+      };
+    })
+    .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
+}
+
+function buildGeneratorTargets(setName: string, generators: SetGeneratorMeta[]): SetGeneratorTargetImpact[] {
+  return generators
+    .filter((generator) => generator.targetSet === setName)
+    .map((generator) => ({
+      generatorId: generator.id,
+      generatorName: generator.name,
+      targetGroup: generator.targetGroup,
+    }))
+    .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
+}
+
+function buildSetImpact(params: {
+  setName: string;
+  tokens: TokenGroup;
+  metadata: SetMetadataState;
+  dimensions: ThemeDimension[];
+  resolvers: SetResolverMeta[];
+  generators: SetGeneratorMeta[];
+  allOwnedTokens: Array<{ setName: string; path: string; generatorId: string }>;
+}): SetPreflightImpact {
+  const { setName, tokens, metadata, dimensions, resolvers, generators, allOwnedTokens } = params;
+  const generatorById = new Map(generators.map((generator) => [generator.id, generator]));
+  return {
+    name: setName,
+    tokenCount: flattenTokenGroup(tokens).size,
+    metadata,
+    themeOptions: buildThemeImpacts(setName, dimensions),
+    resolverRefs: resolvers
+      .filter((resolver) => resolver.referencedSets.includes(setName))
+      .map((resolver) => ({ name: resolver.name }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    generatedOwnership: buildGeneratedOwnershipImpacts(setName, allOwnedTokens, generatorById),
+    generatorTargets: buildGeneratorTargets(setName, generators),
+  };
+}
+
+function buildGeneratorTargetBlockers(setImpact: SetPreflightImpact): SetPreflightBlocker[] {
+  return setImpact.generatorTargets.map((generator) => ({
+    code: 'generator-target-set',
+    setName: setImpact.name,
+    generatorId: generator.generatorId,
+    generatorName: generator.generatorName,
+    message: `Generator "${generator.generatorName}" still targets "${setImpact.name}"${generator.targetGroup ? ` at ${generator.targetGroup}` : ''}.`,
+  }));
+}
+
+function buildMergeConflicts(sourceTokens: TokenGroup, targetTokens: TokenGroup): SetMergeConflict[] {
+  const sourceFlat = Object.fromEntries(flattenTokenGroup(sourceTokens));
+  const targetFlat = Object.fromEntries(flattenTokenGroup(targetTokens));
+  const conflicts: SetMergeConflict[] = [];
+  for (const [path, sourceToken] of Object.entries(sourceFlat)) {
+    const targetToken = targetFlat[path];
+    if (!targetToken) continue;
+    if (stableStringify(sourceToken.$value) !== stableStringify(targetToken.$value)) {
+      conflicts.push({
+        path,
+        sourceValue: sourceToken.$value,
+        targetValue: targetToken.$value,
+      });
+    }
+  }
+  return conflicts.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function buildSplitPreview(setName: string, tokens: TokenGroup, existingSetNames: string[]): SetSplitPreviewItem[] {
+  return Object.entries(tokens)
+    .filter(([key, value]) => !key.startsWith('$') && value && typeof value === 'object' && !('$value' in value))
+    .map(([key, value]) => {
+      const count = flattenTokenGroup(value as TokenGroup).size;
+      const sanitized = key.replace(/[^a-zA-Z0-9_-]/g, '-');
+      const newName = `${setName}-${sanitized}`;
+      return {
+        key,
+        newName,
+        count,
+        existing: existingSetNames.includes(newName),
+      };
+    })
+    .filter((entry) => entry.count > 0)
+    .sort((a, b) => a.newName.localeCompare(b.newName));
+}
+
+function buildPreflightWarnings(params: {
+  operation: SetStructuralOperation;
+  source: SetPreflightImpact;
+  target?: SetPreflightImpact;
+  deleteOriginal?: boolean;
+  splitPreview: SetSplitPreviewItem[];
+}): string[] {
+  const { operation, source, target, deleteOriginal = false, splitPreview } = params;
+  const warnings: string[] = [];
+
+  if (operation === 'delete') {
+    if (source.themeOptions.length > 0) {
+      warnings.push(`Deleting "${source.name}" leaves ${source.themeOptions.length} theme option reference${source.themeOptions.length === 1 ? '' : 's'} to repair.`);
+    }
+    if (source.resolverRefs.length > 0) {
+      warnings.push(`Deleting "${source.name}" breaks ${source.resolverRefs.length} resolver source reference${source.resolverRefs.length === 1 ? '' : 's'} until they are repointed.`);
+    }
+    if (source.metadata.collectionName || source.metadata.modeName) {
+      warnings.push(`Deleting "${source.name}" also removes its Figma collection and mode metadata.`);
+    }
+    if (source.generatedOwnership.length > 0) {
+      warnings.push(`Generated tokens owned inside "${source.name}" are removed with the set; generators are not retargeted automatically.`);
+    }
+  }
+
+  if (operation === 'merge') {
+    warnings.push(`Merging copies tokens from "${source.name}" into "${target?.name ?? 'the target set'}" only. Theme options, resolver refs, Figma metadata, and generator wiring stay attached to their current sets.`);
+    if (source.generatedOwnership.length > 0) {
+      warnings.push(`Generated token ownership stays on "${source.name}" after the merge. Move or recreate those outputs separately if the source set will be retired.`);
+    }
+  }
+
+  if (operation === 'split') {
+    if (splitPreview.some((entry) => entry.existing)) {
+      warnings.push('Some split destination sets already exist and will be skipped.');
+    }
+    if (!deleteOriginal) {
+      warnings.push(`Split creates new sets from "${source.name}" but leaves theme options, resolver refs, Figma metadata, and generator ownership on the original set.`);
+    } else {
+      warnings.push(`Deleting "${source.name}" after the split does not redistribute theme options, resolver refs, Figma metadata, or generator ownership to the new sets.`);
+    }
+  }
+
+  return warnings;
+}
 
 export const setRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
@@ -277,19 +535,131 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // POST /api/sets/:name/preflight — inspect dependency impacts before a structural set change
+  fastify.post<{
+    Params: { name: string };
+    Body: { operation?: SetStructuralOperation; targetSet?: string; deleteOriginal?: boolean };
+  }>('/sets/:name/preflight', async (request, reply) => {
+    const { name } = request.params;
+    const { operation, targetSet, deleteOriginal = false } = request.body || {};
+    if (operation !== 'delete' && operation !== 'merge' && operation !== 'split') {
+      return reply.status(400).send({ error: 'operation must be "delete", "merge", or "split"' });
+    }
+    if (operation === 'merge') {
+      if (!targetSet) {
+        return reply.status(400).send({ error: 'targetSet is required for merge preflight' });
+      }
+      if (targetSet === name) {
+        return reply.status(400).send({ error: 'targetSet must differ from the source set' });
+      }
+    }
+
+    try {
+      const sourceSet = await fastify.tokenStore.getSet(name);
+      if (!sourceSet) {
+        return reply.status(404).send({ error: `Token set "${name}" not found` });
+      }
+
+      const [dimensions, generatorsRaw, allOwnedTokens, splitSetNames, targetSetData] = await Promise.all([
+        fastify.dimensionsStore.load(),
+        fastify.generatorService.getAll(),
+        Promise.resolve(fastify.tokenStore.findTokensByGeneratorId('*')),
+        operation === 'split' ? fastify.tokenStore.getSets() : Promise.resolve([] as string[]),
+        operation === 'merge' && targetSet
+          ? fastify.tokenStore.getSet(targetSet)
+          : Promise.resolve(undefined),
+      ]);
+      if (operation === 'merge' && targetSet && !targetSetData) {
+        return reply.status(404).send({ error: `Token set "${targetSet}" not found` });
+      }
+
+      const generators: SetGeneratorMeta[] = generatorsRaw.map((generator) => ({
+        id: generator.id,
+        name: generator.name,
+        targetSet: generator.targetSet,
+        targetGroup: generator.targetGroup,
+      }));
+      const resolvers: SetResolverMeta[] = fastify.resolverStore.list().map((resolver) => ({
+        name: resolver.name,
+        referencedSets: resolver.referencedSets,
+      }));
+      const sourceImpact = buildSetImpact({
+        setName: name,
+        tokens: sourceSet.tokens,
+        metadata: fastify.tokenStore.getSetMetadata(name),
+        dimensions,
+        resolvers,
+        generators,
+        allOwnedTokens,
+      });
+      const affectedSets: SetPreflightImpact[] = [sourceImpact];
+      if (operation === 'merge' && targetSet && targetSetData) {
+        affectedSets.push(buildSetImpact({
+          setName: targetSet,
+          tokens: targetSetData.tokens,
+          metadata: fastify.tokenStore.getSetMetadata(targetSet),
+          dimensions,
+          resolvers,
+          generators,
+          allOwnedTokens,
+        }));
+      }
+
+      const blockers = operation === 'delete' || (operation === 'split' && deleteOriginal)
+        ? buildGeneratorTargetBlockers(sourceImpact)
+        : [];
+      const splitPreview = operation === 'split'
+        ? buildSplitPreview(name, sourceSet.tokens, splitSetNames)
+        : [];
+      const mergeConflicts = operation === 'merge' && targetSetData
+        ? buildMergeConflicts(sourceSet.tokens, targetSetData.tokens)
+        : [];
+      const warnings = buildPreflightWarnings({
+        operation,
+        source: sourceImpact,
+        target: affectedSets[1],
+        deleteOriginal,
+        splitPreview,
+      });
+
+      const response: SetStructuralPreflightResponse = {
+        operation,
+        affectedSets,
+        blockers,
+        warnings,
+        mergeConflicts,
+        splitPreview,
+      };
+      return response;
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to inspect set dependencies');
+    }
+  });
+
   // DELETE /api/sets/:name — delete a set
   fastify.delete<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
     const { name } = request.params;
     return withLock(async () => {
       try {
-        // Block deletion if any generator references this set as its targetSet
-        const allGenerators = await fastify.generatorService.getAll();
-        const blocking = allGenerators.filter((g) => g.targetSet === name);
-        if (blocking.length > 0) {
-          const names = blocking.map((g) => `"${g.name}"`).join(', ');
+        const set = await fastify.tokenStore.getSet(name);
+        if (!set) {
+          return reply.status(404).send({ error: `Token set "${name}" not found` });
+        }
+
+        const generatorTargets = buildGeneratorTargets(
+          name,
+          (await fastify.generatorService.getAll()).map((generator) => ({
+            id: generator.id,
+            name: generator.name,
+            targetSet: generator.targetSet,
+            targetGroup: generator.targetGroup,
+          })),
+        );
+        if (generatorTargets.length > 0) {
+          const names = generatorTargets.map((generator) => `"${generator.generatorName}"`).join(', ');
           return reply.status(409).send({
-            error: `Cannot delete set "${name}" — it is used as the target by ${blocking.length === 1 ? 'generator' : 'generators'}: ${names}`,
-            generatorIds: blocking.map((g) => g.id),
+            error: `Cannot delete set "${name}" — it is used as the target by ${generatorTargets.length === 1 ? 'generator' : 'generators'}: ${names}`,
+            generatorIds: generatorTargets.map((generator) => generator.generatorId),
           });
         }
 

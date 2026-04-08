@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { flattenTokenGroup, type DTCGGroup, type DTCGToken } from '@tokenmanager/core';
 import type { UndoSlot } from './useUndo';
 import { apiFetch } from '../shared/apiFetch';
+import type { SetStructuralPreflight } from '../shared/setStructuralPreflight';
 import { tokenPathToUrlSegment } from '../shared/utils';
 
 interface UseSetMergeSplitParams {
@@ -22,6 +23,18 @@ function flattenTokensObj(obj: DTCGGroup): Record<string, DTCGToken> {
     flat[path] = token;
   }
   return flat;
+}
+
+async function fetchSetStructuralPreflight(
+  serverUrl: string,
+  setName: string,
+  body: { operation: 'merge' | 'split'; targetSet?: string; deleteOriginal?: boolean },
+): Promise<SetStructuralPreflight> {
+  return apiFetch<SetStructuralPreflight>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}/preflight`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 export function useSetMergeSplit({
@@ -77,22 +90,17 @@ export function useSetMergeSplit({
     mergeCheckTargetRef.current = checkTarget;
     setMergeLoading(true);
     try {
-      const [srcData, tgtData] = await Promise.all([
+      const [srcData, preflight] = await Promise.all([
         apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
-        apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(checkTarget)}`),
+        fetchSetStructuralPreflight(serverUrl, mergingSet, {
+          operation: 'merge',
+          targetSet: checkTarget,
+        }),
       ]);
       // Discard results if the target changed while the check was in flight
       if (mergeCheckTargetRef.current !== checkTarget) return;
       const srcFlat = flattenTokensObj(srcData.tokens || {});
-      const tgtFlat = flattenTokensObj(tgtData.tokens || {});
-      const conflicts: Array<{ path: string; sourceValue: unknown; targetValue: unknown }> = [];
-      for (const [path, srcEntry] of Object.entries(srcFlat)) {
-        if (tgtFlat[path]) {
-          if (JSON.stringify(srcEntry.$value) !== JSON.stringify(tgtFlat[path].$value)) {
-            conflicts.push({ path, sourceValue: srcEntry.$value, targetValue: tgtFlat[path].$value });
-          }
-        }
-      }
+      const conflicts = preflight.mergeConflicts ?? [];
       setMergeSrcFlat(srcFlat);
       setMergeConflicts(conflicts);
       const res: Record<string, 'source' | 'target'> = {};
@@ -174,18 +182,12 @@ export function useSetMergeSplit({
   const openSplitDialog = async (setName: string) => {
     if (!connected) return;
     try {
-      const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
-      const tokenRoot = data.tokens || {};
-      const preview = Object.entries(tokenRoot)
-        .filter(([k, v]) => !k.startsWith('$') && v && typeof v === 'object' && !('$value' in (v as object)))
-        .map(([key, val]) => {
-          const flat = flattenTokensObj(val as DTCGGroup);
-          const sanitized = key.replace(/[^a-zA-Z0-9_-]/g, '-');
-          return { key, newName: `${setName}-${sanitized}`, count: Object.keys(flat).length };
-        })
-        .filter(p => p.count > 0);
+      const preflight = await fetchSetStructuralPreflight(serverUrl, setName, {
+        operation: 'split',
+        deleteOriginal: false,
+      });
       setSplittingSet(setName);
-      setSplitPreview(preview);
+      setSplitPreview(preflight.splitPreview ?? []);
       setSplitDeleteOriginal(false);
     } catch (err) {
       setErrorToast(`Failed to load set for splitting: ${err instanceof Error ? err.message : String(err)}`);
@@ -200,6 +202,15 @@ export function useSetMergeSplit({
     if (!splittingSet || !connected) return;
     setSplitLoading(true);
     try {
+      const preflight = await fetchSetStructuralPreflight(serverUrl, splittingSet, {
+        operation: 'split',
+        deleteOriginal: splitDeleteOriginal,
+      });
+      if ((preflight.blockers?.length ?? 0) > 0) {
+        const message = preflight.blockers[0]?.message ?? 'Split is blocked by set dependencies.';
+        setErrorToast(message);
+        return;
+      }
       const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
       const tokenRoot = data.tokens || {};
       const originalTokens: Record<string, unknown> = tokenRoot;

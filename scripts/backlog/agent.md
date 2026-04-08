@@ -7,6 +7,10 @@ You already received a compact digest of relevant patterns and recent history. D
 large repo journals up front; open additional files only when they are directly needed for the
 assigned task.
 
+This repo is in active development. Write clean code, remove dead or legacy code when the task
+supersedes it, and do not preserve backwards-compatible layers just to be safe. Prefer code that
+is simple for later agents to understand and maintain.
+
 ---
 
 ## Workflow
@@ -20,6 +24,7 @@ assigned task.
    - During implementation, prefer the smallest useful checks for the files you touched.
    - The TypeScript backlog runner will run the authoritative final validation command after your task is complete.
    - Use focused checks while working so you catch obvious breakage early, but do not spend tokens rerunning the full final validation command unless you need it to debug a failure.
+   - Do not spend time on broad extra test work unless the assigned task explicitly calls for it.
    - Do NOT use `npx pnpm …` or `npx turbo …` in worktrees.
    - If validation fails and the issue is unfixable within scope, revert your source changes or report failure instead of leaving unrelated breakage behind.
 5. **Append to `scripts/backlog/progress.txt`** (see format below).
@@ -41,6 +46,7 @@ Do not write follow-up items directly into `backlog.md`.
 
 - One task per session — stop after completing or failing one.
 - Respect the declared scope. The scheduler is correctness-first and may be running other agents in parallel.
+- Keep the implementation clean. Do not leave fallback paths, compatibility shims, or dead branches behind after the task is complete.
 - If an item's fix reveals surrounding issues, queue a follow-up instead of silently absorbing extra work unless the surrounding edit is already inside the task's declared `touch_paths` and clearly required to satisfy acceptance criteria.
 - If the item references code that no longer exists, report failure with note "stale — code not found."
 - If the item is already implemented, report success with note "stale — already done."

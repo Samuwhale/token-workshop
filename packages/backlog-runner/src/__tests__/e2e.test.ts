@@ -139,6 +139,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
         candidateQueue: './backlog/inbox.jsonl',
         taskSpecsDir: './backlog/tasks',
         stop: './backlog-stop',
+        runtimeReport: './.backlog-runner/runtime-report.md',
         patterns: './scripts/backlog/patterns.md',
         progress: './scripts/backlog/progress.txt',
         stateDb: './.backlog-runner/state.sqlite',
@@ -365,5 +366,39 @@ describe('runner e2e', () => {
       expect(closeSpy).toHaveBeenCalledTimes(1);
       closeSpy.mockRestore();
     }
+  });
+
+  it('prunes git worktrees on startup when worktrees are enabled', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      { worktrees: true },
+      {
+        commandRunner: createFakeCommandRunner(root, { calls }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(calls.filter(call => call === 'run:git worktree prune --expire now')).toHaveLength(1);
+  });
+
+  it('does not prune git worktrees on startup when worktrees are disabled', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      { worktrees: false },
+      {
+        commandRunner: createFakeCommandRunner(root, { calls }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(calls).not.toContain('run:git worktree prune --expire now');
   });
 });

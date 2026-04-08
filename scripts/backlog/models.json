@@ -1,5 +1,5 @@
 {
-  "_comment": "Model ID mappings for backlog agents. Update when providers release new versions.",
+  "_comment": "Intentional backlog runner model mappings. Codex main and pass runs both resolve to gpt-5.4.",
   "last_updated": "2026-04-07",
   "aliases": {
     "default": { "claude": "claude-opus-4-6", "codex": "gpt-5.4" },
@@ -7,16 +7,13 @@
     "opus": { "claude": "claude-opus-4-6", "codex": "gpt-5.4" }
   },
   "model_crosswalk": {
-    "_comment": "When a literal model ID from one tool is used with a different tool, map to the closest equivalent.",
+    "_comment": "Cross-tool fallbacks for the current supported Claude aliases and the default Codex model.",
     "claude-sonnet-4-6": { "codex": "gpt-5.4" },
     "claude-opus-4-6": { "codex": "gpt-5.4" },
-    "claude-sonnet-4-20250514": { "codex": "gpt-5.4" },
-    "claude-opus-4-20250514": { "codex": "gpt-5.4" },
-    "claude-3-5-sonnet-latest": { "codex": "gpt-5.4" },
     "gpt-5.4": { "claude": "claude-sonnet-4-6" }
   },
   "_notes": {
     "claude": "See: claude --model <alias|name>. Aliases: sonnet, opus, haiku.",
-    "codex": "See: codex exec --model <name>. Using gpt-5.4 as the default backlog runner model."
+    "codex": "See: codex exec --model <name>. Backlog runner main and pass models intentionally use gpt-5.4."
   }
 }
