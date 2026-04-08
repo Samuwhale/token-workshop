@@ -9,7 +9,12 @@
     "test": "turbo test",
     "lint": "eslint packages/*/src/",
     "server": "pnpm --filter @tokenmanager/server dev",
-    "plugin:build": "pnpm --filter @tokenmanager/figma-plugin build"
+    "plugin:build": "pnpm --filter @tokenmanager/figma-plugin build",
+    "preview": "node scripts/agent-preview.mjs",
+    "preview:build": "pnpm --filter @tokenmanager/figma-plugin build",
+    "preview:server": "pnpm --filter @tokenmanager/server exec tsx watch bin/cli.ts --dir demo/tokens --port 9400",
+    "preview:harness": "pnpm --filter @tokenmanager/figma-plugin standalone -- --port 3200",
+    "preview:validate": "pnpm --filter @tokenmanager/figma-plugin build && pnpm --filter @tokenmanager/figma-plugin validate"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

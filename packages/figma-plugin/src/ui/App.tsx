@@ -31,7 +31,7 @@ import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
 import type { OverflowPanel } from './shared/navigationTypes';
-import { TOP_TABS, FLAT_TABS, toFlatTabId } from './shared/navigationTypes';
+import { WORKSPACE_TABS, toWorkspaceId } from './shared/navigationTypes';
 import { useConnectionContext, useSyncContext } from './contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from './contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from './contexts/ThemeContext';
@@ -61,7 +61,6 @@ import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
 import { isAlias } from '../shared/resolveAlias';
 import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS, matchesShortcut } from './shared/shortcutRegistry';
-import { Tooltip } from './shared/Tooltip';
 import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch, ApiError } from './shared/apiFetch';
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from './shared/storage';
@@ -98,7 +97,7 @@ function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeN
 
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
-  const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel, setSubTab } = useNavigationContext();
+  const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel } = useNavigationContext();
   const { editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, setAliasNotFoundHandler } = useEditorContext();
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -171,11 +170,15 @@ export function App() {
   const [tokenChangeKey, setTokenChangeKey] = useState(0);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
   const staleGeneratorCount = useMemo(() => generators.filter(g => g.isStale).length, [generators]);
-  const activeFlatId = useMemo(() => toFlatTabId(activeTopTab, activeSubTab), [activeTopTab, activeSubTab]);
-  const activeFlatTab = useMemo(() => FLAT_TABS.find(tab => tab.id === activeFlatId) ?? null, [activeFlatId]);
-  const activeInnerTab = useMemo(
-    () => activeFlatTab?.innerTabs?.find(tab => tab.id === activeSubTab) ?? null,
-    [activeFlatTab, activeSubTab],
+  const healthIssueCount = useMemo(() => computeHealthIssueCount(lintViolations, generators), [lintViolations, generators]);
+  const activeWorkspaceId = useMemo(() => toWorkspaceId(activeTopTab, activeSubTab), [activeTopTab, activeSubTab]);
+  const activeWorkspace = useMemo(
+    () => WORKSPACE_TABS.find(workspace => workspace.id === activeWorkspaceId) ?? WORKSPACE_TABS[0],
+    [activeWorkspaceId],
+  );
+  const activeWorkspaceSection = useMemo(
+    () => activeWorkspace.sections?.find(section => section.topTab === activeTopTab && section.subTab === activeSubTab) ?? null,
+    [activeWorkspace, activeTopTab, activeSubTab],
   );
 
   // Track external file change refreshes so we can show a diff toast
@@ -565,21 +568,28 @@ export function App() {
     }
   }, [activeTopTab, activeSubTab, tokens.length, triggerUsageScan]);
 
-  // Close overflow menu on Escape key; arrow keys navigate between items
+  // Utilities menu: autofocus the first item, support arrow-key navigation,
+  // and close when clicking outside the menu.
   useEffect(() => {
     if (!menuOpen) return;
-    // Auto-focus first menu item when menu opens
     const frame = requestAnimationFrame(() => {
       if (menuRef.current) getMenuItems(menuRef.current)[0]?.focus();
     });
-    const handler = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { setMenuOpen(false); return; }
       if (menuRef.current) handleMenuArrowKeys(e, menuRef.current);
     };
-    document.addEventListener('keydown', handler);
+    const handlePointerDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handlePointerDown);
     return () => {
       cancelAnimationFrame(frame);
-      document.removeEventListener('keydown', handler);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handlePointerDown);
     };
   }, [menuOpen]);
 
@@ -619,9 +629,9 @@ export function App() {
       navigateTo('define', 'tokens');
       setEditingToken({ path: '', set: activeSet, isCreate: true });
     }
-    if (matchesShortcut(e, 'GO_TO_DEFINE')) { e.preventDefault(); navigateTo(TOP_TABS[0].id); }
-    if (matchesShortcut(e, 'GO_TO_APPLY'))  { e.preventDefault(); navigateTo(TOP_TABS[1].id); }
-    if (matchesShortcut(e, 'GO_TO_SHIP'))   { e.preventDefault(); navigateTo(TOP_TABS[2].id); }
+    if (matchesShortcut(e, 'GO_TO_DEFINE')) { e.preventDefault(); navigateTo('define', 'tokens'); }
+    if (matchesShortcut(e, 'GO_TO_APPLY'))  { e.preventDefault(); navigateTo('apply', 'inspect'); }
+    if (matchesShortcut(e, 'GO_TO_SHIP'))   { e.preventDefault(); navigateTo('ship', 'publish'); }
     if (matchesShortcut(e, 'TOGGLE_QUICK_APPLY')) {
       e.preventDefault();
       setShowQuickApply(v => !v);
@@ -665,6 +675,7 @@ export function App() {
 
   const openOverflowPanel = useCallback((panel: OverflowPanel) => {
     setMenuOpen(false);
+    setShowNotificationHistory(false);
     setOverflowPanel(panel);
   }, [setOverflowPanel]);
 
@@ -878,6 +889,133 @@ export function App() {
       });
   }, [recentlyTouched.timestamps, allTokensFlat, pathToSet]);
 
+  const workspacePills = useMemo(() => {
+    const pills: Array<{ label: string; tone: 'neutral' | 'accent' | 'warning' | 'danger' | 'success' }> = [];
+    switch (activeWorkspace.id) {
+      case 'tokens':
+        pills.push({ label: `${sets.length} set${sets.length === 1 ? '' : 's'}`, tone: 'neutral' });
+        if (lintViolations.length > 0) pills.push({ label: `${lintViolations.length} issue${lintViolations.length === 1 ? '' : 's'}`, tone: 'danger' });
+        if (staleGeneratorCount > 0) pills.push({ label: `${staleGeneratorCount} stale generator${staleGeneratorCount === 1 ? '' : 's'}`, tone: 'warning' });
+        break;
+      case 'themes':
+        pills.push({ label: `${dimensions.length} dimension${dimensions.length === 1 ? '' : 's'}`, tone: 'neutral' });
+        if (themeGapCount > 0) pills.push({ label: `${themeGapCount} gap${themeGapCount === 1 ? '' : 's'}`, tone: 'warning' });
+        break;
+      case 'apply':
+        pills.push({ label: `${selectedNodes.length} layer${selectedNodes.length === 1 ? '' : 's'} selected`, tone: selectedNodes.length > 0 ? 'accent' : 'neutral' });
+        break;
+      case 'sync':
+        if (pendingPublishCount > 0) pills.push({ label: `${pendingPublishCount} change${pendingPublishCount === 1 ? '' : 's'} pending`, tone: 'accent' });
+        if (gitHasChanges) pills.push({ label: 'Local changes detected', tone: 'warning' });
+        if (pendingPublishCount === 0 && !gitHasChanges) pills.push({ label: 'Ready to publish', tone: 'success' });
+        break;
+      case 'audit':
+        if (healthIssueCount > 0) pills.push({ label: `${healthIssueCount} health issue${healthIssueCount === 1 ? '' : 's'}`, tone: 'danger' });
+        if (undoDescriptions.length > 0) pills.push({ label: `${undoDescriptions.length} undo step${undoDescriptions.length === 1 ? '' : 's'}`, tone: 'neutral' });
+        if (healthIssueCount === 0 && undoDescriptions.length === 0) pills.push({ label: 'No active alerts', tone: 'success' });
+        break;
+    }
+    return pills;
+  }, [
+    activeWorkspace.id,
+    dimensions.length,
+    gitHasChanges,
+    healthIssueCount,
+    lintViolations.length,
+    pendingPublishCount,
+    selectedNodes.length,
+    sets.length,
+    staleGeneratorCount,
+    themeGapCount,
+    undoDescriptions.length,
+  ]);
+
+  const renderWorkspaceActions = () => {
+    if (activeWorkspace.id === 'tokens' && activeWorkspaceSection?.id === 'tokens') {
+      return (
+        <>
+          <button
+            onClick={() => setShowIssuesOnly(v => !v)}
+            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+              showIssuesOnly
+                ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
+                : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
+            }`}
+            aria-pressed={showIssuesOnly}
+          >
+            Issues only
+            {lintViolations.length > 0 && (
+              <span className={`rounded-full px-1.5 py-0.5 text-[9px] leading-none ${showIssuesOnly ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'}`}>
+                {lintViolations.length > 99 ? '99+' : lintViolations.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
+            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+              showPreviewSplit
+                ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
+                : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
+            }`}
+            aria-pressed={showPreviewSplit}
+          >
+            {showPreviewSplit ? 'Hide preview' : 'Show preview'}
+          </button>
+        </>
+      );
+    }
+
+    if (activeWorkspace.id === 'themes') {
+      return (
+        <button
+          onClick={() => themeManagerHandleRef.current?.switchToResolverMode()}
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+        >
+          Open resolver
+        </button>
+      );
+    }
+
+    if (activeWorkspace.id === 'apply' && selectedNodes.length > 0) {
+      return (
+        <button
+          onClick={() => setShowQuickApply(true)}
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+        >
+          Quick apply
+        </button>
+      );
+    }
+
+    if (activeWorkspace.id === 'audit' && activeWorkspaceSection?.id === 'health') {
+      return (
+        <button
+          onClick={refreshValidation}
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+        >
+          Refresh audit
+        </button>
+      );
+    }
+
+    return null;
+  };
+
+  const utilitiesAttention = !connected || notificationHistory.length > 0;
+  const utilitiesStatusLabel = checking
+    ? 'Connecting…'
+    : connected
+      ? `Connected to ${serverUrl}`
+      : `Cannot reach ${serverUrl}`;
+
+  const pillToneClasses: Record<'neutral' | 'accent' | 'warning' | 'danger' | 'success', string> = {
+    neutral: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]',
+    accent: 'border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]',
+    warning: 'border-amber-400/30 bg-amber-400/10 text-amber-700',
+    danger: 'border-red-500/25 bg-red-500/10 text-red-500',
+    success: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600',
+  };
+
   return (
     <div className="relative flex flex-col h-screen">
       {/* Connection status — only shown when not connected */}
@@ -946,383 +1084,190 @@ export function App() {
         </div>
       )}
 
-      {/* Tab bar — flat single-tier navigation */}
+      {/* Workspace shell */}
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-      <div className="flex items-center" role="tablist" aria-label="Navigation">
-        {FLAT_TABS.map(tab => {
-          const isActive = tab.id === activeFlatId && overflowPanel === null;
-          const hasInnerTabs = !!tab.innerTabs?.length;
-          return (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => guardEditorAction(() => navigateTo(tab.topTab, tab.subTab))}
-            className={`relative mx-0.5 my-1 flex min-h-[36px] flex-col items-start justify-center rounded-sm px-3 py-1.5 text-left text-[11px] font-medium transition-colors ${
-              isActive
-                ? 'bg-[var(--color-figma-accent)] text-white'
-                : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-            }`}
-          >
-            <span className="flex items-center gap-1">
-              <span>{tab.label}</span>
-              {hasInnerTabs && (
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 8 8"
-                  fill="currentColor"
-                  aria-hidden="true"
-                  className={`opacity-70 transition-transform ${isActive ? 'rotate-90' : ''}`}
+        <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+          <div className="flex min-w-0 items-center gap-1 overflow-x-auto" role="tablist" aria-label="Workspaces">
+            {WORKSPACE_TABS.map(workspace => {
+              const isActive = workspace.id === activeWorkspaceId;
+              return (
+                <button
+                  key={workspace.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => guardEditorAction(() => navigateTo(workspace.topTab, workspace.subTab))}
+                  className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                    isActive
+                      ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
+                      : 'border-transparent text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+                  }`}
                 >
-                  <path d="M2 1l4 3-4 3V1z" />
-                </svg>
-              )}
-            </span>
-            {tab.hintLabel && (
-              <span className={`text-[9px] leading-tight ${isActive ? 'text-white/75' : 'text-[var(--color-figma-text-tertiary)]'}`}>
-                {tab.hintLabel}
-              </span>
-            )}
-            {tab.id === 'generators' && staleGeneratorCount > 0 && !isActive && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] flex items-center justify-center rounded-full bg-yellow-400 border border-[var(--color-figma-bg)] text-yellow-900 text-[8px] font-bold leading-none" aria-label={`${staleGeneratorCount} stale`}>{staleGeneratorCount}</span>
-            )}
-            {tab.id === 'inspect' && selectedNodes.length > 0 && !isActive && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)]" aria-label="Layer selected" />
-            )}
-            {tab.id === 'ship' && !isActive && pendingPublishCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)] text-white text-[8px] font-bold leading-none" aria-label={`${pendingPublishCount} changes pending sync`}>{pendingPublishCount}</span>
-            )}
-            {tab.id === 'ship' && !isActive && pendingPublishCount === 0 && (gitHasChanges || computeHealthIssueCount(lintViolations, generators) > 0) && (
-              <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--color-figma-bg)] ${gitHasChanges ? 'bg-amber-400' : 'bg-[var(--color-figma-error)]'}`} aria-label={gitHasChanges ? 'Uncommitted changes' : 'Health issues detected'} />
-            )}
-          </button>
-          );
-        })}
+                  {workspace.label}
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Issues filter toggle */}
-        <Tooltip label="Validation issues filter" className="ml-auto mr-0.5 my-1">
-          <button
-            onClick={() => { setShowIssuesOnly(v => !v); if (activeTopTab !== 'define' || activeSubTab !== 'tokens') navigateTo('define', 'tokens'); }}
-            className={`relative flex items-center justify-center w-7 h-7 rounded transition-colors ${
-              showIssuesOnly
-                ? 'bg-[var(--color-figma-accent)] text-white'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-            }`}
-            aria-label="Toggle validation issues filter"
-            aria-pressed={showIssuesOnly}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
-            </svg>
-            {lintViolations.length > 0 && !showIssuesOnly && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold leading-[14px] text-center">
-                {lintViolations.length > 99 ? '99+' : lintViolations.length}
-              </span>
-            )}
-          </button>
-        </Tooltip>
-
-        {/* Preview split-view toggle */}
-        <Tooltip label="Preview panel" shortcut={adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW)} className="mr-0.5 my-1">
-          <button
-            onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
-            className={`flex items-center gap-1 px-2 py-1 rounded transition-colors text-[10px] ${
-              showPreviewSplit
-                ? 'bg-[var(--color-figma-accent)] text-white'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-            }`}
-            aria-label="Toggle preview split view"
-            aria-pressed={showPreviewSplit}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            <span className={showPreviewSplit ? 'opacity-80' : 'opacity-50'}>{adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW)}</span>
-          </button>
-        </Tooltip>
-
-        {/* Command palette trigger */}
-        <Tooltip label="Command palette" shortcut={adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)} className="mr-1 my-1">
-          <button
-            onClick={() => setShowCommandPalette(v => !v)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px]"
-            aria-label="Open command palette"
-          >
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="4.5" cy="4.5" r="3.5"/>
-              <path d="M8 8l2 2"/>
-            </svg>
-            <span className="opacity-50">{adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)}</span>
-          </button>
-        </Tooltip>
-
-        {/* Second screen / expand toggle */}
-        <Tooltip label={isExpanded ? 'Restore window' : 'Expand to second screen'} className="mr-0.5 my-1">
-          <button
-            onClick={toggleExpand}
-            className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
-              isExpanded
-                ? 'text-[var(--color-figma-text)] bg-[var(--color-figma-bg-hover)]'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-            }`}
-            aria-label={isExpanded ? 'Restore window size' : 'Expand to second screen'}
-            aria-pressed={isExpanded}
-          >
-            {isExpanded ? (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-              </svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-              </svg>
-            )}
-          </button>
-        </Tooltip>
-
-        {/* Canvas Coverage toggle */}
-        <Tooltip label="Canvas analysis" className="mr-0.5 my-1">
-          <button
-            onClick={() => {
-              if (activeTopTab === 'apply' && activeSubTab === 'canvas-analysis') {
-                navigateTo('apply', 'inspect');
-              } else {
-                navigateTo('apply', 'canvas-analysis');
-                triggerHeatmapScan();
-              }
-            }}
-            className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
-              activeTopTab === 'apply' && activeSubTab === 'canvas-analysis'
-                ? 'bg-[var(--color-figma-accent)] text-white'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-            }`}
-            aria-label="Toggle canvas analysis"
-            aria-pressed={activeTopTab === 'apply' && activeSubTab === 'canvas-analysis'}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7" rx="1"/>
-              <rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/>
-              <rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-          </button>
-        </Tooltip>
-
-        {/* Undo history indicator */}
-        {canUndo && undoDescriptions.length > 0 && (
-          <div className="relative group/undo-indicator mr-0.5 my-1">
+          <div className="relative shrink-0" ref={menuRef}>
             <button
-              onClick={() => navigateTo('ship', 'history')}
-              className="flex items-center gap-0.5 h-7 px-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px] font-medium"
-              aria-label={`${undoDescriptions.length} undoable action${undoDescriptions.length !== 1 ? 's' : ''} — click to view history`}
+              onClick={() => {
+                setShowNotificationHistory(false);
+                setMenuOpen(v => !v);
+              }}
+              className={`relative inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                menuOpen
+                  ? 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
+                  : 'border-transparent text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+              }`}
+              aria-label="Open utilities"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M3 7v6h6"/>
-                <path d="M3 13C5 8 10 5 16 5a9 9 0 0 1 5.2 16.2"/>
+              <span>Utilities</span>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" className={`transition-transform ${menuOpen ? 'rotate-90' : ''}`}>
+                <path d="M2 1l4 3-4 3V1z" />
               </svg>
-              {undoDescriptions.length}
-            </button>
-            <div
-              role="tooltip"
-              className="absolute top-full right-0 mt-1 z-[60] pointer-events-none
-                opacity-0 group-hover/undo-indicator:opacity-100
-                transition-opacity duration-100
-                bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]
-                text-[var(--color-figma-text)] text-[10px]
-                rounded shadow-md min-w-[160px] max-w-[240px] py-1"
-            >
-              <div className="px-2 py-0.5 text-[var(--color-figma-text-secondary)] text-[9px] uppercase tracking-wide font-medium border-b border-[var(--color-figma-border)] mb-0.5">
-                Undo stack
-              </div>
-              {[...undoDescriptions].reverse().slice(0, 5).map((desc, i) => (
-                <div key={i} className={`px-2 py-0.5 truncate ${i === 0 ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
-                  {i === 0 && <span className="text-[var(--color-figma-accent)] mr-1">↩</span>}
-                  {desc}
-                </div>
-              ))}
-              {undoDescriptions.length > 5 && (
-                <div className="px-2 py-0.5 text-[var(--color-figma-text-secondary)] italic">
-                  +{undoDescriptions.length - 5} more
-                </div>
+              {utilitiesAttention && (
+                <span className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${!connected && !checking ? 'bg-[var(--color-figma-error)]' : 'bg-[var(--color-figma-accent)]'}`} aria-hidden="true" />
               )}
-            </div>
-          </div>
-        )}
+            </button>
 
-        {/* Notification history */}
-        <div className="relative group/tooltip mr-0.5 my-1">
-          <button
-            onClick={() => setShowNotificationHistory(v => !v)}
-            className={`relative flex items-center justify-center w-7 h-7 rounded transition-colors ${
-              showNotificationHistory
-                ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-            }`}
-            aria-label="Notification history"
-            aria-haspopup="true"
-            aria-expanded={showNotificationHistory}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            {notificationHistory.length > 0 && !showNotificationHistory && (
-              <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" aria-hidden="true" />
+            {showNotificationHistory && (
+              <NotificationHistory
+                history={notificationHistory}
+                onClear={clearNotificationHistory}
+                onClose={() => setShowNotificationHistory(false)}
+              />
             )}
-          </button>
-          {!showNotificationHistory && (
-            <div
-              role="tooltip"
-              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-[60] pointer-events-none
-                opacity-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100
-                transition-opacity duration-100
-                bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]
-                text-[var(--color-figma-text)] text-[10px] whitespace-nowrap
-                rounded px-1.5 py-0.5 shadow-md"
-            >
-              Notifications
-            </div>
-          )}
-          {showNotificationHistory && (
-            <NotificationHistory
-              history={notificationHistory}
-              onClear={clearNotificationHistory}
-              onClose={() => setShowNotificationHistory(false)}
-            />
-          )}
+
+            {menuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
+                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Utilities</div>
+                  <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
+                </div>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { setMenuOpen(false); setCommandPaletteInitialQuery(''); setShowCommandPalette(true); }}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span>Command palette</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)}</span>
+                </button>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { setMenuOpen(false); setShowPasteModal(true); }}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span>Paste tokens</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS)}</span>
+                </button>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { setMenuOpen(false); openOverflowPanel('import'); }}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span>Import tokens</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Secondary</span>
+                </button>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { setMenuOpen(false); setShowNotificationHistory(v => !v); }}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span>Notifications</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{notificationHistory.length}</span>
+                </button>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { setMenuOpen(false); setShowKeyboardShortcuts(true); }}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span>Keyboard shortcuts</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">?</span>
+                </button>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { setMenuOpen(false); toggleExpand(); }}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span>{isExpanded ? 'Restore window' : 'Expand window'}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{isExpanded ? 'Windowed' : 'Second screen'}</span>
+                </button>
+                <div className="border-t border-[var(--color-figma-border)]" />
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { setMenuOpen(false); openOverflowPanel('settings'); }}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span>Settings</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Secondary</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Settings */}
-        <Tooltip
-          label={checking ? 'Settings · connecting…' : connected ? `Settings · connected to ${serverUrl}` : `Settings · cannot reach ${serverUrl}`}
-          className="mr-0.5 my-1"
-        >
-          <button
-            onClick={() => openOverflowPanel('settings')}
-            className="relative flex items-center justify-center w-7 h-7 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-            aria-label="Settings"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="3.25" />
-              <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1.2 1.2 0 0 1 0 1.7l-1.6 1.6a1.2 1.2 0 0 1-1.7 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9v.3a1.2 1.2 0 0 1-1.2 1.2h-2.3a1.2 1.2 0 0 1-1.2-1.2V20a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1.2 1.2 0 0 1-1.7 0L4.3 18a1.2 1.2 0 0 1 0-1.7l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6h-.3a1.2 1.2 0 0 1-1.2-1.2v-2.3a1.2 1.2 0 0 1 1.2-1.2H4a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1.2 1.2 0 0 1 0-1.7l1.6-1.6a1.2 1.2 0 0 1 1.7 0l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V3.4a1.2 1.2 0 0 1 1.2-1.2h2.3a1.2 1.2 0 0 1 1.2 1.2V4a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1.2 1.2 0 0 1 1.7 0l1.6 1.6a1.2 1.2 0 0 1 0 1.7l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6h.3a1.2 1.2 0 0 1 1.2 1.2v2.3a1.2 1.2 0 0 1-1.2 1.2H20a1 1 0 0 0-.6.6Z" />
-            </svg>
-            <span className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full border border-[var(--color-figma-bg)] ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : connected ? 'bg-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]'}`} aria-hidden="true" />
-          </button>
-        </Tooltip>
+        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          <div className="flex flex-wrap items-center gap-2 px-2 py-1.5">
+            <div className="min-w-[180px] flex-1">
+              <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                {activeWorkspace.label}
+              </div>
+              <div className="truncate text-[11px] text-[var(--color-figma-text)]">
+                {activeWorkspaceSection?.description ?? activeWorkspace.description}
+              </div>
+            </div>
 
-        {/* Overflow menu */}
-        <div className="relative group/tooltip mr-1 my-1" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen(v => !v)}
-            className={`relative flex items-center justify-center w-7 h-7 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors ${menuOpen ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
-            aria-label="More actions"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <circle cx="6" cy="2" r="1.2" />
-              <circle cx="6" cy="6" r="1.2" />
-              <circle cx="6" cy="10" r="1.2" />
-            </svg>
-            {!connected && !checking && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[var(--color-figma-error)] border border-[var(--color-figma-bg)]" aria-hidden="true" />
+            {activeWorkspace.sections && activeWorkspace.sections.length > 1 && (
+              <div className="flex items-center gap-0.5" role="tablist" aria-label={`${activeWorkspace.label} sections`}>
+                {activeWorkspace.sections.map(section => {
+                  const isSectionActive = section.topTab === activeTopTab && section.subTab === activeSubTab;
+                  return (
+                    <button
+                      key={`${section.topTab}:${section.subTab}`}
+                      role="tab"
+                      aria-selected={isSectionActive}
+                      onClick={() => {
+                        guardEditorAction(() => {
+                          navigateTo(section.topTab, section.subTab);
+                          if (section.subTab === 'canvas-analysis') triggerHeatmapScan();
+                        });
+                      }}
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                        isSectionActive
+                          ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
+                          : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+                      }`}
+                    >
+                      {section.label}
+                    </button>
+                  );
+                })}
+              </div>
             )}
-          </button>
-          {!menuOpen && (
-            <div
-              role="tooltip"
-              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-[60] pointer-events-none
-                opacity-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100
-                transition-opacity duration-100
-                bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]
-                text-[var(--color-figma-text)] text-[10px] whitespace-nowrap
-                rounded px-1.5 py-0.5 shadow-md"
-            >
-              More actions
-            </div>
-          )}
 
-          {menuOpen && (
-            <div className="absolute right-1 top-full mt-0.5 w-40 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50" role="menu">
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onClick={() => { setShowPasteModal(true); setMenuOpen(false); }}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            {workspacePills.map((pill, index) => (
+              <span
+                key={`${pill.label}-${index}`}
+                className={`rounded-full border px-2.5 py-1 text-[10px] font-medium ${pillToneClasses[pill.tone]}`}
               >
-                Paste tokens <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-1">{adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS)}</span>
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onClick={() => openOverflowPanel('import')}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Import
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onClick={() => { setMenuOpen(false); navigateTo('ship', 'export'); }}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Export
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onClick={() => { setMenuOpen(false); navigateTo('ship', 'health'); }}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Health
-              </button>
-              <div className="border-t border-[var(--color-figma-border)]" />
-            </div>
-          )}
-        </div>
-      </div>
-      {/* Inner tabs — only shown for Inspect and Ship which have sub-sections */}
-      {overflowPanel === null && (() => {
-        if (!activeFlatTab?.innerTabs || activeFlatTab.innerTabs.length <= 1) return null;
-        return (
-          <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <div className="flex items-center justify-between gap-3 px-2 py-1.5">
-              <div className="min-w-0">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                  {activeFlatTab.label} section
-                </div>
-                <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                  {activeInnerTab?.label ?? activeFlatTab.label}
-                </div>
-              </div>
-              <div className="flex items-center gap-0.5" role="tablist" aria-label={`${activeFlatTab.label} sections`}>
-                {activeFlatTab.innerTabs.map(inner => (
-                  <button
-                    key={inner.id}
-                    role="tab"
-                    aria-selected={activeSubTab === inner.id}
-                    onClick={() => {
-                      guardEditorAction(() => {
-                        setSubTab(inner.id);
-                        if (inner.id === 'canvas-analysis') triggerHeatmapScan();
-                      });
-                    }}
-                    className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
-                      activeSubTab === inner.id
-                        ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
-                        : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                    }`}
-                  >
-                    {inner.label}
-                  </button>
-                ))}
-              </div>
+                {pill.label}
+              </span>
+            ))}
+
+            <div className="ml-auto flex items-center gap-1">
+              {renderWorkspaceActions()}
             </div>
           </div>
-        );
-      })()}
+        </div>
       </div>
 
       {/* Set selector (for tokens tab) — hidden when sidebar is active */}

@@ -1,0 +1,27 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    46787
+  Tool:   codex
+  Model:  gpt-5.4
+  Mode:   single (no worktrees)
+  Capabilities: structured_output=yes max_turns=no
+  Log:    /Users/samuel/Documents/Projects/TokenManager/scripts/backlog/runner-20260408-090741.log
+  Passes: disabled
+
+  Queue:    14 ready · 0 in-progress · 0 failed
+  Done:     1651 total
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/Projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  14 queued · 0 in-progress
+═══════════════════════════════════════════════════════════════
+  → App shell navigation mixes task navigation, section navigation, utilities, and status indicators into one crowded header — the current shell combines 5 flat tabs, hidden inner tabs for `Inspect` and `Ship`, a row of utility toggles (issues filter, preview, command palette, expand, canvas analysis, undo/history, notifications, settings), and a separate overflow menu; this makes the IA hard to learn because the user must understand internal app structure before they can accomplish a goal; redesign the shell around user jobs instead of implementation groupings: keep a small set of primary workspaces with explicit names that match designer/design-system workflows (for example: `Tokens`, `Themes`, `Apply`, `Sync`, `Audit`), remove umbrella labels like `Inspect` and `Ship`, and move non-navigation utilities out of the persistent tab row into contextual panel actions or a single utilities surface; success criteria: (1) no primary tab should hide multiple unrelated workflows behind a second row unless those workflows are tightly related, (2) the top header should no longer be the dumping ground for status badges and infrequent toggles, (3) import/settings remain reachable but are clearly secondary utilities, not peer destinations; keep the backlog items already covering token-list density, context menus, and search discoverability separate — this task is about the global shell and IA only; files: `packages/figma-plugin/src/ui/shared/navigationTypes.ts`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`
+  Running agent… (started 09:07:41)
+
+  ✓ done: App shell navigation mixes task navigation, section navigation, utilities, and status indicators into one crowded header
+    Rebuilt the shell around Tokens/Themes/Apply/Sync/Audit workspaces, moved header toggles into contextual actions plus a single Utilities surface, and validated all backlog gates successfully.
+
+  Committing: App shell navigation mixes task navigation, section navigation, utilities, and status indicators into one crowded header

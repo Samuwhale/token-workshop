@@ -159,3 +159,28 @@
     Added expanded inline generator summaries with Re-run/Edit actions and opened generator editing in the Tokens tab side-panel/drawer flow.
 
   Committing: Generator-backed token groups give no actionable information inline
+[main 399ae2e5] chore(backlog): done – Generator-backed token groups give no actionable information inline
+ 14 files changed, 316 insertions(+), 72 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-07 - Generator-backed token groups give no actionable information inline
+- Added an expanded-row generator summary in the token tree for generator-backed groups, showing source token, generator type, last-run timestamp, and inline Re-run/Edit actions without leaving the Tokens tab.
+- Wired generator editing into the same Tokens-tab side-panel/drawer surfaces as token editing by adding generator edit state to the shared editor context and making `TokenGeneratorDialog` render in either modal or panel mode.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L131, ~L759, ~L1188; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L188, ~L240, ~L337, ~L497; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L18, ~L70, ~L150, ~L162; `packages/figma-plugin/src/ui/App.tsx` ~L102, ~L261, ~L2175; `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L259; `packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx` ~L66, ~L184; `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L24, ~L72; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L92, ~L134, ~L259
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  4 queued · 0 in-progress · last took 10m1s
+═══════════════════════════════════════════════════════════════
+  → Creating a generator for a simple case requires a full-screen modal — right-clicking a color or dimension token and choosing "Generate scale..." opens `TokenGeneratorDialog`, a full-screen modal with 3 collapsible sections; for the common case (source token is already known, just need to pick steps and confirm) this is too heavyweight; add a quick-generator popover: when "Generate color ramp..." or "Generate spacing scale..." is invoked from a token's context menu (where the source token is already known), open a compact popover (not a modal) showing only: the pre-filled source token, the most relevant config controls (color ramp: steps count + lightness range; type scale: ratio preset + steps preset; spacing scale: steps preset; others: steps count), a live preview strip (call `POST /api/generators/preview` with debounce — this endpoint already exists), and a "Create" button; on confirm: use the current active set as target set, derive the target group from the source token's parent group path (e.g., source `colors.brand.primary` → target group `colors.brand`), auto-name the generator from source + type; the full `TokenGeneratorDialog` remains accessible via "Advanced options..." link in the popover for multi-brand, semantic aliases, custom formulas, and overwrite review; files: `TokenTreeNode.tsx` (token context menu, add new entry), `TokenGeneratorDialog.tsx` (reference for config components to extract), `generatorUtils.ts` (defaultConfigForType, autoName, suggestTargetGroup — reuse these for defaults)
+  Running agent… (started 00:08:53)
+scripts/backlog/backlog.sh: line 250: echo: write error: Broken pipe
+
+  ⚠ Rate limit hit — unclaiming item, retry at 00:10:35
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  4 queued · 0 in-progress · last took 1m42s
+═══════════════════════════════════════════════════════════════
+  → Creating a generator for a simple case requires a full-screen modal — right-clicking a color or dimension token and choosing "Generate scale..." opens `TokenGeneratorDialog`, a full-screen modal with 3 collapsible sections; for the common case (source token is already known, just need to pick steps and confirm) this is too heavyweight; add a quick-generator popover: when "Generate color ramp..." or "Generate spacing scale..." is invoked from a token's context menu (where the source token is already known), open a compact popover (not a modal) showing only: the pre-filled source token, the most relevant config controls (color ramp: steps count + lightness range; type scale: ratio preset + steps preset; spacing scale: steps preset; others: steps count), a live preview strip (call `POST /api/generators/preview` with debounce — this endpoint already exists), and a "Create" button; on confirm: use the current active set as target set, derive the target group from the source token's parent group path (e.g., source `colors.brand.primary` → target group `colors.brand`), auto-name the generator from source + type; the full `TokenGeneratorDialog` remains accessible via "Advanced options..." link in the popover for multi-brand, semantic aliases, custom formulas, and overwrite review; files: `TokenTreeNode.tsx` (token context menu, add new entry), `TokenGeneratorDialog.tsx` (reference for config components to extract), `generatorUtils.ts` (defaultConfigForType, autoName, suggestTargetGroup — reuse these for defaults)
+  Running agent… (started 00:10:35)
+
+  ✗ Authentication/permission error — check your API key and tool setup

@@ -1,0 +1,166 @@
+{
+  "$description": "Demo semantic tokens that exercise aliasing, formulas, and composite values.",
+  "color": {
+    "$type": "color",
+    "surface": {
+      "canvas": {
+        "$value": "{color.neutral.0}"
+      },
+      "panel": {
+        "$value": "{color.neutral.100}"
+      },
+      "accent": {
+        "$value": "{color.brand.50}"
+      }
+    },
+    "content": {
+      "primary": {
+        "$value": "{color.neutral.900}"
+      },
+      "secondary": {
+        "$value": "{color.neutral.500}"
+      },
+      "inverse": {
+        "$value": "{color.neutral.0}"
+      }
+    },
+    "border": {
+      "subtle": {
+        "$value": "{color.neutral.300}"
+      },
+      "interactive": {
+        "$value": "{color.brand.500}"
+      }
+    },
+    "status": {
+      "success": {
+        "$value": "{color.success.500}"
+      },
+      "warning": {
+        "$value": "{color.warning.500}"
+      }
+    },
+    "button": {
+      "primary": {
+        "bg": {
+          "$value": "{color.brand.500}"
+        },
+        "fg": {
+          "$value": "{color.neutral.0}"
+        },
+        "bg-hover": {
+          "$value": "{color.brand.600}"
+        }
+      }
+    }
+  },
+  "spacing": {
+    "$type": "dimension",
+    "card-padding": {
+      "$value": "{space.6}"
+    },
+    "section-gap": {
+      "$value": "{space.12}"
+    },
+    "sidebar-width": {
+      "$value": "{space.12} * 6"
+    }
+  },
+  "shape": {
+    "$type": "dimension",
+    "card-radius": {
+      "$value": "{radius.md}"
+    },
+    "chip-radius": {
+      "$value": "{radius.pill}"
+    }
+  },
+  "shadow": {
+    "$type": "shadow",
+    "card": {
+      "$value": {
+        "color": "{color.neutral.900}",
+        "offsetX": {
+          "value": 0,
+          "unit": "px"
+        },
+        "offsetY": {
+          "value": 8,
+          "unit": "px"
+        },
+        "blur": {
+          "value": 24,
+          "unit": "px"
+        },
+        "spread": {
+          "value": -8,
+          "unit": "px"
+        },
+        "opacity": 0.12,
+        "type": "dropShadow"
+      }
+    }
+  },
+  "motion": {
+    "$type": "transition",
+    "snappy": {
+      "$value": {
+        "duration": "{duration.fast}",
+        "timingFunction": [
+          0.2,
+          0.8,
+          0.2,
+          1
+        ]
+      }
+    }
+  },
+  "typography": {
+    "$type": "typography",
+    "body": {
+      "$value": {
+        "fontFamily": "{font.family.sans}",
+        "fontSize": "{font.size.md}",
+        "fontWeight": "{font.weight.regular}",
+        "lineHeight": {
+          "value": 24,
+          "unit": "px"
+        },
+        "letterSpacing": {
+          "value": 0,
+          "unit": "px"
+        }
+      }
+    },
+    "title": {
+      "$value": {
+        "fontFamily": "{font.family.sans}",
+        "fontSize": "{font.size.xl}",
+        "fontWeight": "{font.weight.semibold}",
+        "lineHeight": {
+          "value": 34,
+          "unit": "px"
+        },
+        "letterSpacing": {
+          "value": -0.4,
+          "unit": "px"
+        }
+      }
+    },
+    "code": {
+      "$value": {
+        "fontFamily": "{font.family.mono}",
+        "fontSize": "{font.size.sm}",
+        "fontWeight": "{font.weight.medium}",
+        "lineHeight": {
+          "value": 20,
+          "unit": "px"
+        },
+        "letterSpacing": {
+          "value": 0,
+          "unit": "px"
+        }
+      }
+    }
+  }
+}

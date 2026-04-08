@@ -5,6 +5,9 @@ dist/
 .env
 .DS_Store
 tokens/
+!demo/
+!demo/tokens/
+!demo/tokens/*.tokens.json
 .claude/settings.local.json
 .backlog.lock/
 .backlog-git.lock/

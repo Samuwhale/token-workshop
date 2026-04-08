@@ -15,8 +15,8 @@ export type OverflowPanel = 'import' | 'settings' | null;
 
 /**
  * Internal routing structure — kept for PanelRouter compatibility.
- * The visual tab bar uses FLAT_TABS below; this is the source of truth
- * for which panels exist.
+ * The app shell remaps these internal route buckets into user-facing workspaces
+ * below, but this table remains the source of truth for which panels exist.
  */
 export const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: string }[] }[] = [
   { id: 'define', label: 'Define', subTabs: [
@@ -50,60 +50,115 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Flat navigation — the primary visual structure
+// Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type FlatTabId = 'tokens' | 'themes' | 'generators' | 'inspect' | 'ship';
+export type WorkspaceId = 'tokens' | 'themes' | 'apply' | 'sync' | 'audit';
 
-export interface FlatTab {
-  id: FlatTabId;
-  label: string;
-  /** Optional small hint shown in the primary tab button before activation. */
-  hintLabel?: string;
-  /** Internal top-tab this maps to. */
+export interface WorkspaceRoute {
   topTab: TopTab;
-  /** Internal sub-tab this maps to (default for the top-tab). */
   subTab: SubTab;
-  /** Optional secondary tabs shown inline within this flat tab. */
-  innerTabs?: { id: SubTab; label: string }[];
 }
 
-/**
- * The 5 flat top-level tabs shown in the tab bar.
- * Internally they still route through the (topTab, subTab) system.
- */
-export const FLAT_TABS: FlatTab[] = [
-  { id: 'tokens', label: 'Tokens', topTab: 'define', subTab: 'tokens' },
-  { id: 'themes', label: 'Themes', topTab: 'define', subTab: 'themes' },
-  { id: 'generators', label: 'Generators', topTab: 'define', subTab: 'generators' },
+export interface WorkspaceSection extends WorkspaceRoute {
+  id: SubTab;
+  label: string;
+  description?: string;
+}
+
+export interface WorkspaceTab extends WorkspaceRoute {
+  id: WorkspaceId;
+  label: string;
+  description: string;
+  sections?: WorkspaceSection[];
+  /** Additional routes that should keep this workspace selected. */
+  matchRoutes?: WorkspaceRoute[];
+}
+
+const route = (topTab: TopTab, subTab: SubTab): WorkspaceRoute => ({ topTab, subTab });
+
+export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
-    id: 'inspect', label: 'Inspect', topTab: 'apply', subTab: 'inspect',
-    hintLabel: '3 sections',
-    innerTabs: [
-      { id: 'inspect', label: 'Selection' },
-      { id: 'canvas-analysis', label: 'Canvas' },
-      { id: 'dependencies', label: 'Dependencies' },
+    id: 'tokens',
+    label: 'Tokens',
+    description: 'Edit token sets, compare values, and automate new scales.',
+    topTab: 'define',
+    subTab: 'tokens',
+    sections: [
+      { id: 'tokens', label: 'Library', description: 'Browse and edit token sets.', topTab: 'define', subTab: 'tokens' },
+      { id: 'generators', label: 'Generators', description: 'Build and tune token generators.', topTab: 'define', subTab: 'generators' },
+    ],
+    matchRoutes: [
+      route('define', 'tokens'),
+      route('define', 'generators'),
     ],
   },
   {
-    id: 'ship', label: 'Ship', topTab: 'ship', subTab: 'publish',
-    hintLabel: '4 sections',
-    innerTabs: [
-      { id: 'publish', label: 'Publish' },
-      { id: 'export', label: 'Export' },
-      { id: 'history', label: 'History' },
-      { id: 'health', label: 'Health' },
+    id: 'themes',
+    label: 'Themes',
+    description: 'Set up theme sources, overrides, and resolver logic.',
+    topTab: 'define',
+    subTab: 'themes',
+  },
+  {
+    id: 'apply',
+    label: 'Apply',
+    description: 'Inspect bound layers and apply tokens to the current canvas selection.',
+    topTab: 'apply',
+    subTab: 'inspect',
+    sections: [
+      { id: 'inspect', label: 'Selection', description: 'Inspect and edit the current selection.', topTab: 'apply', subTab: 'inspect' },
+      { id: 'canvas-analysis', label: 'Canvas', description: 'Review token coverage across the canvas.', topTab: 'apply', subTab: 'canvas-analysis' },
+    ],
+    matchRoutes: [
+      route('apply', 'inspect'),
+      route('apply', 'canvas-analysis'),
+    ],
+  },
+  {
+    id: 'sync',
+    label: 'Sync',
+    description: 'Publish tokens to Figma and export handoff artifacts for code.',
+    topTab: 'ship',
+    subTab: 'publish',
+    sections: [
+      { id: 'publish', label: 'Publish', description: 'Sync variables and styles to Figma.', topTab: 'ship', subTab: 'publish' },
+      { id: 'export', label: 'Export', description: 'Generate platform exports and files.', topTab: 'ship', subTab: 'export' },
+    ],
+    matchRoutes: [
+      route('ship', 'publish'),
+      route('ship', 'export'),
+    ],
+  },
+  {
+    id: 'audit',
+    label: 'Audit',
+    description: 'Check health, trace dependencies, and review change history.',
+    topTab: 'ship',
+    subTab: 'health',
+    sections: [
+      { id: 'health', label: 'Health', description: 'Review validation and system health.', topTab: 'ship', subTab: 'health' },
+      { id: 'history', label: 'History', description: 'Inspect recent operations and undo history.', topTab: 'ship', subTab: 'history' },
+      { id: 'dependencies', label: 'Dependencies', description: 'Trace alias and dependency relationships.', topTab: 'apply', subTab: 'dependencies' },
+    ],
+    matchRoutes: [
+      route('ship', 'health'),
+      route('ship', 'history'),
+      route('apply', 'dependencies'),
     ],
   },
 ];
 
-/** Map a (topTab, subTab) pair to the flat tab ID it belongs to. */
-export function toFlatTabId(topTab: TopTab, subTab: SubTab): FlatTabId {
-  if (topTab === 'define') {
-    if (subTab === 'tokens') return 'tokens';
-    if (subTab === 'themes') return 'themes';
-    if (subTab === 'generators') return 'generators';
-  }
-  if (topTab === 'apply') return 'inspect';
-  return 'ship';
+function matchesRoute(routeDef: WorkspaceRoute, topTab: TopTab, subTab: SubTab): boolean {
+  return routeDef.topTab === topTab && routeDef.subTab === subTab;
+}
+
+/** Map an internal route to the primary workspace shown in the shell. */
+export function toWorkspaceId(topTab: TopTab, subTab: SubTab): WorkspaceId {
+  const match = WORKSPACE_TABS.find(workspace =>
+    matchesRoute(workspace, topTab, subTab)
+    || workspace.sections?.some(section => matchesRoute(section, topTab, subTab))
+    || workspace.matchRoutes?.some(routeDef => matchesRoute(routeDef, topTab, subTab))
+  );
+  return match?.id ?? 'tokens';
 }

@@ -364,3 +364,11 @@
   - If a row-level action needs a richer editor without changing tabs, route it through the existing editor surface first; extending the shared editor context is cheaper and more coherent than inventing a one-off popover.
   - For reusable editors that can open from multiple surfaces, keep discard/close behavior inside the editor component and expose a panel mode instead of duplicating close guards in each host.
 ---
+## 2026-04-08 - App shell navigation mixes task navigation, section navigation, utilities, and status indicators into one crowded header
+- Rebuilt the shell around five job-based workspaces (`Tokens`, `Themes`, `Apply`, `Sync`, `Audit`), added tightly-scoped section tabs per workspace, and remapped `Dependencies` into `Audit` so the header now reflects user goals instead of internal app buckets like `Inspect` and `Ship`.
+- Collapsed the old header utility strip into a single `Utilities` surface, moved token-specific controls into the `Tokens` workspace context, and replaced scattered tab badges with workspace-level summary pills and safer audit fallback routes.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L56; `packages/figma-plugin/src/ui/App.tsx` ~L173, ~L892, ~L1087; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L761, ~L819, ~L844
+- **Learnings for future iterations:**
+  - If a route belongs conceptually to a different user job than its implementation bucket, keep the internal route as-is and add a separate workspace-mapping layer instead of forcing the router to mirror the shell.
+  - Header status is easier to scan when it is summarized per active workspace; avoid per-tab dots and counters unless they directly affect navigation choice.
+---

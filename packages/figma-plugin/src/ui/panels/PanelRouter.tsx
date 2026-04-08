@@ -758,7 +758,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
 function renderApplyDependencies(): ReactNode {
     return (
-      <ErrorBoundary panelName="Dependencies" onReset={() => navigateTo('apply', 'inspect')}>
+      <ErrorBoundary panelName="Dependencies" onReset={() => navigateTo('ship', 'health')}>
         <TokenFlowPanel
           allTokensFlat={themedAllTokensFlat}
           pathToSet={pathToSet}
@@ -816,7 +816,7 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipHistory(): ReactNode {
     return (
-      <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
+      <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'health')}>
         <HistoryPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -841,7 +841,7 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipHealth(): ReactNode {
     return (
-      <ErrorBoundary panelName="Health" onReset={() => navigateTo('ship', 'publish')}>
+      <ErrorBoundary panelName="Health" onReset={() => navigateTo('ship', 'history')}>
         <HealthPanel
           serverUrl={serverUrl}
           connected={connected}

@@ -1,12 +1,28 @@
 import * as esbuild from 'esbuild';
-import { build as viteBuild, createServer } from 'vite';
+import { build as viteBuild } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs/promises';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isWatch = process.argv.includes('--watch');
+
+function syncUiHtmlPlugin() {
+  return {
+    name: 'sync-ui-html',
+    async writeBundle() {
+      const src = path.join(__dirname, 'dist', 'index.html');
+      const dest = path.join(__dirname, 'dist', 'ui.html');
+      try {
+        await fs.copyFile(src, dest);
+      } catch {
+        // Ignore the first watch tick before Vite has emitted index.html.
+      }
+    },
+  };
+}
 
 // Sandbox build (esbuild)
 async function buildSandbox() {
@@ -34,7 +50,7 @@ async function buildSandbox() {
 async function buildUI() {
   const config = {
     root: path.join(__dirname, 'src/ui'),
-    plugins: [tailwindcss(), viteSingleFile()],
+    plugins: [tailwindcss(), viteSingleFile(), syncUiHtmlPlugin()],
     build: {
       outDir: path.join(__dirname, 'dist'),
       emptyOutDir: false,
@@ -61,15 +77,10 @@ async function buildUI() {
   };
 
   if (isWatch) {
-    const watcher = await viteBuild({ ...config, build: { ...config.build, watch: {} } });
+    await viteBuild({ ...config, build: { ...config.build, watch: {} } });
     console.log('Watching UI...');
   } else {
     await viteBuild(config);
-    // Rename index.html to ui.html
-    const fs = await import('node:fs/promises');
-    const src = path.join(__dirname, 'dist/index.html');
-    const dest = path.join(__dirname, 'dist/ui.html');
-    try { await fs.rename(src, dest); } catch {}
     console.log('UI built.');
   }
 }
