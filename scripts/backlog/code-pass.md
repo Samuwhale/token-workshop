@@ -35,7 +35,7 @@ This project has no shipped users and no backwards-compatibility constraints, so
 
 ## Workflow
 
-1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `code-pass:` entries to avoid retreading the same ground. Then roam the codebase — components, hooks, server routes, utilities, whatever you find. Look at both the frontend and server.
+1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `code-pass:` entries to avoid retreading the same ground. Then read the injected `Current Open Backlog` section before roaming the codebase. Use it to understand which architectural areas already have momentum so you can identify missing root-cause work, prerequisite refactors, and adjacent structural issues implied by the current queue. Then roam the codebase — components, hooks, server routes, utilities, whatever you find. Look at both the frontend and server.
 
 3. **Write findings** — for each issue found, append a line to `backlog-inbox.md`:
    - Normal: `- [ ] Short title — one sentence describing the issue and where it is`
@@ -61,7 +61,8 @@ This project has no shipped users and no backwards-compatibility constraints, so
 - Do NOT modify `backlog.md`.
 - Write only to `backlog-inbox.md` and `scripts/backlog/progress.txt`.
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
-- Do not duplicate items already in `backlog.md` (check for similar wording before writing).
+- Use the current backlog as input when generating ideas: extend existing architectural themes, identify missing root-cause or follow-through work, and look for deeper structural items suggested by clusters already on the queue.
+- Do not duplicate items already in `backlog.md` or merely rephrase them (check for similar wording and intent before writing).
 - Aim for 3–8 items. Prefer fewer, larger items. Only write issues that are real — confirmed by reading the code, not hypothetical.
 
 ---

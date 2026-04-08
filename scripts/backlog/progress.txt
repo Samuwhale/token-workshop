@@ -382,3 +382,11 @@
   - If an import surface needs progressive disclosure, keep the stage state in shared import state so drag-and-drop, file pickers, preview, and back navigation all follow the same flow.
   - Destination selection should happen before preview/apply; preview footers should focus on conflicts and commit actions, not repeat setup choices that belong to an earlier step.
 ---
+## 2026-04-08 - [HIGH] Reduce Settings to a concise preferences area for real day-to-day decisions, and move recovery, backup/restore, destructive actions, and debugging controls into a deliberately advanced section with stronger framing
+- Collapsed Settings into a two-part IA with `Preferences` for daily browsing/copy defaults and a deliberately framed `Advanced` area for setup, recovery, diagnostics, backup/restore, and destructive actions, including legacy tab-state migration so older saved tabs land in the new advanced surface.
+- Added stronger advanced-use framing inside the panel, kept operational sections searchable but collapsed by default, and updated the utilities metadata so the shell now describes Settings as preferences first instead of an all-admin surface.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L17, ~L312, ~L629, ~L804, ~L883, ~L947, ~L1063, ~L1080, ~L1104, ~L1136; `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L263; `packages/figma-plugin/src/ui/App.tsx` ~L1572
+- **Learnings for future iterations:**
+  - When a settings surface mixes daily defaults with setup or recovery flows, collapse the IA to a small preferences area plus one explicitly framed advanced area instead of splitting everything into equal-weight tabs.
+  - If tab IDs change during a settings IA rewrite, map legacy persisted values onto the new structure so reopening the panel does not strand users on a missing category.
+---

@@ -265,7 +265,7 @@ export const SECONDARY_AREA: SecondaryArea = {
       description: 'Operational flows that replace the current workspace temporarily.',
       actions: [
         { id: 'import', label: 'Import tokens', description: 'Open the import workspace for files, code, or other tools.' },
-        { id: 'settings', label: 'Settings', description: 'Adjust plugin preferences, connection settings, and recovery tools.' },
+        { id: 'settings', label: 'Settings', description: 'Adjust day-to-day preferences and open advanced setup, recovery, and maintenance tools.' },
       ],
     },
   ],

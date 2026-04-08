@@ -14,30 +14,37 @@ import { dispatchToast } from '../shared/toastBus';
 type Density = 'compact' | 'comfortable';
 type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'oklch' | 'p3';
 export type PreferredCopyFormat = 'css-var' | 'dtcg-ref' | 'scss' | 'raw' | 'json';
-type SettingsTab = 'preferences' | 'connection' | 'export' | 'advanced-recovery';
+type SettingsTab = 'preferences' | 'advanced';
 
 // ---------------------------------------------------------------------------
 // Settings tab config and search metadata
 // ---------------------------------------------------------------------------
 
 const SETTINGS_TABS: { id: SettingsTab; label: string; description: string }[] = [
-  { id: 'preferences', label: 'Preferences', description: 'Everyday workspace defaults for browsing and copying tokens.' },
-  { id: 'connection', label: 'Connection', description: 'How this plugin talks to your local TokenManager server.' },
-  { id: 'export', label: 'Export', description: 'Default targets to pre-fill when generating handoff files.' },
-  { id: 'advanced-recovery', label: 'Advanced / Recovery', description: 'Operational controls, recovery tools, and destructive actions.' },
+  { id: 'preferences', label: 'Preferences', description: 'Day-to-day defaults for browsing, viewing, and copying tokens.' },
+  { id: 'advanced', label: 'Advanced', description: 'Setup, recovery, debugging, and destructive controls used only when needed.' },
 ];
 
 const SECTION_SEARCH_META: { id: string; tab: SettingsTab; title: string; keywords: string[] }[] = [
   { id: 'workspace-behavior', tab: 'preferences', title: 'Workspace behavior', keywords: ['preferences', 'density', 'compact', 'comfortable', 'deprecated', 'workspace', 'daily', 'browse', 'appearance', 'visibility'] },
   { id: 'color-copy-defaults', tab: 'preferences', title: 'Color and copy defaults', keywords: ['preferences', 'color', 'format', 'hex', 'rgb', 'hsl', 'oklch', 'p3', 'copy', 'contrast', 'shortcut', 'display', 'clipboard'] },
-  { id: 'connection', tab: 'connection', title: 'Local server connection', keywords: ['server', 'url', 'connect', 'localhost', 'port', 'disconnect', 'network', 'sync', 'api'] },
-  { id: 'export-defaults', tab: 'export', title: 'Export defaults', keywords: ['platform', 'css', 'selector', 'tailwind', 'scss', 'json', 'export', 'root', 'format', 'handoff'] },
-  { id: 'validation', tab: 'advanced-recovery', title: 'Validation rules', keywords: ['lint', 'rules', 'validate', 'check', 'errors', 'warnings', 'config', 'quality'] },
-  { id: 'guided-setup', tab: 'advanced-recovery', title: 'Guided setup', keywords: ['guided', 'setup', 'onboarding', 'wizard', 'welcome', 'restart', 'first run', 'quickstart'] },
-  { id: 'undo', tab: 'advanced-recovery', title: 'Undo history', keywords: ['undo', 'history', 'steps', 'max', 'redo'] },
-  { id: 'backup', tab: 'advanced-recovery', title: 'Backup and restore', keywords: ['backup', 'restore', 'import', 'export', 'json', 'file', 'transfer', 'recovery'] },
-  { id: 'danger', tab: 'advanced-recovery', title: 'Danger zone', keywords: ['clear', 'delete', 'reset', 'danger', 'data', 'remove', 'destructive'] },
+  { id: 'connection', tab: 'advanced', title: 'Local server connection', keywords: ['advanced', 'server', 'url', 'connect', 'localhost', 'port', 'disconnect', 'network', 'sync', 'api', 'setup', 'troubleshoot'] },
+  { id: 'export-defaults', tab: 'advanced', title: 'Export defaults', keywords: ['advanced', 'platform', 'css', 'selector', 'tailwind', 'scss', 'json', 'export', 'root', 'format', 'handoff', 'setup'] },
+  { id: 'validation', tab: 'advanced', title: 'Validation rules', keywords: ['advanced', 'lint', 'rules', 'validate', 'check', 'errors', 'warnings', 'config', 'quality', 'debug', 'diagnostics'] },
+  { id: 'guided-setup', tab: 'advanced', title: 'Guided setup', keywords: ['advanced', 'guided', 'setup', 'onboarding', 'wizard', 'welcome', 'restart', 'first run', 'quickstart', 'recover'] },
+  { id: 'undo', tab: 'advanced', title: 'Undo history', keywords: ['advanced', 'undo', 'history', 'steps', 'max', 'redo', 'recovery'] },
+  { id: 'backup', tab: 'advanced', title: 'Backup and restore', keywords: ['advanced', 'backup', 'restore', 'import', 'export', 'json', 'file', 'transfer', 'recovery'] },
+  { id: 'danger', tab: 'advanced', title: 'Danger zone', keywords: ['advanced', 'clear', 'delete', 'reset', 'danger', 'data', 'remove', 'destructive'] },
 ];
+
+const ADVANCED_SUMMARY_ITEMS = [
+  'Local server setup',
+  'Export defaults',
+  'Validation and diagnostics',
+  'Undo depth',
+  'Backup and restore',
+  'Danger zone',
+] as const;
 
 // ---------------------------------------------------------------------------
 // Custom event for cross-component settings sync
@@ -304,7 +311,10 @@ export function SettingsPanel({
   // ---- Tab navigation & search ----
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     const saved = lsGet(STORAGE_KEYS.SETTINGS_ACTIVE_TAB);
-    return (saved === 'preferences' || saved === 'connection' || saved === 'export' || saved === 'advanced-recovery') ? saved : 'preferences';
+    if (saved === 'advanced' || saved === 'advanced-recovery' || saved === 'connection' || saved === 'export') {
+      return 'advanced';
+    }
+    return 'preferences';
   });
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -620,8 +630,41 @@ export function SettingsPanel({
             <GroupIntro
               title={activeTabMeta.label}
               description={activeTabMeta.description}
-              note={activeTab === 'advanced-recovery' ? 'Rarely changed' : 'Common'}
+              note={activeTab === 'advanced' ? 'Use when needed' : 'Common'}
             />
+          )}
+
+          {!searchQuery && activeTab === 'advanced' && (
+            <div className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-3">
+              <div className="flex items-start gap-2">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-amber-600" aria-hidden="true">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">Advanced operations</h2>
+                    <span className="rounded-full border border-amber-500/30 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                      Deliberate use
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    Open this area when you are setting up a machine, troubleshooting the local server, recovering preferences, or making a deliberate workspace reset. Several actions here reload the plugin or permanently affect local data.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {ADVANCED_SUMMARY_ITEMS.map(item => (
+                      <span
+                        key={item}
+                        className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {showSection('workspace-behavior') && (
@@ -761,9 +804,9 @@ export function SettingsPanel({
           )}
 
           {showSection('connection') && (
-            <Section title="Local server connection" tabBadge={searchQuery ? 'Connection' : undefined}>
+            <Section title="Local server connection" defaultOpen={!searchQuery && activeTab === 'advanced'} tabBadge={searchQuery ? 'Advanced' : undefined}>
               <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                You only need this when the plugin should read token files from your machine, sync changes back to disk, or run server-backed tooling such as lint configuration.
+                Only adjust this when the plugin should read token files from your machine, sync changes back to disk, or run server-backed tooling such as lint configuration.
               </p>
               <div className="mb-1 flex items-center justify-between">
                 <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Server URL</label>
@@ -840,9 +883,9 @@ export function SettingsPanel({
           )}
 
           {showSection('export-defaults') && (
-            <Section title="Export defaults" tabBadge={searchQuery ? 'Export' : undefined}>
+            <Section title="Export defaults" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
               <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                These defaults pre-fill the Export panel so routine handoff tasks start from the most common platform mix and selector structure.
+                Change these only when your handoff defaults have shifted. The Export panel reads them as a starting point for future export runs.
               </p>
               <div>
                 <div className="mb-1 flex items-center justify-between">
@@ -904,9 +947,9 @@ export function SettingsPanel({
           )}
 
           {showSection('backup') && (
-            <Section title="Backup and restore" defaultOpen={false} tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+            <Section title="Backup and restore" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
               <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Use this when moving to another machine, recovering after browser storage is cleared, or snapshotting your preferences before making bigger workflow changes.
+                Use this when moving to another machine, recovering after browser storage is cleared, or snapshotting preferences before making broader workflow changes.
               </p>
               <div className="flex gap-2">
                 <button
@@ -1020,7 +1063,7 @@ export function SettingsPanel({
           )}
 
           {showSection('guided-setup') && (
-            <Section title="Guided setup" defaultOpen={false} tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+            <Section title="Guided setup" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
               <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
                 Re-open the onboarding flow when you want help reconnecting the server, creating a foundation set, mapping semantic roles, or rebuilding your theme setup from scratch.
               </p>
@@ -1037,9 +1080,9 @@ export function SettingsPanel({
           )}
 
           {showSection('validation') && (
-            <Section title="Validation rules" defaultOpen={false} tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+            <Section title="Validation rules" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
               <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Only change this when your team needs different linting rules than the defaults. These rules are stored on the local server, not in the Figma plugin itself.
+                Change this only when your team needs different linting rules than the defaults or when you are debugging why validation is behaving unexpectedly. These rules are stored on the local server, not in the Figma plugin itself.
               </p>
               {!connected ? (
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1061,7 +1104,7 @@ export function SettingsPanel({
           )}
 
           {showSection('undo') && (
-            <Section title="Undo history" defaultOpen={false} tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+            <Section title="Undo history" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
               <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
                 Increase this only if you regularly make long editing runs and need a deeper local undo stack. Higher values keep more history in browser storage.
               </p>
@@ -1093,7 +1136,7 @@ export function SettingsPanel({
           )}
 
           {showSection('danger') && (
-            <Section title="Danger zone" defaultOpen={false} danger tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+            <Section title="Danger zone" defaultOpen={false} danger tabBadge={searchQuery ? 'Advanced' : undefined}>
               {!showClearConfirm ? (
                 <>
                   <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">

@@ -64,7 +64,7 @@ For each major UI area you explore, perform a **code-level cognitive walkthrough
 
 ## Workflow
 
-1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `ux-pass:` entries to avoid retreading the same ground. Then roam the UI codebase — components, hooks, panels, dialogs, whatever you find. Focus on `packages/figma-plugin/src/ui/`.
+1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `ux-pass:` entries to avoid retreading the same ground. Then read the injected `Current Open Backlog` section before roaming the UI codebase. Use it to understand which workflows already have multiple related items so you can spot missing usability follow-through, inconsistent interaction patterns across the same area, and queue-shaped gaps that the existing backlog suggests. Then roam the UI codebase — components, hooks, panels, dialogs, whatever you find. Focus on `packages/figma-plugin/src/ui/`.
 
 3. **Write findings** — for each issue found, append a line to `backlog-inbox.md`:
    - Normal: `- [ ] Short title — one sentence describing the usability issue and where it is (violates: <heuristic>)`
@@ -93,7 +93,8 @@ For each major UI area you explore, perform a **code-level cognitive walkthrough
 - Do NOT modify `backlog.md`.
 - Write only to `backlog-inbox.md` and `scripts/backlog/progress.txt`.
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
-- Do not duplicate items already in `backlog.md` (check for similar wording before writing).
+- Use the current backlog as input when generating ideas: extend existing workflow clusters, identify missing usability follow-through around already-queued work, and surface inconsistencies that become obvious when similar areas are considered together.
+- Do not duplicate items already in `backlog.md` or merely restate them with different wording (check for similar wording and intent before writing).
 - Aim for 4–10 items. Prefer fewer, larger items. Only write issues that are real — confirmed by reading the code, not hypothetical.
 - Do NOT propose new features — that is the product-pass's job. If an issue is primarily about a missing capability, leave it for the product-pass. If it is about how an existing capability is presented or interacted with, it belongs here.
 - Every finding must be grounded in actual code you read, not inferred from file names or assumed from patterns.

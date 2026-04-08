@@ -1584,7 +1584,7 @@ export function App() {
       case 'window-size':
         return isExpanded ? 'Windowed' : 'Expanded';
       case 'settings':
-        return 'Admin';
+        return 'Prefs';
     }
   }, [isExpanded, notificationHistory.length]);
 

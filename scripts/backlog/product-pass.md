@@ -41,7 +41,7 @@ Overhaul, consolidation, and removal items are encouraged when a whole area of t
 
 ## Workflow
 
-1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `product-pass:` entries to avoid retreading the same ground. Then roam the codebase — panels, flows, server routes, whatever catches your eye. Look at both the frontend (`packages/figma-plugin/src/ui/`) and the server (`packages/server/`).
+1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `product-pass:` entries to avoid retreading the same ground. Then read the injected `Current Open Backlog` section before roaming the codebase. Use it to understand what themes are already important, where the queue is dense, and what adjacent workflow gaps or missing follow-through work the current backlog implies. Then roam the codebase — panels, flows, server routes, whatever catches your eye. Look at both the frontend (`packages/figma-plugin/src/ui/`) and the server (`packages/server/`).
 
 3. **Write findings** — for each issue found, append a line to `backlog-inbox.md`:
    - Normal: `- [ ] Short title — one sentence describing the gap and where it is`
@@ -69,7 +69,8 @@ Overhaul, consolidation, and removal items are encouraged when a whole area of t
 - Do NOT modify `backlog.md`.
 - Write only to `backlog-inbox.md` and `scripts/backlog/progress.txt`.
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
-- Do not duplicate items already in `backlog.md` (check for similar wording before writing).
+- Use the current backlog as input when generating ideas: extend clusters that already exist, identify missing prerequisite or follow-through work, and surface cross-cutting consolidation opportunities suggested by the queue.
+- Do not duplicate items already in `backlog.md` or merely rephrase them (check for similar wording and intent before writing).
 - Aim for 5–15 items. Only write issues that are real and worth acting on.
 - Feature and UX items should outnumber bug items. If you found mostly bugs, step back and think about the user's workflow.
 

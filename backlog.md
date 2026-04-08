@@ -147,7 +147,7 @@
 
 ### UX
 
-- [ ] [HIGH] Reduce Settings to a concise preferences area for real day-to-day decisions, and move recovery, backup/restore, destructive actions, and debugging controls into a deliberately advanced section with stronger framing
+- [x] [HIGH] Reduce Settings to a concise preferences area for real day-to-day decisions, and move recovery, backup/restore, destructive actions, and debugging controls into a deliberately advanced section with stronger framing
 - [ ] Rework connection settings so server URL management, connection testing, retry behavior, and setup guidance live in one coherent place instead of being split between the top banner, onboarding, and the settings panel
 - [ ] Define a better recovery / data management UX for destructive actions like clearing all data, importing settings, and restoring backups so these operations no longer sit visually adjacent to normal preferences without enough separation
 

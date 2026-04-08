@@ -120,6 +120,26 @@ async function readRecentSections(progressFile: string, maxSections: number): Pr
   }
 }
 
+function extractOpenBacklogItems(content: string): string[] {
+  return content
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => /^- \[[ ~!]\]/.test(line));
+}
+
+async function readBacklogSnapshot(backlogFile: string): Promise<string> {
+  try {
+    const content = await readFile(backlogFile, 'utf8');
+    const items = extractOpenBacklogItems(content);
+    if (items.length === 0) {
+      return 'No open backlog items.';
+    }
+    return items.join('\n');
+  } catch {
+    return 'Backlog unavailable.';
+  }
+}
+
 async function buildContext(
   config: BacklogRunnerConfig,
   cwd: string,
@@ -128,6 +148,7 @@ async function buildContext(
 ): Promise<string> {
   const patterns = await readFile(config.files.patterns, 'utf8');
   const recent = await readRecentSections(config.files.progress, recentSectionCount);
+  const backlog = item ? '' : await readBacklogSnapshot(config.files.backlog);
   const validation = `\n\n## Validation Command\n\nRun this command before reporting success:\n\n${config.validationCommand}\n`;
   const followups = item
     ? `\n\n## Follow-up Queue\n\nIf this work reveals another backlog item or context that a later run should keep, append one JSON object per line to:\n\n${normalizePathForGit(path.relative(cwd, config.files.followups))}\n\nSchema:\n{"title":"Standalone backlog item title","context":"Optional concise context for the future run","priority":"normal|high"}\n\nDo NOT modify backlog.md directly for follow-up work.\n`
@@ -135,7 +156,10 @@ async function buildContext(
   const assigned = item
     ? `\n\n## Assigned Item\n\nWork on this specific item (already marked [~] in backlog.md):\n\n${item}\n\nDo NOT pick a different item. Do NOT modify backlog.md.\n`
     : '';
-  return `${patterns}\n\n## Recent session log:\n${recent}${validation}${followups}${assigned}`;
+  const backlogContext = item
+    ? ''
+    : `\n\n## Current Open Backlog\n\nUse these existing items as ideation input. Look for clusters, repeated themes, missing prerequisites, missing follow-through work, adjacent consolidation opportunities, and larger workflow gaps implied by what is already queued. Do not restate the same task with slightly different wording.\n\n${backlog}`;
+  return `${patterns}\n\n## Recent session log:\n${recent}${backlogContext}${validation}${followups}${assigned}`;
 }
 
 async function runValidationCommand(
