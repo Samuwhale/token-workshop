@@ -341,8 +341,8 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
       },
       {
         id: 'publish',
-        label: 'Go to Publish',
-        description: 'Sync tokens to Figma and export',
+        label: 'Go to Sync to Figma',
+        description: 'Run readiness checks and sync variables or styles to the current Figma file',
         category: 'Navigation',
         handler: () => navigateTo('ship', 'publish'),
       },
@@ -365,14 +365,14 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
       },
       {
         id: 'validate',
-        label: 'Validate All Tokens',
-        description: 'Run cross-set validation for broken references, circular refs, and more',
+        label: 'Run Audit',
+        description: 'Run cross-set validation for broken references, circular refs, duplicates, and more',
         category: 'Tokens',
         handler: () => { navigateTo('ship', 'health'); refreshValidation(); },
       },
       {
         id: 'health-dashboard',
-        label: 'Token Health',
+        label: 'Open Audit',
         description: 'Validation report, lint summary, generator health, canvas coverage, and unused tokens',
         category: 'Navigation',
         handler: () => navigateTo('ship', 'health'),

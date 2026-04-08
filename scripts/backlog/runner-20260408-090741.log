@@ -106,3 +106,22 @@
     Refactored ThemeManager so authoring stays primary while coverage and compare launch from the active axis or option, keep that context in their headers/back flow, and validation passed.
 
   Committing: Coverage and compare are useful theme tools, but they currently behave like parallel destinations instead of contextual tools
+[main 4071a2b9] chore(backlog): done – Coverage and compare are useful theme tools, but they currently behave like parallel destinations instead of contextual tools
+ 5 files changed, 335 insertions(+), 88 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-08 - Coverage and compare feel like parallel theme products instead of contextual tools
+- Refocused `ThemeManager` around one authoring home by removing the top-level coverage/compare buttons, tracking the active axis/option in local context state, and launching both tools from the axis or option the user is editing.
+- Reframed coverage around the current axis by default, added a scoped coverage header with optional `Show all axes`, and made compare default to the selected option inside the current axis while preserving back-navigation to the same authoring context.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L77, ~L188, ~L627, ~L718, ~L782, ~L1237, ~L1510, ~L2024
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  9 queued · 0 in-progress · last took 9m1s
+═══════════════════════════════════════════════════════════════
+  → Publishing is overloaded because Figma sync, Git operations, readiness checks, history, export, and “health” are grouped too tightly — the current `Ship` concept combines several different workflows and `Publish` itself opens as a compound workspace with readiness gating, publish-all banners, compare-all, and multiple accordions; split this into clearer mental models aimed at the actual user: `Sync to Figma` for variables/styles, `Export` for file output, `Audit` for quality analysis, and `Git` as a secondary expert/developer workflow instead of part of the primary designer path; if the shell redesign introduces a dedicated `Sync` workspace, it should default to Figma-oriented actions and treat Git as optional/advanced; constraints: (1) readiness checks remain available before destructive sync actions, (2) publish-all can still exist, but only after the underlying destinations are understandable, (3) avoid duplicating audit concepts between sync and health; files: `packages/figma-plugin/src/ui/shared/navigationTypes.ts`, `packages/figma-plugin/src/ui/components/PublishPanel.tsx`, `packages/figma-plugin/src/ui/components/HealthPanel.tsx`, `packages/figma-plugin/src/ui/App.tsx`
+  Running agent… (started 10:33:07)
+
+  ✓ done: Publishing is overloaded because Figma sync, Git operations, readiness checks, history, export, and “health” are grouped too tightly
+    Reframed the shell around Sync and Audit, made the main sync flow Figma-first, and demoted Git to an optional advanced workflow while keeping readiness gates and destination review intact.
+
+  Committing: Publishing is overloaded because Figma sync, Git operations, readiness checks, history, export, and “health” are grouped too tightly

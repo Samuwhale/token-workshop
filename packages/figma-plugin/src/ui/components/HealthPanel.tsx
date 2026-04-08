@@ -698,12 +698,12 @@ export function HealthPanel({
         <div className="flex-1 min-w-0">
           <p className={`text-[12px] font-bold ${validationIssuesProp !== null ? statusColor(overallStatus) : 'text-[var(--color-figma-text)]'}`}>
             {validationIssuesProp === null
-              ? 'Token Health'
+              ? 'Audit Overview'
               : overallStatus === 'healthy'
-                ? 'All checks passed'
+                ? 'Audit checks passed'
                 : totalIssues > 0
-                  ? `${totalIssues} issue${totalIssues !== 1 ? 's' : ''} found`
-                  : 'Token Health'
+                  ? `Audit found ${totalIssues} issue${totalIssues !== 1 ? 's' : ''}`
+                  : 'Audit Overview'
             }
           </p>
           {lastRefreshed && (
@@ -805,7 +805,7 @@ export function HealthPanel({
             aria-expanded={dashboardExpanded}
           >
             <span className="flex-1 text-left font-medium text-[var(--color-figma-text-secondary)]">
-              Section breakdown
+              Audit breakdown
               {validationIssuesProp === null && totalIssues > 0 && (
                 <span className={`ml-1.5 ${statusColor(overallStatus)}`}>
                   — {totalIssues} issue{totalIssues !== 1 ? 's' : ''}
@@ -971,7 +971,7 @@ export function HealthPanel({
               <div id="health-validation-section" className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
                 <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                   <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-                    Validation Report
+                    Audit Report
                     {validationIsStale && (
                       <span className="text-[var(--color-figma-warning)] normal-case font-normal tracking-normal">stale</span>
                     )}
@@ -1247,8 +1247,10 @@ export function HealthPanel({
 export function computeHealthIssueCount(
   lintViolations: LintViolation[],
   generators: TokenGenerator[],
+  validationSummary?: ValidationSummary | null,
 ): number {
   const lintCount = lintViolations.filter(v => v.severity === 'error' || v.severity === 'warning').length;
+  const validationCount = validationSummary ? validationSummary.errors + validationSummary.warnings : 0;
   const genIssues = generators.filter(g => g.isStale || g.lastRunError).length;
-  return lintCount + genIssues;
+  return lintCount + validationCount + genIssues;
 }

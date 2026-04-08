@@ -166,7 +166,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         {help.expanded && (
           <PanelHelpBanner
             title="Export"
-            description="Generate platform-specific token files (CSS variables, Dart, Swift, Android, W3C JSON) from the server, or import variable values directly from Figma. Choose a platform preset, configure options, and download the output."
+            description="Generate platform-specific token files such as CSS variables, Dart, Swift, Android, or W3C JSON from the server. A secondary Figma Variables mode is available when you need to inspect variables from the current file and bring them back into the library."
             onDismiss={help.dismiss}
           />
         )}
@@ -215,7 +215,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 <rect x="3" y="14" width="7" height="7" rx="1" />
                 <rect x="14" y="14" width="7" height="7" rx="1" />
               </svg>
-              Import from Figma
+              Figma Variables
             </button>
           </div>
 
@@ -223,7 +223,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed -mt-1">
             {mode === 'platforms'
               ? 'Generate platform-specific code files from the token server — CSS variables, Dart, Swift, Android, or W3C JSON.'
-              : 'Read local variables from this Figma file, preview them, and copy as DTCG JSON or save to the token server.'}
+              : 'Inspect variables from this Figma file, preview them, and copy as DTCG JSON or save them to the token server.'}
           </div>
 
           {/* Auto-switch notice */}
@@ -235,7 +235,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
               <span className="flex-1">
-                Switched to <strong>Import from Figma</strong> — server disconnected. Platforms mode requires a server connection. Reconnect to switch back.
+                Switched to <strong>Figma Variables</strong> — server disconnected. Platforms mode requires a server connection. Reconnect to switch back.
               </span>
               <button
                 onClick={() => setModeAutoSwitched(false)}

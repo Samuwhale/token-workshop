@@ -210,7 +210,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   }, [connected, serverUrl, tokenChangeKey]);
 
   // ── Section accordion state ──
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['figma-variables', 'figma-styles', 'git']));
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['figma-variables', 'figma-styles']));
   const toggleSection = (id: string) => setOpenSections(prev => {
     const next = new Set(prev);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -314,6 +314,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     effectiveHasGitDiffChanges, hasMergeConflicts, publishAllAvailable, publishAllBusy,
     gitDiffPendingCount, handleOpenPublishAll, compareAll, runPublishAll, quickSync, quickSyncing,
   } = publishAll;
+  const hasFigmaSyncChanges = hasVarChanges || hasStyleChanges;
+  const hasOnlyGitChanges = !hasFigmaSyncChanges && effectiveHasGitDiffChanges;
 
   // ── Broadcast pending count to Ship tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
@@ -331,7 +333,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
-        Connect to server to publish tokens
+        Connect to server to sync tokens with Figma
       </div>
     );
   }
@@ -353,7 +355,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               readinessFails > 0 ? 'bg-yellow-500' :
               'bg-[var(--color-figma-border)]'
             }`} />
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Publish Readiness</span>
+            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Figma Sync Readiness</span>
             {readinessBlockingFails > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] font-medium">{readinessBlockingFails} blocking</span>
             )}
@@ -371,7 +373,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            <PanelHelpIcon panelKey="publish" title="Publish" expanded={help.expanded} onToggle={help.toggle} />
+            <PanelHelpIcon panelKey="publish" title="Sync to Figma" expanded={help.expanded} onToggle={help.toggle} />
             <button
               onClick={runReadinessChecks}
               disabled={readinessLoading || !activeSet}
@@ -394,7 +396,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
                 </svg>
                 <div className="text-[10px] text-[var(--color-figma-error)] leading-relaxed">
-                  <span className="font-medium">{readinessBlockingFails} required {readinessBlockingFails === 1 ? 'issue' : 'issues'} must be resolved before publishing.</span>
+                  <span className="font-medium">{readinessBlockingFails} required {readinessBlockingFails === 1 ? 'issue' : 'issues'} must be resolved before syncing to Figma.</span>
                   {' '}Fix items marked <span className="font-medium">Required</span> first, then re-check.
                 </div>
               </div>
@@ -405,7 +407,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
                 </svg>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                  Optional improvements remain. You can publish now or address them first.
+                  Optional improvements remain. You can sync to Figma now or address them first.
                 </span>
               </div>
             )}
@@ -462,7 +464,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
         {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
           <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Click <strong className="font-medium text-[var(--color-figma-text)]">Run checks</strong> to validate before publishing.
+            Click <strong className="font-medium text-[var(--color-figma-text)]">Run checks</strong> to validate before syncing to Figma.
           </div>
         )}
       </div>
@@ -476,40 +478,60 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
                 <span className="text-[10px] text-[var(--color-figma-text)] font-medium">
                   {compareAllLoading && 'Comparing\u2026'}
-                  {!compareAllLoading && publishAllStep === 'variables' && (quickSyncing ? 'Syncing variables\u2026' : 'Applying variable changes\u2026')}
-                  {!compareAllLoading && publishAllStep === 'styles' && (quickSyncing ? 'Syncing styles\u2026' : 'Applying style changes\u2026')}
-                  {!compareAllLoading && publishAllStep === 'git' && 'Applying git diff changes\u2026'}
+                  {!compareAllLoading && publishAllStep === 'variables' && (quickSyncing ? 'Syncing variables to Figma\u2026' : 'Applying variable sync changes\u2026')}
+                  {!compareAllLoading && publishAllStep === 'styles' && (quickSyncing ? 'Syncing styles to Figma\u2026' : 'Applying style sync changes\u2026')}
+                  {!compareAllLoading && publishAllStep === 'git' && 'Applying advanced Git changes\u2026'}
                 </span>
               </div>
             ) : (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                    {hasMergeConflicts ? 'Publish Variables + Styles' : 'Publish all'}
+                    {hasOnlyGitChanges
+                      ? 'Advanced Git workflow ready'
+                      : hasMergeConflicts
+                        ? 'Figma sync ready'
+                        : 'Review sync destinations'}
                   </span>
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    {[
-                      hasVarChanges ? `${varSync.syncCount} variable${varSync.syncCount !== 1 ? 's' : ''}` : null,
-                      hasStyleChanges ? `${styleSync.syncCount} style${styleSync.syncCount !== 1 ? 's' : ''}` : null,
-                      effectiveHasGitDiffChanges ? `${gitDiffPendingCount} file${gitDiffPendingCount !== 1 ? 's' : ''}` : null,
-                    ].filter(Boolean).join(', ')}
+                    {hasOnlyGitChanges
+                      ? `${gitDiffPendingCount} git file${gitDiffPendingCount !== 1 ? 's' : ''} with local changes`
+                      : [
+                        hasVarChanges ? `${varSync.syncCount} variable change${varSync.syncCount !== 1 ? 's' : ''}` : null,
+                        hasStyleChanges ? `${styleSync.syncCount} style change${styleSync.syncCount !== 1 ? 's' : ''}` : null,
+                        effectiveHasGitDiffChanges ? `${gitDiffPendingCount} git file${gitDiffPendingCount !== 1 ? 's' : ''} available in advanced workflow` : null,
+                      ].filter(Boolean).join(', ')}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={quickSync}
-                    title="Compare and apply all variable + style changes immediately, without preview"
-                    className="text-[10px] px-2.5 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-                  >
-                    Sync all
-                  </button>
+                  {hasFigmaSyncChanges && (
+                    <button
+                      onClick={quickSync}
+                      title="Compare and apply all variable and style changes to Figma immediately, without preview"
+                      className="text-[10px] px-2.5 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                    >
+                      Sync Figma now
+                    </button>
+                  )}
                   <button
                     onClick={handleOpenPublishAll}
                     className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)]"
                   >
-                    {hasMergeConflicts ? 'Publish without Git' : 'Review & publish'}
+                    {hasOnlyGitChanges
+                      ? 'Review Git changes'
+                      : hasMergeConflicts
+                        ? 'Review Figma sync'
+                        : 'Choose destinations'}
                   </button>
                 </div>
+              </div>
+            )}
+            {effectiveHasGitDiffChanges && !publishAllBusy && !hasOnlyGitChanges && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+                  <path d="M12 20v-6M12 4v4M6.5 7.5l2.8 2.8M14.7 13.7l2.8 2.8M4 12h4M16 12h4M6.5 16.5l2.8-2.8M14.7 10.3l2.8-2.8" />
+                </svg>
+                Git stays optional here. Open the advanced Git workflow only if you want to include repository changes in the same review.
               </div>
             )}
             {hasMergeConflicts && !publishAllBusy && (
@@ -517,12 +539,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
                 </svg>
-                Git excluded — {git.mergeConflicts.length} conflict{git.mergeConflicts.length !== 1 ? 's' : ''} must be resolved in the Git tab first
+                Git excluded — {git.mergeConflicts.length} conflict{git.mergeConflicts.length !== 1 ? 's' : ''} must be resolved in the advanced Git workflow first
               </div>
             )}
             {publishAllError && (
               <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">
-                Publish all failed: {publishAllError}
+                Sync failed: {publishAllError}
               </div>
             )}
           </div>
@@ -538,9 +560,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
               </svg>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Git sync was skipped</p>
+                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Advanced Git workflow was skipped</p>
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-                  Variables and styles were published, but Git was not synced because {git.mergeConflicts.length} merge conflict{git.mergeConflicts.length !== 1 ? 's' : ''} must be resolved first.
+                  Variables and styles were synced to Figma, but Git was not included because {git.mergeConflicts.length} merge conflict{git.mergeConflicts.length !== 1 ? 's' : ''} must be resolved first.
                 </p>
                 <button
                   onClick={() => {
@@ -550,7 +572,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   }}
                   className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline font-medium"
                 >
-                  Go to Git section \u2192
+                  Open advanced Git workflow \u2192
                 </button>
               </div>
               <button
@@ -569,21 +591,21 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
       {help.expanded && (
         <PanelHelpBanner
-          title="Publish"
-          description="Push your design tokens to Figma Variables, Figma Styles, or a Git repository. Run the readiness checks first — blocking issues must be fixed before publishing, optional issues can be skipped."
+          title="Sync to Figma"
+          description="Run readiness checks, compare local tokens against Figma variables and styles, and sync the destinations you choose. Git stays available as an optional advanced workflow instead of part of the primary designer path."
           onDismiss={help.dismiss}
         />
       )}
 
-      {/* ── Compare All toolbar ─────────────────────────────────────────── */}
+      {/* ── Compare Figma destinations toolbar ─────────────────────────── */}
       <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center justify-end">
         <button
           onClick={async () => {
-            setOpenSections(new Set(['figma-variables', 'figma-styles', 'git']));
+            setOpenSections(new Set(['figma-variables', 'figma-styles']));
             await compareAll();
           }}
-          disabled={compareAllLoading || varSync.loading || styleSync.loading || git.diffLoading}
-          title="Run all comparisons in parallel and expand results"
+          disabled={compareAllLoading || varSync.loading || styleSync.loading}
+          title="Compare variables and styles in parallel"
           className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] disabled:opacity-40 transition-colors flex items-center gap-1"
         >
           {compareAllLoading ? (
@@ -597,7 +619,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <path d="M1 4v6h6M23 20v-6h-6" />
                 <path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15" />
               </svg>
-              Compare all
+              Compare Figma targets
             </>
           )}
         </button>
@@ -606,8 +628,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       {/* ── Sections ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
       {/* ── Section: Figma Variables ─────────────────────────────────────── */}
-      <Section
-        title="Figma Variables"
+        <Section
+          title="Figma Variables"
         open={openSections.has('figma-variables')}
         onToggle={() => toggleSection('figma-variables')}
         badge={
@@ -670,7 +692,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         {/* ── Section: Git ─────────────────────────────────────────────── */}
         <div id="publish-section-git">
         <Section
-          title="Git"
+          title="Advanced Git workflow"
           open={openSections.has('git')}
           onToggle={() => toggleSection('git')}
           badge={
@@ -683,6 +705,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Up to date</span>
           }
         >
+          <div className="mx-3 mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+            Use this only when repository sync belongs in the same workflow as your Figma changes. Variables and styles can be synced to Figma without touching Git.
+          </div>
+
           {git.gitError && (
             <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
               {git.gitError}
@@ -1602,6 +1628,7 @@ function PublishAllPreviewModal({
   const gitPushCount = Object.values(gitDiffChoices).filter(c => c === 'push').length;
   const gitPullCount = Object.values(gitDiffChoices).filter(c => c === 'pull').length;
   const hasAnyChanges = hasVarChanges || hasStyleChanges || hasGitDiffChanges;
+  const hasOnlyGitChanges = !hasVarChanges && !hasStyleChanges && hasGitDiffChanges;
   const anySelected = (includeVars && hasVarChanges) || (includeStyles && hasStyleChanges) || (includeGit && hasGitDiffChanges);
 
   const handleConfirm = async () => {
@@ -1618,10 +1645,10 @@ function PublishAllPreviewModal({
       <div ref={dialogRef} className="w-[400px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="publish-all-modal-title">
         <div className="px-4 pt-4 pb-2">
           <h3 id="publish-all-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-            {mergeConflictCount > 0 ? 'Publish Variables + Styles' : 'Publish all changes'}
+            {mergeConflictCount > 0 ? 'Review Figma sync' : 'Review sync destinations'}
           </h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review all changes before applying.
+            Review each destination before you sync it.
           </p>
         </div>
 
@@ -1632,7 +1659,7 @@ function PublishAllPreviewModal({
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
               </svg>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Git excluded — <span className="font-medium text-[var(--color-figma-text)]">{mergeConflictCount} merge conflict{mergeConflictCount !== 1 ? 's' : ''}</span> must be resolved in the Git tab first.
+                Git excluded — <span className="font-medium text-[var(--color-figma-text)]">{mergeConflictCount} merge conflict{mergeConflictCount !== 1 ? 's' : ''}</span> must be resolved in the advanced Git workflow first.
               </div>
             </div>
           )}
@@ -1640,7 +1667,7 @@ function PublishAllPreviewModal({
           {/* All in sync — shown when auto-compare found no pending changes */}
           {!hasAnyChanges && (
             <div className="py-3 text-[10px] text-[var(--color-figma-text-secondary)] text-center">
-              All targets are in sync — nothing to publish.
+              Everything is already in sync — nothing to apply.
             </div>
           )}
 
@@ -1698,7 +1725,7 @@ function PublishAllPreviewModal({
                   onChange={e => setIncludeGit(e.target.checked)}
                   className="w-3 h-3 accent-[var(--color-figma-accent)]"
                 />
-                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Git</span>
+                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Advanced Git workflow</span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {[
                     gitPushCount > 0 ? `\u2191 ${gitPushCount} file${gitPushCount !== 1 ? 's' : ''} to remote` : null,
@@ -1746,11 +1773,11 @@ function PublishAllPreviewModal({
             <button
               onClick={handleConfirm}
               disabled={busy || !anySelected}
-              title={!anySelected ? 'Select at least one section to publish' : undefined}
+              title={!anySelected ? 'Select at least one destination to sync' : undefined}
               className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
-              {busy ? 'Publishing\u2026' : !anySelected ? 'Nothing selected' : mergeConflictCount > 0 ? 'Publish without Git' : 'Publish'}
+              {busy ? 'Applying\u2026' : !anySelected ? 'Nothing selected' : hasOnlyGitChanges ? 'Apply Git changes' : mergeConflictCount > 0 ? 'Sync without Git' : 'Sync selected'}
             </button>
           ) : (
             <button
@@ -1862,4 +1889,3 @@ function TokenChangeRow({ change }: { change: import('../hooks/useGitDiff').Toke
     </div>
   );
 }
-

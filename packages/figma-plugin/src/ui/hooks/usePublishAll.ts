@@ -54,7 +54,7 @@ export interface UsePublishAllReturn {
   gitDiffPendingCount: number;
   handleOpenPublishAll: () => Promise<void>;
   runPublishAll: (sections?: PublishAllSections) => Promise<void>;
-  /** Compare all three targets in parallel without opening a modal or applying changes. */
+  /** Compare both Figma sync targets in parallel without opening a modal or applying changes. */
   compareAll: () => Promise<void>;
   /** One-click sync: auto-compare variables + styles then apply immediately, no preview modal. */
   quickSync: () => Promise<void>;
@@ -90,13 +90,13 @@ export function usePublishAll({
   const publishAllAvailable = publishAllSections >= 1;
   const publishAllBusy = publishAllStep !== null;
 
-  // "Publish All" fast path: auto-compare any unchecked targets, then open the combined modal.
-  // This lets users click one button to compare everything and confirm in a single step.
+  // "Review sync plan" fast path: compare the Figma destinations first, then open the
+  // combined modal. Git remains opt-in; it is only included if the user has already
+  // opened the Git workflow and loaded a diff there.
   const handleOpenPublishAll = useCallback(async () => {
     const toCompare: Promise<void>[] = [];
     if (!varSync.checked && !varSync.loading) toCompare.push(varSync.computeDiff());
     if (!styleSync.checked && !styleSync.loading) toCompare.push(styleSync.computeDiff());
-    if (git.diffView === null && !git.diffLoading) toCompare.push(git.computeDiff());
 
     if (toCompare.length > 0) {
       setCompareAllLoading(true);
@@ -109,7 +109,7 @@ export function usePublishAll({
       }
     }
     setConfirmAction('publish-all');
-  }, [setConfirmAction, git, styleSync, varSync]);
+  }, [setConfirmAction, styleSync, varSync]);
 
   const runPublishAll = useCallback(async (sections: PublishAllSections = { vars: true, styles: true, git: true }) => {
     setPublishAllError(null);
@@ -139,13 +139,12 @@ export function usePublishAll({
     }
   }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, markChecksStale, git, styleSync, varSync]);
 
-  // "Compare All": force re-run all three comparisons in parallel without opening a modal.
-  // Skips any currently in-flight comparisons to avoid double-calls.
+  // "Compare all": force re-run the two Figma sync comparisons in parallel.
+  // Git stays in its own advanced flow and is compared inside the Git section.
   const compareAll = useCallback(async () => {
     const toCompare: Promise<void>[] = [];
     if (!varSync.loading) toCompare.push(varSync.computeDiff());
     if (!styleSync.loading) toCompare.push(styleSync.computeDiff());
-    if (!git.diffLoading) toCompare.push(git.computeDiff());
 
     if (toCompare.length === 0) return;
     setCompareAllLoading(true);
@@ -156,7 +155,7 @@ export function usePublishAll({
     } finally {
       setCompareAllLoading(false);
     }
-  }, [git, styleSync, varSync]);
+  }, [styleSync, varSync]);
 
   // One-click "Sync all changes": auto-compare variables + styles, then apply immediately.
   // Git is intentionally excluded — git operations (push/pull/commit) require deliberate review.

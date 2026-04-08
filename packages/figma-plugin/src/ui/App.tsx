@@ -30,7 +30,7 @@ import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
 import type { OverflowPanel } from './shared/navigationTypes';
 import { WORKSPACE_TABS, toWorkspaceId } from './shared/navigationTypes';
-import { useConnectionContext, useSyncContext } from './contexts/ConnectionContext';
+import { useConnectionContext } from './contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from './contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from './contexts/ThemeContext';
 import { useSelectionContext, useHeatmapContext, useUsageContext } from './contexts/InspectContext';
@@ -71,7 +71,6 @@ export function App() {
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useConnectionContext();
-  const { gitHasChanges } = useSyncContext();
   const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet } = useTokenSetsContext();
   const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount } = useTokenFlatMapContext();
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGeneratorContext();
@@ -151,7 +150,6 @@ export function App() {
   const [tokenChangeKey, setTokenChangeKey] = useState(0);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
   const staleGeneratorCount = useMemo(() => generators.filter(g => g.isStale).length, [generators]);
-  const healthIssueCount = useMemo(() => computeHealthIssueCount(lintViolations, generators), [lintViolations, generators]);
   const activeWorkspaceId = useMemo(() => toWorkspaceId(activeTopTab, activeSubTab), [activeTopTab, activeSubTab]);
   const activeWorkspace = useMemo(
     () => WORKSPACE_TABS.find(workspace => workspace.id === activeWorkspaceId) ?? WORKSPACE_TABS[0],
@@ -366,6 +364,10 @@ export function App() {
     validationIsStale,
     refreshValidation,
   } = useValidationCache({ serverUrl, connected, tokenChangeKey });
+  const healthIssueCount = useMemo(
+    () => computeHealthIssueCount(lintViolations, generators, validationSummary),
+    [lintViolations, generators, validationSummary],
+  );
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<string | null>(null);
   // Command palette batch-delete state
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
@@ -864,21 +866,31 @@ export function App() {
         pills.push({ label: `${selectedNodes.length} layer${selectedNodes.length === 1 ? '' : 's'} selected`, tone: selectedNodes.length > 0 ? 'accent' : 'neutral' });
         break;
       case 'sync':
-        if (pendingPublishCount > 0) pills.push({ label: `${pendingPublishCount} change${pendingPublishCount === 1 ? '' : 's'} pending`, tone: 'accent' });
-        if (gitHasChanges) pills.push({ label: 'Local changes detected', tone: 'warning' });
-        if (pendingPublishCount === 0 && !gitHasChanges) pills.push({ label: 'Ready to publish', tone: 'success' });
+        if (activeWorkspaceSection?.id === 'publish') {
+          if (pendingPublishCount > 0) {
+            pills.push({ label: `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? '' : 's'} pending`, tone: 'accent' });
+          } else {
+            pills.push({ label: 'No Figma changes pending', tone: 'success' });
+          }
+        }
         break;
       case 'audit':
-        if (healthIssueCount > 0) pills.push({ label: `${healthIssueCount} health issue${healthIssueCount === 1 ? '' : 's'}`, tone: 'danger' });
+        if (validationLoading) {
+          pills.push({ label: 'Auditing…', tone: 'accent' });
+        } else if (validationSummary === null) {
+          pills.push({ label: 'Run audit', tone: 'neutral' });
+        } else if (healthIssueCount > 0) {
+          pills.push({ label: `${healthIssueCount} audit issue${healthIssueCount === 1 ? '' : 's'}`, tone: 'danger' });
+        }
         if (undoDescriptions.length > 0) pills.push({ label: `${undoDescriptions.length} undo step${undoDescriptions.length === 1 ? '' : 's'}`, tone: 'neutral' });
-        if (healthIssueCount === 0 && undoDescriptions.length === 0) pills.push({ label: 'No active alerts', tone: 'success' });
+        if (validationSummary !== null && healthIssueCount === 0 && undoDescriptions.length === 0) pills.push({ label: 'No active alerts', tone: 'success' });
         break;
     }
     return pills;
   }, [
     activeWorkspace.id,
+    activeWorkspaceSection?.id,
     dimensions.length,
-    gitHasChanges,
     healthIssueCount,
     lintViolations.length,
     pendingPublishCount,
@@ -887,6 +899,8 @@ export function App() {
     staleGeneratorCount,
     themeGapCount,
     undoDescriptions.length,
+    validationLoading,
+    validationSummary,
   ]);
 
   const renderWorkspaceActions = () => {

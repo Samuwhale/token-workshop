@@ -788,7 +788,7 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipPublish(): ReactNode {
     return (
-      <ErrorBoundary panelName="Publish" onReset={() => navigateTo('define', 'tokens')}>
+      <ErrorBoundary panelName="Sync to Figma" onReset={() => navigateTo('define', 'tokens')}>
         <PublishPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -836,7 +836,7 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipHealth(): ReactNode {
     return (
-      <ErrorBoundary panelName="Health" onReset={() => navigateTo('ship', 'history')}>
+      <ErrorBoundary panelName="Audit" onReset={() => navigateTo('ship', 'history')}>
         <HealthPanel
           serverUrl={serverUrl}
           connected={connected}

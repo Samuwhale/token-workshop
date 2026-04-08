@@ -26,6 +26,16 @@
   - When cross-set search mode returns an empty array `[]` vs `null`, these have different UI semantics (empty result vs "not in this mode"). Always use `null` as the "inactive" sentinel to show the default tree view.
   - Server-side search endpoints that support all structured qualifiers natively don't need client-side command palette delegation — if a search mode has its own backend, let the user use all qualifiers directly.
 ---
+
+## 2026-04-08 - Publishing is overloaded because Figma sync, Git operations, readiness checks, history, export, and “health” are grouped too tightly
+- Reframed the shell around the intended user jobs: the app now labels `ship` as `Sync`, exposes `Sync to Figma` and `Export` as the primary Sync sections, and renames the quality workspace to `Audit` so readiness and quality analysis stop reading like one blended publish flow.
+- Reworked the Sync panel into a Figma-first workspace: readiness copy now speaks explicitly about syncing to Figma, the top compare action only compares variables and styles, the default one-click path stays Figma-only, and Git is now collapsed by default behind an `Advanced Git workflow` section with lower-emphasis copy and opt-in inclusion in the combined destination review.
+- Tightened surrounding shell copy so the workspace pills, command palette, error boundaries, and export-mode help all reinforce the same IA instead of mixing `Publish`, `Health`, and Git language back into the primary designer path.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L21, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L213, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L346, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L473, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L693, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L699, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L1247, `packages/figma-plugin/src/ui/App.tsx` ~L358, `packages/figma-plugin/src/ui/App.tsx` ~L853, `packages/figma-plugin/src/ui/hooks/usePublishAll.ts` ~L93, `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L343, `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L168, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L791
+- **Learnings for future iterations:**
+  - If a workspace is meant to represent a user job rather than an implementation route, update every shell touchpoint together: route metadata, badges, empty/help copy, command palette labels, and error boundary titles. Partial renames leave the old IA visible.
+  - When a secondary workflow should feel optional, do not just relabel it. Keep it out of default compare actions, collapse it by default, and only include it in combined flows after the user has explicitly loaded or opened it.
+---
 ## 2026-04-07 - Boolean tokens mutate on single-click with no confirmation
 - Changed boolean inline editing to use the same staged activation flow as other inline types: double-click/keyboard activation now opens an inline `true`/`false` chooser, and the value only saves on Enter, Tab, or blur outside the chooser.
 - Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1207, ~L1234, ~L1414, ~L1647, ~L1948; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L220

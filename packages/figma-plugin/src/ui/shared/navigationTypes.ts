@@ -29,11 +29,11 @@ export const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label
     { id: 'canvas-analysis', label: 'Canvas Analysis' },
     { id: 'dependencies', label: 'Dependencies' },
   ]},
-  { id: 'ship', label: 'Ship', subTabs: [
-    { id: 'publish', label: 'Publish' },
+  { id: 'ship', label: 'Sync', subTabs: [
+    { id: 'publish', label: 'Sync to Figma' },
     { id: 'export', label: 'Export' },
     { id: 'history', label: 'History' },
-    { id: 'health', label: 'Health' },
+    { id: 'health', label: 'Audit' },
   ]},
 ];
 
@@ -118,12 +118,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: 'sync',
     label: 'Sync',
-    description: 'Publish tokens to Figma and export handoff artifacts for code.',
+    description: 'Sync variables and styles to Figma, then move on to exports when handoff files are needed.',
     topTab: 'ship',
     subTab: 'publish',
     sections: [
-      { id: 'publish', label: 'Publish', description: 'Sync variables and styles to Figma.', topTab: 'ship', subTab: 'publish' },
-      { id: 'export', label: 'Export', description: 'Generate platform exports and files.', topTab: 'ship', subTab: 'export' },
+      { id: 'publish', label: 'Sync to Figma', description: 'Run readiness checks and sync variables or styles to the current Figma file.', topTab: 'ship', subTab: 'publish' },
+      { id: 'export', label: 'Export', description: 'Generate platform files and handoff artifacts from the token library.', topTab: 'ship', subTab: 'export' },
     ],
     matchRoutes: [
       route('ship', 'publish'),
@@ -133,13 +133,13 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: 'audit',
     label: 'Audit',
-    description: 'Check health, trace dependencies, and review change history.',
+    description: 'Audit token quality, trace dependencies, and review recent changes.',
     topTab: 'ship',
     subTab: 'health',
     sections: [
-      { id: 'health', label: 'Health', description: 'Review validation and system health.', topTab: 'ship', subTab: 'health' },
+      { id: 'health', label: 'Audit', description: 'Review validation, warnings, duplicates, and other library quality signals.', topTab: 'ship', subTab: 'health' },
       { id: 'history', label: 'History', description: 'Inspect recent operations and undo history.', topTab: 'ship', subTab: 'history' },
-      { id: 'dependencies', label: 'Dependencies', description: 'Trace alias and dependency relationships.', topTab: 'apply', subTab: 'dependencies' },
+      { id: 'dependencies', label: 'Dependencies', description: 'Trace alias and dependency relationships across the token graph.', topTab: 'apply', subTab: 'dependencies' },
     ],
     matchRoutes: [
       route('ship', 'health'),
