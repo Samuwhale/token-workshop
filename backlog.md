@@ -20,7 +20,7 @@
 - [x] [HIGH] Replace the current multi-row shell chrome with the new navigation structure from the blueprint: primary workspace nav, one secondary utilities/admin entry point, and a calmer header area that no longer stacks competing rows of pills and section controls
 - [x] [HIGH] Extract a shared workspace header component and migrate Tokens, Themes, Apply, and Sync to it with a stable structure: title, one-sentence guidance, compact status indicators, and one primary action
 - [x] Rework the offline / server-connection experience so connection problems do not add a permanent global warning banner to every screen; show blocking empty states only where a server-backed action is required and keep lightweight passive status elsewhere
-- [ ] Move import, settings, notifications, shortcuts, and other secondary surfaces into a coherent secondary navigation model so users do not have to discover critical workflows through the generic Utilities menu
+- [x] Move import, settings, notifications, shortcuts, and other secondary surfaces into a coherent secondary navigation model so users do not have to discover critical workflows through the generic Utilities menu
 - [ ] Define a consistent workspace transition model for how screens, drawers, and overlays open or close in the constrained Figma plugin viewport, including when to use inline panels versus modal dialogs versus full-screen takeovers
 - [ ] Standardize hover, focus, pressed, disabled, and selected states across shell navigation controls so the app feels deliberate instead of visually inconsistent from workspace to workspace
 

@@ -1,5 +1,5 @@
 /**
- * PanelRouter — routes (activeTopTab, activeSubTab, overflowPanel) to the
+ * PanelRouter — routes (activeTopTab, activeSubTab, activeSecondarySurface) to the
  * correct panel component. Eliminates the O(N) condition matrix that previously
  * existed in App.tsx. Adding a new tab requires: one entry in the lookup table
  * + one render function below.
@@ -42,6 +42,8 @@ import { PreviewPanel } from '../components/PreviewPanel';
 import { EmptyState } from '../components/EmptyState';
 import type { StartHereBranch } from '../components/WelcomePrompt';
 import { SettingsPanel } from '../components/SettingsPanel';
+import { NotificationsPanel } from '../components/NotificationsPanel';
+import { KeyboardShortcutsPanel } from '../components/KeyboardShortcutsPanel';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useConnectionContext, useSyncContext } from '../contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from '../contexts/TokenDataContext';
@@ -56,7 +58,8 @@ import type { UndoSlot } from '../hooks/useUndo';
 import type { OperationEntry } from '../hooks/useRecentOperations';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
 import type { StarredTokensState } from '../hooks/useStarredTokens';
-import type { TopTab, SubTab } from '../shared/navigationTypes';
+import type { NotificationEntry } from '../hooks/useToastStack';
+import type { TopTab, SubTab, SecondarySurfaceId } from '../shared/navigationTypes';
 import type { ThemeWorkspaceShellState } from '../shared/themeWorkflow';
 import { useEditorWidth } from '../hooks/useEditorWidth';
 
@@ -182,6 +185,8 @@ export interface PanelRouterProps {
   onRestartGuidedSetup: () => void;
   /** Called after "Clear all data" — navigate away and refresh tokens */
   onClearAllComplete?: () => void;
+  notificationHistory: NotificationEntry[];
+  clearNotificationHistory: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +195,7 @@ export interface PanelRouterProps {
 
 export function PanelRouter(p: PanelRouterProps): ReactNode {
   // Navigation and editor state from contexts (previously passed as props)
-  const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel } = useNavigationContext();
+  const { activeTopTab, activeSubTab, activeSecondarySurface, navigateTo, closeSecondarySurface } = useNavigationContext();
   const {
     editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken,
     highlightedToken, setHighlightedToken, createFromEmpty,
@@ -357,27 +362,18 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     closeRef: p.editorCloseRef,
   } : null;
 
-  // ---------------------------------------------------------------------------
-  // Overflow panels
-  // ---------------------------------------------------------------------------
+  type SecondaryPanelRenderer = () => ReactNode;
 
-  if (overflowPanel === 'import') {
-    return (
-      <>
-        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <button
-            onClick={() => setOverflowPanel(null)}
-            className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-            aria-label="Back"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M6.5 2L3.5 5l3 3"/>
-            </svg>
-            Back
-          </button>
-          <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Import</span>
-        </div>
-        <ErrorBoundary panelName="Import" onReset={() => setOverflowPanel(null)}>
+  const SECONDARY_PANEL_MAP: Partial<Record<SecondarySurfaceId, SecondaryPanelRenderer>> = {
+    import: () => (
+      <ErrorBoundary panelName="Import" onReset={closeSecondarySurface}>
+        <div className="flex h-full flex-col overflow-hidden">
+          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+            <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">Import tokens</h2>
+            <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              Bring in Figma variables, token files, code exports, or migration inputs without leaving the current shell.
+            </p>
+          </div>
           <ImportPanel
             serverUrl={serverUrl}
             connected={connected}
@@ -385,16 +381,21 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             onImportComplete={(importedSet) => {
               navigateTo('define', 'tokens');
               setActiveSet(importedSet);
+              closeSecondarySurface();
             }}
             onPushUndo={p.pushUndo}
           />
-        </ErrorBoundary>
-      </>
-    );
-  }
-
-  if (overflowPanel === 'settings') {
-    return (
+        </div>
+      </ErrorBoundary>
+    ),
+    notifications: () => (
+      <NotificationsPanel
+        history={p.notificationHistory}
+        onClear={p.clearNotificationHistory}
+      />
+    ),
+    shortcuts: () => <KeyboardShortcutsPanel />,
+    settings: () => (
       <SettingsPanel
         serverUrl={serverUrl}
         connected={connected}
@@ -402,9 +403,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         updateServerUrlAndConnect={updateServerUrlAndConnect}
         onRestartGuidedSetup={p.onRestartGuidedSetup}
         onClearAllComplete={p.onClearAllComplete}
-        onClose={() => setOverflowPanel(null)}
+        onClose={closeSecondarySurface}
       />
-    );
+    ),
+  };
+
+  if (activeSecondarySurface && activeSecondarySurface !== 'sets') {
+    const secondaryRenderer = SECONDARY_PANEL_MAP[activeSecondarySurface];
+    return secondaryRenderer ? secondaryRenderer() : null;
   }
 
   // ---------------------------------------------------------------------------

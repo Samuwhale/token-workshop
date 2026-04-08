@@ -11,7 +11,7 @@ type DefineSubTab = 'tokens' | 'themes' | 'generators';
 type ApplySubTab = 'inspect' | 'canvas-analysis' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
-export type OverflowPanel = 'import' | 'settings' | 'sets' | null;
+export type SecondarySurfaceId = 'import' | 'sets' | 'notifications' | 'shortcuts' | 'settings';
 
 /**
  * Internal routing structure — kept for PanelRouter compatibility.
@@ -54,16 +54,12 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // ---------------------------------------------------------------------------
 
 export type WorkspaceId = 'tokens' | 'themes' | 'apply' | 'sync' | 'audit';
-export type SecondaryAreaId = 'utilities';
-export type SecondarySectionId = 'tools' | 'admin';
-export type SecondaryActionId =
+export type UtilityMenuId = 'tools';
+export type UtilitySectionId = 'actions';
+export type UtilityActionId =
   | 'command-palette'
   | 'paste-tokens'
-  | 'import'
-  | 'notifications'
-  | 'keyboard-shortcuts'
-  | 'window-size'
-  | 'settings';
+  | 'window-size';
 
 export interface WorkspaceRoute {
   topTab: TopTab;
@@ -89,30 +85,39 @@ export interface WorkspaceTab extends WorkspaceRoute {
   matchRoutes?: WorkspaceRoute[];
 }
 
-export interface SecondaryAction {
-  id: SecondaryActionId;
+export interface SecondarySurface {
+  id: SecondarySurfaceId;
+  label: string;
+  description: string;
+  summaryTitle: string;
+  summaryGuidance: string;
+}
+
+export interface UtilityAction {
+  id: UtilityActionId;
   label: string;
   description: string;
 }
 
-export interface SecondarySection {
-  id: SecondarySectionId;
+export interface UtilitySection {
+  id: UtilitySectionId;
   label: string;
   description: string;
-  actions: SecondaryAction[];
+  actions: UtilityAction[];
 }
 
-export interface SecondaryArea {
-  id: SecondaryAreaId;
+export interface UtilityMenu {
+  id: UtilityMenuId;
   triggerLabel: string;
   label: string;
   description: string;
-  sections: SecondarySection[];
+  sections: UtilitySection[];
 }
 
 export interface AppShellNavigation {
   workspaces: WorkspaceTab[];
-  secondaryArea: SecondaryArea;
+  secondarySurfaces: SecondarySurface[];
+  utilityMenu: UtilityMenu;
 }
 
 const route = (topTab: TopTab, subTab: SubTab): WorkspaceRoute => ({ topTab, subTab });
@@ -241,31 +246,58 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
 ];
 
-export const SECONDARY_AREA: SecondaryArea = {
-  id: 'utilities',
-  triggerLabel: 'Utilities',
-  label: 'Utilities',
-  description: 'Global tools, notifications, and app-level administration.',
+export const SECONDARY_SURFACES: SecondarySurface[] = [
+  {
+    id: 'import',
+    label: 'Import',
+    description: 'Bring in token files, code exports, migration data, or Figma variables.',
+    summaryTitle: 'Import tokens',
+    summaryGuidance: 'Choose the source family first, then the exact format, destination rules, and preview before writing tokens into the library.',
+  },
+  {
+    id: 'sets',
+    label: 'Sets',
+    description: 'Rename, reorder, merge, split, and annotate token sets without leaving the shell.',
+    summaryTitle: 'Token set manager',
+    summaryGuidance: 'Switch quickly between sets or open structural management flows like rename, merge, split, and metadata updates in one place.',
+  },
+  {
+    id: 'notifications',
+    label: 'Notifications',
+    description: 'Review the recent toast history and clear resolved status messages.',
+    summaryTitle: 'Notification history',
+    summaryGuidance: 'Review recent success and error messages from imports, sync, validation, and other workflows without relying on transient toasts.',
+  },
+  {
+    id: 'shortcuts',
+    label: 'Shortcuts',
+    description: 'Keep the shortcut reference available as a persistent secondary surface.',
+    summaryTitle: 'Keyboard shortcuts',
+    summaryGuidance: 'Review the current shortcut reference while you work instead of opening it as a temporary modal that disappears behind the shell.',
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    description: 'Adjust preferences, recovery controls, and advanced maintenance settings.',
+    summaryTitle: 'Settings',
+    summaryGuidance: 'Use preferences for day-to-day defaults, then open advanced sections only when you need setup, diagnostics, backup, or destructive recovery work.',
+  },
+];
+
+export const UTILITY_MENU: UtilityMenu = {
+  id: 'tools',
+  triggerLabel: 'Tools',
+  label: 'Tools',
+  description: 'Transient actions you can run from any workspace.',
   sections: [
     {
-      id: 'tools',
-      label: 'Tools',
-      description: 'Short-lived utility surfaces you can open from any workspace.',
+      id: 'actions',
+      label: 'Actions',
+      description: 'Short-lived tools that do not replace the current workspace.',
       actions: [
         { id: 'command-palette', label: 'Command palette', description: 'Search expert commands and jump straight into actions.' },
         { id: 'paste-tokens', label: 'Paste tokens', description: 'Import tokens directly from pasted content.' },
-        { id: 'notifications', label: 'Notifications', description: 'Review recent toasts and status messages.' },
-        { id: 'keyboard-shortcuts', label: 'Keyboard shortcuts', description: 'See the current shortcut reference.' },
         { id: 'window-size', label: 'Window size', description: 'Switch between compact and expanded plugin layouts.' },
-      ],
-    },
-    {
-      id: 'admin',
-      label: 'Admin',
-      description: 'Operational flows that replace the current workspace temporarily.',
-      actions: [
-        { id: 'import', label: 'Import tokens', description: 'Open the import workspace for files, code, or other tools.' },
-        { id: 'settings', label: 'Settings', description: 'Adjust day-to-day preferences and open advanced setup, recovery, and maintenance tools.' },
       ],
     },
   ],
@@ -273,7 +305,8 @@ export const SECONDARY_AREA: SecondaryArea = {
 
 export const APP_SHELL_NAVIGATION: AppShellNavigation = {
   workspaces: WORKSPACE_TABS,
-  secondaryArea: SECONDARY_AREA,
+  secondarySurfaces: SECONDARY_SURFACES,
+  utilityMenu: UTILITY_MENU,
 };
 
 function matchesRoute(routeDef: WorkspaceRoute, topTab: TopTab, subTab: SubTab): boolean {
@@ -299,4 +332,9 @@ export function resolveWorkspaceSection(
 /** Map an internal route to the primary workspace shown in the shell. */
 export function toWorkspaceId(topTab: TopTab, subTab: SubTab): WorkspaceId {
   return resolveWorkspace(topTab, subTab).id;
+}
+
+export function resolveSecondarySurface(id: SecondarySurfaceId | null): SecondarySurface | null {
+  if (id === null) return null;
+  return SECONDARY_SURFACES.find(surface => surface.id === id) ?? null;
 }

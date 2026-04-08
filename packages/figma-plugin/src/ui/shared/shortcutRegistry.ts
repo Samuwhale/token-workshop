@@ -4,8 +4,8 @@
  * - SHORTCUT_KEYS: key combo constants (Mac display strings) for use in handlers and JSX
  * - SHORTCUT_MATCHERS: key-matching descriptors (actual e.key + modifier flags) for handlers
  * - matchesShortcut(e, id): helper to check whether a keyboard event matches a named shortcut
- * - SHORTCUT_REGISTRY: full metadata for every shortcut (used by KeyboardShortcutsModal)
- * - SHORTCUT_SECTIONS: registry grouped and ordered to match the help modal layout
+ * - SHORTCUT_REGISTRY: full metadata for every shortcut (used by the shortcuts reference panel)
+ * - SHORTCUT_SECTIONS: registry grouped and ordered to match the shortcuts reference layout
  *
  * Handler files import matchesShortcut and SHORTCUT_KEYS rather than hard-coding key
  * strings, so the registry is the single source of truth for both display AND behaviour.
@@ -33,10 +33,10 @@ export interface ShortcutEntry {
    * For qualifier entries this is the example syntax string, e.g. 'type:color'.
    */
   mac: string;
-  /** Optional alternate shortcut shown after a '/' separator in the modal */
+  /** Optional alternate shortcut shown after a '/' separator in the shortcuts reference */
   altMac?: string;
   /**
-   * When true, this shortcut is documented in the modal but not backed by a
+   * When true, this shortcut is documented in the shortcuts reference but not backed by a
    * named SHORTCUT_KEYS constant — e.g. navigation keys, mouse gestures.
    */
   displayOnly?: true;

@@ -398,3 +398,11 @@
   - Keep global connection feedback lightweight and actionable; a status pill plus a utilities recovery surface is enough for shell-wide awareness.
   - If a screen can still do useful work offline or guide the user into a manual path, keep the empty state about that job and let server-required routes own their own blocking reconnect states.
 ---
+## 2026-04-08 - [HIGH] Move import, settings, notifications, shortcuts, and other secondary surfaces into a coherent secondary navigation model so users do not have to discover critical workflows through the generic Utilities menu
+- Split shell navigation into visible secondary surfaces plus a smaller tools menu, routed import/settings/notifications/shortcuts through one `activeSecondarySurface` state, and kept the last primary workspace active underneath those panels.
+- Replaced the old notifications popover and keyboard-shortcuts modal with persistent secondary panels, updated shell guidance and shortcut handling to target the same secondary navigation model, and kept set management in that same secondary surface system instead of burying it behind the tools menu.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L14, ~L56, ~L249; `packages/figma-plugin/src/ui/contexts/NavigationContext.tsx` ~L19, ~L46, ~L85; `packages/figma-plugin/src/ui/App.tsx` ~L77, ~L180, ~L682, ~L1548, ~L1641, ~L1956, ~L2229; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L45, ~L188, ~L365; `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` ~L1; `packages/figma-plugin/src/ui/components/KeyboardShortcutsPanel.tsx` ~L1; `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L80, ~L153, ~L203; `packages/figma-plugin/src/ui/hooks/useModalVisibility.ts` ~L3; `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L1; `scripts/backlog/patterns.md` ~L254
+- **Learnings for future iterations:**
+  - If a workflow needs persistent discovery, make it a visible secondary surface in the shell and reserve the tools menu for transient actions only.
+  - Route keyboard shortcuts, command-palette jumps, and shell buttons through the same secondary-surface state so modal, popover, and panel behavior cannot drift apart.
+---

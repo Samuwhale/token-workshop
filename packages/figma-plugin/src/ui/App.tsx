@@ -6,7 +6,6 @@ import { TokenEditor } from './components/TokenEditor';
 import { TokenGeneratorDialog } from './components/TokenGeneratorDialog';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ToastStack } from './components/ToastStack';
-import { NotificationHistory } from './components/NotificationHistory';
 import { WorkspaceSummaryHeader } from './components/WorkspaceSummaryHeader';
 import { ApplyWorkflowControls } from './components/ApplyWorkflowControls';
 import { ThemeStageModelControls } from './components/ThemeStageModelControls';
@@ -21,7 +20,6 @@ import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { TokenEntry } from './components/CommandPalette';
 import { SetSwitcher, SetManager } from './components/SetSwitcher';
-import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { computeHealthIssueCount } from './components/HealthPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -34,8 +32,8 @@ import { usePreviewSplit } from './hooks/usePreviewSplit';
 import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
-import type { OverflowPanel, SecondaryActionId } from './shared/navigationTypes';
-import { APP_SHELL_NAVIGATION, resolveWorkspace, resolveWorkspaceSection, toWorkspaceId } from './shared/navigationTypes';
+import type { SecondarySurfaceId, UtilityActionId } from './shared/navigationTypes';
+import { APP_SHELL_NAVIGATION, resolveWorkspace, resolveWorkspaceSection, resolveSecondarySurface, toWorkspaceId } from './shared/navigationTypes';
 import type { ThemeAuthoringStage, ThemeWorkspaceShellState } from './shared/themeWorkflow';
 import { summarizeThemeWorkflow } from './shared/themeWorkflow';
 import { DEFAULT_PUBLISH_PREFLIGHT_STATE, type PublishPreflightState, type SyncWorkflowStage } from './shared/syncWorkflow';
@@ -76,7 +74,7 @@ import { summarizeApplyWorkflow } from './components/selectionInspectorUtils';
 
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
-  const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel } = useNavigationContext();
+  const { activeTopTab, activeSubTab, activeSecondarySurface, navigateTo, openSecondarySurface, closeSecondarySurface } = useNavigationContext();
   const { editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, setAliasNotFoundHandler } = useEditorContext();
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -95,7 +93,7 @@ export function App() {
   const [connectionUrlInput, setConnectionUrlInput] = useState(serverUrl);
   const [connectionConnectResult, setConnectionConnectResult] = useState<'ok' | 'fail' | null>(null);
   const [showConnectionEditor, setShowConnectionEditor] = useState(false);
-  const { showPasteModal, setShowPasteModal, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher } = useModalVisibility();
+  const { showPasteModal, setShowPasteModal, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher } = useModalVisibility();
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
   const recentlyTouched = useRecentlyTouched();
   const starredTokens = useStarredTokens();
@@ -142,7 +140,6 @@ export function App() {
   useEffect(() => { setAliasNotFoundHandler((p) => setErrorToast(`Alias target not found: ${p}`)); }, []);
   // Route all dispatchToast() calls from deeply-nested components/hooks into the in-plugin ToastStack
   useToastBusListener(setSuccessToast, setErrorToast);
-  const [showNotificationHistory, setShowNotificationHistory] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount, undoDescriptions } = useUndo(undoMaxHistory, setErrorToast);
   // Wire pushUndo into the resolver context so deleteResolver can push undo slots
   useEffect(() => {
@@ -180,6 +177,10 @@ export function App() {
     () => resolveWorkspaceSection(activeWorkspace, activeTopTab, activeSubTab),
     [activeWorkspace, activeTopTab, activeSubTab],
   );
+  const activeSecondarySurfaceDef = useMemo(
+    () => resolveSecondarySurface(activeSecondarySurface),
+    [activeSecondarySurface],
+  );
   const themeWorkflowSummary = useMemo(() => summarizeThemeWorkflow(dimensions), [dimensions]);
   const applyWorkflowSummary = useMemo(
     () => summarizeApplyWorkflow(selectedNodes, allTokensFlat),
@@ -198,6 +199,7 @@ export function App() {
     [activeWorkspace, activeWorkspaceSection],
   );
   const workspaceSummaryTitle = useMemo(() => {
+    if (activeSecondarySurfaceDef) return activeSecondarySurfaceDef.summaryTitle;
     if (activeWorkspace.id !== 'themes') return defaultWorkspaceSummaryTitle;
     switch (themeShellState.activeView) {
       case 'coverage':
@@ -209,8 +211,9 @@ export function App() {
       default:
         return 'Theme authoring';
     }
-  }, [activeWorkspace.id, defaultWorkspaceSummaryTitle, themeShellState.activeView]);
+  }, [activeSecondarySurfaceDef, activeWorkspace.id, defaultWorkspaceSummaryTitle, themeShellState.activeView]);
   const workspaceSummaryGuidance = useMemo(() => {
+    if (activeSecondarySurfaceDef) return activeSecondarySurfaceDef.summaryGuidance;
     if (activeWorkspace.id === 'sync' && activeWorkspaceSection?.id === 'publish') {
       if (publishPreflightState.stage === 'running') {
         return 'Preflight is running now. Wait for the current token set to be checked against Figma before moving into compare or apply.';
@@ -260,6 +263,7 @@ export function App() {
           : 'Create axes, add options, map base and override sets, and preview the active combination before reaching for advanced logic.';
     }
   }, [
+    activeSecondarySurfaceDef,
     activeWorkspace.id,
     activeWorkspaceSection?.id,
     defaultWorkspaceSummaryGuidance,
@@ -498,7 +502,7 @@ export function App() {
   }, []);
   const useSidePanel = windowWidth > 400
     && !!(editingToken || editingGeneratorData || previewingToken)
-    && overflowPanel === null
+    && activeSecondarySurface === null
     && activeTopTab === 'define' && activeSubTab === 'tokens'
     && (tokens.length > 0 || createFromEmpty);
   const isNarrow = windowWidth <= 360;
@@ -698,7 +702,7 @@ export function App() {
     if (matchesShortcut(e, 'TOGGLE_PREVIEW')) {
       e.preventDefault();
       setShowPreviewSplit(v => !v);
-      setOverflowPanel(null);
+      closeSecondarySurface();
     }
     if (matchesShortcut(e, 'CREATE_FROM_SELECTION')) {
       e.preventDefault();
@@ -728,11 +732,15 @@ export function App() {
     }
     if (matchesShortcut(e, 'SHOW_SHORTCUTS')) {
       e.preventDefault();
-      setShowKeyboardShortcuts(v => !v);
+      if (activeSecondarySurface === 'shortcuts') {
+        closeSecondarySurface();
+      } else {
+        openSecondarySurface('shortcuts');
+      }
     }
     if (matchesShortcut(e, 'OPEN_SETTINGS')) {
       e.preventDefault();
-      openOverflowPanel('settings');
+      openSecondarySurface('settings');
     }
     if (matchesShortcut(e, 'NEXT_LINT_ISSUE')) {
       e.preventDefault();
@@ -753,11 +761,10 @@ export function App() {
 
 
 
-  const openOverflowPanel = useCallback((panel: OverflowPanel) => {
+  const openSecondaryPanel = useCallback((panel: SecondarySurfaceId) => {
     setMenuOpen(false);
-    setShowNotificationHistory(false);
-    setOverflowPanel(panel);
-  }, [setOverflowPanel]);
+    openSecondarySurface(panel);
+  }, [openSecondarySurface]);
 
   const jumpToNextIssue = useCallback(() => {
     if (lintViolations.length === 0) {
@@ -1083,13 +1090,13 @@ export function App() {
   const handleSelectThemeStage = useCallback((stage: ThemeAuthoringStage) => {
     guardEditorAction(() => {
       navigateTo('define', 'themes');
-      setOverflowPanel(null);
+      closeSecondarySurface();
       themeManagerHandleRef.current?.focusStage(stage);
     });
-  }, [guardEditorAction, navigateTo, setOverflowPanel]);
+  }, [closeSecondarySurface, guardEditorAction, navigateTo]);
 
   const themeContextualControls = useMemo(() => {
-    if (overflowPanel !== null || activeWorkspace.id !== 'themes') return null;
+    if (activeSecondarySurface !== null || activeWorkspace.id !== 'themes') return null;
 
     const stages = [
       {
@@ -1176,8 +1183,8 @@ export function App() {
     );
   }, [
     activeWorkspace.id,
+    activeSecondarySurface,
     handleSelectThemeStage,
-    overflowPanel,
     themeShellState.activeView,
     themeShellState.showPreview,
     themeWorkflowSummary,
@@ -1186,13 +1193,13 @@ export function App() {
   const handleSelectApplyStage = useCallback((stage: 'summary' | 'suggestions' | 'bindings' | 'advanced') => {
     guardEditorAction(() => {
       navigateTo('apply', 'inspect');
-      setOverflowPanel(null);
+      closeSecondarySurface();
       selectionInspectorHandleRef.current?.focusStage(stage);
     });
-  }, [guardEditorAction, navigateTo, setOverflowPanel]);
+  }, [closeSecondarySurface, guardEditorAction, navigateTo]);
 
   const applyContextualControls = useMemo(() => {
-    if (overflowPanel !== null || activeWorkspace.id !== 'apply' || activeWorkspaceSection?.id !== 'inspect') return null;
+    if (activeSecondarySurface !== null || activeWorkspace.id !== 'apply' || activeWorkspaceSection?.id !== 'inspect') return null;
 
     const stages = [
       {
@@ -1263,6 +1270,7 @@ export function App() {
   }, [
     activeWorkspace.id,
     activeWorkspaceSection?.id,
+    activeSecondarySurface,
     applyWorkflowSummary.allVisiblePropertiesBound,
     applyWorkflowSummary.hasAnyTokens,
     applyWorkflowSummary.hasSelection,
@@ -1272,19 +1280,18 @@ export function App() {
     applyWorkflowSummary.suggestionCount,
     applyWorkflowSummary.unboundPropertyCount,
     handleSelectApplyStage,
-    overflowPanel,
   ]);
 
   const handleSelectSyncStage = useCallback((stage: SyncWorkflowStage) => {
     guardEditorAction(() => {
       navigateTo('ship', 'publish');
-      setOverflowPanel(null);
+      closeSecondarySurface();
       publishPanelHandleRef.current?.focusStage(stage);
     });
-  }, [guardEditorAction, navigateTo, setOverflowPanel]);
+  }, [closeSecondarySurface, guardEditorAction, navigateTo]);
 
   const syncContextualControls = useMemo(() => {
-    if (overflowPanel !== null || activeWorkspace.id !== 'sync' || activeWorkspaceSection?.id !== 'publish') return null;
+    if (activeSecondarySurface !== null || activeWorkspace.id !== 'sync' || activeWorkspaceSection?.id !== 'publish') return null;
 
     const stages = [
       {
@@ -1349,8 +1356,8 @@ export function App() {
   }, [
     activeWorkspace.id,
     activeWorkspaceSection?.id,
+    activeSecondarySurface,
     handleSelectSyncStage,
-    overflowPanel,
     pendingPublishCount,
     publishPreflightState.advisoryCount,
     publishPreflightState.blockingCount,
@@ -1360,13 +1367,13 @@ export function App() {
   ]);
 
   const workspacePrimaryAction = useMemo(() => {
-    if (overflowPanel === null && activeWorkspace.id === 'tokens' && activeWorkspaceSection?.id === 'tokens') {
+    if (activeSecondarySurface === null && activeWorkspace.id === 'tokens' && activeWorkspaceSection?.id === 'tokens') {
       return {
         label: 'Create token',
         onClick: () => {
           guardEditorAction(() => {
             navigateTo('define', 'tokens');
-            setOverflowPanel(null);
+            closeSecondarySurface();
             setEditingGenerator(null);
             setPreviewingToken(null);
             setEditingToken({ path: '', set: activeSet, isCreate: true });
@@ -1375,7 +1382,7 @@ export function App() {
       };
     }
 
-    if (overflowPanel === null && activeWorkspace.id === 'themes') {
+    if (activeSecondarySurface === null && activeWorkspace.id === 'themes') {
       if (themeShellState.activeView !== 'authoring') {
         return {
           label: 'Back to authoring',
@@ -1389,7 +1396,7 @@ export function App() {
           onClick: () => {
             guardEditorAction(() => {
               navigateTo('define', 'themes');
-              setOverflowPanel(null);
+              closeSecondarySurface();
               themeManagerHandleRef.current?.focusStage('options');
             });
           },
@@ -1402,7 +1409,7 @@ export function App() {
           onClick: () => {
             guardEditorAction(() => {
               navigateTo('define', 'themes');
-              setOverflowPanel(null);
+              closeSecondarySurface();
               themeManagerHandleRef.current?.focusStage('set-roles');
             });
           },
@@ -1415,7 +1422,7 @@ export function App() {
           onClick: () => {
             guardEditorAction(() => {
               navigateTo('define', 'themes');
-              setOverflowPanel(null);
+              closeSecondarySurface();
               themeManagerHandleRef.current?.focusStage('preview');
             });
           },
@@ -1427,14 +1434,14 @@ export function App() {
         onClick: () => {
           guardEditorAction(() => {
             navigateTo('define', 'themes');
-            setOverflowPanel(null);
+            closeSecondarySurface();
             themeManagerHandleRef.current?.openCreateAxis();
           });
         },
       };
     }
 
-    if (overflowPanel === null && activeWorkspace.id === 'apply' && activeWorkspaceSection?.id === 'inspect') {
+    if (activeSecondarySurface === null && activeWorkspace.id === 'apply' && activeWorkspaceSection?.id === 'inspect') {
       if (!applyWorkflowSummary.hasSelection) {
         return {
           label: 'Select a layer',
@@ -1463,7 +1470,7 @@ export function App() {
       };
     }
 
-    if (overflowPanel === null && activeWorkspace.id === 'sync' && activeWorkspaceSection?.id === 'publish') {
+    if (activeSecondarySurface === null && activeWorkspace.id === 'sync' && activeWorkspaceSection?.id === 'publish') {
       if (publishPreflightState.stage === 'running') {
         return {
           label: 'Running preflight…',
@@ -1499,7 +1506,7 @@ export function App() {
       };
     }
 
-    if (overflowPanel === null && activeWorkspace.id === 'audit' && activeWorkspaceSection?.id === 'health') {
+    if (activeSecondarySurface === null && activeWorkspace.id === 'audit' && activeWorkspaceSection?.id === 'health') {
       return {
         label: 'Refresh audit',
         onClick: refreshValidation,
@@ -1509,6 +1516,7 @@ export function App() {
     return null;
   }, [
     activeSet,
+    activeSecondarySurface,
     activeWorkspace.id,
     activeWorkspaceSection?.id,
     applyWorkflowSummary.hasSelection,
@@ -1516,14 +1524,13 @@ export function App() {
     applyWorkflowSummary.suggestionCount,
     guardEditorAction,
     navigateTo,
-    overflowPanel,
     refreshValidation,
     pendingPublishCount,
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
+    closeSecondarySurface,
     setEditingGenerator,
     setEditingToken,
-    setOverflowPanel,
     setPreviewingToken,
     themeShellState.activeView,
     themeShellState.showPreview,
@@ -1538,69 +1545,62 @@ export function App() {
       ? syncContextualControls
       : null;
 
-  const handleSecondaryAction = useCallback((actionId: SecondaryActionId) => {
+  const secondarySurfacePills = useMemo(() => {
+    switch (activeSecondarySurface) {
+      case 'import':
+        return [{ label: connected ? 'Server connected' : 'Server required', tone: connected ? 'success' : 'danger' } as const];
+      case 'sets':
+        return [{ label: `${sets.length} set${sets.length === 1 ? '' : 's'}`, tone: 'neutral' as const }];
+      case 'notifications':
+        return [{ label: notificationHistory.length === 0 ? 'No notifications' : `${notificationHistory.length} entr${notificationHistory.length === 1 ? 'y' : 'ies'}`, tone: notificationHistory.length === 0 ? 'neutral' as const : 'accent' as const }];
+      case 'shortcuts':
+        return [{ label: adaptShortcut(SHORTCUT_KEYS.SHOW_SHORTCUTS), tone: 'neutral' as const }];
+      case 'settings':
+        return [{ label: connected ? 'Connected' : 'Offline recovery visible', tone: connected ? 'success' as const : 'neutral' as const }];
+      default:
+        return workspacePills;
+    }
+  }, [activeSecondarySurface, connected, notificationHistory.length, sets.length, workspacePills]);
+
+  const shellSections = activeSecondarySurface === null ? activeWorkspace.sections : undefined;
+  const shellActiveSectionId = activeSecondarySurface === null ? (activeWorkspaceSection?.id ?? null) : null;
+  const shellPrimaryAction = activeSecondarySurface === null ? workspacePrimaryAction : null;
+  const shellContextualControls = activeSecondarySurface === null ? workspaceContextualControls : null;
+
+  const handleUtilityAction = useCallback((actionId: UtilityActionId) => {
     setMenuOpen(false);
     switch (actionId) {
       case 'command-palette':
-        setShowNotificationHistory(false);
         setCommandPaletteInitialQuery('');
         setShowCommandPalette(true);
         return;
       case 'paste-tokens':
-        setShowNotificationHistory(false);
         setShowPasteModal(true);
         return;
-      case 'import':
-        openOverflowPanel('import');
-        return;
-      case 'notifications':
-        setOverflowPanel(null);
-        setShowNotificationHistory(v => !v);
-        return;
-      case 'keyboard-shortcuts':
-        setShowNotificationHistory(false);
-        setShowKeyboardShortcuts(true);
-        return;
       case 'window-size':
-        setShowNotificationHistory(false);
         toggleExpand();
-        return;
-      case 'settings':
-        openOverflowPanel('settings');
         return;
     }
   }, [
-    openOverflowPanel,
     setCommandPaletteInitialQuery,
-    setMenuOpen,
-    setOverflowPanel,
     setShowCommandPalette,
-    setShowKeyboardShortcuts,
-    setShowNotificationHistory,
+    setMenuOpen,
     setShowPasteModal,
     toggleExpand,
   ]);
 
-  const secondaryActionDetail = useCallback((actionId: SecondaryActionId): string => {
+  const utilityActionDetail = useCallback((actionId: UtilityActionId): string => {
     switch (actionId) {
       case 'command-palette':
         return adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE);
       case 'paste-tokens':
         return adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS);
-      case 'import':
-        return 'Admin';
-      case 'notifications':
-        return String(notificationHistory.length);
-      case 'keyboard-shortcuts':
-        return '?';
       case 'window-size':
         return isExpanded ? 'Windowed' : 'Expanded';
-      case 'settings':
-        return 'Prefs';
     }
-  }, [isExpanded, notificationHistory.length]);
+  }, [isExpanded]);
 
-  const utilitiesAttention = !connected || notificationHistory.length > 0;
+  const utilitiesAttention = !connected;
   const utilitiesStatusLabel = checking
     ? `Checking ${serverUrl}`
     : connected
@@ -1640,24 +1640,65 @@ export function App() {
                 );
               })}
             </div>
+
+            <div className="mt-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+              Secondary
+            </div>
+            <div className="mt-1 flex min-w-0 items-center gap-1 overflow-x-auto rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-1">
+              {APP_SHELL_NAVIGATION.secondarySurfaces.map(surface => {
+                const isActive = surface.id === activeSecondarySurface;
+                const isAttentionSurface = surface.id === 'notifications' && notificationHistory.length > 0;
+                const detail = surface.id === 'sets'
+                  ? String(sets.length)
+                  : surface.id === 'notifications'
+                    ? String(notificationHistory.length)
+                    : surface.id === 'shortcuts'
+                      ? adaptShortcut(SHORTCUT_KEYS.SHOW_SHORTCUTS)
+                      : null;
+                return (
+                  <button
+                    key={surface.id}
+                    onClick={() => guardEditorAction(() => {
+                      if (activeSecondarySurface === surface.id) {
+                        closeSecondarySurface();
+                      } else {
+                        openSecondaryPanel(surface.id);
+                      }
+                    })}
+                    className={`relative inline-flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm ring-1 ring-[var(--color-figma-border)]'
+                        : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+                    }`}
+                    title={surface.description}
+                    aria-pressed={isActive}
+                  >
+                    <span>{surface.label}</span>
+                    {detail && (
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{detail}</span>
+                    )}
+                    {isAttentionSurface && (
+                      <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--color-figma-accent)]" aria-hidden="true" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="relative shrink-0" ref={menuRef}>
             <button
-              onClick={() => {
-                setShowNotificationHistory(false);
-                setMenuOpen(v => !v);
-              }}
+              onClick={() => setMenuOpen(v => !v)}
               className={`relative inline-flex min-h-[36px] items-center gap-2 rounded-[12px] border px-3 py-1.5 text-[11px] font-medium transition-colors ${
                 menuOpen
                   ? 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'
                   : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
               }`}
-              aria-label="Open utilities"
+              aria-label="Open tools"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              <span>{APP_SHELL_NAVIGATION.secondaryArea.triggerLabel}</span>
+              <span>{APP_SHELL_NAVIGATION.utilityMenu.triggerLabel}</span>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" className={`transition-transform ${menuOpen ? 'rotate-90' : ''}`}>
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
@@ -1666,18 +1707,10 @@ export function App() {
               )}
             </button>
 
-            {showNotificationHistory && (
-              <NotificationHistory
-                history={notificationHistory}
-                onClear={clearNotificationHistory}
-                onClose={() => setShowNotificationHistory(false)}
-              />
-            )}
-
             {menuOpen && (
               <div className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
                 <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">{APP_SHELL_NAVIGATION.secondaryArea.label}</div>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">{APP_SHELL_NAVIGATION.utilityMenu.label}</div>
                   <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
                   {!connected && (
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -1749,7 +1782,7 @@ export function App() {
                     </div>
                   )}
                 </div>
-                {APP_SHELL_NAVIGATION.secondaryArea.sections.map((section, sectionIndex) => (
+                {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section, sectionIndex) => (
                   <div key={section.id}>
                     {sectionIndex > 0 && <div className="border-t border-[var(--color-figma-border)]" />}
                     <div className="px-3 py-1.5">
@@ -1761,12 +1794,12 @@ export function App() {
                         key={action.id}
                         role="menuitem"
                         tabIndex={-1}
-                        onClick={() => handleSecondaryAction(action.id)}
+                        onClick={() => handleUtilityAction(action.id)}
                         className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                         title={action.description}
                       >
                         <span>{action.id === 'window-size' ? (isExpanded ? 'Restore window' : 'Expand window') : action.label}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{secondaryActionDetail(action.id)}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{utilityActionDetail(action.id)}</span>
                       </button>
                     ))}
                   </div>
@@ -1779,22 +1812,22 @@ export function App() {
         <WorkspaceSummaryHeader
           title={workspaceSummaryTitle}
           guidance={workspaceSummaryGuidance}
-          sections={activeWorkspace.sections}
-          activeSectionId={activeWorkspaceSection?.id ?? null}
+          sections={shellSections}
+          activeSectionId={shellActiveSectionId}
           onSelectSection={(section) => {
             guardEditorAction(() => {
               navigateTo(section.topTab, section.subTab);
               if (section.subTab === 'canvas-analysis') triggerHeatmapScan();
             });
           }}
-          statusPills={workspacePills}
-          primaryAction={workspacePrimaryAction}
-          contextualControls={workspaceContextualControls}
+          statusPills={secondarySurfacePills}
+          primaryAction={shellPrimaryAction}
+          contextualControls={shellContextualControls}
         />
       </div>
 
       {/* Set switching surface */}
-      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && (
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && activeSecondarySurface === null && sets.length > 0 && (
         <div className={`border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] ${tokenDragState ? 'bg-[var(--color-figma-accent)]/[0.03]' : ''}`}>
           <div className="relative flex items-center gap-2 px-2 py-1.5">
             <button
@@ -1903,7 +1936,7 @@ export function App() {
             </div>
 
             <button
-              onClick={() => openOverflowPanel('sets')}
+              onClick={() => openSecondaryPanel('sets')}
               className="shrink-0 rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
             >
               Set manager
@@ -1920,20 +1953,20 @@ export function App() {
       <ErrorBoundary>
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
-          {overflowPanel === 'sets' ? (
+          {activeSecondarySurface === 'sets' ? (
             <SetManager
               sets={sets}
               activeSet={activeSet}
-              onClose={() => setOverflowPanel(null)}
+              onClose={closeSecondarySurface}
               onOpenQuickSwitch={() => {
-                setOverflowPanel(null);
+                closeSecondarySurface();
                 setShowSetSwitcher(true);
               }}
               onOpenGenerators={(set) => {
                 guardEditorAction(() => {
                   setActiveSet(set);
                   navigateTo('define', 'generators');
-                  setOverflowPanel(null);
+                  closeSecondarySurface();
                 });
               }}
               onRename={startRename}
@@ -1943,7 +1976,7 @@ export function App() {
               onReorderFull={handleReorderSetFull}
               onCreateSet={createSetByName}
               onEditInfo={(set) => {
-                setOverflowPanel(null);
+                closeSecondarySurface();
                 openSetMetadata(set);
               }}
               onMerge={sets.length > 1 ? openMergeDialog : undefined}
@@ -1996,7 +2029,7 @@ export function App() {
           ) : (
             <>
           {/* Theme/Mode switcher — always visible on tokens tab */}
-          {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && (
+          {activeTopTab === 'define' && activeSubTab === 'tokens' && activeSecondarySurface === null && (
             isNarrow && dimensions.length > 0 && !dimBarExpanded ? (
               <button
                 onClick={() => setDimBarExpanded(true)}
@@ -2193,7 +2226,7 @@ export function App() {
             );
           })()}
           <div className="flex-1 overflow-y-auto">
-            {/* Panels — routed by (activeTopTab, activeSubTab) and overflowPanel */}
+            {/* Panels — routed by (activeTopTab, activeSubTab) and activeSecondarySurface */}
             <PanelRouter
               useSidePanel={useSidePanel}
               showPreviewSplit={showPreviewSplit}
@@ -2290,8 +2323,10 @@ export function App() {
               onShowPasteModal={() => setShowPasteModal(true)}
               onShowColorScaleGen={() => setShowColorScaleGen(true)}
               onOpenStartHere={(branch) => openStartHere(branch)}
-              onRestartGuidedSetup={() => { setOverflowPanel(null); openStartHere('guided-setup'); }}
-              onClearAllComplete={() => { setOverflowPanel(null); navigateTo('define', 'tokens'); refreshTokens(); }}
+              onRestartGuidedSetup={() => { closeSecondarySurface(); openStartHere('guided-setup'); }}
+              onClearAllComplete={() => { closeSecondarySurface(); navigateTo('define', 'tokens'); refreshTokens(); }}
+              notificationHistory={notificationHistory}
+              clearNotificationHistory={clearNotificationHistory}
             />
           </div>
             </>
@@ -2301,7 +2336,7 @@ export function App() {
       </ErrorBoundary>
 
       {/* Token editor drawer (narrow windows only; wide windows use side panel) */}
-      {editingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
+      {editingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
         <div
           className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
           onKeyDown={(e) => {
@@ -2354,7 +2389,7 @@ export function App() {
         </div>
       )}
 
-      {editingGeneratorData && !editingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
+      {editingGeneratorData && !editingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"
@@ -2389,7 +2424,7 @@ export function App() {
 
 
       {/* Token preview drawer (narrow windows only; wide windows use side panel) */}
-      {!editingToken && !editingGeneratorData && previewingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
+      {!editingToken && !editingGeneratorData && previewingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"
@@ -2585,7 +2620,7 @@ export function App() {
           onClose={() => setShowSetSwitcher(false)}
           onManageSets={() => {
             setShowSetSwitcher(false);
-            openOverflowPanel('sets');
+            openSecondaryPanel('sets');
           }}
           dimensions={dimensions}
         />
@@ -2669,11 +2704,6 @@ export function App() {
         />
       )}
 
-      {/* Keyboard Shortcuts Modal */}
-      {showKeyboardShortcuts && (
-        <KeyboardShortcutsModal onClose={() => setShowKeyboardShortcuts(false)} />
-      )}
-
       {/* Unified start flow */}
       {startHereState.open && (
         <WelcomePrompt
@@ -2686,7 +2716,7 @@ export function App() {
           isFirstRun={startHereState.firstRun}
           onClose={closeStartHere}
           onRetryConnection={retryConnection}
-          onImportFigma={() => setOverflowPanel('import')}
+          onImportFigma={() => openSecondaryPanel('import')}
           onPasteJSON={() => setShowPasteModal(true)}
           onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
           onGenerateColorScale={() => setShowColorScaleGen(true)}

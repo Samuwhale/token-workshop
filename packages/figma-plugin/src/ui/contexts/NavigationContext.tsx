@@ -1,13 +1,13 @@
 /**
  * NavigationContext — owns the two-tier tab navigation state
- * (activeTopTab, activeSubTab, overflowPanel) and the navigateTo / setSubTab
- * actions. Extracted from App.tsx so PanelRouter and other consumers can read
+ * (activeTopTab, activeSubTab, activeSecondarySurface) and the navigateTo /
+ * setSubTab actions. Extracted from App.tsx so PanelRouter and other consumers can read
  * navigation state directly without receiving it as props.
  */
 
 import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
-import type { ReactNode, Dispatch, SetStateAction } from 'react';
-import type { TopTab, SubTab, OverflowPanel } from '../shared/navigationTypes';
+import type { ReactNode } from 'react';
+import type { TopTab, SubTab, SecondarySurfaceId } from '../shared/navigationTypes';
 import { TOP_TABS, DEFAULT_SUB_TABS, SUB_TAB_STORAGE } from '../shared/navigationTypes';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
@@ -18,9 +18,10 @@ import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 export interface NavigationContextValue {
   activeTopTab: TopTab;
   activeSubTab: SubTab;
-  overflowPanel: OverflowPanel;
+  activeSecondarySurface: SecondarySurfaceId | null;
   navigateTo: (top: TopTab, sub?: SubTab) => void;
-  setOverflowPanel: Dispatch<SetStateAction<OverflowPanel>>;
+  openSecondarySurface: (surface: SecondarySurfaceId) => void;
+  closeSecondarySurface: () => void;
   /** Update only the sub-tab for the current top-tab (persists to localStorage). */
   setSubTab: (subTab: SubTab) => void;
 }
@@ -42,7 +43,7 @@ export function useNavigationContext(): NavigationContextValue {
 // ---------------------------------------------------------------------------
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
-  const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
+  const [activeSecondarySurface, setActiveSecondarySurface] = useState<SecondarySurfaceId | null>(null);
 
   const [activeTopTab, setActiveTopTabState] = useState<TopTab>(() => {
     const stored = lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB);
@@ -66,7 +67,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     lsSet(SUB_TAB_STORAGE[topTab], resolvedSub);
     setActiveTopTabState(topTab);
     setActiveSubTabState(resolvedSub);
-    setOverflowPanel(null);
+    setActiveSecondarySurface(null);
   }, []);
 
   // Use a ref so setSubTab stays stable across top-tab changes
@@ -77,17 +78,26 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     const topTab = activeTopTabRef.current;
     lsSet(SUB_TAB_STORAGE[topTab], subTab);
     setActiveSubTabState(subTab);
-    setOverflowPanel(null);
+    setActiveSecondarySurface(null);
+  }, []);
+
+  const openSecondarySurface = useCallback((surface: SecondarySurfaceId) => {
+    setActiveSecondarySurface(surface);
+  }, []);
+
+  const closeSecondarySurface = useCallback(() => {
+    setActiveSecondarySurface(null);
   }, []);
 
   const value = useMemo<NavigationContextValue>(() => ({
     activeTopTab,
     activeSubTab,
-    overflowPanel,
+    activeSecondarySurface,
     navigateTo,
-    setOverflowPanel,
+    openSecondarySurface,
+    closeSecondarySurface,
     setSubTab,
-  }), [activeTopTab, activeSubTab, overflowPanel, navigateTo, setSubTab]);
+  }), [activeTopTab, activeSubTab, activeSecondarySurface, closeSecondarySurface, navigateTo, openSecondarySurface, setSubTab]);
 
   return (
     <NavigationContext.Provider value={value}>

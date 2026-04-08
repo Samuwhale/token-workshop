@@ -77,7 +77,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
   const { sets, activeSet, setActiveSet, setTokenCounts } = useTokenSetsContext();
   const { allTokensFlat, pathToSet, perSetFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useGeneratorContext();
-  const { navigateTo, setOverflowPanel } = useNavigationContext();
+  const { navigateTo, openSecondarySurface, closeSecondarySurface } = useNavigationContext();
   const { dimensions } = useThemeSwitcherContext();
   const { selectedNodes } = useSelectionContext();
   const { highlightedToken, setHighlightedToken, setEditingToken } = useEditorContext();
@@ -156,7 +156,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         category: 'Sets',
         handler: () => {
           navigateTo('define', 'tokens');
-          setOverflowPanel('sets');
+          openSecondarySurface('sets');
         },
       },
       {
@@ -206,7 +206,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         description: 'Toggle the live preview split for quick visual checks',
         category: 'Views',
         shortcut: adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW),
-        handler: () => { setShowPreviewSplit(v => !v); setOverflowPanel(null); },
+        handler: () => { setShowPreviewSplit(v => !v); closeSecondarySurface(); },
       },
       {
         id: 'toggle-token-json-view',
@@ -293,7 +293,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         handler: jumpToNextIssue,
       }] : []),
     ];
-  }, [activeSet, sets, navigateTo, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, themeGapCount, refreshValidation, setEditingToken, setOverflowPanel, setPendingGraphTemplate, setShowColorScaleGen, setShowIssuesOnly, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, themeManagerHandleRef, tokenListCompareRef, tokenListViewRev]);
+  }, [activeSet, sets, navigateTo, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, themeGapCount, refreshValidation, setEditingToken, closeSecondarySurface, openSecondarySurface, setPendingGraphTemplate, setShowColorScaleGen, setShowIssuesOnly, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, themeManagerHandleRef, tokenListCompareRef, tokenListViewRev]);
 
   // Per-set switch commands — rebuilds when the set list or token counts change.
   const setCommands = useMemo<Command[]>(() => {
