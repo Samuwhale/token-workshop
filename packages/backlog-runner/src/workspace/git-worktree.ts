@@ -6,6 +6,7 @@ import { gitCommitAndPush } from './in-place.js';
 import type {
   BacklogRunnerConfig,
   CommandRunner,
+  WorkspaceApplyResult,
   WorkspaceSession,
   WorkspaceStrategy,
 } from '../types.js';
@@ -92,7 +93,7 @@ class GitWorktreeSession implements WorkspaceSession {
     private readonly patternsBaseline: number,
   ) {}
 
-  async merge(message: string): Promise<{ ok: boolean; reason?: string }> {
+  async merge(message: string): Promise<WorkspaceApplyResult> {
     const worktreeProgress = path.join(this.cwd, path.relative(this.config.projectRoot, this.config.files.progress));
     const worktreePatterns = path.join(this.cwd, path.relative(this.config.projectRoot, this.config.files.patterns));
     const progressNew = await readAppendedLines(worktreeProgress, this.progressBaseline);
@@ -132,10 +133,19 @@ class GitWorktreeSession implements WorkspaceSession {
     }
 
     return withLock(lockPath(this.config, 'git'), 30, async () => {
-      await this.commandRunner.run('git', ['pull', '--rebase', '--autostash'], {
+      const remotes = await this.commandRunner.run('git', ['remote'], {
         cwd: this.config.projectRoot,
         ignoreFailure: true,
       });
+      if (remotes.stdout.trim()) {
+        const pull = await this.commandRunner.run('git', ['pull', '--rebase', '--autostash'], {
+          cwd: this.config.projectRoot,
+          ignoreFailure: true,
+        });
+        if (pull.code !== 0) {
+          return { ok: false, reason: 'git pull --rebase failed before applying worktree changes' };
+        }
+      }
 
       if (commitSha) {
         const mergePreview = await this.commandRunner.run(
@@ -164,16 +174,19 @@ class GitWorktreeSession implements WorkspaceSession {
       await appendIfPresent(this.config.files.progress, progressNew);
       await appendIfPresent(this.config.files.patterns, patternsNew);
       await this.commandRunner.run('git', ['add', '-A'], { cwd: this.config.projectRoot, ignoreFailure: true });
-      await this.commandRunner.run('git', ['commit', '-m', message], {
+      const commit = await this.commandRunner.run('git', ['commit', '-m', message], {
         cwd: this.config.projectRoot,
         ignoreFailure: true,
       });
+      if (commit.code !== 0) {
+        return { ok: false, reason: 'git commit failed while finalizing worktree changes' };
+      }
 
-      const remotes = await this.commandRunner.run('git', ['remote'], {
+      const remotesAfterCommit = await this.commandRunner.run('git', ['remote'], {
         cwd: this.config.projectRoot,
         ignoreFailure: true,
       });
-      if (!remotes.stdout.trim()) {
+      if (!remotesAfterCommit.stdout.trim()) {
         return { ok: true };
       }
 
@@ -185,14 +198,17 @@ class GitWorktreeSession implements WorkspaceSession {
         if (push.code === 0) {
           return { ok: true };
         }
-        await this.commandRunner.run('git', ['pull', '--rebase', '--autostash'], {
+        const rebase = await this.commandRunner.run('git', ['pull', '--rebase', '--autostash'], {
           cwd: this.config.projectRoot,
           ignoreFailure: true,
         });
+        if (rebase.code !== 0) {
+          return { ok: false, reason: 'git pull --rebase failed while retrying push' };
+        }
         await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
       }
 
-      return { ok: true, reason: 'Push failed after retries; changes committed locally' };
+      return { ok: false, reason: 'git push failed after retries; local commit preserved for inspection' };
     });
   }
 
@@ -241,7 +257,7 @@ export class GitWorktreeWorkspaceStrategy implements WorkspaceStrategy {
     );
   }
 
-  async commitAndPush(message: string): Promise<void> {
-    await gitCommitAndPush(this.commandRunner, this.config, this.config.projectRoot, message);
+  async commitAndPush(message: string): Promise<WorkspaceApplyResult> {
+    return gitCommitAndPush(this.commandRunner, this.config, this.config.projectRoot, message);
   }
 }

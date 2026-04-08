@@ -24,3 +24,18 @@
   ✓ validation passed (12s)
   Committing: Create `docs/redesign/plugin-ia-blueprint.md` as the canonical redesign blueprint for the plugin IA and screen model; include the target primary workspaces, secondary navigation, key user journeys, screen inventory, shared screen anatomy, and migration rules so implementation items can reference one concrete artifact
 
+  ✓ Committed and marked done
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  48 queued · 0 in-progress · last took 4m53s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Introduce the new job-based workspace mapping layer in the app shell without removing existing internal routes yet: define the primary workspaces, define the secondary utilities/admin area, and make the shell navigation use that mapping instead of exposing duplicated top-tab versus section-tab concepts directly
+  Running agent… (started 13:48:21)
+
+  ✓ done: Introduce the new job-based workspace mapping layer in the app shell without removing existing internal routes yet: define the primary workspaces, define the secondary utilities/admin area, and make the shell navigation use that mapping instead of exposing duplicated top-tab versus section-tab concepts directly
+
+    Unified the shell around shared workspace plus utilities/admin metadata, rewired App to render from that mapping, updated user-facing labels, and passed `bash scripts/backlog/validate.sh`.
+  Running runner-owned validation: bash scripts/backlog/validate.sh
+  ✓ validation passed (15s)
+
+  Committing: Introduce the new job-based workspace mapping layer in the app shell without removing existing internal routes yet: define the primary workspaces, define the secondary utilities/admin area, and make the shell navigation use that mapping instead of exposing duplicated top-tab versus section-tab concepts directly

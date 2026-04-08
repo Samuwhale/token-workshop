@@ -275,7 +275,7 @@ function FlowNodeCard({
             <button
               className="w-5 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               onClick={(e) => { e.stopPropagation(); onGoToTree(); }}
-              title="Go to in tree (Define tab)"
+              title="Go to in token library"
               aria-label="Go to in tree"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

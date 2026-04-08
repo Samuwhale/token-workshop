@@ -9,7 +9,7 @@ export default {
     archive: './scripts/backlog/backlog-archive.md',
     counter: './scripts/backlog/.completed-count',
     models: './scripts/backlog/models.json',
-    runnerLogDir: './scripts/backlog',
+    runnerLogDir: './.backlog-runner/logs',
     runtimeDir: './.backlog-runner',
   },
   prompts: {

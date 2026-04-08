@@ -277,3 +277,11 @@
   - When the shell model and internal router diverge on purpose, document the user-facing workspace contract in one blueprint instead of forcing future backlog items to reconstruct it from code and progress logs.
   - IA docs should classify every surface as a primary workspace screen, contextual sub-screen, overflow panel, or transient tool; that makes later navigation changes much easier to evaluate.
 ---
+## 2026-04-08 - Introduce the new job-based workspace mapping layer in the app shell without removing existing internal routes yet: define the primary workspaces, define the secondary utilities/admin area, and make the shell navigation use that mapping instead of exposing duplicated top-tab versus section-tab concepts directly
+- Promoted the shell metadata into one shared navigation contract that now defines both the five primary workspaces and a secondary `Utilities` area split into `Tools` and `Admin`, then rewired the app shell to resolve the active workspace/section and render the utilities menu directly from that metadata instead of hardcoding each route and menu item in `App.tsx`.
+- Updated adjacent user-facing copy so the shell language stays aligned with the new workspace model, including keyboard shortcut labels and helper text that previously referenced internal `Define` / `Ship` buckets.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L56; `packages/figma-plugin/src/ui/App.tsx` ~L153, ~L974, ~L1120; `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L14, ~L242; `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` ~L129; `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L278; `scripts/backlog/patterns.md` ~L172
+- **Learnings for future iterations:**
+  - Keep primary workspaces and secondary utility/admin surfaces in the same navigation module so shell chrome changes do not drift into ad hoc button lists inside `App.tsx`.
+  - When internal route names are intentionally preserved for compatibility, scrub nearby user-facing copy and shortcut labels so the IA still reads consistently as workspaces rather than legacy tab buckets.
+---

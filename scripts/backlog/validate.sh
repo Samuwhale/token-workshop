@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Validation pipeline for backlog agents.
 # The TypeScript backlog runner is responsible for preparing worktree dependencies.
-# This script only runs the shared repo validation gates.
+# This script runs the shared repo validation gates that every completed item must satisfy.
 #
 # Usage: bash scripts/backlog/validate.sh
 # Exit codes: 0 = all gates pass, 1 = failure
@@ -25,10 +25,12 @@ pass "plugin tests"
 (cd packages/server && npx --no-install vitest run --passWithNoTests --reporter=dot) || fail "server tests"
 pass "server tests"
 
-# Gate 2: Build (plugin only — server has pre-existing type errors)
+# Gate 2: Build
 echo -e "${DIM}── Gate 2: Build ──${RESET}"
 (cd packages/figma-plugin && npm run build) || fail "plugin build"
 pass "plugin build"
+(cd packages/server && npm run build) || fail "server build"
+pass "server build"
 
 # Gate 3: Lint (errors only — warnings are acceptable)
 echo -e "${DIM}── Gate 3: Lint ──${RESET}"
@@ -36,12 +38,11 @@ LINT_OUT=$(npx --no-install eslint packages/*/src/ 2>&1 || true)
 # Extract error count from eslint summary line like "✖ 102 problems (3 errors, 99 warnings)"
 ERROR_COUNT=$(echo "$LINT_OUT" | sed -n 's/.*(\([0-9]*\) error.*/\1/p' || echo "0")
 [ -z "$ERROR_COUNT" ] && ERROR_COUNT=0
-if [ "$ERROR_COUNT" != "0" ] && [ "$ERROR_COUNT" -gt "5" ]; then
-  # 5 errors are pre-existing baseline — only fail if new errors introduced
+if [ "$ERROR_COUNT" != "0" ]; then
   echo "$LINT_OUT" | grep "error" | grep -v "warning"
-  fail "lint — $ERROR_COUNT errors (baseline is 5)"
+  fail "lint — $ERROR_COUNT errors"
 fi
-pass "lint ($ERROR_COUNT errors, baseline 5)"
+pass "lint ($ERROR_COUNT errors)"
 
 # Gate 4: Headless UI validation (graceful skip if no browser)
 echo -e "${DIM}── Gate 4: UI validation ──${RESET}"

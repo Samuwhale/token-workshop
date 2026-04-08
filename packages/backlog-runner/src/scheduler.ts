@@ -10,6 +10,7 @@ import type {
   BacklogPassType,
   BacklogRunnerConfig,
   BacklogStore,
+  CommandRunner,
   ResolvedRunOptions,
   RunnerDependencies,
   RunOverrides,
@@ -38,6 +39,54 @@ function summarizeCommandOutput(stdout: string, stderr: string): string {
     .map(line => line.trim())
     .filter(Boolean);
   return lines.slice(-8).join(' | ') || 'no output';
+}
+
+function normalizePathForGit(value: string): string {
+  return value.split(path.sep).join('/');
+}
+
+async function changedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {
+  const status = await commandRunner.run('git', ['status', '--porcelain', '--untracked-files=all'], {
+    cwd,
+    ignoreFailure: true,
+  });
+  if (status.code !== 0) {
+    return [];
+  }
+
+  const files = new Set<string>();
+  for (const rawLine of status.stdout.split('\n').map(line => line.trimEnd()).filter(Boolean)) {
+    const payload = rawLine.slice(3).trim();
+    if (!payload) continue;
+    const parts = payload.includes(' -> ') ? payload.split(' -> ') : [payload];
+    for (const part of parts) {
+      const normalized = part.replace(/^"+|"+$/g, '');
+      if (normalized) files.add(normalized);
+    }
+  }
+
+  return [...files];
+}
+
+async function validatePassWorkspace(
+  commandRunner: CommandRunner,
+  config: BacklogRunnerConfig,
+  cwd: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const allowed = new Set([
+    normalizePathForGit(path.relative(cwd, config.files.inbox)),
+    normalizePathForGit(path.relative(cwd, config.files.progress)),
+    normalizePathForGit(path.relative(cwd, config.files.patterns)),
+  ]);
+  const modified = await changedFiles(commandRunner, cwd);
+  const unexpected = modified.filter(file => !allowed.has(file));
+  if (unexpected.length > 0) {
+    return {
+      ok: false,
+      reason: `discovery pass touched non-backlog files: ${unexpected.slice(0, 5).join(', ')}`,
+    };
+  }
+  return { ok: true };
 }
 
 async function readRecentSections(progressFile: string, maxSections: number): Promise<string> {
@@ -158,13 +207,24 @@ async function runPass(
     logger.line(`  ✓ ${passType} pass: ${result.item}`);
     if (result.note) logger.line(`    ${result.note}`);
 
+    const workspaceCheck = await validatePassWorkspace(createCommandRunner(), config, session.cwd);
+    if (!workspaceCheck.ok) {
+      logger.line(`  WARNING: ${workspaceCheck.reason}`);
+      return;
+    }
+
     const commitMessage = `chore(backlog): ${passType} pass – ${result.item || 'maintenance'}`;
     const mergeResult = await session.merge(commitMessage);
     if (!mergeResult.ok) {
       logger.line(`  WARNING: ${mergeResult.reason ?? 'pass merge failed'}`);
+      return;
     }
     if (!options.worktrees) {
-      await workspaceStrategy.commitAndPush(commitMessage);
+      const finalizeResult = await workspaceStrategy.commitAndPush(commitMessage);
+      if (!finalizeResult.ok) {
+        logger.line(`  WARNING: ${finalizeResult.reason ?? 'pass finalize failed'}`);
+        return;
+      }
     }
     await store.drainInbox();
   } catch (error) {
@@ -342,33 +402,44 @@ export async function runBacklogRunner(
             `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
           );
 
-          const message = `chore(backlog): done – ${result.item || claim.item}`;
-          if (options.worktrees) {
-            logger.line('');
-            logger.line(`  Merging to main: ${result.item || claim.item}`);
-            const mergeResult = await session.merge(message);
-            if (mergeResult.ok) {
-              await store.updateItemStatus(claim.item, 'x');
-              logger.line('  ✓ Merged and marked done');
-              if (mergeResult.reason) logger.line(`  WARNING: ${mergeResult.reason}`);
-            } else {
-              await store.updateItemStatus(claim.item, '!');
-              logger.line(`  ✗ ${mergeResult.reason ?? 'merge failed'} — marked failed`);
-            }
+        const message = `chore(backlog): done – ${result.item || claim.item}`;
+        let itemCompleted = false;
+        if (options.worktrees) {
+          logger.line('');
+          logger.line(`  Merging to main: ${result.item || claim.item}`);
+          const mergeResult = await session.merge(message);
+          if (mergeResult.ok) {
+            await store.updateItemStatus(claim.item, 'x');
+            itemCompleted = true;
+            logger.line('  ✓ Merged and marked done');
+          } else {
+            await store.updateItemStatus(claim.item, '!');
+            logger.line(`  ✗ ${mergeResult.reason ?? 'merge failed'} — marked failed`);
+          }
           } else {
             logger.line('');
-            logger.line(`  Committing: ${result.item || claim.item}`);
-            await workspaceStrategy.commitAndPush(message);
+          logger.line(`  Committing: ${result.item || claim.item}`);
+          const finalizeResult = await workspaceStrategy.commitAndPush(message);
+          if (finalizeResult.ok) {
             await store.updateItemStatus(claim.item, 'x');
+            itemCompleted = true;
             logger.line('  ✓ Committed and marked done');
+          } else {
+            await store.updateItemStatus(claim.item, '!');
+            logger.line(`  ✗ ${finalizeResult.reason ?? 'commit/push failed'} — marked failed`);
           }
+        }
 
+        if (itemCompleted) {
           const totalDone = await store.incrementCompletedCount();
           const cleanupResult = await store.cleanupIfNeeded();
           if (cleanupResult.archivedCount > 0) {
-            await workspaceStrategy.commitAndPush(
+            const cleanupCommit = await workspaceStrategy.commitAndPush(
               `chore(backlog): archive ${cleanupResult.archivedCount} completed items + trim progress`,
             );
+            if (!cleanupCommit.ok) {
+              logger.line(`  WARNING: ${cleanupCommit.reason ?? 'archive commit failed'}`);
+            }
           }
 
           if (options.passes && !stopRequested && !(await fileExists(config.files.stop))) {
@@ -383,6 +454,7 @@ export async function runBacklogRunner(
               }
             }
           }
+        }
         } else {
           await store.updateItemStatus(claim.item, '!');
         }

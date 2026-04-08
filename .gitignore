@@ -12,3 +12,5 @@ tokens/
 .backlog.lock/
 .backlog-git.lock/
 .backlog-pass.lock/
+.backlog-runner/
+scripts/backlog/runner-*.log

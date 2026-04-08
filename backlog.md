@@ -15,8 +15,8 @@
 
 ### UX
 
-- [~] [HIGH] Create `docs/redesign/plugin-ia-blueprint.md` as the canonical redesign blueprint for the plugin IA and screen model; include the target primary workspaces, secondary navigation, key user journeys, screen inventory, shared screen anatomy, and migration rules so implementation items can reference one concrete artifact
-- [ ] [HIGH] Introduce the new job-based workspace mapping layer in the app shell without removing existing internal routes yet: define the primary workspaces, define the secondary utilities/admin area, and make the shell navigation use that mapping instead of exposing duplicated top-tab versus section-tab concepts directly
+- [x] [HIGH] Create `docs/redesign/plugin-ia-blueprint.md` as the canonical redesign blueprint for the plugin IA and screen model; include the target primary workspaces, secondary navigation, key user journeys, screen inventory, shared screen anatomy, and migration rules so implementation items can reference one concrete artifact
+- [~] [HIGH] Introduce the new job-based workspace mapping layer in the app shell without removing existing internal routes yet: define the primary workspaces, define the secondary utilities/admin area, and make the shell navigation use that mapping instead of exposing duplicated top-tab versus section-tab concepts directly
 - [ ] [HIGH] Replace the current multi-row shell chrome with the new navigation structure from the blueprint: primary workspace nav, one secondary utilities/admin entry point, and a calmer header area that no longer stacks competing rows of pills and section controls
 - [ ] [HIGH] Extract a shared workspace header component and migrate Tokens, Themes, Apply, and Sync to it with a stable structure: title, one-sentence guidance, compact status indicators, and one primary action
 - [ ] Rework the offline / server-connection experience so connection problems do not add a permanent global warning banner to every screen; show blocking empty states only where a server-backed action is required and keep lightweight passive status elsewhere

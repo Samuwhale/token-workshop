@@ -17,6 +17,15 @@ function shellEscape(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
+function summarizeCommandOutput(stdout: string, stderr: string): string {
+  const lines = [stdout, stderr]
+    .join('\n')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+  return lines.slice(-8).join(' | ') || 'no output';
+}
+
 async function validateCommandReadiness(
   config: BacklogRunnerConfig,
 ): Promise<{ ok: boolean; message: string }> {
@@ -54,6 +63,26 @@ async function validateCommandReadiness(
   }
 
   return { ok: true, message: `  ✓ validation command executable '${firstToken}' is available` };
+}
+
+async function executeValidationCommand(
+  config: BacklogRunnerConfig,
+): Promise<{ ok: boolean; message: string }> {
+  const commandRunner = createCommandRunner();
+  const startedAt = Date.now();
+  const result = await commandRunner.runShell(config.validationCommand, {
+    cwd: config.projectRoot,
+    ignoreFailure: true,
+  });
+  const durationSeconds = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+  if (result.code === 0) {
+    return { ok: true, message: `  ✓ validation command executed successfully (${durationSeconds}s)` };
+  }
+
+  return {
+    ok: false,
+    message: `  ✗ validation command failed at runtime (${durationSeconds}s): ${summarizeCommandOutput(result.stdout, result.stderr)}`,
+  };
 }
 
 export async function validateBacklogRunner(
@@ -102,8 +131,16 @@ export async function validateBacklogRunner(
   const validationCommand = await validateCommandReadiness(config);
   if (!validationCommand.ok) {
     ok = false;
+    messages.push(validationCommand.message);
+    return { ok, messages, structuredOutputMode: providerValidation.structuredOutputMode };
   }
   messages.push(validationCommand.message);
+
+  const validationExecution = await executeValidationCommand(config);
+  if (!validationExecution.ok) {
+    ok = false;
+  }
+  messages.push(validationExecution.message);
 
   return { ok, messages, structuredOutputMode: providerValidation.structuredOutputMode };
 }

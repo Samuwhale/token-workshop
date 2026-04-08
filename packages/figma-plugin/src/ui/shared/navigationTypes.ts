@@ -54,6 +54,16 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // ---------------------------------------------------------------------------
 
 export type WorkspaceId = 'tokens' | 'themes' | 'apply' | 'sync' | 'audit';
+export type SecondaryAreaId = 'utilities';
+export type SecondarySectionId = 'tools' | 'admin';
+export type SecondaryActionId =
+  | 'command-palette'
+  | 'paste-tokens'
+  | 'import'
+  | 'notifications'
+  | 'keyboard-shortcuts'
+  | 'window-size'
+  | 'settings';
 
 export interface WorkspaceRoute {
   topTab: TopTab;
@@ -73,6 +83,32 @@ export interface WorkspaceTab extends WorkspaceRoute {
   sections?: WorkspaceSection[];
   /** Additional routes that should keep this workspace selected. */
   matchRoutes?: WorkspaceRoute[];
+}
+
+export interface SecondaryAction {
+  id: SecondaryActionId;
+  label: string;
+  description: string;
+}
+
+export interface SecondarySection {
+  id: SecondarySectionId;
+  label: string;
+  description: string;
+  actions: SecondaryAction[];
+}
+
+export interface SecondaryArea {
+  id: SecondaryAreaId;
+  triggerLabel: string;
+  label: string;
+  description: string;
+  sections: SecondarySection[];
+}
+
+export interface AppShellNavigation {
+  workspaces: WorkspaceTab[];
+  secondaryArea: SecondaryArea;
 }
 
 const route = (topTab: TopTab, subTab: SubTab): WorkspaceRoute => ({ topTab, subTab });
@@ -149,16 +185,62 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
 ];
 
+export const SECONDARY_AREA: SecondaryArea = {
+  id: 'utilities',
+  triggerLabel: 'Utilities',
+  label: 'Utilities',
+  description: 'Global tools, notifications, and app-level administration.',
+  sections: [
+    {
+      id: 'tools',
+      label: 'Tools',
+      description: 'Short-lived utility surfaces you can open from any workspace.',
+      actions: [
+        { id: 'command-palette', label: 'Command palette', description: 'Search expert commands and jump straight into actions.' },
+        { id: 'paste-tokens', label: 'Paste tokens', description: 'Import tokens directly from pasted content.' },
+        { id: 'notifications', label: 'Notifications', description: 'Review recent toasts and status messages.' },
+        { id: 'keyboard-shortcuts', label: 'Keyboard shortcuts', description: 'See the current shortcut reference.' },
+        { id: 'window-size', label: 'Window size', description: 'Switch between compact and expanded plugin layouts.' },
+      ],
+    },
+    {
+      id: 'admin',
+      label: 'Admin',
+      description: 'Operational flows that replace the current workspace temporarily.',
+      actions: [
+        { id: 'import', label: 'Import tokens', description: 'Open the import workspace for files, code, or other tools.' },
+        { id: 'settings', label: 'Settings', description: 'Adjust plugin preferences, connection settings, and recovery tools.' },
+      ],
+    },
+  ],
+};
+
+export const APP_SHELL_NAVIGATION: AppShellNavigation = {
+  workspaces: WORKSPACE_TABS,
+  secondaryArea: SECONDARY_AREA,
+};
+
 function matchesRoute(routeDef: WorkspaceRoute, topTab: TopTab, subTab: SubTab): boolean {
   return routeDef.topTab === topTab && routeDef.subTab === subTab;
 }
 
-/** Map an internal route to the primary workspace shown in the shell. */
-export function toWorkspaceId(topTab: TopTab, subTab: SubTab): WorkspaceId {
-  const match = WORKSPACE_TABS.find(workspace =>
+export function resolveWorkspace(topTab: TopTab, subTab: SubTab): WorkspaceTab {
+  return WORKSPACE_TABS.find(workspace =>
     matchesRoute(workspace, topTab, subTab)
     || workspace.sections?.some(section => matchesRoute(section, topTab, subTab))
     || workspace.matchRoutes?.some(routeDef => matchesRoute(routeDef, topTab, subTab))
-  );
-  return match?.id ?? 'tokens';
+  ) ?? WORKSPACE_TABS[0];
+}
+
+export function resolveWorkspaceSection(
+  workspace: WorkspaceTab,
+  topTab: TopTab,
+  subTab: SubTab,
+): WorkspaceSection | null {
+  return workspace.sections?.find(section => matchesRoute(section, topTab, subTab)) ?? null;
+}
+
+/** Map an internal route to the primary workspace shown in the shell. */
+export function toWorkspaceId(topTab: TopTab, subTab: SubTab): WorkspaceId {
+  return resolveWorkspace(topTab, subTab).id;
 }

@@ -190,12 +190,17 @@ export interface BacklogStore {
 export interface WorkspaceSession {
   cwd: string;
   teardown(): Promise<void>;
-  merge(message: string): Promise<{ ok: boolean; reason?: string }>;
+  merge(message: string): Promise<WorkspaceApplyResult>;
 }
 
 export interface WorkspaceStrategy {
   setup(): Promise<WorkspaceSession>;
-  commitAndPush(message: string): Promise<void>;
+  commitAndPush(message: string): Promise<WorkspaceApplyResult>;
+}
+
+export interface WorkspaceApplyResult {
+  ok: boolean;
+  reason?: string;
 }
 
 export interface RunnerDependencies {

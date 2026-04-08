@@ -28,8 +28,8 @@ import { usePreviewSplit } from './hooks/usePreviewSplit';
 import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
-import type { OverflowPanel } from './shared/navigationTypes';
-import { WORKSPACE_TABS, toWorkspaceId } from './shared/navigationTypes';
+import type { OverflowPanel, SecondaryActionId } from './shared/navigationTypes';
+import { APP_SHELL_NAVIGATION, resolveWorkspace, resolveWorkspaceSection, toWorkspaceId } from './shared/navigationTypes';
 import { useConnectionContext } from './contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from './contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from './contexts/ThemeContext';
@@ -152,11 +152,11 @@ export function App() {
   const staleGeneratorCount = useMemo(() => generators.filter(g => g.isStale).length, [generators]);
   const activeWorkspaceId = useMemo(() => toWorkspaceId(activeTopTab, activeSubTab), [activeTopTab, activeSubTab]);
   const activeWorkspace = useMemo(
-    () => WORKSPACE_TABS.find(workspace => workspace.id === activeWorkspaceId) ?? WORKSPACE_TABS[0],
-    [activeWorkspaceId],
+    () => resolveWorkspace(activeTopTab, activeSubTab),
+    [activeTopTab, activeSubTab],
   );
   const activeWorkspaceSection = useMemo(
-    () => activeWorkspace.sections?.find(section => section.topTab === activeTopTab && section.subTab === activeSubTab) ?? null,
+    () => resolveWorkspaceSection(activeWorkspace, activeTopTab, activeSubTab),
     [activeWorkspace, activeTopTab, activeSubTab],
   );
 
@@ -971,6 +971,68 @@ export function App() {
     return null;
   };
 
+  const handleSecondaryAction = useCallback((actionId: SecondaryActionId) => {
+    setMenuOpen(false);
+    switch (actionId) {
+      case 'command-palette':
+        setShowNotificationHistory(false);
+        setCommandPaletteInitialQuery('');
+        setShowCommandPalette(true);
+        return;
+      case 'paste-tokens':
+        setShowNotificationHistory(false);
+        setShowPasteModal(true);
+        return;
+      case 'import':
+        openOverflowPanel('import');
+        return;
+      case 'notifications':
+        setOverflowPanel(null);
+        setShowNotificationHistory(v => !v);
+        return;
+      case 'keyboard-shortcuts':
+        setShowNotificationHistory(false);
+        setShowKeyboardShortcuts(true);
+        return;
+      case 'window-size':
+        setShowNotificationHistory(false);
+        toggleExpand();
+        return;
+      case 'settings':
+        openOverflowPanel('settings');
+        return;
+    }
+  }, [
+    openOverflowPanel,
+    setCommandPaletteInitialQuery,
+    setMenuOpen,
+    setOverflowPanel,
+    setShowCommandPalette,
+    setShowKeyboardShortcuts,
+    setShowNotificationHistory,
+    setShowPasteModal,
+    toggleExpand,
+  ]);
+
+  const secondaryActionDetail = useCallback((actionId: SecondaryActionId): string => {
+    switch (actionId) {
+      case 'command-palette':
+        return adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE);
+      case 'paste-tokens':
+        return adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS);
+      case 'import':
+        return 'Admin';
+      case 'notifications':
+        return String(notificationHistory.length);
+      case 'keyboard-shortcuts':
+        return '?';
+      case 'window-size':
+        return isExpanded ? 'Windowed' : 'Expanded';
+      case 'settings':
+        return 'Admin';
+    }
+  }, [isExpanded, notificationHistory.length]);
+
   const utilitiesAttention = !connected || notificationHistory.length > 0;
   const utilitiesStatusLabel = checking
     ? 'Connecting…'
@@ -1058,7 +1120,7 @@ export function App() {
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
         <div className="flex items-center justify-between gap-3 px-2 py-1.5">
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto" role="tablist" aria-label="Workspaces">
-            {WORKSPACE_TABS.map(workspace => {
+            {APP_SHELL_NAVIGATION.workspaces.map(workspace => {
               const isActive = workspace.id === activeWorkspaceId;
               return (
                 <button
@@ -1093,7 +1155,7 @@ export function App() {
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              <span>Utilities</span>
+              <span>{APP_SHELL_NAVIGATION.secondaryArea.triggerLabel}</span>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" className={`transition-transform ${menuOpen ? 'rotate-90' : ''}`}>
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
@@ -1113,73 +1175,31 @@ export function App() {
             {menuOpen && (
               <div className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
                 <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Utilities</div>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">{APP_SHELL_NAVIGATION.secondaryArea.label}</div>
                   <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
                 </div>
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => { setMenuOpen(false); setCommandPaletteInitialQuery(''); setShowCommandPalette(true); }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <span>Command palette</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)}</span>
-                </button>
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => { setMenuOpen(false); setShowPasteModal(true); }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <span>Paste tokens</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS)}</span>
-                </button>
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => { setMenuOpen(false); openOverflowPanel('import'); }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <span>Import tokens</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Secondary</span>
-                </button>
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => { setMenuOpen(false); setShowNotificationHistory(v => !v); }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <span>Notifications</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{notificationHistory.length}</span>
-                </button>
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => { setMenuOpen(false); setShowKeyboardShortcuts(true); }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <span>Keyboard shortcuts</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">?</span>
-                </button>
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => { setMenuOpen(false); toggleExpand(); }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <span>{isExpanded ? 'Restore window' : 'Expand window'}</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{isExpanded ? 'Windowed' : 'Second screen'}</span>
-                </button>
-                <div className="border-t border-[var(--color-figma-border)]" />
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => { setMenuOpen(false); openOverflowPanel('settings'); }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <span>Settings</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Secondary</span>
-                </button>
+                {APP_SHELL_NAVIGATION.secondaryArea.sections.map((section, sectionIndex) => (
+                  <div key={section.id}>
+                    {sectionIndex > 0 && <div className="border-t border-[var(--color-figma-border)]" />}
+                    <div className="px-3 py-1.5">
+                      <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">{section.label}</div>
+                      <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">{section.description}</div>
+                    </div>
+                    {section.actions.map(action => (
+                      <button
+                        key={action.id}
+                        role="menuitem"
+                        tabIndex={-1}
+                        onClick={() => handleSecondaryAction(action.id)}
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                        title={action.description}
+                      >
+                        <span>{action.id === 'window-size' ? (isExpanded ? 'Restore window' : 'Expand window') : action.label}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{secondaryActionDetail(action.id)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -14,11 +14,12 @@ Codebase patterns are already injected into your context — no need to read a s
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
    - *Complex* (multi-file, behaviour change, or unclear scope): dispatch a plan subagent, review the plan, then execute.
 3. **Implement** the change — match scope to what's right for the plugin. An atomic fix is fine for a typo; a sweeping overhaul across many files is fine when the item calls for it. There are no users yet and no backwards-compatibility constraints, so don't hold back.
-4. **Validate** — run `bash scripts/backlog/validate.sh` which executes four gates in order:
+4. **Validate** — run `bash scripts/backlog/validate.sh` which executes five gates in order:
    1. Unit/integration tests (vitest in each package).
    2. Plugin build (esbuild + Vite).
-   3. ESLint (must not introduce new errors above the pre-existing baseline).
-   4. Headless UI validation (loads the built UI in a browser, checks for console errors;
+   3. Server build (`tsc`).
+   4. ESLint (must have zero errors).
+   5. Headless UI validation (loads the built UI in a browser, checks for console errors;
       graceful skip if no browser is found).
    The TypeScript backlog runner will execute the same command itself before it commits or
    marks the backlog item done. Your own run is still expected so you can fix failures before

@@ -16,7 +16,7 @@ export type ShortcutGroup =
   | 'Navigation'
   | 'Command Palette'
   | 'Token Search'
-  | 'Inspect'
+  | 'Apply'
   | 'Token List'
   | 'Token Editor'
   | 'Paste Modal';
@@ -64,7 +64,7 @@ export const SHORTCUT_KEYS = {
   GO_TO_APPLY:           '⌘2',
   GO_TO_SHIP:            '⌘3',
   GO_TO_RESOLVER:        '⌘⇧R',
-  // Inspect / Selection
+  // Apply / Selection
   CREATE_FROM_SELECTION: '⌘T',
   TOGGLE_DEEP_INSPECT:   '⌘⇧D',
   NEXT_LINT_ISSUE:       'F8',
@@ -145,7 +145,7 @@ export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
   GO_TO_APPLY:           { key: '2',          meta: true,  shift: false, alt: false },
   GO_TO_SHIP:            { key: '3',          meta: true,  shift: false, alt: false },
   GO_TO_RESOLVER:        { key: 'r',          meta: true,  shift: true,  alt: false },
-  // Inspect
+  // Apply
   CREATE_FROM_SELECTION: { key: 't',          meta: true,  shift: false, alt: false },
   TOGGLE_DEEP_INSPECT:   { key: 'd',          meta: true,  shift: true,  alt: false },
   NEXT_LINT_ISSUE:       { key: 'F8',         meta: false, shift: false, alt: false },
@@ -239,9 +239,9 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'REDO',                  group: 'Global',          description: 'Redo',                           mac: '⌘⇧Z', altMac: '⌘Y' },
 
   // ── Navigation ──────────────────────────────────────────────────────────
-  { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Define',                   mac: SHORTCUT_KEYS.GO_TO_DEFINE },
-  { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Apply',                    mac: SHORTCUT_KEYS.GO_TO_APPLY },
-  { id: 'GO_TO_SHIP',            group: 'Navigation',      description: 'Go to Ship',                     mac: SHORTCUT_KEYS.GO_TO_SHIP },
+  { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Tokens workspace',         mac: SHORTCUT_KEYS.GO_TO_DEFINE },
+  { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Apply workspace',          mac: SHORTCUT_KEYS.GO_TO_APPLY },
+  { id: 'GO_TO_SHIP',            group: 'Navigation',      description: 'Go to Sync workspace',           mac: SHORTCUT_KEYS.GO_TO_SHIP },
   { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open DTCG Resolver (in Themes)',  mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
   { id: 'QUICK_SWITCH_SET',      group: 'Navigation',      description: 'Quick-switch token set',         mac: SHORTCUT_KEYS.QUICK_SWITCH_SET },
 
@@ -267,10 +267,10 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'QUALIFIER_GENERATOR',   group: 'Token Search',    description: 'Filter by generator name',                   mac: 'generator:color-ramp', displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_GROUP',       group: 'Token Search',    description: 'Navigate to a group path',                   mac: 'group:colors.brand',  displayOnly: true, qualifier: true },
 
-  // ── Inspect ──────────────────────────────────────────────────────────────
-  { id: 'TOGGLE_QUICK_APPLY',    group: 'Inspect',         description: 'Quick apply token to selection', mac: SHORTCUT_KEYS.TOGGLE_QUICK_APPLY },
-  { id: 'CREATE_FROM_SELECTION', group: 'Inspect',         description: 'Create token from selection',    mac: SHORTCUT_KEYS.CREATE_FROM_SELECTION },
-  { id: 'TOGGLE_DEEP_INSPECT',   group: 'Inspect',         description: 'Toggle deep inspect',            mac: SHORTCUT_KEYS.TOGGLE_DEEP_INSPECT },
+  // ── Apply ────────────────────────────────────────────────────────────────
+  { id: 'TOGGLE_QUICK_APPLY',    group: 'Apply',           description: 'Quick apply token to selection', mac: SHORTCUT_KEYS.TOGGLE_QUICK_APPLY },
+  { id: 'CREATE_FROM_SELECTION', group: 'Apply',           description: 'Create token from selection',    mac: SHORTCUT_KEYS.CREATE_FROM_SELECTION },
+  { id: 'TOGGLE_DEEP_INSPECT',   group: 'Apply',           description: 'Toggle deep inspect',            mac: SHORTCUT_KEYS.TOGGLE_DEEP_INSPECT },
 
   // ── Token List ───────────────────────────────────────────────────────────
   { id: 'TOKEN_NEW',             group: 'Token List',      description: 'New token',                      mac: SHORTCUT_KEYS.TOKEN_NEW },
@@ -308,7 +308,7 @@ const GROUP_ORDER: ShortcutGroup[] = [
   'Navigation',
   'Command Palette',
   'Token Search',
-  'Inspect',
+  'Apply',
   'Token List',
   'Token Editor',
   'Paste Modal',

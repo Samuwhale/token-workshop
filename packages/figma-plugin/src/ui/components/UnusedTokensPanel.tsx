@@ -126,7 +126,7 @@ export function UnusedTokensPanel({
           <div>
             {!hasUsageData ? (
               <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-                No Figma usage data. Go to Define &gt; Tokens to trigger a usage scan, then return here.
+                No Figma usage data. Go to Tokens &gt; Library to trigger a usage scan, then return here.
               </div>
             ) : unusedTokens.length === 0 ? (
               <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
