@@ -6,6 +6,7 @@ import { useLintConfig } from '../hooks/useLintConfig';
 import { LintConfigPanel } from './LintConfigPanel';
 import { formatHexAs } from '../shared/colorUtils';
 import { dispatchToast } from '../shared/toastBus';
+import { shellControlClass } from '../shared/shellControlStyles';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,7 +81,7 @@ function Section({ title, children, defaultOpen = true, danger = false, tabBadge
     <div className={`rounded border overflow-hidden ${danger ? 'border-[var(--color-figma-error)] opacity-80' : 'border-[var(--color-figma-border)]'}`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className={`w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] ${danger ? 'text-[var(--color-figma-error)]' : ''}`}
+        className={`flex w-full items-center justify-between bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-out outline-none hover:bg-[var(--color-figma-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px ${open ? 'bg-[var(--color-figma-bg)]' : ''} ${danger ? 'text-[var(--color-figma-error)]' : ''}`}
       >
         <div className="flex items-center gap-2">
           <span className={`text-[10px] font-medium uppercase tracking-wide ${danger ? '' : 'text-[var(--color-figma-text-secondary)]'}`}>{title}</span>
@@ -150,16 +151,12 @@ function Toggle({ checked, onChange, label, description }: { checked: boolean; o
 
 function SegmentedControl<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   return (
-    <div className="inline-flex rounded border border-[var(--color-figma-border)] overflow-hidden">
+    <div className="inline-flex items-center gap-1 rounded-[12px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-1">
       {options.map(opt => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`px-2 py-1 text-[10px] font-medium transition-colors ${
-            value === opt.value
-              ? 'bg-[var(--color-figma-accent)] text-white'
-              : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-          }`}
+          className={shellControlClass({ active: value === opt.value, size: 'sm', shape: 'rounded' })}
         >
           {opt.label}
         </button>
@@ -596,22 +593,20 @@ export function SettingsPanel({
 
       {/* Tab bar — hidden when searching */}
       {!searchQuery && (
-        <div className="flex border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]" role="tablist" aria-label="Settings categories">
-          {SETTINGS_TABS.map(tab => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`flex-1 px-1 py-1.5 text-[10px] font-medium leading-tight transition-colors ${
-                activeTab === tab.id
-                  ? 'text-[var(--color-figma-accent)] shadow-[inset_0_-2px_0_var(--color-figma-accent)]'
-                  : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+          <div className="flex items-center gap-1 rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1" role="tablist" aria-label="Settings categories">
+            {SETTINGS_TABS.map(tab => (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`${shellControlClass({ active: activeTab === tab.id, size: 'sm', shape: 'rounded' })} flex-1 leading-tight`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

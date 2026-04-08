@@ -69,6 +69,7 @@ import { SHORTCUT_KEYS, matchesShortcut } from './shared/shortcutRegistry';
 import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch, ApiError } from './shared/apiFetch';
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from './shared/storage';
+import { shellControlClass, shellCountBadgeClass, shellMetaTextClass } from './shared/shellControlStyles';
 import { findLeafByPath } from './components/tokenListUtils';
 import { summarizeApplyWorkflow } from './components/selectionInspectorUtils';
 
@@ -1645,11 +1646,7 @@ export function App() {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => guardEditorAction(() => navigateTo(workspace.topTab, workspace.subTab))}
-                    className={`shrink-0 rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm ring-1 ring-[var(--color-figma-border)]'
-                        : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-                    }`}
+                    className={shellControlClass({ active: isActive, size: 'md', shape: 'rounded' })}
                   >
                     {workspace.label}
                   </button>
@@ -1682,17 +1679,13 @@ export function App() {
                         openSecondaryPanel(surface.id);
                       }
                     })}
-                    className={`relative inline-flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm ring-1 ring-[var(--color-figma-border)]'
-                        : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-                    }`}
+                    className={`${shellControlClass({ active: isActive, size: 'md', shape: 'rounded' })} shrink-0`}
                     title={surface.transition.usage}
                     aria-pressed={isActive}
                   >
                     <span>{surface.label}</span>
                     {detail && (
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{detail}</span>
+                      <span className={`text-[10px] ${shellMetaTextClass(isActive)}`}>{detail}</span>
                     )}
                     {isAttentionSurface && (
                       <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--color-figma-accent)]" aria-hidden="true" />
@@ -1706,11 +1699,7 @@ export function App() {
           <div className="relative shrink-0" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(v => !v)}
-              className={`relative inline-flex min-h-[36px] items-center gap-2 rounded-[12px] border px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                menuOpen
-                  ? 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'
-                  : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-              }`}
+              className={`${shellControlClass({ active: menuOpen, size: 'md', shape: 'rounded' })} min-h-[36px]`}
               aria-label="Open tools"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -1812,11 +1801,11 @@ export function App() {
                         role="menuitem"
                         tabIndex={-1}
                         onClick={() => handleUtilityAction(action.id)}
-                        className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                        className="mx-1 mb-1 flex w-[calc(100%-0.5rem)] items-center justify-between rounded-[10px] border border-transparent px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out outline-none hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-border)] focus-visible:bg-[var(--color-figma-bg-secondary)] focus-visible:text-[var(--color-figma-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px active:bg-[var(--color-figma-bg-hover)]"
                         title={action.transition?.usage ?? action.description}
                       >
                         <span>{action.id === 'window-size' ? (isExpanded ? 'Restore window' : 'Expand window') : action.label}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{utilityActionDetail(action.id)}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{utilityActionDetail(action.id)}</span>
                       </button>
                     ))}
                   </div>
@@ -1849,13 +1838,13 @@ export function App() {
           <div className="relative flex items-center gap-2 px-2 py-1.5">
             <button
               onClick={() => setShowSetSwitcher(true)}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              className={`${shellControlClass({ size: 'sm', shape: 'rounded' })} shrink-0 justify-start text-left`}
               aria-label="Open set switcher"
             >
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Set</span>
+                <span className={`text-[10px] ${shellMetaTextClass(false)}`}>Set</span>
                 <span className="max-w-[180px] truncate text-[11px] font-medium text-[var(--color-figma-text)]">{activeSet}</span>
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="text-[var(--color-figma-text-tertiary)]">
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className={shellMetaTextClass(false)}>
                   <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
@@ -1887,11 +1876,7 @@ export function App() {
                         if (themeStatus) parts.push(`theme: ${themeStatus}`);
                         return parts.join('\n');
                       })()}
-                      className={`flex shrink-0 items-center gap-1.5 rounded px-2 py-1 text-[10px] transition-colors ${
-                        isActive
-                          ? 'bg-[var(--color-figma-accent)] text-white'
-                          : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                      } ${
+                      className={`${shellControlClass({ active: isActive, size: 'sm', shape: 'rounded' })} flex shrink-0 justify-start gap-1.5 ${
                         isTokenDragSource ? 'opacity-40' : ''
                       } ${
                         isTokenDropTarget
@@ -1905,16 +1890,16 @@ export function App() {
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
                             themeStatus === 'enabled'
-                              ? isActive ? 'bg-green-300' : 'bg-green-500'
+                              ? isActive ? 'bg-green-500' : 'bg-green-500'
                               : themeStatus === 'source'
-                                ? isActive ? 'bg-sky-300' : 'bg-sky-500'
-                                : isActive ? 'bg-white/30' : 'bg-gray-400/50'
+                                ? isActive ? 'bg-sky-500' : 'bg-sky-500'
+                                : isActive ? 'bg-[var(--color-figma-text-secondary)]/50' : 'bg-gray-400/50'
                           }`}
                         />
                       )}
                       <span className="max-w-[120px] truncate">{set}</span>
                       {setTokenCounts[set] !== undefined && (
-                        <span className={`rounded-full px-1.5 py-0.5 leading-none tabular-nums ${isActive ? 'bg-white/20 text-white/90' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                        <span className={shellCountBadgeClass(isActive)}>
                           {isActive && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
                         </span>
                       )}
@@ -1927,7 +1912,7 @@ export function App() {
                   <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[var(--color-figma-bg-secondary)] to-transparent" aria-hidden="true" />
                   <button
                     onClick={() => scrollSetTabs('left')}
-                    className="absolute left-0 top-0 bottom-0 z-[2] flex w-5 items-center justify-center text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                    className={`${shellControlClass({ size: 'sm', shape: 'rounded' })} absolute left-0 top-1/2 z-[2] h-6 w-5 min-h-0 -translate-y-1/2 px-0 py-0`}
                     aria-label="Scroll sets left"
                   >
                     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
@@ -1941,7 +1926,7 @@ export function App() {
                   <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--color-figma-bg-secondary)] to-transparent" aria-hidden="true" />
                   <button
                     onClick={() => scrollSetTabs('right')}
-                    className="absolute right-0 top-0 bottom-0 z-[2] flex w-5 items-center justify-center text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                    className={`${shellControlClass({ size: 'sm', shape: 'rounded' })} absolute right-0 top-1/2 z-[2] h-6 w-5 min-h-0 -translate-y-1/2 px-0 py-0`}
                     aria-label="Scroll sets right"
                   >
                     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
@@ -1954,7 +1939,7 @@ export function App() {
 
             <button
               onClick={() => openSecondaryPanel('sets')}
-              className="shrink-0 rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              className={shellControlClass({ size: 'sm', shape: 'rounded' })}
             >
               Set manager
             </button>

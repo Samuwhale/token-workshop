@@ -414,3 +414,11 @@
   - If a workflow needs persistent discovery, make it a visible secondary surface in the shell and reserve the tools menu for transient actions only.
   - Route keyboard shortcuts, command-palette jumps, and shell buttons through the same secondary-surface state so modal, popover, and panel behavior cannot drift apart.
 ---
+## 2026-04-08 - Standardize hover, focus, pressed, disabled, and selected states across shell navigation controls so the app feels deliberate instead of visually inconsistent from workspace to workspace
+- Added a shared shell-control style helper and applied it across workspace tabs, secondary-surface pills, summary section tabs, settings category tabs, the tools trigger/menu rows, and the token-set switching rail so selected, hover, pressed, focus, and disabled states now read as one system.
+- Validation passed via `bash scripts/backlog/validate.sh`.
+- Files changed: `packages/figma-plugin/src/ui/shared/shellControlStyles.ts` ~L1; `packages/figma-plugin/src/ui/App.tsx` ~L1641, ~L1673, ~L1699, ~L1798, ~L1839, ~L1862, ~L1913, ~L1940; `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` ~L3, ~L66, ~L91; `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L78, ~L152, ~L596; `scripts/backlog/patterns.md` ~L282
+- **Learnings for future iterations:**
+  - When shell navigation grows across multiple rails and panels, extract interaction states into a shared helper instead of tuning each surface independently.
+  - Keep selected states subtle but explicit, and let metadata text and count badges inherit from the same active-state system so pills do not drift visually.
+---

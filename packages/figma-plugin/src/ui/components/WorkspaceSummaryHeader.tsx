@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { WorkspaceSection } from '../shared/navigationTypes';
+import { shellControlClass } from '../shared/shellControlStyles';
 
 type WorkspacePillTone = 'neutral' | 'accent' | 'warning' | 'danger' | 'success';
 
@@ -66,7 +67,7 @@ export function WorkspaceSummaryHeader({
             <button
               onClick={primaryAction.onClick}
               disabled={primaryAction.disabled}
-              className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-[background-color,transform,opacity,box-shadow] duration-150 ease-out outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
             >
               {primaryAction.label}
             </button>
@@ -92,11 +93,7 @@ export function WorkspaceSummaryHeader({
                       role="tab"
                       aria-selected={isActive}
                       onClick={() => onSelectSection(section)}
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
-                        isActive
-                          ? 'bg-[var(--color-figma-accent)] text-white'
-                          : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-                      }`}
+                      className={shellControlClass({ active: isActive, size: 'sm', shape: 'pill' })}
                     >
                       {section.label}
                     </button>
