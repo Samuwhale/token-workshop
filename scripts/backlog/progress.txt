@@ -422,3 +422,11 @@
   - When a panel mixes a primary task with maintenance workflows, keep the primary narrative visible as stacked summary and action sections, then collapse the maintenance tools into one drawer instead of scattering secondary buttons across the header.
   - If advanced filters still affect the primary surface, surface the active filter state in the primary summary area so hidden advanced controls never make the main list feel mysteriously incomplete.
 ---
+## 2026-04-08 - Import source selection gives too many equal-weight choices at once and mixes very different source families
+- Reworked the import chooser into a progressive disclosure flow: users now pick a source family first (`From Figma`, `From token files`, `From code`, `Migrate from another tool`) and only then see the specific import formats in that family, with family-relevant guidance shown in context instead of as global caveats.
+- Kept all existing import handlers and hidden file inputs intact, preserved drag-and-drop auto-detection, and tightened the drag overlay copy so file-based imports still feel available outside the family picker.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportSourceSelector.tsx` ~L4, ~L20, ~L64, ~L101, ~L298; `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L77
+- **Learnings for future iterations:**
+  - When import options span distinct mental models, group them by family first and defer format-specific choices until the family is chosen; this reduces scan load without removing any capabilities.
+  - Keep file drag-and-drop detection at the panel boundary rather than inside the selector so the import UI can be reorganized freely without touching parser routing.
+---

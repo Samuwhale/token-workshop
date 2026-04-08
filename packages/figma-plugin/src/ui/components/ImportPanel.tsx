@@ -74,7 +74,7 @@ function ImportPanelRoot() {
             <line x1="12" y1="18" x2="12" y2="12" />
             <line x1="9" y1="15" x2="15" y2="15" />
           </svg>
-          <div className="text-[11px] font-medium text-[var(--color-figma-accent)]">Drop file to import (.json DTCG or Tokens Studio, .css, .js, .ts)</div>
+          <div className="text-[11px] font-medium text-[var(--color-figma-accent)]">Drop a file to import (DTCG JSON, Tokens Studio JSON, CSS, or Tailwind config)</div>
         </div>
       )}
 

@@ -144,3 +144,22 @@
     Reframed SelectionInspector around summary, current bindings, suggestions, and per-property binding, with sync/search/extract/remap/clear/filter tools moved into an Advanced tools drawer; validation passed.
 
   Committing: The Selection Inspector exposes too many secondary operations in the main toolbar and obscures the primary binding flow
+[main 70d1b036] chore(backlog): done – The Selection Inspector exposes too many secondary operations in the main toolbar and obscures the primary binding flow
+ 5 files changed, 610 insertions(+), 390 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-08 - The Selection Inspector exposes too many secondary operations in the main toolbar and obscures the primary binding flow
+- Reorganized `SelectionInspector` around the main job sequence: selected-layer summary, current binding overview, suggested tokens, and the per-property bind/replace surface now lead the panel, while layer search, page/selection sync, deep inspect, extract, remap, clear-all, and property filters moved into a single collapsible `Advanced tools` drawer.
+- Preserved all existing power-user capabilities inside the new drawer, including page sync, extract-and-bind unbound properties, full extract/remap panels, deep nested inspection, and property filtering, while keeping status badges and filter state visible in the primary summary cards.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L209, ~L970, ~L998, ~L1043, ~L1166, ~L1178, ~L1252, ~L1316, ~L1407
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  7 queued · 0 in-progress · last took 10m24s
+═══════════════════════════════════════════════════════════════
+  → Import source selection gives too many equal-weight choices at once and mixes very different source families — the current import source selector presents Figma Variables, Figma Styles, JSON, Tokens Studio, CSS, and Tailwind as a long flat list with plan caveats and parser caveats interleaved; redesign this as a progressive disclosure flow: first choose a source family (`From Figma`, `From token files`, `From code`, `Migrate from another tool`), then choose the specific format within that family; this will reduce scan load and make it easier for designers to identify the right path without reading every card; constraints: (1) drag-and-drop support should remain intact, (2) plan/limitation messaging should be shown only when relevant to the chosen family, not globally, (3) preserve support for all current import sources; files: `packages/figma-plugin/src/ui/components/ImportPanel.tsx`, `packages/figma-plugin/src/ui/components/ImportSourceSelector.tsx`
+  Running agent… (started 10:59:47)
+
+  ✓ done: Import source selection gives too many equal-weight choices at once and mixes very different source families
+    Reworked import selection into a family-first progressive flow, kept all source handlers and drag-drop intact, validated successfully, and logged the result.
+
+  Committing: Import source selection gives too many equal-weight choices at once and mixes very different source families
