@@ -1,5 +1,22 @@
 # Backlog Progress Log
 ---
+## 2026-04-08 - [HIGH] Implement a dedicated token set manager surface with one consistent entry point, and keep the always-visible set switcher lightweight; the manager should own rename, duplicate, merge, split, reorder, metadata, and bulk operations instead of scattering them across the main workspace
+- Consolidated the structural set workflows into the dedicated set manager surface: the manager now renders and owns metadata editing, delete confirmation, merge, and split dialogs directly, while the always-visible set bar stays focused on switching and quick token-drop targeting.
+- Simplified the surrounding shell integration by trimming dead set-tab management state, adding an explicit `Open set manager` command palette action, and making the tokens header point to the same manager entry point every time.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L429, ~L1345
+- Files changed: `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L29, ~L534, ~L1139
+- Files changed: `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L145
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetTabs.ts` ~L1
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetDelete.ts` ~L5
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetDuplicate.ts` ~L4
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L7
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts` ~L5
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetRename.ts` ~L6
+- Files changed: `scripts/backlog/patterns.md` ~L144
+- **Learnings for future iterations:**
+  - If a manager surface is the canonical home for structural operations, keep its nested dialogs and confirmations inside that manager instead of leaving them in `App.tsx`.
+  - Lightweight switchers should only handle selection and fast navigation; reordering, metadata, and destructive actions belong in the dedicated manager even when they share the same domain object.
+---
 ## 2026-04-08 - [HIGH] Extract a shared workspace header component and migrate Tokens, Themes, Apply, and Sync to it with a stable structure: title, one-sentence guidance, compact status indicators, and one primary action
 - Extracted a shared `WorkspaceSummaryHeader` shell component, moved the workspace summary strip out of `App.tsx`, added section-aware summary copy in navigation metadata, and normalized one primary CTA for Tokens, Themes, Apply, and Sync while demoting Tokens-only toggles into a contextual row below the shared header.
 - Removed conflicting local header chrome from Theme authoring and Apply selection, and wired imperative handles so the shared header can trigger `Create axis` and `Run checks` without duplicating those controls inside the panels.

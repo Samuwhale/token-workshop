@@ -3,6 +3,7 @@ import type { RefObject, ReactNode } from 'react';
 import type { ThemeDimension, ThemeSetStatus } from '@tokenmanager/core';
 import { SET_NAME_RE } from '../shared/utils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
+import { ConfirmModal } from './ConfirmModal';
 
 interface FolderGroup {
   folder: string;
@@ -54,6 +55,36 @@ interface SetManagerProps {
   renameInputRef?: RefObject<HTMLInputElement | null>;
   onRenameConfirm?: () => void;
   onRenameCancel?: () => void;
+  editingMetadataSet?: string | null;
+  metadataDescription?: string;
+  setMetadataDescription?: (value: string) => void;
+  metadataCollectionName?: string;
+  setMetadataCollectionName?: (value: string) => void;
+  metadataModeName?: string;
+  setMetadataModeName?: (value: string) => void;
+  onMetadataClose?: () => void;
+  onMetadataSave?: () => void;
+  deletingSet?: string | null;
+  onDeleteConfirm?: () => void | Promise<void>;
+  onDeleteCancel?: () => void;
+  mergingSet?: string | null;
+  mergeTargetSet?: string;
+  mergeConflicts?: Array<{ path: string; sourceValue: unknown; targetValue: unknown }>;
+  mergeResolutions?: Record<string, 'source' | 'target'>;
+  mergeChecked?: boolean;
+  mergeLoading?: boolean;
+  onMergeTargetChange?: (target: string) => void;
+  setMergeResolutions?: (updater: Record<string, 'source' | 'target'> | ((prev: Record<string, 'source' | 'target'>) => Record<string, 'source' | 'target'>)) => void;
+  onMergeCheckConflicts?: () => void | Promise<void>;
+  onMergeConfirm?: () => void | Promise<void>;
+  onMergeClose?: () => void;
+  splittingSet?: string | null;
+  splitPreview?: Array<{ key: string; newName: string; count: number }>;
+  splitDeleteOriginal?: boolean;
+  splitLoading?: boolean;
+  setSplitDeleteOriginal?: (value: boolean) => void;
+  onSplitConfirm?: () => void | Promise<void>;
+  onSplitClose?: () => void;
 }
 
 function buildFolderGroups(sets: string[]): GroupItem[] {
@@ -271,7 +302,7 @@ export function SetSwitcher({
                 onClick={onManageSets}
                 className="rounded px-1.5 py-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                Manage sets
+                Open set manager
               </button>
             )}
             <span className="opacity-60">↑↓ navigate · ↵ switch</span>
@@ -425,6 +456,36 @@ export function SetManager({
   renameInputRef,
   onRenameConfirm,
   onRenameCancel,
+  editingMetadataSet = null,
+  metadataDescription = '',
+  setMetadataDescription,
+  metadataCollectionName = '',
+  setMetadataCollectionName,
+  metadataModeName = '',
+  setMetadataModeName,
+  onMetadataClose,
+  onMetadataSave,
+  deletingSet = null,
+  onDeleteConfirm,
+  onDeleteCancel,
+  mergingSet = null,
+  mergeTargetSet = '',
+  mergeConflicts = [],
+  mergeResolutions = {},
+  mergeChecked = false,
+  mergeLoading = false,
+  onMergeTargetChange,
+  setMergeResolutions,
+  onMergeCheckConflicts,
+  onMergeConfirm,
+  onMergeClose,
+  splittingSet = null,
+  splitPreview = [],
+  splitDeleteOriginal = false,
+  splitLoading = false,
+  setSplitDeleteOriginal,
+  onSplitConfirm,
+  onSplitClose,
 }: SetManagerProps) {
   const setThemeLabels = buildSetThemeLabels(dimensions);
   const [query, setQuery] = useState('');
@@ -471,6 +532,7 @@ export function SetManager({
   };
 
   return (
+    <>
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
         <button
@@ -483,7 +545,7 @@ export function SetManager({
           </svg>
           Back
         </button>
-        <span className="ml-1 text-[10px] font-medium text-[var(--color-figma-text)]">Sets</span>
+        <span className="ml-1 text-[10px] font-medium text-[var(--color-figma-text)]">Token set manager</span>
         {onOpenQuickSwitch && (
           <button
             onClick={onOpenQuickSwitch}
@@ -532,7 +594,7 @@ export function SetManager({
           <span>·</span>
           <span>Active: {activeSet}</span>
           <span>·</span>
-          <span>Manage names, folders, ordering, merges, and bulk actions here.</span>
+          <span>Own all structural set work here: naming, folders, ordering, metadata, merges, splits, and bulk actions.</span>
         </div>
         {creatingSet && onCreateSet && (
           <div className="mt-2 flex flex-col gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
@@ -608,6 +670,58 @@ export function SetManager({
         onRenameCancel={onRenameCancel}
       />
     </div>
+    {editingMetadataSet && (
+      <SetMetadataDialog
+        setName={editingMetadataSet}
+        description={metadataDescription}
+        onDescriptionChange={value => setMetadataDescription?.(value)}
+        collectionName={metadataCollectionName}
+        onCollectionNameChange={value => setMetadataCollectionName?.(value)}
+        modeName={metadataModeName}
+        onModeNameChange={value => setMetadataModeName?.(value)}
+        onClose={() => onMetadataClose?.()}
+        onSave={() => onMetadataSave?.()}
+      />
+    )}
+    {deletingSet && onDeleteConfirm && onDeleteCancel && (
+      <ConfirmModal
+        title={`Delete "${deletingSet}"?`}
+        description="All tokens in this set will be permanently deleted."
+        confirmLabel="Delete set"
+        danger
+        onConfirm={onDeleteConfirm}
+        onCancel={onDeleteCancel}
+      />
+    )}
+    {mergingSet && onMergeClose && onMergeTargetChange && setMergeResolutions && onMergeCheckConflicts && onMergeConfirm && (
+      <SetMergeDialog
+        sets={sets}
+        mergingSet={mergingSet}
+        mergeTargetSet={mergeTargetSet}
+        mergeConflicts={mergeConflicts}
+        mergeResolutions={mergeResolutions}
+        mergeChecked={mergeChecked}
+        mergeLoading={mergeLoading}
+        onTargetChange={onMergeTargetChange}
+        onSetResolutions={setMergeResolutions}
+        onCheckConflicts={onMergeCheckConflicts}
+        onConfirm={onMergeConfirm}
+        onClose={onMergeClose}
+      />
+    )}
+    {splittingSet && onSplitClose && setSplitDeleteOriginal && onSplitConfirm && (
+      <SetSplitDialog
+        sets={sets}
+        splittingSet={splittingSet}
+        splitPreview={splitPreview}
+        splitDeleteOriginal={splitDeleteOriginal}
+        splitLoading={splitLoading}
+        onSetDeleteOriginal={setSplitDeleteOriginal}
+        onConfirm={onSplitConfirm}
+        onClose={onSplitClose}
+      />
+    )}
+    </>
   );
 }
 
@@ -1144,6 +1258,293 @@ function ManageView({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function SetMetadataDialog({
+  setName,
+  description,
+  onDescriptionChange,
+  collectionName,
+  onCollectionNameChange,
+  modeName,
+  onModeNameChange,
+  onClose,
+  onSave,
+}: {
+  setName: string;
+  description: string;
+  onDescriptionChange: (value: string) => void;
+  collectionName: string;
+  onCollectionNameChange: (value: string) => void;
+  modeName: string;
+  onModeNameChange: (value: string) => void;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="flex w-72 flex-col gap-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-4 shadow-xl">
+        <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
+          Edit set info — {setName}
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Description</label>
+          <textarea
+            autoFocus
+            value={description}
+            onChange={e => onDescriptionChange(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
+            rows={3}
+            placeholder="What is this token set for?"
+            className="w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Figma collection name</label>
+          <input
+            type="text"
+            value={collectionName}
+            onChange={e => onCollectionNameChange(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
+            placeholder="TokenManager"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          />
+          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">Tokens in this set will sync to this Figma variable collection.</p>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Figma mode name</label>
+          <input
+            type="text"
+            value={modeName}
+            onChange={e => onModeNameChange(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
+            placeholder="Mode 1"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          />
+          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">When multiple sets share a collection, each set maps to a mode. Leave blank to use the first mode.</p>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="rounded px-3 py-1.5 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSave}
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SetMergeDialog({
+  sets,
+  mergingSet,
+  mergeTargetSet,
+  mergeConflicts,
+  mergeResolutions,
+  mergeChecked,
+  mergeLoading,
+  onTargetChange,
+  onSetResolutions,
+  onCheckConflicts,
+  onConfirm,
+  onClose,
+}: {
+  sets: string[];
+  mergingSet: string;
+  mergeTargetSet: string;
+  mergeConflicts: Array<{ path: string; sourceValue: unknown; targetValue: unknown }>;
+  mergeResolutions: Record<string, 'source' | 'target'>;
+  mergeChecked: boolean;
+  mergeLoading: boolean;
+  onTargetChange: (target: string) => void;
+  onSetResolutions: (updater: Record<string, 'source' | 'target'> | ((prev: Record<string, 'source' | 'target'>) => Record<string, 'source' | 'target'>)) => void;
+  onCheckConflicts: () => void | Promise<void>;
+  onConfirm: () => void | Promise<void>;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="flex max-h-[80vh] w-80 flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
+          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Merge "{mergingSet}" into…</span>
+          <button onClick={onClose} className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="flex flex-col gap-3 overflow-y-auto p-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Target set</label>
+            <select
+              value={mergeTargetSet}
+              onChange={e => onTargetChange(e.target.value)}
+              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+            >
+              {sets.filter(set => set !== mergingSet).map(set => (
+                <option key={set} value={set}>{set}</option>
+              ))}
+            </select>
+          </div>
+          {!mergeChecked && (
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              Tokens from <span className="font-mono font-medium">{mergingSet}</span> will be added to <span className="font-mono font-medium">{mergeTargetSet}</span>. Conflicts where both sets have the same path but different values will be shown for resolution.
+            </p>
+          )}
+          {mergeChecked && mergeConflicts.length === 0 && (
+            <p className="text-[10px] text-green-500">No conflicts — all tokens can be merged cleanly.</p>
+          )}
+          {mergeChecked && mergeConflicts.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Resolve {mergeConflicts.length} conflict{mergeConflicts.length !== 1 ? 's' : ''} before merging.
+              </p>
+              <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
+                {mergeConflicts.map(conflict => (
+                  <div key={conflict.path} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                    <div className="break-all font-mono text-[10px] text-[var(--color-figma-text)]">{conflict.path}</div>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <label className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === 'source' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+                        <input
+                          type="radio"
+                          name={`merge-${conflict.path}`}
+                          checked={mergeResolutions[conflict.path] === 'source'}
+                          onChange={() => onSetResolutions(prev => ({ ...prev, [conflict.path]: 'source' }))}
+                          className="sr-only"
+                        />
+                        <div className="font-medium">Use source</div>
+                        <div className="mt-0.5 break-all opacity-80">{String(conflict.sourceValue)}</div>
+                      </label>
+                      <label className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === 'target' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+                        <input
+                          type="radio"
+                          name={`merge-${conflict.path}`}
+                          checked={mergeResolutions[conflict.path] === 'target'}
+                          onChange={() => onSetResolutions(prev => ({ ...prev, [conflict.path]: 'target' }))}
+                          className="sr-only"
+                        />
+                        <div className="font-medium">Keep target</div>
+                        <div className="mt-0.5 break-all opacity-80">{String(conflict.targetValue)}</div>
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          {!mergeChecked ? (
+            <button
+              onClick={onCheckConflicts}
+              disabled={mergeLoading || !mergeTargetSet}
+              className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            >
+              {mergeLoading ? 'Checking…' : 'Check conflicts'}
+            </button>
+          ) : (
+            <button
+              onClick={onConfirm}
+              disabled={mergeLoading}
+              className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            >
+              {mergeLoading ? 'Merging…' : 'Merge'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SetSplitDialog({
+  sets,
+  splittingSet,
+  splitPreview,
+  splitDeleteOriginal,
+  splitLoading,
+  onSetDeleteOriginal,
+  onConfirm,
+  onClose,
+}: {
+  sets: string[];
+  splittingSet: string;
+  splitPreview: Array<{ key: string; newName: string; count: number }>;
+  splitDeleteOriginal: boolean;
+  splitLoading: boolean;
+  onSetDeleteOriginal: (value: boolean) => void;
+  onConfirm: () => void | Promise<void>;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="flex max-h-[80vh] w-72 flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
+          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Split "{splittingSet}"</span>
+          <button onClick={onClose} className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="flex flex-col gap-3 overflow-y-auto p-4">
+          {splitPreview.length === 0 ? (
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No top-level groups found in this set to split.</p>
+          ) : (
+            <>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Creates {splitPreview.length} new set{splitPreview.length !== 1 ? 's' : ''} from top-level groups:
+              </p>
+              <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
+                {splitPreview.map(preview => (
+                  <div key={preview.key} className="flex items-center justify-between rounded bg-[var(--color-figma-bg-hover)] px-2 py-1">
+                    <span className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">{preview.newName}</span>
+                    <span className="ml-2 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">{preview.count} token{preview.count !== 1 ? 's' : ''}</span>
+                  </div>
+                ))}
+              </div>
+              {splitPreview.some(preview => sets.includes(preview.newName)) && (
+                <p className="text-[10px] text-amber-500">Some sets already exist and will be skipped.</p>
+              )}
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={splitDeleteOriginal}
+                  onChange={e => onSetDeleteOriginal(e.target.checked)}
+                  className="h-3 w-3 rounded"
+                />
+                <span className="text-[11px] text-[var(--color-figma-text)]">Delete "{splittingSet}" after split</span>
+              </label>
+            </>
+          )}
+        </div>
+        <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={splitLoading || splitPreview.length === 0}
+            className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          >
+            {splitLoading ? 'Splitting…' : 'Split'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

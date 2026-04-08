@@ -9,14 +9,13 @@ interface UseSetMetadataParams {
   setCollectionNames: Record<string, string>;
   setModeNames: Record<string, string>;
   updateSetMetadataInState: (name: string, description: string, collectionName: string, modeName: string) => void;
-  setTabMenuOpen: (v: string | null) => void;
   onError: (msg: string) => void;
 }
 
 export function useSetMetadata({
   serverUrl, connected,
   setDescriptions, setCollectionNames, setModeNames,
-  updateSetMetadataInState, setTabMenuOpen, onError,
+  updateSetMetadataInState, onError,
 }: UseSetMetadataParams) {
   const [editingMetadataSet, setEditingMetadataSet] = useState<string | null>(null);
   const [metadataDescription, setMetadataDescription] = useState('');
@@ -24,7 +23,6 @@ export function useSetMetadata({
   const [metadataModeName, setMetadataModeName] = useState('');
 
   const openSetMetadata = (setName: string) => {
-    setTabMenuOpen(null);
     setEditingMetadataSet(setName);
     setMetadataDescription(setDescriptions[setName] || '');
     setMetadataCollectionName(setCollectionNames[setName] || '');

@@ -426,8 +426,8 @@ export function App() {
     }
   }, [tokenDragState, serverUrl, refreshTokens, setSuccessToast, setErrorToast]);
 
-  // Set tab management (drag, context menu, overflow, new-set form)
-  const { dragOverSetName, setTabMenuOpen, setTabsScrollRef, setTabsOverflow, cascadeDiff, handleSetDragOver, handleSetDragLeave, handleSetDrop, handleReorderSet, handleReorderSetFull, scrollSetTabs } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes, tokenDragFromSet: tokenDragState?.fromSet ?? null, onTokenDropOnSet: handleTokenDropOnSet });
+  // Lightweight set switcher bar: overflow handling, token-drop targets, and manager reorder helpers.
+  const { dragOverSetName, setTabsScrollRef, setTabsOverflow, cascadeDiff, handleSetDragOver, handleSetDragLeave, handleSetDrop, handleReorderSet, handleReorderSetFull, scrollSetTabs } = useSetTabs({ serverUrl, sets, setSets, activeSet, refreshTokens, setSuccessToast, tokenDragFromSet: tokenDragState?.fromSet ?? null, onTokenDropOnSet: handleTokenDropOnSet });
 
   // Group sync + scope state
   const { syncGroupPending, setSyncGroupPending, syncGroupApplying, syncGroupProgress, syncGroupStylesPending, setSyncGroupStylesPending, syncGroupStylesApplying, syncGroupStylesProgress, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, syncGroupError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
@@ -441,13 +441,13 @@ export function App() {
   }, [syncGroupError, setErrorToast]);
 
   // Set management hooks
-  const { editingMetadataSet, metadataDescription, setMetadataDescription, metadataCollectionName, setMetadataCollectionName, metadataModeName, setMetadataModeName, closeSetMetadata, openSetMetadata, handleSaveMetadata } = useSetMetadata({ serverUrl, connected, setDescriptions, setCollectionNames, setModeNames, updateSetMetadataInState, setTabMenuOpen, onError: setErrorToast });
-  const { deletingSet, startDelete, cancelDelete, handleDeleteSet } = useSetDelete({ serverUrl, connected, getDisconnectSignal, sets, activeSet, setActiveSet, removeSetFromState, fetchTokensForSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, setTabMenuOpen, onPushUndo: pushUndo });
-  const { renamingSet, renameValue, setRenameValue, renameError, setRenameError, renameInputRef, startRename, cancelRename, handleRenameConfirm } = useSetRename({ serverUrl, connected, getDisconnectSignal, activeSet, setActiveSet, renameSetInState, setSuccessToast, markDisconnected, setTabMenuOpen, onPushUndo: pushUndo });
-  const { handleDuplicateSet } = useSetDuplicate({ serverUrl, connected, getDisconnectSignal, sets, tokenCounts: setTokenCounts, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, pushUndo, setTabMenuOpen });
-  const { mergingSet, mergeTargetSet, mergeConflicts, mergeResolutions, mergeChecked, mergeLoading, openMergeDialog, closeMergeDialog, changeMergeTarget, setMergeResolutions, handleCheckMergeConflicts, handleConfirmMerge, splittingSet, splitPreview, splitDeleteOriginal, splitLoading, openSplitDialog, closeSplitDialog, setSplitDeleteOriginal, handleConfirmSplit } = useSetMergeSplit({ serverUrl, connected, sets, activeSet, setActiveSet, refreshTokens, setSuccessToast, setErrorToast, pushUndo, setTabMenuOpen });
+  const { editingMetadataSet, metadataDescription, setMetadataDescription, metadataCollectionName, setMetadataCollectionName, metadataModeName, setMetadataModeName, closeSetMetadata, openSetMetadata, handleSaveMetadata } = useSetMetadata({ serverUrl, connected, setDescriptions, setCollectionNames, setModeNames, updateSetMetadataInState, onError: setErrorToast });
+  const { deletingSet, startDelete, cancelDelete, handleDeleteSet } = useSetDelete({ serverUrl, connected, getDisconnectSignal, sets, activeSet, setActiveSet, removeSetFromState, fetchTokensForSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, onPushUndo: pushUndo });
+  const { renamingSet, renameValue, setRenameValue, renameError, setRenameError, renameInputRef, startRename, cancelRename, handleRenameConfirm } = useSetRename({ serverUrl, connected, getDisconnectSignal, activeSet, setActiveSet, renameSetInState, setSuccessToast, markDisconnected, onPushUndo: pushUndo });
+  const { handleDuplicateSet } = useSetDuplicate({ serverUrl, connected, getDisconnectSignal, sets, tokenCounts: setTokenCounts, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, pushUndo });
+  const { mergingSet, mergeTargetSet, mergeConflicts, mergeResolutions, mergeChecked, mergeLoading, openMergeDialog, closeMergeDialog, changeMergeTarget, setMergeResolutions, handleCheckMergeConflicts, handleConfirmMerge, splittingSet, splitPreview, splitDeleteOriginal, splitLoading, openSplitDialog, closeSplitDialog, setSplitDeleteOriginal, handleConfirmSplit } = useSetMergeSplit({ serverUrl, connected, sets, activeSet, setActiveSet, refreshTokens, setSuccessToast, setErrorToast, pushUndo });
 
-  // Create set by name — used by the Manage Sets panel
+  // Create set by name — owned by the set manager surface.
   const createSetByName = useCallback(async (name: string) => {
     await apiFetch(`${serverUrl}/api/sets`, {
       method: 'POST',
@@ -459,7 +459,7 @@ export function App() {
     setSuccessToast(`Created set "${name}"`);
   }, [serverUrl, getDisconnectSignal, addSetToState, setSuccessToast]);
 
-  // Bulk delete sets — used by SetSwitcher multi-select
+  // Bulk delete sets — owned by the set manager surface.
   const handleBulkDeleteSets = useCallback(async (setsToDelete: string[]) => {
     let currentActive = activeSet;
     const currentSets = sets;
@@ -480,7 +480,7 @@ export function App() {
     setSuccessToast(`Deleted ${setsToDelete.length} set${setsToDelete.length !== 1 ? 's' : ''}`);
   }, [serverUrl, sets, activeSet, setActiveSet, removeSetFromState, fetchTokensForSet, setSuccessToast, getDisconnectSignal]);
 
-  // Bulk duplicate sets — used by SetSwitcher multi-select
+  // Bulk duplicate sets — owned by the set manager surface.
   const handleBulkDuplicateSets = useCallback(async (setsToDuplicate: string[]) => {
     for (const setName of setsToDuplicate) {
       const result = await apiFetch<{ ok: true; name: string; originalName: string }>(
@@ -492,7 +492,7 @@ export function App() {
     setSuccessToast(`Duplicated ${setsToDuplicate.length} set${setsToDuplicate.length !== 1 ? 's' : ''}`);
   }, [serverUrl, addSetToState, setTokenCounts, setSuccessToast, getDisconnectSignal]);
 
-  // Bulk move sets to folder — used by SetSwitcher multi-select
+  // Bulk move sets to folder — owned by the set manager surface.
   const handleBulkMoveToFolder = useCallback(async (moves: Array<{ from: string; to: string }>) => {
     for (const { from, to } of moves) {
       await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(from)}/rename`, {
@@ -1346,7 +1346,7 @@ export function App() {
               onClick={() => openOverflowPanel('sets')}
               className="shrink-0 rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
             >
-              Manage
+              Set manager
             </button>
           </div>
           {tokenDragState && (
@@ -1402,6 +1402,36 @@ export function App() {
               renameInputRef={renameInputRef}
               onRenameConfirm={handleRenameConfirm}
               onRenameCancel={cancelRename}
+              editingMetadataSet={editingMetadataSet}
+              metadataDescription={metadataDescription}
+              setMetadataDescription={setMetadataDescription}
+              metadataCollectionName={metadataCollectionName}
+              setMetadataCollectionName={setMetadataCollectionName}
+              metadataModeName={metadataModeName}
+              setMetadataModeName={setMetadataModeName}
+              onMetadataClose={closeSetMetadata}
+              onMetadataSave={handleSaveMetadata}
+              deletingSet={deletingSet}
+              onDeleteConfirm={handleDeleteSet}
+              onDeleteCancel={cancelDelete}
+              mergingSet={mergingSet}
+              mergeTargetSet={mergeTargetSet}
+              mergeConflicts={mergeConflicts}
+              mergeResolutions={mergeResolutions}
+              mergeChecked={mergeChecked}
+              mergeLoading={mergeLoading}
+              onMergeTargetChange={changeMergeTarget}
+              setMergeResolutions={setMergeResolutions}
+              onMergeCheckConflicts={handleCheckMergeConflicts}
+              onMergeConfirm={handleConfirmMerge}
+              onMergeClose={closeMergeDialog}
+              splittingSet={splittingSet}
+              splitPreview={splitPreview}
+              splitDeleteOriginal={splitDeleteOriginal}
+              splitLoading={splitLoading}
+              setSplitDeleteOriginal={setSplitDeleteOriginal}
+              onSplitConfirm={handleConfirmSplit}
+              onSplitClose={closeSplitDialog}
             />
           ) : (
             <>
@@ -1829,67 +1859,6 @@ export function App() {
         </div>
       )}
 
-      {/* Set metadata editor */}
-      {editingMetadataSet && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
-              Edit set info — {editingMetadataSet}
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Description</label>
-              <textarea
-                autoFocus
-                value={metadataDescription}
-                onChange={e => setMetadataDescription(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
-                rows={3}
-                placeholder="What is this token set for?"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Figma collection name</label>
-              <input
-                type="text"
-                value={metadataCollectionName}
-                onChange={e => setMetadataCollectionName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
-                placeholder="TokenManager"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-              />
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Tokens in this set will sync to this Figma variable collection.</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Figma mode name</label>
-              <input
-                type="text"
-                value={metadataModeName}
-                onChange={e => setMetadataModeName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
-                placeholder="Mode 1"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-              />
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">When multiple sets share a collection, each set maps to a mode. Leave blank to use the first mode.</p>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => closeSetMetadata()}
-                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveMetadata}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Command palette delete confirmation */}
       {paletteDeleteConfirm && (
         <ConfirmModal
@@ -1917,18 +1886,6 @@ export function App() {
             action();
           }}
           onCancel={() => setPendingNavAction(null)}
-        />
-      )}
-
-      {/* Delete set confirmation */}
-      {deletingSet && (
-        <ConfirmModal
-          title={`Delete "${deletingSet}"?`}
-          description="All tokens in this set will be permanently deleted."
-          confirmLabel="Delete set"
-          danger
-          onConfirm={handleDeleteSet}
-          onCancel={cancelDelete}
         />
       )}
 
@@ -2047,157 +2004,6 @@ export function App() {
                 disabled={groupScopesApplying}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
               >{groupScopesApplying ? (groupScopesProgress && groupScopesProgress.total > 0 ? `Applying… ${groupScopesProgress.done}/${groupScopesProgress.total}` : 'Applying…') : 'Apply to group'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Merge into dialog */}
-      {mergingSet && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
-              <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Merge "{mergingSet}" into…</span>
-              <button onClick={closeMergeDialog} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-            <div className="p-4 flex flex-col gap-3 overflow-y-auto">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Target set</label>
-                <select
-                  value={mergeTargetSet}
-                  onChange={e => changeMergeTarget(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-                >
-                  {sets.filter(s => s !== mergingSet).map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-              {!mergeChecked && (
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Tokens from <span className="font-mono font-medium">{mergingSet}</span> will be added to <span className="font-mono font-medium">{mergeTargetSet}</span>. Conflicts where both sets have the same path but different values will be shown for resolution.
-                </p>
-              )}
-              {mergeChecked && mergeConflicts.length === 0 && (
-                <p className="text-[10px] text-green-500">No conflicts — all tokens can be merged cleanly.</p>
-              )}
-              {mergeChecked && mergeConflicts.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    {mergeConflicts.length} conflict{mergeConflicts.length !== 1 ? 's' : ''} found. Choose which value to keep:
-                  </p>
-                  <div className="flex flex-col gap-2 max-h-52 overflow-y-auto">
-                    {mergeConflicts.map(c => (
-                      <div key={c.path} className="flex flex-col gap-1 rounded border border-[var(--color-figma-border)] p-2">
-                        <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={c.path}>{c.path}</span>
-                        <div className="flex gap-2">
-                          <label className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
-                            <input
-                              type="radio"
-                              name={`conflict-${c.path}`}
-                              checked={mergeResolutions[c.path] === 'source'}
-                              onChange={() => setMergeResolutions(r => ({ ...r, [c.path]: 'source' }))}
-                              className="w-3 h-3 shrink-0"
-                            />
-                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={`${mergingSet}: ${String(c.sourceValue)}`}>
-                              {mergingSet}: {String(c.sourceValue).slice(0, 18)}{String(c.sourceValue).length > 18 ? '…' : ''}
-                            </span>
-                          </label>
-                          <label className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
-                            <input
-                              type="radio"
-                              name={`conflict-${c.path}`}
-                              checked={mergeResolutions[c.path] === 'target'}
-                              onChange={() => setMergeResolutions(r => ({ ...r, [c.path]: 'target' }))}
-                              className="w-3 h-3 shrink-0"
-                            />
-                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={`${mergeTargetSet}: ${String(c.targetValue)}`}>
-                              {mergeTargetSet}: {String(c.targetValue).slice(0, 18)}{String(c.targetValue).length > 18 ? '…' : ''}
-                            </span>
-                          </label>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)]">
-              <button
-                onClick={closeMergeDialog}
-                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
-              >Cancel</button>
-              {!mergeChecked ? (
-                <button
-                  onClick={handleCheckMergeConflicts}
-                  disabled={!mergeTargetSet || mergeLoading}
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-                >{mergeLoading ? 'Checking…' : 'Check conflicts'}</button>
-              ) : (
-                <button
-                  onClick={handleConfirmMerge}
-                  disabled={mergeLoading}
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-                >{mergeLoading ? 'Merging…' : 'Merge'}</button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Split by group dialog */}
-      {splittingSet && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
-              <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Split "{splittingSet}"</span>
-              <button onClick={closeSplitDialog} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-            <div className="p-4 flex flex-col gap-3 overflow-y-auto">
-              {splitPreview.length === 0 ? (
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No top-level groups found in this set to split.</p>
-              ) : (
-                <>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Creates {splitPreview.length} new set{splitPreview.length !== 1 ? 's' : ''} from top-level groups:
-                  </p>
-                  <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                    {splitPreview.map(p => (
-                      <div key={p.key} className="flex items-center justify-between px-2 py-1 rounded bg-[var(--color-figma-bg-hover)]">
-                        <span className="text-[11px] font-mono text-[var(--color-figma-text)] truncate">{p.newName}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-2 shrink-0">{p.count} token{p.count !== 1 ? 's' : ''}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {splitPreview.some(p => sets.includes(p.newName)) && (
-                    <p className="text-[10px] text-amber-500">Some sets already exist and will be skipped.</p>
-                  )}
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={splitDeleteOriginal}
-                      onChange={e => setSplitDeleteOriginal(e.target.checked)}
-                      className="w-3 h-3 rounded"
-                    />
-                    <span className="text-[11px] text-[var(--color-figma-text)]">Delete "{splittingSet}" after split</span>
-                  </label>
-                </>
-              )}
-            </div>
-            <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)]">
-              <button
-                onClick={closeSplitDialog}
-                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
-              >Cancel</button>
-              <button
-                onClick={handleConfirmSplit}
-                disabled={splitLoading || splitPreview.length === 0}
-                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-              >{splitLoading ? 'Splitting…' : 'Split'}</button>
             </div>
           </div>
         </div>

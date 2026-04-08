@@ -13,17 +13,15 @@ interface UseSetDuplicateParams {
   setErrorToast: (msg: string) => void;
   markDisconnected: () => void;
   pushUndo: (slot: UndoSlot) => void;
-  setTabMenuOpen: (v: string | null) => void;
 }
 
 export function useSetDuplicate({
   serverUrl, connected, getDisconnectSignal,
   sets: _sets, tokenCounts, addSetToState, refreshTokens,
-  setSuccessToast, setErrorToast, markDisconnected, pushUndo, setTabMenuOpen,
+  setSuccessToast, setErrorToast, markDisconnected, pushUndo,
 }: UseSetDuplicateParams) {
 
   const handleDuplicateSet = async (setName: string) => {
-    setTabMenuOpen(null);
     if (!connected) return;
     let newName: string;
     try {

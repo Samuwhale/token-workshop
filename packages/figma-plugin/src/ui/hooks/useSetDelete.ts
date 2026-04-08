@@ -16,7 +16,6 @@ interface UseSetDeleteParams {
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
   markDisconnected: () => void;
-  setTabMenuOpen: (v: string | null) => void;
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
@@ -25,14 +24,13 @@ export function useSetDelete({
   sets, activeSet, setActiveSet,
   removeSetFromState, fetchTokensForSet,
   refreshTokens,
-  setSuccessToast, setErrorToast, markDisconnected, setTabMenuOpen,
+  setSuccessToast, setErrorToast, markDisconnected,
   onPushUndo,
 }: UseSetDeleteParams) {
   const [deletingSet, setDeletingSet] = useState<string | null>(null);
 
   const startDelete = (setName: string) => {
     setDeletingSet(setName);
-    setTabMenuOpen(null);
   };
 
   const cancelDelete = () => {

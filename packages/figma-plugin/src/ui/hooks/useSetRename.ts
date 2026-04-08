@@ -12,14 +12,13 @@ interface UseSetRenameParams {
   renameSetInState: (oldName: string, newName: string) => void;
   setSuccessToast: (msg: string) => void;
   markDisconnected: () => void;
-  setTabMenuOpen: (v: string | null) => void;
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
 export function useSetRename({
   serverUrl, connected, getDisconnectSignal,
   activeSet, setActiveSet, renameSetInState,
-  setSuccessToast, markDisconnected, setTabMenuOpen,
+  setSuccessToast, markDisconnected,
   onPushUndo,
 }: UseSetRenameParams) {
   const [renamingSet, setRenamingSet] = useState<string | null>(null);
@@ -35,7 +34,6 @@ export function useSetRename({
   }, [renamingSet]);
 
   const startRename = (setName: string) => {
-    setTabMenuOpen(null);
     setRenamingSet(setName);
     setRenameValue(setName);
     setRenameError('');

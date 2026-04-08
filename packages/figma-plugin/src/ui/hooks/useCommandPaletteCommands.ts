@@ -150,6 +150,16 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         handler: () => setShowSetSwitcher(true),
       },
       {
+        id: 'manage-sets',
+        label: 'Open set manager',
+        description: 'Rename, reorder, merge, split, annotate, and bulk-edit token sets',
+        category: 'Sets',
+        handler: () => {
+          navigateTo('define', 'tokens');
+          setOverflowPanel('sets');
+        },
+      },
+      {
         id: 'paste-tokens',
         label: 'Paste tokens',
         description: 'Import from pasted JSON, CSS vars, CSV, or Tailwind config',

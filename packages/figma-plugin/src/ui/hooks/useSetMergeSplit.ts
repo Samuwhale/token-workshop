@@ -14,7 +14,6 @@ interface UseSetMergeSplitParams {
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
   pushUndo: (slot: UndoSlot) => void;
-  setTabMenuOpen: (v: string | null) => void;
 }
 
 function flattenTokensObj(obj: DTCGGroup): Record<string, DTCGToken> {
@@ -28,7 +27,7 @@ function flattenTokensObj(obj: DTCGGroup): Record<string, DTCGToken> {
 export function useSetMergeSplit({
   serverUrl, connected, sets,
   activeSet, setActiveSet, refreshTokens,
-  setSuccessToast, setErrorToast, pushUndo, setTabMenuOpen,
+  setSuccessToast, setErrorToast, pushUndo,
 }: UseSetMergeSplitParams) {
   // Merge state
   const [mergingSet, setMergingSet] = useState<string | null>(null);
@@ -51,7 +50,6 @@ export function useSetMergeSplit({
   // --- Merge ---
 
   const openMergeDialog = (setName: string) => {
-    setTabMenuOpen(null);
     setMergingSet(setName);
     setMergeTargetSet(sets.find(s => s !== setName) || '');
     setMergeConflicts([]);
@@ -174,7 +172,6 @@ export function useSetMergeSplit({
   // --- Split ---
 
   const openSplitDialog = async (setName: string) => {
-    setTabMenuOpen(null);
     if (!connected) return;
     try {
       const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
