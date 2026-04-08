@@ -30,7 +30,7 @@ export const DEFAULT_SPACING_SCALE_CONFIG: SpacingScaleConfig = {
 // Presets
 // ---------------------------------------------------------------------------
 
-const SPACING_STEP_PRESETS = [
+export const SPACING_STEP_PRESETS = [
   {
     label: 'Tailwind',
     description: '14 steps (0.5–24× base unit) matching the Tailwind CSS spacing scale',

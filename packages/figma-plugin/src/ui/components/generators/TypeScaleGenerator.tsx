@@ -29,7 +29,7 @@ export const DEFAULT_TYPE_SCALE_CONFIG: TypeScaleConfig = {
 // Presets
 // ---------------------------------------------------------------------------
 
-const TYPE_RATIO_PRESETS = [
+export const TYPE_RATIO_PRESETS = [
   { label: 'Minor Second', description: 'Ratio 1.067 — very subtle scale, tight steps ideal for dense UIs', value: 1.067 },
   { label: 'Major Second', description: 'Ratio 1.125 — gentle scale, good for body text hierarchies', value: 1.125 },
   { label: 'Minor Third', description: 'Ratio 1.2 — moderate scale, common for UI type systems', value: 1.2 },
@@ -38,7 +38,7 @@ const TYPE_RATIO_PRESETS = [
   { label: 'Golden Ratio', description: 'Ratio 1.618 — dramatic scale with large jumps between sizes', value: 1.618 },
 ];
 
-const TYPE_STEP_PRESETS = [
+export const TYPE_STEP_PRESETS = [
   {
     label: 'T-shirt (7)',
     description: '7 named steps: xs, sm, base, lg, xl, 2xl, 3xl',

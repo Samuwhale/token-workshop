@@ -254,7 +254,9 @@ export interface TableSort {
 export interface TokenTreeContextType {
   // --- Shared data ---
   density: Density;
+  serverUrl: string;
   setName: string;
+  sets: string[];
   selectionCapabilities: NodeCapabilities | null;
   allTokensFlat: Record<string, TokenMapEntry>;
   selectMode: boolean;
@@ -289,6 +291,8 @@ export interface TokenTreeContextType {
   onSelectGroupChildren?: (groupNode: TokenNode) => void;
   onToggleExpand: (path: string) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
+  onRefresh: () => void;
+  onPushUndo?: (slot: UndoSlot) => void;
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
   onCreateGroup?: (parentGroupPath: string) => void;
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;

@@ -22,8 +22,12 @@ import { TokenNudge } from './TokenNudge';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { matchesShortcut } from '../shared/shortcutRegistry';
-import type { TokenGenerator } from '../hooks/useGenerators';
+import type { GeneratorType, TokenGenerator } from '../hooks/useGenerators';
+import type { GeneratorDialogInitialDraft } from '../hooks/useGeneratorDialog';
 import { getGeneratorTypeLabel } from './GeneratorPipelineCard';
+import { detectGeneratorType } from './generators/generatorUtils';
+import { QuickGeneratorPopover } from './QuickGeneratorPopover';
+import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 
 // ---------------------------------------------------------------------------
 // Reverse-reference helpers (used by "Find references" popover)
@@ -240,6 +244,37 @@ function getSubmenuPosition(anchorRect: DOMRect, width: number, height: number):
   const openRight = anchorRect.right + width + 8 <= window.innerWidth;
   const rawX = openRight ? anchorRect.right + 4 : anchorRect.left - width - 4;
   return clampMenuPosition(rawX, anchorRect.top, width, height);
+}
+
+function getQuickGeneratorTypeForToken(
+  path: string,
+  name: string,
+  tokenType: string | undefined,
+  tokenValue: unknown,
+): GeneratorType | null {
+  if (!tokenType) return null;
+  if (tokenType === 'color') return 'colorRamp';
+  if (tokenType === 'fontSize') return 'typeScale';
+  if (tokenType === 'dimension') {
+    const label = `${path}.${name}`.toLowerCase();
+    if (/(font|type|text|heading|body|display|title)/.test(label)) return 'typeScale';
+    if (/(space|spacing|gap|padding|margin|inset|offset)/.test(label)) return 'spacingScale';
+  }
+  if (tokenType === 'dimension' || tokenType === 'number') {
+    return detectGeneratorType(tokenType, tokenValue);
+  }
+  return null;
+}
+
+function getQuickGeneratorActionLabel(type: GeneratorType): string {
+  switch (type) {
+    case 'colorRamp': return 'Generate color ramp…';
+    case 'typeScale': return 'Generate type scale…';
+    case 'spacingScale': return 'Generate spacing scale…';
+    case 'opacityScale': return 'Generate opacity scale…';
+    case 'borderRadiusScale': return 'Generate radius scale…';
+    default: return `Generate ${getGeneratorTypeLabel(type).toLowerCase()}…`;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1244,7 +1279,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
   const ctx = useTokenTree();
   const {
-    density, setName: _setName, selectionCapabilities, allTokensFlat, selectMode,
+    density, serverUrl, setName, sets, selectionCapabilities, allTokensFlat, selectMode,
     expandedPaths: _expandedPaths, onToggleExpand: _onToggleExpand, duplicateCounts, highlightedToken,
     inspectMode, syncSnapshot, cascadeDiff: _cascadeDiff, generatorsBySource: _generatorsBySource,
     derivedTokenPaths: _derivedTokenPaths, tokenUsageCounts: _tokenUsageCounts, searchHighlight, selectedNodes,
@@ -1261,6 +1296,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     onFilterByType,
     onJumpToGroup: _onJumpToGroup, onZoomIntoGroup: _onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator: _onDetachFromGenerator,
     onToggleChain: _onToggleChain, onTogglePin: _onTogglePin, onCompareToken: _onCompareToken, onViewTokenHistory, onShowReferences: _onShowReferences, onCompareAcrossThemes, onFindInAllSets: _onFindInAllSets,
+    onRefresh, onPushUndo,
     onDragStart, onDragEnd,
     onDragOverGroup: _onDragOverGroup, onDropOnGroup: _onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
@@ -1289,6 +1325,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<MenuPosition | null>(null);
   const [tokenMoreMenuPos, setTokenMoreMenuPos] = useState<MenuPosition | null>(null);
+  const [quickGeneratorPopover, setQuickGeneratorPopover] = useState<{ position: MenuPosition; type: GeneratorType } | null>(null);
+  const [advancedGeneratorDraft, setAdvancedGeneratorDraft] = useState<GeneratorDialogInitialDraft | null>(null);
   const [refsPopover, setRefsPopover] = useState<{ pos: { x: number; y: number }; refs: string[] } | null>(null);
   const refsPopoverRef = useRef<HTMLDivElement>(null);
   const chainExpanded = chainExpandedProp;
@@ -1319,6 +1357,10 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const tokenMoreMenuRef = useRef<HTMLDivElement>(null);
   const tokenMoreButtonRef = useRef<HTMLButtonElement>(null);
   const booleanInlineEditRef = useRef<HTMLDivElement>(null);
+  const quickGeneratorType = useMemo(
+    () => getQuickGeneratorTypeForToken(node.path, node.name, node.$type, node.$value),
+    [node.path, node.name, node.$type, node.$value],
+  );
 
   useLayoutEffect(() => {
     if (renamingToken && renameTokenInputRef.current) {
@@ -1371,6 +1413,28 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     const rect = anchor?.getBoundingClientRect() ?? tokenMoreButtonRef.current?.getBoundingClientRect();
     if (!rect) return;
     setTokenMoreMenuPos(getSubmenuPosition(rect, 212, 320));
+  }, []);
+
+  const openQuickGenerator = useCallback(() => {
+    if (!quickGeneratorType) return;
+    const rect = nodeRef.current?.getBoundingClientRect();
+    const rawX = rect ? rect.right + 8 : window.innerWidth / 2 - 180;
+    const rawY = rect ? rect.top : 64;
+    closeTokenMenus();
+    setQuickGeneratorPopover({
+      type: quickGeneratorType,
+      position: clampMenuPosition(rawX, rawY, 360, 520),
+    });
+  }, [closeTokenMenus, quickGeneratorType]);
+
+  const handleQuickGeneratorCreated = useCallback(() => {
+    setQuickGeneratorPopover(null);
+    onRefresh();
+  }, [onRefresh]);
+
+  const handleOpenAdvancedGenerator = useCallback((draft: GeneratorDialogInitialDraft) => {
+    setQuickGeneratorPopover(null);
+    setAdvancedGeneratorDraft(draft);
   }, []);
 
   // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
@@ -1699,6 +1763,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    setQuickGeneratorPopover(null);
     setTokenMoreMenuPos(null);
     setContextMenuPos(clampMenuPosition(e.clientX, e.clientY, 192, 220));
   }, []);
@@ -2499,6 +2564,19 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
                   <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
                 </button>
               )}
+              {!isAlias(node.$value) && quickGeneratorType && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="g"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={openQuickGenerator}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>{getQuickGeneratorActionLabel(quickGeneratorType)}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">G</span>
+                </button>
+              )}
               {onCompareAcrossThemes && (
                 <button
                   role="menuitem"
@@ -2552,6 +2630,44 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             </div>
           )}
         </>
+      )}
+
+      {quickGeneratorPopover && quickGeneratorType && (
+        <QuickGeneratorPopover
+          serverUrl={serverUrl}
+          position={quickGeneratorPopover.position}
+          generatorType={quickGeneratorPopover.type}
+          sourceTokenPath={node.path}
+          sourceTokenName={node.name}
+          sourceTokenType={node.$type}
+          sourceTokenValue={node.$value}
+          activeSet={setName}
+          onClose={() => setQuickGeneratorPopover(null)}
+          onCreated={handleQuickGeneratorCreated}
+          onOpenAdvanced={handleOpenAdvancedGenerator}
+          onPushUndo={onPushUndo}
+        />
+      )}
+
+      {advancedGeneratorDraft && (
+        <TokenGeneratorDialog
+          serverUrl={serverUrl}
+          sourceTokenPath={node.path}
+          sourceTokenName={node.name}
+          sourceTokenType={node.$type}
+          sourceTokenValue={node.$value}
+          allSets={sets}
+          activeSet={setName}
+          allTokensFlat={allTokensFlat}
+          initialDraft={advancedGeneratorDraft}
+          pathToSet={pathToSet}
+          onClose={() => setAdvancedGeneratorDraft(null)}
+          onSaved={() => {
+            setAdvancedGeneratorDraft(null);
+            onRefresh();
+          }}
+          onPushUndo={onPushUndo}
+        />
       )}
 
       {/* Inline alias picker popover — opened via "Link to token…" context menu item */}

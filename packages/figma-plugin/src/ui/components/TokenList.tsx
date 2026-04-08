@@ -1849,7 +1849,9 @@ export function TokenList({
   // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
   const treeCtx: TokenTreeContextType = useMemo(() => ({
     density,
+    serverUrl,
     setName,
+    sets,
     selectionCapabilities,
     allTokensFlat,
     selectMode,
@@ -1878,6 +1880,8 @@ export function TokenList({
     onSelectGroupChildren: handleSelectGroupChildren,
     onToggleExpand: handleToggleExpand,
     onNavigateToAlias,
+    onRefresh,
+    onPushUndo,
     onCreateSibling: handleOpenCreateSibling,
     onCreateGroup: setNewGroupDialogParent,
     onRenameGroup: handleRenameGroup,
@@ -1934,12 +1938,13 @@ export function TokenList({
     rovingFocusPath: effectiveRovingPath,
     onRovingFocus: setRovingFocusPath,
   }), [
-    density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
+    density, serverUrl, setName, sets, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
     generatorsBySource, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, searchHighlight,
     selectedNodes, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     dragOverReorder, selectedLeafNodes, onEdit, onPreview, requestDeleteToken,
     requestDeleteGroup, handleTokenSelect, handleToggleExpand, handleSelectGroupChildren, onNavigateToAlias,
+    onRefresh, onPushUndo,
     handleOpenCreateSibling, handleRenameGroup, handleUpdateGroupMeta,
     handleRequestMoveGroup, handleRequestCopyGroup, handleRequestMoveToken, handleRequestCopyToken,
     setNewGroupDialogParent, onEditGenerator, onNavigateToGenerator, handleDuplicateGroup,
@@ -1954,7 +1959,7 @@ export function TokenList({
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
     pendingTabEdit, handleClearPendingTabEdit, handleTabToNext,
     effectiveRovingPath, setRovingFocusPath,
-    sets.length,
+    sets,
   ]);
 
   // Build modal context value — memoized so TokenListModals only re-renders when

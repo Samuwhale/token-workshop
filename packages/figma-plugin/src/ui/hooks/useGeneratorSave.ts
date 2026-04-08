@@ -46,6 +46,7 @@ export interface UseGeneratorSaveReturn {
   semanticPrefix: string;
   semanticMappings: Array<{ semantic: string; step: string }>;
   selectedSemanticPatternId: string | null;
+  handleQuickSave: () => Promise<void>;
   handleSave: () => Promise<void>;
   handleConfirmSave: () => Promise<void>;
   handleCancelConfirmation: () => void;
@@ -87,6 +88,25 @@ export function useGeneratorSave({
   const [semanticPrefix, setSemanticPrefix] = useState('semantic');
   const [semanticMappings, setSemanticMappings] = useState<Array<{ semantic: string; step: string }>>([]);
   const [selectedSemanticPatternId, setSelectedSemanticPatternId] = useState<string | null>(null);
+
+  const validateBeforeSave = useCallback((): boolean => {
+    if (!targetGroup.trim()) { setSaveError('Target group is required.'); return false; }
+    if (!name.trim()) { setSaveError('Generator name is required.'); return false; }
+    if (!isMultiBrand && typeNeedsValue && !hasValue) { setSaveError('This generator type requires a source token or base value.'); return false; }
+    if (isMultiBrand && inputTable) {
+      if (!targetSetTemplate.trim()) { setSaveError('Target set template is required for multi-brand mode.'); return false; }
+      if (inputTable.rows.some(r => !r.brand.trim())) { setSaveError('All brand rows must have a non-empty brand name.'); return false; }
+      const brandNames = inputTable.rows.map(r => r.brand.trim().toLowerCase());
+      const duplicate = brandNames.find((b, i) => brandNames.indexOf(b) !== i);
+      if (duplicate) {
+        const duplicateName = inputTable.rows.find(r => r.brand.trim().toLowerCase() === duplicate)?.brand.trim() ?? duplicate;
+        setSaveError(`Duplicate brand name "${duplicateName}" — each brand name must be unique.`);
+        return false;
+      }
+    }
+    setSaveError('');
+    return true;
+  }, [targetGroup, name, isMultiBrand, typeNeedsValue, hasValue, inputTable, targetSetTemplate]);
 
   /** Inner save logic — commits the generator to the server. */
   const commitSave = useCallback(async (semanticEnabledAtSave: boolean, semanticPrefixAtSave: string, semanticMappingsAtSave: Array<{ semantic: string; step: string }>, targetGroupAtSave: string, targetSetAtSave: string) => {
@@ -215,17 +235,7 @@ export function useGeneratorSave({
    *  For new generators: pre-populates semantic mapping state based on generator type.
    */
   const handleSave = useCallback(async () => {
-    if (!targetGroup.trim()) { setSaveError('Target group is required.'); return; }
-    if (!name.trim()) { setSaveError('Generator name is required.'); return; }
-    if (!isMultiBrand && typeNeedsValue && !hasValue) { setSaveError('This generator type requires a source token or base value.'); return; }
-    if (isMultiBrand && inputTable) {
-      if (!targetSetTemplate.trim()) { setSaveError('Target set template is required for multi-brand mode.'); return; }
-      if (inputTable.rows.some(r => !r.brand.trim())) { setSaveError('All brand rows must have a non-empty brand name.'); return; }
-      const brandNames = inputTable.rows.map(r => r.brand.trim().toLowerCase());
-      const duplicate = brandNames.find((b, i) => brandNames.indexOf(b) !== i);
-      if (duplicate) { setSaveError(`Duplicate brand name "${inputTable.rows.find(r => r.brand.trim().toLowerCase() === duplicate)!.brand.trim()}" — each brand name must be unique.`); return; }
-    }
-    setSaveError('');
+    if (!validateBeforeSave()) return;
 
     // Initialize semantic mapping state for new generators with eligible types
     if (!isEditing && (previewTokens.length > 0 || isMultiBrand)) {
@@ -265,7 +275,12 @@ export function useGeneratorSave({
         setOverwriteCheckLoading(false);
       }
     }
-  }, [targetGroup, name, isMultiBrand, typeNeedsValue, hasValue, inputTable, targetSetTemplate, isEditing, existingGenerator, serverUrl, selectedType, previewTokens]);
+  }, [validateBeforeSave, isEditing, existingGenerator, serverUrl, selectedType, previewTokens]);
+
+  const handleQuickSave = useCallback(async () => {
+    if (!validateBeforeSave()) return;
+    await commitSave(false, 'semantic', [], targetGroup.trim(), targetSet);
+  }, [validateBeforeSave, commitSave, targetGroup, targetSet]);
 
   /** Step 2: Commit the save. Overwrites are already known (shown in review view).
    *  Semantic tokens are created inline if the user opted in.
@@ -292,6 +307,7 @@ export function useGeneratorSave({
     semanticPrefix,
     semanticMappings,
     selectedSemanticPatternId,
+    handleQuickSave,
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,

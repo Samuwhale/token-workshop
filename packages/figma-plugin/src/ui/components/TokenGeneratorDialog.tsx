@@ -7,7 +7,7 @@ import type {
   TokenGenerator,
   GeneratorTemplate,
 } from '../hooks/useGenerators';
-import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
+import { useGeneratorDialog, type GeneratorDialogInitialDraft } from '../hooks/useGeneratorDialog';
 import { StepWhere, StepWhat, StepReview } from './generator-steps';
 import { Spinner } from './Spinner';
 
@@ -26,6 +26,7 @@ export interface TokenGeneratorDialogProps {
   /** All tokens flat map for source token autocomplete and config field tokenRefs */
   allTokensFlat?: Record<string, import('../../shared/types').TokenMapEntry>;
   existingGenerator?: TokenGenerator;
+  initialDraft?: GeneratorDialogInitialDraft;
   /** Pre-fill from a quick-start template */
   template?: GeneratorTemplate;
   /** When provided, shows a back arrow to return to the previous step (e.g. template picker) */
@@ -60,6 +61,7 @@ export function TokenGeneratorDialog({
   activeSet,
   allTokensFlat,
   existingGenerator,
+  initialDraft,
   template,
   onBack,
   onClose,
@@ -80,6 +82,7 @@ export function TokenGeneratorDialog({
     activeSet,
     existingGenerator,
     template,
+    initialDraft,
     onSaved,
     onInterceptSemanticMapping,
     pushUndo: onPushUndo,

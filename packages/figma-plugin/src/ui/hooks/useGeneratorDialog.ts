@@ -31,10 +31,22 @@ interface UseGeneratorDialogParams {
   activeSet: string;
   existingGenerator?: TokenGenerator;
   template?: GeneratorTemplate;
+  initialDraft?: GeneratorDialogInitialDraft;
   onSaved: (info?: { targetGroup: string }) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog internally */
   onInterceptSemanticMapping?: (data: { tokens: GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: GeneratorType }) => void;
   pushUndo?: (slot: UndoSlot) => void;
+}
+
+export interface GeneratorDialogInitialDraft {
+  selectedType?: GeneratorType;
+  name?: string;
+  nameIsAuto?: boolean;
+  targetSet?: string;
+  targetGroup?: string;
+  inlineValue?: unknown;
+  configs?: Partial<Record<GeneratorType, GeneratorConfig>>;
+  pendingOverrides?: Record<string, { value: unknown; locked: boolean }>;
 }
 
 interface UseGeneratorDialogReturn {
@@ -100,6 +112,7 @@ interface UseGeneratorDialogReturn {
   handleOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   handleOverrideClear: (stepName: string) => void;
   clearAllOverrides: () => void;
+  handleQuickSave: () => Promise<void>;
   handleSave: () => Promise<void>;
   handleConfirmSave: () => Promise<void>;
   handleCancelConfirmation: () => void;
@@ -118,6 +131,7 @@ export function useGeneratorDialog({
   activeSet,
   existingGenerator,
   template,
+  initialDraft,
   onSaved,
   onInterceptSemanticMapping,
   pushUndo,
@@ -140,31 +154,38 @@ export function useGeneratorDialog({
 
   const initialType: GeneratorType =
     existingGenerator?.type ??
+    initialDraft?.selectedType ??
     template?.generatorType ??
     recommendedType ??
     'colorRamp';
 
+  const cloneConfig = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
   const [selectedType, setSelectedType] = useState<GeneratorType>(initialType);
   const [name, setName] = useState(
     existingGenerator?.name ??
+    initialDraft?.name ??
     (template ? template.label : autoName(sourceTokenPath, initialType))
   );
-  const [targetSet, setTargetSet] = useState(existingGenerator?.targetSet ?? activeSet);
+  const [targetSet, setTargetSet] = useState(existingGenerator?.targetSet ?? initialDraft?.targetSet ?? activeSet);
   const [targetGroup, setTargetGroup] = useState(
     existingGenerator?.targetGroup ??
+    initialDraft?.targetGroup ??
     (template ? template.defaultPrefix : (sourceTokenPath ? suggestTargetGroup(sourceTokenPath, sourceTokenName) : ''))
   );
   const [inlineValue, setInlineValueRaw] = useState<unknown>(
-    existingGenerator?.inlineValue ?? undefined
+    existingGenerator?.inlineValue ?? initialDraft?.inlineValue ?? undefined
   );
 
   const [configs, setConfigs] = useState<Partial<Record<GeneratorType, GeneratorConfig>>>(() => {
     const base: Partial<Record<GeneratorType, GeneratorConfig>> = {};
     for (const t of ALL_TYPES) {
       if (existingGenerator?.type === t) {
-        base[t] = existingGenerator.config;
+        base[t] = cloneConfig(existingGenerator.config);
+      } else if (initialDraft?.configs?.[t]) {
+        base[t] = cloneConfig(initialDraft.configs[t]!);
       } else if (template?.generatorType === t) {
-        base[t] = template.config;
+        base[t] = cloneConfig(template.config);
       } else {
         base[t] = defaultConfigForType(t);
       }
@@ -173,7 +194,7 @@ export function useGeneratorDialog({
   });
 
   const [pendingOverrides, setPendingOverrides] = useState<Record<string, { value: unknown; locked: boolean }>>(
-    existingGenerator?.overrides ?? {}
+    existingGenerator?.overrides ?? initialDraft?.pendingOverrides ?? {}
   );
 
   const [inputTable, setInputTable] = useState<InputTable | undefined>(
@@ -183,7 +204,9 @@ export function useGeneratorDialog({
     existingGenerator?.targetSetTemplate ?? 'brands/{brand}'
   );
 
-  const nameWasAutoRef = useRef(!existingGenerator && !template);
+  const nameWasAutoRef = useRef(
+    initialDraft?.nameIsAuto ?? (!existingGenerator && !template && !initialDraft?.name)
+  );
   const isDirtyRef = useRef(false);
   const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
 
@@ -313,6 +336,7 @@ export function useGeneratorDialog({
     semanticPrefix,
     semanticMappings,
     selectedSemanticPatternId,
+    handleQuickSave,
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
@@ -456,6 +480,7 @@ export function useGeneratorDialog({
     handleOverrideChange,
     handleOverrideClear,
     clearAllOverrides,
+    handleQuickSave,
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
