@@ -170,6 +170,73 @@ describe('POST /api/tokens/:set/bulk-rename', () => {
   });
 });
 
+describe('POST /api/themes/dimensions/:id/duplicate', () => {
+  it('duplicates a dimension and all of its options in one response', async () => {
+    const createDimRes = await fetch(url('/api/themes/dimensions'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 'mode', name: 'Mode' }),
+    });
+    expect(createDimRes.status).toBe(201);
+
+    const lightSets = { 'test-set': 'source' };
+    const darkSets = { 'test-set': 'enabled' };
+
+    const lightRes = await fetch(url('/api/themes/dimensions/mode/options'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Light', sets: lightSets }),
+    });
+    expect(lightRes.status).toBe(201);
+
+    const darkRes = await fetch(url('/api/themes/dimensions/mode/options'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Dark', sets: darkSets }),
+    });
+    expect(darkRes.status).toBe(201);
+
+    const duplicateRes = await fetch(url('/api/themes/dimensions/mode/duplicate'), {
+      method: 'POST',
+    });
+    expect(duplicateRes.status).toBe(201);
+
+    const duplicateBody = await duplicateRes.json();
+    expect(duplicateBody.dimension).toEqual({
+      id: 'mode-copy',
+      name: 'Mode Copy',
+      options: [
+        { name: 'Light', sets: lightSets },
+        { name: 'Dark', sets: darkSets },
+      ],
+    });
+
+    const themesRes = await fetch(url('/api/themes'));
+    expect(themesRes.ok).toBe(true);
+    const themesBody = await themesRes.json();
+    expect(themesBody.dimensions).toEqual([
+      {
+        id: 'mode',
+        name: 'Mode',
+        options: [
+          { name: 'Light', sets: lightSets },
+          { name: 'Dark', sets: darkSets },
+        ],
+      },
+      {
+        id: 'mode-copy',
+        name: 'Mode Copy',
+        options: [
+          { name: 'Light', sets: lightSets },
+          { name: 'Dark', sets: darkSets },
+        ],
+      },
+    ]);
+
+    fs.rmSync(path.join(tokenDir, '$themes.json'), { force: true });
+  });
+});
+
 describe('DELETE /api/data', () => {
   it('clears tokens, themes, generators, resolvers, operation history, and manual snapshots', async () => {
     const nestedSetName = 'reset/base';

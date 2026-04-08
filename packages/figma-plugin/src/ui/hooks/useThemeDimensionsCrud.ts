@@ -281,42 +281,18 @@ export function useThemeDimensionsCrud({
     const source = dimensions.find(d => d.id === id);
     if (!source) return;
 
-    let newName = `${source.name} Copy`;
-    let counter = 2;
-    while (dimensions.some(d => d.name.toLowerCase() === newName.toLowerCase())) {
-      newName = `${source.name} Copy ${counter++}`;
-    }
-
-    let newId = slugify(newName) || newName.toLowerCase().replace(/\s+/g, '-');
-    let idCounter = 2;
-    while (dimensions.some(d => d.id === newId)) {
-      newId = `${slugify(newName)}-${idCounter++}`;
-    }
-
     setIsDuplicatingDim(true);
     try {
-      await apiFetch(`${serverUrl}/api/themes/dimensions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: newId, name: newName }),
-      });
-      for (const opt of source.options) {
-        try {
-          await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(newId)}/options`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: opt.name, sets: opt.sets }),
-          });
-        } catch (err) {
-          console.warn('[ThemeManager] failed to copy option during duplicate:', opt.name, err);
-        }
-      }
-      setDimensions(prev => [
-        ...prev,
-        { id: newId, name: newName, options: source.options.map(o => ({ ...o, sets: { ...o.sets } })) },
-      ]);
+      const response = await apiFetch<{ dimension: ThemeDimension }>(
+        `${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}/duplicate`,
+        {
+          method: 'POST',
+        },
+      );
+      setNewlyCreatedDim(response.dimension.id);
+      setDimensions(prev => [...prev, response.dimension]);
       debouncedFetchDimensions();
-      onSuccess?.(`Duplicated layer as "${newName}"`);
+      onSuccess?.(`Duplicated layer as "${response.dimension.name}"`);
     } catch (err) {
       setError(makeErrorMsg(err, 'Failed to duplicate dimension'));
     } finally {

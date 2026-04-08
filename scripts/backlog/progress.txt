@@ -261,3 +261,16 @@
   - A destructive reset has to flow through every file-backed store's own reset path, otherwise caches, load errors, and recovery markers survive even after the files are gone.
   - For nested token or resolver names, a clean-slate reset should delete the files and then collapse any empty parent directories so the next workspace truly starts from zero.
 ---
+## 2026-04-08 - product-pass
+- Areas explored: packages/figma-plugin/src/ui/components/SetSwitcher.tsx, TokenList.tsx, BatchEditor.tsx, TokenEditor.tsx, TokenDetailPreview.tsx, TokenFlowPanel.tsx, DuplicateDetectionPanel.tsx, HealthPanel.tsx, LintConfigPanel.tsx, packages/figma-plugin/src/ui/hooks/useSetMetadata.ts, useThemeDimensionsCrud.ts, packages/server/src/routes/sets.ts, themes.ts, lint.ts, packages/server/src/services/lint.ts, operation-log.ts
+- Found 8 items — written to backlog-inbox.md
+- Notable: set-to-Figma collection and mode mapping is still buried in one per-set dialog, and those edits are not part of the same rollback model as the rest of the publishing workflow.
+---
+## 2026-04-08 - [HIGH] Make theme-dimension duplication atomic in `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` and `packages/server/src/routes/themes.ts`, because the current create-dimension-then-copy-options loop can leave a half-copied axis behind if any follow-up option write fails.
+- Replaced the UI's create-then-copy loop with a single `POST /api/themes/dimensions/:id/duplicate` call that clones the dimension and all of its options inside one server-side theme-store transaction, so duplication now either commits fully or not at all.
+- Added a server API test that exercises the new duplicate route end-to-end and verified the full repo with `bash scripts/backlog/validate.sh`.
+- Files changed: `packages/server/src/routes/themes.ts` ~L11, ~L273; `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` ~L279; `packages/server/src/__tests__/api.test.ts` ~L173
+- **Learnings for future iterations:**
+  - When duplicating a JSON-backed parent entity with nested children, keep the entire clone inside one locked load-modify-save transaction instead of issuing one write per child from the client.
+  - Let the server return the fully duplicated entity so the UI does not have to guess names, ids, or partial-copy state.
+---

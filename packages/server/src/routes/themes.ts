@@ -8,6 +8,29 @@ import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 
 const VALID_THEME_SET_STATUSES = new Set<string>(['enabled', 'disabled', 'source']);
 
+function slugifyDimensionId(name: string): string {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function getDuplicateDimensionName(dimensions: ThemeDimension[], sourceName: string): string {
+  let nextName = `${sourceName} Copy`;
+  let counter = 2;
+  while (dimensions.some((dimension) => dimension.name.toLowerCase() === nextName.toLowerCase())) {
+    nextName = `${sourceName} Copy ${counter++}`;
+  }
+  return nextName;
+}
+
+function getDuplicateDimensionId(dimensions: ThemeDimension[], name: string): string {
+  const baseId = slugifyDimensionId(name);
+  let nextId = baseId;
+  let counter = 2;
+  while (dimensions.some((dimension) => dimension.id === nextId)) {
+    nextId = `${baseId}-${counter++}`;
+  }
+  return nextId;
+}
+
 export interface DimensionsStore {
   filePath: string;
   load(): Promise<ThemeDimension[]>;
@@ -244,6 +267,36 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       return { ok: true, id };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to delete dimension');
+    }
+  });
+
+  // POST /api/themes/dimensions/:id/duplicate — duplicate a dimension and all of its options atomically
+  fastify.post<{ Params: { id: string } }>('/themes/dimensions/:id/duplicate', async (request, reply) => {
+    const { id } = request.params;
+    try {
+      const dimension = await withThemeLock('theme-dimension-duplicate', async (dimensions) => {
+        const source = dimensions.find((entry) => entry.id === id);
+        if (!source) {
+          throw new NotFoundError(`Dimension "${id}" not found`);
+        }
+
+        const name = getDuplicateDimensionName(dimensions, source.name);
+        const duplicate: ThemeDimension = {
+          id: getDuplicateDimensionId(dimensions, name),
+          name,
+          options: structuredClone(source.options),
+        };
+        dimensions.push(duplicate);
+
+        return {
+          dims: dimensions,
+          result: duplicate,
+          description: `Duplicate theme dimension "${source.name}" → "${duplicate.name}"`,
+        };
+      });
+      return reply.status(201).send({ ok: true, dimension });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to duplicate dimension');
     }
   });
 
