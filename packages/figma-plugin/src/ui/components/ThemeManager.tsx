@@ -4,7 +4,6 @@ import type { ThemeDimension, ThemeOption } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { ResolverContentProps } from './ResolverPanel';
 import { ResolverContent } from './ResolverPanel';
-import type { CoverageToken } from './themeManagerTypes';
 import { STATE_LABELS, STATE_DESCRIPTIONS } from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
 import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
@@ -19,6 +18,7 @@ import { useThemeCompare } from '../hooks/useThemeCompare';
 import { ThemeManagerModalsProvider, ThemeManagerModals } from './ThemeManagerContext';
 import type { ThemeManagerModalsState } from './ThemeManagerContext';
 import { ThemeCoverageMatrix } from './ThemeCoverageMatrix';
+import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { adaptShortcut } from '../shared/utils';
 import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 import { apiFetch } from '../shared/apiFetch';
@@ -86,7 +86,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const dimensionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const setRoleRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const previewSectionRef = useRef<HTMLDivElement | null>(null);
+  const secondaryToolsRef = useRef<HTMLDivElement | null>(null);
   const [focusedDimensionId, setFocusedDimensionId] = useState<string | null>(null);
+  const [secondaryToolsOpen, setSecondaryToolsOpen] = useState(false);
   const [coverageContext, setCoverageContext] = useState<{ dimId: string | null; optionName: string | null }>({
     dimId: null,
     optionName: null,
@@ -160,7 +162,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   const {
     fillingKeys, autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy,
-    handleAutoFillSingle, handleAutoFillAll, executeAutoFillAll,
+    handleAutoFillAll, executeAutoFillAll,
     handleAutoFillAllOptions, executeAutoFillAllOptions,
   } = useThemeAutoFill({ serverUrl, dimensions, coverage, debouncedFetchDimensions, setError });
 
@@ -185,14 +187,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   });
 
   const {
-    expandedCoverage, setExpandedCoverage,
     expandedStale, setExpandedStale,
     showMissingOnly: _showMissingOnly, setShowMissingOnly: _setShowMissingOnly,
-    expandedMissingOverrides, setExpandedMissingOverrides,
-    creatingMissingKeys, setCreatingMissingKeys,
-    missingOverrideSearch, setMissingOverrideSearch,
     totalFillableGaps,
-    handleBulkCreateMissingOverrides,
   } = useThemeCoverage({ coverage, missingOverrides, serverUrl, debouncedFetchDimensions, setError });
 
   useEffect(() => { onGapsDetected?.(totalFillableGaps); }, [totalFillableGaps, onGapsDetected]);
@@ -420,6 +417,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     setActiveView('compare');
   }, [dimensions, focusedDimensionId, getDimensionForContext, getOptionNameForContext, setCompareMode, setCompareThemeDefaultA, setCompareThemeDefaultB, setCompareThemeKey, setShowCompare]);
 
+  const openAdvancedView = useCallback(() => {
+    setShowCompare(false);
+    setShowPreview(false);
+    setActiveView('advanced');
+  }, [setShowCompare]);
+
   const handleNavigateToCompare = useCallback((
     mode: CompareMode,
     path?: string,
@@ -467,14 +470,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       returnToAuthoring: () => {
         returnToAuthoring();
       },
-      switchToResolverMode: () => {
-        setShowCompare(false);
-        setShowPreview(false);
-        setActiveView('advanced');
-      },
+      switchToResolverMode: openAdvancedView,
     };
     return () => { themeManagerHandle.current = null; };
-  }, [themeManagerHandle, dimensions, coverage, focusAuthoringStage, handleNavigateToCompare, openCreateDim, returnToAuthoring, setShowCompare]);
+  }, [themeManagerHandle, dimensions, coverage, focusAuthoringStage, handleNavigateToCompare, openAdvancedView, openCreateDim, returnToAuthoring, setShowCompare]);
 
   // Tab strip scroll helpers
   const updateTabScroll = useCallback((dimId: string) => {
@@ -734,6 +733,22 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     () => getOptionNameForContext(focusedDimension, null),
     [focusedDimension, getOptionNameForContext],
   );
+  const totalCoverageIssueCount = useMemo(() => {
+    return dimensions.reduce((sum, dim) => {
+      const uncoveredCount = Object.values(coverage[dim.id] ?? {}).reduce((dimSum, optionCoverage) => dimSum + optionCoverage.uncovered.length, 0);
+      const missingOverrideCount = Object.values(missingOverrides[dim.id] ?? {}).reduce((dimSum, optionCoverage) => dimSum + optionCoverage.missing.length, 0);
+      return sum + uncoveredCount + missingOverrideCount;
+    }, 0);
+  }, [coverage, dimensions, missingOverrides]);
+  const canCompareThemes = useMemo(
+    () => dimensions.some(dim => dim.options.length >= 2),
+    [dimensions],
+  );
+  const focusedContextLabel = useMemo(() => {
+    if (!focusedDimension) return 'current theme context';
+    if (focusedOptionName) return `${focusedDimension.name} -> ${focusedOptionName}`;
+    return focusedDimension.name;
+  }, [focusedDimension, focusedOptionName]);
   const coverageFocusDimension = useMemo(
     () => dimensions.find(dim => dim.id === coverageContext.dimId) ?? focusedDimension,
     [coverageContext.dimId, dimensions, focusedDimension],
@@ -759,6 +774,40 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     () => getOptionNameForContext(compareFocusDimension, compareContext.optionName),
     [compareContext.optionName, compareFocusDimension, getOptionNameForContext],
   );
+
+  useEffect(() => {
+    if (!secondaryToolsOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!secondaryToolsRef.current?.contains(event.target as Node)) {
+        setSecondaryToolsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSecondaryToolsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    requestAnimationFrame(() => {
+      if (!secondaryToolsRef.current) return;
+      getMenuItems(secondaryToolsRef.current)[0]?.focus();
+    });
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [secondaryToolsOpen]);
+
+  useEffect(() => {
+    if (activeView !== 'authoring') {
+      setSecondaryToolsOpen(false);
+    }
+  }, [activeView]);
 
   const modalContextValue = useMemo<ThemeManagerModalsState>(() => ({
     dimensions,
@@ -1006,9 +1055,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 </p>
                 <button
                   onClick={() => {
-                    setShowCompare(false);
-                    setShowPreview(false);
-                    setActiveView('advanced');
+                    openAdvancedView();
                   }}
                   className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-accent)] hover:underline text-left"
                 >
@@ -1023,6 +1070,162 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         ) : (
           <div className="flex flex-col">
             {activeView === 'authoring' && (<>
+            <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Stay in the guided theme flow here.</p>
+                  <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                    Coverage review, compare, and resolver logic open in secondary views for {focusedContextLabel}.
+                  </p>
+                </div>
+                <div className="relative shrink-0" ref={secondaryToolsRef}>
+                  <button
+                    onClick={() => setSecondaryToolsOpen(value => !value)}
+                    aria-expanded={secondaryToolsOpen}
+                    aria-haspopup="menu"
+                    className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
+                      secondaryToolsOpen
+                        ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                        : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/35 hover:text-[var(--color-figma-text)]'
+                    }`}
+                    title="Open review and advanced theme tools"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="21" x2="4" y2="14" />
+                      <line x1="4" y1="10" x2="4" y2="3" />
+                      <line x1="12" y1="21" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12" y2="3" />
+                      <line x1="20" y1="21" x2="20" y2="16" />
+                      <line x1="20" y1="12" x2="20" y2="3" />
+                      <line x1="1" y1="14" x2="7" y2="14" />
+                      <line x1="9" y1="8" x2="15" y2="8" />
+                      <line x1="17" y1="16" x2="23" y2="16" />
+                    </svg>
+                    <span>Review tools</span>
+                    {totalCoverageIssueCount > 0 && (
+                      <span className="rounded-full bg-[var(--color-figma-warning)]/20 px-1.5 py-0.5 text-[9px] leading-none text-[var(--color-figma-warning)]">
+                        {totalCoverageIssueCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {secondaryToolsOpen && (
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-full z-50 mt-1 w-[280px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
+                      onKeyDown={(event) => {
+                        const container = event.currentTarget;
+                        if (!handleMenuArrowKeys(event.nativeEvent, container)) {
+                          if (event.key === 'Escape') {
+                            event.preventDefault();
+                            setSecondaryToolsOpen(false);
+                          }
+                        }
+                      }}
+                    >
+                      <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+                        <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Theme review tools</div>
+                        <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                          Keep authoring focused on axes, options, set roles, and preview. Open review or expert flows only when needed.
+                        </div>
+                      </div>
+                      <div className="p-2">
+                        <div className="mb-1 px-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                          Current context
+                        </div>
+                        <button
+                          role="menuitem"
+                          tabIndex={-1}
+                          onClick={() => {
+                            setSecondaryToolsOpen(false);
+                            openCoverageView(focusedDimension?.id, focusedOptionName ?? undefined, false);
+                          }}
+                          className="flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-[10px] font-medium text-[var(--color-figma-text)]">Coverage review</span>
+                            <span className="mt-0.5 block text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                              Review missing values and override gaps for {focusedContextLabel}.
+                            </span>
+                          </span>
+                          <span className="shrink-0 rounded-full bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[9px] leading-none text-[var(--color-figma-text-secondary)]">
+                            {coverageFocusIssueCount}
+                          </span>
+                        </button>
+                        <button
+                          role="menuitem"
+                          tabIndex={-1}
+                          onClick={() => {
+                            setSecondaryToolsOpen(false);
+                            openCoverageView(focusedDimension?.id, focusedOptionName ?? undefined, true);
+                          }}
+                          className="flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-[10px] font-medium text-[var(--color-figma-text)]">Coverage across all axes</span>
+                            <span className="mt-0.5 block text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                              Scan every axis before returning to the workflow to fix the selected option.
+                            </span>
+                          </span>
+                          <span className="shrink-0 rounded-full bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[9px] leading-none text-[var(--color-figma-text-secondary)]">
+                            {totalCoverageIssueCount}
+                          </span>
+                        </button>
+                        <button
+                          role="menuitem"
+                          tabIndex={-1}
+                          disabled={!canCompareThemes}
+                          onClick={() => {
+                            setSecondaryToolsOpen(false);
+                            openCompareView(focusedDimension ?? undefined, focusedOptionName ?? undefined);
+                          }}
+                          className="flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-[10px] font-medium text-[var(--color-figma-text)]">Compare options</span>
+                            <span className="mt-0.5 block text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                              Compare the focused axis without crowding the main authoring surface.
+                            </span>
+                          </span>
+                          {canCompareThemes && (
+                            <span className="shrink-0 rounded-full bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[9px] leading-none text-[var(--color-figma-text-secondary)]">
+                              Compare
+                            </span>
+                          )}
+                        </button>
+                        {resolverState && (
+                          <>
+                            <div className="my-1 border-t border-[var(--color-figma-border)]" />
+                            <div className="mb-1 px-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                              Expert mode
+                            </div>
+                            <button
+                              role="menuitem"
+                              tabIndex={-1}
+                              onClick={() => {
+                                setSecondaryToolsOpen(false);
+                                openAdvancedView();
+                              }}
+                              className="flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                            >
+                              <span className="min-w-0">
+                                <span className="block text-[10px] font-medium text-[var(--color-figma-text)]">Advanced theme logic</span>
+                                <span className="mt-0.5 block text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                                  Open DTCG resolvers for explicit ordering, modifier contexts, or cross-dimensional logic.
+                                </span>
+                              </span>
+                              <kbd className="shrink-0 rounded border border-[var(--color-figma-border)] px-1 font-mono text-[9px] leading-none text-[var(--color-figma-text-tertiary)]">
+                                {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
+                              </kbd>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
             {/* Dimension search filter + gaps toggle */}
             {dimensions.length > 1 && (
               <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 flex flex-col gap-1.5">
@@ -1164,11 +1367,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 const dimCov = coverage[dim.id] ?? {};
                 const optionsWithGaps = dim.options.filter(o => (dimCov[o.name]?.uncovered.length ?? 0) > 0);
                 const totalDimGaps = optionsWithGaps.reduce((sum, o) => sum + (dimCov[o.name]?.uncovered.length ?? 0), 0);
-                const totalDimMissingOverrides = dim.options.reduce(
-                  (sum, option) => sum + (missingOverrides[dim.id]?.[option.name]?.missing.length ?? 0),
-                  0,
-                );
-                const totalDimCoverageIssues = totalDimGaps + totalDimMissingOverrides;
                 const totalDimFillable = optionsWithGaps.reduce((sum, o) => {
                   const items = dimCov[o.name]?.uncovered ?? [];
                   return sum + items.filter(i => i.missingRef && i.fillValue !== undefined).length;
@@ -1271,35 +1469,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
                               </button>
                             </div>
-                          )}
-                          <button
-                            onClick={() => openCoverageView(dim.id, selectedOpt)}
-                            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0 opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                            title={totalDimCoverageIssues > 0 ? `Review ${totalDimCoverageIssues} issue${totalDimCoverageIssues !== 1 ? 's' : ''} for ${dim.name}` : `Review coverage for ${dim.name}`}
-                            aria-label={`Review coverage for ${dim.name}`}
-                          >
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <rect x="3" y="3" width="7" height="7" />
-                              <rect x="14" y="3" width="7" height="7" />
-                              <rect x="3" y="14" width="7" height="7" />
-                              <rect x="14" y="14" width="7" height="7" />
-                            </svg>
-                            {totalDimCoverageIssues > 0 ? 'Review gaps' : 'Coverage'}
-                          </button>
-                          {dim.options.length >= 2 && (
-                            <button
-                              onClick={() => openCompareView(dim, selectedOpt)}
-                              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0 opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                              title={`Compare ${selectedOpt || dim.name} against another ${dim.name} option`}
-                              aria-label={`Compare ${dim.name} options`}
-                            >
-                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
-                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                                <path d="M9 12h6" />
-                              </svg>
-                              Compare
-                            </button>
                           )}
                           {onGenerateForDimension && (
                             <button
@@ -1545,26 +1714,24 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             </div>
                           ) : (
                             <>
-                              <div className="flex items-center gap-1">
+                              <div className="flex flex-wrap items-center gap-1">
                                 {dim.options.length > 1 && (
-                                  <button
-                                    onClick={() => openCompareView(dim, opt.name)}
-                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                                    title={`Compare ${opt.name} against another ${dim.name} option`}
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]"
+                                    title={`Compare ${opt.name} through Review tools`}
                                   >
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                       <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
                                       <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
                                       <path d="M9 12h6" />
                                     </svg>
-                                    Compare {opt.name}
-                                  </button>
+                                    Compare in Review tools
+                                  </span>
                                 )}
                                 {((coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 || (missingOverrides[dim.id]?.[selectedOpt]?.missing.length ?? 0) > 0) && (
-                                  <button
-                                    onClick={() => openCoverageView(dim.id, opt.name)}
-                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                                    title={`Review coverage for ${dim.name} → ${opt.name}`}
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]"
+                                    title={`Review ${dim.name} -> ${opt.name} from Review tools`}
                                   >
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                       <rect x="3" y="3" width="7" height="7" />
@@ -1572,18 +1739,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                       <rect x="3" y="14" width="7" height="7" />
                                       <rect x="14" y="14" width="7" height="7" />
                                     </svg>
-                                    Review coverage
-                                  </button>
+                                    Review from tools
+                                  </span>
                                 )}
                                 {hasUncovered && (
-                                  <button
-                                    onClick={() => setExpandedCoverage(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
-                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors"
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/15 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]"
                                     title={`${coverage[dim.id][selectedOpt].uncovered.length} tokens have no value in active sets`}
                                   >
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                     {coverage[dim.id][selectedOpt].uncovered.length} gaps
-                                  </button>
+                                  </span>
                                 )}
                                 {staleSetNames.length > 0 && (
                                   <button
@@ -1799,239 +1965,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           </div>
                         )}
 
-                        {/* Coverage gaps */}
-                        {expandedCoverage.has(covKey) && (coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 && (() => {
-                          const uncoveredItems = coverage[dim.id][selectedOpt].uncovered;
-                          const fillableItems = uncoveredItems.filter(i => i.missingRef && i.fillValue !== undefined);
-                          const unfillableItems = uncoveredItems.filter(i => !i.missingRef || i.fillValue === undefined);
-                          const isFillAllInProgress = fillingKeys.has(`${dim.id}:${selectedOpt}:__all__`);
-
-                          const renderCoverageRow = (item: CoverageToken, canFill: boolean) => {
-                            const isFilling = fillingKeys.has(`${dim.id}:${selectedOpt}:${item.path}`);
-                            return (
-                              <div key={item.path} className="flex items-center gap-1.5 group/fill py-0.5" role="listitem">
-                                {/* Status chip */}
-                                {canFill ? (
-                                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-semibold bg-emerald-500/15 text-emerald-600" title="Can be auto-filled from another set">
-                                    <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 5.5l2.5 2.5L8 3" /></svg>
-                                    Fillable
-                                  </span>
-                                ) : (
-                                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-semibold bg-red-500/15 text-red-600" title="No fill value available — requires manual fix">
-                                    <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5" /></svg>
-                                    Manual
-                                  </span>
-                                )}
-                                {onNavigateToToken && item.set ? (
-                                  <button
-                                    onClick={() => onNavigateToToken(item.path, item.set)}
-                                    className="flex-1 text-left text-[10px] text-[var(--color-figma-text)] font-mono truncate hover:underline cursor-pointer"
-                                    title={`Navigate to ${item.path} in set "${item.set}"${item.missingRef ? `\nMissing: {${item.missingRef}}` : ''}`}
-                                  >
-                                    {item.path}
-                                  </button>
-                                ) : (
-                                  <div className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={item.missingRef ? `Missing: {${item.missingRef}}` : undefined}>{item.path}</div>
-                                )}
-                                {canFill && (
-                                  <button
-                                    onClick={() => handleAutoFillSingle(dim.id, selectedOpt, item)}
-                                    disabled={isFilling}
-                                    className="flex-shrink-0 opacity-40 group-hover/fill:opacity-100 pointer-events-none group-hover/fill:pointer-events-auto px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/80 text-white hover:bg-[var(--color-figma-accent)] disabled:opacity-50 transition-opacity"
-                                    title={`Create ${item.missingRef} in override set`}
-                                  >
-                                    {isFilling ? '…' : 'Fill'}
-                                  </button>
-                                )}
-                                {!canFill && onCreateToken && (
-                                  <button
-                                    onClick={() => {
-                                      const createPath = item.missingRef ?? item.path;
-                                      onCreateToken(createPath, item.set);
-                                    }}
-                                    className="flex-shrink-0 opacity-40 group-hover/fill:opacity-100 pointer-events-none group-hover/fill:pointer-events-auto px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-tertiary)] text-[var(--color-figma-text)] border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-opacity"
-                                    title={item.missingRef ? `Create token "${item.missingRef}" to resolve missing alias` : `Create token "${item.path}" in set "${item.set}"`}
-                                  >
-                                    Create
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          };
-
-                          return (
-                          <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/5 px-3 py-2">
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-1.5">
-                              <div className="text-[10px] font-medium text-[var(--color-figma-warning)]">
-                                Missing values ({uncoveredItems.length})
-                              </div>
-                              {fillableItems.length > 0 && (
-                                <button
-                                  onClick={() => handleAutoFillAll(dim.id, selectedOpt)}
-                                  disabled={isFillAllInProgress}
-                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                                  title={`Auto-fill ${fillableItems.length} token${fillableItems.length !== 1 ? 's' : ''} from source sets into the override set`}
-                                >
-                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                                  {isFillAllInProgress ? 'Filling…' : `Fill from source (${fillableItems.length})`}
-                                </button>
-                              )}
-                            </div>
-
-                            {/* Summary chips */}
-                            <div className="flex items-center gap-2 mb-1.5">
-                              {fillableItems.length > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600">
-                                  <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 5.5l2.5 2.5L8 3" /></svg>
-                                  {fillableItems.length} fillable
-                                </span>
-                              )}
-                              {unfillableItems.length > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-medium text-red-600">
-                                  <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5" /></svg>
-                                  {unfillableItems.length} need manual fix
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="flex flex-col gap-0 max-h-48 overflow-y-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
-                              {/* Unfillable tokens first (most urgent) */}
-                              {unfillableItems.length > 0 && (
-                                <>
-                                  {fillableItems.length > 0 && (
-                                    <div className="text-[9px] font-semibold text-red-600 uppercase tracking-wider pt-1 pb-0.5">Needs attention</div>
-                                  )}
-                                  {unfillableItems.map(item => renderCoverageRow(item, false))}
-                                </>
-                              )}
-                              {/* Fillable tokens */}
-                              {fillableItems.length > 0 && (
-                                <>
-                                  {unfillableItems.length > 0 && (
-                                    <div className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wider pt-1.5 pb-0.5">Auto-fillable</div>
-                                  )}
-                                  {fillableItems.map(item => renderCoverageRow(item, true))}
-                                </>
-                              )}
-                            </div>
+                        {((coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 || (missingOverrides[dim.id]?.[selectedOpt]?.missing.length ?? 0) > 0) && (
+                          <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                            Review gaps and override coverage from <span className="font-medium text-[var(--color-figma-text)]">Review tools</span>, then return here to adjust set roles for <span className="font-medium text-[var(--color-figma-text)]">{opt.name}</span>.
                           </div>
-                          );
-                        })()}
-                        {/* Missing overrides: source tokens absent from enabled/override sets */}
-                        {(() => {
-                          const moItems = missingOverrides[dim.id]?.[selectedOpt]?.missing ?? [];
-                          if (moItems.length === 0 || overrideSets.length === 0) return null;
-                          const moKey = covKey;
-                          const isExpanded = expandedMissingOverrides.has(moKey);
-                          const searchQ = (missingOverrideSearch[moKey] ?? '').toLowerCase();
-                          const filteredMo = searchQ ? moItems.filter(i => i.path.toLowerCase().includes(searchQ)) : moItems;
-                          const targetSet = overrideSets[0];
-                          const isCreating = creatingMissingKeys.has(`${dim.id}:${selectedOpt}:__missing__`);
-                          return (
-                            <div className="border-t border-[var(--color-figma-border)]">
-                              {/* Collapsible header */}
-                              <button
-                                onClick={() => setExpandedMissingOverrides(prev => {
-                                  const next = new Set(prev);
-                                  next.has(moKey) ? next.delete(moKey) : next.add(moKey);
-                                  return next;
-                                })}
-                                className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                                aria-expanded={isExpanded}
-                                title={`${moItems.length} token${moItems.length !== 1 ? 's' : ''} from Base sets have no override in "${targetSet}"`}
-                              >
-                                <div className="flex items-center gap-1.5">
-                                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform flex-shrink-0 text-[var(--color-figma-text-tertiary)] ${isExpanded ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                                    Missing overrides
-                                  </span>
-                                  <span className="inline-flex items-center justify-center min-w-[16px] h-[14px] px-1 rounded-full text-[9px] font-bold leading-none bg-violet-500/15 text-violet-600">
-                                    {moItems.length}
-                                  </span>
-                                </div>
-                                {isExpanded && (
-                                  <button
-                                    onClick={e => { e.stopPropagation(); handleBulkCreateMissingOverrides(dim.id, selectedOpt, targetSet, moItems); }}
-                                    disabled={isCreating}
-                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
-                                    title={`Copy all ${moItems.length} Base token${moItems.length !== 1 ? 's' : ''} into "${targetSet}" as overrides (skip existing)`}
-                                    aria-label={`Create ${moItems.length} missing overrides in ${targetSet}`}
-                                  >
-                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                                    {isCreating ? 'Creating…' : `Create all (${moItems.length})`}
-                                  </button>
-                                )}
-                              </button>
-                              {isExpanded && (
-                                <div className="bg-[var(--color-figma-bg-secondary)]/40 px-3 pb-2">
-                                  <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1.5">
-                                    These tokens are in Base sets but have no value in <span className="font-medium text-[var(--color-figma-text-secondary)]">{targetSet}</span>. Creating them copies the Base value as a starting point.
-                                  </p>
-                                  {moItems.length > 8 && (
-                                    <input
-                                      type="text"
-                                      placeholder="Filter tokens…"
-                                      value={missingOverrideSearch[moKey] ?? ''}
-                                      onChange={e => setMissingOverrideSearch(prev => ({ ...prev, [moKey]: e.target.value }))}
-                                      onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); if (missingOverrideSearch[moKey]) setMissingOverrideSearch(prev => ({ ...prev, [moKey]: '' })); (e.currentTarget as HTMLInputElement).blur(); } }}
-                                      className="w-full mb-1.5 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
-                                    />
-                                  )}
-                                  <div className="flex flex-col gap-0 max-h-48 overflow-y-auto rounded" role="list" aria-label={`Missing override tokens for ${selectedOpt}`}>
-                                    {filteredMo.length === 0 && (
-                                      <div className="py-1 text-[9px] text-[var(--color-figma-text-tertiary)] italic">No tokens match</div>
-                                    )}
-                                    {filteredMo.map(item => {
-                                      const isItemCreating = creatingMissingKeys.has(`${dim.id}:${selectedOpt}:${item.path}`);
-                                      return (
-                                        <div key={item.path} className="flex items-center gap-1.5 group/mo py-0.5" role="listitem">
-                                          <div className="flex-1 min-w-0">
-                                            {onNavigateToToken ? (
-                                              <button
-                                                onClick={() => onNavigateToToken(item.path, item.sourceSet)}
-                                                className="text-left text-[10px] text-[var(--color-figma-text)] font-mono truncate hover:underline cursor-pointer block w-full"
-                                                title={`${item.path} — from "${item.sourceSet}"${item.type ? ` (${item.type})` : ''}`}
-                                              >
-                                                {item.path}
-                                              </button>
-                                            ) : (
-                                              <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={`${item.path} — from "${item.sourceSet}"${item.type ? ` (${item.type})` : ''}`}>
-                                                {item.path}
-                                              </div>
-                                            )}
-                                          </div>
-                                          <span className="flex-shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)] truncate max-w-[60px]" title={String(item.value)}>
-                                            {String(item.value).slice(0, 20)}{String(item.value).length > 20 ? '…' : ''}
-                                          </span>
-                                          <button
-                                            onClick={() => {
-                                              const key = `${dim.id}:${selectedOpt}:${item.path}`;
-                                              setCreatingMissingKeys(prev => { const n = new Set(prev); n.add(key); return n; });
-                                              handleBulkCreateMissingOverrides(dim.id, selectedOpt, targetSet, [item]).finally(() => {
-                                                setCreatingMissingKeys(prev => { const n = new Set(prev); n.delete(key); return n; });
-                                              });
-                                            }}
-                                            disabled={isItemCreating || isCreating}
-                                            className="flex-shrink-0 opacity-0 group-hover/mo:opacity-100 group-focus-within/mo:opacity-100 pointer-events-none group-hover/mo:pointer-events-auto group-focus-within/mo:pointer-events-auto px-1 py-0.5 rounded text-[9px] font-medium bg-violet-600/80 text-white hover:bg-violet-600 disabled:opacity-40 transition-opacity"
-                                            title={`Copy "${item.path}" from Base into "${targetSet}"`}
-                                          >
-                                            {isItemCreating ? '…' : 'Copy'}
-                                          </button>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                  {filteredMo.length < moItems.length && (
-                                    <div className="pt-1 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                      Showing {filteredMo.length} of {moItems.length}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
+                        )}
 
                         {expandedStale.has(covKey) && staleSetNames.length > 0 && (
                           <div className="border-t border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 px-3 py-2">

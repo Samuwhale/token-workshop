@@ -51,7 +51,7 @@ export function ThemeStageModelControls({
             Theme workflow
           </div>
           <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Build the common authoring path in order, then open advanced logic only when the set workflow is no longer enough.
+            Build axes, options, set roles, and preview in order. Review and expert tools now live in secondary views.
           </div>
         </div>
         {actions.length > 0 && (

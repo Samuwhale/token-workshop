@@ -1039,11 +1039,6 @@ export function App() {
         onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
       });
     }
-    actions.push({
-      label: 'Advanced theme logic',
-      onClick: () => themeManagerHandleRef.current?.switchToResolverMode(),
-      active: themeShellState.activeView === 'advanced',
-    });
 
     return (
       <ThemeStageModelControls

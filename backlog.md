@@ -53,7 +53,7 @@
 ### UX
 
 - [x] [HIGH] Implement the Theme Management stage model in the UI shell: explicit steps for axes, options, set roles, and preview, with the default route optimized for common theme authoring instead of expert resolver configuration
-- [ ] [HIGH] Move coverage review, compare, and advanced resolver controls out of the default theme authoring route and into contextual secondary views or advanced routes so the main screen reads like one guided workflow
+- [x] [HIGH] Move coverage review, compare, and advanced resolver controls out of the default theme authoring route and into contextual secondary views or advanced routes so the main screen reads like one guided workflow
 - [ ] Redesign the set-role assignment UI so source, override, and excluded states are obvious at a glance and can be edited without scanning dense toggle rows and helper text
 - [ ] Improve theme option navigation for multi-axis systems by making the current focus, option context, and unresolved gaps visible without forcing users to parse chips, badges, and side controls scattered across the page
 - [ ] Create a clearer path from theme gaps to fixes: when coverage or missing overrides are detected, the UI should explain what is missing, what set will be affected, and the safest next action from that exact context

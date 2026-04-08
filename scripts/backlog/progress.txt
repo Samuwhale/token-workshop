@@ -334,3 +334,11 @@
   - Let the shell compute stage completion from shared data, but keep only a tiny callback contract from the child panel (`activeView`, `showPreview`) so the parent does not absorb the panel’s full local state.
   - If the shell takes ownership of a workflow step model, remove duplicated step chrome from inside the feature panel so the IA reads as one coherent narrative instead of stacked guidance bars.
 ---
+## 2026-04-08 - [HIGH] Move coverage review, compare, and advanced resolver controls out of the default theme authoring route and into contextual secondary views or advanced routes so the main screen reads like one guided workflow
+- Reworked the Theme authoring surface around one contextual `Review tools` menu, moved coverage review, compare, and resolver entry points into that secondary surface, and replaced the old inline review drawers with lightweight status hints so the main screen stays focused on axes, options, set roles, and preview.
+- Simplified the shell’s theme workflow row so it only narrates the guided authoring stages by default, while keeping `Back to authoring` available when the user is already in coverage, compare, or advanced resolver mode.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1073, ~L1714, ~L1965; `packages/figma-plugin/src/ui/App.tsx` ~L1035; `packages/figma-plugin/src/ui/components/ThemeStageModelControls.tsx` ~L53; `scripts/backlog/patterns.md` ~L190
+- **Learnings for future iterations:**
+  - When a workflow-first panel still needs diagnostics and expert paths, give the main surface one small context-aware tools menu instead of scattering compare/review buttons and drawers through every card.
+  - If review subviews already exist, prefer replacing inline diagnostic details with status chips plus direct jumps into those subviews; this keeps the authoring route legible without inventing another navigation layer.
+---
