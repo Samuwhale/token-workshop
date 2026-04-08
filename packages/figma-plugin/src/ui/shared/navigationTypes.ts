@@ -74,12 +74,16 @@ export interface WorkspaceSection extends WorkspaceRoute {
   id: SubTab;
   label: string;
   description?: string;
+  summaryTitle?: string;
+  summaryGuidance?: string;
 }
 
 export interface WorkspaceTab extends WorkspaceRoute {
   id: WorkspaceId;
   label: string;
   description: string;
+  summaryTitle?: string;
+  summaryGuidance?: string;
   sections?: WorkspaceSection[];
   /** Additional routes that should keep this workspace selected. */
   matchRoutes?: WorkspaceRoute[];
@@ -118,11 +122,29 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     id: 'tokens',
     label: 'Tokens',
     description: 'Edit token sets, compare values, and automate new scales.',
+    summaryTitle: 'Token library',
+    summaryGuidance: 'Build and edit the token library, switch the active set, and open deeper comparison or generation tools when needed.',
     topTab: 'define',
     subTab: 'tokens',
     sections: [
-      { id: 'tokens', label: 'Library', description: 'Browse and edit token sets.', topTab: 'define', subTab: 'tokens' },
-      { id: 'generators', label: 'Generators', description: 'Build and tune token generators.', topTab: 'define', subTab: 'generators' },
+      {
+        id: 'tokens',
+        label: 'Library',
+        description: 'Browse and edit token sets.',
+        summaryTitle: 'Token library',
+        summaryGuidance: 'Build and edit the token library, switch the active set, and create new tokens in the current workspace.',
+        topTab: 'define',
+        subTab: 'tokens',
+      },
+      {
+        id: 'generators',
+        label: 'Generators',
+        description: 'Build and tune token generators.',
+        summaryTitle: 'Token generators',
+        summaryGuidance: 'Build, tune, and review generators that create or maintain token groups for the active system.',
+        topTab: 'define',
+        subTab: 'generators',
+      },
     ],
     matchRoutes: [
       route('define', 'tokens'),
@@ -133,6 +155,8 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     id: 'themes',
     label: 'Themes',
     description: 'Set up theme sources, overrides, and resolver logic.',
+    summaryTitle: 'Theme authoring',
+    summaryGuidance: 'Create axes, define options, map sets, and preview the active combination before opening advanced theme logic.',
     topTab: 'define',
     subTab: 'themes',
   },
@@ -143,8 +167,24 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: 'apply',
     subTab: 'inspect',
     sections: [
-      { id: 'inspect', label: 'Selection', description: 'Inspect and edit the current selection.', topTab: 'apply', subTab: 'inspect' },
-      { id: 'canvas-analysis', label: 'Canvas', description: 'Review token coverage across the canvas.', topTab: 'apply', subTab: 'canvas-analysis' },
+      {
+        id: 'inspect',
+        label: 'Selection',
+        description: 'Inspect and edit the current selection.',
+        summaryTitle: 'Bind tokens to selection',
+        summaryGuidance: 'Review the current selection, inspect suggested matches, and bind or replace tokens on the visible properties.',
+        topTab: 'apply',
+        subTab: 'inspect',
+      },
+      {
+        id: 'canvas-analysis',
+        label: 'Canvas',
+        description: 'Review token coverage across the canvas.',
+        summaryTitle: 'Canvas analysis',
+        summaryGuidance: 'Scan broader canvas coverage and surface token usage or gaps outside the current selection.',
+        topTab: 'apply',
+        subTab: 'canvas-analysis',
+      },
     ],
     matchRoutes: [
       route('apply', 'inspect'),
@@ -158,8 +198,24 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: 'ship',
     subTab: 'publish',
     sections: [
-      { id: 'publish', label: 'Sync to Figma', description: 'Run readiness checks and sync variables or styles to the current Figma file.', topTab: 'ship', subTab: 'publish' },
-      { id: 'export', label: 'Export', description: 'Generate platform files and handoff artifacts from the token library.', topTab: 'ship', subTab: 'export' },
+      {
+        id: 'publish',
+        label: 'Sync to Figma',
+        description: 'Run readiness checks and sync variables or styles to the current Figma file.',
+        summaryTitle: 'Sync to Figma',
+        summaryGuidance: 'Run readiness checks, compare local tokens against Figma variables and styles, and sync the destinations you choose.',
+        topTab: 'ship',
+        subTab: 'publish',
+      },
+      {
+        id: 'export',
+        label: 'Export',
+        description: 'Generate platform files and handoff artifacts from the token library.',
+        summaryTitle: 'Export handoff files',
+        summaryGuidance: 'Generate export files and handoff artifacts from the current token library when downstream teams need packaged outputs.',
+        topTab: 'ship',
+        subTab: 'export',
+      },
     ],
     matchRoutes: [
       route('ship', 'publish'),

@@ -1,7 +1,8 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { access, appendFile, readFile, rename, writeFile } from 'node:fs/promises';
 import { lockPath, withLock } from '../locks.js';
 import type {
+  BacklogDrainResult,
   BacklogItemClaim,
   BacklogMarker,
   BacklogRunnerConfig,
@@ -14,6 +15,13 @@ const READY_PATTERN = /^- \[ \]/;
 const IN_PROGRESS_PATTERN = /^- \[~\]/;
 const FAILED_PATTERN = /^- \[!\]/;
 const DONE_PATTERN = /^- \[x\]/;
+const CLAIM_TOKEN_PATTERN = /\s*<!-- backlog-claim:([0-9a-f-]+) -->\s*$/i;
+
+type FollowupRecord = {
+  title: string;
+  context?: string;
+  priority?: string;
+};
 
 function splitLines(value: string): string[] {
   return value.replace(/\r\n/g, '\n').split('\n');
@@ -38,13 +46,52 @@ async function atomicWrite(filePath: string, content: string): Promise<void> {
   await rename(tempFile, filePath);
 }
 
+function stripClaimToken(line: string): string {
+  return line.replace(CLAIM_TOKEN_PATTERN, '').trimEnd();
+}
+
+function appendClaimToken(line: string, claimToken: string): string {
+  return `${stripClaimToken(line)} <!-- backlog-claim:${claimToken} -->`;
+}
+
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
 function itemSignature(line: string): string {
-  const normalized = line
+  const normalized = stripClaimToken(line)
     .replace(/^- \[.\] (?:\[(?:HIGH|P0|BUG)\] )?/, '')
+    .replace(/\s+\(Context: .+\)$/, '')
     .trim()
     .replace(/\s+/g, ' ')
     .toLowerCase();
   return createHash('sha1').update(normalized).digest('hex');
+}
+
+function parseClaimToken(line: string): string | null {
+  return line.match(CLAIM_TOKEN_PATTERN)?.[1] ?? null;
+}
+
+function parseFollowupRecord(line: string): FollowupRecord | null {
+  try {
+    const value = JSON.parse(line) as Partial<FollowupRecord>;
+    return typeof value.title === 'string' ? (value as FollowupRecord) : null;
+  } catch {
+    return null;
+  }
+}
+
+function followupToBacklogLine(record: FollowupRecord): string | null {
+  const title = normalizeWhitespace(record.title);
+  if (!title) {
+    return null;
+  }
+
+  const context = typeof record.context === 'string' ? normalizeWhitespace(record.context) : '';
+  const priority = typeof record.priority === 'string' ? record.priority.toLowerCase() : 'normal';
+  const prefix = priority === 'high' ? '- [ ] [HIGH] ' : '- [ ] ';
+
+  return context ? `${prefix}${title} (Context: ${context})` : `${prefix}${title}`;
 }
 
 export class MarkdownBacklogStore implements BacklogStore {
@@ -72,6 +119,48 @@ export class MarkdownBacklogStore implements BacklogStore {
 
   private async writeBacklog(content: string): Promise<void> {
     await atomicWrite(this.config.files.backlog, content);
+  }
+
+  private async mergeReadyItems(
+    readyLines: string[],
+  ): Promise<{ skippedDuplicates: number }> {
+    const backlogContent = await this.readBacklog();
+    const backlogLines = splitLines(backlogContent);
+    const existingSignatures = new Set(
+      backlogLines
+        .filter(line => /^- \[[ ~x!]\]/.test(line))
+        .map(itemSignature),
+    );
+
+    let skippedDuplicates = 0;
+    const uniqueReadyLines = readyLines.filter(line => {
+      const signature = itemSignature(line);
+      if (existingSignatures.has(signature)) {
+        skippedDuplicates += 1;
+        return false;
+      }
+      existingSignatures.add(signature);
+      return true;
+    });
+
+    const priorityItems = uniqueReadyLines.filter(line => PRIORITY_PATTERN.test(line));
+    const otherItems = uniqueReadyLines.filter(line => !PRIORITY_PATTERN.test(line));
+
+    if (priorityItems.length > 0) {
+      const firstReadyIndex = backlogLines.findIndex(line => READY_PATTERN.test(line));
+      if (firstReadyIndex === -1) {
+        backlogLines.push('', ...priorityItems);
+      } else {
+        backlogLines.splice(firstReadyIndex, 0, ...priorityItems);
+      }
+    }
+
+    if (otherItems.length > 0) {
+      backlogLines.push('', ...otherItems);
+    }
+
+    await this.writeBacklog(collapseBlankLines(backlogLines).join('\n'));
+    return { skippedDuplicates };
   }
 
   async countReady(): Promise<number> {
@@ -113,22 +202,42 @@ export class MarkdownBacklogStore implements BacklogStore {
       }
 
       const line = lines[index]!;
-      const item = line.replace(/^- \[ \] /, '');
-      lines[index] = line.replace(/^- \[ \]/, '- [~]');
+      const claimToken = randomUUID();
+      const item = stripClaimToken(line).replace(/^- \[ \] /, '');
+      lines[index] = appendClaimToken(line.replace(/^- \[ \]/, '- [~]'), claimToken);
       await this.writeBacklog(lines.join('\n'));
-      return { lineNumber: index + 1, item };
+      return { lineNumber: index + 1, item, claimToken };
     });
   }
 
-  async updateItemStatus(item: string, marker: BacklogMarker): Promise<void> {
-    if (!item) return;
+  async updateItemStatus(claim: BacklogItemClaim, marker: BacklogMarker): Promise<void> {
+    if (!claim.item) return;
 
     await withLock(this.backlogLock, 30, async () => {
       const content = await this.readBacklog();
       const lines = splitLines(content);
-      const index = lines.findIndex(line => line.includes(`[~] ${item}`));
+      const claimedLine = lines[claim.lineNumber - 1];
+      let index =
+        claimedLine && parseClaimToken(claimedLine) === claim.claimToken
+          ? claim.lineNumber - 1
+          : lines.findIndex(line => parseClaimToken(line) === claim.claimToken);
+      if (index === -1 && claimedLine) {
+        const claimedItem = stripClaimToken(claimedLine).replace(/^- \[[ ~x!]\] /, '');
+        if (claimedItem === claim.item) {
+          index = claim.lineNumber - 1;
+        }
+      }
+      if (index === -1) {
+        const matchingIndexes = lines
+          .map((line, candidateIndex) => ({ line, candidateIndex }))
+          .filter(({ line }) => stripClaimToken(line).replace(/^- \[[ ~x!]\] /, '') === claim.item)
+          .map(({ candidateIndex }) => candidateIndex);
+        if (matchingIndexes.length === 1) {
+          index = matchingIndexes[0]!;
+        }
+      }
       if (index === -1) return;
-      lines[index] = lines[index]!.replace('[~]', `[${marker}]`);
+      lines[index] = stripClaimToken(lines[index]!).replace(/^- \[[ ~x!]\]/, `- [${marker}]`);
       await this.writeBacklog(lines.join('\n'));
     });
   }
@@ -144,21 +253,19 @@ export class MarkdownBacklogStore implements BacklogStore {
     });
   }
 
-  async drainInbox(): Promise<{ drained: boolean; skippedDuplicates: number }> {
+  async drainInbox(): Promise<BacklogDrainResult> {
     return withLock(this.backlogLock, 5, async () => {
       let inboxContent = '';
       try {
         inboxContent = await readFile(this.config.files.inbox, 'utf8');
       } catch {
-        return { drained: false, skippedDuplicates: 0 };
+        return { drained: false, skippedDuplicates: 0, ignoredInvalidLines: 0 };
       }
 
       if (!/\S/.test(inboxContent)) {
-        return { drained: false, skippedDuplicates: 0 };
+        return { drained: false, skippedDuplicates: 0, ignoredInvalidLines: 0 };
       }
 
-      const backlogContent = await this.readBacklog();
-      const backlogLines = splitLines(backlogContent);
       const normalizedInboxLines = splitLines(inboxContent)
         .map(line =>
           line
@@ -166,49 +273,50 @@ export class MarkdownBacklogStore implements BacklogStore {
             .replace(/^- \[!\] /, '- [ ] '),
         )
         .filter(Boolean);
-
-      const existingSignatures = new Set(
-        backlogLines
-          .filter(line => /^- \[[ ~x!]\]/.test(line))
-          .map(itemSignature),
-      );
-
-      let skippedDuplicates = 0;
-      const uniqueInboxLines = normalizedInboxLines.filter(line => {
-        if (!READY_PATTERN.test(line)) return true;
-        const signature = itemSignature(line);
-        if (existingSignatures.has(signature)) {
-          skippedDuplicates += 1;
-          return false;
-        }
-        existingSignatures.add(signature);
-        return true;
-      });
-
-      const priorityItems = uniqueInboxLines.filter(line => PRIORITY_PATTERN.test(line));
-      const otherItems = uniqueInboxLines.filter(line => READY_PATTERN.test(line) && !PRIORITY_PATTERN.test(line));
-      const nonTaskLines = uniqueInboxLines.filter(line => !READY_PATTERN.test(line));
-
-      if (priorityItems.length > 0) {
-        const firstReadyIndex = backlogLines.findIndex(line => READY_PATTERN.test(line));
-        if (firstReadyIndex === -1) {
-          backlogLines.push('', ...priorityItems);
-        } else {
-          backlogLines.splice(firstReadyIndex, 0, ...priorityItems);
-        }
-      }
-
-      if (otherItems.length > 0) {
-        backlogLines.push('', ...otherItems);
-      }
-
-      if (nonTaskLines.length > 0) {
-        backlogLines.push('', ...nonTaskLines);
-      }
-
-      await this.writeBacklog(collapseBlankLines(backlogLines).join('\n'));
+      const readyLines = normalizedInboxLines.filter(line => READY_PATTERN.test(line));
+      const ignoredInvalidLines = normalizedInboxLines.length - readyLines.length;
+      const { skippedDuplicates } = await this.mergeReadyItems(readyLines);
       await atomicWrite(this.config.files.inbox, '');
-      return { drained: true, skippedDuplicates };
+      return { drained: true, skippedDuplicates, ignoredInvalidLines };
+    });
+  }
+
+  async drainFollowups(filePath = this.config.files.followups): Promise<BacklogDrainResult> {
+    return withLock(this.backlogLock, 5, async () => {
+      let content = '';
+      try {
+        content = await readFile(filePath, 'utf8');
+      } catch {
+        return { drained: false, skippedDuplicates: 0, ignoredInvalidLines: 0 };
+      }
+
+      if (!/\S/.test(content)) {
+        return { drained: false, skippedDuplicates: 0, ignoredInvalidLines: 0 };
+      }
+
+      let ignoredInvalidLines = 0;
+      const readyLines = splitLines(content)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .flatMap(line => {
+          const record = parseFollowupRecord(line);
+          if (!record) {
+            ignoredInvalidLines += 1;
+            return [];
+          }
+
+          const backlogLine = followupToBacklogLine(record);
+          if (!backlogLine) {
+            ignoredInvalidLines += 1;
+            return [];
+          }
+
+          return [backlogLine];
+        });
+
+      const { skippedDuplicates } = await this.mergeReadyItems(readyLines);
+      await atomicWrite(filePath, '');
+      return { drained: true, skippedDuplicates, ignoredInvalidLines };
     });
   }
 

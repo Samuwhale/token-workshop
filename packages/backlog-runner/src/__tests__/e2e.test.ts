@@ -22,7 +22,7 @@ class MemoryLogSink implements LogSink {
 
 function createFakeCommandRunner(
   root: string,
-  options: { validationOk?: boolean; calls?: string[] } = {},
+  options: { validationOk?: boolean; calls?: string[]; emitFollowup?: boolean } = {},
 ): CommandRunner {
   return {
     async run(command: string, args: string[]): Promise<CommandResult> {
@@ -33,6 +33,17 @@ function createFakeCommandRunner(
           '# Backlog Progress Log\nStarted: today\n---\n## run\nbody\n---\n',
           'utf8',
         );
+        if (options.emitFollowup) {
+          await writeFile(
+            path.join(root, '.backlog-runner', 'followups.jsonl'),
+            `${JSON.stringify({
+              title: 'Audit token import edge cases',
+              context: 'Found while implementing the assigned backlog item',
+              priority: 'high',
+            })}\n`,
+            'utf8',
+          );
+        }
         return {
           code: 0,
           stdout: JSON.stringify({
@@ -70,6 +81,7 @@ async function makeFixture() {
   const root = await mkdtemp(path.join(tmpdir(), 'backlog-e2e-test-'));
   tempDirs.push(root);
   await mkdir(path.join(root, 'scripts/backlog'), { recursive: true });
+  await mkdir(path.join(root, '.backlog-runner'), { recursive: true });
   await writeFile(path.join(root, 'backlog.md'), '- [ ] test item\n', 'utf8');
   await writeFile(path.join(root, 'backlog-inbox.md'), '', 'utf8');
   await writeFile(path.join(root, 'backlog-stop'), 'stop\n', 'utf8');
@@ -161,5 +173,26 @@ describe('runner e2e', () => {
     expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [!] test item');
     expect(logSink.lines.join('')).toContain('validation failed');
     expect(logSink.lines.join('')).not.toContain('Committed and marked done');
+  });
+
+  it('drains structured follow-ups after a successful item', async () => {
+    const { root, config } = await makeFixture();
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, { emitFollowup: true }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain(
+      '- [ ] [HIGH] Audit token import edge cases (Context: Found while implementing the assigned backlog item)',
+    );
+    expect(await readFile(path.join(root, '.backlog-runner', 'followups.jsonl'), 'utf8')).toBe('');
+    expect(logSink.lines.join('')).toContain('Committed and marked done');
   });
 });

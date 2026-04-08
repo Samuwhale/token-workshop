@@ -32,12 +32,14 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
   const runnerLogDir = resolvePath(baseDir, config.files.runnerLogDir ?? path.dirname(config.files.progress));
   const runtimeDir = resolvePath(baseDir, config.files.runtimeDir ?? '.backlog-runner');
   const locksDir = resolvePath(baseDir, config.files.locksDir ?? path.join(runtimeDir, 'locks'));
+  const followups = resolvePath(baseDir, config.files.followups ?? path.join(runtimeDir, 'followups.jsonl'));
 
   return {
     projectRoot,
     files: {
       backlog: resolvePath(baseDir, config.files.backlog),
       inbox: resolvePath(baseDir, config.files.inbox),
+      followups,
       stop: resolvePath(baseDir, config.files.stop),
       patterns: resolvePath(baseDir, config.files.patterns),
       progress: resolvePath(baseDir, config.files.progress),

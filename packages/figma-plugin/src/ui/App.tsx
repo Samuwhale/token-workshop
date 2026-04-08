@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { TokenListImperativeHandle } from './components/tokenListTypes';
 import type { ThemeManagerHandle } from './components/ThemeManager';
+import type { PublishPanelHandle } from './components/PublishPanel';
 import { TokenEditor } from './components/TokenEditor';
 import { TokenGeneratorDialog } from './components/TokenGeneratorDialog';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ToastStack } from './components/ToastStack';
 import { NotificationHistory } from './components/NotificationHistory';
+import { WorkspaceSummaryHeader } from './components/WorkspaceSummaryHeader';
 import { useToastStack } from './hooks/useToastStack';
 import { useToastBusListener } from './shared/toastBus';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -159,6 +161,14 @@ export function App() {
     () => resolveWorkspaceSection(activeWorkspace, activeTopTab, activeSubTab),
     [activeWorkspace, activeTopTab, activeSubTab],
   );
+  const workspaceSummaryTitle = useMemo(
+    () => activeWorkspaceSection?.summaryTitle ?? activeWorkspace.summaryTitle ?? activeWorkspaceSection?.label ?? activeWorkspace.label,
+    [activeWorkspace, activeWorkspaceSection],
+  );
+  const workspaceSummaryGuidance = useMemo(
+    () => activeWorkspaceSection?.summaryGuidance ?? activeWorkspace.summaryGuidance ?? activeWorkspaceSection?.description ?? activeWorkspace.description,
+    [activeWorkspace, activeWorkspaceSection],
+  );
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -273,6 +283,7 @@ export function App() {
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
   // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
   const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
+  const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
   const [themeGapCount, setThemeGapCount] = useState(0);
   // Compare state for the Tokens tab — shown in-place without switching tabs
   const {
@@ -900,76 +911,119 @@ export function App() {
     validationSummary,
   ]);
 
-  const renderWorkspaceActions = () => {
-    if (activeWorkspace.id === 'tokens' && activeWorkspaceSection?.id === 'tokens') {
-      return (
-        <>
-          <button
-            onClick={() => setShowIssuesOnly(v => !v)}
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
-              showIssuesOnly
-                ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
-                : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
-            }`}
-            aria-pressed={showIssuesOnly}
-          >
-            Issues only
-            {lintViolations.length > 0 && (
-              <span className={`rounded-full px-1.5 py-0.5 text-[9px] leading-none ${showIssuesOnly ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'}`}>
-                {lintViolations.length > 99 ? '99+' : lintViolations.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
-              showPreviewSplit
-                ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
-                : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
-            }`}
-            aria-pressed={showPreviewSplit}
-          >
-            {showPreviewSplit ? 'Hide preview' : 'Show preview'}
-          </button>
-        </>
-      );
+  const workspacePrimaryAction = useMemo(() => {
+    if (overflowPanel === null && activeWorkspace.id === 'tokens' && activeWorkspaceSection?.id === 'tokens') {
+      return {
+        label: 'Create token',
+        onClick: () => {
+          guardEditorAction(() => {
+            navigateTo('define', 'tokens');
+            setOverflowPanel(null);
+            setEditingGenerator(null);
+            setPreviewingToken(null);
+            setEditingToken({ path: '', set: activeSet, isCreate: true });
+          });
+        },
+      };
     }
 
-    if (activeWorkspace.id === 'themes') {
-      return (
-        <button
-          onClick={() => themeManagerHandleRef.current?.switchToResolverMode()}
-          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-        >
-          Open resolver
-        </button>
-      );
+    if (overflowPanel === null && activeWorkspace.id === 'themes') {
+      return {
+        label: 'Create axis',
+        onClick: () => {
+          guardEditorAction(() => {
+            navigateTo('define', 'themes');
+            setOverflowPanel(null);
+            themeManagerHandleRef.current?.openCreateAxis();
+          });
+        },
+      };
     }
 
-    if (activeWorkspace.id === 'apply' && selectedNodes.length > 0) {
-      return (
-        <button
-          onClick={() => setShowQuickApply(true)}
-          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-        >
-          Quick apply
-        </button>
-      );
+    if (overflowPanel === null && activeWorkspace.id === 'apply' && activeWorkspaceSection?.id === 'inspect') {
+      return {
+        label: 'Quick apply',
+        onClick: () => setShowQuickApply(true),
+        disabled: selectedNodes.length === 0,
+      };
     }
 
-    if (activeWorkspace.id === 'audit' && activeWorkspaceSection?.id === 'health') {
-      return (
-        <button
-          onClick={refreshValidation}
-          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-        >
-          Refresh audit
-        </button>
-      );
+    if (overflowPanel === null && activeWorkspace.id === 'sync' && activeWorkspaceSection?.id === 'publish') {
+      return {
+        label: 'Run checks',
+        onClick: () => publishPanelHandleRef.current?.runReadinessChecks(),
+      };
+    }
+
+    if (overflowPanel === null && activeWorkspace.id === 'audit' && activeWorkspaceSection?.id === 'health') {
+      return {
+        label: 'Refresh audit',
+        onClick: refreshValidation,
+      };
     }
 
     return null;
-  };
+  }, [
+    activeSet,
+    activeWorkspace.id,
+    activeWorkspaceSection?.id,
+    guardEditorAction,
+    navigateTo,
+    overflowPanel,
+    refreshValidation,
+    selectedNodes.length,
+    setEditingGenerator,
+    setEditingToken,
+    setOverflowPanel,
+    setPreviewingToken,
+    setShowQuickApply,
+  ]);
+
+  const workspaceContextualControls = useMemo(() => {
+    if (!(overflowPanel === null && activeWorkspace.id === 'tokens' && activeWorkspaceSection?.id === 'tokens')) return null;
+
+    return (
+      <div className="flex items-center justify-end gap-1.5 px-3 py-2">
+        <button
+          onClick={() => setShowIssuesOnly(v => !v)}
+          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+            showIssuesOnly
+              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
+              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
+          }`}
+          aria-pressed={showIssuesOnly}
+        >
+          Issues only
+          {lintViolations.length > 0 && (
+            <span className={`rounded-full px-1.5 py-0.5 text-[9px] leading-none ${showIssuesOnly ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'}`}>
+              {lintViolations.length > 99 ? '99+' : lintViolations.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
+          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+            showPreviewSplit
+              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
+              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
+          }`}
+          aria-pressed={showPreviewSplit}
+        >
+          {showPreviewSplit ? 'Hide preview' : 'Show preview'}
+        </button>
+      </div>
+    );
+  }, [
+    activeWorkspace.id,
+    activeWorkspaceSection?.id,
+    lintViolations.length,
+    overflowPanel,
+    setOverflowPanel,
+    setShowIssuesOnly,
+    setShowPreviewSplit,
+    showIssuesOnly,
+    showPreviewSplit,
+  ]);
 
   const handleSecondaryAction = useCallback((actionId: SecondaryActionId) => {
     setMenuOpen(false);
@@ -1039,15 +1093,6 @@ export function App() {
     : connected
       ? `Connected to ${serverUrl}`
       : `Cannot reach ${serverUrl}`;
-  const workspaceActions = renderWorkspaceActions();
-
-  const pillToneClasses: Record<'neutral' | 'accent' | 'warning' | 'danger' | 'success', string> = {
-    neutral: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]',
-    accent: 'border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]',
-    warning: 'border-amber-400/30 bg-amber-400/10 text-amber-700',
-    danger: 'border-red-500/25 bg-red-500/10 text-red-500',
-    success: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600',
-  };
 
   return (
     <div className="relative flex flex-col h-screen">
@@ -1215,87 +1260,21 @@ export function App() {
           </div>
         </div>
 
-        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="flex flex-col gap-2 px-3 py-2.5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                  Current workspace
-                </div>
-                <div className="mt-1 flex min-w-0 items-center gap-2">
-                  <div className="truncate text-[13px] font-semibold text-[var(--color-figma-text)]">
-                    {activeWorkspace.label}
-                  </div>
-                  {activeWorkspaceSection && (
-                    <span className="shrink-0 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.06em] text-[var(--color-figma-text-secondary)]">
-                      {activeWorkspaceSection.label}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)]">
-                  {activeWorkspaceSection?.description ?? activeWorkspace.description}
-                </div>
-              </div>
-
-              {workspaceActions && (
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-                  {workspaceActions}
-                </div>
-              )}
-            </div>
-
-            {(activeWorkspace.sections && activeWorkspace.sections.length > 1) || workspacePills.length > 0 ? (
-              <div className="flex items-center gap-3 overflow-x-auto pb-0.5">
-                {activeWorkspace.sections && activeWorkspace.sections.length > 1 && (
-                  <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1" role="tablist" aria-label={`${activeWorkspace.label} sections`}>
-                    <span className="pl-2 pr-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                      Sections
-                    </span>
-                    {activeWorkspace.sections.map(section => {
-                      const isSectionActive = section.topTab === activeTopTab && section.subTab === activeSubTab;
-                      return (
-                        <button
-                          key={`${section.topTab}:${section.subTab}`}
-                          role="tab"
-                          aria-selected={isSectionActive}
-                          onClick={() => {
-                            guardEditorAction(() => {
-                              navigateTo(section.topTab, section.subTab);
-                              if (section.subTab === 'canvas-analysis') triggerHeatmapScan();
-                            });
-                          }}
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
-                            isSectionActive
-                              ? 'bg-[var(--color-figma-accent)] text-white'
-                              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-                          }`}
-                        >
-                          {section.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {workspacePills.length > 0 && (
-                  <div className="inline-flex min-w-0 items-center gap-1.5">
-                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                      Status
-                    </span>
-                    {workspacePills.map((pill, index) => (
-                      <span
-                        key={`${pill.label}-${index}`}
-                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium ${pillToneClasses[pill.tone]}`}
-                      >
-                        {pill.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        </div>
+        <WorkspaceSummaryHeader
+          title={workspaceSummaryTitle}
+          guidance={workspaceSummaryGuidance}
+          sections={activeWorkspace.sections}
+          activeSectionId={activeWorkspaceSection?.id ?? null}
+          onSelectSection={(section) => {
+            guardEditorAction(() => {
+              navigateTo(section.topTab, section.subTab);
+              if (section.subTab === 'canvas-analysis') triggerHeatmapScan();
+            });
+          }}
+          statusPills={workspacePills}
+          primaryAction={workspacePrimaryAction}
+          contextualControls={workspaceContextualControls}
+        />
       </div>
 
       {/* Set switching surface */}
@@ -1726,6 +1705,7 @@ export function App() {
               pendingOpenPicker={pendingOpenPicker}
               setPendingOpenPicker={setPendingOpenPicker}
               themeManagerHandleRef={themeManagerHandleRef}
+              publishPanelHandleRef={publishPanelHandleRef}
               onTokenDragStart={(paths, fromSet) => setTokenDragState({ paths, fromSet })}
               onTokenDragEnd={() => setTokenDragState(null)}
               refreshAll={refreshAll}

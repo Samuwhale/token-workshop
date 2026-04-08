@@ -8,6 +8,7 @@ export interface BacklogRunnerConfigInput {
   files: {
     backlog: string;
     inbox: string;
+    followups?: string;
     stop: string;
     patterns: string;
     progress: string;
@@ -45,6 +46,7 @@ export interface BacklogRunnerConfig {
   files: {
     backlog: string;
     inbox: string;
+    followups: string;
     stop: string;
     patterns: string;
     progress: string;
@@ -156,6 +158,7 @@ export interface LogSink {
 export interface BacklogItemClaim {
   lineNumber: number;
   item: string;
+  claimToken: string;
 }
 
 export interface BacklogQueueCounts {
@@ -169,6 +172,12 @@ export interface StoreCleanupResult {
   trimmedProgress: boolean;
 }
 
+export interface BacklogDrainResult {
+  drained: boolean;
+  skippedDuplicates: number;
+  ignoredInvalidLines: number;
+}
+
 export interface BacklogStore {
   ensureProgressFile(): Promise<void>;
   countReady(): Promise<number>;
@@ -177,9 +186,10 @@ export interface BacklogStore {
   countDone(): Promise<number>;
   getQueueCounts(): Promise<BacklogQueueCounts>;
   claimNextItem(): Promise<BacklogItemClaim | null>;
-  updateItemStatus(item: string, marker: BacklogMarker): Promise<void>;
+  updateItemStatus(claim: BacklogItemClaim, marker: BacklogMarker): Promise<void>;
   resetStaleInProgressItems(): Promise<number>;
-  drainInbox(): Promise<{ drained: boolean; skippedDuplicates: number }>;
+  drainInbox(): Promise<BacklogDrainResult>;
+  drainFollowups(filePath?: string): Promise<BacklogDrainResult>;
   getCompletedCount(): Promise<number>;
   incrementCompletedCount(): Promise<number>;
   cleanupIfNeeded(): Promise<StoreCleanupResult>;

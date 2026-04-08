@@ -62,9 +62,20 @@ describe('markdown store', () => {
     const claim = await store.claimNextItem();
     expect(claim?.item).toBe('[HIGH] urgent item');
 
-    await store.updateItemStatus(claim!.item, 'x');
+    await store.updateItemStatus(claim!, 'x');
     const content = await readFile(path.join(root, 'backlog.md'), 'utf8');
     expect(content).toContain('- [x] [HIGH] urgent item');
+  });
+
+  it('updates only the claimed duplicate item', async () => {
+    const { root, store } = await makeStoreFixture();
+    await writeFile(path.join(root, 'backlog.md'), '- [ ] repeated item\n- [ ] repeated item\n', 'utf8');
+
+    const claim = await store.claimNextItem();
+    await store.updateItemStatus(claim!, 'x');
+
+    const content = await readFile(path.join(root, 'backlog.md'), 'utf8');
+    expect(content).toBe('- [x] repeated item\n- [ ] repeated item\n');
   });
 
   it('drains inbox with dedupe and priority insertion', async () => {
@@ -121,5 +132,27 @@ describe('markdown store', () => {
     expect(archive).toContain('done one');
     expect(progress).toContain('## second');
     expect(progress).not.toContain('## first');
+  });
+
+  it('drains structured follow-ups into the backlog and ignores malformed entries', async () => {
+    const { root, store } = await makeStoreFixture();
+    await writeFile(
+      path.join(root, '.backlog-runner-followups.jsonl'),
+      [
+        JSON.stringify({ title: 'Investigate token rename race', priority: 'high', context: 'Observed while fixing batch save flow' }),
+        JSON.stringify({ title: 'plain item', priority: 'normal' }),
+        '{bad json}',
+      ].join('\n'),
+      'utf8',
+    );
+
+    const result = await store.drainFollowups(path.join(root, '.backlog-runner-followups.jsonl'));
+    const backlog = await readFile(path.join(root, 'backlog.md'), 'utf8');
+
+    expect(result.drained).toBe(true);
+    expect(result.skippedDuplicates).toBe(1);
+    expect(result.ignoredInvalidLines).toBe(1);
+    expect(backlog).toContain('- [ ] [HIGH] Investigate token rename race (Context: Observed while fixing batch save flow)');
+    expect(backlog).not.toContain('{bad json}');
   });
 });

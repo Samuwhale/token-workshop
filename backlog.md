@@ -3,7 +3,7 @@
 <!-- Goal: anything that makes this the best plugin — from atomic fixes to full overhauls. No users yet, no backwards compat needed. -->
 <!-- Completed items: see scripts/backlog/progress.txt -->
 <!-- Organization: by functional area, not by screen — resilient to UI restructuring -->
-<!-- Inbox: backlog-inbox.md — drained into this file by backlog.sh each iteration -->
+<!-- Inbox: backlog-inbox.md — drained into this file by the TypeScript backlog runner -->
 
 ---
 
@@ -17,8 +17,8 @@
 
 - [x] [HIGH] Create `docs/redesign/plugin-ia-blueprint.md` as the canonical redesign blueprint for the plugin IA and screen model; include the target primary workspaces, secondary navigation, key user journeys, screen inventory, shared screen anatomy, and migration rules so implementation items can reference one concrete artifact
 - [x] [HIGH] Introduce the new job-based workspace mapping layer in the app shell without removing existing internal routes yet: define the primary workspaces, define the secondary utilities/admin area, and make the shell navigation use that mapping instead of exposing duplicated top-tab versus section-tab concepts directly
-- [~] [HIGH] Replace the current multi-row shell chrome with the new navigation structure from the blueprint: primary workspace nav, one secondary utilities/admin entry point, and a calmer header area that no longer stacks competing rows of pills and section controls
-- [ ] [HIGH] Extract a shared workspace header component and migrate Tokens, Themes, Apply, and Sync to it with a stable structure: title, one-sentence guidance, compact status indicators, and one primary action
+- [x] [HIGH] Replace the current multi-row shell chrome with the new navigation structure from the blueprint: primary workspace nav, one secondary utilities/admin entry point, and a calmer header area that no longer stacks competing rows of pills and section controls
+- [x] [HIGH] Extract a shared workspace header component and migrate Tokens, Themes, Apply, and Sync to it with a stable structure: title, one-sentence guidance, compact status indicators, and one primary action
 - [ ] Rework the offline / server-connection experience so connection problems do not add a permanent global warning banner to every screen; show blocking empty states only where a server-backed action is required and keep lightweight passive status elsewhere
 - [ ] Move import, settings, notifications, shortcuts, and other secondary surfaces into a coherent secondary navigation model so users do not have to discover critical workflows through the generic Utilities menu
 - [ ] Define a consistent workspace transition model for how screens, drawers, and overlays open or close in the constrained Figma plugin viewport, including when to use inline panels versus modal dialogs versus full-screen takeovers

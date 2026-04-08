@@ -3,6 +3,7 @@ export default {
   files: {
     backlog: './backlog.md',
     inbox: './backlog-inbox.md',
+    followups: './.backlog-runner/followups.jsonl',
     stop: './backlog-stop',
     patterns: './scripts/backlog/patterns.md',
     progress: './scripts/backlog/progress.txt',

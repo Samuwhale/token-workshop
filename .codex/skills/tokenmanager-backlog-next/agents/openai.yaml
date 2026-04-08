@@ -1,0 +1,4 @@
+interface:
+  display_name: "TokenManager Backlog Next"
+  short_description: "Pick, execute, and close the next logical backlog item"
+  default_prompt: "Use $tokenmanager-backlog-next to pick the next logical TokenManager backlog item, implement it, run targeted verification, update progress notes, and mark it done or failed."

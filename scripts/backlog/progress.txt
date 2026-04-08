@@ -1,5 +1,13 @@
 # Backlog Progress Log
 ---
+## 2026-04-08 - [HIGH] Extract a shared workspace header component and migrate Tokens, Themes, Apply, and Sync to it with a stable structure: title, one-sentence guidance, compact status indicators, and one primary action
+- Extracted a shared `WorkspaceSummaryHeader` shell component, moved the workspace summary strip out of `App.tsx`, added section-aware summary copy in navigation metadata, and normalized one primary CTA for Tokens, Themes, Apply, and Sync while demoting Tokens-only toggles into a contextual row below the shared header.
+- Removed conflicting local header chrome from Theme authoring and Apply selection, and wired imperative handles so the shared header can trigger `Create axis` and `Run checks` without duplicating those controls inside the panels.
+- Files changed: `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` ~L36, `packages/figma-plugin/src/ui/App.tsx` ~L164, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L77, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L32, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L194, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L952, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L137
+- **Learnings for future iterations:**
+  - Shell-level workspace headers should own only stable summary structure: title, guidance, status pills, section tabs, and one primary CTA. Workspace-specific toggles belong in a dedicated contextual row below that strip.
+  - When a shell CTA needs to trigger logic inside a routed panel, use a small imperative handle passed through `PanelRouter` rather than duplicating the action inside both the shell and the panel body.
+---
 ## 2026-04-08 - Creating a generator for a simple case requires a full-screen modal
 ## 2026-04-05 - CreatePanel "token already exists" error has no navigation link
 - Added a "Go to token" inline button next to the "Token already exists" error message in `SingleCreateTab`. The button calls `onCreateAndEdit(fullPath)` which closes the create panel, highlights the token, opens its editor, and navigates to the define/tokens tab — the exact same action as "Create & Edit" on a new token.

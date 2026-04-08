@@ -2,11 +2,13 @@ import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promise
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
 import { createDefaultLogSink, RunnerLogger } from './logger.js';
+import { acquireLock, lockPath, releaseLock } from './locks.js';
 import { createCommandRunner, sleep as defaultSleep } from './process.js';
 import { runProvider } from './providers/index.js';
 import { JSON_SCHEMA, isAuthFailure, isRateLimited } from './providers/common.js';
 import { createMarkdownBacklogStore } from './store/markdown-store.js';
 import type {
+  BacklogDrainResult,
   BacklogPassType,
   BacklogRunnerConfig,
   BacklogStore,
@@ -43,6 +45,24 @@ function summarizeCommandOutput(stdout: string, stderr: string): string {
 
 function normalizePathForGit(value: string): string {
   return value.split(path.sep).join('/');
+}
+
+function sessionScopedPath(config: BacklogRunnerConfig, cwd: string, filePath: string): string {
+  return path.join(cwd, path.relative(config.projectRoot, filePath));
+}
+
+function logDrainResult(logger: RunnerLogger, label: string, result: BacklogDrainResult): void {
+  if (!result.drained) return;
+
+  const details = [];
+  if (result.skippedDuplicates > 0) {
+    details.push(`${result.skippedDuplicates} duplicate${result.skippedDuplicates === 1 ? '' : 's'} skipped`);
+  }
+  if (result.ignoredInvalidLines > 0) {
+    details.push(`${result.ignoredInvalidLines} invalid entr${result.ignoredInvalidLines === 1 ? 'y' : 'ies'} ignored`);
+  }
+  if (details.length === 0) return;
+  logger.line(`  ${label}: ${details.join(' · ')}`);
 }
 
 async function changedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {
@@ -102,16 +122,20 @@ async function readRecentSections(progressFile: string, maxSections: number): Pr
 
 async function buildContext(
   config: BacklogRunnerConfig,
+  cwd: string,
   item: string | null,
   recentSectionCount: number,
 ): Promise<string> {
   const patterns = await readFile(config.files.patterns, 'utf8');
   const recent = await readRecentSections(config.files.progress, recentSectionCount);
   const validation = `\n\n## Validation Command\n\nRun this command before reporting success:\n\n${config.validationCommand}\n`;
+  const followups = item
+    ? `\n\n## Follow-up Queue\n\nIf this work reveals another backlog item or context that a later run should keep, append one JSON object per line to:\n\n${normalizePathForGit(path.relative(cwd, config.files.followups))}\n\nSchema:\n{"title":"Standalone backlog item title","context":"Optional concise context for the future run","priority":"normal|high"}\n\nDo NOT modify backlog.md directly for follow-up work.\n`
+    : '';
   const assigned = item
     ? `\n\n## Assigned Item\n\nWork on this specific item (already marked [~] in backlog.md):\n\n${item}\n\nDo NOT pick a different item. Do NOT modify backlog.md.\n`
     : '';
-  return `${patterns}\n\n## Recent session log:\n${recent}${validation}${assigned}`;
+  return `${patterns}\n\n## Recent session log:\n${recent}${validation}${followups}${assigned}`;
 }
 
 async function runValidationCommand(
@@ -191,9 +215,17 @@ async function runPass(
   logger.line(`  ★ Maintenance Pass: ${passType}`);
   logger.line('================================================================');
 
+  let passLock = null;
+  try {
+    passLock = await acquireLock(lockPath(config, 'pass'), 1);
+  } catch {
+    logger.line(`  · ${passType} pass skipped — another runner is already doing discovery`);
+    return;
+  }
+
   const session = await workspaceStrategy.setup();
   try {
-    const context = await buildContext(config, null, 5);
+    const context = await buildContext(config, session.cwd, null, 5);
     const result = await runProvider(createCommandRunner(), {
       tool: options.tool,
       model: options.passModel,
@@ -236,6 +268,9 @@ async function runPass(
     logger.line(`  · ${passType} pass skipped — ${message}`);
   } finally {
     await session.teardown();
+    if (passLock) {
+      await releaseLock(passLock);
+    }
   }
 }
 
@@ -286,7 +321,8 @@ export async function runBacklogRunner(
       }
     }
 
-    await store.drainInbox();
+    logDrainResult(logger, 'Inbox', await store.drainInbox());
+    logDrainResult(logger, 'Follow-ups', await store.drainFollowups());
 
     logger.line('');
     logger.line('╔═══════════════════════════════════════════════════════════════╗');
@@ -322,7 +358,8 @@ export async function runBacklogRunner(
       if (counts.ready === 0) {
         logger.line('');
         logger.line('  Backlog empty — checking inbox for new items…');
-        await store.drainInbox();
+        logDrainResult(logger, 'Inbox', await store.drainInbox());
+        logDrainResult(logger, 'Follow-ups', await store.drainFollowups());
         if ((await store.countReady()) === 0) {
           if (!options.passes) {
             logger.line('  Backlog empty and passes are disabled — stopping.');
@@ -357,7 +394,7 @@ export async function runBacklogRunner(
       const startedAt = Date.now();
       try {
         logger.line(`  Running agent… (started ${new Date().toTimeString().slice(0, 8)})`);
-        const context = await buildContext(config, claim.item, 3);
+        const context = await buildContext(config, session.cwd, claim.item, 3);
         const result = await runProvider(commandRunner, {
           tool: options.tool,
           model: options.model,
@@ -385,7 +422,7 @@ export async function runBacklogRunner(
           logger.line(`  Running runner-owned validation: ${config.validationCommand}`);
           const validation = await runValidationCommand(commandRunner, config, session.cwd);
           if (!validation.ok) {
-            await store.updateItemStatus(claim.item, '!');
+            await store.updateItemStatus(claim, '!');
             logger.line(
               `  ✗ validation failed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
             );
@@ -402,76 +439,88 @@ export async function runBacklogRunner(
             `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
           );
 
-        const message = `chore(backlog): done – ${result.item || claim.item}`;
-        let itemCompleted = false;
-        if (options.worktrees) {
-          logger.line('');
-          logger.line(`  Merging to main: ${result.item || claim.item}`);
-          const mergeResult = await session.merge(message);
-          if (mergeResult.ok) {
-            await store.updateItemStatus(claim.item, 'x');
-            itemCompleted = true;
-            logger.line('  ✓ Merged and marked done');
-          } else {
-            await store.updateItemStatus(claim.item, '!');
-            logger.line(`  ✗ ${mergeResult.reason ?? 'merge failed'} — marked failed`);
-          }
-          } else {
+          const message = `chore(backlog): done – ${result.item || claim.item}`;
+          let itemCompleted = false;
+          if (options.worktrees) {
             logger.line('');
-          logger.line(`  Committing: ${result.item || claim.item}`);
-          const finalizeResult = await workspaceStrategy.commitAndPush(message);
-          if (finalizeResult.ok) {
-            await store.updateItemStatus(claim.item, 'x');
-            itemCompleted = true;
-            logger.line('  ✓ Committed and marked done');
+            logger.line(`  Merging to main: ${result.item || claim.item}`);
+            const mergeResult = await session.merge(message);
+            if (mergeResult.ok) {
+              await store.updateItemStatus(claim, 'x');
+              logDrainResult(
+                logger,
+                'Follow-ups',
+                await store.drainFollowups(sessionScopedPath(config, session.cwd, config.files.followups)),
+              );
+              itemCompleted = true;
+              logger.line('  ✓ Merged and marked done');
+            } else {
+              await store.updateItemStatus(claim, '!');
+              logger.line(`  ✗ ${mergeResult.reason ?? 'merge failed'} — marked failed`);
+            }
           } else {
-            await store.updateItemStatus(claim.item, '!');
-            logger.line(`  ✗ ${finalizeResult.reason ?? 'commit/push failed'} — marked failed`);
-          }
-        }
-
-        if (itemCompleted) {
-          const totalDone = await store.incrementCompletedCount();
-          const cleanupResult = await store.cleanupIfNeeded();
-          if (cleanupResult.archivedCount > 0) {
-            const cleanupCommit = await workspaceStrategy.commitAndPush(
-              `chore(backlog): archive ${cleanupResult.archivedCount} completed items + trim progress`,
+            await store.updateItemStatus(claim, 'x');
+            logDrainResult(
+              logger,
+              'Follow-ups',
+              await store.drainFollowups(sessionScopedPath(config, session.cwd, config.files.followups)),
             );
-            if (!cleanupCommit.ok) {
-              logger.line(`  WARNING: ${cleanupCommit.reason ?? 'archive commit failed'}`);
+            logger.line('');
+            logger.line(`  Committing: ${result.item || claim.item}`);
+            const finalizeResult = await workspaceStrategy.commitAndPush(message);
+            if (finalizeResult.ok) {
+              itemCompleted = true;
+              logger.line('  ✓ Committed and marked done');
+            } else {
+              await store.updateItemStatus(claim, '!');
+              logger.line(`  ✗ ${finalizeResult.reason ?? 'commit/push failed'} — marked failed`);
             }
           }
 
-          if (options.passes && !stopRequested && !(await fileExists(config.files.stop))) {
-            const scheduledPasses = passNamesToRun(totalDone, options.passFrequency, config);
-            if (scheduledPasses.length > 0) {
-              logger.line('');
-              logger.line(
-                `  Milestone: ${totalDone} items done — running ${scheduledPasses.join(' + ')} discovery pass`,
+          if (itemCompleted) {
+            const totalDone = await store.incrementCompletedCount();
+            const cleanupResult = await store.cleanupIfNeeded();
+            if (options.worktrees) {
+              const bookkeepingCommit = await workspaceStrategy.commitAndPush(
+                cleanupResult.archivedCount > 0
+                  ? `chore(backlog): update queue state + archive ${cleanupResult.archivedCount} completed items`
+                  : `chore(backlog): update queue state – ${result.item || claim.item}`,
               );
-              for (const passType of scheduledPasses) {
-                await runPass(config, store, workspaceStrategy, logger, options, passType);
+              if (!bookkeepingCommit.ok) {
+                logger.line(`  WARNING: ${bookkeepingCommit.reason ?? 'queue state commit failed'}`);
+              }
+            }
+
+            if (options.passes && !stopRequested && !(await fileExists(config.files.stop))) {
+              const scheduledPasses = passNamesToRun(totalDone, options.passFrequency, config);
+              if (scheduledPasses.length > 0) {
+                logger.line('');
+                logger.line(
+                  `  Milestone: ${totalDone} items done — running ${scheduledPasses.join(' + ')} discovery pass`,
+                );
+                for (const passType of scheduledPasses) {
+                  await runPass(config, store, workspaceStrategy, logger, options, passType);
+                }
               }
             }
           }
-        }
         } else {
-          await store.updateItemStatus(claim.item, '!');
+          await store.updateItemStatus(claim, '!');
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (isAuthFailure(message)) {
-          await store.updateItemStatus(claim.item, ' ');
+          await store.updateItemStatus(claim, ' ');
           throw new Error('Authentication/permission error — check your API key and tool setup');
         }
         if (isRateLimited(message)) {
           logger.line('');
           logger.line(`  ⚠ Rate limit hit — unclaiming item, retry at ${retryTime()}`);
-          await store.updateItemStatus(claim.item, ' ');
+          await store.updateItemStatus(claim, ' ');
           await sleep(60_000);
         } else {
           logger.line(`  ⚠ ${message} — unclaiming item`);
-          await store.updateItemStatus(claim.item, ' ');
+          await store.updateItemStatus(claim, ' ');
         }
       } finally {
         previousDurationSeconds = Math.floor((Date.now() - startedAt) / 1000);

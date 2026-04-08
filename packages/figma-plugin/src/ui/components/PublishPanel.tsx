@@ -188,11 +188,16 @@ interface PublishPanelProps {
   modeMap?: Record<string, string>;
   /** Increments whenever tokens are edited — used to detect stale readiness results */
   tokenChangeKey?: number;
+  publishPanelHandle?: React.MutableRefObject<PublishPanelHandle | null>;
+}
+
+export interface PublishPanelHandle {
+  runReadinessChecks: () => void;
 }
 
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
 
-export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {}, tokenChangeKey }: PublishPanelProps) {
+export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {}, tokenChangeKey, publishPanelHandle }: PublishPanelProps) {
   const help = usePanelHelp('publish');
 
   // ── Rename history for variable name propagation ──
@@ -317,6 +322,16 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const hasFigmaSyncChanges = hasVarChanges || hasStyleChanges;
   const hasOnlyGitChanges = !hasFigmaSyncChanges && effectiveHasGitDiffChanges;
 
+  useEffect(() => {
+    if (!publishPanelHandle) return;
+    publishPanelHandle.current = {
+      runReadinessChecks,
+    };
+    return () => {
+      publishPanelHandle.current = null;
+    };
+  }, [publishPanelHandle, runReadinessChecks]);
+
   // ── Broadcast pending count to Ship tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
   useEffect(() => {
@@ -372,16 +387,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-700 font-medium" title="Tokens changed since last check">Outdated</span>
             )}
           </div>
-          <div className="flex items-center gap-1.5">
-            <PanelHelpIcon panelKey="publish" title="Sync to Figma" expanded={help.expanded} onToggle={help.toggle} />
-            <button
-              onClick={runReadinessChecks}
-              disabled={readinessLoading || !activeSet}
-              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-            >
-              {readinessLoading ? 'Checking\u2026' : readinessChecks.length > 0 ? 'Re-check' : 'Run checks'}
-            </button>
-          </div>
+          <PanelHelpIcon panelKey="publish" title="Sync to Figma" expanded={help.expanded} onToggle={help.toggle} />
         </div>
 
         {readinessError && (
@@ -464,7 +470,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
         {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
           <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Click <strong className="font-medium text-[var(--color-figma-text)]">Run checks</strong> to validate before syncing to Figma.
+            Use the workspace action to run readiness checks before syncing to Figma.
           </div>
         )}
       </div>

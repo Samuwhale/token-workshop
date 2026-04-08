@@ -38,6 +38,19 @@ pnpm preview:server
 pnpm preview:harness
 ```
 
+## Backlog Runner
+
+Use the autonomous backlog runner with:
+
+```bash
+pnpm backlog
+pnpm backlog:validate
+```
+
+- `pnpm backlog` starts the TypeScript runner that claims one backlog item at a time, validates it, and can replenish the queue with discovery passes.
+- `pnpm backlog:validate` verifies the runner toolchain, prompts, and validation command before a longer autonomous run.
+- Implementation runs can emit structured follow-ups into the runner queue; discovery passes still write candidate items to `backlog-inbox.md`.
+
 - `pnpm preview` uses the checked-in demo data.
 - `pnpm preview -- --dir ./tokens` points the local server at a real token workspace.
 - `pnpm preview -- --server-port 9410 --ui-port 3205` is useful when your normal dev ports are already occupied.

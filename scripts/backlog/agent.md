@@ -28,6 +28,13 @@ Codebase patterns are already injected into your context — no need to read a s
    Do NOT use `npx pnpm …` or `npx turbo …` — both fail in worktrees.
    - If any gate fails: fix the issue and re-run. If unfixable, revert your source changes.
 5. **Append to `scripts/backlog/progress.txt`** (see format below).
+6. **Queue follow-up work when needed** — if the current item reveals another backlog-worthy task or context a later run will need, append a JSON line to the follow-up queue path provided in your system prompt/context. Use:
+
+```
+{"title":"Standalone backlog item title","context":"Optional concise context for the future run","priority":"normal|high"}
+```
+
+Do not write follow-up items directly into `backlog.md`.
 
 **Important:** Do NOT modify `backlog.md` — the runner script handles all state transitions (`[~]`, `[x]`, `[!]`).
 

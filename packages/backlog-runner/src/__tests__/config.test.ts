@@ -44,6 +44,7 @@ describe('config', () => {
 
     expect(config.projectRoot).toBe(root);
     expect(config.files.progress).toBe(path.join(root, 'scripts/backlog/progress.txt'));
+    expect(config.files.followups).toBe(path.join(root, '.backlog-runner', 'followups.jsonl'));
     expect(config.prompts.agent).toBe(path.join(root, 'scripts/backlog/agent.md'));
   });
 

@@ -28,6 +28,8 @@ export interface ThemeManagerHandle {
   autoFillAllGaps: () => void;
   /** Opens the Compare view inside ThemeManager for the given mode. */
   navigateToCompare: (mode: CompareMode, path?: string, tokenPaths?: Set<string>, optionA?: string, optionB?: string) => void;
+  /** Returns to authoring and opens the create-axis entry point. */
+  openCreateAxis: () => void;
   /** Switches to the DTCG Resolvers mode (advanced) inside ThemeManager. */
   switchToResolverMode: () => void;
 }
@@ -365,6 +367,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         if (dimWithGaps) handleAutoFillAllRef.current(dimWithGaps.id);
       },
       navigateToCompare: handleNavigateToCompare,
+      openCreateAxis: () => {
+        setShowCompare(false);
+        setActiveView('authoring');
+        openCreateDim();
+      },
       switchToResolverMode: () => {
         setShowCompare(false);
         setShowPreview(false);
@@ -372,7 +379,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       },
     };
     return () => { themeManagerHandle.current = null; };
-  }, [themeManagerHandle, dimensions, coverage, handleNavigateToCompare, setShowCompare]);
+  }, [themeManagerHandle, dimensions, coverage, handleNavigateToCompare, openCreateDim, setShowCompare]);
 
   // Tab strip scroll helpers
   const updateTabScroll = useCallback((dimId: string) => {
@@ -717,12 +724,22 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       <>
       {activeView === 'authoring' && (
         <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="px-3 py-2.5 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">Theme authoring</p>
-              <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Create axes like mode, brand, density, or platform, define their options, map token sets, and preview the active combination. Coverage and compare open from the axis you are editing instead of splitting authoring into separate destinations.
-              </p>
+          <div className="px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+              {[
+                { step: '1', label: 'Create axes', detail: `${dimensions.length} axis${dimensions.length === 1 ? '' : 'es'}` },
+                { step: '2', label: 'Define options', detail: `${dimensions.reduce((sum, dim) => sum + dim.options.length, 0)} option${dimensions.reduce((sum, dim) => sum + dim.options.length, 0) === 1 ? '' : 's'}` },
+                { step: '3', label: 'Map sets', detail: 'Base + override roles' },
+                { step: '4', label: 'Preview', detail: showPreview ? 'Live preview on' : 'Open when ready' },
+              ].map(item => (
+                <span key={item.label} className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-semibold">
+                    {item.step}
+                  </span>
+                  <span className="font-medium text-[var(--color-figma-text-secondary)]">{item.label}</span>
+                  <span>{item.detail}</span>
+                </span>
+              ))}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-1.5">
               <button
@@ -760,22 +777,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 </button>
               )}
             </div>
-          </div>
-          <div className="px-3 pb-2 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-            {[
-              { step: '1', label: 'Create axes', detail: `${dimensions.length} axis${dimensions.length === 1 ? '' : 'es'}` },
-              { step: '2', label: 'Define options', detail: `${dimensions.reduce((sum, dim) => sum + dim.options.length, 0)} option${dimensions.reduce((sum, dim) => sum + dim.options.length, 0) === 1 ? '' : 's'}` },
-              { step: '3', label: 'Map sets', detail: 'Base + override roles' },
-              { step: '4', label: 'Preview', detail: showPreview ? 'Live preview on' : 'Open when ready' },
-            ].map(item => (
-              <span key={item.label} className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-semibold">
-                  {item.step}
-                </span>
-                <span className="font-medium text-[var(--color-figma-text-secondary)]">{item.label}</span>
-                <span>{item.detail}</span>
-              </span>
-            ))}
           </div>
         </div>
       )}
