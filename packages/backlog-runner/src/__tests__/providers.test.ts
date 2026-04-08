@@ -47,7 +47,6 @@ describe('provider normalization', () => {
         duration_ms: 3200,
       }),
       '',
-      'strict',
     );
 
     expect(result).toMatchObject({
@@ -59,41 +58,10 @@ describe('provider normalization', () => {
     });
   });
 
-  it('parses Gemini response payloads', () => {
-    const result = normalizeAgentResult(
-      JSON.stringify({
-        response: '{"status":"failed","item":"gemini item","note":"bad"}',
-      }),
-      '',
-      'best-effort',
-    );
-
-    expect(result).toMatchObject({
-      status: 'failed',
-      item: 'gemini item',
-      note: 'bad',
-    });
-  });
-
-  it('parses raw embedded JSON from mixed output only in best-effort mode', () => {
+  it('rejects malformed output that is not valid top-level JSON', () => {
     const result = normalizeAgentResult(
       'some logs before {"status":"done","item":"raw item","note":"worked"}',
       '',
-      'best-effort',
-    );
-
-    expect(result).toMatchObject({
-      status: 'done',
-      item: 'raw item',
-      note: 'worked',
-    });
-  });
-
-  it('rejects embedded JSON in strict mode', () => {
-    const result = normalizeAgentResult(
-      'some logs before {"status":"done","item":"raw item","note":"worked"}',
-      '',
-      'strict',
     );
 
     expect(result).toBeNull();

@@ -99,11 +99,7 @@ export async function validateBacklogRunner(
   if (runOptions.passModel !== runOptions.model) {
     messages.push(`  → Pass model: ${runOptions.passModel ?? 'CLI default'}`);
   }
-  if (providerValidation.structuredOutputMode) {
-    messages.push(
-      `  → Structured output: ${providerValidation.structuredOutputMode === 'strict' ? 'strict' : 'best-effort'}`,
-    );
-  }
+  messages.push('  → Structured output: strict');
 
   const requiredFiles = [
     ['backlog.md', config.files.backlog],
@@ -132,7 +128,7 @@ export async function validateBacklogRunner(
   if (!validationCommand.ok) {
     ok = false;
     messages.push(validationCommand.message);
-    return { ok, messages, structuredOutputMode: providerValidation.structuredOutputMode };
+    return { ok, messages };
   }
   messages.push(validationCommand.message);
 
@@ -142,5 +138,5 @@ export async function validateBacklogRunner(
   }
   messages.push(validationExecution.message);
 
-  return { ok, messages, structuredOutputMode: providerValidation.structuredOutputMode };
+  return { ok, messages };
 }

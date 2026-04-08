@@ -13,7 +13,6 @@ import {
 
 export const codexProvider: ProviderAdapter = {
   tool: 'codex',
-  structuredOutputMode: 'strict',
   async validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult> {
     const base = await simpleVersionValidation(commandRunner, 'codex', 'codex');
     if (!base.ok) return base;
@@ -51,7 +50,6 @@ export const codexProvider: ProviderAdapter = {
           const output = await readIfExists(outputFile);
           return { ...result, stdout: output || result.stdout };
         },
-        'strict',
         'codex exec',
       );
     });
@@ -59,7 +57,6 @@ export const codexProvider: ProviderAdapter = {
     return {
       ok: base.ok && smoke.ok,
       messages: [...base.messages, ...smoke.messages],
-      structuredOutputMode: smoke.structuredOutputMode,
     };
   },
   async run(commandRunner, request: AgentRunRequest) {
@@ -93,10 +90,10 @@ export const codexProvider: ProviderAdapter = {
       );
 
       const output = await readIfExists(outputFile);
-      return assertAgentSuccess(normalizeAgentResult(output, result.stderr, 'strict'), {
+      return assertAgentSuccess(normalizeAgentResult(output, result.stderr), {
         ...result,
         stdout: output || result.stdout,
-      }, 'strict');
+      });
     });
   },
 };

@@ -2,7 +2,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import type { BacklogRunnerConfig, BacklogTool, RunOverrides } from '../src/types.js';
 
-const TOOLS: BacklogTool[] = ['claude', 'qwen', 'gemini', 'codex'];
+const TOOLS: BacklogTool[] = ['claude', 'codex'];
 const SUMMARY_DIVIDER = '----------------------------------------';
 
 function parseBooleanAnswer(value: string, fallback: boolean): boolean {

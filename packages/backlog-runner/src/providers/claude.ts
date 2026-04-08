@@ -13,7 +13,6 @@ import {
 
 export const claudeProvider: ProviderAdapter = {
   tool: 'claude',
-  structuredOutputMode: 'strict',
   async validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult> {
     const base = await simpleVersionValidation(commandRunner, 'claude', 'claude');
     if (!base.ok) return base;
@@ -45,7 +44,6 @@ export const claudeProvider: ProviderAdapter = {
               ignoreFailure: true,
             },
           ),
-        'strict',
         'claude',
       );
     });
@@ -53,7 +51,6 @@ export const claudeProvider: ProviderAdapter = {
     return {
       ok: base.ok && auth.ok && smoke.ok,
       messages: [...base.messages, auth.message, ...smoke.messages],
-      structuredOutputMode: 'strict',
     };
   },
   async run(commandRunner, request: AgentRunRequest) {
@@ -84,7 +81,7 @@ export const claudeProvider: ProviderAdapter = {
         },
       );
 
-      return assertAgentSuccess(normalizeAgentResult(result.stdout, result.stderr, 'strict'), result, 'strict');
+      return assertAgentSuccess(normalizeAgentResult(result.stdout, result.stderr), result);
     });
   },
 };

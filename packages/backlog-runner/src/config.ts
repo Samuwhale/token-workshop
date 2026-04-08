@@ -9,13 +9,9 @@ import type {
 } from './types.js';
 
 const DEFAULT_MODEL_MAP = {
-  default: { claude: 'claude-opus-4-6', qwen: 'qwen-coder-plus-latest', gemini: 'gemini-2.5-pro', codex: 'gpt-5.4' },
-  sonnet: { claude: 'claude-sonnet-4-6', qwen: 'qwen-coder-plus-latest', gemini: 'gemini-2.5-pro', codex: 'gpt-5.4' },
-  opus: { claude: 'claude-opus-4-6', qwen: 'qwen-coder-plus-latest', gemini: 'gemini-2.5-pro', codex: 'gpt-5.4' },
-  qwen: { claude: 'claude-sonnet-4-6', qwen: 'qwen-coder-plus-latest', gemini: 'gemini-2.5-pro', codex: 'gpt-5.4' },
-  'qwen-max': { claude: 'claude-sonnet-4-6', qwen: 'qwen-coder-plus-latest', gemini: 'gemini-2.5-pro', codex: 'gpt-5.4' },
-  gemini: { claude: 'claude-sonnet-4-6', qwen: 'qwen-coder-plus-latest', gemini: 'gemini-2.5-pro', codex: 'gpt-5.4' },
-  'gemini-pro': { claude: 'claude-sonnet-4-6', qwen: 'qwen-coder-plus-latest', gemini: 'gemini-2.5-pro', codex: 'gpt-5.4' },
+  default: { claude: 'claude-opus-4-6', codex: 'gpt-5.4' },
+  sonnet: { claude: 'claude-sonnet-4-6', codex: 'gpt-5.4' },
+  opus: { claude: 'claude-opus-4-6', codex: 'gpt-5.4' },
 } as const;
 
 function resolvePath(baseDir: string, value: string): string {
@@ -115,8 +111,8 @@ export async function assertConfigFilesExist(config: BacklogRunnerConfig): Promi
 }
 
 type ModelsFileShape = {
-  aliases?: Record<string, Partial<Record<'claude' | 'qwen' | 'gemini' | 'codex', string>>>;
-  model_crosswalk?: Record<string, Partial<Record<'claude' | 'qwen' | 'gemini' | 'codex', string>>>;
+  aliases?: Record<string, Partial<Record<'claude' | 'codex', string>>>;
+  model_crosswalk?: Record<string, Partial<Record<'claude' | 'codex', string>>>;
 };
 
 export async function resolveModelAlias(

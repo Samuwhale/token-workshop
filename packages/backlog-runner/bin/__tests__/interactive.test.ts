@@ -23,10 +23,10 @@ const config = normalizeBacklogRunnerConfig({
 
 describe('interactive helpers', () => {
   it('resolves tools from number or name', () => {
-    expect(resolveToolChoice('4', 'claude')).toBe('codex');
-    expect(resolveToolChoice('gemini', 'claude')).toBe('gemini');
-    expect(resolveToolChoice('', 'qwen')).toBe('qwen');
-    expect(resolveToolChoice('unknown', 'qwen')).toBe('qwen');
+    expect(resolveToolChoice('2', 'claude')).toBe('codex');
+    expect(resolveToolChoice('codex', 'claude')).toBe('codex');
+    expect(resolveToolChoice('', 'codex')).toBe('codex');
+    expect(resolveToolChoice('unknown', 'codex')).toBe('codex');
   });
 
   it('renders a readable summary of selected options', () => {
