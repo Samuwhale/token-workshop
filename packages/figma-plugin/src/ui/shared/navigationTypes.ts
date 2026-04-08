@@ -12,6 +12,28 @@ type ApplySubTab = 'inspect' | 'canvas-analysis' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 export type SecondarySurfaceId = 'import' | 'sets' | 'notifications' | 'shortcuts' | 'settings';
+export type SurfaceKind =
+  | 'workspace-screen'
+  | 'contextual-sub-screen'
+  | 'secondary-takeover'
+  | 'contextual-panel'
+  | 'transient-overlay';
+export type SurfacePresentation =
+  | 'route'
+  | 'full-height-body'
+  | 'side-panel'
+  | 'bottom-drawer'
+  | 'split-pane'
+  | 'centered-dialog'
+  | 'bottom-sheet';
+export type SurfaceCloseBehavior = 'none' | 'restore-underlying-surface' | 'dismiss-in-place';
+
+export interface SurfaceTransition {
+  kind: SurfaceKind;
+  presentation: SurfacePresentation;
+  closeBehavior: SurfaceCloseBehavior;
+  usage: string;
+}
 
 /**
  * Internal routing structure — kept for PanelRouter compatibility.
@@ -72,6 +94,7 @@ export interface WorkspaceSection extends WorkspaceRoute {
   description?: string;
   summaryTitle?: string;
   summaryGuidance?: string;
+  transition?: SurfaceTransition;
 }
 
 export interface WorkspaceTab extends WorkspaceRoute {
@@ -80,6 +103,7 @@ export interface WorkspaceTab extends WorkspaceRoute {
   description: string;
   summaryTitle?: string;
   summaryGuidance?: string;
+  transition: SurfaceTransition;
   sections?: WorkspaceSection[];
   /** Additional routes that should keep this workspace selected. */
   matchRoutes?: WorkspaceRoute[];
@@ -91,12 +115,14 @@ export interface SecondarySurface {
   description: string;
   summaryTitle: string;
   summaryGuidance: string;
+  transition: SurfaceTransition;
 }
 
 export interface UtilityAction {
   id: UtilityActionId;
   label: string;
   description: string;
+  transition?: SurfaceTransition;
 }
 
 export interface UtilitySection {
@@ -121,6 +147,58 @@ export interface AppShellNavigation {
 }
 
 const route = (topTab: TopTab, subTab: SubTab): WorkspaceRoute => ({ topTab, subTab });
+const workspaceTransition = (usage: string): SurfaceTransition => ({
+  kind: 'workspace-screen',
+  presentation: 'route',
+  closeBehavior: 'none',
+  usage,
+});
+
+const contextualSubScreenTransition = (usage: string): SurfaceTransition => ({
+  kind: 'contextual-sub-screen',
+  presentation: 'route',
+  closeBehavior: 'restore-underlying-surface',
+  usage,
+});
+
+const secondaryTakeoverTransition = (usage: string): SurfaceTransition => ({
+  kind: 'secondary-takeover',
+  presentation: 'full-height-body',
+  closeBehavior: 'restore-underlying-surface',
+  usage,
+});
+
+const transientOverlayTransition = (
+  presentation: Extract<SurfacePresentation, 'centered-dialog' | 'bottom-sheet'>,
+  usage: string,
+): SurfaceTransition => ({
+  kind: 'transient-overlay',
+  presentation,
+  closeBehavior: 'dismiss-in-place',
+  usage,
+});
+
+export const CONTEXTUAL_PANEL_MIN_WIDTH = 401;
+export const CONTEXTUAL_PANEL_TRANSITIONS = {
+  sidePanel: {
+    kind: 'contextual-panel',
+    presentation: 'side-panel',
+    closeBehavior: 'restore-underlying-surface',
+    usage: 'Keep editing the current object beside the active screen when the viewport is wide enough.',
+  },
+  bottomDrawer: {
+    kind: 'contextual-panel',
+    presentation: 'bottom-drawer',
+    closeBehavior: 'restore-underlying-surface',
+    usage: 'Keep editing the current object in a bottom drawer when the viewport is constrained.',
+  },
+  splitPreview: {
+    kind: 'contextual-panel',
+    presentation: 'split-pane',
+    closeBehavior: 'restore-underlying-surface',
+    usage: 'Show a live preview beside the current authoring screen without leaving it.',
+  },
+} satisfies Record<'sidePanel' | 'bottomDrawer' | 'splitPreview', SurfaceTransition>;
 
 export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
@@ -131,6 +209,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryGuidance: 'Build and edit the token library, switch the active set, and open deeper comparison or generation tools when needed.',
     topTab: 'define',
     subTab: 'tokens',
+    transition: workspaceTransition('Primary authoring home for the token library and its generator workflows.'),
     sections: [
       {
         id: 'tokens',
@@ -140,6 +219,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryGuidance: 'Build and edit the token library, switch the active set, and create new tokens in the current workspace.',
         topTab: 'define',
         subTab: 'tokens',
+        transition: workspaceTransition('Default token authoring screen.'),
       },
       {
         id: 'generators',
@@ -149,6 +229,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryGuidance: 'Build, tune, and review generators that create or maintain token groups for the active system.',
         topTab: 'define',
         subTab: 'generators',
+        transition: workspaceTransition('Generator authoring screen inside the Tokens workspace.'),
       },
     ],
     matchRoutes: [
@@ -164,6 +245,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryGuidance: 'Create axes, define options, map sets, and preview the active combination before opening advanced theme logic.',
     topTab: 'define',
     subTab: 'themes',
+    transition: workspaceTransition('Primary theme authoring home; deeper theme views still stay in this workspace.'),
   },
   {
     id: 'apply',
@@ -171,6 +253,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     description: 'Review the current selection, surface best matches, bind visible properties, and keep maintenance tools out of the default path.',
     topTab: 'apply',
     subTab: 'inspect',
+    transition: workspaceTransition('Primary application workspace for current selection and canvas review flows.'),
     sections: [
       {
         id: 'inspect',
@@ -180,6 +263,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryGuidance: 'Review the current selection first, inspect best matches second, bind visible properties third, and open advanced tools only when you need maintenance work.',
         topTab: 'apply',
         subTab: 'inspect',
+        transition: workspaceTransition('Default Apply view for selection-driven token binding.'),
       },
       {
         id: 'canvas-analysis',
@@ -189,6 +273,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryGuidance: 'Scan broader canvas coverage and surface token usage or gaps outside the current selection.',
         topTab: 'apply',
         subTab: 'canvas-analysis',
+        transition: workspaceTransition('Canvas-level review screen inside Apply.'),
       },
     ],
     matchRoutes: [
@@ -202,6 +287,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     description: 'Keep Figma publishing primary, then switch into repo or handoff tooling only when files or repository work is needed.',
     topTab: 'ship',
     subTab: 'publish',
+    transition: workspaceTransition('Primary delivery workspace for publish and handoff work.'),
     sections: [
       {
         id: 'publish',
@@ -211,6 +297,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryGuidance: 'Start with preflight, then compare local tokens against Figma variables and styles, and finally apply the reviewed sync plan to the current file.',
         topTab: 'ship',
         subTab: 'publish',
+        transition: workspaceTransition('Primary publish screen inside Sync.'),
       },
       {
         id: 'export',
@@ -220,6 +307,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryGuidance: 'Package handoff files, inspect repository status, and handle commit, pull, push, or merge-resolution work when downstream delivery needs it.',
         topTab: 'ship',
         subTab: 'export',
+        transition: workspaceTransition('Handoff and repository delivery screen inside Sync.'),
       },
     ],
     matchRoutes: [
@@ -233,10 +321,32 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     description: 'Audit token quality, trace dependencies, and review recent changes.',
     topTab: 'ship',
     subTab: 'health',
+    transition: workspaceTransition('Primary review workspace for quality checks, history, and dependency tracing.'),
     sections: [
-      { id: 'health', label: 'Audit', description: 'Review validation, warnings, duplicates, and other library quality signals.', topTab: 'ship', subTab: 'health' },
-      { id: 'history', label: 'History', description: 'Inspect recent operations and undo history.', topTab: 'ship', subTab: 'history' },
-      { id: 'dependencies', label: 'Dependencies', description: 'Trace alias and dependency relationships across the token graph.', topTab: 'apply', subTab: 'dependencies' },
+      {
+        id: 'health',
+        label: 'Audit',
+        description: 'Review validation, warnings, duplicates, and other library quality signals.',
+        topTab: 'ship',
+        subTab: 'health',
+        transition: workspaceTransition('Quality review screen inside Audit.'),
+      },
+      {
+        id: 'history',
+        label: 'History',
+        description: 'Inspect recent operations and undo history.',
+        topTab: 'ship',
+        subTab: 'history',
+        transition: workspaceTransition('History screen inside Audit.'),
+      },
+      {
+        id: 'dependencies',
+        label: 'Dependencies',
+        description: 'Trace alias and dependency relationships across the token graph.',
+        topTab: 'apply',
+        subTab: 'dependencies',
+        transition: contextualSubScreenTransition('Contextual dependency tracing screen owned by Audit but routed through the Apply bucket.'),
+      },
     ],
     matchRoutes: [
       route('ship', 'health'),
@@ -250,37 +360,42 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
   {
     id: 'import',
     label: 'Import',
-    description: 'Bring in token files, code exports, migration data, or Figma variables.',
+    description: 'Full-height secondary surface for bringing in token files, code exports, migration data, or Figma variables.',
     summaryTitle: 'Import tokens',
-    summaryGuidance: 'Choose the source family first, then the exact format, destination rules, and preview before writing tokens into the library.',
+    summaryGuidance: 'This takeover replaces the main body while you choose the source family, destination rules, and preview before writing tokens into the library.',
+    transition: secondaryTakeoverTransition('Longer import workflow that keeps the shell visible while replacing the main body until dismissed.'),
   },
   {
     id: 'sets',
     label: 'Sets',
-    description: 'Rename, reorder, merge, split, and annotate token sets without leaving the shell.',
+    description: 'Full-height secondary surface for renaming, reordering, merging, splitting, and annotating token sets.',
     summaryTitle: 'Token set manager',
-    summaryGuidance: 'Switch quickly between sets or open structural management flows like rename, merge, split, and metadata updates in one place.',
+    summaryGuidance: 'This takeover replaces the main body while you run structural set-management flows like rename, merge, split, and metadata updates.',
+    transition: secondaryTakeoverTransition('Structural set-management workflow that temporarily takes over the body while preserving shell context.'),
   },
   {
     id: 'notifications',
     label: 'Notifications',
-    description: 'Review the recent toast history and clear resolved status messages.',
+    description: 'Full-height secondary surface for reviewing recent toast history and clearing resolved status messages.',
     summaryTitle: 'Notification history',
-    summaryGuidance: 'Review recent success and error messages from imports, sync, validation, and other workflows without relying on transient toasts.',
+    summaryGuidance: 'This takeover keeps the shell in place while you review recent success and error messages from imports, sync, validation, and other workflows.',
+    transition: secondaryTakeoverTransition('Reference surface for longer review of notification history without losing the current shell context.'),
   },
   {
     id: 'shortcuts',
     label: 'Shortcuts',
-    description: 'Keep the shortcut reference available as a persistent secondary surface.',
+    description: 'Full-height secondary surface for keeping the shortcut reference available while you work.',
     summaryTitle: 'Keyboard shortcuts',
-    summaryGuidance: 'Review the current shortcut reference while you work instead of opening it as a temporary modal that disappears behind the shell.',
+    summaryGuidance: 'This takeover keeps the shell in place while you review the current shortcut reference instead of relying on a small transient modal.',
+    transition: secondaryTakeoverTransition('Reference surface for longer-lived shortcut review that can stay open beside the shell state.'),
   },
   {
     id: 'settings',
     label: 'Settings',
-    description: 'Adjust preferences, recovery controls, and advanced maintenance settings.',
+    description: 'Full-height secondary surface for preferences, recovery controls, and advanced maintenance settings.',
     summaryTitle: 'Settings',
-    summaryGuidance: 'Use preferences for day-to-day defaults, then open advanced sections only when you need setup, diagnostics, backup, or destructive recovery work.',
+    summaryGuidance: 'This takeover replaces the main body while you adjust day-to-day defaults or open advanced setup, diagnostics, backup, and recovery controls.',
+    transition: secondaryTakeoverTransition('Longer settings and maintenance workflow that should not compete with the main workspace body.'),
   },
 ];
 
@@ -288,15 +403,25 @@ export const UTILITY_MENU: UtilityMenu = {
   id: 'tools',
   triggerLabel: 'Tools',
   label: 'Tools',
-  description: 'Transient actions you can run from any workspace.',
+  description: 'Transient overlays and app-wide actions you can run from any workspace or secondary surface.',
   sections: [
     {
       id: 'actions',
       label: 'Actions',
-      description: 'Short-lived tools that do not replace the current workspace.',
+      description: 'Short-lived tools that overlay the current surface and dismiss back to it when closed.',
       actions: [
-        { id: 'command-palette', label: 'Command palette', description: 'Search expert commands and jump straight into actions.' },
-        { id: 'paste-tokens', label: 'Paste tokens', description: 'Import tokens directly from pasted content.' },
+        {
+          id: 'command-palette',
+          label: 'Command palette',
+          description: 'Search expert commands in a transient overlay without replacing the current surface.',
+          transition: transientOverlayTransition('centered-dialog', 'Power-user command overlay that dismisses back to the current surface.'),
+        },
+        {
+          id: 'paste-tokens',
+          label: 'Paste tokens',
+          description: 'Import tokens directly from pasted content in a transient overlay.',
+          transition: transientOverlayTransition('centered-dialog', 'Short-lived paste/import overlay that dismisses back to the current surface.'),
+        },
         { id: 'window-size', label: 'Window size', description: 'Switch between compact and expanded plugin layouts.' },
       ],
     },

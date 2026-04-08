@@ -59,7 +59,7 @@ import type { OperationEntry } from '../hooks/useRecentOperations';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
 import type { StarredTokensState } from '../hooks/useStarredTokens';
 import type { NotificationEntry } from '../hooks/useToastStack';
-import type { TopTab, SubTab, SecondarySurfaceId } from '../shared/navigationTypes';
+import type { TopTab, SubTab, SecondarySurfaceId, SurfaceTransition } from '../shared/navigationTypes';
 import type { ThemeWorkspaceShellState } from '../shared/themeWorkflow';
 import { useEditorWidth } from '../hooks/useEditorWidth';
 
@@ -69,6 +69,8 @@ import { useEditorWidth } from '../hooks/useEditorWidth';
 
 export interface PanelRouterProps {
   useSidePanel: boolean;
+  contextualEditorTransition: SurfaceTransition;
+  splitPreviewTransition: SurfaceTransition;
   showPreviewSplit: boolean;
   setShowPreviewSplit: Dispatch<SetStateAction<boolean>>;
   guardEditorAction: (fn: () => void) => void;
@@ -364,6 +366,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   type SecondaryPanelRenderer = () => ReactNode;
 
+  // Secondary surfaces are full-height takeovers: they keep the shell visible
+  // while replacing the main body until the user closes them.
   const SECONDARY_PANEL_MAP: Partial<Record<SecondarySurfaceId, SecondaryPanelRenderer>> = {
     import: () => (
       <ErrorBoundary panelName="Import" onReset={closeSecondarySurface}>
@@ -517,6 +521,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               <div
                 className="shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-row overflow-hidden"
                 style={{ width: editorWidth }}
+                data-surface-kind={p.contextualEditorTransition.kind}
+                data-surface-presentation={p.contextualEditorTransition.presentation}
                 onKeyDown={(e) => {
                   if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
                     e.preventDefault();
@@ -574,7 +580,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         )}
         {/* Preview split view */}
         {(tokens.length > 0 || createFromEmpty) && p.showPreviewSplit && (
-          <div ref={p.splitContainerRef} className="flex flex-col h-full overflow-hidden">
+          <div
+            ref={p.splitContainerRef}
+            className="flex flex-col h-full overflow-hidden"
+            data-surface-kind={p.splitPreviewTransition.kind}
+            data-surface-presentation={p.splitPreviewTransition.presentation}
+          >
             <div style={{ height: `${p.splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
               <TokenList
                 ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}

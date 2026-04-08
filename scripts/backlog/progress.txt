@@ -1,5 +1,13 @@
 # Backlog Progress Log
 ---
+## 2026-04-08 - [HIGH] Define a consistent workspace transition model for how screens, drawers, and overlays open or close in the constrained Figma plugin viewport, including when to use inline panels versus modal dialogs versus full-screen takeovers
+- Added shared `SurfaceTransition` metadata plus contextual-panel viewport rules in navigation metadata, updated the shell copy/tooltips to distinguish long-lived secondary takeovers from transient tools, and wired editor drawers/side panels to the same canonical transition model.
+- Updated the IA blueprint with an explicit transition taxonomy and open/close rules for workspace screens, contextual sub-screens, secondary takeovers, contextual panels, and transient overlays, then aligned shortcut/takeover behavior so opening a takeover dismisses ephemeral overlays first.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L31, ~L150, ~L181, ~L360; `packages/figma-plugin/src/ui/App.tsx` ~L113, ~L514, ~L696, ~L756, ~L1661, ~L2250, ~L2354; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L72, ~L369, ~L524, ~L586; `packages/figma-plugin/src/ui/contexts/NavigationContext.tsx` ~L1; `docs/redesign/plugin-ia-blueprint.md` ~L11, ~L45, ~L127, ~L134, ~L221, ~L247, ~L308; `scripts/backlog/patterns.md` ~L171
+- **Learnings for future iterations:**
+  - Keep one shared transition taxonomy in shell metadata and docs so new surfaces are forced to declare whether they are in-place screens, shell-preserving takeovers, contextual panels, or transient overlays.
+  - Use a single viewport threshold constant for contextual editors so side-panel vs bottom-drawer behavior stays consistent across token editing, generator editing, and preview flows.
+---
 ## 2026-04-08 - [HIGH] Implement a dedicated token set manager surface with one consistent entry point, and keep the always-visible set switcher lightweight; the manager should own rename, duplicate, merge, split, reorder, metadata, and bulk operations instead of scattering them across the main workspace
 - Consolidated the structural set workflows into the dedicated set manager surface: the manager now renders and owns metadata editing, delete confirmation, merge, and split dialogs directly, while the always-visible set bar stays focused on switching and quick token-drop targeting.
 - Simplified the surrounding shell integration by trimming dead set-tab management state, adding an explicit `Open set manager` command palette action, and making the tokens header point to the same manager entry point every time.

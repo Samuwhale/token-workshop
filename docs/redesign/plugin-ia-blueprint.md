@@ -8,7 +8,7 @@ The redesign goal is to make the plugin read like a job-focused workspace shell 
 
 1. what job they are in,
 2. what the next step inside that job is,
-3. where advanced or secondary tooling lives.
+3. whether the next surface is an in-place screen, a contextual panel, a secondary takeover, or a transient overlay.
 
 ## Source of truth
 
@@ -31,7 +31,7 @@ This blueprint is aligned to the current implementation anchors:
 4. Beginner authoring stays on the default path; expert workflows get explicit advanced entry points.
 5. The command palette is a power layer for actions, not a backup navigation system.
 6. Global utilities stay outside the workspace tabs.
-7. New surfaces must declare whether they are primary screens, contextual review screens, overflow panels, or transient modal/panel tools.
+7. New surfaces must declare whether they are primary screens, contextual workspace sub-screens, secondary takeovers, contextual panels, or transient overlays.
 
 ## Primary workspaces
 
@@ -45,19 +45,30 @@ This blueprint is aligned to the current implementation anchors:
 
 ## Secondary navigation model
 
-### 1. Workspace shell
+### 1. Workspace row
 
-- The top row is reserved for the five primary workspaces only.
+- The first shell row is reserved for the five primary workspaces only.
 - Workspace labels should stay stable; do not expose internal route buckets like `Define`, `Ship`, or `Inspect` in the shell.
 - Selecting a workspace restores its last relevant section/sub-view through the internal route mapping.
 
-### 2. Section tabs
+### 2. Secondary surfaces row
+
+- The second shell row is for long-lived secondary takeovers that keep the shell visible while replacing the body.
+- Current takeovers:
+  - `Import`
+  - `Sets`
+  - `Notifications`
+  - `Shortcuts`
+  - `Settings`
+- These are not transient tools. They are allowed to stay open while the user reads, compares, or manages something longer than a quick command.
+
+### 3. Section tabs
 
 - Section tabs appear only when the active workspace has more than one section.
 - Section labels describe the current slice of work inside the workspace, not implementation details.
 - Section switching stays inside the active workspace and never opens modals.
 
-### 3. Workspace summary strip
+### 4. Workspace summary strip
 
 - Every workspace gets one summary strip directly under the workspace tabs.
 - The strip contains:
@@ -65,21 +76,19 @@ This blueprint is aligned to the current implementation anchors:
   - section tabs when relevant,
   - workspace status pills,
   - workspace-scoped actions on the right.
-- Pills summarize status; they should not become a second navigation row.
+- Pills summarize status; they should not become a third navigation row.
 
-### 4. Global utilities
+### 5. Global utilities
 
 - `Utilities` is the global secondary menu.
-- It owns app-wide tools that are useful everywhere but are not primary workspaces:
+- It owns app-wide transient overlays and actions that are useful everywhere but do not replace the current body:
   - command palette,
-  - token import entry,
-  - notifications,
-  - keyboard shortcuts,
+  - paste tokens,
   - window sizing,
-  - settings.
-- Utilities should not contain destinations that deserve a primary workspace.
+  - future quick overlays.
+- Utilities should not contain destinations that deserve either a primary workspace or a long-lived secondary takeover.
 
-### 5. Tokens workspace sub-navigation
+### 6. Tokens workspace sub-navigation
 
 - `Tokens > Library` owns the horizontal set bar.
 - The set bar is for fast switching only.
@@ -87,7 +96,7 @@ This blueprint is aligned to the current implementation anchors:
 - `Set Manager` is the dedicated structural-management surface for create, rename, reorder, merge, split, duplicate, and bulk actions.
 - Theme/mode selectors remain contextual controls inside `Tokens > Library`, not standalone destinations.
 
-### 6. Unified start flow
+### 7. Unified start flow
 
 - `Start here` is the canonical onboarding/start surface.
 - Entry points from empty states, settings, and command palette should deep-link into this single flow.
@@ -99,7 +108,7 @@ This blueprint is aligned to the current implementation anchors:
   - `template-library`
   - `manual`
 
-### 7. Contextual secondary views
+### 8. Contextual secondary views
 
 - Some workflows stay inside a workspace but are not top-level shell sections.
 - These views must preserve a clear "back to authoring" or "back to library" action.
@@ -118,9 +127,24 @@ Every UI surface should fit exactly one of these buckets.
 | --- | --- | --- |
 | Primary workspace screen | A route owned by a workspace and reachable from the shell/section tabs | `Tokens > Library`, `Apply > Canvas`, `Sync > Export` |
 | Contextual workspace sub-screen | A deeper screen that remains inside one workspace and carries context from the parent screen | Theme coverage, theme compare, advanced theme logic |
-| Overflow panel | A full-height replacement surface opened from utilities or management actions | Import, Settings, Set Manager |
-| Persistent contextual panel | Editor, preview, or detail surface shown beside/over the current primary screen | Token editor, generator editor, token preview |
-| Modal / transient tool | Short-lived task surface that does not replace the workspace | Start here, command palette, quick apply, set switcher, notifications |
+| Secondary takeover | A full-height body replacement that keeps the shell visible and closes back to the underlying workspace/section | Import, Settings, Set Manager, Notifications, Shortcuts |
+| Persistent contextual panel | Editor, preview, or detail surface shown beside the current screen when width allows, or as a bottom drawer when constrained | Token editor, generator editor, token preview, split preview |
+| Modal / transient overlay | Short-lived task surface that sits above the current screen or takeover and dismisses back to it | Start here, command palette, quick apply, set switcher, paste tokens, color scale generator |
+
+## Transition rules
+
+The constrained Figma plugin viewport needs one explicit transition contract:
+
+1. Primary workspace screens and contextual workspace sub-screens navigate in place.
+   The shell stays visible, the summary strip updates, and the body reroutes.
+2. Secondary takeovers keep the shell visible but replace the main body.
+   Closing them returns to the previously active workspace and section.
+3. Persistent contextual panels never become shell destinations.
+   Use an inline side panel when the viewport is wide enough; use a bottom drawer when it is not.
+4. Modal / transient overlays never replace the shell or body state underneath.
+   They dismiss back to whatever workspace screen or takeover was already active.
+5. Short-lived read or action tools should default to transient overlays.
+   Use a secondary takeover only when the user may need to keep the surface open for longer review or management work.
 
 ## Key user journeys
 
@@ -197,15 +221,17 @@ Every UI surface should fit exactly one of these buckets.
 | Tokens | Generator editor | `TokenGeneratorDialog` in panel mode |
 | Tokens | Token preview | `TokenDetailPreview` |
 
-### Overflow panels
+### Secondary takeovers
 
 | Trigger area | Screen | Notes |
 | --- | --- | --- |
-| Utilities | Import | Replaces main panel until dismissed. |
-| Utilities | Settings | Replaces main panel until dismissed. |
+| Secondary surfaces row | Import | Replaces the main body until dismissed. |
 | Tokens workspace | Set Manager | Dedicated management surface, not a quick switcher. |
+| Secondary surfaces row | Notifications | Reference takeover for recent success and error history. |
+| Secondary surfaces row | Shortcuts | Reference takeover for longer shortcut review. |
+| Secondary surfaces row | Settings | Replaces the main body until dismissed. |
 
-### Global modals and transient tools
+### Global modals and transient overlays
 
 | Surface | Purpose |
 | --- | --- |
@@ -213,28 +239,29 @@ Every UI surface should fit exactly one of these buckets.
 | Command palette | Power-user actions and contextual commands |
 | Quick apply | Fast token application from the current selection |
 | Set switcher | Fast token-set switching |
-| Notification history | Review recent toasts/notifications |
-| Keyboard shortcuts | Global help surface |
+| Paste tokens | One-off token import from pasted content |
+| Color scale generator | One-off foundation generator flow |
 
 ## Shared screen anatomy
 
 The plugin should read from top to bottom in this order:
 
 1. Global status banner when connection/setup needs attention.
-2. Workspace tabs.
-3. Workspace summary strip with description, section tabs, pills, and workspace actions.
-4. Workspace-specific contextual controls.
+2. Workspace row.
+3. Secondary surfaces row.
+4. Workspace summary strip with description, section tabs, pills, and workspace actions.
+5. Workspace-specific contextual controls.
    - Example: set bar in `Tokens > Library`.
    - Example: theme/mode selection controls relevant to token authoring.
-5. Main panel body routed by the active workspace/section.
-6. Contextual side panel, drawer, or split preview when the current screen supports in-place editing.
-7. Modal/transient layers above the shell.
+6. Main panel body routed by the active workspace/section or the current secondary takeover.
+7. Contextual side panel, drawer, or split preview when the current screen supports in-place editing.
+8. Modal/transient layers above the shell.
 
 ### Anatomy rules
 
-1. Do not add a second top-level navigation strip outside the workspace shell.
+1. Do not add new top-level navigation outside the two shell rows and the workspace summary strip.
 2. If a control only matters in one workspace, place it below the workspace summary strip, not in global chrome.
-3. If a surface replaces the main panel entirely, it is an overflow panel and must have a clear back/close action.
+3. If a surface replaces the main body entirely while keeping the shell visible, it is a secondary takeover and must have a clear close action.
 4. If a surface needs the current parent context to make sense, keep it contextual and include an explicit return path.
 5. Status pills summarize state; actions belong in buttons, menus, or section tabs.
 
@@ -251,7 +278,7 @@ The plugin should read from top to bottom in this order:
 Every new screen proposal must answer:
 
 1. Which workspace owns it?
-2. Is it a primary screen, contextual sub-screen, overflow panel, or transient modal?
+2. Is it a primary screen, contextual sub-screen, secondary takeover, contextual panel, or transient overlay?
 3. What is its parent journey?
 4. What is the explicit back path?
 5. Why does it not belong in an existing section or utility surface?
@@ -281,10 +308,11 @@ If those answers are unclear, the screen is not ready to ship.
 1. New onboarding or empty-state entry points must route into `Start here`, not open parallel root-level flows.
 2. Branch additions should extend the existing flow model instead of creating a new top-level modal.
 
-### Overflow panels and utilities
+### Secondary takeovers and utilities
 
-1. Use overflow panels for utilities, settings, import/export-adjacent management, or structural tasks that temporarily replace the main workspace body.
-2. Do not use overflow panels to hide primary workspaces.
+1. Use secondary takeovers for longer read/manage flows that temporarily replace the main body while preserving shell context.
+2. Use transient overlays for short commands, quick selection tasks, and one-off dialogs that should dismiss back to the current screen.
+3. Do not use secondary takeovers to hide primary workspaces.
 
 ## Open decisions
 

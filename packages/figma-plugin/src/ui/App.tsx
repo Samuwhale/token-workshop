@@ -33,7 +33,7 @@ import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
 import type { SecondarySurfaceId, UtilityActionId } from './shared/navigationTypes';
-import { APP_SHELL_NAVIGATION, resolveWorkspace, resolveWorkspaceSection, resolveSecondarySurface, toWorkspaceId } from './shared/navigationTypes';
+import { APP_SHELL_NAVIGATION, CONTEXTUAL_PANEL_MIN_WIDTH, CONTEXTUAL_PANEL_TRANSITIONS, resolveWorkspace, resolveWorkspaceSection, resolveSecondarySurface, toWorkspaceId } from './shared/navigationTypes';
 import type { ThemeAuthoringStage, ThemeWorkspaceShellState } from './shared/themeWorkflow';
 import { summarizeThemeWorkflow } from './shared/themeWorkflow';
 import { DEFAULT_PUBLISH_PREFLIGHT_STATE, type PublishPreflightState, type SyncWorkflowStage } from './shared/syncWorkflow';
@@ -110,9 +110,20 @@ export function App() {
   const undoMaxHistory = useMemo(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20) ?? 20, [undoHistoryRev]);
   const [pendingPublishCount, setPendingPublishCount] = useState(0);
   const [publishPreflightState, setPublishPreflightState] = useState<PublishPreflightState>(DEFAULT_PUBLISH_PREFLIGHT_STATE);
+  const dismissEphemeralOverlays = useCallback(() => {
+    setMenuOpen(false);
+    setShowCommandPalette(false);
+    setShowQuickApply(false);
+    setShowSetSwitcher(false);
+  }, [
+    setShowCommandPalette,
+    setShowQuickApply,
+    setShowSetSwitcher,
+  ]);
   const openStartHere = useCallback((initialBranch: StartHereBranch = 'root', firstRun = false) => {
+    dismissEphemeralOverlays();
     setStartHereState({ open: true, initialBranch, firstRun });
-  }, []);
+  }, [dismissEphemeralOverlays]);
   const closeStartHere = useCallback(() => {
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, '1');
     setStartHereState({ open: false, initialBranch: 'root', firstRun: false });
@@ -500,11 +511,15 @@ export function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  const useSidePanel = windowWidth > 400
+  const useSidePanel = windowWidth >= CONTEXTUAL_PANEL_MIN_WIDTH
     && !!(editingToken || editingGeneratorData || previewingToken)
     && activeSecondarySurface === null
     && activeTopTab === 'define' && activeSubTab === 'tokens'
     && (tokens.length > 0 || createFromEmpty);
+  const contextualEditorTransition = useMemo(
+    () => useSidePanel ? CONTEXTUAL_PANEL_TRANSITIONS.sidePanel : CONTEXTUAL_PANEL_TRANSITIONS.bottomDrawer,
+    [useSidePanel],
+  );
   const isNarrow = windowWidth <= 360;
 
   // Token drag state: set when a drag from the token tree is in progress
@@ -678,6 +693,11 @@ export function App() {
     };
   }, [menuOpen]);
 
+  const openSecondaryPanel = useCallback((panel: SecondarySurfaceId) => {
+    dismissEphemeralOverlays();
+    openSecondarySurface(panel);
+  }, [dismissEphemeralOverlays, openSecondarySurface]);
+
 
   // Keyboard shortcuts — use a stable callback ref so the effect never
   // re-registers the listener yet always calls the latest handler.
@@ -706,17 +726,19 @@ export function App() {
     }
     if (matchesShortcut(e, 'CREATE_FROM_SELECTION')) {
       e.preventDefault();
+      dismissEphemeralOverlays();
       navigateTo('apply', 'inspect');
       setTriggerCreateToken(n => n + 1);
     }
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'n') {
       e.preventDefault();
+      dismissEphemeralOverlays();
       navigateTo('define', 'tokens');
       setEditingToken({ path: '', set: activeSet, isCreate: true });
     }
-    if (matchesShortcut(e, 'GO_TO_DEFINE')) { e.preventDefault(); navigateTo('define', 'tokens'); }
-    if (matchesShortcut(e, 'GO_TO_APPLY'))  { e.preventDefault(); navigateTo('apply', 'inspect'); }
-    if (matchesShortcut(e, 'GO_TO_SHIP'))   { e.preventDefault(); navigateTo('ship', 'publish'); }
+    if (matchesShortcut(e, 'GO_TO_DEFINE')) { e.preventDefault(); dismissEphemeralOverlays(); navigateTo('define', 'tokens'); }
+    if (matchesShortcut(e, 'GO_TO_APPLY'))  { e.preventDefault(); dismissEphemeralOverlays(); navigateTo('apply', 'inspect'); }
+    if (matchesShortcut(e, 'GO_TO_SHIP'))   { e.preventDefault(); dismissEphemeralOverlays(); navigateTo('ship', 'publish'); }
     if (matchesShortcut(e, 'TOGGLE_QUICK_APPLY')) {
       e.preventDefault();
       setShowQuickApply(v => !v);
@@ -727,6 +749,7 @@ export function App() {
     }
     if (matchesShortcut(e, 'GO_TO_RESOLVER')) {
       e.preventDefault();
+      dismissEphemeralOverlays();
       navigateTo('define', 'themes');
       setTimeout(() => { themeManagerHandleRef.current?.switchToResolverMode(); }, 50);
     }
@@ -735,12 +758,12 @@ export function App() {
       if (activeSecondarySurface === 'shortcuts') {
         closeSecondarySurface();
       } else {
-        openSecondarySurface('shortcuts');
+        openSecondaryPanel('shortcuts');
       }
     }
     if (matchesShortcut(e, 'OPEN_SETTINGS')) {
       e.preventDefault();
-      openSecondarySurface('settings');
+      openSecondaryPanel('settings');
     }
     if (matchesShortcut(e, 'NEXT_LINT_ISSUE')) {
       e.preventDefault();
@@ -758,13 +781,6 @@ export function App() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
-
-
-
-  const openSecondaryPanel = useCallback((panel: SecondarySurfaceId) => {
-    setMenuOpen(false);
-    openSecondarySurface(panel);
-  }, [openSecondarySurface]);
 
   const jumpToNextIssue = useCallback(() => {
     if (lintViolations.length === 0) {
@@ -1642,8 +1658,9 @@ export function App() {
             </div>
 
             <div className="mt-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-              Secondary
+              Secondary surfaces
             </div>
+            {/* Secondary surfaces are full-height body takeovers that keep the shell visible. */}
             <div className="mt-1 flex min-w-0 items-center gap-1 overflow-x-auto rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-1">
               {APP_SHELL_NAVIGATION.secondarySurfaces.map(surface => {
                 const isActive = surface.id === activeSecondarySurface;
@@ -1670,7 +1687,7 @@ export function App() {
                         ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm ring-1 ring-[var(--color-figma-border)]'
                         : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
                     }`}
-                    title={surface.description}
+                    title={surface.transition.usage}
                     aria-pressed={isActive}
                   >
                     <span>{surface.label}</span>
@@ -1796,7 +1813,7 @@ export function App() {
                         tabIndex={-1}
                         onClick={() => handleUtilityAction(action.id)}
                         className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                        title={action.description}
+                        title={action.transition?.usage ?? action.description}
                       >
                         <span>{action.id === 'window-size' ? (isExpanded ? 'Restore window' : 'Expand window') : action.label}</span>
                         <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{utilityActionDetail(action.id)}</span>
@@ -2229,6 +2246,8 @@ export function App() {
             {/* Panels — routed by (activeTopTab, activeSubTab) and activeSecondarySurface */}
             <PanelRouter
               useSidePanel={useSidePanel}
+              contextualEditorTransition={contextualEditorTransition}
+              splitPreviewTransition={CONTEXTUAL_PANEL_TRANSITIONS.splitPreview}
               showPreviewSplit={showPreviewSplit}
               setShowPreviewSplit={setShowPreviewSplit}
               guardEditorAction={guardEditorAction}
@@ -2335,10 +2354,12 @@ export function App() {
       </div>
       </ErrorBoundary>
 
-      {/* Token editor drawer (narrow windows only; wide windows use side panel) */}
+      {/* Contextual token editor: side panel on wide viewports, bottom drawer in constrained viewports. */}
       {editingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
         <div
           className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
+          data-surface-kind={contextualEditorTransition.kind}
+          data-surface-presentation={contextualEditorTransition.presentation}
           onKeyDown={(e) => {
             if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
               e.preventDefault();
@@ -2390,7 +2411,11 @@ export function App() {
       )}
 
       {editingGeneratorData && !editingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
+        <div
+          className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
+          data-surface-kind={contextualEditorTransition.kind}
+          data-surface-presentation={contextualEditorTransition.presentation}
+        >
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"
             onClick={() => editorCloseRef.current()}
@@ -2423,9 +2448,13 @@ export function App() {
       )}
 
 
-      {/* Token preview drawer (narrow windows only; wide windows use side panel) */}
+      {/* Contextual token preview: side panel on wide viewports, bottom drawer in constrained viewports. */}
       {!editingToken && !editingGeneratorData && previewingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
+        <div
+          className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
+          data-surface-kind={contextualEditorTransition.kind}
+          data-surface-presentation={contextualEditorTransition.presentation}
+        >
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"
             onClick={handlePreviewClose}

@@ -1,7 +1,9 @@
 /**
  * NavigationContext — owns the two-tier tab navigation state
  * (activeTopTab, activeSubTab, activeSecondarySurface) and the navigateTo /
- * setSubTab actions. Extracted from App.tsx so PanelRouter and other consumers can read
+ * setSubTab actions. `activeSecondarySurface` is reserved for full-height
+ * secondary takeovers that preserve shell context while replacing the body.
+ * Extracted from App.tsx so PanelRouter and other consumers can read
  * navigation state directly without receiving it as props.
  */
 
