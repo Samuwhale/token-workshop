@@ -35,6 +35,12 @@ import {
 import { isSafeRegex } from './token-tree-utils.js';
 export { isSafeRegex };
 
+export interface SetMetadataState {
+  description?: string;
+  collectionName?: string;
+  modeName?: string;
+}
+
 export class TokenStore {
   /** Shared async mutex — route handlers and watcher callbacks serialize through this single lock. */
   readonly lock = new PromiseChainLock();
@@ -600,14 +606,7 @@ export class TokenStore {
   }
 
   async updateSetDescription(name: string, description: string): Promise<void> {
-    const set = this.sets.get(name);
-    if (!set) throw new NotFoundError(`Set "${name}" not found`);
-    if (description) {
-      set.tokens.$description = description;
-    } else {
-      delete set.tokens.$description;
-    }
-    await this.saveSet(name);
+    await this.updateSetMetadata(name, { description });
   }
 
   getSetCollectionNames(): Record<string, string> {
@@ -620,14 +619,7 @@ export class TokenStore {
   }
 
   async updateSetCollectionName(name: string, collectionName: string): Promise<void> {
-    const set = this.sets.get(name);
-    if (!set) throw new NotFoundError(`Set "${name}" not found`);
-    if (collectionName) {
-      set.tokens.$figmaCollection = collectionName;
-    } else {
-      delete set.tokens.$figmaCollection;
-    }
-    await this.saveSet(name);
+    await this.updateSetMetadata(name, { collectionName });
   }
 
   getSetModeNames(): Record<string, string> {
@@ -640,12 +632,48 @@ export class TokenStore {
   }
 
   async updateSetModeName(name: string, modeName: string): Promise<void> {
+    await this.updateSetMetadata(name, { modeName });
+  }
+
+  getSetMetadata(name: string): SetMetadataState {
     const set = this.sets.get(name);
     if (!set) throw new NotFoundError(`Set "${name}" not found`);
-    if (modeName) {
-      set.tokens.$figmaMode = modeName;
-    } else {
-      delete set.tokens.$figmaMode;
+    return {
+      ...(typeof set.tokens.$description === 'string' && set.tokens.$description
+        ? { description: set.tokens.$description }
+        : {}),
+      ...(typeof set.tokens.$figmaCollection === 'string' && set.tokens.$figmaCollection
+        ? { collectionName: set.tokens.$figmaCollection }
+        : {}),
+      ...(typeof set.tokens.$figmaMode === 'string' && set.tokens.$figmaMode
+        ? { modeName: set.tokens.$figmaMode }
+        : {}),
+    };
+  }
+
+  async updateSetMetadata(name: string, metadata: Partial<SetMetadataState>): Promise<void> {
+    const set = this.sets.get(name);
+    if (!set) throw new NotFoundError(`Set "${name}" not found`);
+    if (Object.prototype.hasOwnProperty.call(metadata, 'description')) {
+      if (metadata.description) {
+        set.tokens.$description = metadata.description;
+      } else {
+        delete set.tokens.$description;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(metadata, 'collectionName')) {
+      if (metadata.collectionName) {
+        set.tokens.$figmaCollection = metadata.collectionName;
+      } else {
+        delete set.tokens.$figmaCollection;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(metadata, 'modeName')) {
+      if (metadata.modeName) {
+        set.tokens.$figmaMode = metadata.modeName;
+      } else {
+        delete set.tokens.$figmaMode;
+      }
     }
     await this.saveSet(name);
   }

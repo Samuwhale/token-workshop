@@ -73,6 +73,13 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
         before?: { $value: unknown; $type?: string };
         after?: { $value: unknown; $type?: string };
       }> = [];
+      const metadataChanges = entry.metadata?.kind === 'set-metadata' && Array.isArray(entry.metadata.changes)
+        ? entry.metadata.changes.map((change) => ({
+          ...change,
+          before: change.after,
+          after: change.before,
+        }))
+        : [];
       for (const p of allPaths) {
         const currentEntry = entry.afterSnapshot[p];
         const restoredEntry = entry.beforeSnapshot[p];
@@ -103,7 +110,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
       }
-      return { diffs };
+      return { diffs, metadataChanges };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to compute rollback diff');
     }

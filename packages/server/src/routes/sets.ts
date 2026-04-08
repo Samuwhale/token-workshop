@@ -1,10 +1,21 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { TokenGroup } from '@tokenmanager/core';
+import type { SetMetadataChange, SetMetadataOperationMetadata } from '../services/operation-log.js';
+import type { SetMetadataState } from '../services/token-store.js';
 import { handleRouteError } from '../errors.js';
 import { snapshotSet } from '../services/operation-log.js';
 
 export const setRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
+  const METADATA_FIELD_CONFIG: Array<{
+    bodyKey: 'description' | 'figmaCollection' | 'figmaMode';
+    field: keyof SetMetadataState;
+    label: SetMetadataChange['label'];
+  }> = [
+    { bodyKey: 'description', field: 'description', label: 'Description' },
+    { bodyKey: 'figmaCollection', field: 'collectionName', label: 'Collection' },
+    { bodyKey: 'figmaMode', field: 'modeName', label: 'Mode' },
+  ];
 
   // GET /api/sets — list all sets (with optional descriptions)
   fastify.get('/sets', async (_request, reply) => {
@@ -74,25 +85,49 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
   // PATCH /api/sets/:name/metadata — update set description, figma collection name, and/or figma mode name
   fastify.patch<{ Params: { name: string }; Body: { description?: string; figmaCollection?: string; figmaMode?: string } }>('/sets/:name/metadata', async (request, reply) => {
     const { name } = request.params;
-    const { description = '', figmaCollection, figmaMode } = request.body || {};
+    const body = request.body || {};
     return withLock(async () => {
       try {
-        const beforeDesc = fastify.tokenStore.getSetDescriptions();
-        const beforeColl = fastify.tokenStore.getSetCollectionNames();
-        const beforeMode = fastify.tokenStore.getSetModeNames();
-        const beforeMeta = { description: beforeDesc[name], collectionName: beforeColl[name], modeName: beforeMode[name] };
-
-        await fastify.tokenStore.updateSetDescription(name, description);
-        if (figmaCollection !== undefined) {
-          await fastify.tokenStore.updateSetCollectionName(name, figmaCollection);
-        }
-        if (figmaMode !== undefined) {
-          await fastify.tokenStore.updateSetModeName(name, figmaMode);
+        const touchedFields = METADATA_FIELD_CONFIG
+          .filter(({ bodyKey }) => Object.prototype.hasOwnProperty.call(body, bodyKey));
+        if (touchedFields.length === 0) {
+          const current = fastify.tokenStore.getSetMetadata(name);
+          return { ok: true, name, ...current, changed: false };
         }
 
-        const afterDesc = fastify.tokenStore.getSetDescriptions();
-        const afterColl = fastify.tokenStore.getSetCollectionNames();
-        const afterMode = fastify.tokenStore.getSetModeNames();
+        const beforeMeta = fastify.tokenStore.getSetMetadata(name);
+        const patch: Partial<SetMetadataState> = {};
+        const changes: SetMetadataChange[] = [];
+        for (const { bodyKey, field, label } of touchedFields) {
+          const nextValue = body[bodyKey]?.trim() || undefined;
+          patch[field] = nextValue;
+          if (beforeMeta[field] !== nextValue) {
+            changes.push({
+              field,
+              label,
+              before: beforeMeta[field],
+              after: nextValue,
+            });
+          }
+        }
+
+        if (changes.length === 0) {
+          return { ok: true, name, ...beforeMeta, changed: false };
+        }
+
+        await fastify.tokenStore.updateSetMetadata(name, patch);
+        const afterMeta = fastify.tokenStore.getSetMetadata(name);
+        const rollbackMetadata = changes.reduce<Partial<SetMetadataState>>((acc, change) => {
+          acc[change.field] = change.before;
+          return acc;
+        }, {});
+        const metadata: SetMetadataOperationMetadata = {
+          kind: 'set-metadata',
+          name,
+          before: beforeMeta,
+          after: afterMeta,
+          changes,
+        };
         await fastify.operationLog.record({
           type: 'set-metadata',
           description: `Update metadata for set "${name}"`,
@@ -100,14 +135,10 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: [],
           beforeSnapshot: {},
           afterSnapshot: {},
-          metadata: {
-            kind: 'set-metadata',
-            name,
-            before: beforeMeta,
-            after: { description: afterDesc[name], collectionName: afterColl[name], modeName: afterMode[name] },
-          },
+          rollbackSteps: [{ action: 'write-set-metadata', name, metadata: rollbackMetadata }],
+          metadata,
         });
-        return { ok: true, name, description };
+        return { ok: true, name, ...afterMeta, changed: true };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to update metadata');
       }

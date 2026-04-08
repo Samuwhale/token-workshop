@@ -16,6 +16,17 @@ interface RollbackPreviewModalProps {
   onCancel: () => void;
 }
 
+interface MetadataDiff {
+  field: 'description' | 'collectionName' | 'modeName';
+  label: 'Description' | 'Collection' | 'Mode';
+  before?: string;
+  after?: string;
+}
+
+function formatMetadataValue(value?: string) {
+  return value && value.length > 0 ? value : 'cleared';
+}
+
 /**
  * Shows a diff of what tokens will change if the operation is rolled back,
  * then asks for explicit confirmation before executing.
@@ -28,6 +39,7 @@ export function RollbackPreviewModal({
   onCancel,
 }: RollbackPreviewModalProps) {
   const [changes, setChanges] = useState<TokenChange[] | null>(null);
+  const [metadataChanges, setMetadataChanges] = useState<MetadataDiff[]>([]);
   const [diffLoading, setDiffLoading] = useState(true);
   const [diffError, setDiffError] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -43,7 +55,7 @@ export function RollbackPreviewModal({
 
   useEffect(() => {
     const controller = new AbortController();
-    apiFetch<{ diffs: SnapshotDiff[] }>(
+    apiFetch<{ diffs: SnapshotDiff[]; metadataChanges?: MetadataDiff[] }>(
       `${serverUrl}/api/operations/${opId}/diff`,
       { signal: controller.signal },
     )
@@ -51,6 +63,7 @@ export function RollbackPreviewModal({
         if (controller.signal.aborted) return;
         const unified = (data.diffs ?? []).map(snapshotDiffToChange);
         setChanges(unified);
+        setMetadataChanges(data.metadataChanges ?? []);
         const sections: Record<string, boolean> = {};
         for (const c of unified) sections[c.set] = true;
         setOpenSections(sections);
@@ -90,7 +103,7 @@ export function RollbackPreviewModal({
   }, [onCancel]);
 
   const summary = changes ? summarizeChanges(changes) : null;
-  const noChanges = changes?.length === 0;
+  const noChanges = changes?.length === 0 && metadataChanges.length === 0;
 
   return (
     <div
@@ -118,7 +131,18 @@ export function RollbackPreviewModal({
         {!diffLoading && summary && !noChanges && (
           <div className="px-4 py-2 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
             <ChangeSummaryBadges {...summary} />
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">will change</span>
+            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+              {metadataChanges.length > 0
+                ? `and ${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''} will change`
+                : 'will change'}
+            </span>
+          </div>
+        )}
+        {!diffLoading && !summary && metadataChanges.length > 0 && (
+          <div className="px-4 py-2 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+              {metadataChanges.length} metadata field{metadataChanges.length !== 1 ? 's' : ''} will change
+            </span>
           </div>
         )}
 
@@ -144,6 +168,27 @@ export function RollbackPreviewModal({
                 <path d="M20 6L9 17l-5-5" />
               </svg>
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No token changes detected.</p>
+            </div>
+          )}
+
+          {!diffLoading && metadataChanges.length > 0 && (
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+              <div className="px-3 py-2 border-b border-[var(--color-figma-border)]">
+                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Metadata changes</p>
+              </div>
+              <div className="p-2 space-y-1">
+                {metadataChanges.map((change) => (
+                  <div
+                    key={change.field}
+                    className="flex flex-wrap items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]"
+                  >
+                    <span className="font-medium text-[var(--color-figma-text)]">{change.label}</span>
+                    <span>{formatMetadataValue(change.before)}</span>
+                    <span aria-hidden="true">→</span>
+                    <span>{formatMetadataValue(change.after)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

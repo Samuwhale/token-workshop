@@ -3,6 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Token } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
+import type { SetMetadataState } from './token-store.js';
 import { NotFoundError, ConflictError } from '../errors.js';
 import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 
@@ -12,12 +13,28 @@ export interface SnapshotEntry {
   setName: string;
 }
 
+export interface SetMetadataChange {
+  field: keyof SetMetadataState;
+  label: 'Description' | 'Collection' | 'Mode';
+  before?: string;
+  after?: string;
+}
+
+export interface SetMetadataOperationMetadata {
+  kind: 'set-metadata';
+  name: string;
+  before: SetMetadataState;
+  after: SetMetadataState;
+  changes: SetMetadataChange[];
+}
+
 /** Structural rollback step — executed before token restoration during rollback. */
 export type RollbackStep =
   | { action: 'create-set'; name: string }
   | { action: 'delete-set'; name: string }
   | { action: 'rename-set'; from: string; to: string }
   | { action: 'reorder-sets'; order: string[] }
+  | { action: 'write-set-metadata'; name: string; metadata: Partial<SetMetadataState> }
   | { action: 'write-themes'; dimensions: unknown }
   | { action: 'write-resolver'; name: string; file: unknown }
   | { action: 'delete-resolver'; name: string }
@@ -74,7 +91,7 @@ export interface OperationEntry {
    */
   pathRenames?: Array<{ oldPath: string; newPath: string }>;
   /** Arbitrary metadata for the operation (e.g. set-metadata before/after). */
-  metadata?: Record<string, unknown>;
+  metadata?: SetMetadataOperationMetadata | Record<string, unknown>;
 }
 
 /** Lightweight version returned by the list endpoint (no snapshot data). */
@@ -86,6 +103,7 @@ export interface OperationSummary {
   setName: string;
   affectedPaths: string[];
   rolledBack: boolean;
+  metadata?: OperationEntry['metadata'];
 }
 
 /** A single entry in a per-token value timeline. */
@@ -176,8 +194,8 @@ export class OperationLog {
     const entries = this.entries
       .slice(start, end)
       .reverse()
-      .map(({ id, timestamp, type, description, setName, affectedPaths, rolledBack }) => ({
-        id, timestamp, type, description, setName, affectedPaths, rolledBack,
+      .map(({ id, timestamp, type, description, setName, affectedPaths, rolledBack, metadata }) => ({
+        id, timestamp, type, description, setName, affectedPaths, rolledBack, metadata,
       }));
     return { entries, total };
   }
@@ -273,6 +291,15 @@ export class OperationLog {
           inverse.push({ action: 'reorder-sets', order: currentOrder });
           break;
         }
+        case 'write-set-metadata': {
+          const current = ctx.tokenStore.getSetMetadata(step.name);
+          const metadata: Partial<SetMetadataState> = {};
+          for (const field of Object.keys(step.metadata) as Array<keyof SetMetadataState>) {
+            metadata[field] = current[field];
+          }
+          inverse.push({ action: 'write-set-metadata', name: step.name, metadata });
+          break;
+        }
         case 'write-themes': {
           // Read current themes state while holding the DimensionsStore lock so that
           // an in-flight theme mutation cannot complete its save between our read and
@@ -345,6 +372,9 @@ export class OperationLog {
           break;
         case 'reorder-sets':
           await ctx.tokenStore.reorderSets(step.order as string[]);
+          break;
+        case 'write-set-metadata':
+          await ctx.tokenStore.updateSetMetadata(step.name, step.metadata);
           break;
         case 'write-themes':
           // Write through the DimensionsStore lock so that concurrent theme mutations

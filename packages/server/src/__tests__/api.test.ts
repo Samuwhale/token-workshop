@@ -237,6 +237,160 @@ describe('POST /api/themes/dimensions/:id/duplicate', () => {
   });
 });
 
+describe('PATCH /api/sets/:name/metadata', () => {
+  it('updates set metadata atomically, exposes metadata changes in operations, and rolls back without clobbering newer fields', async () => {
+    interface MetadataOperationSummary {
+      id: string;
+      type: string;
+      setName: string;
+      metadata?: {
+        kind?: string;
+        name?: string;
+        changes?: Array<{
+          field: 'description' | 'collectionName' | 'modeName';
+          label: 'Description' | 'Collection' | 'Mode';
+          before?: string;
+          after?: string;
+        }>;
+      };
+    }
+
+    const setName = 'metadata-history-set';
+    const createRes = await fetch(url('/api/sets'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: setName }),
+    });
+    expect(createRes.status).toBe(201);
+
+    const firstPatchRes = await fetch(url(`/api/sets/${encodeURIComponent(setName)}/metadata`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ figmaCollection: 'Primitives', figmaMode: 'Light' }),
+    });
+    expect(firstPatchRes.ok).toBe(true);
+    expect(await firstPatchRes.json()).toMatchObject({
+      ok: true,
+      name: setName,
+      collectionName: 'Primitives',
+      modeName: 'Light',
+      changed: true,
+    });
+
+    const secondPatchRes = await fetch(url(`/api/sets/${encodeURIComponent(setName)}/metadata`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: 'Semantic aliases' }),
+    });
+    expect(secondPatchRes.ok).toBe(true);
+    expect(await secondPatchRes.json()).toMatchObject({
+      ok: true,
+      name: setName,
+      description: 'Semantic aliases',
+      changed: true,
+    });
+
+    const setsBeforeRollbackRes = await fetch(url('/api/sets'));
+    expect(setsBeforeRollbackRes.ok).toBe(true);
+    const setsBeforeRollback = await setsBeforeRollbackRes.json();
+    expect(setsBeforeRollback.descriptions[setName]).toBe('Semantic aliases');
+    expect(setsBeforeRollback.collectionNames[setName]).toBe('Primitives');
+    expect(setsBeforeRollback.modeNames[setName]).toBe('Light');
+
+    const operationsRes = await fetch(url('/api/operations?limit=50'));
+    expect(operationsRes.ok).toBe(true);
+    const operationsBody = await operationsRes.json() as { data: MetadataOperationSummary[] };
+    const metadataOps = operationsBody.data.filter((entry) => entry.type === 'set-metadata' && entry.setName === setName);
+    expect(metadataOps).toHaveLength(2);
+    const collectionOp = metadataOps.find((entry) =>
+      Array.isArray(entry.metadata?.changes) &&
+      entry.metadata.changes.some((change) => change.field === 'collectionName')
+    );
+    expect(collectionOp).toBeDefined();
+    if (!collectionOp) {
+      throw new Error('Expected metadata operation for collectionName change');
+    }
+    expect(collectionOp.metadata).toMatchObject({
+      kind: 'set-metadata',
+      name: setName,
+      changes: [
+        { field: 'collectionName', label: 'Collection', after: 'Primitives' },
+        { field: 'modeName', label: 'Mode', after: 'Light' },
+      ],
+    });
+
+    const diffRes = await fetch(url(`/api/operations/${collectionOp.id}/diff`));
+    expect(diffRes.ok).toBe(true);
+    expect(await diffRes.json()).toMatchObject({
+      diffs: [],
+      metadataChanges: [
+        { field: 'collectionName', label: 'Collection', before: 'Primitives' },
+        { field: 'modeName', label: 'Mode', before: 'Light' },
+      ],
+    });
+
+    const rollbackRes = await fetch(url(`/api/operations/${collectionOp.id}/rollback`), {
+      method: 'POST',
+    });
+    expect(rollbackRes.ok).toBe(true);
+
+    const setsAfterRollbackRes = await fetch(url('/api/sets'));
+    expect(setsAfterRollbackRes.ok).toBe(true);
+    const setsAfterRollback = await setsAfterRollbackRes.json();
+    expect(setsAfterRollback.descriptions[setName]).toBe('Semantic aliases');
+    expect(setsAfterRollback.collectionNames[setName]).toBeUndefined();
+    expect(setsAfterRollback.modeNames[setName]).toBeUndefined();
+  });
+
+  it('does not create an operation for a no-op metadata save and does not clear omitted fields', async () => {
+    const setName = 'metadata-noop-set';
+    const createRes = await fetch(url('/api/sets'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: setName }),
+    });
+    expect(createRes.status).toBe(201);
+
+    const initialPatchRes = await fetch(url(`/api/sets/${encodeURIComponent(setName)}/metadata`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: 'Base docs', figmaCollection: 'Primitives', figmaMode: 'Dark' }),
+    });
+    expect(initialPatchRes.ok).toBe(true);
+
+    const beforeNoopRes = await fetch(url('/api/operations?limit=50'));
+    expect(beforeNoopRes.ok).toBe(true);
+    const beforeNoopBody = await beforeNoopRes.json();
+
+    const noopPatchRes = await fetch(url(`/api/sets/${encodeURIComponent(setName)}/metadata`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: 'Base docs' }),
+    });
+    expect(noopPatchRes.ok).toBe(true);
+    expect(await noopPatchRes.json()).toMatchObject({
+      ok: true,
+      name: setName,
+      description: 'Base docs',
+      collectionName: 'Primitives',
+      modeName: 'Dark',
+      changed: false,
+    });
+
+    const afterNoopRes = await fetch(url('/api/operations?limit=50'));
+    expect(afterNoopRes.ok).toBe(true);
+    const afterNoopBody = await afterNoopRes.json();
+    expect(afterNoopBody.total).toBe(beforeNoopBody.total);
+
+    const setsRes = await fetch(url('/api/sets'));
+    expect(setsRes.ok).toBe(true);
+    const setsBody = await setsRes.json();
+    expect(setsBody.descriptions[setName]).toBe('Base docs');
+    expect(setsBody.collectionNames[setName]).toBe('Primitives');
+    expect(setsBody.modeNames[setName]).toBe('Dark');
+  });
+});
+
 describe('DELETE /api/data', () => {
   it('clears tokens, themes, generators, resolvers, operation history, and manual snapshots', async () => {
     const nestedSetName = 'reset/base';

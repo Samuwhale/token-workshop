@@ -274,3 +274,11 @@
   - When duplicating a JSON-backed parent entity with nested children, keep the entire clone inside one locked load-modify-save transaction instead of issuing one write per child from the client.
   - Let the server return the fully duplicated entity so the UI does not have to guess names, ids, or partial-copy state.
 ---
+## 2026-04-08 - [HIGH] Make set metadata edits rollbackable and visible in `packages/server/src/routes/sets.ts`, `packages/server/src/services/operation-log.ts`, and `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because changing a set's Figma collection or mode mapping currently has no recovery path even though it can silently redirect later publish operations.
+- Reworked set metadata writes into one atomic server-side update path, recorded field-level metadata diffs plus partial `write-set-metadata` rollback steps, and exposed those diffs through the operations API so collection/mode/description edits can be rolled back without clobbering newer unrelated metadata.
+- Updated the history UI and rollback preview to render metadata-specific summaries instead of `0 paths`, added server regression coverage for partial PATCH semantics, no-op saves, metadata diff previews, and rollback behavior, and verified the repo with `bash scripts/backlog/validate.sh`.
+- Files changed: `packages/server/src/routes/sets.ts` ~L10, ~L85; `packages/server/src/services/token-store.ts` ~L38, ~L608; `packages/server/src/services/operation-log.ts` ~L16, ~L187, ~L276, ~L358; `packages/server/src/routes/operations.ts` ~L54; `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L37, ~L307, ~L712; `packages/figma-plugin/src/ui/components/history/RollbackPreviewModal.tsx` ~L19, ~L56, ~L130; `packages/figma-plugin/src/ui/components/history/types.ts` ~L39; `packages/figma-plugin/src/ui/hooks/useRecentOperations.ts` ~L5; `packages/server/src/__tests__/api.test.ts` ~L240; `scripts/backlog/patterns.md` ~L332
+- **Learnings for future iterations:**
+  - Metadata-only operations need structural rollback steps even when they touch zero token paths; otherwise the undo log can report success while restoring nothing.
+  - For rollbackable metadata edits, capture only the fields touched by that operation so undoing an older collection or mode change does not overwrite a newer description edit on the same set.
+---

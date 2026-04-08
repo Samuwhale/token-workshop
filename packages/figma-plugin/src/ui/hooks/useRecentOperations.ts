@@ -10,6 +10,16 @@ export interface OperationEntry {
   setName: string;
   affectedPaths: string[];
   rolledBack: boolean;
+  metadata?: {
+    kind?: string;
+    name?: string;
+    changes?: Array<{
+      field: 'description' | 'collectionName' | 'modeName';
+      label: 'Description' | 'Collection' | 'Mode';
+      before?: string;
+      after?: string;
+    }>;
+  };
 }
 
 interface UseRecentOperationsParams {

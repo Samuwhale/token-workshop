@@ -34,6 +34,17 @@ function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }
   );
 }
 
+function getSetMetadataChanges(op: OperationEntry) {
+  if (op.metadata?.kind !== 'set-metadata' || !Array.isArray(op.metadata.changes)) {
+    return [];
+  }
+  return op.metadata.changes;
+}
+
+function formatMetadataValue(value?: string) {
+  return value && value.length > 0 ? value : 'cleared';
+}
+
 export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, totalOperations, hasMoreOperations, onLoadMoreOperations, onRollback, undoDescriptions, redoableOpIds, onServerRedo, executeUndo, canUndo: _canUndo }: HistoryPanelProps) {
   // Timeline data
   const [timelineCommits, setTimelineCommits] = useState<CommitEntry[]>([]);
@@ -295,9 +306,15 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     }
     if (entry.kind === 'action') {
       const op = entry.data;
+      const metadataChanges = getSetMetadataChanges(op);
       return op.description.toLowerCase().includes(searchQuery) ||
         op.setName.toLowerCase().includes(searchQuery) ||
-        op.affectedPaths.some(p => p.toLowerCase().includes(searchQuery));
+        op.affectedPaths.some(p => p.toLowerCase().includes(searchQuery)) ||
+        metadataChanges.some(change =>
+          change.label.toLowerCase().includes(searchQuery) ||
+          (change.before ?? '').toLowerCase().includes(searchQuery) ||
+          (change.after ?? '').toLowerCase().includes(searchQuery)
+        );
     }
     if (entry.kind === 'commit') {
       const c = entry.data;
@@ -695,6 +712,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           if (entry.kind === 'action') {
             const op = entry.data;
             const isError = op.type.includes('error');
+            const metadataChanges = getSetMetadataChanges(op);
+            const isSetMetadata = metadataChanges.length > 0;
+            const impactLabel = isSetMetadata
+              ? `${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''}`
+              : `${op.affectedPaths.length} path${op.affectedPaths.length !== 1 ? 's' : ''}`;
             return (
               <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
                 <div className="mt-0.5 shrink-0">
@@ -709,9 +731,22 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{op.setName}</span>
-                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {op.affectedPaths.length} path{op.affectedPaths.length !== 1 ? 's' : ''}</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
                     <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
                   </div>
+                  {isSetMetadata && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {metadataChanges.map((change) => (
+                        <span
+                          key={`${op.id}-${change.field}`}
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
+                          title={`${change.label}: ${formatMetadataValue(change.before)} → ${formatMetadataValue(change.after)}`}
+                        >
+                          {change.label}: {formatMetadataValue(change.before)} → {formatMetadataValue(change.after)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="shrink-0 mt-0.5 flex items-center gap-1">
                   {isError ? (
