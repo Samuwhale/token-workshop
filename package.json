@@ -8,6 +8,8 @@
     "build": "turbo build",
     "test": "turbo test",
     "lint": "eslint packages/*/src/",
+    "backlog": "pnpm --filter @tokenmanager/backlog-runner exec tsx bin/cli.ts run --interactive --config ../../backlog.config.mjs",
+    "backlog:validate": "pnpm --filter @tokenmanager/backlog-runner exec tsx bin/cli.ts validate --config ../../backlog.config.mjs",
     "server": "pnpm --filter @tokenmanager/server dev",
     "plugin:build": "pnpm --filter @tokenmanager/figma-plugin build",
     "preview": "node scripts/agent-preview.mjs",

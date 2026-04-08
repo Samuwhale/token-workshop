@@ -25,3 +25,32 @@
     Added a token-row quick-generator popover with live preview, direct create, and advanced handoff that preserves the current draft.
 
   Committing: Creating a generator for a simple case requires a full-screen modal
+[main 41846c0c] chore(backlog): done – Creating a generator for a simple case requires a full-screen modal
+ 13 files changed, 664 insertions(+), 27 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/QuickGeneratorPopover.tsx
+  ✓ Committed and marked done
+
+## 2026-04-08 - Import source selection gives too many equal-weight choices at once and mixes very different source families
+- Reworked the import chooser into a progressive disclosure flow: users now pick a source family first (`From Figma`, `From token files`, `From code`, `Migrate from another tool`) and only then see the specific import formats in that family, with family-relevant guidance shown in context instead of as global caveats.
+- Kept all existing import handlers and hidden file inputs intact, preserved drag-and-drop auto-detection, and tightened the drag overlay copy so file-based imports still feel available outside the family picker.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportSourceSelector.tsx` ~L4, ~L20, ~L64, ~L101, ~L298; `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L77
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  5 queued · 0 in-progress · last took 18m3s
+═══════════════════════════════════════════════════════════════
+  → Stale generator notification is easy to miss — when a source token changes, the staleness signal is an amber-bordered tag on the generator's target group header (`TokenTreeNode.tsx` ~L628–634, `border-amber-500/30`); in a dense tree with many groups this tag is easy to overlook, and there is no signal at the top of the list or in the tab bar beyond the tab badge count; add a dismissable notification bar between the search/filter row and the token list: "N generator(s) in [set name] are out of date — [Regenerate all] [Dismiss]"; "Regenerate all" should run only generators where `targetSet === activeSet` and `isStale === true` (call `POST /api/generators/{id}/run` for each in sequence, show a spinner during); bar should be dismissable per-session (localStorage key) and re-appear if staleness changes; the existing amber border on the tag should also be made slightly more visible (increase opacity from 30% to 60%, `border-amber-500/60`); files: `TokenList.tsx` (add banner between filter row and virtual list), `useGenerators.ts` (generators array and isStale field), `storage.ts` (add a key for dismissed stale banner)
+  Running agent… (started 11:40:30)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work (up to 30s)…
+scripts/backlog/backlog.sh: line 250: echo: write error: Broken pipe
+
+  · unknown
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-08 - Import source selection gives too many equal-weight choices at once and mixes very different source families
+- Reworked the import chooser into a progressive disclosure flow: users now pick a source family first (`From Figma`, `From token files`, `From code`, `Migrate from another tool`) and only then see the specific import formats in that family, with family-relevant guidance shown in context instead of as global caveats.
+- Kept all existing import handlers and hidden file inputs intact, preserved drag-and-drop auto-detection, and tightened the drag overlay copy so file-based imports still feel available outside the family picker.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportSourceSelector.tsx` ~L4, ~L20, ~L64, ~L101, ~L298; `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L77
+
+  Stopped after 2 iterations (1660 total items completed).
