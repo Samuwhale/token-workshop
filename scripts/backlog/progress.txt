@@ -269,3 +269,11 @@
   - If two UI surfaces are reading the same Figma-side entity, keep a single message/response pair and do view-specific reshaping in the UI instead of adding a second sandbox handler.
   - Correlation IDs are worth using even for read-only export helpers once multiple panels can listen for the same controller response type.
 ---
+## 2026-04-08 - Create `docs/redesign/plugin-ia-blueprint.md` as the canonical redesign blueprint for the plugin IA and screen model
+- Added `docs/redesign/plugin-ia-blueprint.md` as the single reference artifact for the redesigned plugin shell, documenting the target primary workspaces, secondary navigation model, screen model, key user journeys, screen inventory, shared screen anatomy, open decisions, and migration rules tied to the current `WORKSPACE_TABS` shell over legacy internal routes.
+- Added a reusable backlog pattern for keeping one canonical IA blueprint doc whenever workspace ownership and internal routing intentionally diverge during a staged redesign.
+- Files changed: `docs/redesign/plugin-ia-blueprint.md` ~L1; `scripts/backlog/patterns.md` ~L138
+- **Learnings for future iterations:**
+  - When the shell model and internal router diverge on purpose, document the user-facing workspace contract in one blueprint instead of forcing future backlog items to reconstruct it from code and progress logs.
+  - IA docs should classify every surface as a primary workspace screen, contextual sub-screen, overflow panel, or transient tool; that makes later navigation changes much easier to evaluate.
+---
