@@ -446,3 +446,11 @@
   - For dismissible warning banners tied to live data, persist a signature of the current problem state instead of a boolean so the banner can auto-return when the underlying condition changes.
   - Batch regenerate actions should refresh the full token state after completion, not just the generator list, otherwise the surrounding UI can keep showing stale generated output.
 ---
+## 2026-04-08 - Settings is structured like an internal configuration console rather than a concise preferences area
+- Reframed the settings IA around four user-meaningful groups: `Preferences`, `Connection`, `Export`, and `Advanced / Recovery`, added a short group intro card, and split the old catch-all sections into smaller everyday-vs-operational subsections with clearer "when this matters" copy.
+- Kept all existing capabilities intact while moving recovery, validation, guided setup, undo tuning, and destructive actions below the daily preference and export defaults, with stronger recovery/danger wording and the same import/export preview flow preserved.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L17, ~L23, ~L99, ~L305, ~L587, ~L627, ~L763, ~L842, ~L906
+- **Learnings for future iterations:**
+  - For dense settings surfaces, define a small set of job-based groups first, then let search index those groups; search should reinforce the IA, not rescue an unfocused one.
+  - Recovery and operational controls can stay in the same screen as daily preferences, but they should sit behind their own lower-priority group with explicit copy about when they matter.
+---

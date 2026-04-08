@@ -1,6 +1,7 @@
 export type BacklogTool = 'claude' | 'qwen' | 'gemini' | 'codex';
 export type BacklogMarker = ' ' | '~' | 'x' | '!';
 export type BacklogPassType = 'product' | 'ux' | 'code';
+export type StructuredOutputMode = 'strict' | 'best-effort';
 
 export interface BacklogRunnerConfigInput {
   projectRoot?: string;
@@ -114,6 +115,16 @@ export interface AgentRunRequest {
 export interface ToolValidationResult {
   ok: boolean;
   messages: string[];
+  structuredOutputMode?: StructuredOutputMode;
+}
+
+export interface ValidationCommandResult {
+  ok: boolean;
+  code: number;
+  summary: string;
+  stdout: string;
+  stderr: string;
+  durationSeconds: number;
 }
 
 export interface CommandResult {

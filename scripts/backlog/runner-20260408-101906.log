@@ -21,3 +21,15 @@
     Added a dismissible stale-generator banner with sequential regenerate-all, stronger stale tags, passed full validation, and logged the work.
 
   Committing: Stale generator notification is easy to miss
+  ✓ Committed and marked done
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  4 queued · 0 in-progress · last took 9m1s
+═══════════════════════════════════════════════════════════════
+  → Settings is structured like an internal configuration console rather than a concise preferences area — the panel currently mixes searchable sections, tabs, connection controls, export defaults, validation config, backup/restore, guided setup restart, undo settings, and danger-zone actions into one large settings surface; reorganize this into a smaller set of user-meaningful groups and push operational/rarely used controls lower in the hierarchy; recommended direction: `Preferences`, `Connection`, `Export`, and `Advanced / Recovery`, with clearer copy explaining when a setting matters; constraints: (1) do not remove current capabilities, (2) keep dangerous operations clearly separated and strongly worded, (3) search can remain, but it should support a cleaner IA rather than compensate for one; files: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx`
+  Running agent… (started 12:28:07)
+
+  ✓ done: Settings is structured like an internal configuration console rather than a concise preferences area
+    Reorganized Settings into Preferences, Connection, Export, and Advanced / Recovery, kept all capabilities, and passed `bash scripts/backlog/validate.sh`.
+
+  Committing: Settings is structured like an internal configuration console rather than a concise preferences area

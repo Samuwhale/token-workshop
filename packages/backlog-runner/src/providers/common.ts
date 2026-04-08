@@ -7,6 +7,7 @@ import type {
   BacklogTool,
   CommandResult,
   CommandRunner,
+  StructuredOutputMode,
   ToolValidationResult,
 } from '../types.js';
 
@@ -51,17 +52,11 @@ function lastEmbeddedJsonBlock(output: string): unknown {
   return undefined;
 }
 
-function getObjectCandidate(output: string): Record<string, unknown> | null {
-  const parsedWhole = maybeParseJson(output);
-  const candidate = (
-    (parsedWhole && typeof parsedWhole === 'object' ? (parsedWhole as Record<string, unknown>) : undefined) ??
-    (lastEmbeddedJsonBlock(output) as Record<string, unknown> | undefined)
-  );
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
 
-  if (!candidate) {
-    return null;
-  }
-
+function extractPayload(candidate: Record<string, unknown>): Record<string, unknown> | null {
   if (
     typeof candidate.status === 'string' &&
     typeof candidate.item === 'string' &&
@@ -70,24 +65,49 @@ function getObjectCandidate(output: string): Record<string, unknown> | null {
     return candidate;
   }
 
-  const structured = candidate.structured_output;
-  if (structured && typeof structured === 'object') {
-    return structured as Record<string, unknown>;
+  const structured = asObject(candidate.structured_output);
+  if (structured) {
+    return structured;
   }
 
   const response = candidate.response;
   if (typeof response === 'string') {
-    const parsed = maybeParseJson(response);
-    if (parsed && typeof parsed === 'object') {
-      return parsed as Record<string, unknown>;
-    }
+    return asObject(maybeParseJson(response));
   }
 
   return null;
 }
 
-export function normalizeAgentResult(stdout: string, stderr: string): AgentResult | null {
-  const candidate = getObjectCandidate(stdout);
+function getObjectCandidate(output: string, mode: StructuredOutputMode): Record<string, unknown> | null {
+  const parsedWhole = asObject(maybeParseJson(output));
+  const wholePayload = parsedWhole ? extractPayload(parsedWhole) : null;
+  if (wholePayload) {
+    return wholePayload;
+  }
+
+  if (mode === 'strict') {
+    return null;
+  }
+
+  const embedded = asObject(lastEmbeddedJsonBlock(output));
+  return embedded ? extractPayload(embedded) : null;
+}
+
+function summarizeFailure(commandResult: CommandResult): string {
+  const combined = [commandResult.stdout, commandResult.stderr]
+    .join('\n')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+  return combined.slice(-6).join(' | ') || 'no output';
+}
+
+export function normalizeAgentResult(
+  stdout: string,
+  stderr: string,
+  mode: StructuredOutputMode = 'strict',
+): AgentResult | null {
+  const candidate = getObjectCandidate(stdout, mode);
   if (!candidate) return null;
 
   const status = candidate.status;
@@ -97,7 +117,7 @@ export function normalizeAgentResult(stdout: string, stderr: string): AgentResul
     return null;
   }
 
-  const root = (maybeParseJson(stdout) ?? {}) as Record<string, unknown>;
+  const root = asObject(maybeParseJson(stdout)) ?? {};
   const turns = typeof root.num_turns === 'number' ? root.num_turns : undefined;
   const durationMs = typeof root.duration_ms === 'number' ? root.duration_ms : undefined;
   const costUsd = typeof root.total_cost_usd === 'number' ? root.total_cost_usd : undefined;
@@ -116,6 +136,7 @@ export function normalizeAgentResult(stdout: string, stderr: string): AgentResul
 
 export interface ProviderAdapter {
   readonly tool: BacklogTool;
+  readonly structuredOutputMode: StructuredOutputMode;
   validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult>;
   run(commandRunner: CommandRunner, request: AgentRunRequest): Promise<AgentResult>;
 }
@@ -149,6 +170,57 @@ export async function simpleVersionValidation(
   };
 }
 
+export async function checkCommandAuth(
+  commandRunner: CommandRunner,
+  command: string,
+  args: string[],
+  okPattern: RegExp,
+): Promise<{ ok: boolean; message: string }> {
+  const result = await commandRunner.run(command, args, { ignoreFailure: true });
+  const combined = `${result.stdout}\n${result.stderr}`.trim();
+  if (result.code === 0 && okPattern.test(combined)) {
+    return { ok: true, message: `  ✓ ${command} auth ready` };
+  }
+
+  if (isAuthFailure(combined)) {
+    return { ok: false, message: `  ✗ ${command} auth check failed` };
+  }
+
+  return { ok: false, message: `  ✗ ${command} auth status unavailable` };
+}
+
+export async function smokeStructuredOutput(
+  run: () => Promise<CommandResult>,
+  mode: StructuredOutputMode,
+  label: string,
+): Promise<ToolValidationResult> {
+  const result = await run();
+  const parsed = normalizeAgentResult(result.stdout, result.stderr, mode);
+  if (parsed?.status === 'done' && parsed.item === 'smoke' && parsed.note === 'ok') {
+    return {
+      ok: true,
+      messages: [
+        `  ✓ ${label} smoke test (${mode === 'strict' ? 'strict structured output' : 'best-effort structured output'})`,
+      ],
+      structuredOutputMode: mode,
+    };
+  }
+
+  if (isAuthFailure(`${result.stdout}\n${result.stderr}`)) {
+    return {
+      ok: false,
+      messages: [`  ✗ ${label} smoke test failed: authentication/permission error`],
+      structuredOutputMode: mode,
+    };
+  }
+
+  return {
+    ok: false,
+    messages: [`  ✗ ${label} smoke test failed: ${summarizeFailure(result)}`],
+    structuredOutputMode: mode,
+  };
+}
+
 export async function withTempDir<T>(prefix: string, fn: (dir: string) => Promise<T>): Promise<T> {
   const dir = await mkdtemp(path.join(tmpdir(), prefix));
   try {
@@ -172,7 +244,11 @@ export async function readIfExists(filePath: string): Promise<string> {
   }
 }
 
-export function assertAgentSuccess(result: AgentResult | null, commandResult: CommandResult): AgentResult {
+export function assertAgentSuccess(
+  result: AgentResult | null,
+  commandResult: CommandResult,
+  mode: StructuredOutputMode,
+): AgentResult {
   if (result) return result;
   const combined = `${commandResult.stdout} ${commandResult.stderr}`.trim();
   if (isAuthFailure(combined)) {
@@ -181,5 +257,9 @@ export function assertAgentSuccess(result: AgentResult | null, commandResult: Co
   if (isRateLimited(combined)) {
     throw new Error('Rate limit hit');
   }
-  throw new Error('Agent did not return valid structured output');
+  throw new Error(
+    mode === 'strict'
+      ? 'Agent did not return valid strict structured output'
+      : 'Agent did not return valid structured output',
+  );
 }

@@ -14,28 +14,29 @@ import { dispatchToast } from '../shared/toastBus';
 type Density = 'compact' | 'comfortable';
 type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'oklch' | 'p3';
 export type PreferredCopyFormat = 'css-var' | 'dtcg-ref' | 'scss' | 'raw' | 'json';
-type SettingsTab = 'appearance' | 'connection' | 'export' | 'advanced';
+type SettingsTab = 'preferences' | 'connection' | 'export' | 'advanced-recovery';
 
 // ---------------------------------------------------------------------------
 // Settings tab config and search metadata
 // ---------------------------------------------------------------------------
 
-const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'connection', label: 'Connection' },
-  { id: 'export', label: 'Export' },
-  { id: 'advanced', label: 'Advanced' },
+const SETTINGS_TABS: { id: SettingsTab; label: string; description: string }[] = [
+  { id: 'preferences', label: 'Preferences', description: 'Everyday workspace defaults for browsing and copying tokens.' },
+  { id: 'connection', label: 'Connection', description: 'How this plugin talks to your local TokenManager server.' },
+  { id: 'export', label: 'Export', description: 'Default targets to pre-fill when generating handoff files.' },
+  { id: 'advanced-recovery', label: 'Advanced / Recovery', description: 'Operational controls, recovery tools, and destructive actions.' },
 ];
 
 const SECTION_SEARCH_META: { id: string; tab: SettingsTab; title: string; keywords: string[] }[] = [
-  { id: 'ui-prefs', tab: 'appearance', title: 'UI Preferences', keywords: ['density', 'compact', 'comfortable', 'color', 'format', 'hex', 'rgb', 'hsl', 'oklch', 'p3', 'copy', 'advanced', 'contrast', 'deprecated', 'display', 'appearance', 'theme'] },
-  { id: 'connection', tab: 'connection', title: 'Server Connection', keywords: ['server', 'url', 'connect', 'localhost', 'port', 'disconnect', 'network'] },
-  { id: 'export-defaults', tab: 'export', title: 'Export Defaults', keywords: ['platform', 'css', 'selector', 'tailwind', 'scss', 'json', 'export', 'root', 'format'] },
-  { id: 'validation', tab: 'export', title: 'Validation', keywords: ['lint', 'rules', 'validate', 'check', 'errors', 'warnings', 'config'] },
-  { id: 'guided-setup', tab: 'advanced', title: 'Guided Setup', keywords: ['guided', 'setup', 'onboarding', 'wizard', 'welcome', 'restart', 'first run', 'quickstart'] },
-  { id: 'undo', tab: 'advanced', title: 'Undo History', keywords: ['undo', 'history', 'steps', 'max', 'redo'] },
-  { id: 'backup', tab: 'advanced', title: 'Backup & Restore', keywords: ['backup', 'restore', 'import', 'export', 'json', 'file', 'transfer'] },
-  { id: 'danger', tab: 'advanced', title: 'Danger Zone', keywords: ['clear', 'delete', 'reset', 'danger', 'data', 'remove'] },
+  { id: 'workspace-behavior', tab: 'preferences', title: 'Workspace behavior', keywords: ['preferences', 'density', 'compact', 'comfortable', 'deprecated', 'workspace', 'daily', 'browse', 'appearance', 'visibility'] },
+  { id: 'color-copy-defaults', tab: 'preferences', title: 'Color and copy defaults', keywords: ['preferences', 'color', 'format', 'hex', 'rgb', 'hsl', 'oklch', 'p3', 'copy', 'contrast', 'shortcut', 'display', 'clipboard'] },
+  { id: 'connection', tab: 'connection', title: 'Local server connection', keywords: ['server', 'url', 'connect', 'localhost', 'port', 'disconnect', 'network', 'sync', 'api'] },
+  { id: 'export-defaults', tab: 'export', title: 'Export defaults', keywords: ['platform', 'css', 'selector', 'tailwind', 'scss', 'json', 'export', 'root', 'format', 'handoff'] },
+  { id: 'validation', tab: 'advanced-recovery', title: 'Validation rules', keywords: ['lint', 'rules', 'validate', 'check', 'errors', 'warnings', 'config', 'quality'] },
+  { id: 'guided-setup', tab: 'advanced-recovery', title: 'Guided setup', keywords: ['guided', 'setup', 'onboarding', 'wizard', 'welcome', 'restart', 'first run', 'quickstart'] },
+  { id: 'undo', tab: 'advanced-recovery', title: 'Undo history', keywords: ['undo', 'history', 'steps', 'max', 'redo'] },
+  { id: 'backup', tab: 'advanced-recovery', title: 'Backup and restore', keywords: ['backup', 'restore', 'import', 'export', 'json', 'file', 'transfer', 'recovery'] },
+  { id: 'danger', tab: 'advanced-recovery', title: 'Danger zone', keywords: ['clear', 'delete', 'reset', 'danger', 'data', 'remove', 'destructive'] },
 ];
 
 // ---------------------------------------------------------------------------
@@ -91,6 +92,24 @@ function Section({ title, children, defaultOpen = true, danger = false, tabBadge
         </svg>
       </button>
       {open && <div className="p-3 flex flex-col gap-2">{children}</div>}
+    </div>
+  );
+}
+
+function GroupIntro({ title, description, note }: { title: string; description: string; note?: string }) {
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">{title}</h2>
+          <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">{description}</p>
+        </div>
+        {note && (
+          <span className="shrink-0 rounded-full border border-[var(--color-figma-border)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+            {note}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -285,9 +304,11 @@ export function SettingsPanel({
   // ---- Tab navigation & search ----
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     const saved = lsGet(STORAGE_KEYS.SETTINGS_ACTIVE_TAB);
-    return (saved === 'appearance' || saved === 'connection' || saved === 'export' || saved === 'advanced') ? saved : 'appearance';
+    return (saved === 'preferences' || saved === 'connection' || saved === 'export' || saved === 'advanced-recovery') ? saved : 'preferences';
   });
   const [searchQuery, setSearchQuery] = useState('');
+
+  const activeTabMeta = SETTINGS_TABS.find(tab => tab.id === activeTab) ?? SETTINGS_TABS[0];
 
   const handleTabChange = useCallback((tab: SettingsTab) => {
     setActiveTab(tab);
@@ -572,7 +593,7 @@ export function SettingsPanel({
               role="tab"
               aria-selected={activeTab === tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${
+              className={`flex-1 px-1 py-1.5 text-[10px] font-medium leading-tight transition-colors ${
                 activeTab === tab.id
                   ? 'text-[var(--color-figma-accent)] shadow-[inset_0_-2px_0_var(--color-figma-accent)]'
                   : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
@@ -595,504 +616,529 @@ export function SettingsPanel({
             </p>
           )}
 
-          {/* ---- UI Preferences ---- */}
-          {showSection('ui-prefs') && <Section title="UI Preferences" tabBadge={searchQuery ? 'Appearance' : undefined}>
-            {/* Density */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">Density</span>
-                  {density !== 'comfortable' && (
-                    <button
-                      onClick={() => handleDensityChange('comfortable')}
-                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Row height in token lists</span>
-              </div>
-              <SegmentedControl
-                options={[
-                  { value: 'compact' as Density, label: 'Compact' },
-                  { value: 'comfortable' as Density, label: 'Comfortable' },
-                ]}
-                value={density}
-                onChange={handleDensityChange}
-              />
-            </div>
+          {!searchQuery && (
+            <GroupIntro
+              title={activeTabMeta.label}
+              description={activeTabMeta.description}
+              note={activeTab === 'advanced-recovery' ? 'Rarely changed' : 'Common'}
+            />
+          )}
 
-            {/* Color format */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">Color format</span>
-                  {colorFormat !== 'hex' && (
-                    <button
-                      onClick={() => handleColorFormatChange('hex')}
-                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Default display format for color values</span>
-              </div>
-              <SegmentedControl
-                options={[
-                  { value: 'hex' as ColorFormat, label: 'HEX' },
-                  { value: 'rgb' as ColorFormat, label: 'RGB' },
-                  { value: 'hsl' as ColorFormat, label: 'HSL' },
-                  { value: 'oklch' as ColorFormat, label: 'OKLCH' },
-                  { value: 'p3' as ColorFormat, label: 'P3' },
-                ]}
-                value={colorFormat}
-                onChange={handleColorFormatChange}
-              />
-            </div>
-            {/* Sample output preview */}
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-tertiary,var(--color-figma-bg-secondary))] border border-[var(--color-figma-border)]">
-              <div className="w-3 h-3 rounded-sm flex-shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: '#3B82F6' }} />
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-shrink-0">Sample:</span>
-              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate select-all">{formatHexAs('#3B82F6', colorFormat)}</span>
-            </div>
-
-            {/* Preferred copy format */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">Preferred copy format</span>
-                  {preferredCopyFormat !== 'css-var' && (
-                    <button
-                      onClick={() => handlePreferredCopyFormatChange('css-var')}
-                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Format used by ⌘⇧C shortcut</span>
-              </div>
-              <SegmentedControl
-                options={[
-                  { value: 'css-var' as PreferredCopyFormat, label: 'CSS' },
-                  { value: 'dtcg-ref' as PreferredCopyFormat, label: '{ref}' },
-                  { value: 'scss' as PreferredCopyFormat, label: '$scss' },
-                  { value: 'raw' as PreferredCopyFormat, label: 'Value' },
-                  { value: 'json' as PreferredCopyFormat, label: 'DTCG' },
-                ]}
-                value={preferredCopyFormat}
-                onChange={handlePreferredCopyFormatChange}
-              />
-            </div>
-
-            {/* Contrast background */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-[var(--color-figma-text)]">Contrast background</span>
-                {contrastBg && (
-                  <button
-                    onClick={() => handleContrastBgChange('')}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={contrastBg || '#ffffff'}
-                  onChange={e => handleContrastBgChange(e.target.value)}
-                  className="w-6 h-6 rounded border border-[var(--color-figma-border)] cursor-pointer p-0"
-                />
-                <input
-                  type="text"
-                  value={contrastBg}
-                  onChange={e => handleContrastBgChange(e.target.value)}
-                  placeholder="e.g. #ffffff"
-                  className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
-                />
-              </div>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-                Default background color for WCAG contrast ratio checks in color pickers.
+          {showSection('workspace-behavior') && (
+            <Section title="Workspace behavior" tabBadge={searchQuery ? 'Preferences' : undefined}>
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                These defaults shape the day-to-day browsing experience in TokenManager. Change them when you want the library to feel denser or quieter while reviewing tokens.
               </p>
-            </div>
-
-            {/* Hide deprecated */}
-            <Toggle
-              checked={hideDeprecated}
-              onChange={handleHideDeprecatedChange}
-              label="Hide deprecated tokens"
-              description="Filter out tokens marked as deprecated from the token list"
-            />
-          </Section>}
-
-          {/* ---- Server Connection ---- */}
-          {showSection('connection') && <Section title="Server Connection" tabBadge={searchQuery ? 'Connection' : undefined}>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Local server URL</label>
-              <span className={`flex items-center gap-1 text-[10px] font-medium ${connected ? 'text-[var(--color-figma-success)]' : checking ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full inline-block ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
-                {connected ? 'Connected' : checking ? 'Checking\u2026' : 'Disconnected'}
-              </span>
-            </div>
-            <input
-              type="text"
-              value={serverUrlInput}
-              onChange={e => { setServerUrlInput(e.target.value); setConnectResult(null); }}
-              onFocus={e => e.target.select()}
-              onKeyDown={async e => {
-                if (e.key === 'Enter') {
-                  const url = serverUrlInput.trim() || 'http://localhost:9400';
-                  const ok = await updateServerUrlAndConnect(url);
-                  setConnectResult(ok ? 'ok' : 'fail');
-                }
-              }}
-              placeholder="http://localhost:9400"
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-            />
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Run <span className="font-mono">npm start</span> in the TokenManager directory, then press Enter or click Connect.
-            </p>
-            {connectResult === 'ok' && (
-              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-                Connected successfully
-              </div>
-            )}
-            {connectResult === 'fail' && (
-              <div className="text-[10px] text-[var(--color-figma-error)]">
-                <div className="flex items-center gap-1.5 font-medium mb-0.5">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                  Cannot reach server
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[var(--color-figma-text)]">Density</span>
+                    {density !== 'comfortable' && (
+                      <button
+                        onClick={() => handleDensityChange('comfortable')}
+                        className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Controls row height in token lists and inspectors</span>
                 </div>
-                <ul className="text-[var(--color-figma-text-secondary)] leading-relaxed list-disc list-inside space-y-0.5">
-                  <li>Run <span className="font-mono">npm start</span> in the TokenManager directory</li>
-                  <li>Check the URL matches your server (default: port 9400)</li>
-                  <li>Make sure no firewall is blocking localhost</li>
-                </ul>
+                <SegmentedControl
+                  options={[
+                    { value: 'compact' as Density, label: 'Compact' },
+                    { value: 'comfortable' as Density, label: 'Comfortable' },
+                  ]}
+                  value={density}
+                  onChange={handleDensityChange}
+                />
               </div>
-            )}
-            <div className="flex gap-2">
-              <button
-                onClick={async () => {
-                  const defaultUrl = 'http://localhost:9400';
-                  setServerUrlInput(defaultUrl);
-                  setConnectResult(null);
-                  const ok = await updateServerUrlAndConnect(defaultUrl);
-                  setConnectResult(ok ? 'ok' : 'fail');
-                }}
-                disabled={checking}
-                title="Reset server URL to http://localhost:9400"
-                className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] disabled:opacity-50 transition-colors whitespace-nowrap"
-              >
-                Reset to default
-              </button>
-              <button
-                onClick={async () => {
-                  const url = serverUrlInput.trim() || 'http://localhost:9400';
-                  const ok = await updateServerUrlAndConnect(url);
-                  setConnectResult(ok ? 'ok' : 'fail');
-                }}
-                disabled={checking}
-                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-opacity"
-              >
-                {checking ? 'Connecting\u2026' : 'Connect'}
-              </button>
-            </div>
-          </Section>}
+              <Toggle
+                checked={hideDeprecated}
+                onChange={handleHideDeprecatedChange}
+                label="Hide deprecated tokens"
+                description="Keeps superseded tokens out of the main list so active options stay easier to scan."
+              />
+            </Section>
+          )}
 
-          {/* ---- Export Defaults ---- */}
-          {showSection('export-defaults') && <Section title="Export Defaults" defaultOpen={true} tabBadge={searchQuery ? 'Export' : undefined}>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-[var(--color-figma-text)]">Default platforms</span>
-                {!(exportPlatforms.size === 1 && exportPlatforms.has('css')) && (
-                  <button
-                    onClick={() => {
-                      const defaultPlatforms = new Set(['css']);
-                      setExportPlatforms(defaultPlatforms);
-                      lsSetJson(STORAGE_KEYS.EXPORT_PLATFORMS, ['css']);
-                    }}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Reset to default
-                  </button>
-                )}
+          {showSection('color-copy-defaults') && (
+            <Section title="Color and copy defaults" tabBadge={searchQuery ? 'Preferences' : undefined}>
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                Use these when you want copied values and color previews to match the format your team reaches for most often.
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[var(--color-figma-text)]">Color format</span>
+                    {colorFormat !== 'hex' && (
+                      <button
+                        onClick={() => handleColorFormatChange('hex')}
+                        className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Default display format for color values across the UI</span>
+                </div>
+                <SegmentedControl
+                  options={[
+                    { value: 'hex' as ColorFormat, label: 'HEX' },
+                    { value: 'rgb' as ColorFormat, label: 'RGB' },
+                    { value: 'hsl' as ColorFormat, label: 'HSL' },
+                    { value: 'oklch' as ColorFormat, label: 'OKLCH' },
+                    { value: 'p3' as ColorFormat, label: 'P3' },
+                  ]}
+                  value={colorFormat}
+                  onChange={handleColorFormatChange}
+                />
               </div>
-              <div className="flex flex-wrap gap-1">
-                {PLATFORMS.map(platform => (
-                  <button
-                    key={platform.id}
-                    onClick={() => handleExportPlatformToggle(platform.id)}
-                    className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
-                      exportPlatforms.has(platform.id)
-                        ? 'bg-[var(--color-figma-accent)] text-white border-[var(--color-figma-accent)]'
-                        : 'text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'
-                    }`}
-                    title={platform.description}
-                  >
-                    {platform.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-tertiary,var(--color-figma-bg-secondary))] px-2 py-1.5">
+                <div className="h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)]" style={{ backgroundColor: '#3B82F6' }} />
+                <span className="shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">Sample</span>
+                <span className="truncate select-all font-mono text-[10px] text-[var(--color-figma-text)]">{formatHexAs('#3B82F6', colorFormat)}</span>
               </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-[var(--color-figma-text)]">CSS selector</span>
-                {cssSelector !== ':root' && (
-                  <button
-                    onClick={() => handleCssSelectorChange(':root')}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Reset to :root
-                  </button>
-                )}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[var(--color-figma-text)]">Preferred copy format</span>
+                    {preferredCopyFormat !== 'css-var' && (
+                      <button
+                        onClick={() => handlePreferredCopyFormatChange('css-var')}
+                        className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Default output for the copy shortcut and quick copy actions</span>
+                </div>
+                <SegmentedControl
+                  options={[
+                    { value: 'css-var' as PreferredCopyFormat, label: 'CSS' },
+                    { value: 'dtcg-ref' as PreferredCopyFormat, label: '{ref}' },
+                    { value: 'scss' as PreferredCopyFormat, label: '$scss' },
+                    { value: 'raw' as PreferredCopyFormat, label: 'Value' },
+                    { value: 'json' as PreferredCopyFormat, label: 'DTCG' },
+                  ]}
+                  value={preferredCopyFormat}
+                  onChange={handlePreferredCopyFormatChange}
+                />
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">Contrast background</span>
+                  {contrastBg && (
+                    <button
+                      onClick={() => handleContrastBgChange('')}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={contrastBg || '#ffffff'}
+                    onChange={e => handleContrastBgChange(e.target.value)}
+                    className="h-6 w-6 cursor-pointer rounded border border-[var(--color-figma-border)] p-0"
+                  />
+                  <input
+                    type="text"
+                    value={contrastBg}
+                    onChange={e => handleContrastBgChange(e.target.value)}
+                    placeholder="e.g. #ffffff"
+                    className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                  />
+                </div>
+                <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                  Used only for contrast checks in color pickers and previews. Leave empty to use the plugin default background.
+                </p>
+              </div>
+            </Section>
+          )}
+
+          {showSection('connection') && (
+            <Section title="Local server connection" tabBadge={searchQuery ? 'Connection' : undefined}>
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                You only need this when the plugin should read token files from your machine, sync changes back to disk, or run server-backed tooling such as lint configuration.
+              </p>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Server URL</label>
+                <span className={`flex items-center gap-1 text-[10px] font-medium ${connected ? 'text-[var(--color-figma-success)]' : checking ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
+                  {connected ? 'Connected' : checking ? 'Checking\u2026' : 'Disconnected'}
+                </span>
               </div>
               <input
                 type="text"
-                value={cssSelector}
-                onChange={e => handleCssSelectorChange(e.target.value)}
-                placeholder=":root"
-                className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
+                value={serverUrlInput}
+                onChange={e => { setServerUrlInput(e.target.value); setConnectResult(null); }}
+                onFocus={e => e.target.select()}
+                onKeyDown={async e => {
+                  if (e.key === 'Enter') {
+                    const url = serverUrlInput.trim() || 'http://localhost:9400';
+                    const ok = await updateServerUrlAndConnect(url);
+                    setConnectResult(ok ? 'ok' : 'fail');
+                  }
+                }}
+                placeholder="http://localhost:9400"
+                className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               />
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-                CSS selector wrapping exported custom properties (default: <code className="font-mono">:root</code>).
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                Run <span className="font-mono">npm start</span> in the TokenManager directory, then connect here. The default local server is <span className="font-mono">http://localhost:9400</span>.
               </p>
-            </div>
-          </Section>}
-
-          {/* ---- Guided Setup ---- */}
-          {showSection('guided-setup') && <Section title="Guided Setup" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Re-open the guided system setup flow to connect the server, create a foundation set, map semantic roles, and add theme modes.
-            </p>
-            <button
-              onClick={onRestartGuidedSetup}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-              </svg>
-              Open guided setup
-            </button>
-          </Section>}
-
-          {/* ---- Undo History ---- */}
-          {showSection('undo') && <Section title="Undo History" defaultOpen={true} tabBadge={searchQuery ? 'Advanced' : undefined}>
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] block">Max undo steps</span>
-                {undoMaxHistory !== 20 && (
-                  <button
-                    onClick={() => { setUndoMaxHistory(20); }}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Reset to 20
-                  </button>
-                )}
-              </div>
-              <input
-                type="number"
-                min={1}
-                max={200}
-                value={undoMaxHistory}
-                onChange={e => {
-                  const v = Math.max(1, Math.min(200, Math.round(Number(e.target.value) || 20)));
-                  setUndoMaxHistory(v);
-                }}
-                className="w-16 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] text-right focus-visible:border-[var(--color-figma-accent)]"
-              />
-            </div>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Number of undo actions to keep in history (1–200). Default is 20.
-            </p>
-          </Section>}
-
-          {/* ---- Backup & Restore ---- */}
-          {showSection('backup') && <Section title="Backup & Restore" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Export your UI preferences, export defaults, server URL, and per-set sort/filter settings to a JSON file.
-              Import on another machine or after clearing browser data to restore configuration.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={handleExportSettings}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                </svg>
-                Export settings
-              </button>
-              <button
-                onClick={() => { setImportError(null); setImportSuccess(false); importFileRef.current?.click(); }}
-                disabled={importLoading}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {importLoading ? (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                  </svg>
-                ) : (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                  </svg>
-                )}
-                {importLoading ? 'Parsing…' : 'Import settings'}
-              </button>
-              <input
-                ref={importFileRef}
-                type="file"
-                accept=".json,application/json"
-                className="sr-only"
-                onChange={e => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImportFile(file);
-                  e.target.value = '';
-                }}
-              />
-            </div>
-            {importSuccess && (
-              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-                Settings imported — reloading…
-              </div>
-            )}
-            {importError && (
-              <p className="text-[10px] text-[var(--color-figma-error)]">{importError}</p>
-            )}
-            {pendingImport && (
-              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                <div className="flex items-center justify-between px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                    Preview changes ({pendingImport.diff.length} setting{pendingImport.diff.length !== 1 ? 's' : ''})
-                  </span>
-                  <button
-                    onClick={() => { setPendingImport(null); setConfirmingReload(false); }}
-                    className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                    aria-label="Dismiss preview"
-                  >
-                    ✕
-                  </button>
+              {connectResult === 'ok' && (
+                <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  Connected successfully
                 </div>
-                <div className="max-h-48 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-                  {pendingImport.diff.map(entry => (
-                    <div key={entry.key} className="px-2 py-1.5 flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[9px] font-medium px-1 rounded ${entry.status === 'added' ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'}`}>
-                          {entry.status === 'added' ? 'NEW' : 'CHANGED'}
-                        </span>
-                        <span className="text-[10px] text-[var(--color-figma-text)] font-medium truncate">{entry.label}</span>
-                      </div>
-                      {entry.status === 'changed' && entry.oldValue !== null && (
-                        <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate pl-0.5">
-                          <span className="text-[var(--color-figma-error)]">−</span> {entry.oldValue}
-                        </span>
-                      )}
-                      <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate pl-0.5">
-                        <span className="text-[var(--color-figma-success)]">+</span> {entry.newValue}
-                      </span>
-                    </div>
+              )}
+              {connectResult === 'fail' && (
+                <div className="text-[10px] text-[var(--color-figma-error)]">
+                  <div className="mb-0.5 flex items-center gap-1.5 font-medium">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    Cannot reach server
+                  </div>
+                  <ul className="list-inside list-disc space-y-0.5 leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    <li>Run <span className="font-mono">npm start</span> in the TokenManager directory</li>
+                    <li>Check the URL matches your server address and port</li>
+                    <li>Make sure nothing is blocking localhost traffic</li>
+                  </ul>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    const defaultUrl = 'http://localhost:9400';
+                    setServerUrlInput(defaultUrl);
+                    setConnectResult(null);
+                    const ok = await updateServerUrlAndConnect(defaultUrl);
+                    setConnectResult(ok ? 'ok' : 'fail');
+                  }}
+                  disabled={checking}
+                  title="Reset server URL to http://localhost:9400"
+                  className="whitespace-nowrap rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                >
+                  Reset to default
+                </button>
+                <button
+                  onClick={async () => {
+                    const url = serverUrlInput.trim() || 'http://localhost:9400';
+                    const ok = await updateServerUrlAndConnect(url);
+                    setConnectResult(ok ? 'ok' : 'fail');
+                  }}
+                  disabled={checking}
+                  className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white transition-opacity hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >
+                  {checking ? 'Connecting\u2026' : 'Connect'}
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {showSection('export-defaults') && (
+            <Section title="Export defaults" tabBadge={searchQuery ? 'Export' : undefined}>
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                These defaults pre-fill the Export panel so routine handoff tasks start from the most common platform mix and selector structure.
+              </p>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">Default platforms</span>
+                  {!(exportPlatforms.size === 1 && exportPlatforms.has('css')) && (
+                    <button
+                      onClick={() => {
+                        const defaultPlatforms = new Set(['css']);
+                        setExportPlatforms(defaultPlatforms);
+                        lsSetJson(STORAGE_KEYS.EXPORT_PLATFORMS, ['css']);
+                      }}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Reset to default
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {PLATFORMS.map(platform => (
+                    <button
+                      key={platform.id}
+                      onClick={() => handleExportPlatformToggle(platform.id)}
+                      className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
+                        exportPlatforms.has(platform.id)
+                          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
+                          : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+                      }`}
+                      title={platform.description}
+                    >
+                      {platform.label}
+                    </button>
                   ))}
                 </div>
-                {confirmingReload && (
-                  <div className="px-2 py-2 border-t border-[var(--color-figma-border)] bg-[#FFF3CD]/30 dark:bg-amber-900/20 flex items-start gap-1.5">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px text-amber-500" aria-hidden="true">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-                      The plugin will reload immediately. Any unsaved token edits, in-progress theme changes, or expanded panel state will be lost.
-                    </p>
-                  </div>
-                )}
-                <div className="flex gap-2 p-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                  <button
-                    onClick={() => { if (confirmingReload) { setConfirmingReload(false); } else { setPendingImport(null); } }}
-                    className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] transition-colors"
-                  >
-                    {confirmingReload ? 'Back' : 'Cancel'}
-                  </button>
-                  <button
-                    onClick={handleApplyImport}
-                    className={`flex-1 px-3 py-1.5 rounded text-white text-[11px] font-medium transition-colors ${confirmingReload ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent-hover)]'}`}
-                  >
-                    {confirmingReload ? 'Confirm & reload' : 'Apply & reload'}
-                  </button>
-                </div>
               </div>
-            )}
-          </Section>}
-
-          {/* ---- Validation ---- */}
-          {showSection('validation') && <Section title="Validation" defaultOpen={false} tabBadge={searchQuery ? 'Export' : undefined}>
-            {!connected ? (
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Connect to the local server to configure lint rules.
-              </p>
-            ) : !lintConfig ? (
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] animate-pulse">Loading lint config…</p>
-            ) : (
-              <LintConfigPanel
-                config={lintConfig}
-                saving={lintSaving}
-                onUpdateRule={lintUpdateRule}
-                onApplyConfig={lintApplyConfig}
-                onReset={lintResetDefaults}
-                onLintRefresh={() => {}}
-              />
-            )}
-          </Section>}
-
-          {/* ---- Danger Zone ---- */}
-          {showSection('danger') && <Section title="Danger Zone" defaultOpen={false} danger tabBadge={searchQuery ? 'Advanced' : undefined}>
-            {!showClearConfirm ? (
-              <>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Permanently deletes all tokens, themes, and sets. This cannot be undone.
-                </p>
-                <button
-                  onClick={() => { setShowClearConfirm(true); setClearConfirmText(''); }}
-                  className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-error)] text-[var(--color-figma-error)] text-[11px] font-medium hover:bg-[var(--color-figma-error)] hover:text-white transition-colors"
-                >
-                  Clear all data\u2026
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Type <span className="font-mono font-bold text-[var(--color-figma-error)]">DELETE</span> to confirm.
-                </p>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">CSS selector</span>
+                  {cssSelector !== ':root' && (
+                    <button
+                      onClick={() => handleCssSelectorChange(':root')}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Reset to :root
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
-                  value={clearConfirmText}
-                  onChange={e => setClearConfirmText(e.target.value)}
-                  placeholder="DELETE"
-                  autoFocus
-                  aria-label="Type DELETE to confirm"
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-error)] text-[var(--color-figma-text)] text-[11px] outline-none font-mono"
+                  value={cssSelector}
+                  onChange={e => handleCssSelectorChange(e.target.value)}
+                  placeholder=":root"
+                  className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                 />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setShowClearConfirm(false); setClearConfirmText(''); }}
-                    className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleClearAll}
-                    disabled={clearConfirmText !== 'DELETE' || clearing}
-                    className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-error)] text-white text-[11px] font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
-                  >
-                    {clearing ? 'Clearing\u2026' : 'Clear all data'}
-                  </button>
+                <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                  Wraps exported custom properties. Leave this at <code className="font-mono">:root</code> unless your codebase expects a scoped selector.
+                </p>
+              </div>
+            </Section>
+          )}
+
+          {showSection('backup') && (
+            <Section title="Backup and restore" defaultOpen={false} tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                Use this when moving to another machine, recovering after browser storage is cleared, or snapshotting your preferences before making bigger workflow changes.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleExportSettings}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                  </svg>
+                  Export settings
+                </button>
+                <button
+                  onClick={() => { setImportError(null); setImportSuccess(false); importFileRef.current?.click(); }}
+                  disabled={importLoading}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {importLoading ? (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                  ) : (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                  )}
+                  {importLoading ? 'Parsing\u2026' : 'Import settings'}
+                </button>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".json,application/json"
+                  className="sr-only"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImportFile(file);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+              {importSuccess && (
+                <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  Settings imported, reloading\u2026
                 </div>
-              </>
-            )}
-          </Section>}
+              )}
+              {importError && (
+                <p className="text-[10px] text-[var(--color-figma-error)]">{importError}</p>
+              )}
+              {pendingImport && (
+                <div className="overflow-hidden rounded border border-[var(--color-figma-border)]">
+                  <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                      Preview changes ({pendingImport.diff.length} setting{pendingImport.diff.length !== 1 ? 's' : ''})
+                    </span>
+                    <button
+                      onClick={() => { setPendingImport(null); setConfirmingReload(false); }}
+                      className="text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                      aria-label="Dismiss preview"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                    {pendingImport.diff.map(entry => (
+                      <div key={entry.key} className="flex flex-col gap-0.5 px-2 py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`rounded px-1 text-[9px] font-medium ${entry.status === 'added' ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'}`}>
+                            {entry.status === 'added' ? 'NEW' : 'CHANGED'}
+                          </span>
+                          <span className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">{entry.label}</span>
+                        </div>
+                        {entry.status === 'changed' && entry.oldValue !== null && (
+                          <span className="truncate pl-0.5 font-mono text-[9px] text-[var(--color-figma-text-secondary)]">
+                            <span className="text-[var(--color-figma-error)]">-</span> {entry.oldValue}
+                          </span>
+                        )}
+                        <span className="truncate pl-0.5 font-mono text-[9px] text-[var(--color-figma-text-secondary)]">
+                          <span className="text-[var(--color-figma-success)]">+</span> {entry.newValue}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {confirmingReload && (
+                    <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[#FFF3CD]/30 px-2 py-2 dark:bg-amber-900/20">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-px shrink-0 text-amber-500" aria-hidden="true">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                      <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                        The plugin reloads immediately after import. Unsaved token edits, theme changes, and expanded panel state will be lost.
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                    <button
+                      onClick={() => { if (confirmingReload) { setConfirmingReload(false); } else { setPendingImport(null); } }}
+                      className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                    >
+                      {confirmingReload ? 'Back' : 'Cancel'}
+                    </button>
+                    <button
+                      onClick={handleApplyImport}
+                      className={`flex-1 rounded px-3 py-1.5 text-[11px] font-medium text-white transition-colors ${confirmingReload ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent-hover)]'}`}
+                    >
+                      {confirmingReload ? 'Confirm & reload' : 'Apply & reload'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Section>
+          )}
+
+          {showSection('guided-setup') && (
+            <Section title="Guided setup" defaultOpen={false} tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                Re-open the onboarding flow when you want help reconnecting the server, creating a foundation set, mapping semantic roles, or rebuilding your theme setup from scratch.
+              </p>
+              <button
+                onClick={onRestartGuidedSetup}
+                className="flex w-full items-center justify-center gap-1.5 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                </svg>
+                Open guided setup
+              </button>
+            </Section>
+          )}
+
+          {showSection('validation') && (
+            <Section title="Validation rules" defaultOpen={false} tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                Only change this when your team needs different linting rules than the defaults. These rules are stored on the local server, not in the Figma plugin itself.
+              </p>
+              {!connected ? (
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Connect to the local server first to inspect or change lint rules.
+                </p>
+              ) : !lintConfig ? (
+                <p className="animate-pulse text-[10px] text-[var(--color-figma-text-secondary)]">Loading lint config\u2026</p>
+              ) : (
+                <LintConfigPanel
+                  config={lintConfig}
+                  saving={lintSaving}
+                  onUpdateRule={lintUpdateRule}
+                  onApplyConfig={lintApplyConfig}
+                  onReset={lintResetDefaults}
+                  onLintRefresh={() => {}}
+                />
+              )}
+            </Section>
+          )}
+
+          {showSection('undo') && (
+            <Section title="Undo history" defaultOpen={false} tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+              <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                Increase this only if you regularly make long editing runs and need a deeper local undo stack. Higher values keep more history in browser storage.
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="block text-[10px] text-[var(--color-figma-text-secondary)]">Max undo steps</span>
+                  {undoMaxHistory !== 20 && (
+                    <button
+                      onClick={() => { setUndoMaxHistory(20); }}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Reset to 20
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={200}
+                  value={undoMaxHistory}
+                  onChange={e => {
+                    const v = Math.max(1, Math.min(200, Math.round(Number(e.target.value) || 20)));
+                    setUndoMaxHistory(v);
+                  }}
+                  className="w-16 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-right text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                />
+              </div>
+            </Section>
+          )}
+
+          {showSection('danger') && (
+            <Section title="Danger zone" defaultOpen={false} danger tabBadge={searchQuery ? 'Advanced / Recovery' : undefined}>
+              {!showClearConfirm ? (
+                <>
+                  <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    This permanently deletes all tokens, themes, and sets from your local TokenManager workspace. It does not just reset preferences, and it cannot be undone.
+                  </p>
+                  <button
+                    onClick={() => { setShowClearConfirm(true); setClearConfirmText(''); }}
+                    className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
+                  >
+                    Clear all data\u2026
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    Type <span className="font-mono font-bold text-[var(--color-figma-error)]">DELETE</span> to confirm permanent removal of the entire local workspace.
+                  </p>
+                  <input
+                    type="text"
+                    value={clearConfirmText}
+                    onChange={e => setClearConfirmText(e.target.value)}
+                    placeholder="DELETE"
+                    autoFocus
+                    aria-label="Type DELETE to confirm"
+                    className="w-full rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowClearConfirm(false); setClearConfirmText(''); }}
+                      className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleClearAll}
+                      disabled={clearConfirmText !== 'DELETE' || clearing}
+                      className="flex-1 rounded bg-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                    >
+                      {clearing ? 'Clearing\u2026' : 'Clear all data'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </Section>
+          )}
 
         </div>
       </div>
