@@ -84,6 +84,24 @@ describe('markdown store', () => {
     expect(backlog).toContain('- [ ] new item');
   });
 
+  it('keeps distinct long items that share the same prefix', async () => {
+    const { root, store } = await makeStoreFixture();
+    const sharedPrefix =
+      'A very long backlog item title that intentionally shares a large common prefix so the old dedupe logic would collide';
+    await writeFile(
+      path.join(root, 'backlog-inbox.md'),
+      `- [ ] ${sharedPrefix} alpha ending\n- [ ] ${sharedPrefix} beta ending\n`,
+      'utf8',
+    );
+
+    const result = await store.drainInbox();
+    const backlog = await readFile(path.join(root, 'backlog.md'), 'utf8');
+
+    expect(result.skippedDuplicates).toBe(0);
+    expect(backlog).toContain(`${sharedPrefix} alpha ending`);
+    expect(backlog).toContain(`${sharedPrefix} beta ending`);
+  });
+
   it('archives done items and trims progress', async () => {
     const { root, store } = await makeStoreFixture();
     await writeFile(path.join(root, 'backlog.md'), '- [x] done one\n- [x] done two\n', 'utf8');

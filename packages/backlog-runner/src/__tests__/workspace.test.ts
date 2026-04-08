@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -12,6 +12,8 @@ async function makeRepo() {
   const root = await mkdtemp(path.join(tmpdir(), 'backlog-worktree-test-'));
   tempDirs.push(root);
   await mkdir(path.join(root, 'scripts/backlog'), { recursive: true });
+  await mkdir(path.join(root, 'packages/core/src'), { recursive: true });
+  await mkdir(path.join(root, 'packages/core/node_modules/.bin'), { recursive: true });
   await mkdir(path.join(root, 'node_modules'), { recursive: true });
   await writeFile(path.join(root, 'backlog.md'), '- [ ] item\n', 'utf8');
   await writeFile(path.join(root, 'backlog-inbox.md'), '', 'utf8');
@@ -22,6 +24,7 @@ async function makeRepo() {
   await writeFile(path.join(root, 'scripts/backlog/product.md'), 'product', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/ux.md'), 'ux', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/code.md'), 'code', 'utf8');
+  await writeFile(path.join(root, 'packages/core/src/index.ts'), 'export const example = true;\n', 'utf8');
   await writeFile(path.join(root, 'feature.txt'), 'before\n', 'utf8');
 
   const runner = createCommandRunner();
@@ -68,6 +71,9 @@ describe('git worktree strategy', () => {
     const strategy = new GitWorktreeWorkspaceStrategy(runner, config);
     const session = await strategy.setup();
 
+    const packageNodeModules = path.join(session.cwd, 'packages/core/node_modules');
+    expect((await lstat(packageNodeModules)).isSymbolicLink()).toBe(true);
+
     await writeFile(path.join(session.cwd, 'feature.txt'), 'after\n', 'utf8');
     await writeFile(
       path.join(session.cwd, 'scripts/backlog/progress.txt'),
@@ -81,5 +87,23 @@ describe('git worktree strategy', () => {
     expect(merge.ok).toBe(true);
     expect(await readFile(path.join(root, 'feature.txt'), 'utf8')).toBe('after\n');
     expect(await readFile(path.join(root, 'scripts/backlog/progress.txt'), 'utf8')).toContain('## entry');
+  }, 15000);
+
+  it('fails cleanly on merge conflicts without overwriting main repo changes', async () => {
+    const { root, config, runner } = await makeRepo();
+    const strategy = new GitWorktreeWorkspaceStrategy(runner, config);
+    const session = await strategy.setup();
+
+    await writeFile(path.join(session.cwd, 'feature.txt'), 'worktree change\n', 'utf8');
+    await writeFile(path.join(root, 'feature.txt'), 'main change\n', 'utf8');
+    await runner.run('git', ['add', 'feature.txt'], { cwd: root });
+    await runner.run('git', ['commit', '-m', 'main repo change'], { cwd: root });
+
+    const merge = await session.merge('chore(backlog): done – conflict item');
+    await session.teardown();
+
+    expect(merge.ok).toBe(false);
+    expect(merge.reason).toBe('Cherry-pick conflict');
+    expect(await readFile(path.join(root, 'feature.txt'), 'utf8')).toBe('main change\n');
   }, 15000);
 });

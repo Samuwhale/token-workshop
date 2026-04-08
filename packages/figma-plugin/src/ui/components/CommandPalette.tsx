@@ -11,6 +11,7 @@ import { fuzzyScore } from '../shared/fuzzyMatch';
 // ---------------------------------------------------------------------------
 
 const RECENT_MAX = 5;
+const COMMAND_SECTION_ORDER = ['Tokens', 'Generators', 'Sets', 'Views', 'Apply', 'Themes', 'Audit', 'History', 'Export'] as const;
 
 interface RecentEntry { id: string; label: string }
 
@@ -71,6 +72,15 @@ interface CommandPaletteProps {
   onMoveToken?: (path: string) => void;
   onClose: () => void;
   initialQuery?: string;
+}
+
+function compareCommandSections(a: string, b: string): number {
+  const aIndex = COMMAND_SECTION_ORDER.indexOf(a as typeof COMMAND_SECTION_ORDER[number]);
+  const bIndex = COMMAND_SECTION_ORDER.indexOf(b as typeof COMMAND_SECTION_ORDER[number]);
+  if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+  if (aIndex === -1) return 1;
+  if (bIndex === -1) return -1;
+  return aIndex - bIndex;
 }
 
 // ---------------------------------------------------------------------------
@@ -310,8 +320,8 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
     }
 
     const result: Array<{ header: string; items: Command[] }> = [];
-    if (recentCmds.length > 0) result.push({ header: 'Recent', items: recentCmds });
-    for (const [header, items] of categories) {
+    if (recentCmds.length > 0) result.push({ header: 'Recently used', items: recentCmds });
+    for (const [header, items] of [...categories.entries()].sort((a, b) => compareCommandSections(a[0], b[0]))) {
       result.push({ header, items });
     }
     return result;
@@ -447,7 +457,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             onKeyDown={handleKeyDown}
             placeholder={isTokenMode
               ? (searchAllSets ? 'Search all sets… (type:color, has:ref, path:brand)' : 'Search tokens… (type:color, has:ref, path:brand)')
-              : 'Search commands… (type > for tokens)'}
+              : 'Search expert actions… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
             className="flex-1 bg-transparent outline-none text-[12px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
@@ -479,6 +489,12 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </kbd>
           )}
         </div>
+
+        {!isTokenMode && !query.trim() && (
+          <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)]">
+            Power-user actions live here. Use the workspace tabs and Utilities menu for regular navigation.
+          </div>
+        )}
 
         {/* Qualifier hint chips — persistent reference row */}
         {isTokenMode && (
@@ -955,12 +971,26 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                       onMouseEnter={() => setActiveIdx(flatIdx)}
                       onClick={() => executeCommand(cmd)}
                     >
-                      <span className="text-[11px] font-medium flex-1">{cmd.label}</span>
-                      {cmd.shortcut && (
-                        <kbd className={`text-[10px] border rounded px-1 py-0.5 shrink-0 ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
-                          {cmd.shortcut}
-                        </kbd>
-                      )}
+                      <div className="flex min-w-0 flex-1 flex-col gap-0">
+                        <span className="text-[11px] font-medium">{cmd.label}</span>
+                        {cmd.description && (
+                          <span title={cmd.description} className={`text-[10px] truncate ${flatIdx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                            {cmd.description}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {section.header === 'Recently used' && cmd.category && (
+                          <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                            {cmd.category}
+                          </span>
+                        )}
+                        {cmd.shortcut && (
+                          <kbd className={`text-[10px] border rounded px-1 py-0.5 ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                            {cmd.shortcut}
+                          </kbd>
+                        )}
+                      </div>
                     </button>
                   );
                 })}
@@ -995,11 +1025,18 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                       </span>
                     )}
                   </div>
-                  {cmd.shortcut && (
-                    <kbd className={`text-[10px] border rounded px-1 py-0.5 shrink-0 ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
-                      {cmd.shortcut}
-                    </kbd>
-                  )}
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {cmd.category && (
+                      <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                        {cmd.category}
+                      </span>
+                    )}
+                    {cmd.shortcut && (
+                      <kbd className={`text-[10px] border rounded px-1 py-0.5 ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                        {cmd.shortcut}
+                      </kbd>
+                    )}
+                  </div>
                 </button>
               ))}
             </>
@@ -1022,7 +1059,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             <>
               <span>↑↓ navigate</span>
               <span>↵ select</span>
-              <span>type &gt; to search tokens</span>
+              <span>type &gt; for token search</span>
               <span>ESC close</span>
             </>
           )}

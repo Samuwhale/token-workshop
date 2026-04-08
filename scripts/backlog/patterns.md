@@ -142,6 +142,8 @@ Add new patterns here when discovered — keep entries general and reusable, not
 
 - **Primary authoring view with advanced escape hatch**: When a panel serves both beginner authoring and expert configuration, make the default surface narrate the primary job step-by-step (create, define, map, preview) and move expert logic behind an explicit `Advanced…` route with a clear back action. Keep any imperative handles stable and repoint them to the new internal view state so command palette and app-shell integrations do not churn.
 
+- **Command palette as power layer, not navigation backup**: Once workspace tabs, section tabs, and utility menus make primary navigation obvious, trim the command palette down to expert actions, contextual operations, toggles, undo/redo, and other speed paths. Do not mirror basic destinations like settings, help, or workspace tabs there. Show categories in search results so the remaining commands still map cleanly to the current IA.
+
 - **Keep secondary workflows out of default bulk actions**: If a surface mixes a primary user job with an expert/developer workflow, do not merely relabel the advanced part. Collapse it by default, exclude it from the default compare/apply actions, and only include it in combined review flows after the user has explicitly opened or loaded it. This preserves the main mental model without removing power-user capability.
 
 - **Family-first import source selection**: When an import surface supports very different source families, split the selector into two steps: pick the family first, then show only the formats within that family. Keep file drag-and-drop auto-detection at the panel level so the progressive disclosure UI does not need to own parsing logic or duplicate source handlers.

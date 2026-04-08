@@ -2,6 +2,7 @@ import type { AgentRunRequest, CommandRunner, ToolValidationResult } from '../ty
 import {
   assertAgentSuccess,
   normalizeAgentResult,
+  smokeStructuredOutput,
   simpleVersionValidation,
   type ProviderAdapter,
   withTempDir,
@@ -10,8 +11,47 @@ import {
 
 export const geminiProvider: ProviderAdapter = {
   tool: 'gemini',
-  validate(commandRunner: CommandRunner): Promise<ToolValidationResult> {
-    return simpleVersionValidation(commandRunner, 'gemini', 'gemini');
+  structuredOutputMode: 'best-effort',
+  async validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult> {
+    const base = await simpleVersionValidation(commandRunner, 'gemini', 'gemini');
+    if (!base.ok) return base;
+
+    const smoke = await withTempDir('backlog-gemini-smoke-', async dir => {
+      const policyFile = await writeTempFile(dir, 'policy.md', 'Return only the requested JSON object.');
+      return smokeStructuredOutput(
+        () =>
+          commandRunner.run(
+            'gemini',
+            [
+              '--yolo',
+              '--prompt',
+              'Execute the instructions from stdin.',
+              '--output-format',
+              'json',
+              ...(model ? ['--model', model] : []),
+              '--policy',
+              policyFile,
+            ],
+            {
+              cwd: dir,
+              input: 'Return exactly this JSON object and nothing else: {"status":"done","item":"smoke","note":"ok"}',
+              ignoreFailure: true,
+            },
+          ),
+        'best-effort',
+        'gemini',
+      );
+    });
+
+    return {
+      ok: base.ok && smoke.ok,
+      messages: [
+        ...base.messages,
+        '  ⚠ gemini CLI uses best-effort JSON parsing (no schema-enforced structured output)',
+        ...smoke.messages,
+      ],
+      structuredOutputMode: 'best-effort',
+    };
   },
   async run(commandRunner, request: AgentRunRequest) {
     return withTempDir('backlog-gemini-', async dir => {
@@ -37,7 +77,11 @@ export const geminiProvider: ProviderAdapter = {
         },
       );
 
-      return assertAgentSuccess(normalizeAgentResult(result.stdout, result.stderr), result);
+      return assertAgentSuccess(
+        normalizeAgentResult(result.stdout, result.stderr, 'best-effort'),
+        result,
+        'best-effort',
+      );
     });
   },
 };

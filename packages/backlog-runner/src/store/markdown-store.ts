@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { access, appendFile, readFile, rename, writeFile } from 'node:fs/promises';
 import { lockPath, withLock } from '../locks.js';
 import type {
@@ -8,11 +9,11 @@ import type {
   StoreCleanupResult,
 } from '../types.js';
 
-const PRIORITY_PATTERN = /^\- \[ \] \[(HIGH|P0|BUG)\]/;
-const READY_PATTERN = /^\- \[ \]/;
-const IN_PROGRESS_PATTERN = /^\- \[~\]/;
-const FAILED_PATTERN = /^\- \[!\]/;
-const DONE_PATTERN = /^\- \[x\]/;
+const PRIORITY_PATTERN = /^- \[ \] \[(HIGH|P0|BUG)\]/;
+const READY_PATTERN = /^- \[ \]/;
+const IN_PROGRESS_PATTERN = /^- \[~\]/;
+const FAILED_PATTERN = /^- \[!\]/;
+const DONE_PATTERN = /^- \[x\]/;
 
 function splitLines(value: string): string[] {
   return value.replace(/\r\n/g, '\n').split('\n');
@@ -38,7 +39,12 @@ async function atomicWrite(filePath: string, content: string): Promise<void> {
 }
 
 function itemSignature(line: string): string {
-  return line.replace(/^- \[.\] (?:\[(?:HIGH|P0|BUG)\] )?/, '').slice(0, 60);
+  const normalized = line
+    .replace(/^- \[.\] (?:\[(?:HIGH|P0|BUG)\] )?/, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+  return createHash('sha1').update(normalized).digest('hex');
 }
 
 export class MarkdownBacklogStore implements BacklogStore {

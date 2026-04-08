@@ -13,6 +13,49 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
+function shellEscape(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+async function validateCommandReadiness(
+  config: BacklogRunnerConfig,
+): Promise<{ ok: boolean; message: string }> {
+  const commandRunner = createCommandRunner();
+  const bashScriptMatch = config.validationCommand.match(/^\s*bash\s+([^\s]+)\s*$/);
+  if (bashScriptMatch) {
+    const scriptPath = bashScriptMatch[1]!;
+    const absoluteScriptPath = scriptPath.startsWith('/')
+      ? scriptPath
+      : `${config.projectRoot}/${scriptPath}`.replace(/\/\.\//g, '/');
+
+    if (!(await fileExists(absoluteScriptPath))) {
+      return { ok: false, message: '  ✗ validation command script not found' };
+    }
+
+    const syntaxCheck = await commandRunner.run('bash', ['-n', absoluteScriptPath], { ignoreFailure: true });
+    if (syntaxCheck.code !== 0) {
+      return { ok: false, message: '  ✗ validation command failed bash syntax check' };
+    }
+
+    return { ok: true, message: '  ✓ validation command script is present and syntactically valid' };
+  }
+
+  const firstToken = config.validationCommand.trim().split(/\s+/)[0];
+  if (!firstToken) {
+    return { ok: false, message: '  ✗ validation command is empty' };
+  }
+
+  const check = await commandRunner.runShell(`command -v ${shellEscape(firstToken)}`, {
+    cwd: config.projectRoot,
+    ignoreFailure: true,
+  });
+  if (check.code !== 0) {
+    return { ok: false, message: `  ✗ validation command executable '${firstToken}' not found` };
+  }
+
+  return { ok: true, message: `  ✓ validation command executable '${firstToken}' is available` };
+}
+
 export async function validateBacklogRunner(
   config: BacklogRunnerConfig,
   overrides: RunOverrides = {},
@@ -26,6 +69,11 @@ export async function validateBacklogRunner(
   messages.push(`  → Model: ${runOptions.model ?? 'CLI default'}`);
   if (runOptions.passModel !== runOptions.model) {
     messages.push(`  → Pass model: ${runOptions.passModel ?? 'CLI default'}`);
+  }
+  if (providerValidation.structuredOutputMode) {
+    messages.push(
+      `  → Structured output: ${providerValidation.structuredOutputMode === 'strict' ? 'strict' : 'best-effort'}`,
+    );
   }
 
   const requiredFiles = [
@@ -51,5 +99,11 @@ export async function validateBacklogRunner(
     messages.push((await fileExists(config.files.models)) ? '  ✓ models.json found' : '  ⚠ models.json not found');
   }
 
-  return { ok, messages };
+  const validationCommand = await validateCommandReadiness(config);
+  if (!validationCommand.ok) {
+    ok = false;
+  }
+  messages.push(validationCommand.message);
+
+  return { ok, messages, structuredOutputMode: providerValidation.structuredOutputMode };
 }

@@ -178,7 +178,7 @@ export async function checkCommandAuth(
 ): Promise<{ ok: boolean; message: string }> {
   const result = await commandRunner.run(command, args, { ignoreFailure: true });
   const combined = `${result.stdout}\n${result.stderr}`.trim();
-  if (result.code === 0 && okPattern.test(combined)) {
+  if (result.code === 0 && (!combined || okPattern.test(combined) || !isAuthFailure(combined))) {
     return { ok: true, message: `  ✓ ${command} auth ready` };
   }
 

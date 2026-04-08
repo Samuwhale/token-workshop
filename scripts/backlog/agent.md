@@ -20,6 +20,9 @@ Codebase patterns are already injected into your context — no need to read a s
    3. ESLint (must not introduce new errors above the pre-existing baseline).
    4. Headless UI validation (loads the built UI in a browser, checks for console errors;
       graceful skip if no browser is found).
+   The TypeScript backlog runner will execute the same command itself before it commits or
+   marks the backlog item done. Your own run is still expected so you can fix failures before
+   ending the session.
    Do NOT report success unless the script exits 0.
    Do NOT use `npx pnpm …` or `npx turbo …` — both fail in worktrees.
    - If any gate fails: fix the issue and re-run. If unfixable, revert your source changes.

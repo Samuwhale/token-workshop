@@ -20,9 +20,13 @@ class MemoryLogSink implements LogSink {
   }
 }
 
-function createFakeCommandRunner(root: string): CommandRunner {
+function createFakeCommandRunner(
+  root: string,
+  options: { validationOk?: boolean; calls?: string[] } = {},
+): CommandRunner {
   return {
-    async run(command: string): Promise<CommandResult> {
+    async run(command: string, args: string[]): Promise<CommandResult> {
+      options.calls?.push(`run:${command} ${args.join(' ')}`.trim());
       if (command === 'claude') {
         await writeFile(
           path.join(root, 'scripts/backlog/progress.txt'),
@@ -39,13 +43,22 @@ function createFakeCommandRunner(root: string): CommandRunner {
       }
 
       if (command === 'git') {
+        if (args[0] === 'status') {
+          return { code: 0, stdout: ' M feature.txt\n', stderr: '' };
+        }
+        if (args[0] === 'remote') {
+          return { code: 0, stdout: '', stderr: '' };
+        }
         return { code: 0, stdout: '', stderr: '' };
       }
 
       return { code: 0, stdout: '', stderr: '' };
     },
     async runShell(): Promise<CommandResult> {
-      return { code: 0, stdout: '', stderr: '' };
+      options.calls?.push(`shell:${options.validationOk === false ? 'fail' : 'pass'}`);
+      return options.validationOk === false
+        ? { code: 1, stdout: '', stderr: 'validation failed' }
+        : { code: 0, stdout: 'validation passed', stderr: '' };
     },
     async which(): Promise<string | null> {
       return '/usr/bin/mock';
@@ -108,15 +121,16 @@ afterEach(async () => {
 });
 
 describe('runner e2e', () => {
-  it('claims one item, runs the agent, and marks it done', async () => {
+  it('claims one item, validates it, and marks it done', async () => {
     const { root, config } = await makeFixture();
     const logSink = new MemoryLogSink();
+    const calls: string[] = [];
 
     await runBacklogRunner(
       config,
       {},
       {
-        commandRunner: createFakeCommandRunner(root),
+        commandRunner: createFakeCommandRunner(root, { calls }),
         createLogSink: async () => logSink,
         sleep: async () => undefined,
       },
@@ -124,6 +138,28 @@ describe('runner e2e', () => {
 
     expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [x] test item');
     expect(await readFile(path.join(root, 'scripts/backlog/progress.txt'), 'utf8')).toContain('## run');
+    expect(logSink.lines.join('')).toContain('validation passed');
     expect(logSink.lines.join('')).toContain('Committed and marked done');
+    expect(calls.indexOf('shell:pass')).toBeGreaterThan(-1);
+    expect(calls.indexOf('run:git commit -m chore(backlog): done – test item')).toBeGreaterThan(calls.indexOf('shell:pass'));
+  });
+
+  it('does not mark an item done when runner-owned validation fails', async () => {
+    const { root, config } = await makeFixture();
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, { validationOk: false }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [!] test item');
+    expect(logSink.lines.join('')).toContain('validation failed');
+    expect(logSink.lines.join('')).not.toContain('Committed and marked done');
   });
 });

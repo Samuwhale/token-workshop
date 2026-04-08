@@ -13,7 +13,7 @@ import type {
   ResolvedRunOptions,
   RunnerDependencies,
   RunOverrides,
-  WorkspaceSession,
+  ValidationCommandResult,
   WorkspaceStrategy,
 } from './types.js';
 import { GitWorktreeWorkspaceStrategy } from './workspace/git-worktree.js';
@@ -29,6 +29,15 @@ function formatDuration(seconds?: number): string {
 
 function retryTime(): string {
   return new Date(Date.now() + 60_000).toTimeString().slice(0, 8);
+}
+
+function summarizeCommandOutput(stdout: string, stderr: string): string {
+  const lines = [stdout, stderr]
+    .join('\n')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+  return lines.slice(-8).join(' | ') || 'no output';
 }
 
 async function readRecentSections(progressFile: string, maxSections: number): Promise<string> {
@@ -54,6 +63,27 @@ async function buildContext(
     ? `\n\n## Assigned Item\n\nWork on this specific item (already marked [~] in backlog.md):\n\n${item}\n\nDo NOT pick a different item. Do NOT modify backlog.md.\n`
     : '';
   return `${patterns}\n\n## Recent session log:\n${recent}${validation}${assigned}`;
+}
+
+async function runValidationCommand(
+  commandRunner: ReturnType<typeof createCommandRunner>,
+  config: BacklogRunnerConfig,
+  cwd: string,
+): Promise<ValidationCommandResult> {
+  const startedAt = Date.now();
+  const result = await commandRunner.runShell(config.validationCommand, {
+    cwd,
+    ignoreFailure: true,
+  });
+  const durationSeconds = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+  return {
+    ok: result.code === 0,
+    code: result.code,
+    summary: summarizeCommandOutput(result.stdout, result.stderr),
+    stdout: result.stdout,
+    stderr: result.stderr,
+    durationSeconds,
+  };
 }
 
 async function readPrompt(filePath: string): Promise<string> {
@@ -200,7 +230,7 @@ export async function runBacklogRunner(
 
     logger.line('');
     logger.line('╔═══════════════════════════════════════════════════════════════╗');
-    logger.line('║  Backlog Runner                                             ║');
+    logger.line('║  TypeScript Backlog Runner                                  ║');
     logger.line('╚═══════════════════════════════════════════════════════════════╝');
     logger.line(`  PID:    ${process.pid}`);
     logger.line(`  Tool:   ${options.tool}`);
@@ -291,6 +321,27 @@ export async function runBacklogRunner(
         }
 
         if (result.status === 'done') {
+          logger.line('');
+          logger.line(`  Running runner-owned validation: ${config.validationCommand}`);
+          const validation = await runValidationCommand(commandRunner, config, session.cwd);
+          if (!validation.ok) {
+            await store.updateItemStatus(claim.item, '!');
+            logger.line(
+              `  ✗ validation failed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
+            );
+            logger.line(`    ${validation.summary}`);
+            if (!options.worktrees) {
+              logger.line('    Workspace left dirty for inspection because worktrees are disabled');
+            }
+            if (stopRequested || (await fileExists(config.files.stop))) {
+              break;
+            }
+            continue;
+          }
+          logger.line(
+            `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
+          );
+
           const message = `chore(backlog): done – ${result.item || claim.item}`;
           if (options.worktrees) {
             logger.line('');

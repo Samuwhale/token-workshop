@@ -454,3 +454,11 @@
   - For dense settings surfaces, define a small set of job-based groups first, then let search index those groups; search should reinforce the IA, not rescue an unfocused one.
   - Recovery and operational controls can stay in the same screen as daily preferences, but they should sit behind their own lower-priority group with explicit copy about when they matter.
 ---
+## 2026-04-08 - The command palette is compensating for weak primary navigation instead of acting as a true power-user layer
+- Trimmed the registry down to expert and high-frequency actions: token creation/editing, generator/template starts, contextual token operations, theme compare/fill actions, audit/history flows, export presets, and view toggles. Removed palette entries that only duplicated obvious workspace tabs, settings/help utilities, or other primary navigation.
+- Updated the palette UI to match the new IA by sorting sections in workspace order, adding an explicit power-user note, and showing command categories/descriptions in both grouped and searched results so the remaining actions are easier to scan.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L32, ~L121, ~L300, ~L326, ~L406; `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L13, ~L77, ~L308, ~L447, ~L955; `packages/figma-plugin/src/ui/App.tsx` ~L772; `scripts/backlog/patterns.md` ~L145
+- **Learnings for future iterations:**
+  - Once primary navigation is clear, the command palette should stop mirroring tabs and utility destinations and instead focus on actions that save expert users time.
+  - Showing categories directly in palette search results keeps trimmed command sets legible after IA refactors, especially when recent actions mix commands from multiple workspaces.
+---

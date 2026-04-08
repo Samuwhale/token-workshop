@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { lockPath, withLock } from '../locks.js';
@@ -34,6 +34,52 @@ async function readAppendedLines(filePath: string, baseline: number): Promise<st
 async function appendIfPresent(target: string, content: string): Promise<void> {
   if (!content) return;
   await writeFile(target, `${(await readFile(target, 'utf8').catch(() => ''))}${content}\n`, 'utf8');
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: string): Promise<void> {
+  const rootNodeModules = path.join(projectRoot, 'node_modules');
+  if (await pathExists(rootNodeModules)) {
+    try {
+      await symlink(rootNodeModules, path.join(worktreeDir, 'node_modules'));
+    } catch {
+      // ignore
+    }
+  }
+
+  const packagesDir = path.join(projectRoot, 'packages');
+  let packageNames: string[] = [];
+  try {
+    packageNames = await readdir(packagesDir);
+  } catch {
+    return;
+  }
+
+  for (const packageName of packageNames) {
+    const sourceNodeModules = path.join(packagesDir, packageName, 'node_modules');
+    if (!(await pathExists(sourceNodeModules))) {
+      continue;
+    }
+
+    const targetNodeModules = path.join(worktreeDir, 'packages', packageName, 'node_modules');
+    if (await pathExists(targetNodeModules)) {
+      continue;
+    }
+
+    try {
+      await symlink(sourceNodeModules, targetNodeModules);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 class GitWorktreeSession implements WorkspaceSession {
@@ -92,9 +138,18 @@ class GitWorktreeSession implements WorkspaceSession {
       });
 
       if (commitSha) {
+        const mergePreview = await this.commandRunner.run(
+          'git',
+          ['merge-tree', '--write-tree', '--merge-base', this.worktreeBaseSha, 'HEAD', commitSha],
+          { cwd: this.config.projectRoot, ignoreFailure: true },
+        );
+        if (mergePreview.code !== 0) {
+          return { ok: false, reason: 'Cherry-pick conflict' };
+        }
+
         const cherryPick = await this.commandRunner.run(
           'git',
-          ['cherry-pick', '--no-commit', '-X', 'theirs', commitSha],
+          ['cherry-pick', '--no-commit', commitSha],
           { cwd: this.config.projectRoot, ignoreFailure: true },
         );
         if (cherryPick.code !== 0) {
@@ -169,13 +224,7 @@ export class GitWorktreeWorkspaceStrategy implements WorkspaceStrategy {
     await this.commandRunner.run('git', ['worktree', 'add', '--detach', worktreeDir, 'HEAD', '--quiet'], {
       cwd: this.config.projectRoot,
     });
-
-    const projectNodeModules = path.join(this.config.projectRoot, 'node_modules');
-    try {
-      await symlink(projectNodeModules, path.join(worktreeDir, 'node_modules'));
-    } catch {
-      // ignore
-    }
+    await bootstrapWorkspaceNodeModules(this.config.projectRoot, worktreeDir);
 
     const progressRelative = path.relative(this.config.projectRoot, this.config.files.progress);
     const patternsRelative = path.relative(this.config.projectRoot, this.config.files.patterns);
