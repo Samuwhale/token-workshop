@@ -11,7 +11,7 @@ type DefineSubTab = 'tokens' | 'themes' | 'generators';
 type ApplySubTab = 'inspect' | 'canvas-analysis' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
-export type OverflowPanel = 'import' | 'settings' | null;
+export type OverflowPanel = 'import' | 'settings' | 'sets' | null;
 
 /**
  * Internal routing structure — kept for PanelRouter compatibility.

@@ -7,7 +7,6 @@ export function useModalVisibility() {
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showQuickApply, setShowQuickApply] = useState(false);
   const [showSetSwitcher, setShowSetSwitcher] = useState(false);
-  const [showManageSets, setShowManageSets] = useState(false);
 
   return {
     showPasteModal, setShowPasteModal,
@@ -16,6 +15,5 @@ export function useModalVisibility() {
     showKeyboardShortcuts, setShowKeyboardShortcuts,
     showQuickApply, setShowQuickApply,
     showSetSwitcher, setShowSetSwitcher,
-    showManageSets, setShowManageSets,
   };
 }

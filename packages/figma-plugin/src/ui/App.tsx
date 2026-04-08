@@ -14,7 +14,7 @@ import { WelcomePrompt, type StartHereBranch } from './components/WelcomePrompt'
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { TokenEntry } from './components/CommandPalette';
-import { SetSwitcher } from './components/SetSwitcher';
+import { SetSwitcher, SetManager } from './components/SetSwitcher';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { computeHealthIssueCount } from './components/HealthPanel';
@@ -64,35 +64,6 @@ import { apiFetch, ApiError } from './shared/apiFetch';
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from './shared/storage';
 import { findLeafByPath } from './components/tokenListUtils';
 
-
-type FolderTreeNode = {
-  name: string;   // display name (first path segment, e.g. 'brands')
-  path: string;   // full folder key (e.g. 'brands')
-  sets: string[]; // full set names whose first segment matches this folder
-};
-
-// Builds a flat folder tree from set names that use '/' as a folder separator.
-// Sets without '/' are returned as plain strings (root-level sets).
-function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeNode> } {
-  const folderMap = new Map<string, FolderTreeNode>();
-  const roots: Array<string | FolderTreeNode> = [];
-  for (const set of sets) {
-    const slash = set.indexOf('/');
-    if (slash === -1) {
-      roots.push(set);
-    } else {
-      const folderName = set.slice(0, slash);
-      if (!folderMap.has(folderName)) {
-        const node: FolderTreeNode = { name: folderName, path: folderName, sets: [] };
-        folderMap.set(folderName, node);
-        roots.push(node);
-      }
-      folderMap.get(folderName)!.sets.push(set);
-    }
-  }
-  return { roots };
-}
-
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
   const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel } = useNavigationContext();
@@ -114,7 +85,7 @@ export function App() {
   const [bannerUrlInput, setBannerUrlInput] = useState(serverUrl);
   const [bannerConnectResult, setBannerConnectResult] = useState<'ok' | 'fail' | null>(null);
   const [showBannerUrlEditor, setShowBannerUrlEditor] = useState(false);
-  const { showPasteModal, setShowPasteModal, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
+  const { showPasteModal, setShowPasteModal, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher } = useModalVisibility();
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
   const recentlyTouched = useRecentlyTouched();
   const starredTokens = useStarredTokens();
@@ -443,7 +414,7 @@ export function App() {
   }, [tokenDragState, serverUrl, refreshTokens, setSuccessToast, setErrorToast]);
 
   // Set tab management (drag, context menu, overflow, new-set form)
-  const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragLeave, handleSetDragEnd, handleSetDrop, handleReorderSet, handleReorderSetFull, handleCreateSet, scrollSetTabs } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes, tokenDragFromSet: tokenDragState?.fromSet ?? null, onTokenDropOnSet: handleTokenDropOnSet });
+  const { dragOverSetName, setTabMenuOpen, setTabsScrollRef, setTabsOverflow, cascadeDiff, handleSetDragOver, handleSetDragLeave, handleSetDrop, handleReorderSet, handleReorderSetFull, scrollSetTabs } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes, tokenDragFromSet: tokenDragState?.fromSet ?? null, onTokenDropOnSet: handleTokenDropOnSet });
 
   // Group sync + scope state
   const { syncGroupPending, setSyncGroupPending, syncGroupApplying, syncGroupProgress, syncGroupStylesPending, setSyncGroupStylesPending, syncGroupStylesApplying, syncGroupStylesProgress, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, syncGroupError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
@@ -537,25 +508,6 @@ export function App() {
     return result;
   }, [perSetFlat]);
 
-  // Sidebar mode: activate when there are more than 5 sets
-  const useSidebar = sets.length > 5;
-  const sidebarTree = useMemo(() => buildSetFolderTree(sets), [sets]);
-
-  // Collapsed folders state (persisted to localStorage)
-  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() =>
-    new Set<string>(lsGetJson<string[]>(STORAGE_KEYS.COLLAPSED_FOLDERS, []))
-  );
-  const toggleFolder = useCallback((folderPath: string) => {
-    setCollapsedFolders(prev => {
-      const next = new Set(prev);
-      if (next.has(folderPath)) next.delete(folderPath);
-      else next.add(folderPath);
-      lsSetJson(STORAGE_KEYS.COLLAPSED_FOLDERS, [...next]);
-      return next;
-    });
-  }, []);
-
-
   // Catch-all: warn in the console when the plugin sandbox sends a message type that
   // is not in the ControllerMessage union. This fires during development and helps
   // catch missing type definitions or misspelled message types before they become
@@ -648,7 +600,6 @@ export function App() {
     }
     if (matchesShortcut(e, 'QUICK_SWITCH_SET')) {
       e.preventDefault();
-      setShowManageSets(false);
       setShowSetSwitcher(v => !v);
     }
     if (matchesShortcut(e, 'GO_TO_RESOLVER')) {
@@ -831,7 +782,6 @@ export function App() {
     setShowKeyboardShortcuts,
     setShowQuickApply,
     setShowSetSwitcher,
-    setShowManageSets,
     setPendingGraphTemplate,
     refreshValidation,
     jumpToNextIssue,
@@ -1279,56 +1229,40 @@ export function App() {
         </div>
       </div>
 
-      {/* Set selector (for tokens tab) — hidden when sidebar is active */}
-      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && (
-        <>
-        <div className="relative">
-        <div ref={setTabsScrollRef} className={`flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto transition-colors ${tokenDragState ? 'bg-[var(--color-figma-accent)]/[0.03]' : ''}`} style={{ scrollbarWidth: 'none' }}>
-          {sets.map(set => {
-            const isActive = activeSet === set;
-            const isRenaming = renamingSet === set;
-            const isTokenDragSource = tokenDragState?.fromSet === set;
-            const isTokenDropTarget = tokenDragState && !isTokenDragSource;
-            const isTokenHovered = isTokenDropTarget && dragOverSetName === set;
-            return (
-              <div
-                key={set}
-                data-active-set={isActive}
-                draggable={!isRenaming}
-                onDragStart={e => handleSetDragStart(e, set)}
-                onDragOver={e => handleSetDragOver(e, set)}
-                onDragLeave={handleSetDragLeave}
-                onDrop={e => handleSetDrop(e, set)}
-                onDragEnd={handleSetDragEnd}
-                className={`relative flex group/settab transition-opacity ${dragOverSetName === set && dragSetName !== set ? 'border-l-2 border-[var(--color-figma-accent)]' : ''} ${isTokenDragSource ? 'opacity-40' : ''} ${isTokenDropTarget ? isTokenHovered ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : 'ring-1 ring-inset ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
-              >
-                {isRenaming ? (
-                  <div className="flex flex-col">
-                    <div className="flex items-center">
-                      <input
-                        ref={renameInputRef}
-                        value={renameValue}
-                        onChange={e => { setRenameValue(e.target.value.trimStart()); setRenameError(''); }}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') handleRenameConfirm();
-                          if (e.key === 'Escape') cancelRename();
-                        }}
-                        onBlur={cancelRename}
-                        size={Math.max(set.length + 4, 10)}
-                        className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
-                        placeholder={set}
-                        aria-label="Rename token set"
-                      />
-                    </div>
-                    {renameError && (
-                      <span className="text-[10px] text-red-500 mt-0.5 px-1">{renameError}</span>
-                    )}
-                  </div>
-                ) : (
-                  <>
+      {/* Set switching surface */}
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && (
+        <div className={`border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] ${tokenDragState ? 'bg-[var(--color-figma-accent)]/[0.03]' : ''}`}>
+          <div className="relative flex items-center gap-2 px-2 py-1.5">
+            <button
+              onClick={() => setShowSetSwitcher(true)}
+              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              aria-label="Open set switcher"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Set</span>
+                <span className="max-w-[180px] truncate text-[11px] font-medium text-[var(--color-figma-text)]">{activeSet}</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="text-[var(--color-figma-text-tertiary)]">
+                  <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            </button>
+
+            <div className="relative min-w-0 flex-1">
+              <div ref={setTabsScrollRef} className="flex gap-1 overflow-x-auto pr-6" style={{ scrollbarWidth: 'none' }}>
+                {sets.map(set => {
+                  const isActive = activeSet === set;
+                  const isTokenDragSource = tokenDragState?.fromSet === set;
+                  const isTokenDropTarget = tokenDragState && !isTokenDragSource;
+                  const isTokenHovered = isTokenDropTarget && dragOverSetName === set;
+                  const themeStatus = setThemeStatusMap[set];
+                  return (
                     <button
+                      key={set}
+                      data-active-set={isActive}
                       onClick={() => guardEditorAction(() => setActiveSet(set))}
-                      onContextMenu={e => openSetMenu(set, e)}
+                      onDragOver={e => handleSetDragOver(e, set)}
+                      onDragLeave={handleSetDragLeave}
+                      onDrop={e => handleSetDrop(e, set)}
                       title={(() => {
                         const parts: string[] = [setDescriptions[set] || set];
                         const byType = setByTypeCounts[set];
@@ -1336,441 +1270,137 @@ export function App() {
                           const breakdown = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, c]) => `${c} ${t}`).join(' · ');
                           if (breakdown) parts.push(breakdown);
                         }
-                        if (setThemeStatusMap[set]) parts.push(`theme: ${setThemeStatusMap[set]}`);
+                        if (themeStatus) parts.push(`theme: ${themeStatus}`);
                         return parts.join('\n');
                       })()}
-                      className={`flex items-center pl-2 pr-1 py-1 rounded-l text-[10px] whitespace-nowrap transition-colors ${
+                      className={`flex shrink-0 items-center gap-1.5 rounded px-2 py-1 text-[10px] transition-colors ${
                         isActive
-                          ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                          ? 'bg-[var(--color-figma-accent)] text-white'
                           : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                      } ${
+                        isTokenDragSource ? 'opacity-40' : ''
+                      } ${
+                        isTokenDropTarget
+                          ? isTokenHovered
+                            ? 'ring-2 ring-inset ring-[var(--color-figma-accent)]'
+                            : 'ring-1 ring-inset ring-[var(--color-figma-accent)]/40'
+                          : ''
                       }`}
                     >
-                      {setThemeStatusMap[set] && (
+                      {themeStatus && (
                         <span
-                          className={`mr-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${
-                            setThemeStatusMap[set] === 'enabled'
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            themeStatus === 'enabled'
                               ? isActive ? 'bg-green-300' : 'bg-green-500'
-                              : setThemeStatusMap[set] === 'source'
-                              ? isActive ? 'bg-sky-300' : 'bg-sky-500'
-                              : isActive ? 'bg-white/30' : 'bg-gray-400/50'
+                              : themeStatus === 'source'
+                                ? isActive ? 'bg-sky-300' : 'bg-sky-500'
+                                : isActive ? 'bg-white/30' : 'bg-gray-400/50'
                           }`}
                         />
                       )}
-                      {set}
+                      <span className="max-w-[120px] truncate">{set}</span>
                       {setTokenCounts[set] !== undefined && (
-                        <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full leading-none tabular-nums ${isActive ? 'bg-white/20 text-white/90' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                        <span className={`rounded-full px-1.5 py-0.5 leading-none tabular-nums ${isActive ? 'bg-white/20 text-white/90' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
                           {isActive && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
                         </span>
                       )}
                     </button>
-                    <button
-                      onClick={e => openSetMenu(set, e)}
-                      onContextMenu={e => openSetMenu(set, e)}
-                      title="Set options"
-                      aria-label="Set options"
-                      className={`flex items-center justify-center px-1 py-1 rounded-r text-[10px] transition-colors ${
-                        isActive
-                          ? 'opacity-100 bg-[var(--color-figma-accent)] text-white/80 hover:text-white hover:bg-[var(--color-figma-accent-hover)]'
-                          : 'opacity-40 group-hover/settab:opacity-100 bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                      }`}
-                    >
-                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                        <circle cx="4" cy="1" r="0.9" />
-                        <circle cx="4" cy="4" r="0.9" />
-                        <circle cx="4" cy="7" r="0.9" />
-                      </svg>
-                    </button>
-                  </>
-                )}
+                  );
+                })}
               </div>
-            );
-          })}
-
-          {/* Set context menu */}
-          {tabMenuOpen && (
-            <div
-              ref={tabMenuRef}
-              role="menu"
-              className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[168px]"
-              style={{ top: tabMenuPos.y, left: tabMenuPos.x }}
-            >
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => guardEditorAction(() => { setActiveSet(tabMenuOpen); navigateTo('define', 'generators'); setTabMenuOpen(null); })}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Generate tokens…
-              </button>
-              <div className="border-t border-[var(--color-figma-border)] my-1" />
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => openSetMetadata(tabMenuOpen)}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Edit set info
-              </button>
-              <div className="border-t border-[var(--color-figma-border)] my-1" />
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => startRename(tabMenuOpen)}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Rename
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => handleDuplicateSet(tabMenuOpen)}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Duplicate
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => handleReorderSet(tabMenuOpen!, 'left')}
-                disabled={sets.indexOf(tabMenuOpen!) === 0}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                ← Move left
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => handleReorderSet(tabMenuOpen!, 'right')}
-                disabled={sets.indexOf(tabMenuOpen!) === sets.length - 1}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Move right →
-              </button>
-              <div className="border-t border-[var(--color-figma-border)] my-1" />
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => openMergeDialog(tabMenuOpen)}
-                disabled={sets.filter(s => s !== tabMenuOpen).length === 0}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Merge into…
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => openSplitDialog(tabMenuOpen)}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Split by group
-              </button>
-              <div className="border-t border-[var(--color-figma-border)] my-1" />
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => { startDelete(tabMenuOpen!); }}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          )}
-
-          {creatingSet ? (
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1">
-                <input
-                  ref={newSetInputRef}
-                  value={newSetName}
-                  onChange={e => { setNewSetName(e.target.value); setNewSetError(''); }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleCreateSet();
-                    if (e.key === 'Escape') { setCreatingSet(false); setNewSetName(''); setNewSetError(''); }
-                  }}
-                  onBlur={() => { if (!newSetName.trim()) { setCreatingSet(false); setNewSetName(''); setNewSetError(''); } }}
-                  className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none w-28"
-                  placeholder="Set name"
-                  aria-label="New set name"
-                />
-              </div>
-              {newSetError && (
-                <span className="text-[10px] text-red-500 mt-0.5 px-1">{newSetError}</span>
+              {setTabsOverflow.left && (
+                <>
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[var(--color-figma-bg-secondary)] to-transparent" aria-hidden="true" />
+                  <button
+                    onClick={() => scrollSetTabs('left')}
+                    className="absolute left-0 top-0 bottom-0 z-[2] flex w-5 items-center justify-center text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                    aria-label="Scroll sets left"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                      <path d="M6 1L2 4l4 3V1z" />
+                    </svg>
+                  </button>
+                </>
+              )}
+              {setTabsOverflow.right && (
+                <>
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--color-figma-bg-secondary)] to-transparent" aria-hidden="true" />
+                  <button
+                    onClick={() => scrollSetTabs('right')}
+                    className="absolute right-0 top-0 bottom-0 z-[2] flex w-5 items-center justify-center text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                    aria-label="Scroll sets right"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                      <path d="M2 1l4 3-4 3V1z" />
+                    </svg>
+                  </button>
+                </>
               )}
             </div>
-          ) : (
+
             <button
-              onClick={() => { setCreatingSet(true); setNewSetName(''); setNewSetError(''); }}
-              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              onClick={() => openOverflowPanel('sets')}
+              className="shrink-0 rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
             >
-              + Add Set
+              Manage
             </button>
+          </div>
+          {tokenDragState && (
+            <div className="border-t border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+              Drop on a set to move {tokenDragState.paths.length} token{tokenDragState.paths.length !== 1 ? 's' : ''}.
+            </div>
           )}
         </div>
-        {setTabsOverflow.left && (
-          <>
-            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[var(--color-figma-bg-secondary)] to-transparent pointer-events-none z-[1]" aria-hidden="true" />
-            <button
-              onClick={() => scrollSetTabs('left')}
-              className="absolute left-0 top-0 bottom-0 w-5 flex items-center justify-center z-[2] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-              aria-label="Scroll tabs left"
-            >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M6 1L2 4l4 3V1z" /></svg>
-            </button>
-          </>
-        )}
-        {setTabsOverflow.right && (
-          <>
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--color-figma-bg-secondary)] to-transparent pointer-events-none z-[1]" aria-hidden="true" />
-            <button
-              onClick={() => scrollSetTabs('right')}
-              className="absolute right-0 top-0 bottom-0 w-5 flex items-center justify-center z-[2] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-              aria-label="Scroll tabs right"
-            >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3V1z" /></svg>
-            </button>
-          </>
-        )}
-        </div>
-        {sets.length > 1 && dragSetName && (
-          <div className="px-2 py-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] select-none bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-            ← lower precedence · drag to reorder · higher precedence →
-          </div>
-        )}
-        </>
       )}
 
-      {/* Content — outer wrapper is flex-row so the set sidebar can sit alongside the content column */}
       <ErrorBoundary>
       <div className="flex-1 flex overflow-hidden">
-
-        {/* Set sidebar — shown when there are more than 5 sets */}
-        {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && useSidebar && (
-          <aside className="w-[128px] shrink-0 border-r border-[var(--color-figma-border)] flex flex-col bg-[var(--color-figma-bg-secondary)] overflow-hidden">
-            <div className="flex-1 overflow-y-auto py-0.5" style={{ scrollbarWidth: 'none' }}>
-              {sidebarTree.roots.map(item => {
-                if (typeof item === 'string') {
-                  // Root-level (unfoldered) set
-                  const set = item;
-                  const isSidebarTokenSource = tokenDragState?.fromSet === set;
-                  const isSidebarTokenDropTarget = tokenDragState && !isSidebarTokenSource;
-                  const isSidebarTokenHovered = isSidebarTokenDropTarget && dragOverSetName === set;
-                  return (
-                    <div
-                      key={set}
-                      className={`group/sidebarset relative transition-opacity ${isSidebarTokenSource ? 'opacity-40' : ''} ${isSidebarTokenDropTarget ? isSidebarTokenHovered ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : 'ring-1 ring-inset ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
-                      onDragOver={e => handleSetDragOver(e, set)}
-                      onDragLeave={handleSetDragLeave}
-                      onDrop={e => handleSetDrop(e, set)}
-                    >
-                      {renamingSet === set ? (
-                        <div className="px-1 py-0.5">
-                          <input
-                            ref={renameInputRef}
-                            value={renameValue}
-                            onChange={e => { setRenameValue(e.target.value.trimStart()); setRenameError(''); }}
-                            onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') cancelRename(); }}
-                            onBlur={cancelRename}
-                            aria-label="Rename token set"
-                            className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
-                          />
-                          {renameError && <span className="block text-[10px] text-red-500 px-1">{renameError}</span>}
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <button
-                            onClick={() => guardEditorAction(() => setActiveSet(set))}
-                            onContextMenu={e => openSetMenu(set, e)}
-                            title={(() => {
-                              const parts: string[] = [setDescriptions[set] || set];
-                              const byType = setByTypeCounts[set];
-                              if (byType) {
-                                const breakdown = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, c]) => `${c} ${t}`).join(' · ');
-                                if (breakdown) parts.push(breakdown);
-                              }
-                              return parts.join('\n');
-                            })()}
-                            data-active-set={activeSet === set}
-                            className={`flex-1 min-w-0 flex items-center justify-between pl-2 pr-1 py-1 text-[10px] text-left transition-colors ${
-                              activeSet === set
-                                ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium'
-                                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                            }`}
-                          >
-                            <span className="truncate flex-1">{set}</span>
-                            {setTokenCounts[set] !== undefined && (
-                              <span className={`text-[10px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
-                                {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
-                              </span>
-                            )}
-                          </button>
-                          <button
-                            onClick={e => openSetMenu(set, e)}
-                            onContextMenu={e => openSetMenu(set, e)}
-                            title="Set options"
-                            aria-label="Set options"
-                            className={`shrink-0 flex items-center justify-center w-5 h-5 rounded transition-opacity ${
-                              activeSet === set
-                                ? 'opacity-60 hover:opacity-100 text-[var(--color-figma-accent)]'
-                                : 'opacity-0 group-hover/sidebarset:opacity-60 hover:!opacity-100 text-[var(--color-figma-text-tertiary)]'
-                            }`}
-                          >
-                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="1" r="0.9" /><circle cx="4" cy="4" r="0.9" /><circle cx="4" cy="7" r="0.9" /></svg>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                // Folder node
-                const folder = item as FolderTreeNode;
-                const isCollapsed = collapsedFolders.has(folder.path);
-                return (
-                  <div key={folder.path}>
-                    <button
-                      onClick={() => toggleFolder(folder.path)}
-                      className="w-full flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] uppercase tracking-wider transition-colors"
-                    >
-                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}><path d="M2 1l4 3-4 3V1z" /></svg>
-                      <span className="truncate">{folder.name}</span>
-                    </button>
-                    {!isCollapsed && folder.sets.map(set => {
-                      const leaf = set.slice(folder.path.length + 1);
-                      const isFolderSetTokenSource = tokenDragState?.fromSet === set;
-                      const isFolderSetTokenDropTarget = tokenDragState && !isFolderSetTokenSource;
-                      const isFolderSetTokenHovered = isFolderSetTokenDropTarget && dragOverSetName === set;
-                      return (
-                        <div
-                          key={set}
-                          className={`group/sidebarset relative transition-opacity ${isFolderSetTokenSource ? 'opacity-40' : ''} ${isFolderSetTokenDropTarget ? isFolderSetTokenHovered ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : 'ring-1 ring-inset ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
-                          onDragOver={e => handleSetDragOver(e, set)}
-                          onDragLeave={handleSetDragLeave}
-                          onDrop={e => handleSetDrop(e, set)}
-                        >
-                          {renamingSet === set ? (
-                            <div className="pl-4 pr-1 py-0.5">
-                              <input
-                                ref={renameInputRef}
-                                value={renameValue}
-                                onChange={e => { setRenameValue(e.target.value.trimStart()); setRenameError(''); }}
-                                onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') cancelRename(); }}
-                                onBlur={cancelRename}
-                                aria-label="Rename token set"
-                                className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
-                              />
-                              {renameError && <span className="block text-[10px] text-red-500 px-1">{renameError}</span>}
-                            </div>
-                          ) : (
-                            <div className="flex items-center">
-                              <button
-                                onClick={() => guardEditorAction(() => setActiveSet(set))}
-                                onContextMenu={e => openSetMenu(set, e)}
-                                title={(() => {
-                                  const parts: string[] = [setDescriptions[set] || leaf];
-                                  const byType = setByTypeCounts[set];
-                                  if (byType) {
-                                    const breakdown = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, c]) => `${c} ${t}`).join(' · ');
-                                    if (breakdown) parts.push(breakdown);
-                                  }
-                                  return parts.join('\n');
-                                })()}
-                                data-active-set={activeSet === set}
-                                className={`flex-1 min-w-0 flex items-center justify-between pl-5 pr-1 py-1 text-[10px] text-left transition-colors ${
-                                  activeSet === set
-                                    ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium'
-                                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                                }`}
-                              >
-                                <span className="truncate flex-1">{leaf}</span>
-                                {setTokenCounts[set] !== undefined && (
-                                  <span className={`text-[10px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
-                                    {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
-                                  </span>
-                                )}
-                              </button>
-                              <button
-                                onClick={e => openSetMenu(set, e)}
-                                onContextMenu={e => openSetMenu(set, e)}
-                                title="Set options"
-                                aria-label="Set options"
-                                className={`shrink-0 flex items-center justify-center w-5 h-5 rounded transition-opacity ${
-                                  activeSet === set
-                                    ? 'opacity-60 hover:opacity-100 text-[var(--color-figma-accent)]'
-                                    : 'opacity-0 group-hover/sidebarset:opacity-60 hover:!opacity-100 text-[var(--color-figma-text-tertiary)]'
-                                }`}
-                              >
-                                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="1" r="0.9" /><circle cx="4" cy="4" r="0.9" /><circle cx="4" cy="7" r="0.9" /></svg>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Context menu (sidebar mode) */}
-            {tabMenuOpen && (
-              <div
-                ref={tabMenuRef}
-                role="menu"
-                className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[168px]"
-                style={{ top: tabMenuPos.y, left: tabMenuPos.x }}
-              >
-                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { setActiveSet(tabMenuOpen); navigateTo('define', 'generators'); setTabMenuOpen(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Generate tokens…</button>
-                <div className="border-t border-[var(--color-figma-border)] my-1" />
-                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => openSetMetadata(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Edit set info</button>
-                <div className="border-t border-[var(--color-figma-border)] my-1" />
-                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => startRename(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Rename</button>
-                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => handleDuplicateSet(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Duplicate</button>
-                <div className="border-t border-[var(--color-figma-border)] my-1" />
-                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { startDelete(tabMenuOpen!); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Delete</button>
-              </div>
-            )}
-
-            {/* Add Set */}
-            <div className="shrink-0 border-t border-[var(--color-figma-border)] p-1">
-              {creatingSet ? (
-                <div className="flex flex-col gap-0.5">
-                  <input
-                    ref={newSetInputRef}
-                    value={newSetName}
-                    onChange={e => { setNewSetName(e.target.value); setNewSetError(''); }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleCreateSet();
-                      if (e.key === 'Escape') { setCreatingSet(false); setNewSetName(''); setNewSetError(''); }
-                    }}
-                    onBlur={() => { if (!newSetName.trim()) { setCreatingSet(false); setNewSetName(''); setNewSetError(''); } }}
-                    placeholder="name or folder/name"
-                    aria-label="New set name"
-                    className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
-                  />
-                  {newSetError && <span className="text-[10px] text-red-500">{newSetError}</span>}
-                </div>
-              ) : (
-                <button
-                  onClick={() => { setCreatingSet(true); setNewSetName(''); setNewSetError(''); }}
-                  className="w-full px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-left"
-                >
-                  + Add Set
-                </button>
-              )}
-            </div>
-          </aside>
-        )}
-
-        {/* Main content column */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          {overflowPanel === 'sets' ? (
+            <SetManager
+              sets={sets}
+              activeSet={activeSet}
+              onClose={() => setOverflowPanel(null)}
+              onOpenQuickSwitch={() => {
+                setOverflowPanel(null);
+                setShowSetSwitcher(true);
+              }}
+              onOpenGenerators={(set) => {
+                guardEditorAction(() => {
+                  setActiveSet(set);
+                  navigateTo('define', 'generators');
+                  setOverflowPanel(null);
+                });
+              }}
+              onRename={startRename}
+              onDuplicate={handleDuplicateSet}
+              onDelete={startDelete}
+              onReorder={handleReorderSet}
+              onReorderFull={handleReorderSetFull}
+              onCreateSet={createSetByName}
+              onEditInfo={(set) => {
+                setOverflowPanel(null);
+                openSetMetadata(set);
+              }}
+              onMerge={sets.length > 1 ? openMergeDialog : undefined}
+              onSplit={openSplitDialog}
+              setTokenCounts={setTokenCounts}
+              setDescriptions={setDescriptions}
+              dimensions={dimensions}
+              onBulkDelete={handleBulkDeleteSets}
+              onBulkDuplicate={handleBulkDuplicateSets}
+              onBulkMoveToFolder={handleBulkMoveToFolder}
+              renamingSet={renamingSet}
+              renameValue={renameValue}
+              setRenameValue={setRenameValue}
+              renameError={renameError}
+              setRenameError={setRenameError}
+              renameInputRef={renameInputRef}
+              onRenameConfirm={handleRenameConfirm}
+              onRenameCancel={cancelRename}
+            />
+          ) : (
+            <>
           {/* Theme/Mode switcher — always visible on tokens tab */}
           {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && (
             isNarrow && dimensions.length > 0 && !dimBarExpanded ? (
@@ -2067,6 +1697,8 @@ export function App() {
               onClearAllComplete={() => { setOverflowPanel(null); navigateTo('define', 'tokens'); refreshTokens(); }}
             />
           </div>
+            </>
+          )}
         </div>
       </div>
       </ErrorBoundary>
@@ -2566,30 +2198,23 @@ export function App() {
         </div>
       )}
 
-      {/* Set Switcher / Manage Sets */}
-      {(showSetSwitcher || showManageSets) && (
+      {/* Set Switcher */}
+      {showSetSwitcher && (
         <SetSwitcher
           sets={sets}
           activeSet={activeSet}
           onSelect={(set) => {
-            setActiveSet(set);
-            navigateTo('define', 'tokens');
+            guardEditorAction(() => {
+              setActiveSet(set);
+              navigateTo('define', 'tokens');
+            });
           }}
-          onClose={() => { setShowSetSwitcher(false); setShowManageSets(false); }}
-          initialMode={showManageSets ? 'manage' : 'switch'}
-          onRename={startRename}
-          onDuplicate={handleDuplicateSet}
-          onDelete={startDelete}
-          onReorder={handleReorderSet}
-          onReorderFull={handleReorderSetFull}
-          onCreateSet={createSetByName}
-          onEditInfo={(set) => { setShowSetSwitcher(false); setShowManageSets(false); openSetMetadata(set); }}
-          setTokenCounts={setTokenCounts}
-          setDescriptions={setDescriptions}
+          onClose={() => setShowSetSwitcher(false)}
+          onManageSets={() => {
+            setShowSetSwitcher(false);
+            openOverflowPanel('sets');
+          }}
           dimensions={dimensions}
-          onBulkDelete={handleBulkDeleteSets}
-          onBulkDuplicate={handleBulkDuplicateSets}
-          onBulkMoveToFolder={handleBulkMoveToFolder}
         />
       )}
 

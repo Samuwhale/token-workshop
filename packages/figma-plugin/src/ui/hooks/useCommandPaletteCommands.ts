@@ -52,7 +52,6 @@ export interface CommandPaletteCommandsOptions {
   setShowKeyboardShortcuts: (v: boolean | ((v: boolean) => boolean)) => void;
   setShowQuickApply: (v: boolean) => void;
   setShowSetSwitcher: (v: boolean) => void;
-  setShowManageSets: (v: boolean) => void;
   // From useGraphState (local state in App — not a context)
   setPendingGraphTemplate: (v: string | null) => void;
   // Callbacks computed in App
@@ -97,7 +96,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
     setShowIssuesOnly, openStartHere,
     setFlowPanelInitialPath, setPaletteDeleteConfirm,
     setShowPasteModal, setShowColorScaleGen,
-    setShowKeyboardShortcuts, setShowQuickApply, setShowSetSwitcher, setShowManageSets,
+    setShowKeyboardShortcuts, setShowQuickApply, setShowSetSwitcher,
     setPendingGraphTemplate,
     refreshValidation, jumpToNextIssue, openOverflowPanel,
     handlePaletteRename, handlePaletteDuplicate, handlePaletteMove,
@@ -169,7 +168,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         label: 'Manage sets\u2026',
         description: `Create, rename, duplicate, reorder, and delete sets`,
         category: 'Sets',
-        handler: () => setShowManageSets(true),
+        handler: () => openOverflowPanel('sets'),
       },
       {
         id: 'paste-tokens',
@@ -439,7 +438,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCompareMode(); },
       },
     ];
-  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount, refreshValidation, setEditingToken, setOverflowPanel, setPendingGraphTemplate, setShowColorScaleGen, setShowIssuesOnly, setShowKeyboardShortcuts, setShowManageSets, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, openStartHere, themeManagerHandleRef, tokenListCompareRef, tokenListViewRev]);
+  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount, refreshValidation, setEditingToken, setOverflowPanel, setPendingGraphTemplate, setShowColorScaleGen, setShowIssuesOnly, setShowKeyboardShortcuts, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, openStartHere, themeManagerHandleRef, tokenListCompareRef, tokenListViewRev]);
 
   // Per-set switch commands — rebuilds when the set list or token counts change.
   const setCommands = useMemo<Command[]>(() => {

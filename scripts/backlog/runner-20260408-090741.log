@@ -49,3 +49,22 @@
     Unified onboarding into one Start here flow with import/template/manual branches, folded guided setup and templates underneath it, rewired empty-state and command entry points, and passed full validation.
 
   Committing: Onboarding and empty-state entry points are fragmented and compete with each other
+[main afce82a5] chore(backlog): done – Onboarding and empty-state entry points are fragmented and compete with each other
+ 17 files changed, 701 insertions(+), 534 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-08 - Onboarding and empty-state entry points are fragmented and compete with each other
+- Replaced the separate welcome prompt, empty-state action list, quick-start modal, and guided-setup launcher with one canonical `Start here` flow rooted in `WelcomePrompt`, centered on the question `How do you want to begin?` and three branches: import, templates, or manual.
+- Moved guided setup and quick-start templates under the template branch, rewrote the copy around system foundations / semantics / themes, and rewired App, empty states, command palette, settings, and token-list template entry points to deep-link into the same unified flow instead of opening parallel top-level modals.
+- Files changed: `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx` ~L113; `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L35; `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx` ~L304; `packages/figma-plugin/src/ui/components/QuickStartWizard.tsx` ~L723; `packages/figma-plugin/src/ui/App.tsx` ~L123, ~L2679; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L174, ~L486; `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L277, ~L414; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2519, ~L3253; `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L12; `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L156; `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L870; `packages/figma-plugin/src/ui/hooks/useModalVisibility.ts` ~L4
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  12 queued · 0 in-progress · last took 23m42s
+═══════════════════════════════════════════════════════════════
+  → Token set switching and token set management are split across too many inconsistent surfaces — the same concept currently appears as horizontal set tabs, a sidebar tree when set count grows, duplicated context menus, and a separate `SetSwitcher` dialog with `Switch` and `Manage` modes plus bulk actions; this makes sets feel unstable and increases the amount of UI a user must scan before understanding where to rename, reorder, merge, split, or bulk edit them; redesign this so there is one lightweight set-switching surface and one clearly separate management surface; target behavior: (1) switching sets should be fast and visually quiet, (2) management actions such as rename/duplicate/reorder/move to folder/merge/split/bulk delete should live in one dedicated manager rather than being replicated across the shell, (3) crossing the threshold from tabs to sidebar should not fundamentally change the interaction model; preserve the existing capability set, but reduce duplication and choose one information architecture for sets; files: `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`
+  Running agent… (started 09:46:43)
+
+  ✓ done: Token set switching and token set management are split across too many inconsistent surfaces
+    Unified set switching into one quiet horizontal bar plus a pure quick-switch modal, and moved all set-management actions into one dedicated manager surface.
+
+  Committing: Token set switching and token set management are split across too many inconsistent surfaces

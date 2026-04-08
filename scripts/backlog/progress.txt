@@ -380,3 +380,11 @@
   - If multiple onboarding surfaces point at the same conceptual decision, collapse them into one modal with branch state and deep-link into sub-branches from command palette or settings instead of keeping parallel booleans alive.
   - When a "manual" path is intentionally de-emphasized, remove it from empty-state peers as well as the main onboarding shell; leaving even one empty-set shortcut behind recreates the same decision overload.
 ---
+## 2026-04-08 - Token set switching and token set management are split across too many inconsistent surfaces
+- Replaced the tab-vs-sidebar split with one horizontal set bar that stays consistent at every set count, made the modal a pure quick-switcher, and moved create/rename/reorder/generate/merge/split/bulk operations into one dedicated set manager surface.
+- Rewired set management entry points so the command palette opens the dedicated manager, added a dedicated `sets` overflow surface, and kept quick switching focused on search and selection instead of mixing in destructive or structural actions.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1234, ~L1359, ~L2202; `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L19, ~L147, ~L381; `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L49, ~L167; `packages/figma-plugin/src/ui/hooks/useModalVisibility.ts` ~L4; `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L14
+- **Learnings for future iterations:**
+  - If the same object needs both fast navigation and occasional restructuring, keep those jobs in separate surfaces; otherwise every lightweight switcher grows into an accidental admin panel.
+  - Count-based UI swaps are expensive for orientation. A single scrollable switching bar plus a dedicated manager is easier to learn than tabs at one size and a sidebar tree at another.
+---
