@@ -11,6 +11,6 @@ status_notes:
 state: ready
 acceptance_criteria:
   - Rework `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` into a cleanup queue grouped by set and lifecycle with search, filters, and staged bulk actions, because the current flat list plus `Delete all` / `Deprecate all` controls does not scale to large libraries with hundreds of unused tokens.
-source: legacy-backlog
+source: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-08T20:14:30.290Z

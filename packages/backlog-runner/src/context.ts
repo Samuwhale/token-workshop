@@ -280,15 +280,17 @@ ${claim.task.statusNotes.map(item => `- ${item}`).join('\n') || '- None'}
 ${reservationSection}
 
 ## Validation Command
-Run this exact command before reporting success:
+The scheduler will run this exact command after your task is complete:
 ${validationCommand}
 
-## Follow-up Queue
+Use smaller targeted checks while you work. Do not rerun the full final validation command unless you need it to debug a failure.
+
+## Candidate Queue
 If this work reveals another backlog item or context that a later run should keep, append one JSON object per line to:
-${path.posix.normalize(path.relative(cwd, config.files.followups).split(path.sep).join('/'))}
+${path.posix.normalize(path.relative(cwd, config.files.candidateQueue).split(path.sep).join('/'))}
 
 Schema:
-{"title":"Standalone backlog item title","context":"Optional concise context for the future run","priority":"normal|high"}
+{"title":"Standalone backlog item title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context for the future run","source":"task-followup"}
 
 ## Stop Rules
 - Do not modify backlog.md directly; it is generated from backlog/tasks and runtime state.
@@ -317,7 +319,7 @@ ${recent}
 ${renderBacklogDigest(backlogContent)}
 
 ## Planner Flow
-Discovery passes write free-form candidates to backlog-inbox.md.
+Discovery passes write structured JSONL candidate records to backlog/inbox.jsonl.
 The planner step converts those entries into backlog/tasks/*.yaml and only runnable task specs are eligible for execution.
 Do not modify backlog.md directly.`;
 }

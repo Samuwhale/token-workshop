@@ -11,6 +11,6 @@ status_notes:
 state: ready
 acceptance_criteria:
   - Audit temporary redesign docs after the new IA and major workspace flows are implemented; remove any document in `docs/redesign/` that no longer adds unique value, and update surviving references so the repo does not keep stale redesign planning artifacts around
-source: legacy-backlog
+source: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-08T20:14:30.290Z

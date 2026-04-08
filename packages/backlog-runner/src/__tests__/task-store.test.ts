@@ -5,8 +5,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 import { normalizeBacklogRunnerConfig } from '../config.js';
 import { createFileBackedTaskStore } from '../store/task-store.js';
-import { createTaskFromBacklogLine, writeTaskSpec } from '../task-specs.js';
-import type { BacklogRunnerConfig, BacklogTaskSpec } from '../types.js';
+import { createTaskFromCandidate, parseTaskSpec, writeTaskSpec } from '../task-specs.js';
+import type { BacklogCandidateRecord, BacklogRunnerConfig, BacklogTaskSpec } from '../types.js';
 
 const tempDirs: string[] = [];
 
@@ -15,9 +15,10 @@ async function makeFixture() {
   tempDirs.push(root);
   await mkdir(path.join(root, 'scripts/backlog'), { recursive: true });
   await mkdir(path.join(root, 'backlog/tasks'), { recursive: true });
+  await mkdir(path.join(root, 'backlog'), { recursive: true });
   await mkdir(path.join(root, '.backlog-runner'), { recursive: true });
   await writeFile(path.join(root, 'backlog.md'), '', 'utf8');
-  await writeFile(path.join(root, 'backlog-inbox.md'), '', 'utf8');
+  await writeFile(path.join(root, 'backlog/inbox.jsonl'), '', 'utf8');
   await writeFile(path.join(root, 'backlog-stop'), '', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/patterns.md'), '# Patterns\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/progress.txt'), '# Backlog Progress Log\nStarted: today\n---\n', 'utf8');
@@ -31,7 +32,7 @@ async function makeFixture() {
     {
       files: {
         backlog: './backlog.md',
-        inbox: './backlog-inbox.md',
+        candidateQueue: './backlog/inbox.jsonl',
         taskSpecsDir: './backlog/tasks',
         stop: './backlog-stop',
         patterns: './scripts/backlog/patterns.md',
@@ -82,6 +83,19 @@ async function seedTask(config: BacklogRunnerConfig, task: BacklogTaskSpec): Pro
   await writeTaskSpec(config.files.taskSpecsDir, task);
 }
 
+function candidate(overrides: Partial<BacklogCandidateRecord> & Pick<BacklogCandidateRecord, 'title' | 'touchPaths' | 'acceptanceCriteria' | 'source'>): BacklogCandidateRecord {
+  return {
+    title: overrides.title,
+    priority: overrides.priority ?? 'normal',
+    touchPaths: overrides.touchPaths,
+    acceptanceCriteria: overrides.acceptanceCriteria,
+    validationProfile: overrides.validationProfile,
+    capabilities: overrides.capabilities,
+    context: overrides.context,
+    source: overrides.source,
+  };
+}
+
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map(dir => rm(dir, { recursive: true, force: true })));
 });
@@ -103,8 +117,18 @@ describe('task store', () => {
 
   it('allows non-overlapping package-local source tasks to run concurrently', async () => {
     const { config } = await makeFixture();
-    const taskA = createTaskFromBacklogLine('- [ ] Update `packages/server/src/a.ts`', 'inbox', config.validationProfiles);
-    const taskB = createTaskFromBacklogLine('- [ ] Update `packages/server/src/b.ts`', 'inbox', config.validationProfiles);
+    const taskA = createTaskFromCandidate(candidate({
+      title: 'Update server path A',
+      touchPaths: ['packages/server/src/a.ts'],
+      acceptanceCriteria: ['Update server path A'],
+      source: 'manual',
+    }), config.validationProfiles);
+    const taskB = createTaskFromCandidate(candidate({
+      title: 'Update server path B',
+      touchPaths: ['packages/server/src/b.ts'],
+      acceptanceCriteria: ['Update server path B'],
+      source: 'manual',
+    }), config.validationProfiles);
 
     await seedTask(config, taskA!);
     await seedTask(config, taskB!);
@@ -162,8 +186,18 @@ describe('task store', () => {
 
   it('blocks shared workspace config surfaces via inferred capabilities', async () => {
     const { config } = await makeFixture();
-    const taskA = createTaskFromBacklogLine('- [ ] Update `package.json`', 'inbox', config.validationProfiles);
-    const taskB = createTaskFromBacklogLine('- [ ] Update `.github/workflows/ci.yml`', 'inbox', config.validationProfiles);
+    const taskA = createTaskFromCandidate(candidate({
+      title: 'Update package config',
+      touchPaths: ['package.json'],
+      acceptanceCriteria: ['Update package config'],
+      source: 'manual',
+    }), config.validationProfiles);
+    const taskB = createTaskFromCandidate(candidate({
+      title: 'Update CI workflow',
+      touchPaths: ['.github/workflows/ci.yml'],
+      acceptanceCriteria: ['Update CI workflow'],
+      source: 'manual',
+    }), config.validationProfiles);
 
     await seedTask(config, taskA!);
     await seedTask(config, taskB!);
@@ -227,5 +261,74 @@ describe('task store', () => {
 
     await expect(store.close()).resolves.toBeUndefined();
     await expect(store.close()).resolves.toBeUndefined();
+  });
+
+  it('drains structured candidate queue records into runnable tasks', async () => {
+    const { config, store } = await makeFixture();
+    await writeFile(
+      config.files.candidateQueue,
+      `${JSON.stringify({
+        title: 'Implement structured planner',
+        priority: 'high',
+        touch_paths: ['packages/backlog-runner/src/store/task-store.ts'],
+        acceptance_criteria: ['Candidate queue drains into task specs'],
+        source: 'manual',
+      })}\n`,
+      'utf8',
+    );
+
+    const result = await store.drainCandidateQueue();
+    const claim = await store.claimNextRunnableTask('runner-a');
+
+    expect(result).toMatchObject({ drained: true, createdTasks: 1, skippedDuplicates: 0, ignoredInvalidLines: 0 });
+    expect(claim?.task.title).toBe('Implement structured planner');
+    expect(claim?.task.priority).toBe('high');
+  });
+
+  it('rejects malformed candidate queue records without creating limbo tasks', async () => {
+    const { config, store } = await makeFixture();
+    await writeFile(
+      config.files.candidateQueue,
+      [
+        '{"title":"broken json"',
+        JSON.stringify({
+          title: 'Missing touch paths',
+          priority: 'normal',
+          acceptance_criteria: ['Missing touch paths'],
+          source: 'manual',
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const result = await store.drainCandidateQueue();
+    const counts = await store.getQueueCounts();
+
+    expect(result).toMatchObject({ drained: true, createdTasks: 0, ignoredInvalidLines: 2 });
+    expect(counts.planned).toBe(0);
+    expect(counts.ready).toBe(0);
+  });
+
+  it('rejects task specs with unknown source values', async () => {
+    const { root } = await makeFixture();
+    const filePath = path.join(root, 'backlog/tasks', 'invalid-source.yaml');
+    const raw = 'id: invalid-source\n'
+      + 'title: Invalid source\n'
+      + 'priority: normal\n'
+      + 'depends_on: []\n'
+      + 'touch_paths:\n'
+      + '  - packages/core/src/index.ts\n'
+      + 'capabilities: []\n'
+      + 'validation_profile: core\n'
+      + 'status_notes:\n'
+      + '  - Seeded by test.\n'
+      + 'state: ready\n'
+      + 'acceptance_criteria:\n'
+      + '  - Reject unknown sources\n'
+      + 'source: legacy-backlog\n'
+      + 'created_at: 2026-04-08T00:00:00.000Z\n'
+      + 'updated_at: 2026-04-08T00:00:00.000Z\n';
+
+    expect(() => parseTaskSpec(raw, filePath)).toThrow(/invalid source/i);
   });
 });

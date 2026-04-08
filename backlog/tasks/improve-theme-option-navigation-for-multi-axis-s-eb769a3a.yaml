@@ -11,6 +11,6 @@ status_notes:
 state: planned
 acceptance_criteria:
   - Improve theme option navigation for multi-axis systems by making the current focus, option context, and unresolved gaps visible without forcing users to parse chips, badges, and side controls scattered across the page
-source: legacy-backlog
+source: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-08T20:14:30.290Z

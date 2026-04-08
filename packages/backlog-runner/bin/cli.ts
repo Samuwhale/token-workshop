@@ -7,7 +7,7 @@ import { validateBacklogRunner } from '../src/validate.js';
 import type { BacklogTool, RunOverrides } from '../src/types.js';
 
 function usage(): never {
-  console.error('Usage: backlog-runner <run|validate|sync> --config backlog.config.mjs [--tool TOOL] [--model MODEL] [--pass-model MODEL] [--passes true|false] [--pass-frequency N] [--worktrees true|false] [--interactive|--no-interactive]');
+  console.error('Usage: backlog-runner <run|validate|sync> --config backlog.config.mjs [--tool TOOL] [--model MODEL] [--pass-model MODEL] [--passes true|false] [--worktrees true|false] [--interactive|--no-interactive]');
   process.exit(1);
   throw new Error('unreachable');
 }
@@ -33,7 +33,6 @@ async function main() {
       model: { type: 'string' },
       'pass-model': { type: 'string' },
       passes: { type: 'string' },
-      'pass-frequency': { type: 'string' },
       worktrees: { type: 'string' },
       interactive: { type: 'boolean' },
       'no-interactive': { type: 'boolean' },
@@ -51,7 +50,6 @@ async function main() {
     model: values.model,
     passModel: values['pass-model'],
     passes: parseBoolean(values.passes),
-    passFrequency: values['pass-frequency'] ? Number.parseInt(values['pass-frequency'], 10) : undefined,
     worktrees: parseBoolean(values.worktrees),
     interactive: values['no-interactive'] ? false : values.interactive ? true : undefined,
   };
@@ -64,11 +62,8 @@ async function main() {
     const result = await syncBacklogRunner(config);
     console.log('Backlog sync complete');
     console.log('');
-    if (result.inbox.drained) {
-      console.log(`Inbox planner: ${result.inbox.createdTasks} created · ${result.inbox.skippedDuplicates} duplicates · ${result.inbox.ignoredInvalidLines} invalid`);
-    }
-    if (result.followups.drained) {
-      console.log(`Follow-up planner: ${result.followups.createdTasks} created · ${result.followups.skippedDuplicates} duplicates · ${result.followups.ignoredInvalidLines} invalid`);
+    if (result.candidates.drained) {
+      console.log(`Candidate planner: ${result.candidates.createdTasks} created · ${result.candidates.skippedDuplicates} duplicates · ${result.candidates.ignoredInvalidLines} invalid`);
     }
     console.log(
       `Queue: ${result.counts.ready} ready · ${result.counts.blocked} blocked · ${result.counts.planned} planned · ${result.counts.inProgress} in-progress · ${result.counts.failed} failed · ${result.counts.done} done`,

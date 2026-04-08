@@ -18,16 +18,15 @@ assigned task.
 3. **Implement** only the assigned task. Stay inside the declared `touch_paths` and acceptance criteria. If the task appears to need broader edits, stop, document the blocker, and queue a follow-up instead of freelancing into adjacent work.
 4. **Validate efficiently**:
    - During implementation, prefer the smallest useful checks for the files you touched.
-   - Before reporting success, run the exact validation command injected in your system prompt. Do not substitute a broader repo-wide command unless the injected command already is repo-wide.
-   - The TypeScript backlog runner will run the same validation command again before it commits. Your own run is expected so you can fix failures before ending the session.
-   - Do NOT report success unless that injected validation command exits 0.
+   - The TypeScript backlog runner will run the authoritative final validation command after your task is complete.
+   - Use focused checks while working so you catch obvious breakage early, but do not spend tokens rerunning the full final validation command unless you need it to debug a failure.
    - Do NOT use `npx pnpm …` or `npx turbo …` in worktrees.
    - If validation fails and the issue is unfixable within scope, revert your source changes or report failure instead of leaving unrelated breakage behind.
 5. **Append to `scripts/backlog/progress.txt`** (see format below).
 6. **Queue follow-up work when needed** — if the current item reveals another backlog-worthy task or context a later run will need, append a JSON line to the follow-up queue path provided in your system prompt/context. Use:
 
 ```
-{"title":"Standalone backlog item title","context":"Optional concise context for the future run","priority":"normal|high"}
+{"title":"Standalone backlog item title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context for the future run","source":"task-followup"}
 ```
 
 Do not write follow-up items directly into `backlog.md`.

@@ -13,13 +13,6 @@ function parseBooleanAnswer(value: string, fallback: boolean): boolean {
   return fallback;
 }
 
-function parseNumberAnswer(value: string, fallback: number): number {
-  const normalized = value.trim();
-  if (!normalized) return fallback;
-  const parsed = Number.parseInt(normalized, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
 export function resolveToolChoice(value: string, fallback: BacklogTool): BacklogTool {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return fallback;
@@ -38,7 +31,6 @@ export function summarizeRunOverrides(
     model?: string;
     passModel?: string;
     passes: boolean;
-    passFrequency: number;
     worktrees: boolean;
   },
 ): string {
@@ -49,7 +41,6 @@ export function summarizeRunOverrides(
     `Model:          ${overrides.model || 'CLI default'}`,
     `Pass model:     ${overrides.passModel || 'same as main model / CLI default'}`,
     `Passes:         ${overrides.passes ? 'enabled' : 'disabled'}`,
-    `Pass frequency: ${overrides.passFrequency}`,
     `Worktrees:      ${overrides.worktrees ? 'enabled' : 'disabled'}`,
     SUMMARY_DIVIDER,
   ].join('\n');
@@ -57,11 +48,10 @@ export function summarizeRunOverrides(
 
 function hasExplicitOverrides(overrides: RunOverrides): boolean {
   return Boolean(
-    overrides.tool !== undefined ||
+      overrides.tool !== undefined ||
       overrides.model !== undefined ||
       overrides.passModel !== undefined ||
       overrides.passes !== undefined ||
-      overrides.passFrequency !== undefined ||
       overrides.worktrees !== undefined,
   );
 }
@@ -109,10 +99,6 @@ export async function promptForRunOverrides(
       const passesAnswer = await rl.question(`Enable discovery passes? [Y/n] (${defaultPasses ? 'yes' : 'no'}): `);
       const nextPasses = parseBooleanAnswer(passesAnswer, defaultPasses);
 
-      const defaultPassFrequency = previous.passFrequency ?? config.defaults.passFrequency;
-      const passFrequencyAnswer = await rl.question(`Pass frequency (${defaultPassFrequency}): `);
-      const nextPassFrequency = parseNumberAnswer(passFrequencyAnswer, defaultPassFrequency);
-
       const defaultWorktrees = previous.worktrees ?? config.defaults.worktrees;
       const worktreesAnswer = await rl.question(`Use git worktrees? [Y/n] (${defaultWorktrees ? 'yes' : 'no'}): `);
       const nextWorktrees = parseBooleanAnswer(worktreesAnswer, defaultWorktrees);
@@ -123,7 +109,6 @@ export async function promptForRunOverrides(
         model: nextModel,
         passModel: nextPassModel,
         passes: nextPasses,
-        passFrequency: nextPassFrequency,
         worktrees: nextWorktrees,
         interactive: true,
       };
@@ -133,7 +118,6 @@ export async function promptForRunOverrides(
         model: nextModel,
         passModel: nextPassModel,
         passes: nextPasses,
-        passFrequency: nextPassFrequency,
         worktrees: nextWorktrees,
       })}\n`);
 

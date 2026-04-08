@@ -7,9 +7,8 @@ export interface BacklogRunnerConfigInput {
   projectRoot?: string;
   files: {
     backlog: string;
-    inbox: string;
+    candidateQueue: string;
     taskSpecsDir?: string;
-    followups?: string;
     stop: string;
     patterns: string;
     progress: string;
@@ -32,19 +31,17 @@ export interface BacklogRunnerConfigInput {
     model?: string;
     passModel?: string;
     passes?: boolean;
-    passFrequency?: number;
     worktrees?: boolean;
   };
-  passes?: Partial<Record<BacklogPassType, { offset?: number; promptFile?: string }>>;
+  passes?: Partial<Record<BacklogPassType, { promptFile?: string }>>;
 }
 
 export interface BacklogRunnerConfig {
   projectRoot: string;
   files: {
     backlog: string;
-    inbox: string;
+    candidateQueue: string;
     taskSpecsDir: string;
-    followups: string;
     stop: string;
     patterns: string;
     progress: string;
@@ -62,10 +59,9 @@ export interface BacklogRunnerConfig {
     model?: string;
     passModel?: string;
     passes: boolean;
-    passFrequency: number;
     worktrees: boolean;
   };
-  passes: Record<BacklogPassType, { offset: number; promptFile: string }>;
+  passes: Record<BacklogPassType, { promptFile: string }>;
 }
 
 export interface RunOverrides {
@@ -73,7 +69,6 @@ export interface RunOverrides {
   model?: string;
   passModel?: string;
   passes?: boolean;
-  passFrequency?: number;
   worktrees?: boolean;
   interactive?: boolean;
 }
@@ -83,7 +78,6 @@ export interface ResolvedRunOptions {
   model?: string;
   passModel?: string;
   passes: boolean;
-  passFrequency: number;
   worktrees: boolean;
 }
 
@@ -161,9 +155,20 @@ export interface BacklogTaskSpec {
   statusNotes: string[];
   state: BacklogTaskState;
   acceptanceCriteria: string[];
-  source: 'legacy-backlog' | 'inbox' | 'followup' | 'manual';
+  source: 'product-pass' | 'ux-pass' | 'code-pass' | 'task-followup' | 'manual';
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BacklogCandidateRecord {
+  title: string;
+  priority: BacklogTaskPriority;
+  touchPaths: string[];
+  acceptanceCriteria: string[];
+  validationProfile?: string;
+  capabilities?: string[];
+  context?: string;
+  source: BacklogTaskSpec['source'];
 }
 
 export interface BacklogQueueCounts {
@@ -183,8 +188,7 @@ export interface BacklogDrainResult {
 }
 
 export interface BacklogSyncResult {
-  inbox: BacklogDrainResult;
-  followups: BacklogDrainResult;
+  candidates: BacklogDrainResult;
   counts: BacklogQueueCounts;
 }
 
@@ -238,8 +242,7 @@ export interface BacklogStore {
   failClaim(claim: BacklogTaskClaim, note: string): Promise<void>;
   failTaskById(taskId: string, note: string): Promise<void>;
   rewriteBacklogReport(): Promise<void>;
-  drainInbox(): Promise<BacklogDrainResult>;
-  drainFollowups(filePath?: string): Promise<BacklogDrainResult>;
+  drainCandidateQueue(): Promise<BacklogDrainResult>;
   getTaskDependencies(taskId: string): Promise<TaskDependencySnapshot[]>;
   getActiveReservations(excludeTaskId?: string): Promise<TaskReservationSnapshot[]>;
   getTaskBlockage(taskId: string): Promise<TaskBlockage | null>;
@@ -251,12 +254,12 @@ export interface BacklogStore {
 export interface WorkspaceSession {
   cwd: string;
   teardown(): Promise<void>;
-  merge(message: string): Promise<WorkspaceApplyResult>;
+  merge(): Promise<WorkspaceApplyResult>;
 }
 
 export interface WorkspaceStrategy {
   setup(): Promise<WorkspaceSession>;
-  commitAndPush(message: string): Promise<WorkspaceApplyResult>;
+  commitAndPush(message: string, allowedPaths: string[]): Promise<WorkspaceApplyResult>;
 }
 
 export interface WorkspaceApplyResult {

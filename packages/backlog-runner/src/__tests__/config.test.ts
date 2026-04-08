@@ -24,7 +24,7 @@ describe('config', () => {
         projectRoot: '.',
         files: {
           backlog: './backlog.md',
-          inbox: './backlog-inbox.md',
+          candidateQueue: './backlog/inbox.jsonl',
           stop: './backlog-stop',
           patterns: './scripts/backlog/patterns.md',
           progress: './scripts/backlog/progress.txt',
@@ -42,7 +42,7 @@ describe('config', () => {
 
     expect(config.projectRoot).toBe(root);
     expect(config.files.progress).toBe(path.join(root, 'scripts/backlog/progress.txt'));
-    expect(config.files.followups).toBe(path.join(root, '.backlog-runner', 'followups.jsonl'));
+    expect(config.files.candidateQueue).toBe(path.join(root, 'backlog', 'inbox.jsonl'));
     expect(config.files.taskSpecsDir).toBe(path.join(root, 'backlog', 'tasks'));
     expect(config.files.stateDb).toBe(path.join(root, '.backlog-runner', 'state.sqlite'));
     expect(config.prompts.agent).toBe(path.join(root, 'scripts/backlog/agent.md'));
@@ -67,7 +67,7 @@ describe('config', () => {
       {
         files: {
           backlog: './backlog.md',
-          inbox: './backlog-inbox.md',
+          candidateQueue: './backlog/inbox.jsonl',
           stop: './backlog-stop',
           patterns: './scripts/backlog/patterns.md',
           progress: './scripts/backlog/progress.txt',
@@ -83,9 +83,8 @@ describe('config', () => {
         defaults: {
           tool: 'codex',
           model: 'default',
-          passModel: '',
+          passModel: 'sonnet',
           passes: true,
-          passFrequency: 10,
           worktrees: true,
         },
       },
@@ -102,13 +101,13 @@ describe('config', () => {
     expect(options.worktrees).toBe(false);
   });
 
-  it('uses CLI defaults when no model is configured', async () => {
+  it('pins explicit model aliases when no model is configured', async () => {
     const root = await makeTempDir();
     const config = normalizeBacklogRunnerConfig(
       {
         files: {
           backlog: './backlog.md',
-          inbox: './backlog-inbox.md',
+          candidateQueue: './backlog/inbox.jsonl',
           stop: './backlog-stop',
           patterns: './scripts/backlog/patterns.md',
           progress: './scripts/backlog/progress.txt',
@@ -122,10 +121,9 @@ describe('config', () => {
         validationCommand: 'bash scripts/backlog/validate.sh',
         defaults: {
           tool: 'codex',
-          model: '',
-          passModel: '',
+          model: 'default',
+          passModel: 'sonnet',
           passes: true,
-          passFrequency: 10,
           worktrees: true,
         },
       },
@@ -134,7 +132,7 @@ describe('config', () => {
 
     const options = await resolveRunOptions(config);
 
-    expect(options.model).toBeUndefined();
-    expect(options.passModel).toBeUndefined();
+    expect(options.model).toBe('gpt-5.4');
+    expect(options.passModel).toBe('gpt-5.4');
   });
 });

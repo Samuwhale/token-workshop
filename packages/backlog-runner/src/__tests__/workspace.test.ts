@@ -12,11 +12,12 @@ async function makeRepo() {
   const root = await mkdtemp(path.join(tmpdir(), 'backlog-worktree-test-'));
   tempDirs.push(root);
   await mkdir(path.join(root, 'scripts/backlog'), { recursive: true });
+  await mkdir(path.join(root, 'backlog'), { recursive: true });
   await mkdir(path.join(root, 'packages/core/src'), { recursive: true });
   await mkdir(path.join(root, 'packages/core/node_modules/.bin'), { recursive: true });
   await mkdir(path.join(root, 'node_modules'), { recursive: true });
   await writeFile(path.join(root, 'backlog.md'), '- [ ] item\n', 'utf8');
-  await writeFile(path.join(root, 'backlog-inbox.md'), '', 'utf8');
+  await writeFile(path.join(root, 'backlog/inbox.jsonl'), '', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/patterns.md'), '# Patterns\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/progress.txt'), '# Backlog Progress Log\nStarted: today\n---\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/archive.md'), '# Backlog Archive\n', 'utf8');
@@ -38,7 +39,7 @@ async function makeRepo() {
     {
       files: {
         backlog: './backlog.md',
-        inbox: './backlog-inbox.md',
+        candidateQueue: './backlog/inbox.jsonl',
         stop: './backlog-stop',
         patterns: './scripts/backlog/patterns.md',
         progress: './scripts/backlog/progress.txt',
@@ -79,7 +80,7 @@ describe('git worktree strategy', () => {
       'utf8',
     );
 
-    const merge = await session.merge('chore(backlog): done – item');
+    const merge = await session.merge();
     await session.teardown();
 
     expect(merge.ok).toBe(true);
@@ -97,7 +98,7 @@ describe('git worktree strategy', () => {
     await runner.run('git', ['add', 'feature.txt'], { cwd: root });
     await runner.run('git', ['commit', '-m', 'main repo change'], { cwd: root });
 
-    const merge = await session.merge('chore(backlog): done – conflict item');
+    const merge = await session.merge();
     await session.teardown();
 
     expect(merge.ok).toBe(false);

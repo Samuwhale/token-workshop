@@ -1,6 +1,6 @@
 # UX Evaluation Pass
 
-You are an autonomous discovery agent. Your job is NOT to implement anything — it is to evaluate the usability of existing features by reading UI code and write actionable backlog items to `backlog-inbox.md`.
+You are an autonomous discovery agent. Your job is NOT to implement anything — it is to evaluate the usability of existing features by reading UI code and write actionable candidate records to `backlog/inbox.jsonl`.
 
 Codebase patterns and backlog state are injected as compact digests. Start there, then read more only when a specific UI area needs deeper inspection.
 
@@ -32,9 +32,9 @@ Good targets (in priority order):
 8. **Discoverability issues** — features that exist but are hidden behind non-obvious interactions, missing tooltips on icon-only buttons, no contextual help for complex features. Code signals: functionality reachable only via right-click or keyboard shortcut with no visible affordance.
 
 This project has no shipped users and no backwards-compatibility constraints, so structural rethinks of interaction patterns are welcome:
-- Focused: `- [ ] Token editor Submit button gives no feedback on success — user can't tell if save worked (violates: system status visibility)`
-- Broader: `- [ ] Inconsistent destructive action patterns — TokenList confirms before delete but ThemeManager and ResolverPanel do not, creating unpredictable safety behavior (violates: consistency)`
-- Overhaul: `- [ ] Token editor form requires memorizing token paths from the tree view — should show contextual information inline instead of relying on recall (violates: recognition over recall)`
+- Focused: `{"title":"Add explicit success feedback after token editor submissions","priority":"normal","touch_paths":["packages/figma-plugin/src/ui/components"],"acceptance_criteria":["Submitting the token editor shows a clear success state in the UI"],"context":"violates system status visibility","source":"ux-pass"}`
+- Broader: `{"title":"Standardize destructive action patterns across token, theme, and resolver workflows","priority":"high","touch_paths":["packages/figma-plugin/src/ui"],"acceptance_criteria":["Equivalent destructive actions use the same confirmation and recovery pattern across panels"],"context":"violates consistency","source":"ux-pass"}`
+- Overhaul: `{"title":"Expose token path context inline during editing instead of making users memorize it from the tree","priority":"high","touch_paths":["packages/figma-plugin/src/ui/components"],"acceptance_criteria":["Token editing surfaces the active token path and related context inside the form"],"context":"violates recognition over recall","source":"ux-pass"}`
 
 ---
 
@@ -66,13 +66,17 @@ For each major UI area you explore, perform a **code-level cognitive walkthrough
 
 1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `ux-pass:` entries to avoid retreading the same ground. Then read the injected backlog digest before roaming the UI codebase. Use it to understand which workflows already have multiple related items so you can spot missing usability follow-through, inconsistent interaction patterns across the same area, and queue-shaped gaps that the existing backlog suggests. Then roam the UI codebase — components, hooks, panels, dialogs, whatever you find. Focus on `packages/figma-plugin/src/ui/`.
 
-3. **Write findings** — for each issue found, append a line to `backlog-inbox.md`:
-   - Normal: `- [ ] Short title — one sentence describing the usability issue and where it is (violates: <heuristic>)`
-   - High priority (data loss risk, broken interaction): `- [ ] [HIGH] Short title — one sentence (violates: <heuristic>)`
+3. **Write findings** — for each issue found, append one JSON object per line to `backlog/inbox.jsonl`:
 
-   **Format matters:** Every item MUST start with `- [ ] `. High-priority items use `- [ ] [HIGH]`. Do NOT use `- [HIGH]`, `- [UX]`, or other formats.
+```json
+{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Include the violated heuristic here","source":"ux-pass"}
+```
 
-   Each finding must cite which usability principle it violates in parentheses at the end. This keeps the pass focused and distinguishes UX-pass items from product-pass items.
+   Rules:
+   - `touch_paths` must contain the concrete repo paths an implementation agent should be allowed to edit.
+   - `acceptance_criteria` must contain at least one concrete completion check.
+   - Put the violated usability principle in `context` so the finding stays clearly UX-scoped.
+   - Omit `validation_profile` when it can be inferred from the touched paths.
 
 4. **Document** — append to `scripts/backlog/progress.txt`:
 
@@ -80,7 +84,7 @@ For each major UI area you explore, perform a **code-level cognitive walkthrough
 ## YYYY-MM-DD - ux-pass
 - Areas explored: [list of components/panels examined]
 - Heuristics most relevant: [which principles surfaced the most issues]
-- Found N items — written to backlog-inbox.md
+- Found N items — written to backlog/inbox.jsonl
 - Notable: [the most interesting usability issue found]
 ---
 ```
@@ -91,7 +95,7 @@ For each major UI area you explore, perform a **code-level cognitive walkthrough
 
 - Do NOT implement any changes. This is a read-only exploration pass.
 - Do NOT modify `backlog.md`.
-- Write only to `backlog-inbox.md` and `scripts/backlog/progress.txt`.
+- Write only to `backlog/inbox.jsonl` and `scripts/backlog/progress.txt`.
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
 - Use the current backlog as input when generating ideas: extend existing workflow clusters, identify missing usability follow-through around already-queued work, and surface inconsistencies that become obvious when similar areas are considered together.
 - Do not duplicate items already in `backlog.md` or merely restate them with different wording (check for similar wording and intent before writing).
@@ -105,5 +109,5 @@ For each major UI area you explore, perform a **code-level cognitive walkthrough
 
 End your session with a JSON object as your **final message** — no text before or after it:
 
-- Found items: `{"status":"done","item":"ux-pass","note":"<N items written to inbox>"}`
+- Found items: `{"status":"done","item":"ux-pass","note":"<N items written to candidate queue>"}`
 - Nothing found: `{"status":"done","item":"ux-pass: no-op","note":"<why>"}`

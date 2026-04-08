@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import YAML from 'yaml';
-import type { BacklogTaskPriority, BacklogTaskSpec, BacklogTaskState } from './types.js';
+import type { BacklogCandidateRecord, BacklogTaskPriority, BacklogTaskSpec, BacklogTaskState } from './types.js';
 
 type RenderableTaskRecord = {
   task: BacklogTaskSpec;
@@ -10,7 +10,6 @@ type RenderableTaskRecord = {
   blockage?: string;
 };
 
-const LEGACY_TASK_PATTERN = /^- \[([ ~x!])\](?: \[(HIGH|P0|BUG)\])? (.+)$/;
 const TASK_FILE_PATTERN = /\.ya?ml$/i;
 
 function normalizeWhitespace(value: string): string {
@@ -58,9 +57,12 @@ export function taskSort(a: BacklogTaskSpec, b: BacklogTaskSpec): number {
   );
 }
 
-function inferPriority(value?: string): BacklogTaskPriority {
-  if (value === 'HIGH' || value === 'P0' || value === 'BUG') return 'high';
-  return 'normal';
+function normalizePriority(value: unknown): BacklogTaskPriority | null {
+  const normalized = normalizeWhitespace(String(value ?? 'normal')).toLowerCase();
+  if (normalized === 'high' || normalized === 'normal' || normalized === 'low') {
+    return normalized;
+  }
+  return null;
 }
 
 function isWorkspaceConfigPath(touchPath: string): boolean {
@@ -75,7 +77,7 @@ function isWorkspaceConfigPath(touchPath: string): boolean {
 function isBacklogRuntimePath(touchPath: string): boolean {
   return touchPath === 'backlog.config.mjs'
     || touchPath === 'backlog.md'
-    || touchPath === 'backlog-inbox.md'
+    || touchPath === 'backlog/inbox.jsonl'
     || touchPath === 'backlog-stop'
     || touchPath.startsWith('backlog/')
     || touchPath.startsWith('.backlog-runner/')
@@ -114,14 +116,6 @@ function inferValidationProfile(
   return validationProfiles.repo ? 'repo' : Object.keys(validationProfiles)[0] ?? '';
 }
 
-function extractTouchPaths(title: string): string[] {
-  const matches = [...title.matchAll(/`([^`]+)`/g)]
-    .map(match => normalizeRepoPath(match[1] ?? ''))
-    .filter(Boolean)
-    .filter(candidate => candidate.includes('/') || isWorkspaceConfigPath(candidate) || isBacklogRuntimePath(candidate));
-  return [...new Set(matches)];
-}
-
 function taskFilename(taskSpecsDir: string, taskId: string): string {
   return path.join(taskSpecsDir, `${taskId}.yaml`);
 }
@@ -137,15 +131,6 @@ function pathsOverlap(left: string, right: string): boolean {
 export function isPathWithinTouchPaths(filePath: string, touchPaths: string[]): boolean {
   const normalized = normalizeRepoPath(filePath);
   return touchPaths.some(entry => pathsOverlap(normalized, entry));
-}
-
-export function computeTaskState(
-  marker: string,
-  touchPaths: string[],
-): BacklogTaskState {
-  if (marker === 'x') return 'done';
-  if (marker === '!') return 'failed';
-  return touchPaths.length > 0 ? 'ready' : 'planned';
 }
 
 export function parseTaskSpec(raw: string, filePath: string): BacklogTaskSpec {
@@ -173,10 +158,11 @@ export function parseTaskSpec(raw: string, filePath: string): BacklogTaskSpec {
   const createdAt = normalizeWhitespace(String(parsed.created_at ?? ''));
   const updatedAt = normalizeWhitespace(String(parsed.updated_at ?? createdAt));
   const sourceValue = normalizeWhitespace(String(parsed.source ?? 'manual')).toLowerCase();
-  const source: BacklogTaskSpec['source'] =
-    sourceValue === 'legacy-backlog' || sourceValue === 'inbox' || sourceValue === 'followup'
-      ? (sourceValue as BacklogTaskSpec['source'])
-      : 'manual';
+  const validSources = new Set<BacklogTaskSpec['source']>(['product-pass', 'ux-pass', 'code-pass', 'task-followup', 'manual']);
+  if (!validSources.has(sourceValue as BacklogTaskSpec['source'])) {
+    throw new Error(`Task spec ${filePath} has invalid source: ${sourceValue || '<empty>'}`);
+  }
+  const source = sourceValue as BacklogTaskSpec['source'];
 
   if (!id || !title || !validationProfile || statusNotes.length === 0 || !createdAt || !updatedAt) {
     throw new Error(`Task spec ${filePath} is missing required fields`);
@@ -232,43 +218,110 @@ export async function writeTaskSpec(taskSpecsDir: string, task: BacklogTaskSpec)
   await writeFile(taskFilename(taskSpecsDir, task.id), content, 'utf8');
 }
 
-export function createTaskFromBacklogLine(
-  line: string,
-  source: BacklogTaskSpec['source'],
+function normalizeStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const normalized = value.map(item => normalizeWhitespace(String(item))).filter(Boolean);
+  return normalized.length > 0 ? [...new Set(normalized)] : null;
+}
+
+function normalizePathArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const normalized = value
+    .map(item => normalizeRepoPath(String(item)))
+    .filter(Boolean);
+  return normalized.length > 0 ? [...new Set(normalized)] : null;
+}
+
+function normalizeCandidateSource(value: unknown): BacklogTaskSpec['source'] | null {
+  const normalized = normalizeWhitespace(String(value ?? '')).toLowerCase();
+  if (
+    normalized === 'product-pass' ||
+    normalized === 'ux-pass' ||
+    normalized === 'code-pass' ||
+    normalized === 'task-followup' ||
+    normalized === 'manual'
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+export function parseCandidateRecord(line: string): BacklogCandidateRecord | null {
+  let parsed: Record<string, unknown> | null = null;
+  try {
+    parsed = JSON.parse(line) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const title = normalizeWhitespace(String(parsed.title ?? ''));
+  const priority = normalizePriority(parsed.priority ?? 'normal');
+  const touchPaths = normalizePathArray(parsed.touch_paths);
+  const acceptanceCriteria = normalizeStringArray(parsed.acceptance_criteria);
+  const source = normalizeCandidateSource(parsed.source);
+  if (!title || !priority || !touchPaths || !acceptanceCriteria || !source) {
+    return null;
+  }
+
+  const validationProfile = normalizeWhitespace(String(parsed.validation_profile ?? '')) || undefined;
+  const capabilities = Array.isArray(parsed.capabilities)
+    ? [...new Set(parsed.capabilities.map(item => normalizeWhitespace(String(item)).toLowerCase()).filter(Boolean))]
+    : undefined;
+  const context = normalizeWhitespace(String(parsed.context ?? '')) || undefined;
+
+  return {
+    title,
+    priority,
+    touchPaths,
+    acceptanceCriteria,
+    validationProfile,
+    capabilities: capabilities && capabilities.length > 0 ? capabilities : undefined,
+    context,
+    source,
+  };
+}
+
+export function createTaskFromCandidate(
+  candidate: BacklogCandidateRecord,
   validationProfiles: Record<string, string>,
   nowIso = new Date().toISOString(),
 ): BacklogTaskSpec | null {
-  const match = line.trim().match(LEGACY_TASK_PATTERN);
-  if (!match) return null;
-
-  const marker = match[1] ?? ' ';
-  const priority = inferPriority(match[2]);
-  const title = normalizeWhitespace(match[3] ?? '');
-  if (!title) return null;
-
-  const touchPaths = extractTouchPaths(title);
-  const validationProfile = inferValidationProfile(touchPaths, validationProfiles);
-  const state = computeTaskState(marker, touchPaths);
-  const notes = [`Imported from ${source === 'legacy-backlog' ? 'legacy backlog.md' : source}.`];
-  if (marker === '~') {
-    notes.push('Legacy in-progress marker was converted to a new planner/runtime-managed task.');
+  const title = normalizeWhitespace(candidate.title);
+  const touchPaths = [...new Set(candidate.touchPaths.map(value => normalizeRepoPath(value)).filter(Boolean))];
+  const acceptanceCriteria = [...new Set(candidate.acceptanceCriteria.map(item => normalizeWhitespace(item)).filter(Boolean))];
+  if (!title || touchPaths.length === 0 || acceptanceCriteria.length === 0) {
+    return null;
   }
-  if (touchPaths.length === 0) {
-    notes.push('Planner could not infer touch_paths from the title; refine this task before execution.');
+
+  const validationProfile = candidate.validationProfile
+    ? normalizeWhitespace(candidate.validationProfile)
+    : inferValidationProfile(touchPaths, validationProfiles);
+  if (!validationProfile || !validationProfiles[validationProfile]) {
+    return null;
+  }
+
+  const capabilities = candidate.capabilities && candidate.capabilities.length > 0
+    ? [...new Set(candidate.capabilities.map(item => normalizeWhitespace(item).toLowerCase()).filter(Boolean))]
+    : inferCapabilities(touchPaths);
+  const statusNotes = [`Imported from ${candidate.source}.`];
+  if (candidate.context) {
+    statusNotes.push(`Context: ${candidate.context}`);
   }
 
   return {
     id: createTaskId(title),
     title,
-    priority,
+    priority: candidate.priority,
     dependsOn: [],
     touchPaths,
-    capabilities: inferCapabilities(touchPaths),
+    capabilities,
     validationProfile,
-    statusNotes: notes,
-    state,
-    acceptanceCriteria: [title],
-    source,
+    statusNotes,
+    state: 'ready',
+    acceptanceCriteria,
+    source: candidate.source,
     createdAt: nowIso,
     updatedAt: nowIso,
   };

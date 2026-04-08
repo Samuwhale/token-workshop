@@ -3,8 +3,9 @@ import { access, appendFile, readFile, rename, writeFile } from 'node:fs/promise
 import { lockPath, withLock } from '../locks.js';
 import { RuntimeStateStore } from '../runtime-state.js';
 import {
-  createTaskFromBacklogLine,
+  createTaskFromCandidate,
   normalizeRepoPath,
+  parseCandidateRecord,
   readTaskSpecs,
   renderGeneratedBacklog,
   taskSort,
@@ -23,12 +24,6 @@ import type {
   TaskDependencySnapshot,
   TaskReservationSnapshot,
 } from '../types.js';
-
-type FollowupRecord = {
-  title: string;
-  context?: string;
-  priority?: string;
-};
 
 type RuntimeSnapshot = {
   tasks: BacklogTaskSpec[];
@@ -54,24 +49,6 @@ function normalizeWhitespace(value: string): string {
 function reservationConflict(task: BacklogTaskSpec, reservation: TaskReservationSnapshot): boolean {
   const capabilityConflict = task.capabilities.some(capability => reservation.capabilities.includes(capability));
   return capabilityConflict || touchPathsOverlap(task.touchPaths, reservation.touchPaths);
-}
-
-function parseFollowupRecord(line: string): FollowupRecord | null {
-  try {
-    const value = JSON.parse(line) as Partial<FollowupRecord>;
-    return typeof value.title === 'string' ? (value as FollowupRecord) : null;
-  } catch {
-    return null;
-  }
-}
-
-function followupToLegacyLine(record: FollowupRecord): string | null {
-  const title = normalizeWhitespace(record.title);
-  if (!title) return null;
-  const context = typeof record.context === 'string' ? normalizeWhitespace(record.context) : '';
-  const priority = typeof record.priority === 'string' ? record.priority.toLowerCase() : 'normal';
-  const prefix = priority === 'high' ? '- [ ] [HIGH] ' : '- [ ] ';
-  return `${prefix}${context ? `${title} (Context: ${context})` : title}`;
 }
 
 export class FileBackedTaskStore implements BacklogStore {
@@ -111,30 +88,8 @@ export class FileBackedTaskStore implements BacklogStore {
   async ensureTaskSpecsReady(): Promise<void> {
     await this.getRuntime();
     await withLock(this.backlogLock, 30, async () => {
-      await this.migrateLegacyBacklogIfNeeded();
       await this.refreshRuntimeAndWriteReport();
     });
-  }
-
-  private async migrateLegacyBacklogIfNeeded(): Promise<void> {
-    const existing = await readTaskSpecs(this.config.files.taskSpecsDir);
-    if (existing.length > 0) return;
-
-    let backlogContent = '';
-    try {
-      backlogContent = await readFile(this.config.files.backlog, 'utf8');
-    } catch {
-      return;
-    }
-
-    const tasks = splitLines(backlogContent)
-      .map(line => createTaskFromBacklogLine(line, 'legacy-backlog', this.config.validationProfiles))
-      .filter((task): task is BacklogTaskSpec => Boolean(task))
-      .sort(taskSort);
-
-    for (const task of tasks) {
-      await writeTaskSpec(this.config.files.taskSpecsDir, task);
-    }
   }
 
   private async loadTasks(): Promise<BacklogTaskSpec[]> {
@@ -363,16 +318,16 @@ export class FileBackedTaskStore implements BacklogStore {
     return tasks.some(task => task.id === candidate.id);
   }
 
-  async drainInbox(): Promise<BacklogDrainResult> {
+  async drainCandidateQueue(): Promise<BacklogDrainResult> {
     return withLock(this.backlogLock, 30, async () => {
-      let inboxContent = '';
+      let queueContent = '';
       try {
-        inboxContent = await readFile(this.config.files.inbox, 'utf8');
+        queueContent = await readFile(this.config.files.candidateQueue, 'utf8');
       } catch {
         return { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0 };
       }
 
-      if (!/\S/.test(inboxContent)) {
+      if (!/\S/.test(queueContent)) {
         return { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0 };
       }
 
@@ -381,8 +336,13 @@ export class FileBackedTaskStore implements BacklogStore {
       let skippedDuplicates = 0;
       let ignoredInvalidLines = 0;
 
-      for (const line of splitLines(inboxContent).map(value => value.trim()).filter(Boolean)) {
-        const task = createTaskFromBacklogLine(line, 'inbox', this.config.validationProfiles);
+      for (const line of splitLines(queueContent).map(value => value.trim()).filter(Boolean)) {
+        const candidate = parseCandidateRecord(line);
+        if (!candidate) {
+          ignoredInvalidLines += 1;
+          continue;
+        }
+        const task = createTaskFromCandidate(candidate, this.config.validationProfiles);
         if (!task) {
           ignoredInvalidLines += 1;
           continue;
@@ -396,56 +356,7 @@ export class FileBackedTaskStore implements BacklogStore {
         createdTasks += 1;
       }
 
-      await atomicWrite(this.config.files.inbox, '');
-      await this.refreshRuntimeAndWriteReport(tasks.sort(taskSort));
-      return { drained: true, createdTasks, skippedDuplicates, ignoredInvalidLines };
-    });
-  }
-
-  async drainFollowups(filePath = this.config.files.followups): Promise<BacklogDrainResult> {
-    return withLock(this.backlogLock, 30, async () => {
-      let content = '';
-      try {
-        content = await readFile(filePath, 'utf8');
-      } catch {
-        return { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0 };
-      }
-
-      if (!/\S/.test(content)) {
-        return { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0 };
-      }
-
-      const tasks = await this.loadTasks();
-      let createdTasks = 0;
-      let skippedDuplicates = 0;
-      let ignoredInvalidLines = 0;
-
-      for (const line of splitLines(content).map(value => value.trim()).filter(Boolean)) {
-        const record = parseFollowupRecord(line);
-        if (!record) {
-          ignoredInvalidLines += 1;
-          continue;
-        }
-        const legacyLine = followupToLegacyLine(record);
-        if (!legacyLine) {
-          ignoredInvalidLines += 1;
-          continue;
-        }
-        const task = createTaskFromBacklogLine(legacyLine, 'followup', this.config.validationProfiles);
-        if (!task) {
-          ignoredInvalidLines += 1;
-          continue;
-        }
-        if (this.taskExists(tasks, task)) {
-          skippedDuplicates += 1;
-          continue;
-        }
-        tasks.push(task);
-        await this.persistTask(task);
-        createdTasks += 1;
-      }
-
-      await atomicWrite(filePath, '');
+      await atomicWrite(this.config.files.candidateQueue, '');
       await this.refreshRuntimeAndWriteReport(tasks.sort(taskSort));
       return { drained: true, createdTasks, skippedDuplicates, ignoredInvalidLines };
     });

@@ -34,6 +34,8 @@ function createFakeCommandRunner(
     onGitCommit?: (message: string) => Promise<void> | void;
   } = {},
 ): CommandRunner {
+  const stagedFiles = new Set<string>();
+
   return {
     async run(command: string, args: string[]): Promise<CommandResult> {
       options.calls?.push(`run:${command} ${args.join(' ')}`.trim());
@@ -45,11 +47,14 @@ function createFakeCommandRunner(
         );
         if (options.emitFollowup) {
           await writeFile(
-            path.join(root, '.backlog-runner', 'followups.jsonl'),
+            path.join(root, 'backlog', 'inbox.jsonl'),
             `${JSON.stringify({
               title: 'Audit token import edge cases',
+              touch_paths: ['packages/server/src/token-store.ts'],
+              acceptance_criteria: ['Audit token import edge cases is captured as a task'],
               context: 'Found while implementing the assigned task',
               priority: 'high',
+              source: 'task-followup',
             })}\n`,
             'utf8',
           );
@@ -72,12 +77,22 @@ function createFakeCommandRunner(
             stderr: '',
           };
         }
+        if (args[0] === 'add') {
+          for (const file of args.slice(2)) {
+            stagedFiles.add(file);
+          }
+          return { code: 0, stdout: '', stderr: '' };
+        }
+        if (args[0] === 'diff' && args[1] === '--cached' && args[2] === '--name-only') {
+          return { code: 0, stdout: [...stagedFiles].join('\n'), stderr: '' };
+        }
         if (args[0] === 'commit' && args[1] === '-m') {
           const message = args[2] ?? '';
           await options.onGitCommit?.(message);
           if (options.failCommitMessages?.includes(message)) {
             return { code: 1, stdout: '', stderr: 'commit failed' };
           }
+          stagedFiles.clear();
           return { code: 0, stdout: '', stderr: '' };
         }
         if (args[0] === 'remote') {
@@ -105,9 +120,10 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
   tempDirs.push(root);
   await mkdir(path.join(root, 'scripts/backlog'), { recursive: true });
   await mkdir(path.join(root, 'backlog/tasks'), { recursive: true });
+  await mkdir(path.join(root, 'backlog'), { recursive: true });
   await mkdir(path.join(root, '.backlog-runner'), { recursive: true });
   await writeFile(path.join(root, 'backlog.md'), '', 'utf8');
-  await writeFile(path.join(root, 'backlog-inbox.md'), '', 'utf8');
+  await writeFile(path.join(root, 'backlog/inbox.jsonl'), '', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/patterns.md'), '# Patterns\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/progress.txt'), '# Backlog Progress Log\nStarted: today\n---\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/archive.md'), '# Backlog Archive\n', 'utf8');
@@ -120,7 +136,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
     {
       files: {
         backlog: './backlog.md',
-        inbox: './backlog-inbox.md',
+        candidateQueue: './backlog/inbox.jsonl',
         taskSpecsDir: './backlog/tasks',
         stop: './backlog-stop',
         patterns: './scripts/backlog/patterns.md',
@@ -142,9 +158,8 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
       defaults: {
         tool: 'claude',
         model: 'default',
-        passModel: '',
+        passModel: 'sonnet',
         passes: false,
-        passFrequency: 10,
         worktrees: false,
       },
     },
@@ -195,7 +210,7 @@ describe('runner e2e', () => {
           onGitCommit: async message => {
             if (message === 'chore(backlog): done – test item') {
               const taskState = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
-              events.push(taskState.includes('state: done') ? 'done-before-finalize' : 'not-done-before-finalize');
+              events.push(taskState.includes('state: done') ? 'done-at-finalize' : 'not-done-at-finalize');
             }
           },
         }),
@@ -208,12 +223,10 @@ describe('runner e2e', () => {
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: done');
     expect(logSink.lines.join('')).toContain('validation passed');
     expect(logSink.lines.join('')).toContain('Marked done after finalize');
-    expect(events).toContain('not-done-before-finalize');
+    expect(events).toContain('done-at-finalize');
     expect(calls.indexOf('shell:pass')).toBeGreaterThan(-1);
     expect(calls.indexOf('run:git commit -m chore(backlog): done – test item')).toBeGreaterThan(calls.indexOf('shell:pass'));
-    expect(calls.indexOf('run:git commit -m chore(backlog): planner sync – test item')).toBeGreaterThan(
-      calls.indexOf('run:git commit -m chore(backlog): done – test item'),
-    );
+    expect(calls).not.toContain('run:git commit -m chore(backlog): planner sync – test item');
   });
 
   it('marks the task failed when validation fails', async () => {
@@ -274,13 +287,13 @@ describe('runner e2e', () => {
     expect(logSink.lines.join('')).toContain('validation introduced out-of-scope changes');
   });
 
-  it('does not release a dependency-blocked task during the initial finalize commit', async () => {
+  it('keeps the completion state in the single final task commit', async () => {
     const { root, config } = await makeFixture([
       baseTask(),
       baseTask({ id: 'task-b', title: 'Task B', dependsOn: ['task-a'], touchPaths: ['other.txt'] }),
     ]);
     const logSink = new MemoryLogSink();
-    let downstreamClaimId: string | null = 'unexpected';
+    const commitStates: string[] = [];
 
     await runBacklogRunner(
       config,
@@ -289,10 +302,7 @@ describe('runner e2e', () => {
         commandRunner: createFakeCommandRunner(root, {
           onGitCommit: async message => {
             if (message !== 'chore(backlog): done – test item') return;
-            const store = createFileBackedTaskStore(config);
-            const claim = await store.claimNextRunnableTask('runner-b');
-            downstreamClaimId = claim?.task.id ?? null;
-            await store.close();
+            commitStates.push(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8'));
           },
         }),
         createLogSink: async () => logSink,
@@ -300,7 +310,7 @@ describe('runner e2e', () => {
       },
     );
 
-    expect(downstreamClaimId).toBeNull();
+    expect(commitStates.some(content => content.includes('state: done'))).toBe(true);
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: done');
     expect(logSink.lines.join('')).toContain('Marked done after finalize');
   });
@@ -321,7 +331,7 @@ describe('runner e2e', () => {
           onGitCommit: async message => {
             if (message === 'chore(backlog): done – test item') {
               const taskState = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
-              events.push(taskState.includes('state: done') ? 'done-before-finalize' : 'not-done-before-finalize');
+              events.push(taskState.includes('state: done') ? 'done-at-finalize' : 'not-done-at-finalize');
             }
           },
         }),
@@ -332,7 +342,7 @@ describe('runner e2e', () => {
 
     expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [!] test item');
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: failed');
-    expect(events).toContain('not-done-before-finalize');
+    expect(events).toContain('done-at-finalize');
     expect(logSink.lines.join('')).toContain('marked failed');
     expect(calls).not.toContain('run:git commit -m chore(backlog): planner sync – test item');
   });

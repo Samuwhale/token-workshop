@@ -12,6 +12,6 @@ status_notes:
 state: ready
 acceptance_criteria:
   - Promote bulk token editing in `packages/figma-plugin/src/ui/components/TokenList.tsx` and `packages/figma-plugin/src/ui/components/BatchEditor.tsx` into a first-class workflow with query-backed scopes or saved selections, because the most powerful maintenance tools currently only appear after entering select mode and hand-picking rows.
-source: legacy-backlog
+source: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-08T20:14:30.290Z

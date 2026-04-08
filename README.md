@@ -48,12 +48,12 @@ pnpm backlog
 pnpm backlog:validate
 ```
 
-- `pnpm backlog:sync` performs the queue-maintenance step only: migrate legacy backlog entries into YAML task specs, drain inbox/follow-up queues, and rebuild the generated `backlog.md` report.
-- `pnpm backlog` starts the TypeScript runner that claims one backlog item at a time, validates it, and can replenish the queue with discovery passes.
-- `pnpm backlog:validate` verifies the runner toolchain, prompts, validation command, and queue state before a longer autonomous run. It now fails fast if the repo is still in legacy markdown-backlog mode.
+- `pnpm backlog:sync` performs the queue-maintenance step only: drain the structured candidate queue into YAML task specs and rebuild the generated `backlog.md` report.
+- `pnpm backlog` starts the TypeScript runner that claims one backlog item at a time, validates it once at scheduler finalization, and can replenish the queue with discovery passes only when the queue is empty.
+- `pnpm backlog:validate` verifies the runner toolchain, prompts, validation command, and queue state before a longer autonomous run. It now fails fast if any legacy markdown planner files or prompt instructions remain.
 - Task specs now live in [`backlog/tasks`](/Users/samuel/Documents/Projects/TokenManager/backlog/tasks). `backlog.md` is a generated report, not the scheduler database.
 - Runtime coordination now lives in `.backlog-runner/state.sqlite`, which tracks active leases, blockers, and reservations outside the Git worktree.
-- Discovery passes and implementation follow-ups still write candidate items to `backlog-inbox.md` / `.backlog-runner/followups.jsonl`; the planner step converts those into YAML task specs before they become runnable.
+- Discovery passes and implementation follow-ups now write structured JSONL candidate records to [`backlog/inbox.jsonl`](/Users/samuel/Documents/Projects/TokenManager/backlog/inbox.jsonl); the planner step converts those into YAML task specs before they become runnable.
 - The runner now injects compact digests of patterns, recent progress, and backlog state instead of dumping the full journals into every agent run.
 
 - `pnpm preview` uses the checked-in demo data.

@@ -1,4 +1,5 @@
 import { lockPath, withLock } from '../locks.js';
+import { isPathWithinTouchPaths } from '../task-specs.js';
 import type {
   BacklogRunnerConfig,
   CommandRunner,
@@ -16,22 +17,78 @@ function summarizeGitFailure(stdout: string, stderr: string): string {
   return lines.slice(-6).join(' | ') || 'git command failed';
 }
 
+function parseGitPaths(stdout: string): string[] {
+  const files = new Set<string>();
+  for (const rawLine of stdout.split('\n').map(line => line.trimEnd()).filter(Boolean)) {
+    const payload = rawLine.slice(3).trim();
+    if (!payload) continue;
+    const parts = payload.includes(' -> ') ? payload.split(' -> ') : [payload];
+    for (const part of parts) {
+      const normalized = part.replace(/^"+|"+$/g, '');
+      if (normalized) {
+        files.add(normalized);
+      }
+    }
+  }
+  return [...files];
+}
+
+async function collectChangedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {
+  const status = await commandRunner.run('git', ['status', '--porcelain', '--untracked-files=all'], {
+    cwd,
+    ignoreFailure: true,
+  });
+  return status.code === 0 ? parseGitPaths(status.stdout) : [];
+}
+
+async function collectStagedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {
+  const result = await commandRunner.run('git', ['diff', '--cached', '--name-only'], {
+    cwd,
+    ignoreFailure: true,
+  });
+  return result.code === 0
+    ? result.stdout.split('\n').map(line => line.trim()).filter(Boolean)
+    : [];
+}
+
+function filterScopedFiles(files: string[], allowedPaths: string[]): string[] {
+  return files.filter(file => isPathWithinTouchPaths(file, allowedPaths));
+}
+
 export async function gitCommitAndPush(
   commandRunner: CommandRunner,
   config: BacklogRunnerConfig,
   cwd: string,
   message: string,
+  allowedPaths: string[],
 ): Promise<WorkspaceApplyResult> {
   return withLock(lockPath(config, 'git'), 30, async () => {
-    const status = await commandRunner.run('git', ['status', '--porcelain'], {
-      cwd,
-      ignoreFailure: true,
-    });
-    if (!status.stdout.trim()) {
+    const changedFiles = await collectChangedFiles(commandRunner, cwd);
+    if (changedFiles.length === 0) {
       return { ok: true };
     }
 
-    await commandRunner.run('git', ['add', '-A'], { cwd });
+    const stagedBefore = await collectStagedFiles(commandRunner, cwd);
+    const unexpectedStaged = stagedBefore.filter(file => !isPathWithinTouchPaths(file, allowedPaths));
+    if (unexpectedStaged.length > 0) {
+      return { ok: false, reason: `refusing to commit unrelated staged files: ${unexpectedStaged.slice(0, 8).join(', ')}` };
+    }
+
+    const scopedChanged = filterScopedFiles(changedFiles, allowedPaths);
+    if (scopedChanged.length > 0) {
+      await commandRunner.run('git', ['add', '--', ...scopedChanged], { cwd });
+    }
+
+    const stagedAfter = await collectStagedFiles(commandRunner, cwd);
+    const unexpectedAfter = stagedAfter.filter(file => !isPathWithinTouchPaths(file, allowedPaths));
+    if (unexpectedAfter.length > 0) {
+      return { ok: false, reason: `refusing to commit unrelated staged files: ${unexpectedAfter.slice(0, 8).join(', ')}` };
+    }
+
+    if (filterScopedFiles(stagedAfter, allowedPaths).length === 0) {
+      return { ok: true };
+    }
+
     const commit = await commandRunner.run('git', ['commit', '-m', message], { cwd, ignoreFailure: true });
     if (commit.code !== 0) {
       return { ok: false, reason: `git commit failed: ${summarizeGitFailure(commit.stdout, commit.stderr)}` };
@@ -80,7 +137,7 @@ export class InPlaceWorkspaceStrategy implements WorkspaceStrategy {
     return new InPlaceSession(this.config.projectRoot);
   }
 
-  async commitAndPush(message: string): Promise<WorkspaceApplyResult> {
-    return gitCommitAndPush(this.commandRunner, this.config, this.config.projectRoot, message);
+  async commitAndPush(message: string, allowedPaths: string[]): Promise<WorkspaceApplyResult> {
+    return gitCommitAndPush(this.commandRunner, this.config, this.config.projectRoot, message, allowedPaths);
   }
 }

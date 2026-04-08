@@ -2,9 +2,8 @@ export default {
   projectRoot: '.',
   files: {
     backlog: './backlog.md',
-    inbox: './backlog-inbox.md',
+    candidateQueue: './backlog/inbox.jsonl',
     taskSpecsDir: './backlog/tasks',
-    followups: './.backlog-runner/followups.jsonl',
     stop: './backlog-stop',
     patterns: './scripts/backlog/patterns.md',
     progress: './scripts/backlog/progress.txt',
@@ -29,15 +28,9 @@ export default {
   },
   defaults: {
     tool: 'claude',
-    model: '',
-    passModel: '',
+    model: 'default',
+    passModel: 'sonnet',
     passes: true,
-    passFrequency: 10,
     worktrees: true,
-  },
-  passes: {
-    product: { offset: 3 },
-    ux: { offset: 7 },
-    code: { offset: 0 },
   },
 };

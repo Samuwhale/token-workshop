@@ -93,7 +93,7 @@ class GitWorktreeSession implements WorkspaceSession {
     private readonly patternsBaseline: number,
   ) {}
 
-  async merge(message: string): Promise<WorkspaceApplyResult> {
+  async merge(): Promise<WorkspaceApplyResult> {
     const worktreeProgress = path.join(this.cwd, path.relative(this.config.projectRoot, this.config.files.progress));
     const worktreePatterns = path.join(this.cwd, path.relative(this.config.projectRoot, this.config.files.patterns));
     const progressNew = await readAppendedLines(worktreeProgress, this.progressBaseline);
@@ -173,42 +173,7 @@ class GitWorktreeSession implements WorkspaceSession {
 
       await appendIfPresent(this.config.files.progress, progressNew);
       await appendIfPresent(this.config.files.patterns, patternsNew);
-      await this.commandRunner.run('git', ['add', '-A'], { cwd: this.config.projectRoot, ignoreFailure: true });
-      const commit = await this.commandRunner.run('git', ['commit', '-m', message], {
-        cwd: this.config.projectRoot,
-        ignoreFailure: true,
-      });
-      if (commit.code !== 0) {
-        return { ok: false, reason: 'git commit failed while finalizing worktree changes' };
-      }
-
-      const remotesAfterCommit = await this.commandRunner.run('git', ['remote'], {
-        cwd: this.config.projectRoot,
-        ignoreFailure: true,
-      });
-      if (!remotesAfterCommit.stdout.trim()) {
-        return { ok: true };
-      }
-
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        const push = await this.commandRunner.run('git', ['push'], {
-          cwd: this.config.projectRoot,
-          ignoreFailure: true,
-        });
-        if (push.code === 0) {
-          return { ok: true };
-        }
-        const rebase = await this.commandRunner.run('git', ['pull', '--rebase', '--autostash'], {
-          cwd: this.config.projectRoot,
-          ignoreFailure: true,
-        });
-        if (rebase.code !== 0) {
-          return { ok: false, reason: 'git pull --rebase failed while retrying push' };
-        }
-        await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
-      }
-
-      return { ok: false, reason: 'git push failed after retries; local commit preserved for inspection' };
+      return { ok: true };
     });
   }
 
@@ -257,7 +222,7 @@ export class GitWorktreeWorkspaceStrategy implements WorkspaceStrategy {
     );
   }
 
-  async commitAndPush(message: string): Promise<WorkspaceApplyResult> {
-    return gitCommitAndPush(this.commandRunner, this.config, this.config.projectRoot, message);
+  async commitAndPush(message: string, allowedPaths: string[]): Promise<WorkspaceApplyResult> {
+    return gitCommitAndPush(this.commandRunner, this.config, this.config.projectRoot, message, allowedPaths);
   }
 }

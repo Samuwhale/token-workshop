@@ -11,6 +11,6 @@ status_notes:
 state: planned
 acceptance_criteria:
   - Redesign the post-import handoff so the user always lands in a sensible next step with a summary of what was created, what needs review, and whether they should go to Tokens, Themes, or Sync next
-source: legacy-backlog
+source: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-08T20:14:30.290Z

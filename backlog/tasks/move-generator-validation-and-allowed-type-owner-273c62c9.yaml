@@ -12,6 +12,6 @@ status_notes:
 state: ready
 acceptance_criteria:
   - Move generator validation and allowed-type ownership into `packages/server/src/services/generator-service.ts` and delete the parallel contract layer in `packages/server/src/routes/generators.ts`, because route-only validation currently drifts from service rules and rollback `restore()` can reintroduce generator configs the service itself never checks.
-source: legacy-backlog
+source: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-08T20:14:30.290Z

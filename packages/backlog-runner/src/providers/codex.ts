@@ -30,10 +30,7 @@ export const codexProvider: ProviderAdapter = {
             'codex',
             [
               'exec',
-              '-c',
-              'approval_policy="never"',
-              '--sandbox',
-              'danger-full-access',
+              '--dangerously-bypass-approvals-and-sandbox',
               '--skip-git-repo-check',
               '--ephemeral',
               '--output-schema',
@@ -72,10 +69,7 @@ export const codexProvider: ProviderAdapter = {
         'codex',
         [
           'exec',
-          '-c',
-          'approval_policy="never"',
-          '--sandbox',
-          'danger-full-access',
+          '--dangerously-bypass-approvals-and-sandbox',
           '--skip-git-repo-check',
           '--ephemeral',
           '--output-schema',

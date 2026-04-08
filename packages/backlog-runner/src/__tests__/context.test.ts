@@ -12,7 +12,7 @@ async function makeConfig(root: string) {
     {
       files: {
         backlog: './backlog.md',
-        inbox: './backlog-inbox.md',
+        candidateQueue: './backlog/inbox.jsonl',
         taskSpecsDir: './backlog/tasks',
         stop: './backlog-stop',
         patterns: './scripts/backlog/patterns.md',
@@ -35,8 +35,9 @@ async function makeFixture(backlogContent: string, taskFiles: Record<string, str
   tempDirs.push(root);
   await mkdir(path.join(root, 'scripts/backlog'), { recursive: true });
   await mkdir(path.join(root, 'backlog/tasks'), { recursive: true });
+  await mkdir(path.join(root, 'backlog'), { recursive: true });
   await writeFile(path.join(root, 'backlog.md'), backlogContent, 'utf8');
-  await writeFile(path.join(root, 'backlog-inbox.md'), '', 'utf8');
+  await writeFile(path.join(root, 'backlog/inbox.jsonl'), '', 'utf8');
   await writeFile(path.join(root, 'backlog-stop'), '', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/patterns.md'), '# Patterns\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/progress.txt'), '# Progress\n', 'utf8');

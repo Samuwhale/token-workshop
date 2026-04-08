@@ -15,7 +15,6 @@ describe('interactive helpers', () => {
       model: '',
       passModel: '',
       passes: true,
-      passFrequency: 10,
       worktrees: false,
     });
 

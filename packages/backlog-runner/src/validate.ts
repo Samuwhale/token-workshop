@@ -1,4 +1,4 @@
-import { access, mkdtemp, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
@@ -157,9 +157,11 @@ async function validateGitReadiness(
 async function validateBacklogState(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
   const messages: string[] = [];
   const state = await inspectBacklogState(config);
+  const legacyInboxPath = path.join(config.projectRoot, 'backlog-inbox.md');
+  const legacyInboxExists = await fileExists(legacyInboxPath);
 
   if (state.taskSpecCount === 0 && state.hasLegacyTasks) {
-    messages.push('  ✗ backlog is still in legacy markdown mode; run `pnpm backlog:sync` to migrate task specs before autonomous runs');
+    messages.push('  ✗ backlog is still in legacy markdown mode; create task specs in backlog/tasks before autonomous runs');
     return { ok: false, messages };
   }
 
@@ -178,7 +180,49 @@ async function validateBacklogState(config: BacklogRunnerConfig): Promise<{ ok: 
     messages.push('  ✓ backlog.md is the generated report');
   }
 
+  if (legacyInboxExists) {
+    messages.push('  ✗ legacy backlog-inbox.md still exists; delete it and use backlog/inbox.jsonl only');
+    return { ok: false, messages };
+  }
+
+  if (!(await fileExists(config.files.candidateQueue))) {
+    messages.push('  ✗ candidate queue file not found');
+    return { ok: false, messages };
+  }
+
+  messages.push('  ✓ candidate queue file found');
+
   return { ok: true, messages };
+}
+
+async function validatePromptContracts(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
+  const messages: string[] = [];
+  const promptChecks: Array<[string, string]> = [
+    ['product pass prompt', config.prompts.product],
+    ['ux pass prompt', config.prompts.ux],
+    ['code pass prompt', config.prompts.code],
+  ];
+
+  let ok = true;
+  for (const [label, filePath] of promptChecks) {
+    const content = await readFile(filePath, 'utf8');
+    if (content.includes('backlog-inbox.md') || content.includes('Every item MUST start with `- [ ] `')) {
+      ok = false;
+      messages.push(`  ✗ ${label} still references legacy markdown planner output`);
+      continue;
+    }
+    messages.push(`  ✓ ${label} uses structured candidate queue instructions`);
+  }
+
+  const agentPrompt = await readFile(config.prompts.agent, 'utf8');
+  if (agentPrompt.includes('Do NOT report success unless that injected validation command exits 0.')) {
+    ok = false;
+    messages.push('  ✗ agent prompt still requires the final validation command before success');
+  } else {
+    messages.push('  ✓ agent prompt leaves authoritative final validation to the scheduler');
+  }
+
+  return { ok, messages };
 }
 
 export async function validateBacklogRunner(
@@ -199,6 +243,7 @@ export async function validateBacklogRunner(
 
   const requiredFiles = [
     ['backlog.md', config.files.backlog],
+    ['candidate queue', config.files.candidateQueue],
     ['task specs dir', config.files.taskSpecsDir],
     ['patterns.md', config.files.patterns],
     ['agent prompt', config.prompts.agent],
@@ -226,6 +271,12 @@ export async function validateBacklogRunner(
     ok = false;
   }
   messages.push(...backlogState.messages);
+
+  const promptContracts = await validatePromptContracts(config);
+  if (!promptContracts.ok) {
+    ok = false;
+  }
+  messages.push(...promptContracts.messages);
 
   const gitReadiness = await validateGitReadiness(config, runOptions.worktrees);
   if (!gitReadiness.ok) {

@@ -12,6 +12,6 @@ status_notes:
 state: done
 acceptance_criteria:
   - Make theme-dimension duplication atomic in `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` and `packages/server/src/routes/themes.ts`, because the current create-dimension-then-copy-options loop can leave a half-copied axis behind if any follow-up option write fails.
-source: legacy-backlog
+source: manual
 created_at: 2026-04-08T20:14:30.289Z
 updated_at: 2026-04-08T20:14:30.289Z

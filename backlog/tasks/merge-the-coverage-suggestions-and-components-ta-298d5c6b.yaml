@@ -11,6 +11,6 @@ status_notes:
 state: ready
 acceptance_criteria:
   - Merge the `Coverage`, `Suggestions`, and `Components` tabs in `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` into one canvas cleanup workflow so users can scan, inspect untokenized nodes, review suggested tokens, and apply fixes without bouncing across separate sub-panels.
-source: legacy-backlog
+source: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-08T20:14:30.290Z

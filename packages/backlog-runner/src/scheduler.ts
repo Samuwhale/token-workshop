@@ -45,10 +45,6 @@ function summarizeCommandOutput(stdout: string, stderr: string): string {
   return lines.slice(-8).join(' | ') || 'no output';
 }
 
-function sessionScopedPath(config: BacklogRunnerConfig, cwd: string, filePath: string): string {
-  return path.join(cwd, path.relative(config.projectRoot, filePath));
-}
-
 function logDrainResult(logger: RunnerLogger, label: string, result: BacklogDrainResult): void {
   if (!result.drained) return;
 
@@ -112,6 +108,20 @@ async function validateWorkspaceScope(
     };
   }
   return { ok: true };
+}
+
+function bookkeepingPaths(config: BacklogRunnerConfig): string[] {
+  return [
+    normalizePathForGit(path.relative(config.projectRoot, config.files.candidateQueue)),
+    normalizePathForGit(path.relative(config.projectRoot, config.files.taskSpecsDir)),
+    normalizePathForGit(path.relative(config.projectRoot, config.files.backlog)),
+    normalizePathForGit(path.relative(config.projectRoot, config.files.progress)),
+    normalizePathForGit(path.relative(config.projectRoot, config.files.patterns)),
+  ];
+}
+
+function taskCommitPaths(config: BacklogRunnerConfig, touchPaths: string[]): string[] {
+  return [...new Set([...touchPaths.map(normalizePathForGit), ...bookkeepingPaths(config)])];
 }
 
 async function runValidationCommand(
@@ -180,21 +190,11 @@ async function countOtherRunners(config: BacklogRunnerConfig, ownRunnerId: strin
   }
 }
 
-function passNamesToRun(iteration: number, frequency: number, config: BacklogRunnerConfig): BacklogPassType[] {
-  const names: BacklogPassType[] = [];
-  if (iteration % frequency === config.passes.product.offset) names.push('product');
-  if (iteration % frequency === config.passes.ux.offset) names.push('ux');
-  if (iteration % frequency === config.passes.code.offset) names.push('code');
-  if (iteration % frequency === 0 && !names.includes('code')) {
-    names.push('code');
-  }
-  return names;
-}
-
 async function runPass(
   config: BacklogRunnerConfig,
   store: ReturnType<typeof createFileBackedTaskStore>,
   workspaceStrategy: WorkspaceStrategy,
+  commandRunner: CommandRunner,
   logger: RunnerLogger,
   options: ResolvedRunOptions,
   passType: BacklogPassType,
@@ -207,13 +207,13 @@ async function runPass(
   const session = await workspaceStrategy.setup();
   try {
     const context = await buildDiscoveryContext(config);
-    const result = await runProvider(createCommandRunner(), {
+    const result = await runProvider(commandRunner, {
       tool: options.tool,
       model: options.passModel,
       context,
       prompt: await readPrompt(config.passes[passType].promptFile),
       cwd: session.cwd,
-      maxTurns: 100,
+      maxTurns: 12,
       schema: JSON_SCHEMA,
     });
 
@@ -221,10 +221,10 @@ async function runPass(
     if (result.note) logger.line(`    ${result.note}`);
 
     const workspaceCheck = await validateWorkspaceScope(
-      createCommandRunner(),
+      commandRunner,
       session.cwd,
       [
-        normalizePathForGit(path.relative(session.cwd, config.files.inbox)),
+        normalizePathForGit(path.relative(session.cwd, config.files.candidateQueue)),
         normalizePathForGit(path.relative(session.cwd, config.files.progress)),
         normalizePathForGit(path.relative(session.cwd, config.files.patterns)),
       ],
@@ -237,24 +237,16 @@ async function runPass(
 
     const commitMessage = `chore(backlog): ${passType} pass – ${result.item || 'maintenance'}`;
     await withLock(lockPath(config, 'git'), 30, async () => {
-      const mergeResult = await session.merge(commitMessage);
+      const mergeResult = await session.merge();
       if (!mergeResult.ok) {
         logger.line(`  WARNING: ${mergeResult.reason ?? 'pass merge failed'}`);
         return;
       }
 
-      logDrainResult(logger, 'Inbox planner', await store.drainInbox());
-      if (!options.worktrees) {
-        const finalizeResult = await workspaceStrategy.commitAndPush(commitMessage);
-        if (!finalizeResult.ok) {
-          logger.line(`  WARNING: ${finalizeResult.reason ?? 'pass finalize failed'}`);
-          return;
-        }
-      } else {
-        const queueCommit = await workspaceStrategy.commitAndPush(`chore(backlog): planner sync – ${passType} pass`);
-        if (!queueCommit.ok) {
-          logger.line(`  WARNING: ${queueCommit.reason ?? 'planner sync commit failed'}`);
-        }
+      logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
+      const finalizeResult = await workspaceStrategy.commitAndPush(commitMessage, bookkeepingPaths(config));
+      if (!finalizeResult.ok) {
+        logger.line(`  WARNING: ${finalizeResult.reason ?? 'pass finalize failed'}`);
       }
     });
   } catch (error) {
@@ -275,10 +267,9 @@ export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<Ba
   try {
     await store.ensureProgressFile();
     await store.ensureTaskSpecsReady();
-    const inbox = await store.drainInbox();
-    const followups = await store.drainFollowups();
+    const candidates = await store.drainCandidateQueue();
     const counts = await store.getQueueCounts();
-    return { inbox, followups, counts };
+    return { candidates, counts };
   } finally {
     await store.close();
   }
@@ -313,8 +304,7 @@ export async function runBacklogRunner(
   try {
     await store.ensureProgressFile();
     await store.ensureTaskSpecsReady();
-    logDrainResult(logger, 'Inbox planner', await store.drainInbox());
-    logDrainResult(logger, 'Follow-up planner', await store.drainFollowups());
+    logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
 
     logger.line('');
     logger.line('╔═══════════════════════════════════════════════════════════════╗');
@@ -327,7 +317,7 @@ export async function runBacklogRunner(
       logger.line(`  Pass model: ${options.passModel}`);
     }
     logger.line(`  Mode:   ${options.worktrees ? 'parallel (worktrees)' : 'single (no worktrees)'}`);
-    logger.line(`  Passes: ${options.passes ? `enabled (every ${options.passFrequency} loops)` : 'disabled'}`);
+    logger.line(`  Passes: ${options.passes ? 'enabled (queue-empty only)' : 'disabled'}`);
     const queue = await store.getQueueCounts();
     logger.line(
       `  Queue:  ${queue.ready} ready · ${queue.blocked} blocked · ${queue.planned} planned · ${queue.inProgress} in-progress · ${queue.failed} failed · ${queue.done} done`,
@@ -340,8 +330,7 @@ export async function runBacklogRunner(
 
     while (true) {
       iteration += 1;
-      logDrainResult(logger, 'Inbox planner', await store.drainInbox());
-      logDrainResult(logger, 'Follow-up planner', await store.drainFollowups());
+      logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
 
       const counts = await store.getQueueCounts();
       logger.line('');
@@ -359,8 +348,13 @@ export async function runBacklogRunner(
           continue;
         }
 
-        if (counts.blocked > 0 || counts.planned > 0) {
-          logger.line('  No runnable tasks remain. Remaining tasks are blocked or still need planner refinement.');
+        if (counts.planned > 0) {
+          logger.line('  No runnable tasks remain. Remaining tasks still need planner refinement.');
+          break;
+        }
+
+        if (counts.blocked > 0 || counts.failed > 0) {
+          logger.line('  No runnable tasks remain. Remaining tasks are blocked or failed; stopping instead of spending tokens on new discovery.');
           break;
         }
 
@@ -371,11 +365,11 @@ export async function runBacklogRunner(
 
         logger.line('  No tasks found — running discovery passes to replenish backlog…');
         for (const passType of ['product', 'code', 'ux'] as const) {
-          await runPass(config, store, workspaceStrategy, logger, options, passType);
+          await runPass(config, store, workspaceStrategy, commandRunner, logger, options, passType);
         }
 
         const refreshed = await store.getQueueCounts();
-        if (refreshed.ready === 0 && refreshed.blocked === 0 && refreshed.planned === 0) {
+        if (refreshed.ready === 0 && refreshed.planned === 0 && refreshed.inProgress === 0) {
           logger.line('  Still no tasks available. Polling inbox every 30s…');
           await sleep(30_000);
         }
@@ -416,7 +410,7 @@ export async function runBacklogRunner(
           context,
           prompt: await readPrompt(config.prompts.agent),
           cwd: session.cwd,
-          maxTurns: 100,
+          maxTurns: 40,
           schema: JSON_SCHEMA,
         });
 
@@ -491,7 +485,7 @@ export async function runBacklogRunner(
           await withLock(lockPath(config, 'git'), 30, async () => {
             logger.line('');
             logger.line(`  Merging to main: ${claim.task.title}`);
-            const mergeResult = await session.merge(message);
+            const mergeResult = await session.merge();
             if (!mergeResult.ok) {
               await store.failClaim(claim, mergeResult.reason ?? 'merge failed');
               logger.line(`  ✗ ${mergeResult.reason ?? 'merge failed'} — marked failed`);
@@ -499,59 +493,34 @@ export async function runBacklogRunner(
             }
 
             logger.line('  ✓ Merged code changes to main');
-            logDrainResult(
-              logger,
-              'Follow-up planner',
-              await store.drainFollowups(sessionScopedPath(config, session.cwd, config.files.followups)),
-            );
+            logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
             await store.completeClaim(claim, result.note || 'completed');
-            logger.line('  ✓ Marked done after merge');
 
-            const bookkeepingCommit = await workspaceStrategy.commitAndPush(
-              `chore(backlog): planner sync – ${claim.task.title}`,
-            );
-            if (!bookkeepingCommit.ok) {
-              logger.line(`  WARNING: ${bookkeepingCommit.reason ?? 'queue state commit failed'}`);
+            const finalizeResult = await workspaceStrategy.commitAndPush(message, taskCommitPaths(config, claim.task.touchPaths));
+            if (!finalizeResult.ok) {
+              await store.failTaskById(claim.task.id, finalizeResult.reason ?? 'finalize failed after merge');
+              logger.line(`  ✗ ${finalizeResult.reason ?? 'finalize failed after merge'} — marked failed`);
+              return;
             }
+
+            logger.line('  ✓ Marked done after merge');
           });
         } else {
           await withLock(lockPath(config, 'git'), 30, async () => {
             logger.line('');
             logger.line(`  Finalizing code changes: ${claim.task.title}`);
-            const finalizeResult = await workspaceStrategy.commitAndPush(message);
+            logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
+            await store.completeClaim(claim, result.note || 'completed');
+
+            const finalizeResult = await workspaceStrategy.commitAndPush(message, taskCommitPaths(config, claim.task.touchPaths));
             if (!finalizeResult.ok) {
-              await store.failClaim(claim, finalizeResult.reason ?? 'commit/push failed');
+              await store.failTaskById(claim.task.id, finalizeResult.reason ?? 'commit/push failed');
               logger.line(`  ✗ ${finalizeResult.reason ?? 'commit/push failed'} — marked failed`);
               return;
             }
 
-            logger.line('  ✓ Finalized code changes');
-            logDrainResult(
-              logger,
-              'Follow-up planner',
-              await store.drainFollowups(sessionScopedPath(config, session.cwd, config.files.followups)),
-            );
-            await store.completeClaim(claim, result.note || 'completed');
             logger.line('  ✓ Marked done after finalize');
-
-            const bookkeepingCommit = await workspaceStrategy.commitAndPush(
-              `chore(backlog): planner sync – ${claim.task.title}`,
-            );
-            if (!bookkeepingCommit.ok) {
-              logger.line(`  WARNING: ${bookkeepingCommit.reason ?? 'queue state commit failed'}`);
-            }
           });
-        }
-
-        if (options.passes && !stopRequested && !(await fileExists(config.files.stop))) {
-          const scheduledPasses = passNamesToRun(iteration, options.passFrequency, config);
-          if (scheduledPasses.length > 0) {
-            logger.line('');
-            logger.line(`  Milestone: iteration ${iteration} — running ${scheduledPasses.join(' + ')} discovery pass`);
-            for (const passType of scheduledPasses) {
-              await runPass(config, store, workspaceStrategy, logger, options, passType);
-            }
-          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

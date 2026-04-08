@@ -28,7 +28,7 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
   const runnerLogDir = resolvePath(baseDir, config.files.runnerLogDir ?? path.dirname(config.files.progress));
   const runtimeDir = resolvePath(baseDir, config.files.runtimeDir ?? '.backlog-runner');
   const locksDir = resolvePath(baseDir, config.files.locksDir ?? path.join(runtimeDir, 'locks'));
-  const followups = resolvePath(baseDir, config.files.followups ?? path.join(runtimeDir, 'followups.jsonl'));
+  const candidateQueue = resolvePath(baseDir, config.files.candidateQueue ?? path.join('backlog', 'inbox.jsonl'));
   const taskSpecsDir = resolvePath(baseDir, config.files.taskSpecsDir ?? path.join('backlog', 'tasks'));
   const stateDb = resolvePath(baseDir, config.files.stateDb ?? path.join(runtimeDir, 'state.sqlite'));
 
@@ -36,9 +36,8 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
     projectRoot,
     files: {
       backlog: resolvePath(baseDir, config.files.backlog),
-      inbox: resolvePath(baseDir, config.files.inbox),
+      candidateQueue,
       taskSpecsDir,
-      followups,
       stop: resolvePath(baseDir, config.files.stop),
       patterns: resolvePath(baseDir, config.files.patterns),
       progress: resolvePath(baseDir, config.files.progress),
@@ -61,23 +60,19 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
     },
     defaults: {
       tool: config.defaults?.tool ?? 'claude',
-      model: config.defaults?.model ?? 'claude-sonnet-4-6',
-      passModel: config.defaults?.passModel ?? '',
+      model: config.defaults?.model ?? 'default',
+      passModel: config.defaults?.passModel ?? 'sonnet',
       passes: config.defaults?.passes ?? true,
-      passFrequency: config.defaults?.passFrequency ?? 10,
       worktrees: config.defaults?.worktrees ?? true,
     },
     passes: {
       product: {
-        offset: config.passes?.product?.offset ?? 3,
         promptFile: resolvePath(baseDir, config.passes?.product?.promptFile ?? config.prompts.product),
       },
       ux: {
-        offset: config.passes?.ux?.offset ?? 7,
         promptFile: resolvePath(baseDir, config.passes?.ux?.promptFile ?? config.prompts.ux),
       },
       code: {
-        offset: config.passes?.code?.offset ?? 0,
         promptFile: resolvePath(baseDir, config.passes?.code?.promptFile ?? config.prompts.code),
       },
     },
@@ -96,6 +91,7 @@ export async function ensureConfigReady(config: BacklogRunnerConfig): Promise<vo
   await mkdir(config.files.runnerLogDir, { recursive: true });
   await mkdir(config.files.locksDir, { recursive: true });
   await mkdir(config.files.taskSpecsDir, { recursive: true });
+  await mkdir(path.dirname(config.files.candidateQueue), { recursive: true });
 }
 
 type ModelsFileShape = {
@@ -147,7 +143,6 @@ export async function resolveRunOptions(
     model,
     passModel,
     passes: overrides.passes ?? config.defaults.passes,
-    passFrequency: overrides.passFrequency ?? config.defaults.passFrequency,
     worktrees: overrides.worktrees ?? config.defaults.worktrees,
   };
 }
