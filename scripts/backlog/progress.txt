@@ -388,3 +388,11 @@
   - If the same object needs both fast navigation and occasional restructuring, keep those jobs in separate surfaces; otherwise every lightweight switcher grows into an accidental admin panel.
   - Count-based UI swaps are expensive for orientation. A single scrollable switching bar plus a dedicated manager is easier to learn than tabs at one size and a sidebar tree at another.
 ---
+## 2026-04-08 - Theme authoring mixes beginner workflows with advanced resolver workflows too early
+- Reframed `ThemeManager` around a single primary theme-authoring flow: the header now emphasizes creating axes, defining options, mapping sets, and previewing the active combination, while coverage review and compare moved to explicit secondary actions and back-to-authoring routes.
+- Demoted resolver work from a peer mode to an explicit `Advanced theme logic` entry point, kept the imperative resolver handle stable for App/command-palette callers, and made the advanced resolver screen reachable even when no axes exist yet.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L582, ~L680, ~L704, ~L829, ~L1842
+- **Learnings for future iterations:**
+  - If an area mixes novice and expert jobs, keep one default authoring surface and route expert configuration through an explicit advanced entry point instead of a peer top-level mode switch.
+  - When a child component exposes imperative navigation handles, preserve the public methods and repoint them at the new internal view model so App-level commands do not need to change.
+---

@@ -68,3 +68,22 @@
     Unified set switching into one quiet horizontal bar plus a pure quick-switch modal, and moved all set-management actions into one dedicated manager surface.
 
   Committing: Token set switching and token set management are split across too many inconsistent surfaces
+[main c204bf29] chore(backlog): done – Token set switching and token set management are split across too many inconsistent surfaces
+ 10 files changed, 1012 insertions(+), 1125 deletions(-)
+  ✓ Committed and marked done
+
+## 2026-04-08 - Token set switching and token set management are split across too many inconsistent surfaces
+- Replaced the tab-vs-sidebar split with one horizontal set bar that stays consistent at every set count, made the modal a pure quick-switcher, and moved create/rename/reorder/generate/merge/split/bulk operations into one dedicated set manager surface.
+- Rewired set management entry points so the command palette opens the dedicated manager, added a dedicated `sets` overflow surface, and kept quick switching focused on search and selection instead of mixing in destructive or structural actions.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1234, ~L1359, ~L2202; `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L19, ~L147, ~L381; `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L49, ~L167; `packages/figma-plugin/src/ui/hooks/useModalVisibility.ts` ~L4; `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L14
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  11 queued · 0 in-progress · last took 23m29s
+═══════════════════════════════════════════════════════════════
+  → Theme authoring mixes beginner workflows with advanced resolver workflows too early — the current `ThemeManager` asks users to choose between `Theme Layers` and `DTCG Resolvers`, then also exposes `Dimensions`, `Coverage`, and `Compare` as peer views inside the same area; for designers and design-system maintainers this is too much conceptual branching before they have even created a usable theme axis; restructure the theme area around the primary authoring job first: create axes, define options, map sets, preview active combinations; move resolver-specific concepts behind an explicit advanced entry point such as `Advanced theme logic` instead of presenting them as a near-equal top-level mode; constraints: (1) keep resolver functionality intact, (2) do not collapse important expert capabilities into hidden dead-ends, (3) the default path through themes should make sense to someone thinking in light/dark, brand, density, or platform variants rather than DTCG internals; files: `packages/figma-plugin/src/ui/components/ThemeManager.tsx`
+  Running agent… (started 10:10:13)
+
+  ✓ done: Theme authoring mixes beginner workflows with advanced resolver workflows too early
+    Reworked ThemeManager around a primary authoring flow, moved resolvers behind an explicit Advanced theme logic entry, and passed backlog validation.
+
+  Committing: Theme authoring mixes beginner workflows with advanced resolver workflows too early
