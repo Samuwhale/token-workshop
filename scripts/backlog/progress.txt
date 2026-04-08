@@ -248,3 +248,8 @@
   - When expert syntax already exists, keep it as the storage model and let a visible builder write the same clauses instead of creating a parallel filter state.
   - Make discoverability explicit in the main toolbar with an action like `Add filter`; do not rely on placeholder text or tooltip lore for structured search.
 ---
+## 2026-04-08 - product-pass
+- Areas explored: packages/figma-plugin/src/ui/components/HistoryPanel.tsx, NotificationsPanel.tsx, SetSwitcher.tsx, FigmaVariablesPanel.tsx, CanvasAnalysisPanel.tsx, ComponentCoveragePanel.tsx, ConsistencyPanel.tsx, UnusedTokensPanel.tsx, QuickStartWizard.tsx, ExportPanel.tsx, useFigmaVariables.ts, useSetMergeSplit.ts, packages/server/src/routes/sets.ts, operations.ts, snapshots.ts, packages/server/src/services/manual-snapshot.ts, token-store.ts
+- Found 8 items — written to backlog-inbox.md
+- Notable: the Figma Variables save flow still reduces every import to create-or-overwrite set slugs, which is a major data-loss risk for the exact power users this product is targeting.
+---
