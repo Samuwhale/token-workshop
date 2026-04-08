@@ -56,6 +56,7 @@ import type { OperationEntry } from '../hooks/useRecentOperations';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
 import type { StarredTokensState } from '../hooks/useStarredTokens';
 import type { TopTab, SubTab } from '../shared/navigationTypes';
+import type { ThemeWorkspaceShellState } from '../shared/themeWorkflow';
 import { useEditorWidth } from '../hooks/useEditorWidth';
 
 // ---------------------------------------------------------------------------
@@ -167,6 +168,7 @@ export interface PanelRouterProps {
   openCommandPaletteWithQuery: (query: string) => void;
   handleNavigateToGenerator: (id: string) => void;
   setThemeGapCount: (n: number) => void;
+  onThemeShellStateChange: (state: ThemeWorkspaceShellState) => void;
   triggerCreateToken: number;
   recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
@@ -670,6 +672,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
               onGapsDetected={p.setThemeGapCount}
+              onShellStateChange={p.onThemeShellStateChange}
               onTokensCreated={p.refreshAll}
               onSetCreated={(name) => { addSetToState(name, 0); setActiveSet(name); }}
               onGoToTokens={() => navigateTo('define', 'tokens')}

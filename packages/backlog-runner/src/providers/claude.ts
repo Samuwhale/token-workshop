@@ -11,6 +11,9 @@ import {
   writeTempFile,
 } from './common.js';
 
+const PROVIDER_SMOKE_TIMEOUT_MS = 2 * 60 * 1000;
+const PROVIDER_RUN_TIMEOUT_MS = 30 * 60 * 1000;
+
 export const claudeProvider: ProviderAdapter = {
   tool: 'claude',
   async validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult> {
@@ -41,6 +44,7 @@ export const claudeProvider: ProviderAdapter = {
             {
               cwd: dir,
               input: 'Return exactly this JSON object and nothing else: {"status":"done","item":"smoke","note":"ok"}',
+              timeoutMs: PROVIDER_SMOKE_TIMEOUT_MS,
               ignoreFailure: true,
             },
           ),
@@ -77,6 +81,7 @@ export const claudeProvider: ProviderAdapter = {
         {
           cwd: request.cwd,
           input: request.prompt,
+          timeoutMs: PROVIDER_RUN_TIMEOUT_MS,
           ignoreFailure: true,
         },
       );

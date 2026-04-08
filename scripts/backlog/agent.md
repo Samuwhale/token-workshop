@@ -14,7 +14,7 @@ Codebase patterns are already injected into your context — no need to read a s
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
    - *Complex* (multi-file, behaviour change, or unclear scope): dispatch a plan subagent, review the plan, then execute.
 3. **Implement** the change — match scope to what's right for the plugin. An atomic fix is fine for a typo; a sweeping overhaul across many files is fine when the item calls for it. There are no users yet and no backwards-compatibility constraints, so don't hold back.
-4. **Validate** — run `bash scripts/backlog/validate.sh` which executes five gates in order:
+4. **Validate** — run `bash scripts/backlog/validate.sh` which executes four gates in order:
    1. Unit/integration tests (vitest in each package).
    2. Plugin build (esbuild + Vite).
    3. Server build (`tsc`).

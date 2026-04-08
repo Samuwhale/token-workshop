@@ -326,3 +326,11 @@
   - If a workspace needs many expert toggles, collapse them behind one clearly named overflow entry and leave the default row dedicated to the primary authoring path.
   - When a hidden advanced control affects panel layout state, thread that state through the feature surface that owns the new overflow entry instead of keeping a second always-visible control in the shared shell.
 ---
+## 2026-04-08 - [HIGH] Implement the Theme Management stage model in the UI shell: explicit steps for axes, options, set roles, and preview, with the default route optimized for common theme authoring instead of expert resolver configuration
+- Added a shell-owned Theme workflow row in the shared workspace header, with explicit Axes / Options / Set roles / Preview stages, stage-aware guidance, and a primary CTA that now advances through the next authoring step instead of always defaulting to resolver-adjacent controls.
+- Extended `ThemeManager` with lightweight shell state reporting plus imperative stage focus methods so the shell can jump into add-option, set-role, preview, and back-to-authoring flows without lifting the whole theme panel state into `App.tsx`, then removed the duplicated authoring-stage strip from inside the panel itself.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L167, ~L964, ~L1064, ~L1921; `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L73, ~L250, ~L845, ~L1672, ~L2117; `packages/figma-plugin/src/ui/components/ThemeStageModelControls.tsx` ~L1; `packages/figma-plugin/src/ui/shared/themeWorkflow.ts` ~L1; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L171, ~L675; `scripts/backlog/patterns.md` ~L160
+- **Learnings for future iterations:**
+  - Let the shell compute stage completion from shared data, but keep only a tiny callback contract from the child panel (`activeView`, `showPreview`) so the parent does not absorb the panel’s full local state.
+  - If the shell takes ownership of a workflow step model, remove duplicated step chrome from inside the feature panel so the IA reads as one coherent narrative instead of stacked guidance bars.
+---

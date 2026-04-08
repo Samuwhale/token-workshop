@@ -22,14 +22,19 @@ import { ThemeCoverageMatrix } from './ThemeCoverageMatrix';
 import { adaptShortcut } from '../shared/utils';
 import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 import { apiFetch } from '../shared/apiFetch';
+import type { ThemeAuthoringStage, ThemeManagerView, ThemeWorkspaceShellState } from '../shared/themeWorkflow';
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
   autoFillAllGaps: () => void;
   /** Opens the Compare view inside ThemeManager for the given mode. */
   navigateToCompare: (mode: CompareMode, path?: string, tokenPaths?: Set<string>, optionA?: string, optionB?: string) => void;
+  /** Focus one of the default authoring stages inside the Theme workspace. */
+  focusStage: (stage: ThemeAuthoringStage) => void;
   /** Returns to authoring and opens the create-axis entry point. */
   openCreateAxis: () => void;
+  /** Returns from coverage/compare/advanced views to the default authoring flow. */
+  returnToAuthoring: () => void;
   /** Switches to the DTCG Resolvers mode (advanced) inside ThemeManager. */
   switchToResolverMode: () => void;
 }
@@ -62,13 +67,15 @@ interface ThemeManagerProps {
   onSuccess?: (msg: string) => void;
   /** Called when user wants to generate tokens for a theme axis — provides the best target set and axis name. */
   onGenerateForDimension?: (info: { dimensionName: string; targetSet: string }) => void;
+  /** Mirrors the current internal theme view so the shell can stay aligned with the active sub-screen. */
+  onShellStateChange?: (state: ThemeWorkspaceShellState) => void;
 }
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess, onGenerateForDimension, onSetCreated }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess, onGenerateForDimension, onSetCreated, onShellStateChange }: ThemeManagerProps) {
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
   const [previewSearch, setPreviewSearch] = useState('');
   // The default flow stays in theme authoring; review and resolver tools are explicit secondary views.
-  const [activeView, setActiveView] = useState<'authoring' | 'coverage' | 'compare' | 'advanced'>('authoring');
+  const [activeView, setActiveView] = useState<ThemeManagerView>('authoring');
   // Collapsed "Excluded" sections per dimension
   const [collapsedDisabled, setCollapsedDisabled] = useState<Set<string>>(new Set());
   // Dimension/option search filter
@@ -77,6 +84,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const previewSearchRef = useRef<HTMLInputElement | null>(null);
   const [showOnlyWithGaps, setShowOnlyWithGaps] = useState(false);
   const dimensionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const setRoleRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const previewSectionRef = useRef<HTMLDivElement | null>(null);
   const [focusedDimensionId, setFocusedDimensionId] = useState<string | null>(null);
   const [coverageContext, setCoverageContext] = useState<{ dimId: string | null; optionName: string | null }>({
     dimId: null,
@@ -113,6 +122,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   } = useThemeDimensions({ serverUrl, connected, sets, onPushUndo, onSuccess });
 
   useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
+  useEffect(() => { onShellStateChange?.({ activeView, showPreview }); }, [activeView, onShellStateChange, showPreview]);
   useEffect(() => { fetchDimensions(); }, [fetchDimensions]);
   useEffect(() => {
     if (dimensions.length === 0) {
@@ -214,6 +224,18 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     });
   }, []);
 
+  const scrollToSetRoles = useCallback((dimId: string, optionName: string) => {
+    requestAnimationFrame(() => {
+      setRoleRefs.current[`${dimId}:${optionName}`]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, []);
+
+  const scrollToPreview = useCallback(() => {
+    requestAnimationFrame(() => {
+      previewSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
   const handleSelectOption = useCallback((dimId: string, optionName: string) => {
     setFocusedDimensionId(dimId);
     setSelectedOptions(prev => ({ ...prev, [dimId]: optionName }));
@@ -224,6 +246,75 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     setActiveView('authoring');
     scrollToDimension(dimId ?? focusedDimensionId);
   }, [focusedDimensionId, scrollToDimension, setShowCompare]);
+
+  const focusAuthoringStage = useCallback((stage: ThemeAuthoringStage) => {
+    setShowCompare(false);
+    setActiveView('authoring');
+
+    if (stage === 'preview') {
+      setShowPreview(true);
+      scrollToPreview();
+      return;
+    }
+
+    if (stage === 'axes') {
+      if (dimensions.length === 0) {
+        openCreateDim();
+        return;
+      }
+      scrollToDimension(focusedDimensionId ?? dimensions[0]?.id ?? null);
+      return;
+    }
+
+    if (stage === 'options') {
+      const targetDimension = dimensions.find((dimension) => dimension.options.length === 0) ?? getDimensionForContext();
+      if (!targetDimension) {
+        openCreateDim();
+        return;
+      }
+      setFocusedDimensionId(targetDimension.id);
+      setShowAddOption(prev => ({ ...prev, [targetDimension.id]: true }));
+      scrollToDimension(targetDimension.id);
+      requestAnimationFrame(() => {
+        addOptionInputRefs.current[targetDimension.id]?.focus();
+      });
+      return;
+    }
+
+    for (const dimension of dimensions) {
+      for (const option of dimension.options) {
+        const hasAssignedSet = Object.values(option.sets).some((status) => status === 'source' || status === 'enabled');
+        if (!hasAssignedSet) {
+          setFocusedDimensionId(dimension.id);
+          setSelectedOptions(prev => ({ ...prev, [dimension.id]: option.name }));
+          scrollToDimension(dimension.id);
+          scrollToSetRoles(dimension.id, option.name);
+          return;
+        }
+      }
+    }
+
+    const fallbackDimension = getDimensionForContext();
+    const fallbackOptionName = getOptionNameForContext(fallbackDimension, null);
+    if (!fallbackDimension || !fallbackOptionName) return;
+    setFocusedDimensionId(fallbackDimension.id);
+    setSelectedOptions(prev => ({ ...prev, [fallbackDimension.id]: fallbackOptionName }));
+    scrollToDimension(fallbackDimension.id);
+    scrollToSetRoles(fallbackDimension.id, fallbackOptionName);
+  }, [
+    addOptionInputRefs,
+    dimensions,
+    focusedDimensionId,
+    getDimensionForContext,
+    getOptionNameForContext,
+    openCreateDim,
+    scrollToDimension,
+    scrollToPreview,
+    scrollToSetRoles,
+    setSelectedOptions,
+    setShowAddOption,
+    setShowCompare,
+  ]);
 
   // --- Create override set ---
   const [createOverrideSet, setCreateOverrideSet] = useState<{ dimId: string; setName: string; optName?: string } | null>(null);
@@ -367,10 +458,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         if (dimWithGaps) handleAutoFillAllRef.current(dimWithGaps.id);
       },
       navigateToCompare: handleNavigateToCompare,
+      focusStage: focusAuthoringStage,
       openCreateAxis: () => {
         setShowCompare(false);
         setActiveView('authoring');
         openCreateDim();
+      },
+      returnToAuthoring: () => {
+        returnToAuthoring();
       },
       switchToResolverMode: () => {
         setShowCompare(false);
@@ -379,7 +474,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       },
     };
     return () => { themeManagerHandle.current = null; };
-  }, [themeManagerHandle, dimensions, coverage, handleNavigateToCompare, openCreateDim, setShowCompare]);
+  }, [themeManagerHandle, dimensions, coverage, focusAuthoringStage, handleNavigateToCompare, openCreateDim, returnToAuthoring, setShowCompare]);
 
   // Tab strip scroll helpers
   const updateTabScroll = useCallback((dimId: string) => {
@@ -722,64 +817,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       )}
 
       <>
-      {activeView === 'authoring' && (
-        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-              {[
-                { step: '1', label: 'Create axes', detail: `${dimensions.length} axis${dimensions.length === 1 ? '' : 'es'}` },
-                { step: '2', label: 'Define options', detail: `${dimensions.reduce((sum, dim) => sum + dim.options.length, 0)} option${dimensions.reduce((sum, dim) => sum + dim.options.length, 0) === 1 ? '' : 's'}` },
-                { step: '3', label: 'Map sets', detail: 'Base + override roles' },
-                { step: '4', label: 'Preview', detail: showPreview ? 'Live preview on' : 'Open when ready' },
-              ].map(item => (
-                <span key={item.label} className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-semibold">
-                    {item.step}
-                  </span>
-                  <span className="font-medium text-[var(--color-figma-text-secondary)]">{item.label}</span>
-                  <span>{item.detail}</span>
-                </span>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-1.5">
-              <button
-                onClick={() => setShowPreview(v => !v)}
-                className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
-                  showPreview
-                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                    : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
-                }`}
-                title="Preview the currently selected theme combination"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-                {showPreview ? 'Hide preview' : 'Preview active combination'}
-              </button>
-              {resolverState && (
-                <button
-                  onClick={() => {
-                    setShowCompare(false);
-                    setShowPreview(false);
-                    setActiveView('advanced');
-                  }}
-                  className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-                  title="Open DTCG resolver configuration for advanced theme logic"
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                  Advanced theme logic
-                  <kbd className="rounded border border-[var(--color-figma-border)] px-1 font-mono text-[9px] leading-none">
-                    {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
-                  </kbd>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       {activeView === 'coverage' && (
         <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="px-3 py-2.5 flex items-start justify-between gap-3">
@@ -1630,7 +1667,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
                         {/* Set groups */}
                         {sets.length > 0 && (
-                          <div className="border-t border-[var(--color-figma-border)]">
+                          <div
+                            ref={(el) => {
+                              setRoleRefs.current[`${dim.id}:${opt.name}`] = el;
+                            }}
+                            className="border-t border-[var(--color-figma-border)]"
+                          >
                             {/* Merge model diagram — shows how Base + Override sets resolve to final tokens */}
                             <div className="px-3 pt-2 pb-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 text-[9px]">
                               <div className="text-[var(--color-figma-text-tertiary)] font-medium mb-1.5">How sets merge for this option:</div>
@@ -2072,7 +2114,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
             {/* Live Token Resolution Preview — only in theme authoring view */}
             {activeView === 'authoring' && showPreview && dimensions.length > 0 && (
-              <div className="border-t-2 border-[var(--color-figma-accent)]/30">
+              <div ref={previewSectionRef} className="border-t-2 border-[var(--color-figma-accent)]/30">
                 <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--color-figma-text)]">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

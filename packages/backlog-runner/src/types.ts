@@ -138,11 +138,13 @@ export interface CommandRunner {
     cwd?: string;
     input?: string;
     env?: NodeJS.ProcessEnv;
+    timeoutMs?: number;
     ignoreFailure?: boolean;
   }): Promise<CommandResult>;
   runShell(command: string, options?: {
     cwd?: string;
     env?: NodeJS.ProcessEnv;
+    timeoutMs?: number;
     ignoreFailure?: boolean;
   }): Promise<CommandResult>;
   which(command: string): Promise<string | null>;

@@ -1,4 +1,4 @@
-import { access, mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type {
@@ -93,21 +93,6 @@ export async function ensureConfigReady(config: BacklogRunnerConfig): Promise<vo
   await mkdir(config.files.runtimeDir, { recursive: true });
   await mkdir(config.files.runnerLogDir, { recursive: true });
   await mkdir(config.files.locksDir, { recursive: true });
-}
-
-export async function assertConfigFilesExist(config: BacklogRunnerConfig): Promise<void> {
-  const requiredFiles = [
-    config.files.backlog,
-    config.files.patterns,
-    config.prompts.agent,
-    config.prompts.product,
-    config.prompts.ux,
-    config.prompts.code,
-  ];
-
-  for (const file of requiredFiles) {
-    await access(file);
-  }
 }
 
 type ModelsFileShape = {

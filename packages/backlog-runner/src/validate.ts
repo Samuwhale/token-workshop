@@ -1,8 +1,13 @@
-import { access } from 'node:fs/promises';
+import { access, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
 import { createCommandRunner } from './process.js';
 import { validateProvider } from './providers/index.js';
 import type { BacklogRunnerConfig, RunOverrides, ToolValidationResult } from './types.js';
+
+const VALIDATION_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
+const GIT_READINESS_TIMEOUT_MS = 2 * 60 * 1000;
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -35,7 +40,7 @@ async function validateCommandReadiness(
     const scriptPath = bashScriptMatch[1]!;
     const absoluteScriptPath = scriptPath.startsWith('/')
       ? scriptPath
-      : `${config.projectRoot}/${scriptPath}`.replace(/\/\.\//g, '/');
+      : path.resolve(config.projectRoot, scriptPath);
 
     if (!(await fileExists(absoluteScriptPath))) {
       return { ok: false, message: '  ✗ validation command script not found' };
@@ -72,6 +77,7 @@ async function executeValidationCommand(
   const startedAt = Date.now();
   const result = await commandRunner.runShell(config.validationCommand, {
     cwd: config.projectRoot,
+    timeoutMs: VALIDATION_COMMAND_TIMEOUT_MS,
     ignoreFailure: true,
   });
   const durationSeconds = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
@@ -83,6 +89,68 @@ async function executeValidationCommand(
     ok: false,
     message: `  ✗ validation command failed at runtime (${durationSeconds}s): ${summarizeCommandOutput(result.stdout, result.stderr)}`,
   };
+}
+
+async function validateGitReadiness(
+  config: BacklogRunnerConfig,
+  worktreesEnabled: boolean,
+): Promise<{ ok: boolean; messages: string[] }> {
+  const commandRunner = createCommandRunner();
+  const messages: string[] = [];
+
+  const git = await commandRunner.which('git');
+  if (!git) {
+    return { ok: false, messages: ['  ✗ git CLI not found'] };
+  }
+  messages.push('  ✓ git CLI found');
+
+  const repoCheck = await commandRunner.run('git', ['rev-parse', '--is-inside-work-tree'], {
+    cwd: config.projectRoot,
+    timeoutMs: GIT_READINESS_TIMEOUT_MS,
+    ignoreFailure: true,
+  });
+  if (repoCheck.code !== 0 || repoCheck.stdout.trim() !== 'true') {
+    messages.push('  ✗ project root is not a git worktree');
+    return { ok: false, messages };
+  }
+  messages.push('  ✓ project root is a git worktree');
+
+  if (!worktreesEnabled) {
+    return { ok: true, messages };
+  }
+
+  const worktreeDir = await mkdtemp(path.join(tmpdir(), 'backlog-validate-worktree-'));
+  try {
+    const add = await commandRunner.run('git', ['worktree', 'add', '--detach', worktreeDir, 'HEAD', '--quiet'], {
+      cwd: config.projectRoot,
+      timeoutMs: GIT_READINESS_TIMEOUT_MS,
+      ignoreFailure: true,
+    });
+    if (add.code !== 0) {
+      messages.push('  ✗ git worktree add failed');
+      return { ok: false, messages };
+    }
+    messages.push('  ✓ git worktree add/remove succeeded');
+
+    const remove = await commandRunner.run('git', ['worktree', 'remove', worktreeDir, '--force'], {
+      cwd: config.projectRoot,
+      timeoutMs: GIT_READINESS_TIMEOUT_MS,
+      ignoreFailure: true,
+    });
+    if (remove.code !== 0) {
+      messages.push('  ✗ git worktree remove failed');
+      return { ok: false, messages };
+    }
+
+    await commandRunner.run('git', ['worktree', 'prune'], {
+      cwd: config.projectRoot,
+      timeoutMs: GIT_READINESS_TIMEOUT_MS,
+      ignoreFailure: true,
+    });
+    return { ok: true, messages };
+  } finally {
+    await rm(worktreeDir, { recursive: true, force: true });
+  }
 }
 
 export async function validateBacklogRunner(
@@ -123,6 +191,12 @@ export async function validateBacklogRunner(
   if (config.files.models) {
     messages.push((await fileExists(config.files.models)) ? '  ✓ models.json found' : '  ⚠ models.json not found');
   }
+
+  const gitReadiness = await validateGitReadiness(config, runOptions.worktrees);
+  if (!gitReadiness.ok) {
+    ok = false;
+  }
+  messages.push(...gitReadiness.messages);
 
   const validationCommand = await validateCommandReadiness(config);
   if (!validationCommand.ok) {

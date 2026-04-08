@@ -8,6 +8,7 @@ import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ToastStack } from './components/ToastStack';
 import { NotificationHistory } from './components/NotificationHistory';
 import { WorkspaceSummaryHeader } from './components/WorkspaceSummaryHeader';
+import { ThemeStageModelControls } from './components/ThemeStageModelControls';
 import { useToastStack } from './hooks/useToastStack';
 import { useToastBusListener } from './shared/toastBus';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -32,6 +33,8 @@ import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
 import type { OverflowPanel, SecondaryActionId } from './shared/navigationTypes';
 import { APP_SHELL_NAVIGATION, resolveWorkspace, resolveWorkspaceSection, toWorkspaceId } from './shared/navigationTypes';
+import type { ThemeAuthoringStage, ThemeWorkspaceShellState } from './shared/themeWorkflow';
+import { summarizeThemeWorkflow } from './shared/themeWorkflow';
 import { useConnectionContext } from './contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from './contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from './contexts/ThemeContext';
@@ -161,14 +164,47 @@ export function App() {
     () => resolveWorkspaceSection(activeWorkspace, activeTopTab, activeSubTab),
     [activeWorkspace, activeTopTab, activeSubTab],
   );
-  const workspaceSummaryTitle = useMemo(
+  const themeWorkflowSummary = useMemo(() => summarizeThemeWorkflow(dimensions), [dimensions]);
+  const [themeShellState, setThemeShellState] = useState<ThemeWorkspaceShellState>({
+    activeView: 'authoring',
+    showPreview: false,
+  });
+  const defaultWorkspaceSummaryTitle = useMemo(
     () => activeWorkspaceSection?.summaryTitle ?? activeWorkspace.summaryTitle ?? activeWorkspaceSection?.label ?? activeWorkspace.label,
     [activeWorkspace, activeWorkspaceSection],
   );
-  const workspaceSummaryGuidance = useMemo(
+  const defaultWorkspaceSummaryGuidance = useMemo(
     () => activeWorkspaceSection?.summaryGuidance ?? activeWorkspace.summaryGuidance ?? activeWorkspaceSection?.description ?? activeWorkspace.description,
     [activeWorkspace, activeWorkspaceSection],
   );
+  const workspaceSummaryTitle = useMemo(() => {
+    if (activeWorkspace.id !== 'themes') return defaultWorkspaceSummaryTitle;
+    switch (themeShellState.activeView) {
+      case 'coverage':
+        return 'Theme coverage review';
+      case 'compare':
+        return 'Theme comparison';
+      case 'advanced':
+        return 'Advanced theme logic';
+      default:
+        return 'Theme authoring';
+    }
+  }, [activeWorkspace.id, defaultWorkspaceSummaryTitle, themeShellState.activeView]);
+  const workspaceSummaryGuidance = useMemo(() => {
+    if (activeWorkspace.id !== 'themes') return defaultWorkspaceSummaryGuidance;
+    switch (themeShellState.activeView) {
+      case 'coverage':
+        return 'Review missing values and override gaps, then jump back into the matching axis and option to fix the mapping.';
+      case 'compare':
+        return 'Compare theme options without leaving the current theme context, then return to authoring when you are ready to keep editing.';
+      case 'advanced':
+        return 'Use DTCG resolvers only when the default axis, option, and set-role workflow no longer captures the resolution logic you need.';
+      default:
+        return themeShellState.showPreview
+          ? 'Create axes, add options, map base and override sets, and review the live resolved output below before reaching for advanced logic.'
+          : 'Create axes, add options, map base and override sets, and preview the active combination before reaching for advanced logic.';
+    }
+  }, [activeWorkspace.id, defaultWorkspaceSummaryGuidance, themeShellState.activeView, themeShellState.showPreview]);
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -869,6 +905,10 @@ export function App() {
       case 'themes':
         pills.push({ label: `${dimensions.length} dimension${dimensions.length === 1 ? '' : 's'}`, tone: 'neutral' });
         if (themeGapCount > 0) pills.push({ label: `${themeGapCount} gap${themeGapCount === 1 ? '' : 's'}`, tone: 'warning' });
+        if (themeShellState.showPreview) pills.push({ label: 'Live preview open', tone: 'accent' });
+        if (themeShellState.activeView === 'coverage') pills.push({ label: 'Coverage review', tone: 'accent' });
+        if (themeShellState.activeView === 'compare') pills.push({ label: 'Compare mode', tone: 'accent' });
+        if (themeShellState.activeView === 'advanced') pills.push({ label: 'Resolver mode', tone: 'accent' });
         break;
       case 'apply':
         pills.push({ label: `${selectedNodes.length} layer${selectedNodes.length === 1 ? '' : 's'} selected`, tone: selectedNodes.length > 0 ? 'accent' : 'neutral' });
@@ -906,9 +946,119 @@ export function App() {
     sets.length,
     staleGeneratorCount,
     themeGapCount,
+    themeShellState.activeView,
+    themeShellState.showPreview,
     undoDescriptions.length,
     validationLoading,
     validationSummary,
+  ]);
+
+  const handleSelectThemeStage = useCallback((stage: ThemeAuthoringStage) => {
+    guardEditorAction(() => {
+      navigateTo('define', 'themes');
+      setOverflowPanel(null);
+      themeManagerHandleRef.current?.focusStage(stage);
+    });
+  }, [guardEditorAction, navigateTo, setOverflowPanel]);
+
+  const themeContextualControls = useMemo(() => {
+    if (overflowPanel !== null || activeWorkspace.id !== 'themes') return null;
+
+    const stages = [
+      {
+        id: 'axes' as const,
+        step: 1,
+        label: 'Axes',
+        detail: themeWorkflowSummary.axisCount === 0
+          ? 'Start by creating the first axis'
+          : `${themeWorkflowSummary.axisCount} axis${themeWorkflowSummary.axisCount === 1 ? '' : 'es'} defined`,
+        tone: themeWorkflowSummary.axisCount === 0
+          ? 'current'
+          : themeWorkflowSummary.currentStage === 'axes'
+            ? 'current'
+            : 'complete',
+      },
+      {
+        id: 'options' as const,
+        step: 2,
+        label: 'Options',
+        detail: themeWorkflowSummary.axisCount === 0
+          ? 'Create an axis first'
+          : themeWorkflowSummary.axesMissingOptionsCount > 0
+            ? `${themeWorkflowSummary.axesMissingOptionsCount} axis${themeWorkflowSummary.axesMissingOptionsCount === 1 ? '' : 'es'} still need options`
+            : `${themeWorkflowSummary.optionCount} option${themeWorkflowSummary.optionCount === 1 ? '' : 's'} ready`,
+        tone: themeWorkflowSummary.axisCount === 0
+          ? 'blocked'
+          : themeWorkflowSummary.currentStage === 'options'
+            ? 'current'
+            : themeWorkflowSummary.axesMissingOptionsCount === 0 && themeWorkflowSummary.optionCount > 0
+              ? 'complete'
+              : 'pending',
+        disabled: themeWorkflowSummary.axisCount === 0,
+      },
+      {
+        id: 'set-roles' as const,
+        step: 3,
+        label: 'Set roles',
+        detail: themeWorkflowSummary.optionCount === 0
+          ? 'Add options before mapping sets'
+          : themeWorkflowSummary.unmappedOptionCount > 0
+            ? `${themeWorkflowSummary.unmappedOptionCount} option${themeWorkflowSummary.unmappedOptionCount === 1 ? '' : 's'} still need base or override sets`
+            : `${themeWorkflowSummary.mappedSetCount} role assignment${themeWorkflowSummary.mappedSetCount === 1 ? '' : 's'} in place`,
+        tone: themeWorkflowSummary.optionCount === 0
+          ? 'blocked'
+          : themeWorkflowSummary.currentStage === 'set-roles'
+            ? 'current'
+            : themeWorkflowSummary.unmappedOptionCount === 0
+              ? 'complete'
+              : 'pending',
+        disabled: themeWorkflowSummary.optionCount === 0,
+      },
+      {
+        id: 'preview' as const,
+        step: 4,
+        label: 'Preview',
+        detail: !themeWorkflowSummary.previewReady
+          ? 'Assign sets before previewing'
+          : themeShellState.showPreview && themeShellState.activeView === 'authoring'
+            ? 'Live preview is open below'
+            : 'Review the resolved combination',
+        tone: !themeWorkflowSummary.previewReady
+          ? 'blocked'
+          : themeWorkflowSummary.currentStage === 'preview' || (themeShellState.showPreview && themeShellState.activeView === 'authoring')
+            ? 'current'
+            : 'pending',
+        disabled: !themeWorkflowSummary.previewReady,
+      },
+    ];
+
+    const actions: Array<{ label: string; onClick: () => void; active?: boolean }> = [];
+    if (themeShellState.activeView !== 'authoring') {
+      actions.push({
+        label: 'Back to authoring',
+        onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
+      });
+    }
+    actions.push({
+      label: 'Advanced theme logic',
+      onClick: () => themeManagerHandleRef.current?.switchToResolverMode(),
+      active: themeShellState.activeView === 'advanced',
+    });
+
+    return (
+      <ThemeStageModelControls
+        stages={stages}
+        onSelectStage={handleSelectThemeStage}
+        actions={actions}
+      />
+    );
+  }, [
+    activeWorkspace.id,
+    handleSelectThemeStage,
+    overflowPanel,
+    themeShellState.activeView,
+    themeShellState.showPreview,
+    themeWorkflowSummary,
   ]);
 
   const workspacePrimaryAction = useMemo(() => {
@@ -928,6 +1078,52 @@ export function App() {
     }
 
     if (overflowPanel === null && activeWorkspace.id === 'themes') {
+      if (themeShellState.activeView !== 'authoring') {
+        return {
+          label: 'Back to authoring',
+          onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
+        };
+      }
+
+      if (themeWorkflowSummary.currentStage === 'options') {
+        return {
+          label: 'Add option',
+          onClick: () => {
+            guardEditorAction(() => {
+              navigateTo('define', 'themes');
+              setOverflowPanel(null);
+              themeManagerHandleRef.current?.focusStage('options');
+            });
+          },
+        };
+      }
+
+      if (themeWorkflowSummary.currentStage === 'set-roles') {
+        return {
+          label: 'Assign set roles',
+          onClick: () => {
+            guardEditorAction(() => {
+              navigateTo('define', 'themes');
+              setOverflowPanel(null);
+              themeManagerHandleRef.current?.focusStage('set-roles');
+            });
+          },
+        };
+      }
+
+      if (themeWorkflowSummary.currentStage === 'preview') {
+        return {
+          label: themeShellState.showPreview ? 'Review preview' : 'Preview combination',
+          onClick: () => {
+            guardEditorAction(() => {
+              navigateTo('define', 'themes');
+              setOverflowPanel(null);
+              themeManagerHandleRef.current?.focusStage('preview');
+            });
+          },
+        };
+      }
+
       return {
         label: 'Create axis',
         onClick: () => {
@@ -977,9 +1173,12 @@ export function App() {
     setOverflowPanel,
     setPreviewingToken,
     setShowQuickApply,
+    themeShellState.activeView,
+    themeShellState.showPreview,
+    themeWorkflowSummary.currentStage,
   ]);
 
-  const workspaceContextualControls = null;
+  const workspaceContextualControls = themeContextualControls;
 
   const handleSecondaryAction = useCallback((actionId: SecondaryActionId) => {
     setMenuOpen(false);
@@ -1722,6 +1921,7 @@ export function App() {
               }}
               handleNavigateToGenerator={handleNavigateToGenerator}
               setThemeGapCount={setThemeGapCount}
+              onThemeShellStateChange={setThemeShellState}
               triggerCreateToken={triggerCreateToken}
               recentlyTouched={recentlyTouched}
               starredTokens={starredTokens}

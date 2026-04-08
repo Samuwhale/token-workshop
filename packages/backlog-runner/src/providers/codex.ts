@@ -11,6 +11,9 @@ import {
   writeTempFile,
 } from './common.js';
 
+const PROVIDER_SMOKE_TIMEOUT_MS = 2 * 60 * 1000;
+const PROVIDER_RUN_TIMEOUT_MS = 30 * 60 * 1000;
+
 export const codexProvider: ProviderAdapter = {
   tool: 'codex',
   async validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult> {
@@ -44,6 +47,7 @@ export const codexProvider: ProviderAdapter = {
             {
               cwd: dir,
               input: smokePrompt,
+              timeoutMs: PROVIDER_SMOKE_TIMEOUT_MS,
               ignoreFailure: true,
             },
           );
@@ -85,6 +89,7 @@ export const codexProvider: ProviderAdapter = {
         {
           cwd: request.cwd,
           input: mergedPrompt,
+          timeoutMs: PROVIDER_RUN_TIMEOUT_MS,
           ignoreFailure: true,
         },
       );

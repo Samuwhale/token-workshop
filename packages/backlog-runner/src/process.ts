@@ -3,6 +3,8 @@ import { once } from 'node:events';
 import { EOL } from 'node:os';
 import type { CommandResult, CommandRunner } from './types.js';
 
+const DEFAULT_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
+
 function collect(stream: NodeJS.ReadableStream | null): Promise<string> {
   if (!stream) return Promise.resolve('');
 
@@ -24,6 +26,7 @@ async function spawnAndCollect(
     input?: string;
     env?: NodeJS.ProcessEnv;
     shell?: boolean;
+    timeoutMs?: number;
     ignoreFailure?: boolean;
   } = {},
 ): Promise<CommandResult> {
@@ -39,12 +42,26 @@ async function spawnAndCollect(
   }
   child.stdin.end();
 
+  const timeoutMs = options.timeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS;
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    child.kill('SIGTERM');
+    setTimeout(() => child.kill('SIGKILL'), 5_000).unref();
+  }, timeoutMs);
+  timeout.unref();
+
   const stdoutPromise = collect(child.stdout);
   const stderrPromise = collect(child.stderr);
   const [code] = (await once(child, 'close')) as [number | null];
+  clearTimeout(timeout);
   const stdout = await stdoutPromise;
   const stderr = await stderrPromise;
   const result = { code: code ?? 0, stdout, stderr };
+
+  if (timedOut) {
+    throw new Error(`Command timed out after ${Math.ceil(timeoutMs / 1000)}s: ${command} ${args.join(' ')}`.trim());
+  }
 
   if (!options.ignoreFailure && result.code !== 0) {
     const detail = [stdout.trim(), stderr.trim()].filter(Boolean).join(EOL);

@@ -1,14 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type {
-  AgentResult,
-  AgentRunRequest,
-  BacklogTool,
-  CommandResult,
-  CommandRunner,
-  ToolValidationResult,
-} from '../types.js';
+import type { AgentResult, AgentRunRequest, BacklogTool, CommandResult, CommandRunner, ToolValidationResult } from '../types.js';
 
 export const JSON_SCHEMA = JSON.stringify({
   type: 'object',
@@ -39,16 +32,6 @@ function maybeParseJson(value: string): unknown {
   } catch {
     return undefined;
   }
-}
-
-function lastEmbeddedJsonBlock(output: string): unknown {
-  const matches = output.match(/\{[\s\S]*\}/g);
-  if (!matches) return undefined;
-  for (let index = matches.length - 1; index >= 0; index -= 1) {
-    const parsed = maybeParseJson(matches[index]!);
-    if (parsed) return parsed;
-  }
-  return undefined;
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -122,14 +105,6 @@ export interface ProviderAdapter {
   readonly tool: BacklogTool;
   validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult>;
   run(commandRunner: CommandRunner, request: AgentRunRequest): Promise<AgentResult>;
-}
-
-export async function ensureCommand(commandRunner: CommandRunner, command: string): Promise<string> {
-  const found = await commandRunner.which(command);
-  if (!found) {
-    throw new Error(`${command} CLI not found`);
-  }
-  return found;
 }
 
 export async function simpleVersionValidation(

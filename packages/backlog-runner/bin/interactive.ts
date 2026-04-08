@@ -33,7 +33,6 @@ export function resolveToolChoice(value: string, fallback: BacklogTool): Backlog
 }
 
 export function summarizeRunOverrides(
-  config: BacklogRunnerConfig,
   overrides: {
     tool: BacklogTool;
     model?: string;
@@ -129,7 +128,7 @@ export async function promptForRunOverrides(
         interactive: true,
       };
 
-      output.write(`\n${summarizeRunOverrides(config, {
+      output.write(`\n${summarizeRunOverrides({
         tool: nextTool,
         model: nextModel,
         passModel: nextPassModel,
