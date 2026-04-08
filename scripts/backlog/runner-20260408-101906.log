@@ -57,3 +57,4 @@
     Raised token-tree and generator badge text to a 10px minimum, added 24x24 hit areas to compact interactive badges and preview controls, and validated cleanly with scripts/backlog/validate.sh.
 
   Committing: Sub-readable badge font sizes and undersized interactive targets
+  ✓ Committed and marked done
