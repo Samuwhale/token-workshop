@@ -1,0 +1,20 @@
+id: make-multi-set-folder-operations-fully-rollbacka-9c90f2e7
+title: Make multi-set folder operations fully rollbackable in the operation log
+priority: low
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/services/operation-log.ts
+  - packages/server/src/routes/sets.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: Folder rename/merge can rely on structural rollback steps, but folder delete currently records no reversible token snapshot because the operation log indexes snapshots only by token path and cannot represent same-path tokens across multiple sets."
+  - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
+state: failed
+acceptance_criteria:
+  - Folder delete and other multi-set folder operations capture enough snapshot data to roll back member sets without token-path collisions across different sets.
+  - Folder operation history entries expose an accurate undo path instead of recording metadata-only placeholders.
+source: task-followup
+created_at: 2026-04-08T22:39:45.439Z
+updated_at: 2026-04-08T23:32:28.350Z

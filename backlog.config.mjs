@@ -15,6 +15,7 @@ export default {
   },
   prompts: {
     agent: './scripts/backlog/agent.md',
+    planner: './scripts/backlog/planner-pass.md',
     product: './scripts/backlog/product-pass.md',
     ux: './scripts/backlog/ux-pass.md',
     code: './scripts/backlog/code-pass.md',

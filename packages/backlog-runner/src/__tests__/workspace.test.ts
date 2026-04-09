@@ -22,6 +22,7 @@ async function makeRepo() {
   await writeFile(path.join(root, 'scripts/backlog/progress.txt'), '# Backlog Progress Log\nStarted: today\n---\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/archive.md'), '# Backlog Archive\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/agent.md'), 'agent', 'utf8');
+  await writeFile(path.join(root, 'scripts/backlog/planner.md'), 'planner', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/product.md'), 'product', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/ux.md'), 'ux', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/code.md'), 'code', 'utf8');
@@ -48,6 +49,7 @@ async function makeRepo() {
       },
       prompts: {
         agent: './scripts/backlog/agent.md',
+        planner: './scripts/backlog/planner.md',
         product: './scripts/backlog/product.md',
         ux: './scripts/backlog/ux.md',
         code: './scripts/backlog/code.md',

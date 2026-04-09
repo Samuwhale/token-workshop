@@ -1,16 +1,17 @@
 id: turn-packages-figma-plugin-src-ui-components-not-ac72c3d2
 title: Turn `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` into an actionable inbox with severity filters, deduping, sticky blockers, and deep links back to the affected token or workspace instead of a passive transcript of past toast messages.
 priority: normal
+task_kind: implementation
 depends_on: []
 touch_paths:
   - packages/figma-plugin/src/ui/components/NotificationsPanel.tsx
 capabilities: []
 validation_profile: plugin
 status_notes:
-  - Imported from legacy backlog.md.
-state: ready
+  - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
+state: failed
 acceptance_criteria:
   - Turn `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` into an actionable inbox with severity filters, deduping, sticky blockers, and deep links back to the affected token or workspace instead of a passive transcript of past toast messages.
 source: manual
 created_at: 2026-04-08T20:14:30.290Z
-updated_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T23:21:59.664Z

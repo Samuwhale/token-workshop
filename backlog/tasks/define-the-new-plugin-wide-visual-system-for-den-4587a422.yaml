@@ -6,7 +6,6 @@ touch_paths: []
 capabilities: []
 validation_profile: repo
 status_notes:
-  - Imported from legacy backlog.md.
   - Planner could not infer touch_paths from the title; refine this task before execution.
 state: planned
 acceptance_criteria:

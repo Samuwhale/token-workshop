@@ -32,6 +32,7 @@ describe('config', () => {
         },
         prompts: {
           agent: './scripts/backlog/agent.md',
+          planner: './scripts/backlog/planner.md',
           product: './scripts/backlog/product.md',
           ux: './scripts/backlog/ux.md',
           code: './scripts/backlog/code.md',
@@ -48,6 +49,7 @@ describe('config', () => {
     expect(config.files.runtimeReport).toBe(path.join(root, '.backlog-runner', 'runtime-report.md'));
     expect(config.files.stateDb).toBe(path.join(root, '.backlog-runner', 'state.sqlite'));
     expect(config.prompts.agent).toBe(path.join(root, 'scripts/backlog/agent.md'));
+    expect(config.prompts.planner).toBe(path.join(root, 'scripts/backlog/planner.md'));
     expect(config.validationProfiles.repo).toBe('bash scripts/backlog/validate.sh');
   });
 
@@ -78,6 +80,7 @@ describe('config', () => {
         },
         prompts: {
           agent: './scripts/backlog/agent.md',
+          planner: './scripts/backlog/planner.md',
           product: './scripts/backlog/product.md',
           ux: './scripts/backlog/ux.md',
           code: './scripts/backlog/code.md',
@@ -118,6 +121,7 @@ describe('config', () => {
         },
         prompts: {
           agent: './scripts/backlog/agent.md',
+          planner: './scripts/backlog/planner.md',
           product: './scripts/backlog/product.md',
           ux: './scripts/backlog/ux.md',
           code: './scripts/backlog/code.md',

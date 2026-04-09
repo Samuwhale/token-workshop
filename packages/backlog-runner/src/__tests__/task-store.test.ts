@@ -24,6 +24,7 @@ async function makeFixture() {
   await writeFile(path.join(root, 'scripts/backlog/progress.txt'), '# Backlog Progress Log\nStarted: today\n---\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/archive.md'), '# Backlog Archive\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/agent.md'), 'agent', 'utf8');
+  await writeFile(path.join(root, 'scripts/backlog/planner.md'), 'planner', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/product.md'), 'product', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/ux.md'), 'ux', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/code.md'), 'code', 'utf8');
@@ -44,6 +45,7 @@ async function makeFixture() {
       },
       prompts: {
         agent: './scripts/backlog/agent.md',
+        planner: './scripts/backlog/planner.md',
         product: './scripts/backlog/product.md',
         ux: './scripts/backlog/ux.md',
         code: './scripts/backlog/code.md',
@@ -51,6 +53,7 @@ async function makeFixture() {
       validationCommand: 'bash scripts/backlog/validate.sh',
       validationProfiles: {
         repo: 'bash scripts/backlog/validate.sh',
+        backlog: 'pnpm --filter @tokenmanager/backlog-runner exec vitest run',
       },
     },
     path.join(root, 'backlog.config.mjs'),
@@ -67,6 +70,7 @@ function taskSpec(overrides: Partial<BacklogTaskSpec> & Pick<BacklogTaskSpec, 'i
     id: overrides.id,
     title: overrides.title,
     priority: overrides.priority ?? 'normal',
+    taskKind: overrides.taskKind ?? 'implementation',
     dependsOn: overrides.dependsOn ?? [],
     touchPaths: overrides.touchPaths ?? ['packages/figma-plugin/src/ui/App.tsx'],
     capabilities: overrides.capabilities ?? [],
@@ -276,6 +280,116 @@ describe('task store', () => {
     expect(runtimeReport).toContain('Task A (task-a) — runner runner-a');
   });
 
+  it('supersedes planned parents into runnable planner children', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({
+      id: 'parent-a',
+      title: 'Parent A',
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    }));
+
+    const applied = await store.applyPlannerSupersede({
+      action: 'supersede',
+      parentTaskIds: ['parent-a'],
+      children: [{
+        title: 'Research Parent A implementation plan',
+        taskKind: 'research',
+        priority: 'normal',
+        touchPaths: ['backlog/inbox.jsonl', 'scripts/backlog/progress.txt'],
+        acceptanceCriteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
+        validationProfile: 'backlog',
+        context: 'Inspect the Parent A surface and emit concrete follow-up work.',
+      }],
+    });
+
+    const parent = await store.getTaskSpec('parent-a');
+    const child = await store.getTaskSpec(applied.childTaskIds[0]!);
+    const counts = await store.getQueueCounts();
+    const backlogReport = await readFile(config.files.backlog, 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(applied.childTaskIds).toHaveLength(1);
+    expect(parent?.state).toBe('superseded');
+    expect(parent?.statusNotes.join('\n')).toContain('Superseded by planner-pass');
+    expect(child?.taskKind).toBe('research');
+    expect(child?.validationProfile).toBe('backlog');
+    expect(counts.planned).toBe(0);
+    expect(counts.ready).toBe(1);
+    expect(backlogReport).not.toContain('- [ ] Parent A');
+    expect(backlogReport).toContain('Research Parent A implementation plan');
+    expect(runtimeReport).toContain('## Planned Tasks Awaiting Refinement');
+    expect(runtimeReport).toContain('- None');
+  });
+
+  it('rejects planner children that collide with each other', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({
+      id: 'parent-a',
+      title: 'Parent A',
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    }));
+
+    await expect(store.applyPlannerSupersede({
+      action: 'supersede',
+      parentTaskIds: ['parent-a'],
+      children: [
+        {
+          title: 'Duplicate child title',
+          taskKind: 'research',
+          priority: 'normal',
+          touchPaths: ['backlog/inbox.jsonl'],
+          acceptanceCriteria: ['Write follow-up task A'],
+          validationProfile: 'backlog',
+        },
+        {
+          title: 'Duplicate child title',
+          taskKind: 'research',
+          priority: 'normal',
+          touchPaths: ['scripts/backlog/progress.txt'],
+          acceptanceCriteria: ['Write follow-up task B'],
+          validationProfile: 'backlog',
+        },
+      ],
+    })).rejects.toThrow(/duplicate child task ids/i);
+  });
+
+  it('rejects planner actions that target parents outside the selected batch', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({
+      id: 'parent-a',
+      title: 'Parent A',
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    }));
+    await seedTask(config, taskSpec({
+      id: 'parent-b',
+      title: 'Parent B',
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    }));
+
+    await expect(store.applyPlannerSupersede({
+      action: 'supersede',
+      parentTaskIds: ['parent-b'],
+      children: [{
+        title: 'Research Parent B implementation plan',
+        taskKind: 'research',
+        priority: 'normal',
+        touchPaths: ['backlog/inbox.jsonl'],
+        acceptanceCriteria: ['Write follow-up task'],
+        validationProfile: 'backlog',
+      }],
+    }, {
+      allowedParentTaskIds: ['parent-a'],
+    })).rejects.toThrow(/outside the selected planning batch/i);
+  });
+
   it('closes the runtime store safely more than once', async () => {
     const { store } = await makeFixture();
 
@@ -335,6 +449,7 @@ describe('task store', () => {
     const raw = 'id: invalid-source\n'
       + 'title: Invalid source\n'
       + 'priority: normal\n'
+      + 'task_kind: implementation\n'
       + 'depends_on: []\n'
       + 'touch_paths:\n'
       + '  - packages/core/src/index.ts\n'

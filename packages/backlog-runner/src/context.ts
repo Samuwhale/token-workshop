@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import type { BacklogRunnerConfig, BacklogTaskClaim, TaskDependencySnapshot, TaskReservationSnapshot } from './types.js';
+import { plannerBatchSize, plannerContextForTasks } from './planner.js';
+import type { BacklogRunnerConfig, BacklogTaskClaim, BacklogTaskSpec, TaskDependencySnapshot, TaskReservationSnapshot } from './types.js';
 
 const EXECUTION_PROGRESS_SECTIONS = 2;
 const EXECUTION_PROGRESS_CHARS = 3_500;
@@ -259,6 +260,7 @@ ${recent}
 ID: ${claim.task.id}
 Title: ${claim.task.title}
 Priority: ${claim.task.priority}
+Task kind: ${claim.task.taskKind}
 Validation profile: ${claim.task.validationProfile}
 
 Allowed touch_paths:
@@ -293,10 +295,11 @@ Schema:
 {"title":"Standalone backlog item title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context for the future run","source":"task-followup"}
 
 ## Stop Rules
-- Do not modify backlog.md directly; it is generated from backlog/tasks and runtime state.
+- Do not modify backlog.md directly; it is generated from backlog/tasks.
 - Stay inside the declared touch_paths. If the task needs broader scope, stop and queue a follow-up instead of freelancing.
 - Do not start adjacent cleanup just because it is nearby; adjacent discoveries become follow-up tasks.
-- Do not change another active task's reserved files or subsystem surface.`;
+- Do not change another active task's reserved files or subsystem surface.
+- If task kind is research, inspect code and write concrete follow-up backlog items only. Do not implement product or server code during the research task.`;
 }
 
 export async function buildDiscoveryContext(
@@ -322,6 +325,40 @@ ${renderBacklogDigest(backlogContent)}
 Discovery passes write structured JSONL candidate records to backlog/inbox.jsonl.
 The planner step converts those entries into backlog/tasks/*.yaml and only runnable task specs are eligible for execution.
 Do not modify backlog.md directly.`;
+}
+
+export async function buildPlannerContext(
+  config: BacklogRunnerConfig,
+  plannedTasks: BacklogTaskSpec[],
+): Promise<string> {
+  const [patternsContent, recent, backlogContent] = await Promise.all([
+    readFileIfExists(config.files.patterns, ''),
+    readRecentSections(config.files.progress, DISCOVERY_PROGRESS_SECTIONS, DISCOVERY_PROGRESS_CHARS),
+    readFileIfExists(config.files.backlog, 'Backlog unavailable.'),
+  ]);
+  const keywords = keywordSetForDiscovery(backlogContent);
+
+  return `## Relevant Patterns
+${selectPatternDigest(patternsContent, keywords, DISCOVERY_PATTERN_ENTRIES)}
+
+## Recent Session Digest
+${recent}
+
+## Backlog Digest
+${renderBacklogDigest(backlogContent)}
+
+## Planned Tasks To Refine
+Refine at most ${plannerBatchSize()} planned items in this pass.
+
+${plannerContextForTasks(plannedTasks)}
+
+## Refinement Rules
+- Treat this as a read-only planning pass. Do not edit repo files directly.
+- Prefer one clustered research task when multiple planned items clearly overlap.
+- Supersede parents with child tasks; do not keep duplicate parent work alive.
+- Prefer research tasks that inspect code and emit concrete implementation follow-up tasks.
+- Research children must stay backlog-only; the scheduler will force backlog touch_paths and the backlog validation profile.
+- Return one strict JSON object matching the requested schema.`;
 }
 
 export async function inspectBacklogState(

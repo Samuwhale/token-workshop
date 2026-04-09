@@ -7,8 +7,7 @@ touch_paths:
   - packages/server/src/routes/themes.ts
 capabilities: []
 validation_profile: repo
-status_notes:
-  - Imported from legacy backlog.md.
+status_notes: []
 state: done
 acceptance_criteria:
   - Make theme-dimension duplication atomic in `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` and `packages/server/src/routes/themes.ts`, because the current create-dimension-then-copy-options loop can leave a half-copied axis behind if any follow-up option write fails.

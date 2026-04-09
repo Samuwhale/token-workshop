@@ -1,7 +1,8 @@
 export type BacklogTool = 'claude' | 'codex';
 export type BacklogPassType = 'product' | 'ux' | 'code';
 export type BacklogTaskPriority = 'high' | 'normal' | 'low';
-export type BacklogTaskState = 'planned' | 'ready' | 'done' | 'failed';
+export type BacklogTaskState = 'planned' | 'ready' | 'done' | 'failed' | 'superseded';
+export type BacklogTaskKind = 'implementation' | 'research';
 
 export interface BacklogRunnerConfigInput {
   projectRoot?: string;
@@ -21,6 +22,7 @@ export interface BacklogRunnerConfigInput {
   };
   prompts: {
     agent: string;
+    planner?: string;
     product: string;
     ux: string;
     code: string;
@@ -53,7 +55,7 @@ export interface BacklogRunnerConfig {
     runtimeDir: string;
     locksDir: string;
   };
-  prompts: Record<BacklogPassType | 'agent', string>;
+  prompts: Record<BacklogPassType | 'agent' | 'planner', string>;
   validationCommand: string;
   validationProfiles: Record<string, string>;
   defaults: {
@@ -150,6 +152,7 @@ export interface BacklogTaskSpec {
   id: string;
   title: string;
   priority: BacklogTaskPriority;
+  taskKind: BacklogTaskKind;
   dependsOn: string[];
   touchPaths: string[];
   capabilities: string[];
@@ -157,7 +160,7 @@ export interface BacklogTaskSpec {
   statusNotes: string[];
   state: BacklogTaskState;
   acceptanceCriteria: string[];
-  source: 'product-pass' | 'ux-pass' | 'code-pass' | 'task-followup' | 'manual';
+  source: 'product-pass' | 'ux-pass' | 'code-pass' | 'task-followup' | 'planner-pass' | 'manual';
   createdAt: string;
   updatedAt: string;
 }
@@ -170,7 +173,24 @@ export interface BacklogCandidateRecord {
   validationProfile?: string;
   capabilities?: string[];
   context?: string;
-  source: BacklogTaskSpec['source'];
+  source: Extract<BacklogTaskSpec['source'], 'product-pass' | 'ux-pass' | 'code-pass' | 'task-followup' | 'manual'>;
+}
+
+export interface PlannerTaskChild {
+  title: string;
+  taskKind: BacklogTaskKind;
+  priority: BacklogTaskPriority;
+  touchPaths: string[];
+  acceptanceCriteria: string[];
+  validationProfile?: string;
+  capabilities?: string[];
+  context?: string;
+}
+
+export interface PlannerSupersedeAction {
+  action: 'supersede';
+  parentTaskIds: string[];
+  children: PlannerTaskChild[];
 }
 
 export interface BacklogQueueCounts {
@@ -254,6 +274,11 @@ export interface BacklogStore {
   failTaskById(taskId: string, note: string): Promise<void>;
   rewriteBacklogReport(): Promise<void>;
   drainCandidateQueue(): Promise<BacklogDrainResult>;
+  listPlannedTasks(limit?: number): Promise<BacklogTaskSpec[]>;
+  applyPlannerSupersede(
+    action: PlannerSupersedeAction,
+    options?: { allowedParentTaskIds?: string[] },
+  ): Promise<{ parentTaskIds: string[]; childTaskIds: string[] }>;
   getTaskDependencies(taskId: string): Promise<TaskDependencySnapshot[]>;
   getActiveReservations(excludeTaskId?: string): Promise<TaskReservationSnapshot[]>;
   getTaskBlockage(taskId: string): Promise<TaskBlockage | null>;

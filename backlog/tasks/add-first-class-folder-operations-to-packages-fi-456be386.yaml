@@ -1,6 +1,7 @@
 id: add-first-class-folder-operations-to-packages-fi-456be386
 title: Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
 priority: normal
+task_kind: implementation
 depends_on: []
 touch_paths:
   - packages/figma-plugin/src/ui/components/SetSwitcher.tsx
@@ -8,10 +9,10 @@ touch_paths:
 capabilities: []
 validation_profile: repo
 status_notes:
-  - Imported from legacy backlog.md.
-state: ready
+  - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
+state: failed
 acceptance_criteria:
   - Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
 source: manual
 created_at: 2026-04-08T20:14:30.290Z
-updated_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T22:39:45.304Z

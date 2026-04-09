@@ -20,6 +20,7 @@ is simple for later agents to understand and maintain.
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
    - *Complex* (multi-file, behaviour change, or unclear scope): dispatch a plan subagent, review the plan, then execute.
 3. **Implement** only the assigned task. Stay inside the declared `touch_paths` and acceptance criteria. If the task appears to need broader edits, stop, document the blocker, and queue a follow-up instead of freelancing into adjacent work.
+   - If the assigned task kind is `research`, do not implement product or server code. Inspect the relevant code, write concrete follow-up backlog items, append progress, and stop.
 4. **Validate efficiently**:
    - During implementation, prefer the smallest useful checks for the files you touched.
    - The TypeScript backlog runner will run the authoritative final validation command after your task is complete.

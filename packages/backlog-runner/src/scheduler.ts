@@ -1,9 +1,10 @@
 import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
-import { buildDiscoveryContext, buildExecutionContext } from './context.js';
+import { buildDiscoveryContext, buildExecutionContext, buildPlannerContext } from './context.js';
 import { createDefaultLogSink, RunnerLogger } from './logger.js';
 import { withLock, lockPath } from './locks.js';
+import { PLANNER_RESULT_SCHEMA, parsePlannerSupersedeAction, plannerBatchSize } from './planner.js';
 import { createCommandRunner, sleep as defaultSleep } from './process.js';
 import { runProvider } from './providers/index.js';
 import { JSON_SCHEMA, isAuthFailure, isRateLimited } from './providers/common.js';
@@ -275,6 +276,82 @@ async function runPass(
   }
 }
 
+async function runPlannerRefinementPass(
+  config: BacklogRunnerConfig,
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  workspaceStrategy: WorkspaceStrategy,
+  commandRunner: CommandRunner,
+  logger: RunnerLogger,
+  options: ResolvedRunOptions,
+): Promise<boolean> {
+  return withLock(lockPath(config, 'planner'), 30, async () => {
+    const plannedTasks = await store.listPlannedTasks(plannerBatchSize());
+    if (plannedTasks.length === 0) {
+      return false;
+    }
+
+    logger.line('');
+    logger.line('================================================================');
+    logger.line('  ★ Planner Refinement Pass');
+    logger.line('================================================================');
+
+    const session = await workspaceStrategy.setup();
+    try {
+      const context = await buildPlannerContext(config, plannedTasks);
+      const result = await runProvider(commandRunner, {
+        tool: options.tool,
+        model: options.passModel,
+        context,
+        prompt: await readPrompt(config.prompts.planner),
+        cwd: session.cwd,
+        maxTurns: 12,
+        schema: PLANNER_RESULT_SCHEMA,
+      });
+
+      if (result.status !== 'done') {
+        logger.line(`  · planner refinement skipped — ${result.note || 'planner reported failure'}`);
+        return false;
+      }
+
+      logger.line(`  ✓ planner pass: ${result.item}`);
+      if (result.note) logger.line(`    ${result.note}`);
+
+      const workspaceCheck = await validateWorkspaceScope(
+        commandRunner,
+        session.cwd,
+        [],
+        'planner pass touched repo files',
+      );
+      if (!workspaceCheck.ok) {
+        logger.line(`  WARNING: ${workspaceCheck.reason}`);
+        return false;
+      }
+
+      const action = parsePlannerSupersedeAction(result.rawOutput, config);
+      if (!action) {
+        logger.line('  WARNING: planner pass returned invalid structured action payload');
+        return false;
+      }
+
+      const applied = await store.applyPlannerSupersede(action, {
+        allowedParentTaskIds: plannedTasks.map(task => task.id),
+      });
+      logger.line(`  ✓ superseded ${applied.parentTaskIds.length} planned task${applied.parentTaskIds.length === 1 ? '' : 's'} with ${applied.childTaskIds.length} child task${applied.childTaskIds.length === 1 ? '' : 's'}`);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (isRateLimited(message)) {
+        logger.line('  ⚠ Rate limit hit during planner refinement — skipping');
+        return false;
+      }
+      logger.line(`  · planner refinement skipped — ${message}`);
+      return false;
+    } finally {
+      await session.teardown();
+    }
+  });
+}
+
 export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<BacklogSyncResult> {
   await ensureConfigReady(config);
   const store = createFileBackedTaskStore(config);
@@ -366,7 +443,18 @@ export async function runBacklogRunner(
         }
 
         if (counts.planned > 0) {
-          logger.line('  No runnable tasks remain. Remaining tasks still need planner refinement.');
+          const refined = await runPlannerRefinementPass(
+            config,
+            store,
+            workspaceStrategy,
+            commandRunner,
+            logger,
+            options,
+          );
+          if (refined) {
+            continue;
+          }
+          logger.line('  No runnable tasks remain and planner refinement made no progress — stopping.');
           break;
         }
 
@@ -395,7 +483,21 @@ export async function runBacklogRunner(
 
       const claim = await store.claimNextRunnableTask(runnerId);
       if (!claim) {
-        logger.line(`  Ready tasks were claimed elsewhere — waiting 15s…`);
+        const refreshed = await store.getQueueCounts();
+        if (refreshed.planned > 0) {
+          const refined = await runPlannerRefinementPass(
+            config,
+            store,
+            workspaceStrategy,
+            commandRunner,
+            logger,
+            options,
+          );
+          if (refined) {
+            continue;
+          }
+        }
+        logger.line('  Ready tasks were claimed elsewhere — waiting 15s…');
         await sleep(15_000);
         continue;
       }

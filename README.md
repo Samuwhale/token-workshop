@@ -57,6 +57,7 @@ pnpm backlog:validate
 - [`.backlog-runner/runtime-report.md`](/Users/samuel/Documents/Projects/TokenManager/.backlog-runner/runtime-report.md) is the live runtime status view for leases, reservations, blockers, and queue counts.
 - Runtime coordination lives in `.backlog-runner/state.sqlite`, which tracks active leases, blockers, and reservations outside the Git worktree.
 - Discovery passes and implementation follow-ups now write structured JSONL candidate records to [`backlog/inbox.jsonl`](/Users/samuel/Documents/Projects/TokenManager/backlog/inbox.jsonl); the planner step converts those into YAML task specs before they become runnable.
+- Broad `planned` tasks are now refined automatically by a planner pass that supersedes vague parents into runnable child tasks instead of leaving them blocked forever.
 - The runner now injects compact digests of patterns, recent progress, and backlog state instead of dumping the full journals into every agent run.
 
 - `pnpm preview` uses the checked-in demo data.

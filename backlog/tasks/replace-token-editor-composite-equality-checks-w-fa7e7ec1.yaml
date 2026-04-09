@@ -1,0 +1,20 @@
+id: replace-token-editor-composite-equality-checks-w-fa7e7ec1
+title: Replace token-editor composite equality checks with stableStringify
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts
+  - packages/figma-plugin/src/ui/hooks/useTokenEditorFields.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The scoped stableStringify consolidation item is blocked because these hook files are outside its allowed touch_paths, but they still contain JSON.stringify-based equality checks at useTokenEditorLoad.ts:120-125 and useTokenEditorFields.ts:98-100."
+  - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
+state: failed
+acceptance_criteria:
+  - Token editor dirty-state comparisons for composite draft values use stableStringify instead of JSON.stringify.
+  - Reordering object keys in draft values, scopes, color modifiers, or mode values no longer marks the token editor dirty.
+source: task-followup
+created_at: 2026-04-08T22:30:38.168Z
+updated_at: 2026-04-08T23:26:14.271Z

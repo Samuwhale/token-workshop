@@ -1,6 +1,7 @@
 id: recompute-figma-variable-save-preview-diffs-afte-5f863c5c
 title: Recompute Figma variable save preview diffs after destination remaps
 priority: normal
+task_kind: implementation
 depends_on: []
 touch_paths:
   - packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts
@@ -10,10 +11,11 @@ validation_profile: plugin
 status_notes:
   - Imported from task-followup.
   - "Context: The modal now exposes destination remapping, merge selection, and append-path editing, but diff counts still reflect the original inspected destination until preview is reopened."
-state: ready
+  - "Failed: write scope violation: touched scripts/backlog/patterns.md, scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
+state: failed
 acceptance_criteria:
   - Changing a save-preview destination set or append path updates that row's new/changed/unchanged counts without closing and reopening the modal
   - The preview keeps duplicate-target validation and merge controls in sync with the recomputed destination state
 source: task-followup
 created_at: 2026-04-08T21:26:51.153Z
-updated_at: 2026-04-08T21:26:51.153Z
+updated_at: 2026-04-08T23:24:46.690Z

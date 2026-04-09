@@ -219,7 +219,7 @@
 ---
 ## 2026-04-08 - code-pass
 - Areas explored: packages/server/src/routes/sets.ts, packages/server/src/services/token-store.ts, packages/server/src/services/operation-log.ts, packages/server/src/routes/operations.ts, packages/server/src/routes/generators.ts, packages/server/src/services/generator-service.ts, packages/figma-plugin/src/ui/components/ImportPanelContext.tsx, packages/figma-plugin/src/ui/hooks/useImportSource.ts, packages/figma-plugin/src/ui/hooks/useImportConflicts.ts, packages/figma-plugin/src/ui/hooks/useImportApply.ts, packages/figma-plugin/src/ui/hooks/useTokensImport.ts, packages/figma-plugin/src/ui/components/PublishPanel.tsx, packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts, packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts, packages/figma-plugin/src/ui/hooks/useTokenEditorSave.ts
-- Found 5 items — written to backlog-inbox.md
+- Found 5 items — written to backlog/inbox.jsonl
 - Notable: the destructive `/api/data` reset leaves generators, resolvers, snapshots, and operation history behind, so a supposedly empty workspace can boot back up with stale cross-file state immediately.
 ---
 ## 2026-04-08 - Simplify the token list toolbar so the row of pills and toggles becomes a small number of grouped controls with clearer hierarchy; remove equal visual weight between primary creation actions and secondary viewing modes
@@ -250,7 +250,7 @@
 ---
 ## 2026-04-08 - product-pass
 - Areas explored: packages/figma-plugin/src/ui/components/HistoryPanel.tsx, NotificationsPanel.tsx, SetSwitcher.tsx, FigmaVariablesPanel.tsx, CanvasAnalysisPanel.tsx, ComponentCoveragePanel.tsx, ConsistencyPanel.tsx, UnusedTokensPanel.tsx, QuickStartWizard.tsx, ExportPanel.tsx, useFigmaVariables.ts, useSetMergeSplit.ts, packages/server/src/routes/sets.ts, operations.ts, snapshots.ts, packages/server/src/services/manual-snapshot.ts, token-store.ts
-- Found 8 items — written to backlog-inbox.md
+- Found 8 items — written to backlog/inbox.jsonl
 - Notable: the Figma Variables save flow still reduces every import to create-or-overwrite set slugs, which is a major data-loss risk for the exact power users this product is targeting.
 ---
 ## 2026-04-08 - [HIGH] Make `/api/data` a real clean-slate reset in `packages/server/src/routes/sets.ts` and `packages/server/src/services/token-store.ts`
@@ -263,7 +263,7 @@
 ---
 ## 2026-04-08 - product-pass
 - Areas explored: packages/figma-plugin/src/ui/components/SetSwitcher.tsx, TokenList.tsx, BatchEditor.tsx, TokenEditor.tsx, TokenDetailPreview.tsx, TokenFlowPanel.tsx, DuplicateDetectionPanel.tsx, HealthPanel.tsx, LintConfigPanel.tsx, packages/figma-plugin/src/ui/hooks/useSetMetadata.ts, useThemeDimensionsCrud.ts, packages/server/src/routes/sets.ts, themes.ts, lint.ts, packages/server/src/services/lint.ts, operation-log.ts
-- Found 8 items — written to backlog-inbox.md
+- Found 8 items — written to backlog/inbox.jsonl
 - Notable: set-to-Figma collection and mode mapping is still buried in one per-set dialog, and those edits are not part of the same rollback model as the rest of the publishing workflow.
 ---
 ## 2026-04-08 - [HIGH] Make theme-dimension duplication atomic in `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` and `packages/server/src/routes/themes.ts`, because the current create-dimension-then-copy-options loop can leave a half-copied axis behind if any follow-up option write fails.

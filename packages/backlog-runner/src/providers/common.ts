@@ -55,7 +55,7 @@ function extractPayload(candidate: Record<string, unknown>): Record<string, unkn
   return null;
 }
 
-function getObjectCandidate(output: string): Record<string, unknown> | null {
+export function extractStructuredOutput(output: string): Record<string, unknown> | null {
   const parsedWhole = asObject(maybeParseJson(output));
   const wholePayload = parsedWhole ? extractPayload(parsedWhole) : null;
   return wholePayload;
@@ -74,7 +74,7 @@ export function normalizeAgentResult(
   stdout: string,
   stderr: string,
 ): AgentResult | null {
-  const candidate = getObjectCandidate(stdout);
+  const candidate = extractStructuredOutput(stdout);
   if (!candidate) return null;
 
   const status = candidate.status;

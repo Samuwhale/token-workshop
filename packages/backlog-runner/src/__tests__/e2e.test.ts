@@ -30,6 +30,7 @@ function createFakeCommandRunner(
     statusResponses?: string[][];
     calls?: string[];
     emitFollowup?: boolean;
+    plannerOutput?: Record<string, unknown>;
     failCommitMessages?: string[];
     onGitCommit?: (message: string) => Promise<void> | void;
   } = {},
@@ -37,9 +38,35 @@ function createFakeCommandRunner(
   const stagedFiles = new Set<string>();
 
   return {
-    async run(command: string, args: string[]): Promise<CommandResult> {
+    async run(command: string, args: string[], runOptions?: { input?: string }): Promise<CommandResult> {
       options.calls?.push(`run:${command} ${args.join(' ')}`.trim());
       if (command === 'claude') {
+        if (runOptions?.input) {
+          options.calls?.push(`input:${runOptions.input}`);
+        }
+        if (runOptions?.input === 'planner prompt') {
+          return {
+            code: 0,
+            stdout: JSON.stringify({
+              structured_output: options.plannerOutput ?? {
+                status: 'done',
+                item: 'planner-pass',
+                note: 'superseded one parent',
+                action: 'supersede',
+                parent_task_ids: ['task-a'],
+                children: [{
+                  title: 'Research test item implementation plan',
+                  task_kind: 'research',
+                  priority: 'normal',
+                  touch_paths: ['packages/figma-plugin/src/ui'],
+                  acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
+                  context: 'Inspect the test item surface and emit concrete implementation follow-ups.',
+                }],
+              },
+            }),
+            stderr: '',
+          };
+        }
         await writeFile(
           path.join(root, 'scripts/backlog/progress.txt'),
           '# Backlog Progress Log\nStarted: today\n---\n## run\nbody\n---\n',
@@ -128,6 +155,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
   await writeFile(path.join(root, 'scripts/backlog/progress.txt'), '# Backlog Progress Log\nStarted: today\n---\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/archive.md'), '# Backlog Archive\n', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/agent.md'), 'agent prompt', 'utf8');
+  await writeFile(path.join(root, 'scripts/backlog/planner.md'), 'planner prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/product.md'), 'product prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/ux.md'), 'ux prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/code.md'), 'code prompt', 'utf8');
@@ -148,6 +176,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
       },
       prompts: {
         agent: './scripts/backlog/agent.md',
+        planner: './scripts/backlog/planner.md',
         product: './scripts/backlog/product.md',
         ux: './scripts/backlog/ux.md',
         code: './scripts/backlog/code.md',
@@ -155,6 +184,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
       validationCommand: 'bash scripts/backlog/validate.sh',
       validationProfiles: {
         repo: 'bash scripts/backlog/validate.sh',
+        backlog: 'bash scripts/backlog/validate.sh',
       },
       defaults: {
         tool: 'claude',
@@ -178,6 +208,7 @@ function baseTask(overrides: Partial<BacklogTaskSpec> = {}): BacklogTaskSpec {
     id: overrides.id ?? 'task-a',
     title: overrides.title ?? 'test item',
     priority: overrides.priority ?? 'normal',
+    taskKind: overrides.taskKind ?? 'implementation',
     dependsOn: overrides.dependsOn ?? [],
     touchPaths: overrides.touchPaths ?? ['feature.txt'],
     capabilities: overrides.capabilities ?? [],
@@ -400,5 +431,102 @@ describe('runner e2e', () => {
     );
 
     expect(calls).not.toContain('run:git worktree prune --expire now');
+  });
+
+  it('refines planned tasks into research work and clears the parent from the live queue', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    })]);
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          statusResponses: [
+            [],
+            ['scripts/backlog/progress.txt'],
+            ['scripts/backlog/progress.txt'],
+          ],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: superseded');
+    expect(logSink.lines.join('')).toContain('Planner Refinement Pass');
+    expect(logSink.lines.join('')).toContain('superseded 1 planned task');
+    expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).not.toContain('test item (Planned)');
+  });
+
+  it('runs executable work before invoking planner refinement', async () => {
+    const { root, config } = await makeFixture([
+      baseTask({ id: 'task-ready', title: 'Ready task', touchPaths: ['feature.txt'] }),
+      baseTask({
+        id: 'task-planned',
+        title: 'Planned task',
+        state: 'planned',
+        touchPaths: [],
+        statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+      }),
+    ]);
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, { calls }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    const firstPrompt = calls.find(call => call.startsWith('input:'));
+    expect(firstPrompt).toBe('input:agent prompt');
+    expect(calls).toContain('input:planner prompt');
+  });
+
+  it('does not apply planner actions when the planner reports failure', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    })]);
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          plannerOutput: {
+            status: 'failed',
+            item: 'planner-pass',
+            note: 'could not safely refine this batch',
+            action: 'supersede',
+            parent_task_ids: ['task-a'],
+            children: [{
+              title: 'Research test item implementation plan',
+              task_kind: 'research',
+              priority: 'normal',
+              touch_paths: ['packages/figma-plugin/src/ui'],
+              acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
+            }],
+          },
+          statusResponses: [[]],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: planned');
+    expect(logSink.lines.join('')).toContain('planner refinement skipped');
+    expect(logSink.lines.join('')).not.toContain('superseded 1 planned task');
   });
 });

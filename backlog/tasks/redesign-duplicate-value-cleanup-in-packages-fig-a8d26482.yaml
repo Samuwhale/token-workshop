@@ -1,6 +1,7 @@
 id: redesign-duplicate-value-cleanup-in-packages-fig-a8d26482
 title: Redesign duplicate-value cleanup in `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx`, `packages/figma-plugin/src/ui/components/HealthPanel.tsx`, and `packages/server/src/services/lint.ts` so users can choose the canonical token per group, preview metadata differences, and batch-resolve safely instead of accepting the shortest-path token as canonical by default.
 priority: normal
+task_kind: implementation
 depends_on: []
 touch_paths:
   - packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx
@@ -9,10 +10,10 @@ touch_paths:
 capabilities: []
 validation_profile: repo
 status_notes:
-  - Imported from legacy backlog.md.
-state: ready
+  - "Failed: write scope violation: touched scripts/backlog/patterns.md, scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
+state: failed
 acceptance_criteria:
   - Redesign duplicate-value cleanup in `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx`, `packages/figma-plugin/src/ui/components/HealthPanel.tsx`, and `packages/server/src/services/lint.ts` so users can choose the canonical token per group, preview metadata differences, and batch-resolve safely instead of accepting the shortest-path token as canonical by default.
 source: manual
 created_at: 2026-04-08T20:14:30.290Z
-updated_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-08T23:01:19.532Z

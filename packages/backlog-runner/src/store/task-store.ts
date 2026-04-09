@@ -3,6 +3,7 @@ import { access, appendFile, readFile, rename, writeFile } from 'node:fs/promise
 import { lockPath, withLock } from '../locks.js';
 import { RuntimeStateStore } from '../runtime-state.js';
 import {
+  createTaskFromPlannerChild,
   createTaskFromCandidate,
   normalizeRepoPath,
   parseCandidateRecord,
@@ -20,6 +21,7 @@ import type {
   BacklogStore,
   BacklogTaskClaim,
   BacklogTaskSpec,
+  PlannerSupersedeAction,
   TaskBlockage,
   TaskDependencySnapshot,
   TaskLeaseSnapshot,
@@ -112,7 +114,7 @@ export class FileBackedTaskStore implements BacklogStore {
     const blockages: TaskBlockage[] = [];
 
     for (const task of tasks) {
-      if (task.state === 'done' || task.state === 'failed' || activeTaskIds.has(task.id)) {
+      if (task.state === 'done' || task.state === 'failed' || task.state === 'superseded' || activeTaskIds.has(task.id)) {
         continue;
       }
 
@@ -167,7 +169,7 @@ export class FileBackedTaskStore implements BacklogStore {
     const counts: BacklogQueueCounts = {
       planned: loadedTasks.filter(task => task.state === 'planned').length,
       ready: loadedTasks.filter(task => task.state === 'ready' && !activeTaskIds.has(task.id) && !blockedIds.has(task.id)).length,
-      blocked: loadedTasks.filter(task => task.state !== 'done' && task.state !== 'failed' && !activeTaskIds.has(task.id) && blockedIds.has(task.id)).length,
+      blocked: loadedTasks.filter(task => task.state === 'ready' && !activeTaskIds.has(task.id) && blockedIds.has(task.id)).length,
       inProgress: activeTaskIds.size,
       failed: loadedTasks.filter(task => task.state === 'failed').length,
       done: loadedTasks.filter(task => task.state === 'done').length,
@@ -189,6 +191,8 @@ export class FileBackedTaskStore implements BacklogStore {
   }
 
   private async writeRuntimeReport(snapshot: RuntimeSnapshot): Promise<void> {
+    const plannerPending = snapshot.blockages.filter(blockage => blockage.reason === 'planner pending');
+    const otherBlockages = snapshot.blockages.filter(blockage => blockage.reason !== 'planner pending');
     const lines = [
       '# Backlog Runner Runtime Status',
       '',
@@ -210,10 +214,15 @@ export class FileBackedTaskStore implements BacklogStore {
             return `- ${reservation.title} (${reservation.taskId}) — touch_paths: ${touchPaths}; capabilities: ${capabilities}`;
           })),
       '',
-      '## Current Blockages',
-      ...(snapshot.blockages.length === 0
+      '## Planned Tasks Awaiting Refinement',
+      ...(plannerPending.length === 0
         ? ['- None']
-        : snapshot.blockages.map(blockage => `- ${blockage.taskId}: ${blockage.reason}`)),
+        : plannerPending.map(blockage => `- ${blockage.taskId}: ${blockage.reason}`)),
+      '',
+      '## Other Blockages',
+      ...(otherBlockages.length === 0
+        ? ['- None']
+        : otherBlockages.map(blockage => `- ${blockage.taskId}: ${blockage.reason}`)),
       '',
     ];
     await atomicWrite(this.config.files.runtimeReport, lines.join('\n'));
@@ -385,6 +394,69 @@ export class FileBackedTaskStore implements BacklogStore {
       await atomicWrite(this.config.files.candidateQueue, '');
       await this.refreshEverything(tasks.sort(taskSort));
       return { drained: true, createdTasks, skippedDuplicates, ignoredInvalidLines };
+    });
+  }
+
+  async listPlannedTasks(limit = Number.POSITIVE_INFINITY): Promise<BacklogTaskSpec[]> {
+    const tasks = await this.loadTasks();
+    return tasks.filter(task => task.state === 'planned').sort(taskSort).slice(0, limit);
+  }
+
+  async applyPlannerSupersede(
+    action: PlannerSupersedeAction,
+    options: { allowedParentTaskIds?: string[] } = {},
+  ): Promise<{ parentTaskIds: string[]; childTaskIds: string[] }> {
+    return withLock(this.backlogLock, 30, async () => {
+      if (new Set(action.parentTaskIds).size !== action.parentTaskIds.length) {
+        throw new Error('Planner action referenced duplicate parent task ids');
+      }
+      const allowedParentTaskIds = options.allowedParentTaskIds ? new Set(options.allowedParentTaskIds) : null;
+      if (allowedParentTaskIds && action.parentTaskIds.some(taskId => !allowedParentTaskIds.has(taskId))) {
+        throw new Error('Planner action referenced parent task outside the selected planning batch');
+      }
+
+      const tasks = await this.loadTasks();
+      const taskIndex = this.taskIndex(tasks);
+      const parents = action.parentTaskIds
+        .map(taskId => taskIndex.get(taskId))
+        .filter((task): task is BacklogTaskSpec => Boolean(task));
+      if (parents.length !== action.parentTaskIds.length) {
+        throw new Error('Planner action referenced unknown parent task');
+      }
+      if (parents.some(task => task.state !== 'planned')) {
+        throw new Error('Planner action referenced non-planned parent task');
+      }
+
+      const nowIso = new Date().toISOString();
+      const childTasks = action.children.map(child => createTaskFromPlannerChild(child, this.config.validationProfiles, nowIso));
+      if (childTasks.some(task => task === null)) {
+        throw new Error('Planner action produced invalid child task');
+      }
+
+      const materializedChildren = childTasks as BacklogTaskSpec[];
+      const childIds = materializedChildren.map(task => task.id);
+      const duplicateChildIds = childIds.filter((taskId, index) => childIds.indexOf(taskId) !== index);
+      if (duplicateChildIds.length > 0) {
+        throw new Error(`Planner action produced duplicate child task ids: ${[...new Set(duplicateChildIds)].join(', ')}`);
+      }
+      const existingIds = childIds.filter(taskId => taskIndex.has(taskId));
+      if (existingIds.length > 0) {
+        throw new Error(`Planner action produced duplicate child task ids: ${existingIds.join(', ')}`);
+      }
+
+      for (const child of materializedChildren) {
+        await this.persistTask(child);
+      }
+
+      for (const parent of parents) {
+        await this.persistTask(updateTask(parent, {
+          state: 'superseded',
+          statusNotes: [...parent.statusNotes, `Superseded by planner-pass: ${childIds.join(', ')}`],
+        }, nowIso));
+      }
+
+      await this.refreshEverything();
+      return { parentTaskIds: action.parentTaskIds, childTaskIds: childIds };
     });
   }
 

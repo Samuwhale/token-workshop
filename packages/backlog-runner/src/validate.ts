@@ -198,6 +198,7 @@ async function validateBacklogState(config: BacklogRunnerConfig): Promise<{ ok: 
 async function validatePromptContracts(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
   const messages: string[] = [];
   const promptChecks: Array<[string, string]> = [
+    ['planner pass prompt', config.prompts.planner],
     ['product pass prompt', config.prompts.product],
     ['ux pass prompt', config.prompts.ux],
     ['code pass prompt', config.prompts.code],
@@ -211,7 +212,9 @@ async function validatePromptContracts(config: BacklogRunnerConfig): Promise<{ o
       messages.push(`  ✗ ${label} still references legacy markdown planner output`);
       continue;
     }
-    messages.push(`  ✓ ${label} uses structured candidate queue instructions`);
+    messages.push(label === 'planner pass prompt'
+      ? '  ✓ planner pass prompt uses structured refinement instructions'
+      : `  ✓ ${label} uses structured candidate queue instructions`);
   }
 
   const agentPrompt = await readFile(config.prompts.agent, 'utf8');
@@ -245,6 +248,7 @@ export async function validateBacklogRunner(
     ['task specs dir', config.files.taskSpecsDir],
     ['patterns.md', config.files.patterns],
     ['agent prompt', config.prompts.agent],
+    ['planner pass prompt', config.prompts.planner],
     ['product pass prompt', config.prompts.product],
     ['ux pass prompt', config.prompts.ux],
     ['code pass prompt', config.prompts.code],

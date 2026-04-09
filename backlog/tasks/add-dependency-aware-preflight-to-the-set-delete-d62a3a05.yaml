@@ -9,7 +9,6 @@ touch_paths:
 capabilities: []
 validation_profile: repo
 status_notes:
-  - Imported from legacy backlog.md.
   - "Failed: write scope violation: touched backlog.md, scripts/backlog/progress.txt"
 state: failed
 acceptance_criteria:

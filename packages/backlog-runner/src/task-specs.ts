@@ -2,7 +2,14 @@ import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import YAML from 'yaml';
-import type { BacklogCandidateRecord, BacklogTaskPriority, BacklogTaskSpec, BacklogTaskState } from './types.js';
+import type {
+  BacklogCandidateRecord,
+  BacklogTaskKind,
+  BacklogTaskPriority,
+  BacklogTaskSpec,
+  BacklogTaskState,
+  PlannerTaskChild,
+} from './types.js';
 
 const TASK_FILE_PATTERN = /\.ya?ml$/i;
 
@@ -140,9 +147,11 @@ export function parseTaskSpec(raw: string, filePath: string): BacklogTaskSpec {
     priorityValue === 'high' || priorityValue === 'low' ? (priorityValue as BacklogTaskPriority) : 'normal';
   const stateValue = normalizeWhitespace(String(parsed.state ?? 'ready')).toLowerCase();
   const state: BacklogTaskState =
-    stateValue === 'planned' || stateValue === 'done' || stateValue === 'failed'
+    stateValue === 'planned' || stateValue === 'done' || stateValue === 'failed' || stateValue === 'superseded'
       ? (stateValue as BacklogTaskState)
       : 'ready';
+  const taskKindValue = normalizeWhitespace(String(parsed.task_kind ?? 'implementation')).toLowerCase();
+  const taskKind: BacklogTaskKind = taskKindValue === 'research' ? 'research' : 'implementation';
   const dependsOn = [...new Set(toArray(parsed.depends_on).map(value => normalizeWhitespace(value)))];
   const touchPaths = [...new Set(toArray(parsed.touch_paths).map(value => normalizeRepoPath(value)).filter(Boolean))];
   const capabilities = [...new Set(toArray(parsed.capabilities).map(value => value.toLowerCase()))];
@@ -152,13 +161,13 @@ export function parseTaskSpec(raw: string, filePath: string): BacklogTaskSpec {
   const createdAt = normalizeWhitespace(String(parsed.created_at ?? ''));
   const updatedAt = normalizeWhitespace(String(parsed.updated_at ?? createdAt));
   const sourceValue = normalizeWhitespace(String(parsed.source ?? 'manual')).toLowerCase();
-  const validSources = new Set<BacklogTaskSpec['source']>(['product-pass', 'ux-pass', 'code-pass', 'task-followup', 'manual']);
+  const validSources = new Set<BacklogTaskSpec['source']>(['product-pass', 'ux-pass', 'code-pass', 'task-followup', 'planner-pass', 'manual']);
   if (!validSources.has(sourceValue as BacklogTaskSpec['source'])) {
     throw new Error(`Task spec ${filePath} has invalid source: ${sourceValue || '<empty>'}`);
   }
   const source = sourceValue as BacklogTaskSpec['source'];
 
-  if (!id || !title || !validationProfile || statusNotes.length === 0 || !createdAt || !updatedAt) {
+  if (!id || !title || !validationProfile || !createdAt || !updatedAt) {
     throw new Error(`Task spec ${filePath} is missing required fields`);
   }
 
@@ -166,6 +175,7 @@ export function parseTaskSpec(raw: string, filePath: string): BacklogTaskSpec {
     id,
     title,
     priority,
+    taskKind,
     dependsOn,
     touchPaths,
     capabilities,
@@ -198,6 +208,7 @@ export async function writeTaskSpec(taskSpecsDir: string, task: BacklogTaskSpec)
     id: task.id,
     title: task.title,
     priority: task.priority,
+    task_kind: task.taskKind,
     depends_on: task.dependsOn,
     touch_paths: task.touchPaths,
     capabilities: task.capabilities,
@@ -226,7 +237,7 @@ function normalizePathArray(value: unknown): string[] | null {
   return normalized.length > 0 ? [...new Set(normalized)] : null;
 }
 
-function normalizeCandidateSource(value: unknown): BacklogTaskSpec['source'] | null {
+function normalizeCandidateSource(value: unknown): BacklogCandidateRecord['source'] | null {
   const normalized = normalizeWhitespace(String(value ?? '')).toLowerCase();
   if (
     normalized === 'product-pass' ||
@@ -299,15 +310,13 @@ export function createTaskFromCandidate(
   const capabilities = candidate.capabilities && candidate.capabilities.length > 0
     ? [...new Set(candidate.capabilities.map(item => normalizeWhitespace(item).toLowerCase()).filter(Boolean))]
     : inferCapabilities(touchPaths);
-  const statusNotes = [`Imported from ${candidate.source}.`];
-  if (candidate.context) {
-    statusNotes.push(`Context: ${candidate.context}`);
-  }
+  const statusNotes = candidate.context ? [`Context: ${candidate.context}`] : [];
 
   return {
     id: createTaskId(title),
     title,
     priority: candidate.priority,
+    taskKind: 'implementation',
     dependsOn: [],
     touchPaths,
     capabilities,
@@ -316,6 +325,48 @@ export function createTaskFromCandidate(
     state: 'ready',
     acceptanceCriteria,
     source: candidate.source,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+}
+
+export function createTaskFromPlannerChild(
+  child: PlannerTaskChild,
+  validationProfiles: Record<string, string>,
+  nowIso = new Date().toISOString(),
+): BacklogTaskSpec | null {
+  const title = normalizeWhitespace(child.title);
+  const touchPaths = [...new Set(child.touchPaths.map(value => normalizeRepoPath(value)).filter(Boolean))];
+  const acceptanceCriteria = [...new Set(child.acceptanceCriteria.map(item => normalizeWhitespace(item)).filter(Boolean))];
+  if (!title || touchPaths.length === 0 || acceptanceCriteria.length === 0) {
+    return null;
+  }
+
+  const validationProfile = child.validationProfile
+    ? normalizeWhitespace(child.validationProfile)
+    : inferValidationProfile(touchPaths, validationProfiles);
+  if (!validationProfile || !validationProfiles[validationProfile]) {
+    return null;
+  }
+
+  const capabilities = child.capabilities && child.capabilities.length > 0
+    ? [...new Set(child.capabilities.map(item => normalizeWhitespace(item).toLowerCase()).filter(Boolean))]
+    : inferCapabilities(touchPaths);
+  const statusNotes = child.context ? [`Context: ${normalizeWhitespace(child.context)}`] : [];
+
+  return {
+    id: createTaskId(title),
+    title,
+    priority: child.priority,
+    taskKind: child.taskKind,
+    dependsOn: [],
+    touchPaths,
+    capabilities,
+    validationProfile,
+    statusNotes,
+    state: 'ready',
+    acceptanceCriteria,
+    source: 'planner-pass',
     createdAt: nowIso,
     updatedAt: nowIso,
   };
@@ -339,6 +390,7 @@ export function renderGeneratedBacklog(tasks: BacklogTaskSpec[]): string {
   ];
 
   for (const task of tasks.sort(taskSort)) {
+    if (task.state === 'superseded') continue;
     const priorityPrefix = task.priority === 'high' ? '[HIGH] ' : '';
     const title = `${priorityPrefix}${task.title}`;
     const marker = task.state === 'done'

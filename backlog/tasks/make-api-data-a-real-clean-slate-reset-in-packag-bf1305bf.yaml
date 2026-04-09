@@ -8,8 +8,7 @@ touch_paths:
   - packages/server/src/services/token-store.ts
 capabilities: []
 validation_profile: repo
-status_notes:
-  - Imported from legacy backlog.md.
+status_notes: []
 state: done
 acceptance_criteria:
   - Make `/api/data` a real clean-slate reset in `packages/server/src/routes/sets.ts` and `packages/server/src/services/token-store.ts` — the current wipe only deletes token-set files and `$themes.json`, so generators, resolvers, operation history, and manual snapshots survive and keep pointing at deleted sets.
