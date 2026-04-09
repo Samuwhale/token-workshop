@@ -1,0 +1,18 @@
+id: add-regression-coverage-for-uncapped-operation-h-c76d9586
+title: Add regression coverage for uncapped operation history and rename propagation persistence
+priority: low
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/__tests__/api.test.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The operation log now persists history and rename propagation separately, but the current server API tests do not cover the retention split or rollback-driven inverse rename feed."
+state: ready
+acceptance_criteria:
+  - "`/api/operations` can page past 50 entries after many unrelated operations are recorded."
+  - "`/api/operations/path-renames` preserves rename propagation across rename rollback/redo by exposing inverse rename events."
+source: task-followup
+created_at: 2026-04-09T13:10:49.828Z
+updated_at: 2026-04-09T13:10:49.828Z

@@ -428,3 +428,11 @@
   - Duplicate detection should publish stable group identity, not an implied winner, so cleanup UIs can stay user-directed without reverse-engineering a server-side heuristic.
   - Batch cleanup is safer when canonical selection is an explicit prerequisite and the preview surfaces which token metadata will change before aliases are written.
 ---
+## 2026-04-09 - [Replace the current 50-entry `OperationLog` ring-buffer design in `packages/server/src/services/operation-log.ts` with separate persistence for rollback/history versus rename propagation — `PublishPanel.tsx` and `/api/operations/*` both depend on data that silently disappears once enough unrelated operations have been recorded.]
+- Removed the 50-entry truncation from `OperationLog`, kept `operations.json` as the full rollback/history store, and added a dedicated `path-renames.json` index so rename propagation survives unrelated activity and restart cycles.
+- Rollback now marks the original rename records inactive and records inverse rename pairs on the rollback operation itself, so `/api/operations/path-renames` continues to reflect the current rename lineage after undo and redo flows.
+- Files changed: `packages/server/src/services/operation-log.ts` ~L121, ~L286, ~L471, ~L565; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Operation history and rename propagation have different retention needs; keeping rename lineage in its own persisted index avoids coupling Figma publish behavior to rollback-history pruning rules.
+  - When rollback changes the effective token path lineage, the rollback operation should emit inverse rename pairs so downstream rename propagation mirrors the actual current server state instead of only the original mutation.
+---

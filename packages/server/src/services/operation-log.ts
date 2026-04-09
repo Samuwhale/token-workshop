@@ -118,11 +118,17 @@ export interface TokenHistoryEntry {
   after: import('@tokenmanager/core').Token | null;
 }
 
-const MAX_ENTRIES = 50;
+interface PathRenameEntry {
+  operationId: string;
+  rolledBack: boolean;
+  pathRenames: Array<{ oldPath: string; newPath: string }>;
+}
 
 export class OperationLog {
   private entries: OperationEntry[] = [];
+  private pathRenameEntries: PathRenameEntry[] = [];
   private filePath: string;
+  private pathRenameFilePath: string;
   private tokenDir: string;
   private loadPromise: Promise<void> | null = null;
   private lock = new PromiseChainLock();
@@ -131,22 +137,55 @@ export class OperationLog {
     this.tokenDir = path.resolve(tokenDir);
     const tmDir = path.join(this.tokenDir, '.tokenmanager');
     this.filePath = path.join(tmDir, 'operations.json');
+    this.pathRenameFilePath = path.join(tmDir, 'path-renames.json');
+  }
+
+  private clonePathRenames(pathRenames: Array<{ oldPath: string; newPath: string }>) {
+    return pathRenames.map(({ oldPath, newPath }) => ({ oldPath, newPath }));
+  }
+
+  private toPathRenameEntry(entry: OperationEntry): PathRenameEntry | null {
+    if (!entry.pathRenames?.length) {
+      return null;
+    }
+    return {
+      operationId: entry.id,
+      rolledBack: entry.rolledBack,
+      pathRenames: this.clonePathRenames(entry.pathRenames),
+    };
   }
 
   private ensureLoaded(): Promise<void> {
     if (!this.loadPromise) {
-      this.loadPromise = fs.readFile(this.filePath, 'utf-8')
-        .then(raw => { this.entries = JSON.parse(raw) as OperationEntry[]; })
-        .catch(() => { this.entries = []; });
+      this.loadPromise = Promise.all([
+        fs.readFile(this.filePath, 'utf-8')
+          .then(raw => JSON.parse(raw) as OperationEntry[])
+          .catch(() => []),
+        fs.readFile(this.pathRenameFilePath, 'utf-8')
+          .then(raw => JSON.parse(raw) as PathRenameEntry[])
+          .catch(() => null),
+      ]).then(([entries, pathRenameEntries]) => {
+        this.entries = entries;
+        this.pathRenameEntries = pathRenameEntries ?? this.entries
+          .map(entry => this.toPathRenameEntry(entry))
+          .filter((entry): entry is PathRenameEntry => entry !== null);
+      });
     }
     return this.loadPromise;
   }
 
-  private async persist(): Promise<void> {
+  private async persistEntries(): Promise<void> {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     const tmp = `${this.filePath}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(this.entries, null, 2), 'utf-8');
     await fs.rename(tmp, this.filePath);
+  }
+
+  private async persistPathRenameEntries(): Promise<void> {
+    await fs.mkdir(path.dirname(this.pathRenameFilePath), { recursive: true });
+    const tmp = `${this.pathRenameFilePath}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(this.pathRenameEntries, null, 2), 'utf-8');
+    await fs.rename(tmp, this.pathRenameFilePath);
   }
 
   private async cleanupStoreDir(): Promise<void> {
@@ -162,10 +201,16 @@ export class OperationLog {
       rolledBack: false,
     };
     this.entries.push(full);
-    if (this.entries.length > MAX_ENTRIES) {
-      this.entries = this.entries.slice(this.entries.length - MAX_ENTRIES);
+    const pathRenameEntry = this.toPathRenameEntry(full);
+    if (pathRenameEntry) {
+      this.pathRenameEntries.push(pathRenameEntry);
+      await Promise.all([
+        this.persistEntries(),
+        this.persistPathRenameEntries(),
+      ]);
+    } else {
+      await this.persistEntries();
     }
-    await this.persist();
     return full;
   }
 
@@ -179,7 +224,9 @@ export class OperationLog {
     await this.ensureLoaded();
     await this.lock.withLock(async () => {
       await fs.rm(this.filePath, { force: true });
+      await fs.rm(this.pathRenameFilePath, { force: true });
       this.entries = [];
+      this.pathRenameEntries = [];
       await this.cleanupStoreDir();
     });
   }
@@ -238,11 +285,12 @@ export class OperationLog {
    */
   async getPathRenames(): Promise<Array<{ oldPath: string; newPath: string }>> {
     await this.ensureLoaded();
-    const RENAME_TYPES = new Set(['token-rename', 'group-rename', 'batch-rename']);
     const renames: Array<{ oldPath: string; newPath: string }> = [];
-    for (const entry of this.entries) {
-      if (entry.rolledBack || !RENAME_TYPES.has(entry.type) || !entry.pathRenames) continue;
-      renames.push(...entry.pathRenames);
+    for (const entry of this.pathRenameEntries) {
+      if (entry.rolledBack) {
+        continue;
+      }
+      renames.push(...this.clonePathRenames(entry.pathRenames));
     }
     return renames;
   }
@@ -420,6 +468,13 @@ export class OperationLog {
     }
   }
 
+  private markPathRenameEntryRolledBack(operationId: string): void {
+    const pathRenameEntry = this.pathRenameEntries.find((entry) => entry.operationId === operationId);
+    if (pathRenameEntry) {
+      pathRenameEntry.rolledBack = true;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Rollback
   // ---------------------------------------------------------------------------
@@ -508,6 +563,10 @@ export class OperationLog {
       // Mark the original entry as rolled-back and record the rollback entry.
       // Already inside withLock, so no inner lock needed.
       entry.rolledBack = true;
+      this.markPathRenameEntryRolledBack(entry.id);
+      const rollbackPathRenames = entry.pathRenames?.length
+        ? entry.pathRenames.map(({ oldPath, newPath }) => ({ oldPath: newPath, newPath: oldPath }))
+        : undefined;
       const rollbackEntry = await this.pushAndPersist({
         type: 'rollback',
         description: `Undo: ${entry.description}`,
@@ -515,6 +574,7 @@ export class OperationLog {
         affectedPaths: entry.affectedPaths,
         beforeSnapshot: currentSnapshot,
         afterSnapshot: entry.beforeSnapshot,
+        ...(rollbackPathRenames?.length ? { pathRenames: rollbackPathRenames } : {}),
         ...(inverseSteps?.length ? { rollbackSteps: inverseSteps } : {}),
       });
 
