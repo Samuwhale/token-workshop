@@ -9,7 +9,7 @@ touch_paths:
   - packages/figma-plugin/src/ui/contexts/EditorContext.tsx
 capabilities:
   - backlog-runtime
-validation_profile: backlog
+validation_profile: plugin
 status_notes:
   - "Context: This task codified the shared Tokens library surface contract in navigation metadata, EditorContext, and PanelRouter, but App.tsx still owns the narrow drawer render paths for token editor, generator editor, and token preview. Compare now renders from PanelRouter on narrow viewports, so a follow-up should finish moving the remaining drawers behind the same contract."
 state: ready

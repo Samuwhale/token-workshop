@@ -18,23 +18,23 @@ pass() { echo -e "${GREEN}PASS${RESET} $1"; }
 
 # Gate 1: Unit/integration tests
 echo -e "${DIM}── Gate 1: Tests ──${RESET}"
-(cd packages/core && npx --no-install vitest run --reporter=dot) || fail "core tests"
+(cd packages/core && pnpm exec vitest run --reporter=dot) || fail "core tests"
 pass "core tests"
-(cd packages/figma-plugin && npx --no-install vitest run --passWithNoTests --reporter=dot) || fail "plugin tests"
+(cd packages/figma-plugin && pnpm exec vitest run --passWithNoTests --reporter=dot) || fail "plugin tests"
 pass "plugin tests"
-(cd packages/server && npx --no-install vitest run --passWithNoTests --reporter=dot) || fail "server tests"
+(cd packages/server && pnpm exec vitest run --passWithNoTests --reporter=dot) || fail "server tests"
 pass "server tests"
 
 # Gate 2: Build
 echo -e "${DIM}── Gate 2: Build ──${RESET}"
-(cd packages/figma-plugin && npm run build) || fail "plugin build"
+(cd packages/figma-plugin && pnpm run build) || fail "plugin build"
 pass "plugin build"
-(cd packages/server && npm run build) || fail "server build"
+(cd packages/server && pnpm run build) || fail "server build"
 pass "server build"
 
 # Gate 3: Lint (errors only — warnings are acceptable)
 echo -e "${DIM}── Gate 3: Lint ──${RESET}"
-LINT_OUT=$(npx --no-install eslint packages/*/src/ 2>&1 || true)
+LINT_OUT=$(pnpm exec eslint packages/*/src/ 2>&1 || true)
 # Extract error count from eslint summary line like "✖ 102 problems (3 errors, 99 warnings)"
 ERROR_COUNT=$(echo "$LINT_OUT" | sed -n 's/.*(\([0-9]*\) error.*/\1/p' || echo "0")
 [ -z "$ERROR_COUNT" ] && ERROR_COUNT=0

@@ -7,7 +7,7 @@ touch_paths:
   - packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts
   - packages/figma-plugin/src/ui/hooks/useTokenEditorFields.ts
 capabilities: []
-validation_profile: repo
+validation_profile: plugin
 status_notes:
   - "Context: The scoped stableStringify consolidation item is blocked because these hook files are outside its allowed touch_paths, but they still contain JSON.stringify-based equality checks at useTokenEditorLoad.ts:120-125 and useTokenEditorFields.ts:98-100."
   - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"

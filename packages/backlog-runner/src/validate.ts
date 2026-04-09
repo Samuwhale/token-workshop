@@ -7,6 +7,7 @@ import { inspectBacklogState } from './context.js';
 import { PLANNER_RESULT_SCHEMA, PLANNER_SCHEMA_SMOKE_PROMPT } from './planner.js';
 import { createCommandRunner } from './process.js';
 import { validateProvider } from './providers/index.js';
+import { lintBacklogQueue } from './queue-lint.js';
 import type { BacklogRunnerConfig, RunOverrides, ToolValidationResult } from './types.js';
 
 const VALIDATION_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
@@ -276,6 +277,12 @@ export async function validateBacklogRunner(
     ok = false;
   }
   messages.push(...backlogState.messages);
+
+  const queueLint = await lintBacklogQueue(config);
+  if (!queueLint.ok) {
+    ok = false;
+  }
+  messages.push(...queueLint.messages);
 
   const promptContracts = await validatePromptContracts(config);
   if (!promptContracts.ok) {

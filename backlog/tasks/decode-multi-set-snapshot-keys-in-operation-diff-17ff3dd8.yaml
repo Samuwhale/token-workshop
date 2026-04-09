@@ -6,7 +6,7 @@ depends_on: []
 touch_paths:
   - packages/server/src/routes/operations.ts
 capabilities: []
-validation_profile: repo
+validation_profile: server
 status_notes:
   - "Context: Multi-set folder operations now store collision-safe snapshot keys as setName::tokenPath in the operation log. The diff route still reads snapshot record keys directly, so folder rollback previews will surface the composite key unless it is decoded there."
   - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"

@@ -30,44 +30,43 @@ export const codexProvider: ProviderAdapter = {
       },
       ...smokeTests,
     ];
-    const smokeResults = await Promise.all(
-      smokeCases.map(testCase =>
-        withTempDir('backlog-codex-smoke-', async dir => {
-          const schemaFile = await writeTempFile(dir, 'schema.json', testCase.schema);
-          const outputFile = `${dir}/out.json`;
-          return smokeStructuredOutput(
-            async () => {
-              const result = await commandRunner.run(
-                'codex',
-                [
-                  'exec',
-                  '--dangerously-bypass-approvals-and-sandbox',
-                  '--skip-git-repo-check',
-                  '--ephemeral',
-                  '--output-schema',
-                  schemaFile,
-                  '--output-last-message',
-                  outputFile,
-                  '-C',
-                  dir,
-                  ...(model ? ['--model', model] : []),
-                ],
-                {
-                  cwd: dir,
-                  input: testCase.prompt,
-                  timeoutMs: PROVIDER_SMOKE_TIMEOUT_MS,
-                  ignoreFailure: true,
-                },
-              );
-              const output = await readIfExists(outputFile);
-              return { ...result, stdout: output || result.stdout };
-            },
-            testCase.label,
-            testCase,
-          );
-        }),
-      ),
-    );
+    const smokeResults: ToolValidationResult[] = [];
+    for (const testCase of smokeCases) {
+      smokeResults.push(await withTempDir('backlog-codex-smoke-', async dir => {
+        const schemaFile = await writeTempFile(dir, 'schema.json', testCase.schema);
+        const outputFile = `${dir}/out.json`;
+        return smokeStructuredOutput(
+          async () => {
+            const result = await commandRunner.run(
+              'codex',
+              [
+                'exec',
+                '--dangerously-bypass-approvals-and-sandbox',
+                '--skip-git-repo-check',
+                '--ephemeral',
+                '--output-schema',
+                schemaFile,
+                '--output-last-message',
+                outputFile,
+                '-C',
+                dir,
+                ...(model ? ['--model', model] : []),
+              ],
+              {
+                cwd: dir,
+                input: testCase.prompt,
+                timeoutMs: PROVIDER_SMOKE_TIMEOUT_MS,
+                ignoreFailure: true,
+              },
+            );
+            const output = await readIfExists(outputFile);
+            return { ...result, stdout: output || result.stdout };
+          },
+          testCase.label,
+          testCase,
+        );
+      }));
+    }
 
     return {
       ok: base.ok && smokeResults.every(result => result.ok),

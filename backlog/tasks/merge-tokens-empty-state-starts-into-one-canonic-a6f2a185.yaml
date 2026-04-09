@@ -11,7 +11,7 @@ touch_paths:
   - docs/redesign/plugin-ia-blueprint.md
 capabilities:
   - backlog-runtime
-validation_profile: backlog
+validation_profile: repo
 status_notes:
   - "Context: Execution order 3/5. Build this after the shared create launcher so every empty-state and onboarding entry can deep-link into the same start surface."
 state: ready

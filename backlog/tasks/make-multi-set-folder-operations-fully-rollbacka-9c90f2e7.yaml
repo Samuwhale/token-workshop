@@ -7,7 +7,7 @@ touch_paths:
   - packages/server/src/services/operation-log.ts
   - packages/server/src/routes/sets.ts
 capabilities: []
-validation_profile: repo
+validation_profile: server
 status_notes:
   - "Context: Folder rename/merge can rely on structural rollback steps, but folder delete currently records no reversible token snapshot because the operation log indexes snapshots only by token path and cannot represent same-path tokens across multiple sets."
   - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"

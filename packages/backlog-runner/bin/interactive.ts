@@ -3,7 +3,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { resolveModelAlias } from '../src/config.js';
 import type { BacklogRunnerConfig, BacklogRunnerLane, BacklogTool, RunOverrides } from '../src/types.js';
 
-const TOOLS: BacklogTool[] = ['codex', 'claude'];
+const TOOLS: BacklogTool[] = ['claude', 'codex'];
 const LANES: BacklogRunnerLane[] = ['executor', 'planner'];
 const SUMMARY_DIVIDER = '----------------------------------------';
 
@@ -49,13 +49,15 @@ export function summarizeRunOverrides(
     worktrees: boolean;
   },
 ): string {
+  const model = overrides.model.trim() || 'CLI default';
+  const passModel = overrides.passModel.trim() || 'same as main model / CLI default';
   return [
     'Selected options',
     SUMMARY_DIVIDER,
     `Tool:           ${overrides.tool}`,
     `Lane:           ${overrides.lane}`,
-    `Model:          ${overrides.model}`,
-    `Pass model:     ${overrides.passModel}`,
+    `Model:          ${model}`,
+    `Pass model:     ${passModel}`,
     `Passes:         ${overrides.passes ? 'enabled' : 'disabled'}`,
     `Worktrees:      ${overrides.worktrees ? 'enabled' : 'disabled'}`,
     SUMMARY_DIVIDER,
