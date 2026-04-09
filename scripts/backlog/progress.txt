@@ -329,3 +329,10 @@
   - Batch metadata editors should preserve unsaved row drafts when upstream metadata refreshes, or reconnects and successful saves will clobber in-progress edits for unrelated rows.
   - Collection/mode routing is easier to audit when it lives beside structural set actions, because maintainers can reorder, rename, and retarget Sync destinations from the same surface before running compare/apply.
 ---
+## 2026-04-09 - [Repair backlog-runner interactive defaults and Codex planner smoke validation]
+- Verified the scoped interactive helper tests and the full `@tokenmanager/backlog-runner` vitest suite; the reported blocker is already resolved in this workspace, so no backlog-runner source changes were needed.
+- Files changed: `scripts/backlog/progress.txt` ~L339
+- **Learnings for future iterations:**
+  - When a backlog repair task is already satisfied, prefer recording the validation evidence and returning a stale-success result instead of manufacturing no-op changes in the scoped files.
+  - For backlog-runner package tests under `pnpm --filter @tokenmanager/backlog-runner exec vitest run`, pass file paths relative to `packages/backlog-runner` when running focused vitest commands.
+---
