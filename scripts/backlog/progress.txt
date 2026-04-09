@@ -521,3 +521,11 @@
   - Theme workflow summaries should track assignment quality, not just whether an option has any mapped set, otherwise shell guidance cannot surface stale sets, empty overrides, or review issues as first-class work.
   - Dense multi-state editors read better when the default view is a summary with explicit edit entry points, and review issues jump back into that same editor instead of living in separate explanatory blocks.
 ---
+## 2026-04-09 - [Thread real lifecycle metadata into the unused-token cleanup queue]
+- Passed each unused token's source lifecycle through `HealthPanel` so the cleanup queue no longer relies on the panel's published fallback when draft metadata exists.
+- Kept the unused-token filter on the unified token snapshot and excluded deprecated entries from the same lifecycle source that now feeds the queue grouping.
+- Files changed: `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L418; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - When a downstream queue groups by optional token metadata, the parent data source should forward that metadata explicitly instead of relying on fallback normalization in the child.
+  - Derived health-panel snapshots should filter and map from the same unified token record to avoid lifecycle drift between exclusion logic and rendered queue rows.
+---

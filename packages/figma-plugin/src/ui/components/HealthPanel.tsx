@@ -434,11 +434,16 @@ export function HealthPanel({
       .filter(([path, _entry]) =>
         (tokenUsageCounts[path] ?? 0) === 0 &&
         !referencedPaths.has(path) &&
-        allTokensFlat[path]?.$lifecycle !== 'deprecated'
+        allTokensUnified[path]?.$lifecycle !== 'deprecated'
       )
-      .map(([path, entry]) => ({ path, set: entry.set, $type: entry.$type }))
+      .map(([path, entry]) => ({
+        path,
+        set: entry.set,
+        $type: entry.$type,
+        $lifecycle: entry.$lifecycle,
+      }))
       .sort((a, b) => a.path.localeCompare(b.path));
-  }, [tokenUsageCounts, allTokensUnified, allTokensFlat]);
+  }, [tokenUsageCounts, allTokensUnified]);
 
   // ── Validation issue filtering ──────────────────────────────────────────────
 

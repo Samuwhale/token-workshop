@@ -64,7 +64,7 @@
 - [ ] Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets
 - [ ] Research theme gap remediation flow across authoring, coverage review, and override creation
 - [x] Replace server, publish, and set-merge composite equality checks with stableStringify
-- [ ] Thread real lifecycle metadata into the unused-token cleanup queue
+- [x] Thread real lifecycle metadata into the unused-token cleanup queue
 - [ ] Add summary-first set-role cards and workflow counters to ThemeManager
 - [ ] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
 - [ ] Unify theme coverage and stale-set issue handoffs with set-role editing
