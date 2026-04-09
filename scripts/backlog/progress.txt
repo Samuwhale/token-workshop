@@ -579,3 +579,12 @@
 - **Learnings for future iterations:**
   - Any operation-history response that surfaces snapshot keys should translate them through the operation-log helper first, because multi-set snapshots are serialized with internal collision-safe keys rather than UI-facing token paths.
 ---
+## 2026-04-09 - [Reduce TokenListModals to transient confirmations and re-home long-lived review flows]
+- Re-homed Tokens workspace review flows into inline contextual panels inside `TokenList`, covering Figma variable diff review, alias-promotion review, and single-token move/copy conflict review so those surfaces preserve the library browse context instead of stacking as overlays.
+- Routed the advanced Find & Replace launcher through the existing `BatchEditor` surface, including a focused handoff into the rename field, and trimmed `TokenListModals` back to confirmations plus lightweight one-field dialogs like new group and batch move/copy prompts.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/TokenList.tsx packages/figma-plugin/src/ui/components/TokenListModals.tsx` (passes with the existing `TokenList.tsx` warnings for `syncChangedCount` and the duplicate `sets` dependency in a `useMemo`; Node also emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for `eslint.config.js`).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L96, ~L1614, ~L2978; `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L600, ~L751; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - If a long-lived review already has a stable workspace host, prefer launching that host directly and move modal-specific focus work into the handoff instead of preserving a second overlay implementation.
+  - Token workspace review panels should render in the same inline surface lane as bulk editing so only one non-trivial review/editor surface is visible at a time while lightweight confirmations stay modal.
+---

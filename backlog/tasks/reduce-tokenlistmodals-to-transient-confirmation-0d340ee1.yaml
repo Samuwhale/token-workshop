@@ -13,11 +13,12 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: Execution order 5/5. Do this after the core surface and creation work so long-lived modal flows can move onto their final panel destinations instead of being migrated twice."
-state: ready
+  - "Completed: Moved variable diff, promote, move/copy conflict, and find/replace review flows out of TokenListModals into inline TokenList panels, and logged progress after focused eslint validation."
+state: done
 acceptance_criteria:
   - TokenListModals keeps only short confirmations and lightweight one-field dialogs; multi-step review surfaces such as find/replace, promote, move or copy conflict review, and variable diff review move to contextual panels or manager-owned screens.
   - Long-lived review flows preserve the current library browse context and no longer stack on top of other editor or preview overlays.
   - Remaining modal surfaces follow the Tokens workspace surface contract and do not duplicate edit, preview, or create affordances already available elsewhere.
 source: task-followup
 created_at: 2026-04-09T07:47:03.662Z
-updated_at: 2026-04-09T07:47:03.662Z
+updated_at: 2026-04-09T14:26:16.847Z

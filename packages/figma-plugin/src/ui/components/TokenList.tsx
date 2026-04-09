@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
+import type { ReactNode } from 'react';
 import { Spinner } from './Spinner';
 import type { TokenNode } from '../hooks/useTokens';
 import { isAlias, extractAliasPath, resolveTokenValue, resolveAllAliases } from '../../shared/resolveAlias';
@@ -84,8 +85,349 @@ type PendingBulkPresetLaunch = {
   query: string;
 };
 
+type BatchEditorFocusTarget = 'find-path';
+
+type RelocateTokenReviewMode = 'move' | 'copy';
+
 function dispatchTokenListViewChanged(setName: string): void {
   window.dispatchEvent(new CustomEvent('tm-token-list-view-changed', { detail: { setName } }));
+}
+
+function ContextualReviewPanel({
+  title,
+  description,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string;
+  description: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
+  return (
+    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+      <div className="flex items-start justify-between gap-3 px-3 py-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">{title}</div>
+          <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+            {description}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+        >
+          Close
+        </button>
+      </div>
+      <div className="px-3 pb-3">
+        {children}
+      </div>
+      {footer ? (
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+          {footer}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function VariableDiffReviewPanel({
+  pending,
+  onApply,
+  onClose,
+}: {
+  pending: { added: number; modified: number; unchanged: number; flat: any[] };
+  onApply: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <ContextualReviewPanel
+      title="Apply as Figma Variables"
+      description="Review the variable sync impact before pushing the current token scope into Figma."
+      onClose={onClose}
+      footer={(
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onApply}
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+          >
+            Apply
+          </button>
+        </>
+      )}
+    >
+      <div className="space-y-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <p>{pending.flat.length} token{pending.flat.length !== 1 ? 's' : ''} will be pushed to Figma.</p>
+        <div className="overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          {pending.added > 0 && (
+            <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-2 py-1.5 last:border-b-0">
+              <span className="font-medium text-[var(--color-figma-success)]">+{pending.added}</span>
+              <span>new variable{pending.added !== 1 ? 's' : ''} will be created</span>
+            </div>
+          )}
+          {pending.modified > 0 && (
+            <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-2 py-1.5 last:border-b-0">
+              <span className="font-medium text-yellow-600">~{pending.modified}</span>
+              <span>existing variable{pending.modified !== 1 ? 's' : ''} will be updated</span>
+            </div>
+          )}
+          {pending.unchanged > 0 && (
+            <div className="flex items-center gap-2 px-2 py-1.5 text-[var(--color-figma-text-tertiary)]">
+              <span>{pending.unchanged} unchanged</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </ContextualReviewPanel>
+  );
+}
+
+function PromoteReviewPanel({
+  rows,
+  busy,
+  onRowsChange,
+  onConfirm,
+  onClose,
+}: {
+  rows: PromoteRow[];
+  busy: boolean;
+  onRowsChange: (rows: PromoteRow[] | null) => void;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const acceptedCount = rows.filter(row => row.accepted && row.proposedAlias).length;
+
+  return (
+    <ContextualReviewPanel
+      title="Link to tokens"
+      description="Review each proposed alias before replacing raw values with references."
+      onClose={onClose}
+      footer={(
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy || acceptedCount === 0}
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          >
+            {busy ? 'Converting…' : `Convert ${acceptedCount}`}
+          </button>
+        </>
+      )}
+    >
+      {rows.length === 0 ? (
+        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] italic text-[var(--color-figma-text-secondary)]">
+          No raw-value tokens were available for alias promotion.
+        </div>
+      ) : (
+        <div className="max-h-[300px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          {rows.map((row, index) => (
+            <div
+              key={row.path}
+              className={`flex items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 last:border-b-0 ${row.proposedAlias ? '' : 'opacity-50'}`}
+            >
+              <input
+                type="checkbox"
+                checked={row.accepted && row.proposedAlias !== null}
+                disabled={row.proposedAlias === null}
+                onChange={(event) => {
+                  onRowsChange(rows.map((candidate, candidateIndex) => (
+                    candidateIndex === index
+                      ? { ...candidate, accepted: event.target.checked }
+                      : candidate
+                  )));
+                }}
+                aria-label={`Promote ${row.path} to alias`}
+                className="mt-0.5 shrink-0 accent-[var(--color-figma-accent)]"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <ValuePreview type={row.$type} value={row.$value} />
+                  <span className="truncate font-mono text-[10px] text-[var(--color-figma-text)]">{row.path}</span>
+                </div>
+                {row.proposedAlias ? (
+                  <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    → <span className="font-mono text-[var(--color-figma-accent)]">{`{${row.proposedAlias}}`}</span>
+                    {row.$type === 'color' && row.deltaE !== undefined && (
+                      <span
+                        className="ml-1 opacity-60"
+                        title={`ΔE=${row.deltaE.toFixed(2)} — lower is a closer color match`}
+                      >
+                        {row.deltaE < 1 ? 'Exact' : row.deltaE < 5 ? 'Close' : 'Approximate'}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-1 text-[10px] italic text-[var(--color-figma-text-secondary)]">
+                    No matching primitive found
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </ContextualReviewPanel>
+  );
+}
+
+function RelocateTokenReviewPanel({
+  mode,
+  tokenPath,
+  setName,
+  sets,
+  targetSet,
+  onTargetSetChange,
+  conflict,
+  conflictAction,
+  onConflictActionChange,
+  conflictNewPath,
+  onConflictNewPathChange,
+  sourceToken,
+  onConfirm,
+  onClose,
+}: {
+  mode: RelocateTokenReviewMode;
+  tokenPath: string;
+  setName: string;
+  sets: string[];
+  targetSet: string;
+  onTargetSetChange: (value: string) => void;
+  conflict: TokenMapEntry | null;
+  conflictAction: 'overwrite' | 'skip' | 'rename';
+  onConflictActionChange: (value: 'overwrite' | 'skip' | 'rename') => void;
+  conflictNewPath: string;
+  onConflictNewPathChange: (value: string) => void;
+  sourceToken: TokenMapEntry | null;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const isMove = mode === 'move';
+  const confirmLabel = conflict && conflictAction === 'skip'
+    ? 'Skip'
+    : (isMove ? 'Move' : 'Copy');
+
+  return (
+    <ContextualReviewPanel
+      title={`${isMove ? 'Move' : 'Copy'} token to set`}
+      description={`Review the destination for ${tokenPath} before ${isMove ? 'removing it from' : 'duplicating it out of'} ${setName}.`}
+      onClose={onClose}
+      footer={(
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!targetSet || (conflictAction === 'rename' && !conflictNewPath.trim())}
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          >
+            {confirmLabel}
+          </button>
+        </>
+      )}
+    >
+      <div className="space-y-3">
+        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2">
+          <div className="text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Token</div>
+          <div className="mt-1 truncate font-mono text-[10px] text-[var(--color-figma-text)]" title={tokenPath}>
+            {tokenPath}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination set</label>
+          <select
+            value={targetSet}
+            onChange={(event) => onTargetSetChange(event.target.value)}
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          >
+            {sets.filter((candidateSet) => candidateSet !== setName).map((candidateSet) => (
+              <option key={candidateSet} value={candidateSet}>{candidateSet}</option>
+            ))}
+          </select>
+        </div>
+
+        {conflict ? (
+          <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text-warning,#f59e0b)]">
+              Conflict: a token already exists at this path in {targetSet}
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[10px]">
+              <div>
+                <div className="text-[var(--color-figma-text-secondary)]">Existing</div>
+                <div className="mt-1">
+                  <ValuePreview value={conflict.$value} type={conflict.$type} />
+                </div>
+              </div>
+              <div>
+                <div className="text-[var(--color-figma-text-secondary)]">Incoming</div>
+                <div className="mt-1">
+                  {sourceToken ? (
+                    <ValuePreview value={sourceToken.$value} type={sourceToken.$type} />
+                  ) : (
+                    <span className="text-[var(--color-figma-text-secondary)]">—</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-1">
+              {(['overwrite', 'skip', 'rename'] as const).map((action) => (
+                <button
+                  key={action}
+                  type="button"
+                  onClick={() => onConflictActionChange(action)}
+                  className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
+                    conflictAction === action
+                      ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white'
+                      : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  {action.charAt(0).toUpperCase() + action.slice(1)}
+                </button>
+              ))}
+            </div>
+            {conflictAction === 'rename' ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">New path in target set</label>
+                <input
+                  type="text"
+                  value={conflictNewPath}
+                  onChange={(event) => onConflictNewPathChange(event.target.value)}
+                  placeholder="e.g. color.primary.new"
+                  className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </ContextualReviewPanel>
+  );
 }
 
 export function TokenList({
@@ -130,6 +472,7 @@ export function TokenList({
   const [bulkWorkflowOpen, setBulkWorkflowOpen] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] = useState<BulkEditScope | null>(null);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] = useState<PendingBulkPresetLaunch | null>(null);
+  const [pendingBatchEditorFocus, setPendingBatchEditorFocus] = useState<BatchEditorFocusTarget | null>(null);
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
@@ -191,6 +534,7 @@ export function TokenList({
   const [viewOptionsOpen, setViewOptionsOpen] = useState(false);
   const viewOptionsRef = useRef<HTMLDivElement>(null);
   const bulkWorkflowRef = useRef<HTMLDivElement>(null);
+  const batchEditorPanelRef = useRef<HTMLDivElement>(null);
   // createFormRef is managed by useTokenCreate hook
   const virtualListRef = useRef<HTMLDivElement>(null);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
@@ -1267,6 +1611,67 @@ export function TokenList({
     handleOpenPromoteModal, handleConfirmPromote,
   } = tokenPromotion;
 
+  const closeLongLivedReviewSurfaces = useCallback(() => {
+    setVarDiffPending(null);
+    setPromoteRows(null);
+    setMovingToken(null);
+    setCopyingToken(null);
+    setShowFindReplace(false);
+    setShowBatchEditor(false);
+    setPendingBatchEditorFocus(null);
+  }, [
+    setCopyingToken,
+    setMovingToken,
+    setPromoteRows,
+    setShowBatchEditor,
+    setShowFindReplace,
+  ]);
+
+  const handleOpenFindReplaceReview = useCallback(() => {
+    if (crossSetSearch) {
+      dispatchToast('Turn off "Search all sets" before bulk renaming tokens in this set.', 'error');
+      return;
+    }
+    closeLongLivedReviewSurfaces();
+    openBulkEditorForPaths(
+      new Set(displayedLeafNodes.map(node => node.path)),
+      currentBulkEditScope,
+    );
+    setPendingBatchEditorFocus('find-path');
+  }, [
+    closeLongLivedReviewSurfaces,
+    crossSetSearch,
+    currentBulkEditScope,
+    displayedLeafNodes,
+    openBulkEditorForPaths,
+  ]);
+
+  const handleOpenPromoteReview = useCallback((paths?: Set<string>) => {
+    closeLongLivedReviewSurfaces();
+    handleOpenPromoteModal(paths);
+  }, [closeLongLivedReviewSurfaces, handleOpenPromoteModal]);
+
+  const handleRequestMoveTokenReview = useCallback((path: string) => {
+    closeLongLivedReviewSurfaces();
+    handleRequestMoveToken(path);
+  }, [closeLongLivedReviewSurfaces, handleRequestMoveToken]);
+
+  const handleRequestCopyTokenReview = useCallback((path: string) => {
+    closeLongLivedReviewSurfaces();
+    handleRequestCopyToken(path);
+  }, [closeLongLivedReviewSurfaces, handleRequestCopyToken]);
+
+  useEffect(() => {
+    if (!showBatchEditor || pendingBatchEditorFocus !== 'find-path') return;
+    const frameId = window.requestAnimationFrame(() => {
+      const input = batchEditorPanelRef.current?.querySelector<HTMLInputElement>('input[aria-label="Find in path"]');
+      input?.focus();
+      input?.select();
+      setPendingBatchEditorFocus(null);
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [pendingBatchEditorFocus, showBatchEditor]);
+
   // promotableDuplicateCount — needs duplicateValuePaths (from useTokenSearch) and tokens
   const promotableDuplicateCount = useMemo(() => {
     const flat: Array<{ path: string; $value: unknown }> = [];
@@ -1913,6 +2318,7 @@ export function TokenList({
   }, [collectionMap, modeMap, setApplyResult]);
 
   const handleApplyVariables = async () => {
+    closeLongLivedReviewSurfaces();
     const flat = resolveFlat(flattenTokens(tokens)).map((t: any) => ({ ...t, setName }));
     setVarDiffLoading(true);
     try {
@@ -2157,14 +2563,14 @@ export function TokenList({
         setPendingRenameToken(path);
       },
       triggerMoveToken: (path: string) => {
-        setMovingToken(path);
+        handleRequestMoveTokenReview(path);
       },
       triggerExtractToAlias: (path: string, $type?: string, $value?: unknown) => {
         handleOpenExtractToAlias(path, $type, $value as any);
       },
     };
     return () => { compareHandle.current = null; };
-  }, [compareHandle, setSelectMode, setShowBatchEditor, setShowRecentlyTouched, viewMode, setViewMode, setStatsBarOpen, setShowResolvedValues, setPendingRenameToken, setMovingToken, handleOpenExtractToAlias]);
+  }, [compareHandle, setSelectMode, setShowBatchEditor, setShowRecentlyTouched, viewMode, setViewMode, setStatsBarOpen, setShowResolvedValues, setPendingRenameToken, handleRequestMoveTokenReview, handleOpenExtractToAlias]);
 
   const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), [setPendingRenameToken]);
 
@@ -2215,8 +2621,8 @@ export function TokenList({
     onUpdateGroupMeta: handleUpdateGroupMeta,
     onRequestMoveGroup: handleRequestMoveGroup,
     onRequestCopyGroup: handleRequestCopyGroup,
-    onRequestMoveToken: handleRequestMoveToken,
-    onRequestCopyToken: handleRequestCopyToken,
+    onRequestMoveToken: handleRequestMoveTokenReview,
+    onRequestCopyToken: handleRequestCopyTokenReview,
     onDuplicateGroup: handleDuplicateGroup,
     onDuplicateToken: handleDuplicateToken,
     onExtractToAlias: handleOpenExtractToAlias,
@@ -2273,7 +2679,7 @@ export function TokenList({
     requestDeleteGroup, handleTokenSelect, handleToggleExpand, handleSelectGroupChildren, onNavigateToAlias,
     onRefresh, onPushUndo,
     handleOpenCreateSibling, handleRenameGroup, handleUpdateGroupMeta,
-    handleRequestMoveGroup, handleRequestCopyGroup, handleRequestMoveToken, handleRequestCopyToken,
+    handleRequestMoveGroup, handleRequestCopyGroup, handleRequestMoveTokenReview, handleRequestCopyTokenReview,
     setNewGroupDialogParent, onEditGenerator, onNavigateToGenerator, handleDuplicateGroup,
     handleDuplicateToken, handleOpenExtractToAlias, handleHoverToken,
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
@@ -2491,7 +2897,7 @@ export function TokenList({
                   </button>
                 )}
                 <button
-                  onClick={() => handleOpenPromoteModal()}
+                  onClick={() => handleOpenPromoteReview()}
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Link to tokens
@@ -2571,17 +2977,78 @@ export function TokenList({
 
         {/* Batch editor panel */}
         {selectMode && showBatchEditor && selectedPaths.size > 0 && (
-          <BatchEditor
-            selectedPaths={selectedPaths}
-            allTokensFlat={allTokensFlat}
+          <div ref={batchEditorPanelRef}>
+            <BatchEditor
+              selectedPaths={selectedPaths}
+              allTokensFlat={allTokensFlat}
+              setName={setName}
+              sets={sets}
+              serverUrl={serverUrl}
+              connected={connected}
+              onApply={onRefresh}
+              onPushUndo={onPushUndo}
+              onRequestDelete={requestBulkDelete}
+              selectionScope={activeBulkEditScope}
+            />
+          </div>
+        )}
+
+        {!showBatchEditor && varDiffPending && (
+          <VariableDiffReviewPanel
+            pending={varDiffPending}
+            onApply={() => {
+              doApplyVariables(varDiffPending.flat);
+              setVarDiffPending(null);
+            }}
+            onClose={() => setVarDiffPending(null)}
+          />
+        )}
+
+        {!showBatchEditor && promoteRows !== null && (
+          <PromoteReviewPanel
+            rows={promoteRows}
+            busy={promoteBusy}
+            onRowsChange={setPromoteRows}
+            onConfirm={handleConfirmPromote}
+            onClose={() => setPromoteRows(null)}
+          />
+        )}
+
+        {!showBatchEditor && movingToken && (
+          <RelocateTokenReviewPanel
+            mode="move"
+            tokenPath={movingToken}
             setName={setName}
             sets={sets}
-            serverUrl={serverUrl}
-            connected={connected}
-            onApply={onRefresh}
-            onPushUndo={onPushUndo}
-            onRequestDelete={requestBulkDelete}
-            selectionScope={activeBulkEditScope}
+            targetSet={moveTokenTargetSet}
+            onTargetSetChange={handleChangeMoveTokenTargetSet}
+            conflict={moveConflict}
+            conflictAction={moveConflictAction}
+            onConflictActionChange={setMoveConflictAction}
+            conflictNewPath={moveConflictNewPath}
+            onConflictNewPathChange={setMoveConflictNewPath}
+            sourceToken={allTokensFlat[movingToken] ?? null}
+            onConfirm={handleConfirmMoveToken}
+            onClose={() => setMovingToken(null)}
+          />
+        )}
+
+        {!showBatchEditor && copyingToken && (
+          <RelocateTokenReviewPanel
+            mode="copy"
+            tokenPath={copyingToken}
+            setName={setName}
+            sets={sets}
+            targetSet={copyTokenTargetSet}
+            onTargetSetChange={handleChangeCopyTokenTargetSet}
+            conflict={copyConflict}
+            conflictAction={copyConflictAction}
+            onConflictActionChange={setCopyConflictAction}
+            conflictNewPath={copyConflictNewPath}
+            onConflictNewPathChange={setCopyConflictNewPath}
+            sourceToken={allTokensFlat[copyingToken] ?? null}
+            onConfirm={handleConfirmCopyToken}
+            onClose={() => setCopyingToken(null)}
           />
         )}
 
@@ -3081,7 +3548,7 @@ export function TokenList({
                         </button>
                         <button
                           onClick={() => {
-                            setShowFindReplace(true);
+                            handleOpenFindReplaceReview();
                             setViewOptionsOpen(false);
                           }}
                           disabled={!connected}
@@ -3336,7 +3803,7 @@ export function TokenList({
             {promotableDuplicateCount} token{promotableDuplicateCount !== 1 ? 's' : ''} share duplicate values
           </span>
           <button
-            onClick={() => handleOpenPromoteModal(duplicateValuePaths)}
+            onClick={() => handleOpenPromoteReview(duplicateValuePaths)}
             className="shrink-0 px-2 py-0.5 rounded text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] font-medium transition-colors"
           >
             Promote all to aliases
