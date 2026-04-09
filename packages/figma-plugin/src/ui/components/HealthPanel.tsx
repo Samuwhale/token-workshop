@@ -153,6 +153,17 @@ function getRuleLabel(rule: string): { label: string; tip: string } | undefined 
   return VALIDATION_LABELS[rule] ?? (LINT_RULE_BY_ID[rule] ? { label: LINT_RULE_BY_ID[rule].label, tip: LINT_RULE_BY_ID[rule].tip } : undefined);
 }
 
+function formatDuplicateValue(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '[complex value]';
+  }
+}
+
 export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
@@ -282,9 +293,15 @@ export function HealthPanel({
   // ── Derived data from allTokensFlat ────────────────────────────────────────
 
   const allTokensUnified = useMemo(() => {
-    const result: Record<string, { $value: unknown; $type: string; set: string }> = {};
+    const result: Record<string, { $value: unknown; $type: string; set: string; $scopes?: string[]; $lifecycle?: TokenMapEntry['$lifecycle'] }> = {};
     for (const [path, entry] of Object.entries(allTokensFlat)) {
-      result[path] = { $value: entry.$value, $type: entry.$type, set: pathToSet[path] ?? '' };
+      result[path] = {
+        $value: entry.$value,
+        $type: entry.$type,
+        set: pathToSet[path] ?? '',
+        $scopes: entry.$scopes,
+        $lifecycle: entry.$lifecycle,
+      };
     }
     return result;
   }, [allTokensFlat, pathToSet]);
@@ -334,25 +351,46 @@ export function HealthPanel({
     if (!validationIssuesProp) return [];
     const dupViolations = validationIssuesProp.filter(v => v.rule === 'no-duplicate-values' && v.group);
     if (dupViolations.length === 0) return [];
-    const byCanonical = new Map<string, { setName: string; tokens: { path: string; setName: string }[] }>();
+    const byGroup = new Map<string, { tokens: { path: string; setName: string }[] }>();
     for (const v of dupViolations) {
-      const canonical = v.group!;
-      if (!byCanonical.has(canonical)) byCanonical.set(canonical, { setName: '', tokens: [] });
-      const entry = byCanonical.get(canonical)!;
+      const groupId = v.group!;
+      if (!byGroup.has(groupId)) byGroup.set(groupId, { tokens: [] });
+      const entry = byGroup.get(groupId)!;
       if (!entry.tokens.some(t => t.path === v.path && t.setName === v.setName)) {
         entry.tokens.push({ path: v.path, setName: v.setName });
-        if (v.path === canonical) entry.setName = v.setName;
       }
     }
-    return [...byCanonical.entries()]
+    return [...byGroup.entries()]
       .filter(([, g]) => g.tokens.length > 1)
-      .map(([canonical, { setName, tokens }]) => {
-        const tokenEntry = allTokensUnified[canonical];
+      .map(([id, { tokens }]) => {
+        const sampleToken = tokens[0];
+        const tokenEntry = sampleToken ? allTokensUnified[sampleToken.path] : undefined;
         const colorHex =
           tokenEntry?.$type === 'color' && typeof tokenEntry.$value === 'string'
             ? tokenEntry.$value
             : undefined;
-        return { canonical, canonicalSet: setName, tokens, colorHex };
+        return {
+          id,
+          valueLabel: tokenEntry ? formatDuplicateValue(tokenEntry.$value) : 'Unknown value',
+          typeLabel: tokenEntry?.$type ?? 'unknown',
+          colorHex,
+          tokens: tokens
+            .map(({ path, setName }) => {
+              const duplicateEntry = allTokensUnified[path];
+              return {
+                path,
+                setName,
+                type: duplicateEntry?.$type ?? 'unknown',
+                lifecycle: duplicateEntry?.$lifecycle,
+                scopes: duplicateEntry?.$scopes ?? [],
+                colorHex:
+                  duplicateEntry?.$type === 'color' && typeof duplicateEntry.$value === 'string'
+                    ? duplicateEntry.$value
+                    : undefined,
+              };
+            })
+            .sort((a, b) => a.path.localeCompare(b.path) || a.setName.localeCompare(b.setName)),
+        };
       })
       .sort((a, b) => b.tokens.length - a.tokens.length);
   }, [validationIssuesProp, allTokensUnified]);

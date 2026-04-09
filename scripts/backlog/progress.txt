@@ -420,3 +420,11 @@
   - Saved filter presets already act as durable query scopes, so promoting a batch workflow can often reuse them instead of inventing a second persistence model for bulk selections.
   - Focused `eslint` runs are useful for touched UI files in this repo; focused `tsc -p packages/figma-plugin/tsconfig.json --noEmit` is still dominated by pre-existing workspace/core build drift and unrelated plugin errors.
 ---
+## 2026-04-09 - [Redesign duplicate-value cleanup in `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx`, `packages/figma-plugin/src/ui/components/HealthPanel.tsx`, and `packages/server/src/services/lint.ts` so users can choose the canonical token per group, preview metadata differences, and batch-resolve safely instead of accepting the shortest-path token as canonical by default.]
+- Reworked duplicate linting to emit stable duplicate-group identifiers plus neutral cleanup guidance, then rebuilt the health-panel grouping so each duplicate candidate carries the metadata needed for explicit canonical selection and diff previews.
+- Replaced the duplicate cleanup UI with an explicit canonical-picking workflow: users now select the token to keep per group, review set/lifecycle/scope differences before resolving, and can only batch-resolve once every group has an explicit canonical choice.
+- Files changed: `packages/server/src/services/lint.ts` ~L225, ~L400, ~L721; `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L156, ~L295, ~L349; `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx` ~L5, ~L101, ~L188; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Duplicate detection should publish stable group identity, not an implied winner, so cleanup UIs can stay user-directed without reverse-engineering a server-side heuristic.
+  - Batch cleanup is safer when canonical selection is an explicit prerequisite and the preview surfaces which token metadata will change before aliases are written.
+---

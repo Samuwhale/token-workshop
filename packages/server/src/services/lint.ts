@@ -58,7 +58,7 @@ export interface LintViolation {
   suggestedFix?: string;
   /** Concrete suggestion — e.g. the alias path to use, or a corrected name. */
   suggestion?: string;
-  /** For no-duplicate-values: the canonical token path shared by all tokens in this duplicate group. */
+  /** For no-duplicate-values: stable duplicate-group identifier shared by all tokens in the group. */
   group?: string;
 }
 
@@ -222,6 +222,35 @@ function serializeValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+interface DuplicateGroupEntry {
+  path: string;
+  setName: string;
+}
+
+function formatDuplicateEntryLabel(entry: DuplicateGroupEntry, includeSetName: boolean): string {
+  return includeSetName ? `${entry.path} (${entry.setName})` : entry.path;
+}
+
+function formatDuplicatePeerSummary(entries: DuplicateGroupEntry[], current: DuplicateGroupEntry): string {
+  const includeSetName = new Set(entries.map(entry => entry.setName)).size > 1;
+  const peers = entries
+    .filter(entry => !(entry.path === current.path && entry.setName === current.setName))
+    .map(entry => formatDuplicateEntryLabel(entry, includeSetName));
+
+  if (peers.length <= 3) {
+    return peers.join(', ');
+  }
+
+  return `${peers.slice(0, 3).join(', ')}, and ${peers.length - 3} more`;
+}
+
+function buildDuplicateGroupId(entries: DuplicateGroupEntry[]): string {
+  const stableKeys = entries
+    .map(entry => `${entry.setName}:${entry.path}`)
+    .sort((a, b) => a.localeCompare(b));
+  return JSON.stringify(stableKeys);
+}
+
 export async function lintTokens(
   setName: string,
   tokenStore: TokenStore,
@@ -382,20 +411,16 @@ export async function lintTokens(
     }
     for (const [, paths] of valueMap) {
       if (paths.length > 1) {
-        // Suggest aliasing to the shortest-path token (likely the primitive)
-        const sortedByLength = [...paths].sort((a, b) => a.length - b.length);
-        const canonical = sortedByLength[0];
+        const groupEntries = paths.map(path => ({ path, setName }));
+        const groupId = buildDuplicateGroupId(groupEntries);
         for (const tokenPath of paths) {
-          const others = paths.filter(p => p !== tokenPath);
-          const aliasTarget = tokenPath === canonical ? sortedByLength[1] : canonical;
+          const peers = formatDuplicatePeerSummary(groupEntries, { path: tokenPath, setName });
           violations.push({
             rule: 'no-duplicate-values',
             path: tokenPath,
             severity,
-            message: `Token "${tokenPath}" has the same value as: ${others.join(', ')}. Consider aliasing to {${aliasTarget}}.`,
-            suggestedFix: 'extract-to-alias',
-            suggestion: `{${aliasTarget}}`,
-            group: canonical,
+            message: `Token "${tokenPath}" shares the same direct value as ${peers}. Choose one canonical token before converting the rest to aliases.`,
+            group: groupId,
           });
         }
       }
@@ -524,7 +549,7 @@ export interface ValidationIssue {
   suggestedFix?: string;
   /** Concrete fix target — e.g. the alias path to use. */
   suggestion?: string;
-  /** For no-duplicate-values: the canonical token path shared by all tokens in this duplicate group. */
+  /** For no-duplicate-values: stable duplicate-group identifier shared by all tokens in the group. */
   group?: string;
 }
 
@@ -696,20 +721,16 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
     }
     for (const [, entries] of valueMap) {
       if (entries.length > 1) {
-        const sortedByLength = [...entries].sort((a, b) => a.path.length - b.path.length);
-        const canonical = sortedByLength[0].path;
+        const groupId = buildDuplicateGroupId(entries);
         for (const { path: tokenPath, setName } of entries) {
-          const others = entries.filter(e => e.path !== tokenPath).map(e => e.path);
-          const aliasTarget = tokenPath === canonical ? sortedByLength[1].path : canonical;
+          const peers = formatDuplicatePeerSummary(entries, { path: tokenPath, setName });
           issues.push({
             severity,
             setName,
             path: tokenPath,
             rule: 'no-duplicate-values',
-            message: `Token "${tokenPath}" has the same value as: ${others.join(', ')}. Consider aliasing to {${aliasTarget}}.`,
-            suggestedFix: 'extract-to-alias',
-            suggestion: `{${aliasTarget}}`,
-            group: canonical,
+            message: `Token "${tokenPath}" shares the same direct value as ${peers}. Choose one canonical token before converting the rest to aliases.`,
+            group: groupId,
           });
         }
       }
