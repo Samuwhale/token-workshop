@@ -336,3 +336,11 @@
   - When a backlog repair task is already satisfied, prefer recording the validation evidence and returning a stale-success result instead of manufacturing no-op changes in the scoped files.
   - For backlog-runner package tests under `pnpm --filter @tokenmanager/backlog-runner exec vitest run`, pass file paths relative to `packages/backlog-runner` when running focused vitest commands.
 ---
+## 2026-04-09 - [Add search, alias/type/scope filters, and bulk expand or collapse controls to `packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` so large Figma variable libraries are navigable without opening one collection and one variable row at a time.]
+- Added local search and filter state to the Figma variables panel, including alias, type, and scope filters plus filtered result counts and an empty-results state for narrowed views.
+- Added multi-expand collection and variable state so visible collections or rows can be bulk expanded or collapsed without changing the hook API that still supplies the last focused collection and variable.
+- Files changed: `packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` ~L17, ~L92, ~L352, ~L471; `scripts/backlog/progress.txt` ~L346
+- **Learnings for future iterations:**
+  - When a panel still receives single-item expansion props from a parent hook, a local `Set`-based overlay can add bulk expand and collapse behavior without widening the shared hook contract.
+  - Search becomes materially more useful in token or variable explorers when it matches collection names, alias references, and rendered values, not only raw variable paths.
+---
