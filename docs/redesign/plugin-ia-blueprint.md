@@ -28,13 +28,13 @@ The current shell contract is implemented in:
 
 ## Primary workspaces
 
-| Workspace | Primary job | Current sections | Notes |
-| --- | --- | --- | --- |
-| `Tokens` | Build and edit the token library | `Library`, `Generators` | Main authoring home for token sets, previews, and generator work. |
-| `Themes` | Define theme axes, overrides, and resolver logic | none in shell | Deeper theme views stay inside the workspace instead of becoming peer destinations. |
-| `Apply` | Inspect selected layers and apply tokens on canvas | `Selection`, `Canvas` | Default path stays focused on the current selection. |
-| `Sync` | Publish to Figma and handle repo or file handoff work | `Figma Sync`, `Repo / Handoff` | Publish stays primary; repo work remains adjacent for downstream delivery. |
-| `Audit` | Review quality, history, and graph relationships | `Audit`, `History`, `Dependencies` | `Dependencies` is internally routed through `apply` but belongs to `Audit` in the shell. |
+| Workspace | Primary job                                           | Current sections                   | Notes                                                                                    |
+| --------- | ----------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `Tokens`  | Build and edit the token library                      | `Library`, `Generators`            | Main authoring home for token sets, previews, and generator work.                        |
+| `Themes`  | Define theme axes, overrides, and resolver logic      | none in shell                      | Deeper theme views stay inside the workspace instead of becoming peer destinations.      |
+| `Apply`   | Inspect selected layers and apply tokens on canvas    | `Selection`, `Canvas`              | Default path stays focused on the current selection.                                     |
+| `Sync`    | Publish to Figma and handle repo or file handoff work | `Figma Sync`, `Repo / Handoff`     | Publish stays primary; repo work remains adjacent for downstream delivery.               |
+| `Audit`   | Review quality, history, and graph relationships      | `Audit`, `History`, `Dependencies` | `Dependencies` is internally routed through `apply` but belongs to `Audit` in the shell. |
 
 ## Secondary shell surfaces
 
@@ -67,15 +67,23 @@ The implemented start flow still resolves through `WelcomePrompt` and its shared
 
 Tokens empty states and recovery entry points should deep-link straight into these branches instead of recreating onboarding copy inline. The current Tokens start shortcuts reopen `guided-setup`, `template-library`, `import`, and `manual` directly while still resolving through the same `WelcomePrompt` branch model.
 
+## Settings ownership
+
+`Settings` stays a secondary takeover, but its advanced actions are not one undifferentiated bucket:
+
+- Recovery and start-over helpers own reversible state repair and re-entry work such as `export settings`, `restore settings`, `guided setup`, and `undo depth`.
+- Guided setup belongs with recovery because it relaunches the shared start flow without deleting workspace data.
+- Destructive reset controls own irreversible workspace wipes only. They should sit in their own clearly labeled section with stronger warning styling and should not appear adjacent to routine import, export, or restart affordances.
+
 ## Surface model
 
-| Surface type | Definition | Current examples |
-| --- | --- | --- |
-| Primary workspace screen | Shell-owned route reachable from workspace or section tabs | `Tokens > Library`, `Apply > Canvas`, `Sync > Repo / Handoff` |
-| Contextual workspace sub-screen | Deeper route that stays owned by one workspace and preserves parent context | Theme coverage, theme compare, advanced theme logic, dependency tracing |
-| Secondary takeover | Full-height body replacement that keeps the shell visible | `Import`, `Sets`, `Notifications`, `Shortcuts`, `Settings` |
-| Persistent contextual panel | Editing or preview surface shown beside the current screen or in a bottom drawer | Token editor, generator editor, token preview, split preview |
-| Transient overlay | Short-lived modal or picker that dismisses back to the current surface | Start flow, command palette, quick apply, set switcher, paste tokens, color scale generator |
+| Surface type                    | Definition                                                                       | Current examples                                                                            |
+| ------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Primary workspace screen        | Shell-owned route reachable from workspace or section tabs                       | `Tokens > Library`, `Apply > Canvas`, `Sync > Repo / Handoff`                               |
+| Contextual workspace sub-screen | Deeper route that stays owned by one workspace and preserves parent context      | Theme coverage, theme compare, advanced theme logic, dependency tracing                     |
+| Secondary takeover              | Full-height body replacement that keeps the shell visible                        | `Import`, `Sets`, `Notifications`, `Shortcuts`, `Settings`                                  |
+| Persistent contextual panel     | Editing or preview surface shown beside the current screen or in a bottom drawer | Token editor, generator editor, token preview, split preview                                |
+| Transient overlay               | Short-lived modal or picker that dismisses back to the current surface           | Start flow, command palette, quick apply, set switcher, paste tokens, color scale generator |
 
 ## Contextual screen inventory
 
