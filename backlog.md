@@ -61,7 +61,7 @@
 - [x] Reduce TokenListModals to transient confirmations and re-home long-lived review flows
 - [x] Move Tokens narrow contextual drawers behind the shared library surface contract
 - [x] Research import intake surfaces for drag-and-drop discoverability, validation feedback, and conflict handoff
-- [ ] Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets
+- [x] Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets
 - [ ] Research theme gap remediation flow across authoring, coverage review, and override creation
 - [x] Replace server, publish, and set-merge composite equality checks with stableStringify
 - [x] Thread real lifecycle metadata into the unused-token cleanup queue
@@ -71,5 +71,8 @@
 - [ ] Re-home file import affordances inside the family-first intake flow
 - [ ] Unify file import validation feedback across picker, drop, preview, and retry states
 - [ ] Create one shared conflict-review contract for single-set and multi-set imports
+- [ ] Separate Settings recovery workflows from destructive reset controls
+- [ ] Clarify scope and consequences for settings restore versus workspace reset
+- [ ] Route clean-slate reset into an explicit recovery start flow
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

@@ -606,3 +606,12 @@
   - The shared parser routing in `useImportSource` can stay panel-level, but the visible drag-and-drop affordance should belong to the intake stages; otherwise the family-first workflow reads like one flow while the actual entry path behaves like another.
   - `ImportPanelContext.tsx` is the live import controller; the checked-in `useImportConflicts.ts` and `useImportApply.ts` hooks are not referenced by the current panel, so redesign tasks should anchor new work in the provider and active footer/views rather than revive the dormant hooks.
 ---
+## 2026-04-09 - [Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets]
+- Audited `SettingsPanel`, `WelcomePrompt`, `QuickStartWizard`, `PanelRouter`, `storage.ts`, `App.tsx`, and the IA blueprint, and confirmed the current Settings `Advanced` stack mixes reversible recovery actions with the destructive reset flow in one column.
+- Mapped the current consequences: exporting settings is reversible and does not reload; restoring settings only writes a whitelist of preference keys but forces `window.location.reload()` after confirmation; reopening guided setup only deep-links into `WelcomePrompt > guided-setup`; undo history only changes local capacity; `Clear all data` calls `DELETE /api/data` for a full server-backed workspace wipe and then clears a subset of local navigation keys.
+- Queued three implementation-ready follow-ups for IA separation, consequence messaging, and post-reset recovery routing. Notable adjacency issue: Settings `Import settings` now sits near the irreversible reset even though the onboarding/start flow uses `Import` for full token-system migration, and the clean-slate reset leaves `tm_first_run_done` intact so the app returns to an empty Tokens workspace without reopening recovery guidance.
+- Files changed: `../../../../../../../Users/samuel/Documents/Projects/TokenManager/backlog/inbox.jsonl` ~L1; `scripts/backlog/patterns.md` ~L185; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - When one surface mixes `restore preferences`, `restart setup`, and `wipe workspace`, name each action by scope and keep the irreversible reset visually separate from import/export verbs.
+  - A clean-slate reset needs an explicit post-reset landing; otherwise preserved onboarding flags can strand users in an empty workspace with no obvious recovery path.
+---
