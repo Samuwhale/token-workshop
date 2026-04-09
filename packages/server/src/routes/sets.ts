@@ -3,7 +3,7 @@ import { flattenTokenGroup, type ThemeDimension, type ThemeSetStatus, type Token
 import type { SetMetadataChange, SetMetadataOperationMetadata } from '../services/operation-log.js';
 import type { SetMetadataState } from '../services/token-store.js';
 import { handleRouteError } from '../errors.js';
-import { snapshotSet } from '../services/operation-log.js';
+import { listSnapshotTokenPaths, snapshotSet, snapshotSets } from '../services/operation-log.js';
 import { stableStringify } from '../services/stable-stringify.js';
 
 type SetStructuralOperation = 'delete' | 'merge' | 'split';
@@ -618,18 +618,25 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
+        const beforeSnapshot = await snapshotSets(fastify.tokenStore, folderSetNames);
         for (const rename of sortFolderRenamePairsForApply(renames)) {
           await fastify.tokenStore.renameSet(rename.from, rename.to);
           await fastify.generatorService.updateSetName(rename.from, rename.to);
         }
+        const renamedSetNames = renames.map(({ to }) => to);
+        const afterSnapshot = await snapshotSets(fastify.tokenStore, renamedSetNames);
+        const affectedPaths = [...new Set([
+          ...listSnapshotTokenPaths(beforeSnapshot),
+          ...listSnapshotTokenPaths(afterSnapshot),
+        ])];
 
         await fastify.operationLog.record({
           type: 'set-folder-rename',
           description: `Rename folder "${fromFolder}" → "${toFolder}"`,
           setName: toFolder,
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
+          affectedPaths,
+          beforeSnapshot,
+          afterSnapshot,
           rollbackSteps: sortFolderRenamePairsForRollback(renames).map(({ from, to }) => ({
             action: 'rename-set' as const,
             from,
@@ -732,18 +739,25 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
+        const beforeSnapshot = await snapshotSets(fastify.tokenStore, sourceSetNames);
         for (const rename of sortFolderRenamePairsForApply(renames)) {
           await fastify.tokenStore.renameSet(rename.from, rename.to);
           await fastify.generatorService.updateSetName(rename.from, rename.to);
         }
+        const movedSetNames = renames.map(({ to }) => to);
+        const afterSnapshot = await snapshotSets(fastify.tokenStore, movedSetNames);
+        const affectedPaths = [...new Set([
+          ...listSnapshotTokenPaths(beforeSnapshot),
+          ...listSnapshotTokenPaths(afterSnapshot),
+        ])];
 
         await fastify.operationLog.record({
           type: 'set-folder-merge',
           description: `Merge folder "${sourceFolder}" into "${targetFolder}"`,
           setName: targetFolder,
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
+          affectedPaths,
+          beforeSnapshot,
+          afterSnapshot,
           rollbackSteps: sortFolderRenamePairsForRollback(renames).map(({ from, to }) => ({
             action: 'rename-set' as const,
             from,
@@ -804,6 +818,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
+        const beforeSnapshot = await snapshotSets(fastify.tokenStore, folderSetNames);
         for (const setName of folderSetNames) {
           await fastify.tokenStore.deleteSet(setName);
         }
@@ -812,9 +827,13 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'set-folder-delete',
           description: `Delete folder "${folder}"`,
           setName: folder,
-          affectedPaths: [],
-          beforeSnapshot: {},
+          affectedPaths: listSnapshotTokenPaths(beforeSnapshot),
+          beforeSnapshot,
           afterSnapshot: {},
+          rollbackSteps: folderSetNames.map((setName) => ({
+            action: 'create-set' as const,
+            name: setName,
+          })),
           metadata: {
             folder,
             deletedSets: folderSetNames,

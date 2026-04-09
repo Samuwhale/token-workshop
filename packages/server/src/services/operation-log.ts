@@ -13,6 +13,46 @@ export interface SnapshotEntry {
   setName: string;
 }
 
+const MULTI_SET_SNAPSHOT_SEPARATOR = '::';
+
+export function buildMultiSetSnapshotPath(setName: string, tokenPath: string): string {
+  return `${setName}${MULTI_SET_SNAPSHOT_SEPARATOR}${tokenPath}`;
+}
+
+export function getSnapshotTokenPath(snapshotKey: string, setName: string): string {
+  const prefix = `${setName}${MULTI_SET_SNAPSHOT_SEPARATOR}`;
+  return snapshotKey.startsWith(prefix) ? snapshotKey.slice(prefix.length) : snapshotKey;
+}
+
+export function listSnapshotTokenPaths(snapshot: Record<string, SnapshotEntry>): string[] {
+  return [...new Set(
+    Object.entries(snapshot).map(([snapshotKey, entry]) => getSnapshotTokenPath(snapshotKey, entry.setName)),
+  )];
+}
+
+function findSnapshotEntryForTokenPath(
+  snapshot: Record<string, SnapshotEntry>,
+  tokenPath: string,
+): SnapshotEntry | undefined {
+  const direct = snapshot[tokenPath];
+  if (direct) {
+    return direct;
+  }
+  for (const [snapshotKey, entry] of Object.entries(snapshot)) {
+    if (getSnapshotTokenPath(snapshotKey, entry.setName) === tokenPath) {
+      return entry;
+    }
+  }
+  return undefined;
+}
+
+function snapshotContainsTokenPath(
+  snapshot: Record<string, SnapshotEntry>,
+  tokenPath: string,
+): boolean {
+  return findSnapshotEntryForTokenPath(snapshot, tokenPath) !== undefined;
+}
+
 export interface SetMetadataChange {
   field: keyof SetMetadataState;
   label: 'Description' | 'Collection' | 'Mode';
@@ -262,7 +302,11 @@ export class OperationLog {
     await this.ensureLoaded();
     // Filter to operations that affected this path and had a value change
     const matching = this.entries
-      .filter(e => e.affectedPaths.includes(tokenPath))
+      .filter((entry) => (
+        entry.affectedPaths.includes(tokenPath) ||
+        snapshotContainsTokenPath(entry.beforeSnapshot, tokenPath) ||
+        snapshotContainsTokenPath(entry.afterSnapshot, tokenPath)
+      ))
       .reverse(); // newest first
     const total = matching.length;
     const page = matching.slice(offset, offset + limit);
@@ -273,8 +317,8 @@ export class OperationLog {
       description: e.description,
       setName: e.setName,
       rolledBack: e.rolledBack,
-      before: e.beforeSnapshot[tokenPath]?.token ?? null,
-      after: e.afterSnapshot[tokenPath]?.token ?? null,
+      before: findSnapshotEntryForTokenPath(e.beforeSnapshot, tokenPath)?.token ?? null,
+      after: findSnapshotEntryForTokenPath(e.afterSnapshot, tokenPath)?.token ?? null,
     }));
     return { entries, total };
   }
@@ -506,22 +550,24 @@ export class OperationLog {
         }
 
         // Capture current token state as "before" for the rollback operation itself
-        for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
+        for (const [snapshotKey, snap] of Object.entries(entry.beforeSnapshot)) {
+          const tokenPath = getSnapshotTokenPath(snapshotKey, snap.setName);
           try {
             const flatTokens = await ctx.tokenStore.getFlatTokensForSet(snap.setName);
-            currentSnapshot[tokenPath] = {
+            currentSnapshot[snapshotKey] = {
               token: flatTokens[tokenPath] ? structuredClone(flatTokens[tokenPath]) : null,
               setName: snap.setName,
             };
           } catch {
             // Set may not exist yet (will be created by token restoration)
-            currentSnapshot[tokenPath] = { token: null, setName: snap.setName };
+            currentSnapshot[snapshotKey] = { token: null, setName: snap.setName };
           }
         }
 
         // Group by set for batch token processing
         const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
-        for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
+        for (const [snapshotKey, snap] of Object.entries(entry.beforeSnapshot)) {
+          const tokenPath = getSnapshotTokenPath(snapshotKey, snap.setName);
           let list = bySet.get(snap.setName);
           if (!list) {
             list = [];
@@ -578,7 +624,7 @@ export class OperationLog {
         ...(inverseSteps?.length ? { rollbackSteps: inverseSteps } : {}),
       });
 
-      return { restoredPaths: Object.keys(entry.beforeSnapshot), rollbackEntryId: rollbackEntry.id };
+      return { restoredPaths: listSnapshotTokenPaths(entry.beforeSnapshot), rollbackEntryId: rollbackEntry.id };
     });
   }
 
@@ -614,6 +660,24 @@ export async function snapshotSet(
   const result: Record<string, SnapshotEntry> = {};
   for (const [p, token] of Object.entries(flatTokens)) {
     result[p] = { token: structuredClone(token), setName };
+  }
+  return result;
+}
+
+/** Snapshot all tokens across multiple sets with set-qualified keys. */
+export async function snapshotSets(
+  tokenStore: TokenStore,
+  setNames: string[],
+): Promise<Record<string, SnapshotEntry>> {
+  const result: Record<string, SnapshotEntry> = {};
+  for (const setName of setNames) {
+    const flatTokens = await tokenStore.getFlatTokensForSet(setName);
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      result[buildMultiSetSnapshotPath(setName, tokenPath)] = {
+        token: structuredClone(token),
+        setName,
+      };
+    }
   }
   return result;
 }

@@ -68,5 +68,5 @@
 - [ ] Add summary-first set-role cards and workflow counters to ThemeManager
 - [ ] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
 - [ ] Unify theme coverage and stale-set issue handoffs with set-role editing
-- [ ] Make multi-set folder operations fully rollbackable in the operation log
+- [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

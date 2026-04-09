@@ -563,3 +563,12 @@
   - If a quick-launch template only exists to seed the full editor, store its handoff as a `GeneratorDialogInitialDraft` snapshot instead of keeping a separate long-lived template mode alive.
   - `useGeneratorDialog` is the right place to normalize template defaults into draft state, because every launcher then inherits the same target/config merge behavior without duplicating seed logic.
 ---
+## 2026-04-09 - [Make multi-set folder operations fully rollbackable in the operation log]
+- Added set-qualified multi-set snapshot keys in the operation log so rollback can capture and restore same-path tokens across different sets without collisions, while still resolving token paths correctly during rollback.
+- Updated folder rename, merge, and delete routes to record real before/after snapshots instead of empty placeholders, keep `affectedPaths` on plain token paths for history UI, and add per-set `create-set` rollback steps before restoring deleted folder members.
+- Validation: `pnpm --filter @tokenmanager/core build` and `pnpm --filter @tokenmanager/server build` passed after restoring the worktree dependency links with `pnpm install --frozen-lockfile --ignore-scripts`.
+- Files changed: `packages/server/src/services/operation-log.ts` ~L18, ~L307, ~L555, ~L669; `packages/server/src/routes/sets.ts` ~L6, ~L621, ~L742, ~L821; `scripts/backlog/patterns.md` ~L184; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Multi-set operation snapshots need set-qualified keys whenever one history entry can contain the same token path from more than one set; otherwise later entries overwrite earlier ones in the serialized snapshot map.
+  - When multi-set snapshots use set-qualified keys internally, derive user-facing `affectedPaths` and rollback responses back to plain token paths so operation history stays readable.
+---
