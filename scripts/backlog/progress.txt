@@ -459,3 +459,11 @@
   - Folder-level rename and merge operations are safest when the route expands them into ordered per-set renames and validates target collisions before any file move begins.
   - Focused `eslint` runs are clean for the touched files here; targeted package `tsc` checks are still dominated by the known `packages/core` bootstrap drift and unrelated existing type errors outside this task.
 ---
+## 2026-04-09 - [Split the History workspace into task-based recovery surfaces like `Undo recent edits`, `Restore snapshot`, and `Return to git commit` instead of one mixed timeline in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because designers currently have to learn four different recovery systems from a legend before they know which action is safe.]
+- Rebuilt the history panel around three task-oriented recovery surfaces, grouping local undo and server rollback under a single "Undo recent edits" area while giving snapshots and git commits their own focused sections with purpose-driven guidance.
+- Removed the mixed timeline legend/filter model, moved snapshot saving into the snapshot surface, and kept compare mode inside the git section so each recovery action now lives alongside the context needed to use it safely.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L37, ~L322, ~L508; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - When multiple recovery backends exist, organizing by user intent is clearer than exposing storage/source types first and explaining them with a separate legend.
+  - Keeping secondary tools such as snapshot creation or commit comparison inside the related recovery surface reduces mode-switching and makes destructive actions easier to reason about.
+---
