@@ -14,6 +14,7 @@
 - [ ] [HIGH] Unify manual token creation entry points behind one Tokens create launcher (Planned)
 - [x] [HIGH] Repair backlog-runner interactive defaults and Codex planner smoke validation
 - [x] [HIGH] Repair repo TypeScript validation blockers outside folder operations scope
+- [ ] [HIGH] Repair worktree validation environment
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -66,7 +67,7 @@
 - [x] Replace server, publish, and set-merge composite equality checks with stableStringify
 - [x] Thread real lifecycle metadata into the unused-token cleanup queue
 - [x] Add summary-first set-role cards and workflow counters to ThemeManager
-- [ ] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
+- [x] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
 - [ ] Unify theme coverage and stale-set issue handoffs with set-role editing
 - [ ] Re-home file import affordances inside the family-first intake flow
 - [ ] Unify file import validation feedback across picker, drop, preview, and retry states

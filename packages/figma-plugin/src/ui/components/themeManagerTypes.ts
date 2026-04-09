@@ -2,13 +2,17 @@ import type { ThemeOption } from '@tokenmanager/core';
 
 // Shared types and constants for ThemeManager and its extracted hooks
 
-export const STATE_LABELS: Record<string, string> = {
+export type ThemeRoleState = 'disabled' | 'source' | 'enabled';
+
+export const THEME_ROLE_STATES: ThemeRoleState[] = ['disabled', 'source', 'enabled'];
+
+export const STATE_LABELS: Record<ThemeRoleState, string> = {
   disabled: 'Excluded',
   source: 'Base',
   enabled: 'Override',
 };
 
-export const STATE_DESCRIPTIONS: Record<string, string> = {
+export const STATE_DESCRIPTIONS: Record<ThemeRoleState, string> = {
   disabled: 'Tokens from this set are not used in this option',
   source: 'Provides default token values — overridden by Override sets',
   enabled: 'Highest priority — these tokens override Base set values',

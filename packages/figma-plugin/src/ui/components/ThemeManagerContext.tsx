@@ -3,7 +3,6 @@ import type { ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
 import { FieldMessage } from '../shared/FieldMessage';
 import type { AutoFillPreview } from './themeManagerTypes';
-import { STATE_LABELS, STATE_DESCRIPTIONS } from './themeManagerTypes';
 
 export interface ThemeManagerModalsState {
   dimensions: ThemeDimension[];
@@ -25,11 +24,6 @@ export interface ThemeManagerModalsState {
   optionDeleteConfirm: { dimId: string; optionName: string } | null;
   setOptionDeleteConfirm: (v: { dimId: string; optionName: string } | null) => void;
   executeDeleteOption: (dimId: string, optionName: string) => Promise<void>;
-  // Bulk context menu
-  bulkMenu: { x: number; y: number; dimId: string; setName: string; optName?: string } | null;
-  setBulkMenu: (v: { x: number; y: number; dimId: string; setName: string; optName?: string } | null) => void;
-  bulkMenuRef: React.RefObject<HTMLDivElement | null>;
-  handleBulkSetState: (dimId: string, setName: string, state: 'disabled' | 'source' | 'enabled') => void;
   // Create override set
   createOverrideSet: { dimId: string; setName: string; optName?: string } | null;
   setCreateOverrideSet: (v: { dimId: string; setName: string; optName?: string } | null) => void;
@@ -193,7 +187,7 @@ function CreateOverrideSetModal({
   );
 }
 
-/** Renders all modal dialogs and the bulk context menu. Place once at the end of ThemeManager JSX. */
+/** Renders all modal dialogs. Place once at the end of ThemeManager JSX. */
 export function ThemeManagerModals() {
   const {
     dimensions,
@@ -201,7 +195,6 @@ export function ThemeManagerModals() {
     executeAutoFillAll, executeAutoFillAllOptions,
     dimensionDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
     optionDeleteConfirm, setOptionDeleteConfirm, executeDeleteOption,
-    bulkMenu, setBulkMenu, bulkMenuRef, handleBulkSetState,
     createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
   } = useThemeManagerModals();
 
@@ -367,56 +360,6 @@ export function ThemeManagerModals() {
           onExecute={executeCreateOverrideSet}
           isCreating={isCreatingOverrideSet}
         />
-      )}
-
-      {/* Bulk set-status context menu */}
-      {bulkMenu && (
-        <div
-          ref={bulkMenuRef as React.LegacyRef<HTMLDivElement>}
-          role="menu"
-          aria-label={`Set "${bulkMenu.setName}" in all options`}
-          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[180px]"
-          style={{ top: bulkMenu.y, left: bulkMenu.x }}
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider" aria-hidden="true">
-            Set &ldquo;{bulkMenu.setName}&rdquo; in all options
-          </div>
-          {(['disabled', 'source', 'enabled'] as const).map(s => (
-            <button
-              key={s}
-              role="menuitem"
-              tabIndex={-1}
-              onClick={() => handleBulkSetState(bulkMenu.dimId, bulkMenu.setName, s)}
-              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] flex items-center gap-2"
-            >
-              <span className={`inline-block w-2 h-2 rounded-full ${
-                s === 'source'
-                  ? 'bg-[var(--color-figma-accent)]'
-                  : s === 'enabled'
-                  ? 'bg-[var(--color-figma-success)]'
-                  : 'bg-[var(--color-figma-text-tertiary)]'
-              }`} />
-              {STATE_LABELS[s]} — {STATE_DESCRIPTIONS[s]}
-            </button>
-          ))}
-          <div className="my-1 border-t border-[var(--color-figma-border)]" role="separator" />
-          <button
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
-              setBulkMenu(null);
-              setCreateOverrideSet({ dimId: bulkMenu.dimId, setName: bulkMenu.setName, optName: bulkMenu.optName });
-            }}
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] flex items-center gap-2"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <path d="M12 8v8M8 12h8" />
-            </svg>
-            Create override set from this…
-          </button>
-        </div>
       )}
     </>
   );

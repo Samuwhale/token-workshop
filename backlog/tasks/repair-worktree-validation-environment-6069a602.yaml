@@ -1,0 +1,20 @@
+id: repair-worktree-validation-environment-6069a602
+title: Repair worktree validation environment
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/backlog-runner/src/workspace/git-worktree.ts
+  - scripts/backlog/validate.sh
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Task \"Replace token-editor composite equality checks with stableStringify\" completed its scoped work, but validation surfaced a worktree/bootstrap issue instead of a task-local defect: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from /private/var/folders/49/h9ns0k7539bdjxc48vb54t800000gn/T/backlog-7260-I79iMb/packages/figma-plugin/build.mjs"
+state: ready
+acceptance_criteria:
+  - Fresh worktrees bootstrap dependency resolution reliably before validation reruns.
+  - Repo validation reruns no longer fail with missing-module workspace errors unrelated to completed task code.
+source: task-followup
+created_at: 2026-04-09T15:12:47.830Z
+updated_at: 2026-04-09T15:12:47.830Z

@@ -9,6 +9,7 @@ import {
   STATE_DESCRIPTIONS,
   getThemeOptionRolePriorityWeight,
   summarizeThemeOptionRoles,
+  type ThemeRoleState,
   type ThemeOptionRoleSummary,
 } from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
@@ -82,6 +83,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [previewSearch, setPreviewSearch] = useState('');
   // The default flow stays in theme authoring; review and resolver tools are explicit secondary views.
   const [activeView, setActiveView] = useState<ThemeManagerView>('authoring');
+  const [editingRoleTarget, setEditingRoleTarget] = useState<{ dimId: string; optionName: string; setName: string | null } | null>(null);
   // Collapsed "Excluded" sections per dimension
   const [collapsedDisabled, setCollapsedDisabled] = useState<Set<string>>(new Set());
   // Dimension/option search filter
@@ -160,10 +162,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   } = useThemeCompare();
 
   const {
-    bulkMenu, setBulkMenu, bulkMenuRef, savingKeys,
     copyFromNewOption, setCopyFromNewOption,
-    showCopyFromMenu, setShowCopyFromMenu, copyFromMenuRef,
+    roleStates, savingKeys,
     handleSetState, handleBulkSetState, handleBulkSetAllInOption, handleCopyAssignmentsFrom,
+    getCopySourceOptions, getSetRoleCounts,
   } = useThemeBulkOps({ serverUrl, sets, dimensions, setDimensions, debouncedFetchDimensions, setError });
 
   const {
@@ -238,6 +240,59 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const scrollToSetRoles = useCallback((dimId: string, optionName: string) => {
     requestAnimationFrame(() => {
       setRoleRefs.current[`${dimId}:${optionName}`]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!editingRoleTarget) return;
+    const dimension = dimensions.find(dim => dim.id === editingRoleTarget.dimId);
+    if (!dimension) {
+      setEditingRoleTarget(null);
+      return;
+    }
+    const optionExists = dimension.options.some(option => option.name === editingRoleTarget.optionName);
+    if (!optionExists) {
+      setEditingRoleTarget(null);
+      return;
+    }
+    if (editingRoleTarget.setName && sets.includes(editingRoleTarget.setName)) {
+      return;
+    }
+    setEditingRoleTarget({
+      dimId: editingRoleTarget.dimId,
+      optionName: editingRoleTarget.optionName,
+      setName: sets[0] ?? null,
+    });
+  }, [dimensions, editingRoleTarget, sets]);
+
+  const openRoleEditor = useCallback((dimId: string, optionName: string, preferredSetName?: string | null) => {
+    setEditingRoleTarget({
+      dimId,
+      optionName,
+      setName: preferredSetName && sets.includes(preferredSetName)
+        ? preferredSetName
+        : sets[0] ?? null,
+    });
+  }, [sets]);
+
+  const closeRoleEditor = useCallback((dimId: string, optionName: string) => {
+    setEditingRoleTarget(current => (
+      current?.dimId === dimId && current.optionName === optionName
+        ? null
+        : current
+    ));
+  }, []);
+
+  const setRoleEditorSetName = useCallback((dimId: string, optionName: string, setName: string) => {
+    setEditingRoleTarget(current => {
+      if (current?.dimId === dimId && current.optionName === optionName) {
+        return { ...current, setName };
+      }
+      return {
+        dimId,
+        optionName,
+        setName,
+      };
     });
   }, []);
 
@@ -672,71 +727,94 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   // --- Render helpers ---
 
-  const renderSetRow = (dim: ThemeDimension, opt: ThemeOption, setName: string, status: string) => {
+  const renderSetRow = (
+    dim: ThemeDimension,
+    opt: ThemeOption,
+    setName: string,
+    status: ThemeRoleState,
+    isEditingRoles: boolean,
+    isBulkActionTarget: boolean,
+  ) => {
     const isSaving = savingKeys.has(`${dim.id}/${opt.name}/${setName}`);
-    const _saveKey = `${dim.id}/${opt.name}/${setName}`;
     const tokenCount = setTokenCounts[setName] ?? null;
     const isEmptyOverride = status === 'enabled' && tokenCount !== null && tokenCount === 0;
     return (
       <div
         key={setName}
-        className={`group/setrow flex items-center gap-1.5 px-2 py-0.5 transition-colors hover:bg-[var(--color-figma-bg-hover)] ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}
-        onContextMenu={e => {
-          e.preventDefault();
-          const x = Math.min(e.clientX, window.innerWidth - 180);
-          const y = Math.min(e.clientY, window.innerHeight - 120);
-          setBulkMenu({ x, y, dimId: dim.id, setName, optName: opt.name });
-        }}
+        className={`rounded border px-2 py-1 transition-colors ${
+          isBulkActionTarget
+            ? 'border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/6'
+            : 'border-transparent hover:bg-[var(--color-figma-bg-hover)]'
+        } ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}
       >
-        <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
-        {isEmptyOverride && (
-          <span
-            title="This override set is empty — it contains no tokens and will not change any values when this theme option is active"
-            className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#f59e0b)] leading-none"
-          >
-            empty
-          </span>
-        )}
-        <div
-          role="group"
-          aria-label={`Status for ${setName}`}
-          className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px] font-medium"
-        >
-          {(['disabled', 'source', 'enabled'] as const).map(s => (
+        <div className="flex items-start justify-between gap-2">
+          {isEditingRoles ? (
             <button
-              key={s}
-              onClick={() => { if (status !== s) handleSetState(dim.id, opt.name, setName, s); }}
-              className={`px-1.5 py-0.5 transition-colors ${
-                status === s
-                  ? s === 'source'
-                    ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'
-                    : s === 'enabled'
-                    ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]'
-                    : 'bg-[var(--color-figma-border)]/60 text-[var(--color-figma-text-secondary)]'
-                  : 'text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
-              }`}
-              aria-label={`${STATE_LABELS[s]} "${setName}": ${STATE_DESCRIPTIONS[s]}`}
-              aria-pressed={status === s}
+              type="button"
+              onClick={() => setRoleEditorSetName(dim.id, opt.name, setName)}
+              className="min-w-0 flex-1 text-left"
+              aria-pressed={isBulkActionTarget}
+              title={`Focus bulk actions on ${setName}`}
             >
-              {STATE_LABELS[s]}
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-[10px] font-medium text-[var(--color-figma-text)]" title={setName}>
+                  {setName}
+                </span>
+                {isBulkActionTarget && (
+                  <span className="rounded-full border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/12 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-accent)]">
+                    Bulk target
+                  </span>
+                )}
+              </div>
             </button>
-          ))}
+          ) : (
+            <div className="min-w-0 flex-1">
+              <span className="block truncate text-[10px] font-medium text-[var(--color-figma-text)]" title={setName}>
+                {setName}
+              </span>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+              {tokenCount === null ? 'Loading tokens…' : `${tokenCount} token${tokenCount === 1 ? '' : 's'}`}
+            </span>
+            {isEmptyOverride && (
+              <span
+                title="This override set is empty — it contains no tokens and will not change any values when this theme option is active"
+                className="rounded-full border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]"
+              >
+                empty
+              </span>
+            )}
+          </div>
         </div>
-        <button
-          onClick={e => {
-            e.stopPropagation();
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            const x = Math.min(rect.right + 4, window.innerWidth - 180);
-            const y = Math.min(rect.bottom, window.innerHeight - 120);
-            setBulkMenu({ x, y, dimId: dim.id, setName, optName: opt.name });
-          }}
-          className="opacity-40 group-hover/setrow:opacity-100 focus:opacity-100 transition-opacity px-1 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-          aria-label={`Set "${setName}" status in all options`}
-          aria-haspopup="menu"
-          title={`Set "${setName}" in all options`}
-        >
-          ⋯
-        </button>
+        {isEditingRoles && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1 pl-2">
+            {roleStates.map((nextState) => (
+              <button
+                key={nextState}
+                type="button"
+                onClick={() => {
+                  setRoleEditorSetName(dim.id, opt.name, setName);
+                  if (status !== nextState) handleSetState(dim.id, opt.name, setName, nextState);
+                }}
+                className={`min-h-6 rounded border px-2 py-1 text-[9px] font-medium transition-colors ${
+                  status === nextState
+                    ? nextState === 'source'
+                      ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]'
+                      : nextState === 'enabled'
+                        ? 'border-[var(--color-figma-success)]/30 bg-[var(--color-figma-success)]/12 text-[var(--color-figma-success)]'
+                        : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]'
+                    : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+                aria-label={`${STATE_LABELS[nextState]} "${setName}": ${STATE_DESCRIPTIONS[nextState]}`}
+                aria-pressed={status === nextState}
+              >
+                {STATE_LABELS[nextState]}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -873,14 +951,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     executeDeleteDimension,
     optionDeleteConfirm, setOptionDeleteConfirm: (v) => setOptionDeleteConfirm(v),
     executeDeleteOption,
-    bulkMenu, setBulkMenu: (v) => setBulkMenu(v), bulkMenuRef,
-    handleBulkSetState,
     createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
   }), [
     dimensions, autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy, executeAutoFillAll, executeAutoFillAllOptions,
     dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
     optionDeleteConfirm, setOptionDeleteConfirm, executeDeleteOption,
-    bulkMenu, setBulkMenu, bulkMenuRef, handleBulkSetState,
     createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
   ]);
 
@@ -1413,6 +1488,15 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 const foundationSets = optSets.filter(s => opt?.sets[s] === 'source');
                 const disabledSets = optSets.filter(s => !opt?.sets[s] || opt?.sets[s] === 'disabled');
                 const isDisabledCollapsed = collapsedDisabled.has(dim.id);
+                const activeRoleEditor = editingRoleTarget;
+                const isEditingRoles = activeRoleEditor?.dimId === dim.id && activeRoleEditor?.optionName === selectedOpt;
+                const bulkActionSetName = isEditingRoles
+                  ? (activeRoleEditor?.setName && optSets.includes(activeRoleEditor.setName)
+                    ? activeRoleEditor.setName
+                    : optSets[0] ?? null)
+                  : null;
+                const bulkActionCounts = bulkActionSetName ? getSetRoleCounts(dim.id, bulkActionSetName) : null;
+                const copySourceOptions = getCopySourceOptions(dim.id, selectedOpt);
 
                 const covKey = `${dim.id}:${selectedOpt}`;
                 const hasUncovered = (optionSummary?.uncoveredCount ?? 0) > 0;
@@ -1828,6 +1912,28 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 )}
                               </div>
                               <div className="flex items-center gap-0.5">
+                                {sets.length > 0 && (
+                                  isEditingRoles ? (
+                                    <button
+                                      onClick={() => closeRoleEditor(dim.id, opt.name)}
+                                      className="rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15"
+                                      title={`Finish editing roles for ${opt.name}`}
+                                    >
+                                      Done
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        openRoleEditor(dim.id, opt.name, overrideSets[0] ?? foundationSets[0] ?? disabledSets[0] ?? null);
+                                        scrollToSetRoles(dim.id, opt.name);
+                                      }}
+                                      className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                                      title={`Edit set roles for ${opt.name}`}
+                                    >
+                                      Edit roles
+                                    </button>
+                                  )
+                                )}
                                 {dim.options.length > 1 && (
                                   <>
                                     <button onClick={() => handleMoveOption(dim.id, opt.name, 'up')} disabled={dim.options.indexOf(opt) === 0} className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-25 disabled:pointer-events-none" title="Move option left" aria-label="Move option left">
@@ -1850,42 +1956,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                     <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
                                   </svg>
                                 </button>
-                                {/* Copy assignments from another option — only shown when there are other options */}
-                                {dim.options.length > 1 && (
-                                  <div className="relative">
-                                    <button
-                                      onClick={e => { e.stopPropagation(); setShowCopyFromMenu(prev => prev?.dimId === dim.id && prev?.optionName === opt.name ? null : { dimId: dim.id, optionName: opt.name }); }}
-                                      className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-                                      title="Copy assignments from another option"
-                                      aria-label="Copy assignments from another option"
-                                    >
-                                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
-                                        <path d="M9 2h6a1 1 0 011 1v2a1 1 0 01-1 1H9a1 1 0 01-1-1V3a1 1 0 011-1z"/>
-                                        <path d="M8 14l4-4 4 4" strokeWidth="1.5"/>
-                                      </svg>
-                                    </button>
-                                    {showCopyFromMenu?.dimId === dim.id && showCopyFromMenu?.optionName === opt.name && (
-                                      <div
-                                        ref={copyFromMenuRef}
-                                        className="absolute right-0 top-full mt-0.5 z-50 min-w-[140px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-0.5"
-                                        onClick={e => e.stopPropagation()}
-                                      >
-                                        <div className="px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-tertiary)] border-b border-[var(--color-figma-border)] mb-0.5">Copy assignments from:</div>
-                                        {dim.options.filter(o => o.name !== opt.name).map(sourceOpt => (
-                                          <button
-                                            key={sourceOpt.name}
-                                            onClick={() => handleCopyAssignmentsFrom(dim.id, opt.name, sourceOpt.name)}
-                                            className="w-full text-left px-2 py-1 text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] truncate"
-                                            role="menuitem"
-                                          >
-                                            {sourceOpt.name}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
                                 <button onClick={() => setOptionDeleteConfirm({ dimId: dim.id, optionName: opt.name })} className="p-1.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]" title="Delete option" aria-label="Delete option">
                                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
@@ -1972,31 +2042,117 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 ))}
                               </div>
                             </div>
-                            {/* Batch assignment toolbar — set all sets to one state at once */}
-                            {sets.length > 1 && (
-                              <div className="px-3 py-1 flex items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] flex-shrink-0">Set all:</span>
-                                <button
-                                  onClick={() => handleBulkSetAllInOption(dim.id, opt.name, 'source')}
-                                  className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/20 hover:bg-[var(--color-figma-accent)]/20 transition-colors"
-                                  title="Set all token sets to Base (source)"
-                                >
-                                  Base
-                                </button>
-                                <button
-                                  onClick={() => handleBulkSetAllInOption(dim.id, opt.name, 'enabled')}
-                                  className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)] border border-[var(--color-figma-success)]/20 hover:bg-[var(--color-figma-success)]/20 transition-colors"
-                                  title="Set all token sets to Override (enabled)"
-                                >
-                                  Override
-                                </button>
-                                <button
-                                  onClick={() => handleBulkSetAllInOption(dim.id, opt.name, 'disabled')}
-                                  className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                                  title="Set all token sets to Excluded (disabled)"
-                                >
-                                  Excluded
-                                </button>
+                            {isEditingRoles && (
+                              <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
+                                <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-2.5 py-2">
+                                  <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="text-[10px] font-semibold text-[var(--color-figma-text)]">Bulk actions</div>
+                                      <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                                        Role buttons stay on the rows below. Apply broader updates here for <strong>{opt.name}</strong>.
+                                      </p>
+                                    </div>
+                                    <div className="min-w-[148px]">
+                                      <label className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">Focused set</label>
+                                      <select
+                                        value={bulkActionSetName ?? ''}
+                                        onChange={event => setRoleEditorSetName(dim.id, opt.name, event.target.value)}
+                                        className="mt-1 w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)]"
+                                      >
+                                        {optSets.map((setName) => (
+                                          <option key={setName} value={setName}>
+                                            {setName}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                  {bulkActionSetName && bulkActionCounts && (
+                                    <div className="mt-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)] pt-2">
+                                      <div className="flex flex-col gap-1">
+                                        <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">
+                                          Apply &ldquo;{bulkActionSetName}&rdquo; across every option in this axis
+                                        </span>
+                                        <div className="flex flex-wrap gap-1">
+                                          {roleStates.map((nextState) => (
+                                            <button
+                                              key={`bulk-set-${nextState}`}
+                                              type="button"
+                                              onClick={() => handleBulkSetState(dim.id, bulkActionSetName, nextState)}
+                                              className={`min-h-6 rounded border px-2 py-1 text-[9px] font-medium ${
+                                                nextState === 'source'
+                                                  ? 'border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/12'
+                                                  : nextState === 'enabled'
+                                                    ? 'border-[var(--color-figma-success)]/20 bg-[var(--color-figma-success)]/8 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/12'
+                                                    : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                                              }`}
+                                            >
+                                              {STATE_LABELS[nextState]} ({bulkActionCounts[nextState]})
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col gap-1">
+                                        <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">
+                                          Set every available set in {opt.name}
+                                        </span>
+                                        <div className="flex flex-wrap gap-1">
+                                          {roleStates.map((nextState) => (
+                                            <button
+                                              key={`bulk-option-${nextState}`}
+                                              type="button"
+                                              onClick={() => handleBulkSetAllInOption(dim.id, opt.name, nextState)}
+                                              className={`min-h-6 rounded border px-2 py-1 text-[9px] font-medium ${
+                                                nextState === 'source'
+                                                  ? 'border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/12'
+                                                  : nextState === 'enabled'
+                                                    ? 'border-[var(--color-figma-success)]/20 bg-[var(--color-figma-success)]/8 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/12'
+                                                    : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                                              }`}
+                                            >
+                                              {STATE_LABELS[nextState]}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col gap-1">
+                                        <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">
+                                          Copy role assignments from another option
+                                        </span>
+                                        {copySourceOptions.length > 0 ? (
+                                          <div className="flex flex-wrap gap-1">
+                                            {copySourceOptions.map((sourceOptionName) => (
+                                              <button
+                                                key={sourceOptionName}
+                                                type="button"
+                                                onClick={() => handleCopyAssignmentsFrom(dim.id, opt.name, sourceOptionName)}
+                                                className="min-h-6 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                                              >
+                                                {sourceOptionName}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                                            Add another option before copying assignments.
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-figma-border)] pt-2">
+                                        <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                                          Need a dedicated override set for <strong>{bulkActionSetName}</strong>?
+                                        </p>
+                                        <button
+                                          type="button"
+                                          onClick={() => setCreateOverrideSet({ dimId: dim.id, setName: bulkActionSetName, optName: opt.name })}
+                                          className="min-h-6 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                                        >
+                                          Create override set from focused set
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
                             {/* Override section */}
@@ -2007,7 +2163,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   Override ({optionSummary?.overrideCount ?? overrideSets.length})
                                   <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">highest priority</span>
                                 </div>
-                                {overrideSets.map(s => renderSetRow(dim, opt, s, 'enabled'))}
+                                {overrideSets.map(s => renderSetRow(dim, opt, s, 'enabled', isEditingRoles, bulkActionSetName === s))}
                               </div>
                             )}
 
@@ -2019,7 +2175,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   Base ({optionSummary?.baseCount ?? foundationSets.length})
                                   <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">default values</span>
                                 </div>
-                                {foundationSets.map(s => renderSetRow(dim, opt, s, 'source'))}
+                                {foundationSets.map(s => renderSetRow(dim, opt, s, 'source', isEditingRoles, bulkActionSetName === s))}
                               </div>
                             )}
 
@@ -2038,7 +2194,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isDisabledCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
                                   Excluded ({optionSummary?.excludedCount ?? disabledSets.length})
                                 </button>
-                                {!isDisabledCollapsed && disabledSets.map(s => renderSetRow(dim, opt, s, 'disabled'))}
+                                {!isDisabledCollapsed && disabledSets.map(s => renderSetRow(dim, opt, s, 'disabled', isEditingRoles, bulkActionSetName === s))}
                               </div>
                             )}
                           </div>

@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
+import { THEME_ROLE_STATES, type ThemeRoleState } from '../components/themeManagerTypes';
 
 export interface UseThemeBulkOpsParams {
   serverUrl: string;
@@ -20,15 +21,10 @@ export function useThemeBulkOps({
   debouncedFetchDimensions,
   setError,
 }: UseThemeBulkOpsParams) {
-  // Bulk set-status context menu
-  const [bulkMenu, setBulkMenu] = useState<{ x: number; y: number; dimId: string; setName: string; optName?: string } | null>(null);
-  const bulkMenuRef = useRef<HTMLDivElement | null>(null);
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
 
   // Copy-from state
   const [copyFromNewOption, setCopyFromNewOption] = useState<Record<string, string>>({});
-  const [showCopyFromMenu, setShowCopyFromMenu] = useState<{ dimId: string; optionName: string } | null>(null);
-  const copyFromMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Mutation queue: serializes set-state mutations so concurrent calls don't
   // interleave optimistic updates or capture stale rollback snapshots.
@@ -38,45 +34,9 @@ export function useThemeBulkOps({
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  // Close bulk menu on outside click or Escape
-  useEffect(() => {
-    if (!bulkMenu) return;
-    const close = () => setBulkMenu(null);
-    requestAnimationFrame(() => {
-      const first = bulkMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
-      first?.focus();
-    });
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { close(); return; }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const items = Array.from(bulkMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
-        if (!items.length) return;
-        const idx = items.indexOf(document.activeElement as HTMLElement);
-        const next = e.key === 'ArrowDown'
-          ? items[(idx + 1) % items.length]
-          : items[(idx - 1 + items.length) % items.length];
-        next?.focus();
-      }
-    };
-    document.addEventListener('click', close);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
-  }, [bulkMenu]);
-
-  // Close copy-from menu on outside click or Escape
-  useEffect(() => {
-    if (!showCopyFromMenu) return;
-    const close = () => setShowCopyFromMenu(null);
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('click', close);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
-  }, [showCopyFromMenu]);
-
   // Generic mutation helper: applies an optimistic update, calls the API, rolls back on error.
   // Chains onto mutationChainRef so concurrent calls run sequentially without interleaving.
-  const enqueueMutation = (config: {
+  const enqueueMutation = useCallback((config: {
     optimisticUpdate: (prev: ThemeDimension[]) => ThemeDimension[];
     apiCall: () => Promise<void>;
     errorMsg: string;
@@ -106,16 +66,16 @@ export function useThemeBulkOps({
       console.error(`[ThemeManager] mutation chain error (${label}):`, err);
       setError(getErrorMessage(err, 'Unexpected mutation error'));
     });
-  };
+  }, [debouncedFetchDimensions, dimensions, setDimensions, setError]);
 
   // --- Set state toggle (single option, single set) ---
 
-  const handleSetState = (dimId: string, optionName: string, setName: string, targetState: string) => {
+  const handleSetState = useCallback((dimId: string, optionName: string, setName: string, targetState: ThemeRoleState) => {
     const dim = dimensions.find(d => d.id === dimId);
     if (!dim) return;
     const opt = dim.options.find(o => o.name === optionName);
     if (!opt) return;
-    const updatedSets = { ...opt.sets, [setName]: targetState as 'enabled' | 'disabled' | 'source' };
+    const updatedSets = { ...opt.sets, [setName]: targetState };
     const saveKey = `${dimId}/${optionName}/${setName}`;
     enqueueMutation({
       savingKeys: [saveKey],
@@ -132,12 +92,11 @@ export function useThemeBulkOps({
       errorMsg: 'Failed to save',
       label: 'handleSetState',
     });
-  };
+  }, [dimensions, enqueueMutation, serverUrl]);
 
   // --- Bulk set-status across all options in a dimension ---
 
-  const handleBulkSetState = (dimId: string, setName: string, targetState: 'enabled' | 'disabled' | 'source') => {
-    setBulkMenu(null);
+  const handleBulkSetState = useCallback((dimId: string, setName: string, targetState: ThemeRoleState) => {
     const dim = dimensions.find(d => d.id === dimId);
     if (!dim) return;
     const bulkKeys = dim.options.map(o => `${dimId}/${o.name}/${setName}`);
@@ -159,15 +118,15 @@ export function useThemeBulkOps({
       errorMsg: 'Failed to bulk-update',
       label: 'handleBulkSetState',
     });
-  };
+  }, [dimensions, enqueueMutation, serverUrl]);
 
   // --- Bulk assign all sets in an option to a single state ---
 
-  const handleBulkSetAllInOption = (dimId: string, optionName: string, targetState: 'enabled' | 'disabled' | 'source') => {
+  const handleBulkSetAllInOption = useCallback((dimId: string, optionName: string, targetState: ThemeRoleState) => {
     const dim = dimensions.find(d => d.id === dimId);
     if (!dim) return;
     if (!dim.options.find(o => o.name === optionName)) return;
-    const updatedSets: Record<string, 'enabled' | 'disabled' | 'source'> = {};
+    const updatedSets: Record<string, ThemeRoleState> = {};
     sets.forEach(s => { updatedSets[s] = targetState; });
     enqueueMutation({
       optimisticUpdate: prev => prev.map(d =>
@@ -183,12 +142,11 @@ export function useThemeBulkOps({
       errorMsg: 'Failed to bulk-assign sets',
       label: 'handleBulkSetAllInOption',
     });
-  };
+  }, [dimensions, enqueueMutation, serverUrl, sets]);
 
   // --- Copy assignments from one option to another (replaces target's sets) ---
 
-  const handleCopyAssignmentsFrom = (dimId: string, targetOptionName: string, sourceOptionName: string) => {
-    setShowCopyFromMenu(null);
+  const handleCopyAssignmentsFrom = useCallback((dimId: string, targetOptionName: string, sourceOptionName: string) => {
     const dim = dimensions.find(d => d.id === dimId);
     if (!dim) return;
     const source = dim.options.find(o => o.name === sourceOptionName);
@@ -208,21 +166,39 @@ export function useThemeBulkOps({
       errorMsg: 'Failed to copy assignments',
       label: 'handleCopyAssignmentsFrom',
     });
-  };
+  }, [dimensions, enqueueMutation, serverUrl]);
+
+  const getCopySourceOptions = useCallback((dimId: string, optionName: string): string[] => {
+    const dim = dimensions.find(d => d.id === dimId);
+    if (!dim) return [];
+    return dim.options.filter(option => option.name !== optionName).map(option => option.name);
+  }, [dimensions]);
+
+  const getSetRoleCounts = useCallback((dimId: string, setName: string): Record<ThemeRoleState, number> => {
+    const dim = dimensions.find(d => d.id === dimId);
+    const counts: Record<ThemeRoleState, number> = {
+      disabled: 0,
+      source: 0,
+      enabled: 0,
+    };
+    if (!dim) return counts;
+    for (const option of dim.options) {
+      const status = (option.sets[setName] ?? 'disabled') as ThemeRoleState;
+      counts[status] += 1;
+    }
+    return counts;
+  }, [dimensions]);
 
   return {
-    bulkMenu,
-    setBulkMenu,
-    bulkMenuRef,
+    roleStates: THEME_ROLE_STATES,
     savingKeys,
     copyFromNewOption,
     setCopyFromNewOption,
-    showCopyFromMenu,
-    setShowCopyFromMenu,
-    copyFromMenuRef,
     handleSetState,
     handleBulkSetState,
     handleBulkSetAllInOption,
     handleCopyAssignmentsFrom,
+    getCopySourceOptions,
+    getSetRoleCounts,
   };
 }
