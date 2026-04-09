@@ -436,3 +436,18 @@
   - Operation history and rename propagation have different retention needs; keeping rename lineage in its own persisted index avoids coupling Figma publish behavior to rollback-history pruning rules.
   - When rollback changes the effective token path lineage, the rollback operation should emit inverse rename pairs so downstream rename propagation mirrors the actual current server state instead of only the original mutation.
 ---
+## 2026-04-09 - [Redesign duplicate-value cleanup in `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx`, `packages/figma-plugin/src/ui/components/HealthPanel.tsx`, and `packages/server/src/services/lint.ts` so users can choose the canonical token per group, preview metadata differences, and batch-resolve safely instead of accepting the shortest-path token as canonical by default.]
+- Reworked duplicate linting to emit stable duplicate-group identifiers plus neutral cleanup guidance, then rebuilt the health-panel grouping so each duplicate candidate carries the metadata needed for explicit canonical selection and diff previews.
+- Replaced the duplicate cleanup UI with an explicit canonical-picking workflow: users now select the token to keep per group, review set/lifecycle/scope differences before resolving, and can only batch-resolve once every group has an explicit canonical choice.
+- Files changed: `packages/server/src/services/lint.ts` ~L225, ~L400, ~L721; `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L156, ~L295, ~L349; `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx` ~L5, ~L101, ~L188; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Duplicate detection should publish stable group identity, not an implied winner, so cleanup UIs can stay user-directed without reverse-engineering a server-side heuristic.
+  - Batch cleanup is safer when canonical selection is an explicit prerequisite and the preview surfaces which token metadata will change before aliases are written.
+---
+## 2026-04-09 - [Replace the rule-console feel of `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` and `packages/server/src/routes/lint.ts` with a guided quality-policy surface that starts from presets and uses set pickers and exception chips rather than free-text path filters and per-rule override names.]
+- Preserved the new guided quality-policy UI and repaired the server validation route by narrowing lint rule ids before indexing persisted config, which removes the TS7053 failure in repair mode without widening the surface.
+- Files changed: `packages/server/src/routes/lint.ts` ~L13, ~L34, ~L224; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - When a route validates only a fixed registry of config keys, model that registry as a typed literal and use a type guard before indexing typed config objects; it keeps runtime validation and TypeScript in sync.
+  - Repair-mode build failures on guided config work can often be isolated to route typing even when the visible UI change is much larger; fix the narrow compiler regression first before reworking the product surface.
+---
