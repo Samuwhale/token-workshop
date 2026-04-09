@@ -389,3 +389,11 @@
   - When dependency context is needed in more than one token surface, centralizing the graph walk into one snapshot builder keeps editor, preview, and full-graph views aligned without adding another shared utility file.
   - Focused plugin `tsc` checks in this worktree are still blocked by missing `packages/core/dist` artifacts; if the only remaining diagnostics are TS6305 from `@tokenmanager/core`, treat that as workspace drift rather than a regression in the touched UI files.
 ---
+## 2026-04-09 - [Merge the `Coverage`, `Suggestions`, and `Components` tabs in `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` into one canvas cleanup workflow so users can scan, inspect untokenized nodes, review suggested tokens, and apply fixes without bouncing across separate sub-panels.]
+- Replaced the tabbed canvas analysis shell with a single cleanup workflow that introduces the flow, keeps the shared scan scope visible, and adds step jump controls for coverage, suggestions, and component cleanup.
+- Mounted the existing Heatmap, Consistency, and Component Coverage panels as sequential workflow sections with step-specific guidance, so users can move through scan, suggested fixes, and untokenized component review without changing tabs.
+- Files changed: `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` ~L12, ~L70, ~L102, ~L138; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - When adjacent analysis tools are already self-contained, merging them cleanly can happen at the shell level by turning tabs into a guided sequence instead of rewriting each panel's internal state machine.
+  - Fixed-height section shells let existing full-height panels keep their own scan and result behavior while still participating in a single scrollable workflow surface.
+---
