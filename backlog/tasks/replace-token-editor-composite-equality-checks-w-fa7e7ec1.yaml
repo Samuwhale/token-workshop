@@ -26,10 +26,24 @@ status_notes:
   - "Non-blocking validation issue deferred to follow-up: reconciliation validation failed: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from /private/var/folders/49/h9ns0k7539bdjxc48vb54t800000gn/T/backlog-7260-nU1VCu/packages/figma-plugin/build.mjs"
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T16:48:41.228Z"
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T17:07:23.981Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T17:27:17.559Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T17:46:52.466Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T18:05:09.278Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T18:24:49.587Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T18:43:21.443Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T19:05:16.508Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T19:23:08.441Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T19:47:52.391Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T20:14:42.165Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T20:32:22.399Z"
+  - "Non-blocking validation issue deferred to follow-up: reconciliation validation failed: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from /private/var/folders/49/h9ns0k7539bdjxc48vb54t800000gn/T/backlog-7260-G4v4KI/packages/figma-plugin/build.mjs"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T20:53:22.718Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T21:12:23.579Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T21:33:14.043Z"
 state: ready
 acceptance_criteria:
   - Token editor dirty-state comparisons for composite draft values use stableStringify instead of JSON.stringify.
   - Reordering object keys in draft values, scopes, color modifiers, or mode values no longer marks the token editor dirty.
 source: task-followup
 created_at: 2026-04-08T22:30:38.168Z
-updated_at: 2026-04-09T16:52:23.993Z
+updated_at: 2026-04-09T21:18:14.053Z

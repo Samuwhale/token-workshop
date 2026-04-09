@@ -16,6 +16,28 @@ RESET='\033[0m'
 fail() { echo -e "${RED}FAIL${RESET} $1"; exit 1; }
 pass() { echo -e "${GREEN}PASS${RESET} $1"; }
 
+has_bootstrap_symlinked_modules() {
+  [ -L node_modules ] && return 0
+
+  for package_node_modules in packages/*/node_modules; do
+    [ -L "$package_node_modules" ] && return 0
+  done
+
+  return 1
+}
+
+bootstrap_local_workspace_dependencies() {
+  if ! has_bootstrap_symlinked_modules; then
+    return 0
+  fi
+
+  echo -e "${DIM}── Bootstrap: local workspace dependencies ──${RESET}"
+  CI=1 pnpm install --frozen-lockfile --ignore-scripts --force || fail "workspace dependency bootstrap"
+  pass "workspace dependency bootstrap"
+}
+
+bootstrap_local_workspace_dependencies
+
 # Bootstrap referenced workspace output so downstream package resolution works in fresh worktrees.
 (cd packages/core && pnpm run build) || fail "core bootstrap build"
 pass "core bootstrap build"

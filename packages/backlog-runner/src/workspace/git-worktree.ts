@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { lockPath, withLock } from '../locks.js';
@@ -47,14 +47,65 @@ async function pathExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: string): Promise<void> {
-  const rootNodeModules = path.join(projectRoot, 'node_modules');
-  if (await pathExists(rootNodeModules)) {
-    try {
-      await symlink(rootNodeModules, path.join(worktreeDir, 'node_modules'));
-    } catch {
-      // ignore
+type PackageManifest = {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+};
+
+function externalDependencyNames(manifest: PackageManifest | null): string[] {
+  if (!manifest) {
+    return [];
+  }
+
+  const names = new Set<string>();
+  for (const field of [manifest.dependencies, manifest.devDependencies]) {
+    for (const [name, version] of Object.entries(field ?? {})) {
+      if (!version || version.startsWith('workspace:') || version.startsWith('file:') || version.startsWith('link:')) {
+        continue;
+      }
+      names.add(name);
     }
+  }
+
+  return [...names];
+}
+
+async function readPackageManifest(packageDir: string): Promise<PackageManifest | null> {
+  try {
+    return JSON.parse(await readFile(path.join(packageDir, 'package.json'), 'utf8')) as PackageManifest;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureDirectorySymlink(source: string, target: string): Promise<void> {
+  await mkdir(path.dirname(target), { recursive: true });
+  await rm(target, { recursive: true, force: true });
+  await symlink(source, target, 'dir');
+}
+
+async function verifyManifestDependencies(worktreePackageDir: string, label: string): Promise<string[]> {
+  const manifest = await readPackageManifest(worktreePackageDir);
+  if (!manifest) {
+    return [];
+  }
+
+  const missing: string[] = [];
+  for (const dependencyName of externalDependencyNames(manifest)) {
+    if (!(await pathExists(path.join(worktreePackageDir, 'node_modules', dependencyName)))) {
+      missing.push(`${label}:${dependencyName}`);
+    }
+  }
+  return missing;
+}
+
+async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: string): Promise<void> {
+  const missingSources: string[] = [];
+  const rootNodeModules = path.join(projectRoot, 'node_modules');
+  if (!(await pathExists(rootNodeModules))) {
+    missingSources.push('root:node_modules');
+  } else {
+    await ensureDirectorySymlink(rootNodeModules, path.join(worktreeDir, 'node_modules'));
   }
 
   const packagesDir = path.join(projectRoot, 'packages');
@@ -68,19 +119,32 @@ async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: s
   for (const packageName of packageNames) {
     const sourceNodeModules = path.join(packagesDir, packageName, 'node_modules');
     if (!(await pathExists(sourceNodeModules))) {
+      const manifest = await readPackageManifest(path.join(packagesDir, packageName));
+      if (externalDependencyNames(manifest).length > 0) {
+        missingSources.push(`packages/${packageName}:node_modules`);
+      }
       continue;
     }
 
     const targetNodeModules = path.join(worktreeDir, 'packages', packageName, 'node_modules');
-    if (await pathExists(targetNodeModules)) {
-      continue;
-    }
+    await ensureDirectorySymlink(sourceNodeModules, targetNodeModules);
+  }
 
-    try {
-      await symlink(sourceNodeModules, targetNodeModules);
-    } catch {
-      // ignore
-    }
+  if (missingSources.length > 0) {
+    throw new Error(`worktree dependency bootstrap missing source installs: ${missingSources.join(', ')}`);
+  }
+
+  const missingDependencies = [
+    ...(await verifyManifestDependencies(worktreeDir, 'root')),
+  ];
+  for (const packageName of packageNames) {
+    missingDependencies.push(
+      ...(await verifyManifestDependencies(path.join(worktreeDir, 'packages', packageName), `packages/${packageName}`)),
+    );
+  }
+
+  if (missingDependencies.length > 0) {
+    throw new Error(`worktree dependency bootstrap missing dependencies: ${missingDependencies.join(', ')}`);
   }
 }
 
