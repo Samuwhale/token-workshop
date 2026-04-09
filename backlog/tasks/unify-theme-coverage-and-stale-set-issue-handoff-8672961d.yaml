@@ -14,11 +14,12 @@ capabilities:
 validation_profile: backlog
 status_notes:
   - "Context: Research found that coverage and missing-override counts live in tabs and review tools, empty override warnings live on individual rows, and stale/deleted sets expand in a separate warning block. The next implementation pass should treat these as one issue system that hands back into role editing cleanly."
-state: ready
+  - "Completed: Shared theme issue summaries now drive authoring, coverage review, and shell handoffs, and coverage returns reopen the exact option role editor with the preserved set target."
+state: done
 acceptance_criteria:
   - Normalize coverage gaps, missing overrides, empty override sets, and deleted-set warnings into issue summaries that carry a recommended next action and a stable axis/option target for returning to set-role editing.
   - Update coverage review and shell CTAs so returning from review reopens the exact option role editor and preserves the relevant remediation context instead of dropping the user back into a generic authoring view.
   - Remove detached handoff copy blocks in ThemeManager and replace them with shared issue-entry affordances so set-role authoring and review tools read as one workflow.
 source: task-followup
 created_at: 2026-04-09T14:00:06.559Z
-updated_at: 2026-04-09T14:00:06.559Z
+updated_at: 2026-04-09T15:50:46.538Z

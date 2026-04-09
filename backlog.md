@@ -68,7 +68,7 @@
 - [x] Thread real lifecycle metadata into the unused-token cleanup queue
 - [x] Add summary-first set-role cards and workflow counters to ThemeManager
 - [x] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
-- [ ] Unify theme coverage and stale-set issue handoffs with set-role editing
+- [x] Unify theme coverage and stale-set issue handoffs with set-role editing
 - [ ] Re-home file import affordances inside the family-first intake flow
 - [ ] Unify file import validation feedback across picker, drop, preview, and retry states
 - [ ] Create one shared conflict-review contract for single-set and multi-set imports
