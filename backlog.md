@@ -69,4 +69,4 @@
 - [ ] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
 - [ ] Unify theme coverage and stale-set issue handoffs with set-role editing
 - [ ] Make multi-set folder operations fully rollbackable in the operation log
-- [ ] Add regression coverage for uncapped operation history and rename propagation persistence
+- [x] Add regression coverage for uncapped operation history and rename propagation persistence

@@ -42,6 +42,15 @@ function url(path: string) {
   return `http://127.0.0.1:${addr.port}${path}`;
 }
 
+async function createSet(name: string, tokens: Record<string, unknown> = {}) {
+  const res = await fetch(url('/api/sets'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, tokens }),
+  });
+  expect(res.status).toBe(201);
+}
+
 describe('GET /api/health', () => {
   it('returns ok status', async () => {
     const res = await fetch(url('/api/health'));
@@ -388,6 +397,139 @@ describe('PATCH /api/sets/:name/metadata', () => {
     expect(setsBody.descriptions[setName]).toBe('Base docs');
     expect(setsBody.collectionNames[setName]).toBe('Primitives');
     expect(setsBody.modeNames[setName]).toBe('Dark');
+  });
+});
+
+describe('GET /api/operations', () => {
+  it('pages past 50 entries after many unrelated operations are recorded', async () => {
+    const prefix = 'operations-page-set';
+    const createdSetNames: string[] = [];
+
+    for (let index = 1; index <= 55; index += 1) {
+      const setName = `${prefix}-${String(index).padStart(2, '0')}`;
+      createdSetNames.push(setName);
+      await createSet(setName);
+    }
+
+    const firstPageRes = await fetch(url('/api/operations?limit=50&offset=0'));
+    expect(firstPageRes.ok).toBe(true);
+    const firstPageBody = await firstPageRes.json() as {
+      data: Array<{ type: string; setName?: string }>;
+      hasMore: boolean;
+      limit: number;
+      offset: number;
+    };
+    expect(firstPageBody.limit).toBe(50);
+    expect(firstPageBody.offset).toBe(0);
+    expect(firstPageBody.data).toHaveLength(50);
+    expect(firstPageBody.hasMore).toBe(true);
+    expect(firstPageBody.data.every((entry) => entry.type === 'set-create')).toBe(true);
+    expect(firstPageBody.data.map((entry) => entry.setName)).toEqual(
+      createdSetNames.slice(5).reverse(),
+    );
+
+    const secondPageRes = await fetch(url('/api/operations?limit=5&offset=50'));
+    expect(secondPageRes.ok).toBe(true);
+    const secondPageBody = await secondPageRes.json() as {
+      data: Array<{ type: string; setName?: string }>;
+      hasMore: boolean;
+      limit: number;
+      offset: number;
+    };
+    expect(secondPageBody.limit).toBe(5);
+    expect(secondPageBody.offset).toBe(50);
+    expect(secondPageBody.data).toHaveLength(5);
+    expect(secondPageBody.data.every((entry) => entry.type === 'set-create')).toBe(true);
+    expect(secondPageBody.data.map((entry) => entry.setName)).toEqual(
+      createdSetNames.slice(0, 5).reverse(),
+    );
+  });
+});
+
+describe('GET /api/operations/path-renames', () => {
+  it('preserves rename propagation across rename rollback and redo by exposing inverse rename events', async () => {
+    const setName = 'path-rename-history-set';
+    await createSet(setName, {
+      color: {
+        base: { $value: '#123456', $type: 'color' },
+        alias: { $value: '{color.base}', $type: 'color' },
+      },
+    });
+
+    const renameRes = await fetch(url(`/api/tokens/${setName}/tokens/rename`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPath: 'color.base', newPath: 'color.brand' }),
+    });
+    expect(renameRes.ok).toBe(true);
+    expect(await renameRes.json()).toMatchObject({
+      ok: true,
+      aliasesUpdated: 1,
+    });
+
+    const operationsRes = await fetch(url('/api/operations?limit=10'));
+    expect(operationsRes.ok).toBe(true);
+    const operationsBody = await operationsRes.json() as {
+      data: Array<{ id: string; type: string; setName?: string; affectedPaths: string[] }>;
+    };
+    const renameOperation = operationsBody.data.find((entry) =>
+      entry.type === 'token-rename' &&
+      entry.setName === setName &&
+      entry.affectedPaths.includes('color.base') &&
+      entry.affectedPaths.includes('color.brand')
+    );
+    expect(renameOperation).toBeDefined();
+    if (!renameOperation) {
+      throw new Error('Expected token rename operation entry');
+    }
+
+    const renamesAfterRenameRes = await fetch(url('/api/operations/path-renames'));
+    expect(renamesAfterRenameRes.ok).toBe(true);
+    const renamesAfterRenameBody = await renamesAfterRenameRes.json() as {
+      renames: Array<{ oldPath: string; newPath: string }>;
+    };
+    expect(renamesAfterRenameBody.renames.filter(({ oldPath, newPath }) =>
+      oldPath === 'color.base' && newPath === 'color.brand'
+    )).toEqual([{ oldPath: 'color.base', newPath: 'color.brand' }]);
+
+    const rollbackRenameRes = await fetch(url(`/api/operations/${renameOperation.id}/rollback`), {
+      method: 'POST',
+    });
+    expect(rollbackRenameRes.ok).toBe(true);
+    const rollbackRenameBody = await rollbackRenameRes.json() as { rollbackEntryId: string };
+    expect(rollbackRenameBody.rollbackEntryId).toBeTruthy();
+
+    const renamesAfterRollbackRes = await fetch(url('/api/operations/path-renames'));
+    expect(renamesAfterRollbackRes.ok).toBe(true);
+    const renamesAfterRollbackBody = await renamesAfterRollbackRes.json() as {
+      renames: Array<{ oldPath: string; newPath: string }>;
+    };
+    expect(renamesAfterRollbackBody.renames.filter(({ oldPath, newPath }) =>
+      (oldPath === 'color.base' && newPath === 'color.brand') ||
+      (oldPath === 'color.brand' && newPath === 'color.base')
+    )).toEqual([{ oldPath: 'color.brand', newPath: 'color.base' }]);
+
+    const redoRenameRes = await fetch(url(`/api/operations/${rollbackRenameBody.rollbackEntryId}/rollback`), {
+      method: 'POST',
+    });
+    expect(redoRenameRes.ok).toBe(true);
+
+    const renamesAfterRedoRes = await fetch(url('/api/operations/path-renames'));
+    expect(renamesAfterRedoRes.ok).toBe(true);
+    const renamesAfterRedoBody = await renamesAfterRedoRes.json() as {
+      renames: Array<{ oldPath: string; newPath: string }>;
+    };
+    expect(renamesAfterRedoBody.renames.filter(({ oldPath, newPath }) =>
+      (oldPath === 'color.base' && newPath === 'color.brand') ||
+      (oldPath === 'color.brand' && newPath === 'color.base')
+    )).toEqual([{ oldPath: 'color.base', newPath: 'color.brand' }]);
+
+    const setRes = await fetch(url(`/api/sets/${setName}`));
+    expect(setRes.ok).toBe(true);
+    const setBody = await setRes.json();
+    expect(setBody.tokens.color.brand.$value).toBe('#123456');
+    expect(setBody.tokens.color.alias.$value).toBe('{color.brand}');
+    expect(setBody.tokens.color.base).toBeUndefined();
   });
 });
 

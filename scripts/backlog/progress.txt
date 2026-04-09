@@ -537,3 +537,11 @@
   - When historical toast data is string-only, practical inbox actions can still come from lightweight message heuristics as long as token paths are reconciled against live workspace state before navigating.
   - Sticky blocker sections work best when deduping happens before filtering, so repeated failures stay visible without overwhelming the rest of the inbox.
 ---
+## 2026-04-09 - [Add regression coverage for uncapped operation history and rename propagation persistence]
+- Added API coverage that records 55 unrelated set-creation operations, then verifies `/api/operations` can return the first 50 entries and page into the remaining five with `offset=50`.
+- Added rollback/redo coverage for `/api/operations/path-renames`, asserting the rename feed swaps to the inverse pair on rollback and restores the original pair on redo while the token state follows the same lifecycle.
+- Files changed: `packages/server/src/__tests__/api.test.ts` ~L45, ~L403, ~L449; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Operation-history pagination tests should assert specific entry ordering across page boundaries, not just total counts, because the API stores entries oldest-first and pages from the newest end.
+  - Rename-propagation tests need to filter the path-rename feed by the paths under test since unrelated rename operations can remain active across the shared API suite.
+---
