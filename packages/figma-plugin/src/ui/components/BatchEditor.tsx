@@ -29,6 +29,11 @@ interface BatchEditorProps {
   onApply: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRequestDelete?: () => void;
+  selectionScope?: {
+    source: 'current-scope' | 'saved-preset';
+    title: string;
+    detail: string;
+  } | null;
 }
 
 type NumericOpMode = 'multiply' | 'divide' | 'add' | 'subtract';
@@ -174,6 +179,7 @@ export function BatchEditor({
   onApply,
   onPushUndo,
   onRequestDelete,
+  selectionScope = null,
 }: BatchEditorProps) {
   const [description, setDescription] = useState('');
   const [opacityPct, setOpacityPct] = useState('');
@@ -971,7 +977,20 @@ export function BatchEditor({
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
       <div className="flex items-center justify-between px-2 pt-2 pb-1">
-        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Batch edit {selectedPaths.size} token{selectedPaths.size !== 1 ? 's' : ''}</span>
+        <div className="min-w-0">
+          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            Bulk edit {selectedPaths.size} token{selectedPaths.size !== 1 ? 's' : ''}
+          </div>
+          {selectionScope && (
+            <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+              <span className="shrink-0 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 font-medium text-[var(--color-figma-text-secondary)]">
+                {selectionScope.source === 'saved-preset' ? 'Saved scope' : 'Current scope'}
+              </span>
+              <span className="truncate text-[var(--color-figma-text-secondary)]">{selectionScope.title}</span>
+              <span className="truncate font-mono">{selectionScope.detail}</span>
+            </div>
+          )}
+        </div>
         <PanelHelpHint
           panelKey="batch-editor"
           title="Batch Editor"

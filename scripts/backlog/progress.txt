@@ -412,3 +412,11 @@
   - When a backlog item revisits temporary docs, check recent doc-only commits before editing: the cleanup may already be complete and the correct outcome is a stale-success closeout instead of another rewrite.
   - A redesign doc that only records current-state shell ownership and implementation anchors is no longer a planning artifact, even if it still lives under `docs/redesign/`.
 ---
+## 2026-04-09 - [Promote bulk token editing in `packages/figma-plugin/src/ui/components/TokenList.tsx` and `packages/figma-plugin/src/ui/components/BatchEditor.tsx` into a first-class workflow with query-backed scopes or saved selections, because the most powerful maintenance tools currently only appear after entering select mode and hand-picking rows.]
+- Added a toolbar-level bulk maintenance launcher that can open the batch editor for the current visible search scope or for saved filter presets, so bulk editing no longer depends on manually entering multi-select mode first.
+- Threaded scope metadata into `BatchEditor` so launches from the current query or a saved preset stay visible after selection is materialized, while keeping the existing manual multi-select path available as an advanced fallback.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L74, ~L129, ~L937, ~L1082, ~L2478, ~L2716; `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L22, ~L172, ~L977; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Saved filter presets already act as durable query scopes, so promoting a batch workflow can often reuse them instead of inventing a second persistence model for bulk selections.
+  - Focused `eslint` runs are useful for touched UI files in this repo; focused `tsc -p packages/figma-plugin/tsconfig.json --noEmit` is still dominated by pre-existing workspace/core build drift and unrelated plugin errors.
+---

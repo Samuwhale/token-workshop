@@ -71,6 +71,18 @@ const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
 const VALID_SORT_ORDERS: SortOrder[] = ['default', 'alpha-asc', 'by-type'];
 
+type BulkEditScope = {
+  source: 'current-scope' | 'saved-preset';
+  title: string;
+  detail: string;
+};
+
+type PendingBulkPresetLaunch = {
+  presetId: string;
+  presetName: string;
+  query: string;
+};
+
 function dispatchTokenListViewChanged(setName: string): void {
   window.dispatchEvent(new CustomEvent('tm-token-list-view-changed', { detail: { setName } }));
 }
@@ -114,6 +126,9 @@ export function TokenList({
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
   const [filterBuilderOpen, setFilterBuilderOpen] = useState(false);
   const [activeFilterBuilderSection, setActiveFilterBuilderSection] = useState<FilterBuilderSection | null>(null);
+  const [bulkWorkflowOpen, setBulkWorkflowOpen] = useState(false);
+  const [activeBulkEditScope, setActiveBulkEditScope] = useState<BulkEditScope | null>(null);
+  const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] = useState<PendingBulkPresetLaunch | null>(null);
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
@@ -174,6 +189,7 @@ export function TokenList({
   // Expand/collapse state managed by useTokenExpansion (called below)
   const [viewOptionsOpen, setViewOptionsOpen] = useState(false);
   const viewOptionsRef = useRef<HTMLDivElement>(null);
+  const bulkWorkflowRef = useRef<HTMLDivElement>(null);
   // createFormRef is managed by useTokenCreate hook
   const virtualListRef = useRef<HTMLDivElement>(null);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
@@ -230,6 +246,24 @@ export function TokenList({
       document.removeEventListener('keydown', onKey);
     };
   }, [viewOptionsOpen]);
+
+  useEffect(() => {
+    if (!bulkWorkflowOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (bulkWorkflowRef.current && !bulkWorkflowRef.current.contains(e.target as Node)) {
+        setBulkWorkflowOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setBulkWorkflowOpen(false);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [bulkWorkflowOpen]);
 
   // Sort order — persisted in localStorage per-set so each set remembers its own order
   const [sortOrder, setSortOrderState] = useState<SortOrder>('default');
@@ -900,6 +934,29 @@ export function TokenList({
 
   const hasStructuredFilters = structuredFilterChips.length > 0;
 
+  const currentBulkEditScope = useMemo<BulkEditScope>(() => {
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery) {
+      return {
+        source: 'current-scope',
+        title: 'Current query results',
+        detail: trimmedQuery,
+      };
+    }
+    if (activeFilterSummary.length > 0) {
+      return {
+        source: 'current-scope',
+        title: 'Current filtered tokens',
+        detail: activeFilterSummary.join(' · '),
+      };
+    }
+    return {
+      source: 'current-scope',
+      title: `All tokens in ${setName}`,
+      detail: 'No search or filter constraints',
+    };
+  }, [activeFilterSummary, searchQuery, setName]);
+
   const getPreferredFilterBuilderSection = useCallback((): FilterBuilderSection => {
     if (parsedSearchQuery.types.length > 0) return 'type';
     if (selectedHasQualifiers.length > 0) return 'has';
@@ -1021,6 +1078,80 @@ export function TokenList({
 
   // Wire up the clearSelection ref now that useTokenSelection has been called
   clearSelectionRef.current = () => { setSelectMode(false); setSelectedPaths(new Set()); };
+
+  const openBulkEditorForPaths = useCallback((paths: Set<string>, scope: BulkEditScope) => {
+    if (paths.size === 0) {
+      dispatchToast('No tokens match that bulk-edit scope.', 'error');
+      return;
+    }
+    setSelectMode(true);
+    setSelectedPaths(paths);
+    setShowBatchEditor(true);
+    setActiveBulkEditScope(scope);
+    setBulkWorkflowOpen(false);
+    setViewOptionsOpen(false);
+  }, [setSelectMode, setSelectedPaths, setShowBatchEditor]);
+
+  const handleOpenBulkWorkflowForVisibleTokens = useCallback(() => {
+    if (crossSetSearch) {
+      dispatchToast('Turn off "Search all sets" before bulk editing tokens in this set.', 'error');
+      return;
+    }
+    openBulkEditorForPaths(
+      new Set(displayedLeafNodes.map(node => node.path)),
+      currentBulkEditScope,
+    );
+  }, [crossSetSearch, currentBulkEditScope, displayedLeafNodes, openBulkEditorForPaths]);
+
+  const handleOpenBulkWorkflowForPreset = useCallback((preset: { id: string; name: string; query: string }) => {
+    setCrossSetSearch(false);
+    setPendingBulkPresetLaunch({
+      presetId: preset.id,
+      presetName: preset.name,
+      query: preset.query,
+    });
+    setSearchQuery(preset.query);
+  }, [setCrossSetSearch, setSearchQuery]);
+
+  useEffect(() => {
+    if (!pendingBulkPresetLaunch) return;
+    if (crossSetSearch) return;
+    if (searchQuery !== pendingBulkPresetLaunch.query) return;
+    const presetPaths = new Set(displayedLeafNodes.map(node => node.path));
+    if (presetPaths.size === 0) {
+      dispatchToast(`Saved scope "${pendingBulkPresetLaunch.presetName}" does not match any tokens in ${setName}.`, 'error');
+      setPendingBulkPresetLaunch(null);
+      return;
+    }
+    openBulkEditorForPaths(presetPaths, {
+      source: 'saved-preset',
+      title: pendingBulkPresetLaunch.presetName,
+      detail: pendingBulkPresetLaunch.query,
+    });
+    setPendingBulkPresetLaunch(null);
+  }, [
+    crossSetSearch,
+    displayedLeafNodes,
+    openBulkEditorForPaths,
+    pendingBulkPresetLaunch,
+    searchQuery,
+    setName,
+  ]);
+
+  useEffect(() => {
+    if (!selectMode || selectedPaths.size === 0) {
+      setActiveBulkEditScope(null);
+    }
+    if (selectMode) {
+      setBulkWorkflowOpen(false);
+    }
+  }, [selectMode, selectedPaths.size]);
+
+  const bulkWorkflowDisabledReason = useMemo(() => {
+    if (crossSetSearch) return 'Bulk editing runs against the current set only. Turn off "Search all sets" first.';
+    if (displayedLeafNodes.length === 0) return 'No tokens match the current search scope.';
+    return null;
+  }, [crossSetSearch, displayedLeafNodes.length]);
 
   const tokenCrud = useTokenCrud({
     connected,
@@ -2348,7 +2479,7 @@ export function TokenList({
                   onClick={() => setShowBatchEditor(v => !v)}
                   className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                 >
-                  Edit {selectedPaths.size} selected
+                  Bulk edit {selectedPaths.size}
                 </button>
                 {selectedPaths.size >= 2 && onOpenCompare && (
                   <button
@@ -2449,6 +2580,7 @@ export function TokenList({
             onApply={onRefresh}
             onPushUndo={onPushUndo}
             onRequestDelete={requestBulkDelete}
+            selectionScope={activeBulkEditScope}
           />
         )}
 
@@ -2580,6 +2712,100 @@ export function TokenList({
                     </span>
                   )}
                 </button>
+
+                <div className="relative shrink-0" ref={bulkWorkflowRef}>
+                  <button
+                    onClick={() => setBulkWorkflowOpen(open => !open)}
+                    aria-expanded={bulkWorkflowOpen}
+                    aria-haspopup="dialog"
+                    className={`inline-flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${bulkWorkflowOpen ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'}`}
+                    title="Open the bulk-edit workflow"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 11H3" />
+                      <path d="M21 11h-6" />
+                      <path d="M12 8v6" />
+                      <path d="M4 6h4v10H4z" />
+                      <path d="M16 4h4v14h-4z" />
+                    </svg>
+                    <span>Bulk edit</span>
+                    <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
+                      {displayedLeafNodes.length}
+                    </span>
+                  </button>
+
+                  {bulkWorkflowOpen && (
+                    <div className="absolute right-0 top-full z-50 mt-1 w-[320px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+                      <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+                        <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Bulk maintenance</div>
+                        <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          Launch bulk edits directly from the current search scope or a saved preset without hand-picking rows first.
+                        </div>
+                      </div>
+                      <div className="space-y-3 p-3">
+                        <section className="space-y-2">
+                          <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Current scope</div>
+                          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">{currentBulkEditScope.title}</div>
+                            <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                              {currentBulkEditScope.detail}
+                            </div>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                                {displayedLeafNodes.length} token{displayedLeafNodes.length === 1 ? '' : 's'} ready
+                              </div>
+                              <button
+                                onClick={handleOpenBulkWorkflowForVisibleTokens}
+                                disabled={bulkWorkflowDisabledReason !== null}
+                                className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                Edit results
+                              </button>
+                            </div>
+                            {bulkWorkflowDisabledReason && (
+                              <div className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                                {bulkWorkflowDisabledReason}
+                              </div>
+                            )}
+                          </div>
+                        </section>
+
+                        <section className="space-y-2">
+                          <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Saved scopes</div>
+                          {filterPresets.length === 0 ? (
+                            <div className="rounded border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                              Save a filter preset in View options to reopen the same bulk-edit scope later.
+                            </div>
+                          ) : (
+                            <div className="max-h-[220px] space-y-1 overflow-y-auto">
+                              {filterPresets.map(preset => {
+                                const launchingPreset = pendingBulkPresetLaunch?.presetId === preset.id;
+                                return (
+                                  <div key={preset.id} className="flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+                                    <button
+                                      onClick={() => handleOpenBulkWorkflowForPreset(preset)}
+                                      className="min-w-0 flex-1 text-left"
+                                      title={`Launch bulk edit for ${preset.query}`}
+                                    >
+                                      <div className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">{preset.name}</div>
+                                      <div className="truncate font-mono text-[9px] text-[var(--color-figma-text-tertiary)]">{preset.query}</div>
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenBulkWorkflowForPreset(preset)}
+                                      className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                                    >
+                                      {launchingPreset ? 'Preparing…' : 'Use'}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </section>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="relative shrink-0" ref={viewOptionsRef}>
                   <button
@@ -2841,7 +3067,7 @@ export function TokenList({
                           }}
                           className="w-full rounded border border-[var(--color-figma-border)] px-2 py-1 text-left text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                         >
-                          Select, compare, or batch edit tokens
+                          Open manual multi-select
                         </button>
                         <button
                           onClick={() => {
