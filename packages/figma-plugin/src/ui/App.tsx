@@ -3503,6 +3503,7 @@ export function App() {
                       closeSecondarySurface();
                       navigateTo("define", "tokens");
                       refreshTokens();
+                      openStartHere("guided-setup", true);
                     }}
                     notificationHistory={notificationHistory}
                     clearNotificationHistory={clearNotificationHistory}

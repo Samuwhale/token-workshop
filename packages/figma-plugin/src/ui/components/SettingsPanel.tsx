@@ -6,8 +6,7 @@ import {
   lsSet,
   lsGetJson,
   lsSetJson,
-  lsRemove,
-  lsClearByPrefix,
+  resetWorkspaceStateForRecovery,
 } from "../shared/storage";
 import { apiFetch } from "../shared/apiFetch";
 import { PLATFORMS } from "../shared/platforms";
@@ -423,7 +422,7 @@ export interface SettingsPanelProps {
   updateServerUrlAndConnect: (url: string) => Promise<boolean>;
   // Guided setup
   onRestartGuidedSetup: () => void;
-  /** Called after deleting workspace data so the caller can navigate + refresh. */
+  /** Called after deleting workspace data so the caller can refresh into recovery. */
   onClearAllComplete?: () => void;
   // Close
   onClose: () => void;
@@ -535,24 +534,7 @@ export function SettingsPanel({
     } catch (err) {
       console.warn("[SettingsPanel] clear all data request failed:", err);
     }
-    for (const key of [
-      STORAGE_KEYS.ACTIVE_SET,
-      STORAGE_KEYS.ANALYTICS_CANONICAL,
-      STORAGE_KEYS.THEME_CARD_ORDER,
-      STORAGE_KEYS.IMPORT_TARGET_SET,
-      STORAGE_KEYS.ACTIVE_TOP_TAB,
-      STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE,
-      STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY,
-      STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP,
-      STORAGE_KEYS.ACTIVE_RESOLVER,
-      STORAGE_KEYS.RESOLVER_INPUT,
-    ]) {
-      lsRemove(key);
-    }
-    lsClearByPrefix(
-      STORAGE_PREFIXES.TOKEN_SORT,
-      STORAGE_PREFIXES.TOKEN_TYPE_FILTER,
-    );
+    resetWorkspaceStateForRecovery();
     setClearing(false);
     setShowClearConfirm(false);
     setClearConfirmText("");
@@ -1523,7 +1505,8 @@ export function SettingsPanel({
                   <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
                     Re-open the onboarding flow when you want help reconnecting
                     the server, creating a foundation set, mapping semantic
-                    roles, or rebuilding your theme setup from scratch.
+                    roles, or rebuilding your theme setup from scratch after a
+                    full workspace wipe.
                   </p>
                   <button
                     onClick={onRestartGuidedSetup}
@@ -1814,7 +1797,7 @@ export function SettingsPanel({
             showSection("danger") && (
               <GroupIntro
                 title="Workspace reset"
-                description="This section is only for a full workspace wipe. It deletes token data in the plugin and on the local server, but it does not automatically reset onboarding or other saved preference state."
+                description="This section is only for a full workspace wipe. It deletes token data in the plugin and on the local server, then routes you into guided recovery so you can reconnect or rebuild intentionally."
                 note="Irreversible"
                 tone="danger"
               />
@@ -1832,9 +1815,9 @@ export function SettingsPanel({
                   <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
                     This permanently deletes workspace data: tokens, themes,
                     sets, plus generator, resolver, and undo-history records
-                    stored on the local server. It does not reset your saved
-                    preferences or automatically re-open onboarding / the start
-                    flow.
+                    stored on the local server. Saved preferences stay intact,
+                    but the app resets its start-flow completion state and
+                    reopens guided setup so you can recover from a clean slate.
                   </p>
                   <button
                     onClick={() => {
@@ -1854,8 +1837,9 @@ export function SettingsPanel({
                       DELETE
                     </span>{" "}
                     to confirm permanent removal of tokens, themes, sets, and
-                    local server generator / resolver / history data. Your
-                    onboarding and start-flow completion state will stay as-is.
+                    local server generator / resolver / history data. The app
+                    will then reopen guided setup so you can reconnect or
+                    rebuild from an explicit recovery flow.
                   </p>
                   <input
                     type="text"

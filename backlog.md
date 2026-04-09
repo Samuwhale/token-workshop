@@ -74,7 +74,7 @@
 - [x] Create one shared conflict-review contract for single-set and multi-set imports
 - [x] Separate Settings recovery workflows from destructive reset controls
 - [x] Clarify scope and consequences for settings restore versus workspace reset
-- [ ] Route clean-slate reset into an explicit recovery start flow
+- [x] Route clean-slate reset into an explicit recovery start flow
 - [ ] Investigate fresh-worktree server dependency resolution during backlog validation
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

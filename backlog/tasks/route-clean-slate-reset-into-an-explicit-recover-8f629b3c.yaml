@@ -12,11 +12,12 @@ capabilities:
 validation_profile: backlog
 status_notes:
   - "Context: `handleClearAll()` removes active-set/navigation keys but leaves `tm_first_run_done` intact, and `App.tsx` currently closes Settings, navigates to Tokens, and refreshes tokens without reopening the recovery flow."
-state: ready
+  - "Completed: Centralized post-wipe recovery storage cleanup, cleared stale onboarding state, and now reopen guided setup after Clear all data completes."
+state: done
 acceptance_criteria:
   - After `Clear all data` completes, the app lands in an explicit recovery/start flow (`Start here` or `guided setup`) instead of only refreshing the Tokens workspace.
   - The reset path handles any persisted onboarding flags needed for that recovery landing in one place rather than relying on stale `FIRST_RUN_DONE` state.
   - Settings copy and callbacks stay aligned with the new post-reset landing so users know how to rebuild after a wipe.
 source: task-followup
 created_at: 2026-04-09T14:43:33.243Z
-updated_at: 2026-04-09T14:43:33.243Z
+updated_at: 2026-04-09T17:04:46.901Z

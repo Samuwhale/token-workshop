@@ -76,6 +76,21 @@ export const STORAGE_PREFIXES = {
   TOKEN_SHOW_RESOLVED_VALUES: 'tm_show_resolved_values:',
 } as const;
 
+const WORKSPACE_RECOVERY_RESET_KEYS = [
+  STORAGE_KEYS.ACTIVE_SET,
+  STORAGE_KEYS.ACTIVE_TAB,
+  STORAGE_KEYS.ACTIVE_TOP_TAB,
+  STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE,
+  STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY,
+  STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP,
+  STORAGE_KEYS.ANALYTICS_CANONICAL,
+  STORAGE_KEYS.IMPORT_TARGET_SET,
+  STORAGE_KEYS.THEME_CARD_ORDER,
+  STORAGE_KEYS.ACTIVE_RESOLVER,
+  STORAGE_KEYS.RESOLVER_INPUT,
+  STORAGE_KEYS.FIRST_RUN_DONE,
+] as const;
+
 // ---------------------------------------------------------------------------
 // Primitive helpers
 // ---------------------------------------------------------------------------
@@ -143,4 +158,18 @@ export function lsClearByPrefix(...prefixes: string[]): void {
       try { localStorage.removeItem(k); } catch (e) { console.debug('[storage] prefix remove failed:', k, e); }
     }
   } catch (e) { console.debug('[storage] prefix clear failed:', e); }
+}
+
+/**
+ * Clear persisted workspace-selection state so a full data wipe can relaunch
+ * the explicit recovery / Start here flow without stale onboarding flags.
+ */
+export function resetWorkspaceStateForRecovery(): void {
+  for (const key of WORKSPACE_RECOVERY_RESET_KEYS) {
+    lsRemove(key);
+  }
+  lsClearByPrefix(
+    STORAGE_PREFIXES.TOKEN_SORT,
+    STORAGE_PREFIXES.TOKEN_TYPE_FILTER,
+  );
 }

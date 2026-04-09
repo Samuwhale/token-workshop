@@ -15,10 +15,11 @@ status_notes:
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T15:49:10.292Z"
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T16:21:14.096Z"
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T16:46:49.353Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T17:15:56.597Z"
 state: ready
 acceptance_criteria:
   - Fresh worktrees bootstrap dependency resolution reliably before validation reruns.
   - Repo validation reruns no longer fail with missing-module workspace errors unrelated to completed task code.
 source: task-followup
 created_at: 2026-04-09T15:12:47.830Z
-updated_at: 2026-04-09T16:31:49.364Z
+updated_at: 2026-04-09T17:00:56.607Z
