@@ -4,7 +4,13 @@ import type { ThemeDimension, ThemeOption } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { ResolverContentProps } from './ResolverPanel';
 import { ResolverContent } from './ResolverPanel';
-import { STATE_LABELS, STATE_DESCRIPTIONS } from './themeManagerTypes';
+import {
+  STATE_LABELS,
+  STATE_DESCRIPTIONS,
+  getThemeOptionRolePriorityWeight,
+  summarizeThemeOptionRoles,
+  type ThemeOptionRoleSummary,
+} from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
 import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
 import { UnifiedComparePanel } from './UnifiedComparePanel';
@@ -194,6 +200,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   useEffect(() => { onGapsDetected?.(totalFillableGaps); }, [totalFillableGaps, onGapsDetected]);
 
+  const setTokenCounts = useMemo(() => {
+    const counts: Record<string, number | null> = {};
+    for (const setName of sets) {
+      counts[setName] = setTokenValues[setName] ? Object.keys(setTokenValues[setName]).length : null;
+    }
+    return counts;
+  }, [setTokenValues, sets]);
+
   const getDimensionForContext = useCallback((preferredId?: string | null) => {
     if (preferredId) {
       const matched = dimensions.find(dim => dim.id === preferredId);
@@ -278,17 +292,37 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       return;
     }
 
+    let bestTarget: { dimId: string; optionName: string; summary: ThemeOptionRoleSummary } | null = null;
     for (const dimension of dimensions) {
       for (const option of dimension.options) {
-        const hasAssignedSet = Object.values(option.sets).some((status) => status === 'source' || status === 'enabled');
-        if (!hasAssignedSet) {
-          setFocusedDimensionId(dimension.id);
-          setSelectedOptions(prev => ({ ...prev, [dimension.id]: option.name }));
-          scrollToDimension(dimension.id);
-          scrollToSetRoles(dimension.id, option.name);
-          return;
+        const summary = summarizeThemeOptionRoles({
+          option,
+          orderedSets: optionSetOrders[dimension.id]?.[option.name] || sets,
+          availableSets: sets,
+          tokenCountsBySet: setTokenCounts,
+          uncoveredCount: coverage[dimension.id]?.[option.name]?.uncovered.length ?? 0,
+          missingOverrideCount: missingOverrides[dimension.id]?.[option.name]?.missing.length ?? 0,
+        });
+        if (summary.priority === 'ready') continue;
+        if (!bestTarget) {
+          bestTarget = { dimId: dimension.id, optionName: option.name, summary };
+          continue;
+        }
+
+        const currentWeight = getThemeOptionRolePriorityWeight(bestTarget.summary.priority);
+        const candidateWeight = getThemeOptionRolePriorityWeight(summary.priority);
+        if (candidateWeight < currentWeight || (candidateWeight === currentWeight && summary.totalIssueCount > bestTarget.summary.totalIssueCount)) {
+          bestTarget = { dimId: dimension.id, optionName: option.name, summary };
         }
       }
+    }
+
+    if (bestTarget) {
+      setFocusedDimensionId(bestTarget.dimId);
+      setSelectedOptions(prev => ({ ...prev, [bestTarget.dimId]: bestTarget.optionName }));
+      scrollToDimension(bestTarget.dimId);
+      scrollToSetRoles(bestTarget.dimId, bestTarget.optionName);
+      return;
     }
 
     const fallbackDimension = getDimensionForContext();
@@ -305,12 +339,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     getDimensionForContext,
     getOptionNameForContext,
     openCreateDim,
+    optionSetOrders,
+    coverage,
+    missingOverrides,
     scrollToDimension,
     scrollToPreview,
     scrollToSetRoles,
     setSelectedOptions,
+    setTokenCounts,
     setShowAddOption,
     setShowCompare,
+    sets,
   ]);
 
   // --- Create override set ---
@@ -614,12 +653,29 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     return counts;
   }, [dimensions, selectedOptions, setTokenValues]);
 
+  const optionRoleSummaries = useMemo(() => {
+    const summaries: Record<string, ThemeOptionRoleSummary> = {};
+    for (const dimension of dimensions) {
+      for (const option of dimension.options) {
+        summaries[`${dimension.id}:${option.name}`] = summarizeThemeOptionRoles({
+          option,
+          orderedSets: optionSetOrders[dimension.id]?.[option.name] || sets,
+          availableSets: sets,
+          tokenCountsBySet: setTokenCounts,
+          uncoveredCount: coverage[dimension.id]?.[option.name]?.uncovered.length ?? 0,
+          missingOverrideCount: missingOverrides[dimension.id]?.[option.name]?.missing.length ?? 0,
+        });
+      }
+    }
+    return summaries;
+  }, [coverage, dimensions, missingOverrides, optionSetOrders, setTokenCounts, sets]);
+
   // --- Render helpers ---
 
   const renderSetRow = (dim: ThemeDimension, opt: ThemeOption, setName: string, status: string) => {
     const isSaving = savingKeys.has(`${dim.id}/${opt.name}/${setName}`);
     const _saveKey = `${dim.id}/${opt.name}/${setName}`;
-    const tokenCount = setTokenValues[setName] ? Object.keys(setTokenValues[setName]).length : null;
+    const tokenCount = setTokenCounts[setName] ?? null;
     const isEmptyOverride = status === 'enabled' && tokenCount !== null && tokenCount === 0;
     return (
       <div
@@ -1348,6 +1404,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 const selectedOpt = selectedOptions[dim.id] || dim.options[0]?.name || '';
                 const opt = dim.options.find(o => o.name === selectedOpt);
                 const optSets = opt ? (optionSetOrders[dim.id]?.[opt.name] || sets) : sets;
+                const optionSummary = opt ? optionRoleSummaries[`${dim.id}:${opt.name}`] : null;
                 const dimIdx = dimensions.indexOf(dim);
                 const layerNum = dimensions.length - dimIdx;
 
@@ -1358,10 +1415,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 const isDisabledCollapsed = collapsedDisabled.has(dim.id);
 
                 const covKey = `${dim.id}:${selectedOpt}`;
-                const hasUncovered = (coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0;
-                const staleSetNames = opt
-                  ? Object.entries(opt.sets).filter(([s, status]) => !sets.includes(s) && status !== 'disabled').map(([s]) => s)
-                  : [];
+                const hasUncovered = (optionSummary?.uncoveredCount ?? 0) > 0;
+                const staleSetNames = optionSummary?.staleSetNames ?? [];
 
                 // Cross-option gap totals for this dimension
                 const dimCov = coverage[dim.id] ?? {};
@@ -1533,8 +1588,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       >
                         {dim.options.map((o, _oIdx) => {
                           const optMatches = dimSearch.trim() !== '' && o.name.toLowerCase().includes(dimSearch.trim().toLowerCase());
-                          const optMissingCount = coverage[dim.id]?.[o.name]?.uncovered.length ?? 0;
-                          const optMissingOverrideCount = missingOverrides[dim.id]?.[o.name]?.missing.length ?? 0;
+                          const optSummary = optionRoleSummaries[`${dim.id}:${o.name}`];
+                          const optMissingCount = optSummary?.uncoveredCount ?? 0;
+                          const optMissingOverrideCount = optSummary?.missingOverrideCount ?? 0;
                           const isSelected = selectedOpt === o.name;
                           const diffCount = isSelected ? 0 : (optionDiffCounts[`${dim.id}/${o.name}`] ?? 0);
                           const isBeingDragged = draggingOpt?.dimId === dim.id && draggingOpt?.optionName === o.name;
@@ -1728,7 +1784,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                     Compare in Review tools
                                   </span>
                                 )}
-                                {((coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 || (missingOverrides[dim.id]?.[selectedOpt]?.missing.length ?? 0) > 0) && (
+                                {(optionSummary?.coverageIssueCount ?? 0) > 0 && (
                                   <span
                                     className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]"
                                     title={`Review ${dim.name} -> ${opt.name} from Review tools`}
@@ -1745,10 +1801,19 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 {hasUncovered && (
                                   <span
                                     className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/15 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]"
-                                    title={`${coverage[dim.id][selectedOpt].uncovered.length} tokens have no value in active sets`}
+                                    title={`${optionSummary?.uncoveredCount ?? 0} tokens have no value in active sets`}
                                   >
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                    {coverage[dim.id][selectedOpt].uncovered.length} gaps
+                                    {optionSummary?.uncoveredCount ?? 0} gaps
+                                  </span>
+                                )}
+                                {(optionSummary?.emptyOverrideCount ?? 0) > 0 && (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]"
+                                    title={`${optionSummary?.emptyOverrideCount ?? 0} override set${optionSummary?.emptyOverrideCount === 1 ? '' : 's'} contain no tokens`}
+                                  >
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5" /><circle cx="12" cy="16" r="0.5" fill="currentColor" /></svg>
+                                    {optionSummary?.emptyOverrideCount} empty override{optionSummary?.emptyOverrideCount === 1 ? '' : 's'}
                                   </span>
                                 )}
                                 {staleSetNames.length > 0 && (
@@ -1839,40 +1904,72 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             }}
                             className="border-t border-[var(--color-figma-border)]"
                           >
-                            {/* Merge model diagram — shows how Base + Override sets resolve to final tokens */}
-                            <div className="px-3 pt-2 pb-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 text-[9px]">
-                              <div className="text-[var(--color-figma-text-tertiary)] font-medium mb-1.5">How sets merge for this option:</div>
-                              <div className="flex items-center gap-1.5">
-                                {/* Stack: Override layer on top */}
-                                <div className="flex-1 flex flex-col gap-0.5">
-                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/10 border border-[var(--color-figma-success)]/25" title={STATE_DESCRIPTIONS['enabled']}>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-success)] flex-shrink-0" aria-hidden="true" />
-                                    <span className="font-semibold text-[var(--color-figma-success)]">Override</span>
-                                    <span className="text-[var(--color-figma-text-tertiary)] ml-auto">wins on conflict</span>
-                                  </div>
-                                  <div className="flex items-center justify-center text-[var(--color-figma-text-tertiary)] leading-none" aria-hidden="true">+</div>
-                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 border border-[var(--color-figma-accent)]/25" title={STATE_DESCRIPTIONS['source']}>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] flex-shrink-0" aria-hidden="true" />
-                                    <span className="font-semibold text-[var(--color-figma-accent)]">Base</span>
-                                    <span className="text-[var(--color-figma-text-tertiary)] ml-auto">all other tokens</span>
+                            <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="text-[10px] font-semibold text-[var(--color-figma-text)]">Set role summary</div>
+                                  <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                                    {optionSummary?.isUnmapped
+                                      ? 'Assign at least one Base or Override set to activate this option.'
+                                      : optionSummary?.hasAssignmentIssues
+                                        ? 'Clean up stale or empty assignments before relying on this option in preview.'
+                                        : optionSummary?.hasCoverageIssues
+                                          ? 'Role assignments are in place. Review remaining coverage gaps from the tools menu.'
+                                          : 'Base sets provide defaults, Override sets win on conflicts, and Excluded sets stay out of the resolved output.'}
                                   </div>
                                 </div>
-                                {/* Arrow → result */}
-                                <div className="flex flex-col items-center gap-0.5 text-[var(--color-figma-text-tertiary)] flex-shrink-0" aria-hidden="true">
-                                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8.5 3.5v7.086l2.793-2.793.707.707-3.5 3.5a.5.5 0 01-.707 0l-3.5-3.5.707-.707L7.5 10.586V3.5h1z" transform="rotate(-90 8 8)" /></svg>
-                                </div>
-                                {/* Result box */}
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] flex-shrink-0 self-center">
-                                  <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
-                                  <span className="text-[var(--color-figma-text-secondary)] font-medium">Resolved</span>
+                                <div className="flex flex-wrap items-center gap-1">
+                                  {optionSummary?.isUnmapped && (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)]">
+                                      Assign roles
+                                    </span>
+                                  )}
+                                  {(optionSummary?.emptyOverrideCount ?? 0) > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]">
+                                      {optionSummary?.emptyOverrideCount} empty override{optionSummary?.emptyOverrideCount === 1 ? '' : 's'}
+                                    </span>
+                                  )}
+                                  {staleSetNames.length > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-error)]">
+                                      {staleSetNames.length} stale set{staleSetNames.length === 1 ? '' : 's'}
+                                    </span>
+                                  )}
+                                  {(optionSummary?.coverageIssueCount ?? 0) > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]">
+                                      {optionSummary?.coverageIssueCount} coverage issue{optionSummary?.coverageIssueCount === 1 ? '' : 's'}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                              <div className="mt-1 text-[var(--color-figma-text-tertiary)] opacity-70">
-                                <span className="inline-flex items-center gap-0.5">
-                                  <span className="w-1 h-1 rounded-full bg-[var(--color-figma-text-tertiary)]/50 inline-block" aria-hidden="true" />
-                                  Excluded
-                                </span>
-                                {' '}sets are not included in resolved output.
+                              <div className="mt-2 grid grid-cols-3 gap-1.5">
+                                {[
+                                  {
+                                    label: 'Base',
+                                    count: optionSummary?.baseCount ?? 0,
+                                    toneClass: 'border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]',
+                                    description: 'Default token values',
+                                  },
+                                  {
+                                    label: 'Override',
+                                    count: optionSummary?.overrideCount ?? 0,
+                                    toneClass: 'border-[var(--color-figma-success)]/25 bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]',
+                                    description: 'Wins on conflicts',
+                                  },
+                                  {
+                                    label: 'Excluded',
+                                    count: optionSummary?.excludedCount ?? 0,
+                                    toneClass: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]',
+                                    description: 'Ignored in output',
+                                  },
+                                ].map((card) => (
+                                  <div key={card.label} className={`rounded border px-2 py-1 ${card.toneClass}`}>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-[9px] font-semibold">{card.label}</span>
+                                      <span className="text-[11px] font-bold leading-none">{card.count}</span>
+                                    </div>
+                                    <div className="mt-0.5 text-[8px] leading-tight opacity-80">{card.description}</div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                             {/* Batch assignment toolbar — set all sets to one state at once */}
@@ -1907,7 +2004,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               <div>
                                 <div className="px-3 py-0.5 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-success)] bg-[var(--color-figma-success)]/5">
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
-                                  Override ({overrideSets.length})
+                                  Override ({optionSummary?.overrideCount ?? overrideSets.length})
                                   <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">highest priority</span>
                                 </div>
                                 {overrideSets.map(s => renderSetRow(dim, opt, s, 'enabled'))}
@@ -1919,7 +2016,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               <div>
                                 <div className="px-3 py-0.5 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5">
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="3" opacity="0.3" /></svg>
-                                  Base ({foundationSets.length})
+                                  Base ({optionSummary?.baseCount ?? foundationSets.length})
                                   <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">default values</span>
                                 </div>
                                 {foundationSets.map(s => renderSetRow(dim, opt, s, 'source'))}
@@ -1939,33 +2036,15 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   title={STATE_DESCRIPTIONS['disabled']}
                                 >
                                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isDisabledCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                                  Excluded ({disabledSets.length})
+                                  Excluded ({optionSummary?.excludedCount ?? disabledSets.length})
                                 </button>
                                 {!isDisabledCollapsed && disabledSets.map(s => renderSetRow(dim, opt, s, 'disabled'))}
-                              </div>
-                            )}
-
-                            {/* Getting started hint — shown when no sets are assigned yet */}
-                            {overrideSets.length === 0 && foundationSets.length === 0 && disabledSets.length > 0 && !isDisabledCollapsed && (
-                              <div className="mx-3 my-2 px-2.5 py-2 rounded border border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/5 text-[9px]">
-                                <div className="font-semibold text-[var(--color-figma-accent)] mb-1">Assign sets to activate this option</div>
-                                <div className="flex flex-col gap-1 text-[var(--color-figma-text-secondary)]">
-                                  <div className="flex items-start gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] flex-shrink-0 mt-0.5" aria-hidden="true" />
-                                    <span><span className="font-medium text-[var(--color-figma-accent)]">Base</span> — full-coverage sets that define all token values (e.g. a global primitives set)</span>
-                                  </div>
-                                  <div className="flex items-start gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-success)] flex-shrink-0 mt-0.5" aria-hidden="true" />
-                                    <span><span className="font-medium text-[var(--color-figma-success)]">Override</span> — sets that replace specific tokens for this variant (e.g. a dark-mode color set)</span>
-                                  </div>
-                                </div>
-                                <div className="mt-1.5 text-[var(--color-figma-text-tertiary)]">Expand &ldquo;Excluded&rdquo; below and assign each set a role.</div>
                               </div>
                             )}
                           </div>
                         )}
 
-                        {((coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 || (missingOverrides[dim.id]?.[selectedOpt]?.missing.length ?? 0) > 0) && (
+                        {(optionSummary?.coverageIssueCount ?? 0) > 0 && (
                           <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
                             Review gaps and override coverage from <span className="font-medium text-[var(--color-figma-text)]">Review tools</span>, then return here to adjust set roles for <span className="font-medium text-[var(--color-figma-text)]">{opt.name}</span>.
                           </div>

@@ -205,7 +205,17 @@ export function App() {
     () => resolveSecondarySurface(activeSecondarySurface),
     [activeSecondarySurface],
   );
-  const themeWorkflowSummary = useMemo(() => summarizeThemeWorkflow(dimensions), [dimensions]);
+  const themeSetTokenCounts = useMemo(() => {
+    const counts: Record<string, number | null> = {};
+    for (const setName of sets) {
+      counts[setName] = Object.keys(perSetFlat[setName] ?? {}).length;
+    }
+    return counts;
+  }, [perSetFlat, sets]);
+  const themeWorkflowSummary = useMemo(
+    () => summarizeThemeWorkflow(dimensions, { availableSets: sets, setTokenCounts: themeSetTokenCounts }),
+    [dimensions, sets, themeSetTokenCounts],
+  );
   const applyWorkflowSummary = useMemo(
     () => summarizeApplyWorkflow(selectedNodes, allTokensFlat),
     [allTokensFlat, selectedNodes],
@@ -282,6 +292,18 @@ export function App() {
       case 'advanced':
         return 'Use DTCG resolvers only when the default axis, option, and set-role workflow no longer captures the resolution logic you need.';
       default:
+        if (themeWorkflowSummary.currentStage === 'set-roles' && themeWorkflowSummary.unmappedOptionCount > 0) {
+          const target = themeWorkflowSummary.nextSetRoleTarget;
+          return target
+            ? `${themeWorkflowSummary.unmappedOptionCount} option${themeWorkflowSummary.unmappedOptionCount === 1 ? '' : 's'} still need a Base or Override set. Start with ${target.dimensionName} -> ${target.optionName}.`
+            : `${themeWorkflowSummary.unmappedOptionCount} option${themeWorkflowSummary.unmappedOptionCount === 1 ? '' : 's'} still need a Base or Override set before preview is reliable.`;
+        }
+        if (themeWorkflowSummary.currentStage === 'set-roles' && themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0) {
+          const target = themeWorkflowSummary.nextSetRoleTarget;
+          return target
+            ? `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} mapped option${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? '' : 's'} still need stale or empty assignments cleaned up. Start with ${target.dimensionName} -> ${target.optionName}.`
+            : `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} mapped option${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? '' : 's'} still need stale or empty assignments cleaned up.`;
+        }
         return themeShellState.showPreview
           ? 'Create axes, add options, map base and override sets, and review the live resolved output below before reaching for advanced logic.'
           : 'Create axes, add options, map base and override sets, and preview the active combination before reaching for advanced logic.';
@@ -301,6 +323,10 @@ export function App() {
     applyWorkflowSummary.suggestionCount,
     themeShellState.activeView,
     themeShellState.showPreview,
+    themeWorkflowSummary.currentStage,
+    themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount,
+    themeWorkflowSummary.nextSetRoleTarget,
+    themeWorkflowSummary.unmappedOptionCount,
   ]);
 
   // Track external file change refreshes so we can show a diff toast
@@ -1161,12 +1187,14 @@ export function App() {
           ? 'Add options before mapping sets'
           : themeWorkflowSummary.unmappedOptionCount > 0
             ? `${themeWorkflowSummary.unmappedOptionCount} option${themeWorkflowSummary.unmappedOptionCount === 1 ? '' : 's'} still need base or override sets`
+            : themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0
+              ? `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} mapped option${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? '' : 's'} still need stale or empty assignments fixed`
             : `${themeWorkflowSummary.mappedSetCount} role assignment${themeWorkflowSummary.mappedSetCount === 1 ? '' : 's'} in place`,
         tone: themeWorkflowSummary.optionCount === 0
           ? 'blocked'
           : themeWorkflowSummary.currentStage === 'set-roles'
             ? 'current'
-            : themeWorkflowSummary.unmappedOptionCount === 0
+            : themeWorkflowSummary.unmappedOptionCount === 0 && themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 0
               ? 'complete'
               : 'pending',
         disabled: themeWorkflowSummary.optionCount === 0,
@@ -1428,7 +1456,7 @@ export function App() {
 
       if (themeWorkflowSummary.currentStage === 'set-roles') {
         return {
-          label: 'Assign set roles',
+          label: themeWorkflowSummary.unmappedOptionCount > 0 ? 'Assign set roles' : 'Fix set roles',
           onClick: () => {
             guardEditorAction(() => {
               navigateTo('define', 'themes');
@@ -1558,6 +1586,7 @@ export function App() {
     themeShellState.activeView,
     themeShellState.showPreview,
     themeWorkflowSummary.currentStage,
+    themeWorkflowSummary.unmappedOptionCount,
   ]);
 
   const workspaceContextualControls = activeWorkspace.id === 'themes'
