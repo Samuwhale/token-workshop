@@ -482,3 +482,18 @@
   - Cleanup queues benefit from keeping staging state separate from the filtered view, so search and grouping can change without losing the user's pending bulk actions.
   - When an upstream source cannot be widened inside the current scope, normalizing optional metadata in the panel keeps the new workflow forward-compatible while a later task threads richer data through the parent.
 ---
+## 2026-04-09 - [Remove deprecated import orchestration hooks after controller consolidation]
+- Deleted the unused import orchestration hooks so `ImportPanelContext.tsx` remains the only maintained controller for import conflicts, apply, and token import flows.
+- Confirmed the live import panel no longer references `useImportConflicts`, `useImportApply`, or `useTokensImport`, then rebuilt `@tokenmanager/figma-plugin` successfully after removing the files.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useImportConflicts.ts` ~L1 (deleted); `packages/figma-plugin/src/ui/hooks/useImportApply.ts` ~L1 (deleted); `packages/figma-plugin/src/ui/hooks/useTokensImport.ts` ~L1 (deleted); `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Once a feature-area context fully owns a workflow, delete superseded orchestration hooks instead of leaving parallel hook implementations behind as dormant drift risks.
+---
+## 2026-04-09 - [Recompute Figma variable save preview diffs after destination remaps]
+- Added hook-level save-preview rows that re-inspect remapped destinations, recompute diff counts for valid append paths, and gate confirm until the recomputed preview is ready.
+- Updated the export modal to render those live preview rows, keep merge controls aligned with the recomputed destination state, and replace the stale "reopen preview" guidance with in-place refresh feedback.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` ~L53, ~L383, ~L534, ~L725, ~L812; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L373, ~L415, ~L489; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Preview overrides that depend on server state should be modeled as derived rows, not as UI-only field overlays, so validation and confirm logic consume the same recomputed data.
+  - When a preview re-fetches destination data asynchronously, keep confirm disabled until the refreshed rows are ready; otherwise merge defaults and diff counts can lag behind the visible inputs.
+---

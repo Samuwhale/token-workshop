@@ -51,8 +51,8 @@
 - [ ] Turn `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` into an actionable inbox with severity filters, deduping, sticky blockers, and deep links back to the affected token or workspace instead of a passive transcript of past toast messages.
 - [ ] Turn audit and validation signals into actionable product feedback instead of raw counts and badges: each issue type should explain why it matters, where it comes from, and how to fix it from the relevant workflow (Planned)
 - [x] Write `docs/redesign/repo-handoff-decision.md` to decide whether the Git-based handoff workflow remains inside the plugin or moves out of the primary UX, documenting the target user, rationale, and chosen product direction
-- [ ] Recompute Figma variable save preview diffs after destination remaps
-- [ ] Remove deprecated import orchestration hooks after controller consolidation
+- [x] Recompute Figma variable save preview diffs after destination remaps
+- [x] Remove deprecated import orchestration hooks after controller consolidation
 - [ ] Replace token-editor composite equality checks with stableStringify
 - [ ] Decode multi-set snapshot keys in operation diff responses
 - [ ] Research ThemeManager set-role assignment density and draft implementation slices for a summary-first role editor

@@ -27,22 +27,6 @@ function sanitizeDestinationSetName(value: string): string {
   return value.replace(/[^a-zA-Z0-9_/-]/g, '-').toLowerCase();
 }
 
-function getAppendPathError(value: string): string | null {
-  const normalized = value.trim().replace(/^\.+|\.+$/g, '').replace(/\.+/g, '.');
-  if (!normalized) return null;
-  const segments = normalized.split('.');
-  for (const segment of segments) {
-    if (!segment) return `Invalid append path "${value}"`;
-    if (segment.startsWith('$')) {
-      return `Invalid append path "${value}": "${segment}" starts with "$"`;
-    }
-    if (segment.includes('/') || segment.includes('\\')) {
-      return `Invalid append path "${value}": "${segment}" contains a slash`;
-    }
-  }
-  return null;
-}
-
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const help = usePanelHelp('export');
   const { sets, addSetToState } = useTokenSetsContext();
@@ -387,49 +371,22 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
       {/* Save to server preview confirmation */}
       {figmaVariables.savePhase === 'preview' && (() => {
-        const knownSetNames = new Set(sets);
-        const effectiveItems = figmaVariables.savePreviewItems.map(item => ({
-          ...item,
-          effectiveDestination:
-            figmaVariables.saveDestinationMap[item.itemKey] ?? item.destinationSet ?? item.slug,
-          effectiveMergeStrategy:
-            figmaVariables.saveMergeStrategies[item.itemKey] ?? item.mergeStrategy,
-          effectiveAppendPath:
-            figmaVariables.saveAppendPaths[item.itemKey] ?? item.appendPath,
-        }));
-        const destinationCounts = new Map<string, number>();
-        for (const item of effectiveItems) {
-          const destination = item.effectiveDestination.trim();
-          if (!destination) continue;
-          destinationCounts.set(destination, (destinationCounts.get(destination) ?? 0) + 1);
-        }
-        const previewRows = effectiveItems.map((item) => {
-          const destination = item.effectiveDestination.trim();
-          const destinationExists = destination.length > 0 && knownSetNames.has(destination);
-          const duplicateCount = destination ? (destinationCounts.get(destination) ?? 0) : 0;
-          const destinationChanged = destination !== item.destinationSet;
-          const destinationError = !destination
-            ? 'Destination set is required'
-            : duplicateCount > 1
-              ? 'Destination is assigned more than once'
-              : null;
-          const appendPathError = getAppendPathError(item.effectiveAppendPath);
-          return {
-            ...item,
-            destination,
-            destinationExists,
-            destinationChanged,
-            actionLabel: destinationExists ? 'Existing set' : 'New set',
-            destinationError,
-            appendPathError,
-          };
-        });
+        const previewRows = figmaVariables.savePreviewRows;
         const hasValidationIssues = previewRows.some(item => item.destinationError || item.appendPathError);
+        const previewReady = previewRows.length === figmaVariables.savePreviewItems.length;
+        const confirmDisabled =
+          figmaVariables.savePreviewRefreshing || !previewReady || hasValidationIssues;
         return (
           <ConfirmModal
             title="Save to Token Server"
-            confirmLabel={hasValidationIssues ? 'Resolve issues first' : 'Confirm & Save'}
-            confirmDisabled={hasValidationIssues}
+            confirmLabel={
+              !previewReady || figmaVariables.savePreviewRefreshing
+                ? 'Refreshing preview...'
+                : hasValidationIssues
+                  ? 'Resolve issues first'
+                  : 'Confirm & Save'
+            }
+            confirmDisabled={confirmDisabled}
             wide
             onConfirm={figmaVariables.handleConfirmSave}
             onCancel={() => {
@@ -456,6 +413,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 ))}
               </datalist>
               <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto">
+                {figmaVariables.savePreviewRefreshing && (
+                  <div className="px-2.5 py-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)]">
+                    Recomputing diff counts for the current destination selections…
+                  </div>
+                )}
                 {previewRows.map(item => {
                   return (
                     <div
@@ -528,7 +490,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             error={item.destinationError ?? undefined}
                             info={
                               item.destinationChanged
-                                ? 'Diff counts reflect the original preview target until you reopen preview'
+                                ? 'Diff counts update against the remapped destination'
                                 : item.destinationExists
                                   ? 'Writes into an existing set'
                                   : 'Creates a new set on save'

@@ -50,6 +50,16 @@ export interface SavePreviewItem {
   diff: SavePreviewDiff;
 }
 
+export interface SavePreviewRow extends SavePreviewItem {
+  effectiveDestination: string;
+  effectiveMergeStrategy: SaveMergeStrategy;
+  effectiveAppendPath: string;
+  destinationChanged: boolean;
+  actionLabel: 'Existing set' | 'New set';
+  destinationError: string | null;
+  appendPathError: string | null;
+}
+
 export type SavePhase = 'idle' | 'preview-loading' | 'preview';
 
 interface TokenPayload {
@@ -98,6 +108,8 @@ export interface FigmaVariablesState {
   setSavePhase: Dispatch<SetStateAction<SavePhase>>;
   savePreviewItems: SavePreviewItem[];
   setSavePreviewItems: Dispatch<SetStateAction<SavePreviewItem[]>>;
+  savePreviewRows: SavePreviewRow[];
+  savePreviewRefreshing: boolean;
   saveDestinationMap: Record<string, string>;
   setSaveDestinationMap: Dispatch<SetStateAction<Record<string, string>>>;
   slugRenames: Record<string, string>;
@@ -221,6 +233,15 @@ function normalizeAppendPath(value: string): string {
     }
   }
   return normalized;
+}
+
+function getAppendPathError(value: string): string | null {
+  try {
+    normalizeAppendPath(value);
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
 }
 
 function prefixTokenPath(tokenPath: string, appendPath: string): string {
@@ -359,6 +380,86 @@ function summarizeDiff(
   };
 }
 
+function buildSavePreviewRows(
+  items: SavePreviewItem[],
+  collectionsByName: Map<string, ExportedCollection>,
+  existingSetNames: Set<string>,
+  existingSetMaps: Map<string, Map<string, ExistingTokenSnapshot>>,
+  saveDestinationMap: Record<string, string>,
+  saveMergeStrategies: Record<string, SaveMergeStrategy>,
+  saveAppendPaths: Record<string, string>,
+): SavePreviewRow[] {
+  const draftRows = items.map<SavePreviewRow>((item) => {
+    const collection = collectionsByName.get(item.collectionName);
+    if (!collection) {
+      throw new Error(`Collection "${item.collectionName}" is no longer available`);
+    }
+
+    const effectiveDestination =
+      (saveDestinationMap[item.itemKey] ?? item.destinationSet ?? item.slug).trim();
+    const effectiveAppendPath = saveAppendPaths[item.itemKey] ?? item.appendPath;
+    const appendPathError = getAppendPathError(effectiveAppendPath);
+    const destinationExists =
+      effectiveDestination.length > 0 && existingSetNames.has(effectiveDestination);
+    const existingTokens = destinationExists
+      ? (existingSetMaps.get(effectiveDestination) ?? new Map<string, ExistingTokenSnapshot>())
+      : new Map<string, ExistingTokenSnapshot>();
+    const diff = appendPathError
+      ? item.diff
+      : summarizeDiff(
+          buildTokenPayloads(
+            collection,
+            item.modeName ?? null,
+            normalizeAppendPath(effectiveAppendPath),
+          ),
+          existingTokens,
+        );
+    const defaultMergeStrategy: SaveMergeStrategy =
+      destinationExists && diff.changedCount > 0 ? 'merge' : 'overwrite';
+
+    return {
+      ...item,
+      action: destinationExists ? 'overwrite' : 'create',
+      destinationExists,
+      destinationTokenCount: existingTokens.size,
+      diff,
+      effectiveDestination,
+      effectiveMergeStrategy: destinationExists
+        ? (saveMergeStrategies[item.itemKey] ?? defaultMergeStrategy)
+        : 'overwrite',
+      effectiveAppendPath,
+      destinationChanged: effectiveDestination !== item.destinationSet,
+      actionLabel: destinationExists ? 'Existing set' : 'New set',
+      destinationError: null,
+      appendPathError,
+    };
+  });
+
+  const destinationCounts = new Map<string, number>();
+  for (const item of draftRows) {
+    if (!item.effectiveDestination) continue;
+    destinationCounts.set(
+      item.effectiveDestination,
+      (destinationCounts.get(item.effectiveDestination) ?? 0) + 1,
+    );
+  }
+
+  return draftRows.map((item) => {
+    const duplicateCount = item.effectiveDestination
+      ? (destinationCounts.get(item.effectiveDestination) ?? 0)
+      : 0;
+
+    return {
+      ...item,
+      destinationError: !item.effectiveDestination
+        ? 'Destination set is required'
+        : duplicateCount > 1
+          ? 'Destination is assigned more than once'
+          : null,
+    };
+  });
+}
+
 export function useFigmaVariables({
   connected,
   serverUrl,
@@ -377,9 +478,15 @@ export function useFigmaVariables({
   const [savePerMode, setSavePerMode] = useState(true);
   const [savePhase, setSavePhase] = useState<SavePhase>('idle');
   const [savePreviewItems, setSavePreviewItems] = useState<SavePreviewItem[]>([]);
+  const [savePreviewRows, setSavePreviewRows] = useState<SavePreviewRow[]>([]);
+  const [savePreviewRefreshing, setSavePreviewRefreshing] = useState(false);
   const [saveDestinationMap, setSaveDestinationMap] = useState<Record<string, string>>({});
   const [saveMergeStrategies, setSaveMergeStrategies] = useState<Record<string, SaveMergeStrategy>>({});
   const [saveAppendPaths, setSaveAppendPaths] = useState<Record<string, string>>({});
+  const savePreviewDestinationCacheRef = useRef<Map<string, Map<string, ExistingTokenSnapshot>>>(
+    new Map(),
+  );
+  const savePreviewRequestIdRef = useRef(0);
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {
@@ -423,6 +530,97 @@ export function useFigmaVariables({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (savePhase !== 'preview' || savePreviewItems.length === 0) {
+      setSavePreviewRows([]);
+      setSavePreviewRefreshing(false);
+      return;
+    }
+
+    let cancelled = false;
+    const requestId = ++savePreviewRequestIdRef.current;
+    const collectionsByName = new Map(figmaCollections.map(collection => [collection.name, collection]));
+    const existingSetNames = new Set(sets);
+    const requestedExistingDestinations = [...new Set(
+      savePreviewItems
+        .map(item => (saveDestinationMap[item.itemKey] ?? item.destinationSet ?? item.slug).trim())
+        .filter(destination => destination.length > 0 && existingSetNames.has(destination)),
+    )];
+    const destinationsToFetch = requestedExistingDestinations.filter(
+      destination => !savePreviewDestinationCacheRef.current.has(destination),
+    );
+
+    const applyPreviewRows = () => {
+      if (cancelled || requestId !== savePreviewRequestIdRef.current) return;
+      setSavePreviewRows(
+        buildSavePreviewRows(
+          savePreviewItems,
+          collectionsByName,
+          existingSetNames,
+          savePreviewDestinationCacheRef.current,
+          saveDestinationMap,
+          saveMergeStrategies,
+          saveAppendPaths,
+        ),
+      );
+      setSavePreviewRefreshing(false);
+    };
+
+    if (destinationsToFetch.length === 0) {
+      applyPreviewRows();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setSavePreviewRefreshing(true);
+
+    Promise.all(
+      destinationsToFetch.map(async (destinationSet) => {
+        try {
+          const data = await apiFetch<{ tokens?: DTCGGroup }>(
+            `${serverUrl}/api/tokens/${encodeURIComponent(destinationSet)}`,
+          );
+          savePreviewDestinationCacheRef.current.set(
+            destinationSet,
+            buildExistingTokenMap(data.tokens),
+          );
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 404) {
+            savePreviewDestinationCacheRef.current.set(destinationSet, new Map());
+            return;
+          }
+          throw new Error(
+            `Failed to inspect destination "${destinationSet}": ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }),
+    )
+      .then(() => {
+        applyPreviewRows();
+      })
+      .catch((err) => {
+        if (cancelled || requestId !== savePreviewRequestIdRef.current) return;
+        setError(getErrorMessage(err));
+        setSavePreviewRows([]);
+        setSavePreviewRefreshing(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    figmaCollections,
+    saveAppendPaths,
+    saveDestinationMap,
+    saveMergeStrategies,
+    savePhase,
+    savePreviewItems,
+    serverUrl,
+    setError,
+    sets,
+  ]);
 
   const handleExportFigmaVariables = () => {
     setFigmaLoading(true);
@@ -528,9 +726,12 @@ export function useFigmaVariables({
     if (!connected) return;
     setSavePhase('preview-loading');
     setError(null);
+    setSavePreviewRows([]);
+    setSavePreviewRefreshing(false);
     setSaveDestinationMap({});
     setSaveMergeStrategies({});
     setSaveAppendPaths({});
+    savePreviewDestinationCacheRef.current = new Map();
 
     try {
       const existingSetNames = new Set(sets);
@@ -559,7 +760,6 @@ export function useFigmaVariables({
           }),
       );
 
-      const defaultMergeStrategies: Record<string, SaveMergeStrategy> = {};
       const items: SavePreviewItem[] = plans.map((plan) => {
         const collection = collectionsByName.get(plan.collectionName);
         if (!collection) {
@@ -572,8 +772,6 @@ export function useFigmaVariables({
         const diff = summarizeDiff(incomingTokens, existingTokens);
         const mergeStrategy: SaveMergeStrategy =
           destinationExists && diff.changedCount > 0 ? 'merge' : 'overwrite';
-
-        defaultMergeStrategies[plan.itemKey] = mergeStrategy;
 
         return {
           collectionName: plan.collectionName,
@@ -591,8 +789,19 @@ export function useFigmaVariables({
         };
       });
 
+      savePreviewDestinationCacheRef.current = existingSetMaps;
       setSavePreviewItems(items);
-      setSaveMergeStrategies(defaultMergeStrategies);
+      setSavePreviewRows(
+        buildSavePreviewRows(
+          items,
+          collectionsByName,
+          existingSetNames,
+          existingSetMaps,
+          {},
+          {},
+          {},
+        ),
+      );
       setSavePhase('preview');
     } catch (err) {
       setError(getErrorMessage(err));
@@ -605,17 +814,24 @@ export function useFigmaVariables({
 
     let totalVarsSaved = 0;
     try {
+      if (savePreviewRefreshing || savePreviewRows.length !== savePreviewItems.length) {
+        throw new Error('Wait for the save preview to finish refreshing');
+      }
+
       const collectionsByName = new Map(figmaCollections.map(collection => [collection.name, collection]));
       const destinationUsage = new Map<string, string>();
 
-      for (const previewItem of savePreviewItems) {
+      for (const previewItem of savePreviewRows) {
+        if (previewItem.destinationError || previewItem.appendPathError) {
+          throw new Error(`Resolve validation issues for "${previewItem.collectionName}" before saving`);
+        }
+
         const collection = collectionsByName.get(previewItem.collectionName);
         if (!collection) {
           throw new Error(`Collection "${previewItem.collectionName}" is no longer available`);
         }
 
-        const setName =
-          saveDestinationMap[previewItem.itemKey] ?? previewItem.destinationSet ?? previewItem.slug;
+        const setName = previewItem.effectiveDestination;
         if (!setName) {
           throw new Error(`Destination set is required for "${previewItem.collectionName}"`);
         }
@@ -625,11 +841,8 @@ export function useFigmaVariables({
         }
         destinationUsage.set(setName, previewItem.itemKey);
 
-        const appendPath = normalizeAppendPath(
-          saveAppendPaths[previewItem.itemKey] ?? previewItem.appendPath,
-        );
-        const mergeStrategy =
-          saveMergeStrategies[previewItem.itemKey] ?? previewItem.mergeStrategy;
+        const appendPath = normalizeAppendPath(previewItem.effectiveAppendPath);
+        const mergeStrategy = previewItem.effectiveMergeStrategy;
         const incomingTokens = buildTokenPayloads(collection, previewItem.modeName ?? null, appendPath);
 
         let isNewSet = true;
@@ -725,6 +938,8 @@ export function useFigmaVariables({
     setSavePhase,
     savePreviewItems,
     setSavePreviewItems,
+    savePreviewRows,
+    savePreviewRefreshing,
     saveDestinationMap,
     setSaveDestinationMap,
     slugRenames: saveDestinationMap,
