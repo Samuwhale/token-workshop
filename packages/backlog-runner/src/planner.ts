@@ -10,6 +10,9 @@ import type {
 
 const PLANNER_BATCH_SIZE = 3;
 
+export const PLANNER_SCHEMA_SMOKE_PROMPT = `Return exactly this JSON object and nothing else:
+{"status":"done","item":"planner-smoke","note":"ok","action":"supersede","parent_task_ids":["parent-a"],"children":[{"title":"Planner smoke child","task_kind":"research","priority":"normal","touch_paths":["backlog"],"acceptance_criteria":["Emit concrete follow-up backlog tasks."],"validation_profile":null,"capabilities":null,"context":null}]}`;
+
 export const PLANNER_RESULT_SCHEMA = JSON.stringify({
   type: 'object',
   properties: {
@@ -41,14 +44,14 @@ export const PLANNER_RESULT_SCHEMA = JSON.stringify({
             minItems: 1,
             items: { type: 'string' },
           },
-          validation_profile: { type: 'string' },
+          validation_profile: { type: ['string', 'null'] },
           capabilities: {
-            type: 'array',
+            type: ['array', 'null'],
             items: { type: 'string' },
           },
-          context: { type: 'string' },
+          context: { type: ['string', 'null'] },
         },
-        required: ['title', 'task_kind', 'priority', 'touch_paths', 'acceptance_criteria'],
+        required: ['title', 'task_kind', 'priority', 'touch_paths', 'acceptance_criteria', 'validation_profile', 'capabilities', 'context'],
         additionalProperties: false,
       },
     },

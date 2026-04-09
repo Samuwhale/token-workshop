@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
 import { inspectBacklogState } from './context.js';
+import { PLANNER_RESULT_SCHEMA, PLANNER_SCHEMA_SMOKE_PROMPT } from './planner.js';
 import { createCommandRunner } from './process.js';
 import { validateProvider } from './providers/index.js';
 import type { BacklogRunnerConfig, RunOverrides, ToolValidationResult } from './types.js';
@@ -235,7 +236,17 @@ export async function validateBacklogRunner(
   await ensureConfigReady(config);
   const commandRunner = createCommandRunner();
   const runOptions = await resolveRunOptions(config, overrides);
-  const providerValidation = await validateProvider(runOptions.tool, commandRunner, runOptions.model);
+  const providerValidation = await validateProvider(runOptions.tool, commandRunner, {
+    model: runOptions.model,
+    smokeTests: [
+      {
+        label: 'planner schema',
+        schema: PLANNER_RESULT_SCHEMA,
+        prompt: PLANNER_SCHEMA_SMOKE_PROMPT,
+        expectedItem: 'planner-smoke',
+      },
+    ],
+  });
 
   const messages = [...providerValidation.messages];
   messages.push(`  → Model: ${runOptions.model ?? 'CLI default'}`);

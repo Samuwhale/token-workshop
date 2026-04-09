@@ -1,7 +1,7 @@
 import type { AgentRunRequest, BacklogTool, CommandRunner, ToolValidationResult } from '../types.js';
 import { claudeProvider } from './claude.js';
 import { codexProvider } from './codex.js';
-import type { ProviderAdapter } from './common.js';
+import type { ProviderAdapter, ProviderValidationOptions } from './common.js';
 
 const PROVIDERS: Record<BacklogTool, ProviderAdapter> = {
   claude: claudeProvider,
@@ -15,9 +15,9 @@ export function getProvider(tool: BacklogTool): ProviderAdapter {
 export async function validateProvider(
   tool: BacklogTool,
   commandRunner: CommandRunner,
-  model?: string,
+  options?: ProviderValidationOptions,
 ): Promise<ToolValidationResult> {
-  return getProvider(tool).validate(commandRunner, model);
+  return getProvider(tool).validate(commandRunner, options);
 }
 
 export async function runProvider(

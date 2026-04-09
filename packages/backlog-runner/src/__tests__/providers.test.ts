@@ -1,8 +1,9 @@
 import { writeFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
+import { PLANNER_RESULT_SCHEMA, PLANNER_SCHEMA_SMOKE_PROMPT } from '../planner.js';
 import { claudeProvider } from '../providers/claude.js';
 import { codexProvider } from '../providers/codex.js';
-import { normalizeAgentResult } from '../providers/common.js';
+import { assertAgentSuccess, normalizeAgentResult } from '../providers/common.js';
 import type { CommandResult, CommandRunner } from '../types.js';
 
 function createFakeCommandRunner(
@@ -36,6 +37,52 @@ function createFakeCommandRunner(
     },
     async which(command: string): Promise<string | null> {
       return command === 'claude' ? '/usr/bin/claude' : null;
+    },
+  };
+}
+
+function createCodexCommandRunner(
+  responses: {
+    version?: CommandResult;
+    smokeOutputs?: string[];
+    smokeResult?: CommandResult;
+  } = {},
+): CommandRunner {
+  const smokeOutputs = [...(responses.smokeOutputs ?? [JSON.stringify({
+    structured_output: {
+      status: 'done',
+      item: 'smoke',
+      note: 'ok',
+    },
+  })])];
+
+  return {
+    async run(command: string, args: string[]): Promise<CommandResult> {
+      if (command === 'codex' && args.includes('--version')) {
+        return responses.version ?? { code: 0, stdout: 'codex-cli 0.118.0', stderr: '' };
+      }
+
+      if (command === 'codex' && args[0] === 'exec') {
+        const outputFlagIndex = args.indexOf('--output-last-message');
+        const outputFile = outputFlagIndex >= 0 ? args[outputFlagIndex + 1] : null;
+        const output = smokeOutputs.shift() ?? smokeOutputs[smokeOutputs.length - 1] ?? '';
+        if (outputFile && output) {
+          await writeFile(outputFile, output, 'utf8');
+        }
+        return responses.smokeResult ?? {
+          code: 0,
+          stdout: '',
+          stderr: '',
+        };
+      }
+
+      return { code: 0, stdout: '', stderr: '' };
+    },
+    async runShell(): Promise<CommandResult> {
+      return { code: 0, stdout: '', stderr: '' };
+    },
+    async which(command: string): Promise<string | null> {
+      return command === 'codex' ? '/usr/bin/codex' : null;
     },
   };
 }
@@ -85,6 +132,76 @@ describe('provider normalization', () => {
     expect(validation.messages.join('\n')).toContain('smoke test failed');
   });
 
+  it('surfaces non-auth structured-output failures with provider detail', () => {
+    expect(() =>
+      assertAgentSuccess(null, {
+        code: 1,
+        stdout: '',
+        stderr: 'ERROR: invalid_json_schema',
+      }),
+    ).toThrow(/invalid_json_schema/);
+  });
+
+  it('keeps planner child schema OpenAI-compatible by requiring every child property', () => {
+    const parsed = JSON.parse(PLANNER_RESULT_SCHEMA) as {
+      properties: {
+        children: {
+          items: {
+            properties: Record<string, unknown>;
+            required: string[];
+          };
+        };
+      };
+    };
+
+    const childProperties = Object.keys(parsed.properties.children.items.properties).sort();
+    const childRequired = [...parsed.properties.children.items.required].sort();
+    expect(childRequired).toEqual(childProperties);
+  });
+
+  it('validates Codex against both the base schema and planner schema', async () => {
+    const validation = await codexProvider.validate(
+      createCodexCommandRunner({
+        smokeOutputs: [
+          JSON.stringify({ status: 'done', item: 'smoke', note: 'ok' }),
+          JSON.stringify({
+            status: 'done',
+            item: 'planner-smoke',
+            note: 'ok',
+            action: 'supersede',
+            parent_task_ids: ['parent-a'],
+            children: [
+              {
+                title: 'Planner smoke child',
+                task_kind: 'research',
+                priority: 'normal',
+                touch_paths: ['backlog'],
+                acceptance_criteria: ['Emit concrete follow-up backlog tasks.'],
+                validation_profile: null,
+                capabilities: null,
+                context: null,
+              },
+            ],
+          }),
+        ],
+      }),
+      {
+        model: 'gpt-5.4',
+        smokeTests: [
+          {
+            label: 'planner schema',
+            schema: PLANNER_RESULT_SCHEMA,
+            prompt: PLANNER_SCHEMA_SMOKE_PROMPT,
+            expectedItem: 'planner-smoke',
+          },
+        ],
+      },
+    );
+
+    expect(validation.ok).toBe(true);
+    expect(validation.messages.join('\n')).toContain('planner schema smoke test');
+  });
+
   it('runs Codex with sandbox and approval bypass enabled', async () => {
     const calls: string[][] = [];
     const runner: CommandRunner = {
@@ -123,6 +240,8 @@ describe('provider normalization', () => {
       context: 'Context block.',
       cwd: process.cwd(),
       maxTurns: 5,
+      tool: 'codex',
+      schema: PLANNER_RESULT_SCHEMA,
     });
 
     expect(result).toMatchObject({

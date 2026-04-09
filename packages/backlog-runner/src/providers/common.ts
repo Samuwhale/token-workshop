@@ -14,6 +14,20 @@ export const JSON_SCHEMA = JSON.stringify({
   additionalProperties: false,
 });
 
+export interface StructuredOutputSmokeTest {
+  label: string;
+  schema: string;
+  prompt: string;
+  expectedStatus?: 'done' | 'failed';
+  expectedItem?: string;
+  expectedNote?: string;
+}
+
+export interface ProviderValidationOptions {
+  model?: string;
+  smokeTests?: StructuredOutputSmokeTest[];
+}
+
 export function isRateLimited(output: string): boolean {
   return /usage limit|rate.?limit|out of credits|overloaded|capacity|too many requests|529|claude\.ai\/upgrade|quota exceeded|resource exhausted|429|model is (currently )?overloaded|exceeded rate limits|temporarily unavailable|service unavailable|server busy|model overloaded|try again later|request limit|maximum.*requests|insufficient balance|insufficient funds|account balance/i.test(
     output,
@@ -103,7 +117,7 @@ export function normalizeAgentResult(
 
 export interface ProviderAdapter {
   readonly tool: BacklogTool;
-  validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult>;
+  validate(commandRunner: CommandRunner, options?: ProviderValidationOptions): Promise<ToolValidationResult>;
   run(commandRunner: CommandRunner, request: AgentRunRequest): Promise<AgentResult>;
 }
 
@@ -150,10 +164,14 @@ export async function checkCommandAuth(
 export async function smokeStructuredOutput(
   run: () => Promise<CommandResult>,
   label: string,
+  expected: Pick<StructuredOutputSmokeTest, 'expectedStatus' | 'expectedItem' | 'expectedNote'> = {},
 ): Promise<ToolValidationResult> {
   const result = await run();
   const parsed = normalizeAgentResult(result.stdout, result.stderr);
-  if (parsed?.status === 'done' && parsed.item === 'smoke' && parsed.note === 'ok') {
+  const expectedStatus = expected.expectedStatus ?? 'done';
+  const expectedItem = expected.expectedItem ?? 'smoke';
+  const expectedNote = expected.expectedNote ?? 'ok';
+  if (parsed?.status === expectedStatus && parsed.item === expectedItem && parsed.note === expectedNote) {
     return {
       ok: true,
       messages: [`  ✓ ${label} smoke test (strict structured output)`],
@@ -208,5 +226,5 @@ export function assertAgentSuccess(
   if (isRateLimited(combined)) {
     throw new Error('Rate limit hit');
   }
-  throw new Error('Agent did not return valid strict structured output');
+  throw new Error(`Agent did not return valid strict structured output: ${summarizeFailure(commandResult)}`);
 }

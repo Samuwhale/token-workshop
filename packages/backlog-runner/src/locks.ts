@@ -85,6 +85,6 @@ export async function withLock<T>(lockDir: string, timeoutSeconds: number, fn: (
   }
 }
 
-export function lockPath(config: BacklogRunnerConfig, name: 'backlog' | 'git' | 'pass'): string {
+export function lockPath(config: BacklogRunnerConfig, name: 'backlog' | 'git' | 'pass' | 'planner'): string {
   return `${config.files.locksDir}/${name}.lock`;
 }

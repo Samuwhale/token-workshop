@@ -4,6 +4,7 @@ import {
   checkCommandAuth,
   JSON_SCHEMA,
   normalizeAgentResult,
+  type ProviderValidationOptions,
   smokeStructuredOutput,
   simpleVersionValidation,
   type ProviderAdapter,
@@ -16,45 +17,60 @@ const PROVIDER_RUN_TIMEOUT_MS = 30 * 60 * 1000;
 
 export const claudeProvider: ProviderAdapter = {
   tool: 'claude',
-  async validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult> {
+  async validate(commandRunner: CommandRunner, options: ProviderValidationOptions = {}): Promise<ToolValidationResult> {
+    const { model, smokeTests = [] } = options;
     const base = await simpleVersionValidation(commandRunner, 'claude', 'claude');
     if (!base.ok) return base;
 
     const auth = await checkCommandAuth(commandRunner, 'claude', ['auth', 'status', '--text'], /logged in|authenticated/i);
-    const smoke = await withTempDir('backlog-claude-smoke-', async dir => {
-      const contextFile = await writeTempFile(dir, 'context.md', 'Return exactly the requested JSON.');
-      return smokeStructuredOutput(
-        () =>
-          commandRunner.run(
-            'claude',
-            [
-              '--dangerously-skip-permissions',
-              '--print',
-              '--no-session-persistence',
-              '--max-turns',
-              '3',
-              '--output-format',
-              'json',
-              '--json-schema',
-              JSON_SCHEMA,
-              ...(model ? ['--model', model] : []),
-              '--append-system-prompt-file',
-              contextFile,
-            ],
-            {
-              cwd: dir,
-              input: 'Return exactly this JSON object and nothing else: {"status":"done","item":"smoke","note":"ok"}',
-              timeoutMs: PROVIDER_SMOKE_TIMEOUT_MS,
-              ignoreFailure: true,
-            },
-          ),
-        'claude',
-      );
-    });
+    const smokeCases = [
+      {
+        label: 'claude',
+        schema: JSON_SCHEMA,
+        prompt: 'Return exactly this JSON object and nothing else: {"status":"done","item":"smoke","note":"ok"}',
+      },
+      ...smokeTests,
+    ];
+
+    const smokeResults = await Promise.all(
+      smokeCases.map(testCase =>
+        withTempDir('backlog-claude-smoke-', async dir => {
+          const contextFile = await writeTempFile(dir, 'context.md', 'Return exactly the requested JSON.');
+          return smokeStructuredOutput(
+            () =>
+              commandRunner.run(
+                'claude',
+                [
+                  '--dangerously-skip-permissions',
+                  '--print',
+                  '--no-session-persistence',
+                  '--max-turns',
+                  '3',
+                  '--output-format',
+                  'json',
+                  '--json-schema',
+                  testCase.schema,
+                  ...(model ? ['--model', model] : []),
+                  '--append-system-prompt-file',
+                  contextFile,
+                ],
+                {
+                  cwd: dir,
+                  input: testCase.prompt,
+                  timeoutMs: PROVIDER_SMOKE_TIMEOUT_MS,
+                  ignoreFailure: true,
+                },
+              ),
+            testCase.label,
+            testCase,
+          );
+        }),
+      ),
+    );
 
     return {
-      ok: base.ok && auth.ok && smoke.ok,
-      messages: [...base.messages, auth.message, ...smoke.messages],
+      ok: base.ok && auth.ok && smokeResults.every(result => result.ok),
+      messages: [...base.messages, auth.message, ...smokeResults.flatMap(result => result.messages)],
     };
   },
   async run(commandRunner, request: AgentRunRequest) {

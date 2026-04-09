@@ -3,6 +3,7 @@ import {
   assertAgentSuccess,
   JSON_SCHEMA,
   normalizeAgentResult,
+  type ProviderValidationOptions,
   smokeStructuredOutput,
   simpleVersionValidation,
   type ProviderAdapter,
@@ -16,48 +17,61 @@ const PROVIDER_RUN_TIMEOUT_MS = 30 * 60 * 1000;
 
 export const codexProvider: ProviderAdapter = {
   tool: 'codex',
-  async validate(commandRunner: CommandRunner, model?: string): Promise<ToolValidationResult> {
+  async validate(commandRunner: CommandRunner, options: ProviderValidationOptions = {}): Promise<ToolValidationResult> {
+    const { model, smokeTests = [] } = options;
     const base = await simpleVersionValidation(commandRunner, 'codex', 'codex');
     if (!base.ok) return base;
 
-    const smoke = await withTempDir('backlog-codex-smoke-', async dir => {
-      const schemaFile = await writeTempFile(dir, 'schema.json', JSON_SCHEMA);
-      const outputFile = `${dir}/out.json`;
-      const smokePrompt = 'Return exactly this JSON object and nothing else: {"status":"done","item":"smoke","note":"ok"}';
-      return smokeStructuredOutput(
-        async () => {
-          const result = await commandRunner.run(
-            'codex',
-            [
-              'exec',
-              '--dangerously-bypass-approvals-and-sandbox',
-              '--skip-git-repo-check',
-              '--ephemeral',
-              '--output-schema',
-              schemaFile,
-              '--output-last-message',
-              outputFile,
-              '-C',
-              dir,
-              ...(model ? ['--model', model] : []),
-            ],
-            {
-              cwd: dir,
-              input: smokePrompt,
-              timeoutMs: PROVIDER_SMOKE_TIMEOUT_MS,
-              ignoreFailure: true,
+    const smokeCases = [
+      {
+        label: 'codex exec',
+        schema: JSON_SCHEMA,
+        prompt: 'Return exactly this JSON object and nothing else: {"status":"done","item":"smoke","note":"ok"}',
+      },
+      ...smokeTests,
+    ];
+    const smokeResults = await Promise.all(
+      smokeCases.map(testCase =>
+        withTempDir('backlog-codex-smoke-', async dir => {
+          const schemaFile = await writeTempFile(dir, 'schema.json', testCase.schema);
+          const outputFile = `${dir}/out.json`;
+          return smokeStructuredOutput(
+            async () => {
+              const result = await commandRunner.run(
+                'codex',
+                [
+                  'exec',
+                  '--dangerously-bypass-approvals-and-sandbox',
+                  '--skip-git-repo-check',
+                  '--ephemeral',
+                  '--output-schema',
+                  schemaFile,
+                  '--output-last-message',
+                  outputFile,
+                  '-C',
+                  dir,
+                  ...(model ? ['--model', model] : []),
+                ],
+                {
+                  cwd: dir,
+                  input: testCase.prompt,
+                  timeoutMs: PROVIDER_SMOKE_TIMEOUT_MS,
+                  ignoreFailure: true,
+                },
+              );
+              const output = await readIfExists(outputFile);
+              return { ...result, stdout: output || result.stdout };
             },
+            testCase.label,
+            testCase,
           );
-          const output = await readIfExists(outputFile);
-          return { ...result, stdout: output || result.stdout };
-        },
-        'codex exec',
-      );
-    });
+        }),
+      ),
+    );
 
     return {
-      ok: base.ok && smoke.ok,
-      messages: [...base.messages, ...smoke.messages],
+      ok: base.ok && smokeResults.every(result => result.ok),
+      messages: [...base.messages, ...smokeResults.flatMap(result => result.messages)],
     };
   },
   async run(commandRunner, request: AgentRunRequest) {
