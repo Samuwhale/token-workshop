@@ -529,3 +529,11 @@
   - When a downstream queue groups by optional token metadata, the parent data source should forward that metadata explicitly instead of relying on fallback normalization in the child.
   - Derived health-panel snapshots should filter and map from the same unified token record to avoid lifecycle drift between exclusion logic and rendered queue rows.
 ---
+## 2026-04-09 - [Turn `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` into an actionable inbox with severity filters, deduping, sticky blockers, and deep links back to the affected token or workspace instead of a passive transcript of past toast messages.]
+- Rebuilt the notifications surface into a grouped inbox that classifies toast history by severity, dedupes repeated messages, pins blockers at the top, and adds filter chips plus repeated-occurrence summaries.
+- Added inferred deep links so token-related notices jump back to the highlighted token in the Tokens workspace, while broader sync/import/settings notices route to the most relevant workspace or secondary surface.
+- Files changed: `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` ~L1, ~L72, ~L190, ~L343; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - When historical toast data is string-only, practical inbox actions can still come from lightweight message heuristics as long as token paths are reconciled against live workspace state before navigating.
+  - Sticky blocker sections work best when deduping happens before filtering, so repeated failures stay visible without overwhelming the rest of the inbox.
+---
