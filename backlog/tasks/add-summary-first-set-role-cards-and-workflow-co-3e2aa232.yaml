@@ -1,0 +1,23 @@
+id: add-summary-first-set-role-cards-and-workflow-co-3e2aa232
+title: Add summary-first set-role cards and workflow counters to ThemeManager
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ThemeManager.tsx
+  - packages/figma-plugin/src/ui/components/themeManagerTypes.ts
+  - packages/figma-plugin/src/ui/shared/themeWorkflow.ts
+  - packages/figma-plugin/src/ui/App.tsx
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Research found that App and summarizeThemeWorkflow only understand whether an option has any assigned set, while ThemeManager repeats merge-model explanations and ad hoc issue pills inside every option body. This slice should create one shared summary model that both the shell and authoring surface can read."
+state: ready
+acceptance_criteria:
+  - Introduce shared role-summary helpers for each option that report Base, Override, and Excluded counts plus empty-override, stale-set, and coverage issue totals without recomputing the same status in multiple JSX branches.
+  - Update the theme workflow summary and shell guidance so the set-role stage distinguishes unmapped options from mapped options that still carry assignment issues, and focus-stage navigation picks the highest-priority option from that summary.
+  - Replace the default per-option merge explainer and getting-started helper copy with a compact summary-first header that shows the current role mix and issue state at a glance before the user opens detailed editing.
+source: task-followup
+created_at: 2026-04-09T14:00:06.557Z
+updated_at: 2026-04-09T14:00:06.557Z

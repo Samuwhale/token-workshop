@@ -513,3 +513,11 @@
   - Equality checks on token payloads and publish snapshots should use stable serialization even when the displayed values still use plain `JSON.stringify` for summaries.
   - Preserve `JSON.stringify` only where wire-format serialization or user-facing display strings are intended; diff logic should not depend on object insertion order.
 ---
+## 2026-04-09 - [Research ThemeManager set-role assignment density and draft implementation slices for a summary-first role editor]
+- Inspected the scoped ThemeManager, App, workflow, bulk-ops, and coverage files to map how Base, Override, and Excluded states are currently explained, grouped, edited, and summarized across the set-role stage.
+- Queued three implementation-ready follow-ups covering a shared role-summary/workflow model, an explicit edit-mode role editor with consolidated bulk actions, and unified coverage/stale issue handoffs back into set-role editing.
+- Files changed: `backlog/inbox.jsonl` ~L1; `scripts/backlog/patterns.md` ~L181; `scripts/backlog/progress.txt` ~L500
+- **Learnings for future iterations:**
+  - Theme workflow summaries should track assignment quality, not just whether an option has any mapped set, otherwise shell guidance cannot surface stale sets, empty overrides, or review issues as first-class work.
+  - Dense multi-state editors read better when the default view is a summary with explicit edit entry points, and review issues jump back into that same editor instead of living in separate explanatory blocks.
+---

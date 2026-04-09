@@ -14,11 +14,12 @@ status_notes:
   - "Context: The current ThemeManager flow combines a merge explainer, batch toolbar, grouped sections, per-row three-state toggle controls, stale-set warnings, and coverage hints in one dense authoring block. Research should turn that into a small set of implementation-ready tasks grounded in the existing theme workflow stage model."
   - "Failed: validation failed: ❯ src/__tests__/providers.test.ts:201:27 | 199| ); | 200| | 201| expect(validation.ok).toBe(true); | | ^ | 202| expect(validation.messages.join('\\n')).toContain('planner schema s… | 203| }); | ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯"
   - "Recovered: failed-task planner support is now covered in backlog-runner tests, so this research task can return to the runnable queue."
-state: ready
+  - "Completed: Queued three implementation-ready follow-ups, added a reusable summary-first role-editor pattern, and logged the research findings in backlog progress."
+state: done
 acceptance_criteria:
   - Inspect the set-role authoring surface across `packages/figma-plugin/src/ui/components/ThemeManager.tsx`, `packages/figma-plugin/src/ui/components/themeManagerTypes.ts`, `packages/figma-plugin/src/ui/shared/themeWorkflow.ts`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts`, and `packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts` to document how source/base, override, and excluded states are currently explained, grouped, edited, and summarized.
   - Write concrete follow-up backlog tasks that replace dense per-row toggle clusters and helper copy with an at-a-glance role summary model, explicit edit affordances, and clearer bulk-assignment patterns, with concrete implementation touch paths for each slice.
   - Write concrete follow-up backlog tasks that clarify how coverage gaps, missing overrides, empty override sets, and deleted-set warnings hand back into set-role editing so the role-assignment stage reads as one coherent workflow rather than separate status blocks.
 source: planner-pass
 created_at: 2026-04-09T07:34:46.657Z
-updated_at: 2026-04-09T08:57:42.000Z
+updated_at: 2026-04-09T14:00:06.574Z

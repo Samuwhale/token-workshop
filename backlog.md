@@ -55,7 +55,7 @@
 - [x] Remove deprecated import orchestration hooks after controller consolidation
 - [ ] Replace token-editor composite equality checks with stableStringify
 - [ ] Decode multi-set snapshot keys in operation diff responses
-- [ ] Research ThemeManager set-role assignment density and draft implementation slices for a summary-first role editor
+- [x] Research ThemeManager set-role assignment density and draft implementation slices for a summary-first role editor
 - [ ] Merge Tokens empty-state starts into one canonical Start here flow
 - [ ] Unify token-based and template-based generator starts into one generator draft flow
 - [ ] Reduce TokenListModals to transient confirmations and re-home long-lived review flows
@@ -65,5 +65,8 @@
 - [ ] Research theme gap remediation flow across authoring, coverage review, and override creation
 - [x] Replace server, publish, and set-merge composite equality checks with stableStringify
 - [ ] Thread real lifecycle metadata into the unused-token cleanup queue
+- [ ] Add summary-first set-role cards and workflow counters to ThemeManager
+- [ ] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
+- [ ] Unify theme coverage and stale-set issue handoffs with set-role editing
 - [ ] Make multi-set folder operations fully rollbackable in the operation log
 - [ ] Add regression coverage for uncapped operation history and rename propagation persistence
