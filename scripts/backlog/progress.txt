@@ -381,3 +381,11 @@
   - Import orchestration gets easier to reason about when the provider owns shared server-facing helpers like token-map fetches, batch imports, and undo deletion, and the source/set hooks only own UI-local state.
   - Focused `tsc -p packages/figma-plugin/tsconfig.json` runs in this worktree still surface unrelated repo errors plus missing `packages/core/dist`; use the appearance of new file-specific diagnostics, not overall success, as the scoped validation signal unless the workspace is repaired first.
 ---
+## 2026-04-09 - [Merge dependency tracing into `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx`, and `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` so alias chains and dependents can be inspected inline, with the standalone Dependencies screen kept as an advanced escape hatch instead of the default place to understand one token.]
+- Added a shared dependency snapshot in `TokenFlowPanel.tsx`, used it to inline reference-chain and dependent-impact traces in the token editor, and expanded the token preview so it shows alias-chain context plus downstream dependents without forcing a trip to the standalone graph.
+- Reframed the Dependencies screen as the deeper graph explorer by updating its helper copy and graph affordances while keeping the existing navigation path intact as the advanced fallback.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L28, ~L193, ~L874; `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx` ~L106, ~L469, ~L586; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1147, ~L1324, ~L2009; `scripts/backlog/progress.txt` ~L368
+- **Learnings for future iterations:**
+  - When dependency context is needed in more than one token surface, centralizing the graph walk into one snapshot builder keeps editor, preview, and full-graph views aligned without adding another shared utility file.
+  - Focused plugin `tsc` checks in this worktree are still blocked by missing `packages/core/dist` artifacts; if the only remaining diagnostics are TS6305 from `@tokenmanager/core`, treat that as workspace drift rather than a regression in the touched UI files.
+---
