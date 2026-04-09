@@ -344,3 +344,18 @@
   - When a panel still receives single-item expansion props from a parent hook, a local `Set`-based overlay can add bulk expand and collapse behavior without widening the shared hook contract.
   - Search becomes materially more useful in token or variable explorers when it matches collection names, alias references, and rendered values, not only raw variable paths.
 ---
+## 2026-04-09 - [Add dependency-aware preflight to the set delete / merge / split flows in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/server/src/routes/sets.ts` so users can see affected theme options, resolver refs, Figma collection metadata, and generated token ownership before a structural set change runs.]
+- Expanded structural preflight so split flows now surface existing destination-set impacts, delete warnings call out exactly which Figma metadata fields are removed, and the dialogs label each affected set as the source, target, or existing split destination.
+- Revalidated merge and split preflight at execution time in `useSetMergeSplit`, refresh conflict state when merge inputs drift, and prevent split confirmation when preflight no longer yields any creatable destination sets.
+- Files changed: `packages/server/src/routes/sets.ts` ~L220, ~L228, ~L550; `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L28, ~L96, ~L123, ~L230; `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L219, ~L371, ~L2246, ~L2362, ~L2502
+- **Learnings for future iterations:**
+  - Structural preflight is more trustworthy when the execution hook reruns it immediately before mutating state; otherwise the confirmation dialog can drift from the actual merge or split that will run.
+  - Split previews should treat already-existing destination sets as first-class affected surfaces, because their untouched metadata and ownership explain why the split will skip them.
+---
+## 2026-04-09 - [Add dependency-aware preflight to the set delete / merge / split flows in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/server/src/routes/sets.ts` so users can see affected theme options, resolver refs, Figma collection metadata, and generated token ownership before a structural set change runs.]
+- Preserved the scoped preflight implementation, repaired the validation workspace by rebuilding `packages/core/dist`, and reran the focused validation gates that previously failed in repair mode.
+- Files changed: `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - In this worktree, `packages/server` can fail with TS6305 until `packages/core` has been built once, even though the server package path-maps `@tokenmanager/core` to source.
+  - When repair mode reports only build-environment drift, keep the scoped feature edits intact and restore the missing build artifact before reconsidering product code.
+---

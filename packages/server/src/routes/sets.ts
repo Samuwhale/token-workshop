@@ -217,6 +217,14 @@ function buildSplitPreview(setName: string, tokens: TokenGroup, existingSetNames
     .sort((a, b) => a.newName.localeCompare(b.newName));
 }
 
+function listMetadataFields(metadata: SetPreflightImpact['metadata']): string[] {
+  const fields: string[] = [];
+  if (metadata.description) fields.push('description');
+  if (metadata.collectionName) fields.push('collection');
+  if (metadata.modeName) fields.push('mode');
+  return fields;
+}
+
 function buildPreflightWarnings(params: {
   operation: SetStructuralOperation;
   source: SetPreflightImpact;
@@ -234,8 +242,9 @@ function buildPreflightWarnings(params: {
     if (source.resolverRefs.length > 0) {
       warnings.push(`Deleting "${source.name}" breaks ${source.resolverRefs.length} resolver source reference${source.resolverRefs.length === 1 ? '' : 's'} until they are repointed.`);
     }
-    if (source.metadata.collectionName || source.metadata.modeName) {
-      warnings.push(`Deleting "${source.name}" also removes its Figma collection and mode metadata.`);
+    const metadataFields = listMetadataFields(source.metadata);
+    if (metadataFields.length > 0) {
+      warnings.push(`Deleting "${source.name}" also removes its Figma ${metadataFields.join(', ')} metadata.`);
     }
     if (source.generatedOwnership.length > 0) {
       warnings.push(`Generated tokens owned inside "${source.name}" are removed with the set; generators are not retargeted automatically.`);
@@ -250,8 +259,11 @@ function buildPreflightWarnings(params: {
   }
 
   if (operation === 'split') {
-    if (splitPreview.some((entry) => entry.existing)) {
-      warnings.push('Some split destination sets already exist and will be skipped.');
+    const existingDestinations = splitPreview.filter((entry) => entry.existing);
+    if (existingDestinations.length > 0) {
+      warnings.push(
+        `${existingDestinations.length} split destination${existingDestinations.length === 1 ? '' : 's'} already exist and will be skipped. Their current dependencies are listed below so you can decide whether to rename or merge instead.`,
+      );
     }
     if (!deleteOriginal) {
       warnings.push(`Split creates new sets from "${source.name}" but leaves theme options, resolver refs, Figma metadata, and generator ownership on the original set.`);
@@ -573,7 +585,12 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(404).send({ error: `Token set "${targetSet}" not found` });
       }
 
-      const generators: SetGeneratorMeta[] = generatorsRaw.map((generator) => ({
+      const generators: SetGeneratorMeta[] = generatorsRaw.map((generator: {
+        id: string;
+        name: string;
+        targetSet: string;
+        targetGroup: string;
+      }) => ({
         id: generator.id,
         name: generator.name,
         targetSet: generator.targetSet,
@@ -592,6 +609,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         generators,
         allOwnedTokens,
       });
+      const splitPreview = operation === 'split'
+        ? buildSplitPreview(name, sourceSet.tokens, splitSetNames)
+        : [];
       const affectedSets: SetPreflightImpact[] = [sourceImpact];
       if (operation === 'merge' && targetSet && targetSetData) {
         affectedSets.push(buildSetImpact({
@@ -604,12 +624,28 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           allOwnedTokens,
         }));
       }
+      if (operation === 'split') {
+        const existingDestinations = splitPreview.filter((entry) => entry.existing);
+        const existingDestinationImpacts = await Promise.all(
+          existingDestinations.map(async (entry) => {
+            const existingSet = await fastify.tokenStore.getSet(entry.newName);
+            if (!existingSet) return null;
+            return buildSetImpact({
+              setName: entry.newName,
+              tokens: existingSet.tokens,
+              metadata: fastify.tokenStore.getSetMetadata(entry.newName),
+              dimensions,
+              resolvers,
+              generators,
+              allOwnedTokens,
+            });
+          }),
+        );
+        affectedSets.push(...existingDestinationImpacts.filter((impact): impact is SetPreflightImpact => impact !== null));
+      }
 
       const blockers = operation === 'delete' || (operation === 'split' && deleteOriginal)
         ? buildGeneratorTargetBlockers(sourceImpact)
-        : [];
-      const splitPreview = operation === 'split'
-        ? buildSplitPreview(name, sourceSet.tokens, splitSetNames)
         : [];
       const mergeConflicts = operation === 'merge' && targetSetData
         ? buildMergeConflicts(sourceSet.tokens, targetSetData.tokens)

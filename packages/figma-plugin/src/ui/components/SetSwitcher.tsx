@@ -216,7 +216,13 @@ function ThemeStatusBadge({ status }: { status: ThemeSetStatus }) {
   );
 }
 
-function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
+function SetPreflightCard({
+  impact,
+  label,
+}: {
+  impact: SetPreflightImpact;
+  label?: string;
+}) {
   const hasDependencies =
     impact.themeOptions.length > 0 ||
     impact.resolverRefs.length > 0 ||
@@ -230,6 +236,11 @@ function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
     <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
+          {label && (
+            <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)]">
+              {label}
+            </div>
+          )}
           <div className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">
             {impact.name}
           </div>
@@ -357,14 +368,54 @@ function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
   );
 }
 
+function getPreflightImpactLabel(params: {
+  operation: SetStructuralOperation;
+  impactName: string;
+  sourceSetName?: string;
+  targetSetName?: string;
+  splitPreview?: Array<{
+    key: string;
+    newName: string;
+    count: number;
+    existing?: boolean;
+  }>;
+}): string | undefined {
+  const { operation, impactName, sourceSetName, targetSetName, splitPreview = [] } = params;
+  if (operation === "delete" && impactName === sourceSetName) {
+    return "Set being deleted";
+  }
+  if (operation === "merge") {
+    if (impactName === sourceSetName) return "Source set";
+    if (impactName === targetSetName) return "Target set";
+  }
+  if (operation === "split") {
+    if (impactName === sourceSetName) return "Set being split";
+    if (splitPreview.some((entry) => entry.existing && entry.newName === impactName)) {
+      return "Existing split destination";
+    }
+  }
+  return undefined;
+}
+
 function StructuralPreflightSummary({
   preflight,
   loading,
   error,
+  sourceSetName,
+  targetSetName,
+  splitPreview,
 }: {
   preflight: SetStructuralPreflight | null;
   loading: boolean;
   error: string | null;
+  sourceSetName?: string;
+  targetSetName?: string;
+  splitPreview?: Array<{
+    key: string;
+    newName: string;
+    count: number;
+    existing?: boolean;
+  }>;
 }) {
   if (loading) {
     return (
@@ -418,7 +469,17 @@ function StructuralPreflightSummary({
       )}
       <div className="flex flex-col gap-2">
         {preflight.affectedSets.map((impact) => (
-          <SetPreflightCard key={impact.name} impact={impact} />
+          <SetPreflightCard
+            key={impact.name}
+            impact={impact}
+            label={getPreflightImpactLabel({
+              operation: preflight.operation,
+              impactName: impact.name,
+              sourceSetName,
+              targetSetName,
+              splitPreview,
+            })}
+          />
         ))}
       </div>
     </div>
@@ -2186,6 +2247,7 @@ function SetDeleteDialog({
             preflight={preflight}
             loading={preflightLoading}
             error={preflightError}
+            sourceSetName={deletingSet}
           />
         </div>
         <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
@@ -2301,6 +2363,8 @@ function SetMergeDialog({
             preflight={preflight}
             loading={preflightLoading}
             error={preflightError}
+            sourceSetName={mergingSet}
+            targetSetName={mergeTargetSet}
           />
           {!mergeChecked && (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -2435,6 +2499,7 @@ function SetSplitDialog({
   onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }) {
+  const effectiveSplitPreview = preflight?.splitPreview ?? splitPreview;
   const hasBlockingPreflight =
     !!preflightError ||
     preflightLoading ||
@@ -2467,19 +2532,22 @@ function SetSplitDialog({
             preflight={preflight}
             loading={preflightLoading}
             error={preflightError}
+            sourceSetName={splittingSet}
+            splitPreview={effectiveSplitPreview}
           />
-          {splitPreview.length === 0 ? (
+          {effectiveSplitPreview.length === 0 ? (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
               No top-level groups found in this set to split.
             </p>
           ) : (
             <>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Creates {splitPreview.length} new set
-                {splitPreview.length !== 1 ? "s" : ""} from top-level groups:
+                Creates {effectiveSplitPreview.length} new set
+                {effectiveSplitPreview.length !== 1 ? "s" : ""} from top-level
+                groups:
               </p>
               <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
-                {splitPreview.map((preview) => (
+                {effectiveSplitPreview.map((preview) => (
                   <div
                     key={preview.key}
                     className="flex items-center justify-between rounded bg-[var(--color-figma-bg-hover)] px-2 py-1"
@@ -2493,7 +2561,7 @@ function SetSplitDialog({
                   </div>
                 ))}
               </div>
-              {splitPreview.some((preview) =>
+              {effectiveSplitPreview.some((preview) =>
                 sets.includes(preview.newName),
               ) && (
                 <p className="text-[10px] text-amber-500">
@@ -2524,7 +2592,9 @@ function SetSplitDialog({
           <button
             onClick={onConfirm}
             disabled={
-              splitLoading || splitPreview.length === 0 || hasBlockingPreflight
+              splitLoading ||
+              effectiveSplitPreview.length === 0 ||
+              hasBlockingPreflight
             }
             className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >

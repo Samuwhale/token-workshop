@@ -25,6 +25,18 @@ function flattenTokensObj(obj: DTCGGroup): Record<string, DTCGToken> {
   return flat;
 }
 
+function areMergeConflictsEqual(
+  left: Array<{ path: string; sourceValue: unknown; targetValue: unknown }>,
+  right: Array<{ path: string; sourceValue: unknown; targetValue: unknown }>,
+): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((conflict, index) => (
+    conflict.path === right[index]?.path
+    && JSON.stringify(conflict.sourceValue) === JSON.stringify(right[index]?.sourceValue)
+    && JSON.stringify(conflict.targetValue) === JSON.stringify(right[index]?.targetValue)
+  ));
+}
+
 async function fetchSetStructuralPreflight(
   serverUrl: string,
   setName: string,
@@ -47,7 +59,6 @@ export function useSetMergeSplit({
   const [mergeTargetSet, setMergeTargetSet] = useState<string>('');
   const [mergeConflicts, setMergeConflicts] = useState<Array<{ path: string; sourceValue: unknown; targetValue: unknown }>>([]);
   const [mergeResolutions, setMergeResolutions] = useState<Record<string, 'source' | 'target'>>({});
-  const [mergeSrcFlat, setMergeSrcFlat] = useState<Record<string, DTCGToken>>({});
   const [mergeChecked, setMergeChecked] = useState(false);
   const [mergeLoading, setMergeLoading] = useState(false);
   // Tracks the target that was used for the most recent conflict check,
@@ -67,7 +78,6 @@ export function useSetMergeSplit({
     setMergeTargetSet(sets.find(s => s !== setName) || '');
     setMergeConflicts([]);
     setMergeResolutions({});
-    setMergeSrcFlat({});
     setMergeChecked(false);
   };
 
@@ -81,7 +91,6 @@ export function useSetMergeSplit({
     setMergeChecked(false);
     setMergeConflicts([]);
     setMergeResolutions({});
-    setMergeSrcFlat({});
   };
 
   const handleCheckMergeConflicts = async () => {
@@ -90,18 +99,13 @@ export function useSetMergeSplit({
     mergeCheckTargetRef.current = checkTarget;
     setMergeLoading(true);
     try {
-      const [srcData, preflight] = await Promise.all([
-        apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
-        fetchSetStructuralPreflight(serverUrl, mergingSet, {
-          operation: 'merge',
-          targetSet: checkTarget,
-        }),
-      ]);
+      const preflight = await fetchSetStructuralPreflight(serverUrl, mergingSet, {
+        operation: 'merge',
+        targetSet: checkTarget,
+      });
       // Discard results if the target changed while the check was in flight
       if (mergeCheckTargetRef.current !== checkTarget) return;
-      const srcFlat = flattenTokensObj(srcData.tokens || {});
       const conflicts = preflight.mergeConflicts ?? [];
-      setMergeSrcFlat(srcFlat);
       setMergeConflicts(conflicts);
       const res: Record<string, 'source' | 'target'> = {};
       for (const c of conflicts) res[c.path] = 'target';
@@ -120,11 +124,36 @@ export function useSetMergeSplit({
     if (!mergingSet || !mergeTargetSet || !connected || !mergeChecked) return;
     setMergeLoading(true);
     try {
-      const tgtData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
+      const [srcData, tgtData, preflight] = await Promise.all([
+        apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
+        apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`),
+        fetchSetStructuralPreflight(serverUrl, mergingSet, {
+          operation: 'merge',
+          targetSet: mergeTargetSet,
+        }),
+      ]);
+      if ((preflight.blockers?.length ?? 0) > 0) {
+        const message = preflight.blockers[0]?.message ?? 'Merge is blocked by set dependencies.';
+        setErrorToast(message);
+        return;
+      }
+      const latestSrcFlat = flattenTokensObj(srcData.tokens || {});
+      const latestConflicts = preflight.mergeConflicts ?? [];
+      if (!areMergeConflictsEqual(latestConflicts, mergeConflicts)) {
+        const nextResolutions: Record<string, 'source' | 'target'> = {};
+        for (const conflict of latestConflicts) {
+          nextResolutions[conflict.path] = mergeResolutions[conflict.path] ?? 'target';
+        }
+        setMergeConflicts(latestConflicts);
+        setMergeResolutions(nextResolutions);
+        setMergeChecked(true);
+        setErrorToast('Merge preflight changed. Review the current conflicts before merging.');
+        return;
+      }
       const preMergeTokens = (tgtData.tokens || {}) as DTCGGroup;
       const tgtFlat = flattenTokensObj(preMergeTokens);
       const writes: Promise<unknown>[] = [];
-      for (const [path, srcEntry] of Object.entries(mergeSrcFlat)) {
+      for (const [path, srcEntry] of Object.entries(latestSrcFlat)) {
         const conflict = mergeConflicts.find(c => c.path === path);
         if (conflict) {
           if (mergeResolutions[path] === 'source') {
@@ -211,11 +240,17 @@ export function useSetMergeSplit({
         setErrorToast(message);
         return;
       }
+      const effectiveSplitPreview = preflight.splitPreview ?? [];
+      setSplitPreview(effectiveSplitPreview);
+      if (effectiveSplitPreview.length === 0) {
+        setErrorToast('No top-level groups are available to split into new sets.');
+        return;
+      }
       const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
       const tokenRoot = data.tokens || {};
       const originalTokens: Record<string, unknown> = tokenRoot;
       const createdNames: string[] = [];
-      for (const { key, newName } of splitPreview) {
+      for (const { key, newName } of effectiveSplitPreview) {
         if (sets.includes(newName)) continue;
         const groupTokens = tokenRoot[key];
         await apiFetch(`${serverUrl}/api/sets`, {
@@ -225,13 +260,17 @@ export function useSetMergeSplit({
         });
         createdNames.push(newName);
       }
+      if (createdNames.length === 0) {
+        setErrorToast('No new sets can be created from this split preview. Rename the destinations before splitting.');
+        return;
+      }
       if (splitDeleteOriginal) {
         await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`, { method: 'DELETE' });
         const remaining = sets.filter(s => s !== splittingSet);
         if (activeSet === splittingSet) setActiveSet(remaining[0] ?? '');
       }
       const name = splittingSet;
-      const count = splitPreview.length;
+      const count = createdNames.length;
       const wasDeleted = splitDeleteOriginal;
       setSplittingSet(null);
       refreshTokens();
