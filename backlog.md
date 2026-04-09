@@ -62,7 +62,7 @@
 - [x] Move Tokens narrow contextual drawers behind the shared library surface contract
 - [x] Research import intake surfaces for drag-and-drop discoverability, validation feedback, and conflict handoff
 - [x] Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets
-- [ ] Research theme gap remediation flow across authoring, coverage review, and override creation
+- [x] Research theme gap remediation flow across authoring, coverage review, and override creation
 - [x] Replace server, publish, and set-merge composite equality checks with stableStringify
 - [x] Thread real lifecycle metadata into the unused-token cleanup queue
 - [ ] Add summary-first set-role cards and workflow counters to ThemeManager
