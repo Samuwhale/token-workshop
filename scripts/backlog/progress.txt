@@ -373,3 +373,11 @@
   - Docs-only backlog items can still fail validation because workspace package artifacts are missing; rebuild ignored outputs before assuming an unrelated TypeScript error needs product-code changes.
   - Once `docs/redesign/` collapses to a single survivor, the audit question is whether that file is a current-state implementation reference or stale planning text. Keep only the former.
 ---
+## 2026-04-09 - [Break the import flow into one coherent domain controller instead of the current late-bound ref cycle across `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx`, `useImportSource.ts`, `useImportConflicts.ts`, `useImportApply.ts`, and `useTokensImport.ts`, where single-set and multi-set imports still duplicate flattening, conflict detection, cache resets, and success/undo plumbing.]
+- Replaced the late-bound ref wiring in the import panel provider with one controller that owns conflict state, existing-token caching, import progress, retry and undo state, and the shared batch helpers used by both single-set and multi-set imports.
+- Unified import payload building, set creation, cached token-map loading, variables conflict preview, and style conflict detection inside `ImportPanelContext.tsx`, while keeping `useImportSource` and `useImportSets` focused on source parsing and destination selection.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx` ~L163, ~L223, ~L343, ~L525, ~L852; `scripts/backlog/progress.txt` ~L361
+- **Learnings for future iterations:**
+  - Import orchestration gets easier to reason about when the provider owns shared server-facing helpers like token-map fetches, batch imports, and undo deletion, and the source/set hooks only own UI-local state.
+  - Focused `tsc -p packages/figma-plugin/tsconfig.json` runs in this worktree still surface unrelated repo errors plus missing `packages/core/dist`; use the appearance of new file-specific diagnostics, not overall success, as the scoped validation signal unless the workspace is repaired first.
+---
