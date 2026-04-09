@@ -79,6 +79,16 @@ function TokenRowWithAlias({ token, tokensByPath }: { token: ImportToken; tokens
 // Re-export for use in test or direct imports if needed
 export { TokenRowWithAlias as TokenRow };
 
+function ValidationStatusBadge({ status }: { status: 'ready' | 'partial' | 'error' | 'unsupported' }) {
+  const className = status === 'partial'
+    ? 'bg-[var(--color-figma-warning,#e8a100)]/15 text-[var(--color-figma-warning,#e8a100)]'
+    : status === 'ready'
+      ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]'
+      : 'bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]';
+  const label = status === 'partial' ? 'Partial parse' : status === 'ready' ? 'Ready' : 'Blocked';
+  return <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${className}`}>{label}</span>;
+}
+
 export function ImportTokenListView() {
   const {
     tokens,
@@ -87,6 +97,7 @@ export function ImportTokenListView() {
     source,
     skippedEntries,
     skippedExpanded,
+    fileImportValidation,
     handleBack,
     toggleAll,
     setTypeFilter,
@@ -97,6 +108,9 @@ export function ImportTokenListView() {
   const sourceDefinition = getSourceDefinition(source);
   const sourceLabel = sourceDefinition?.label
     ?? (source === 'json' ? 'JSON File' : source === 'css' ? 'CSS File' : source === 'tailwind' ? 'Tailwind Config' : 'Imported Tokens');
+  const validation = fileImportValidation?.source === source ? fileImportValidation : null;
+  const skippedCount = validation?.skippedCount ?? skippedEntries.length;
+  const previewSkippedEntries = validation?.skippedEntries ?? skippedEntries;
 
   const tokensByPath = new Map(tokens.map(t => [t.path, t]));
 
@@ -144,41 +158,68 @@ export function ImportTokenListView() {
         </button>
       </div>
 
-      {/* Skipped entries summary (CSS / Tailwind only) */}
-      {skippedEntries.length > 0 && (source === 'css' || source === 'tailwind') && (
-        <div className="rounded border border-[var(--color-figma-border)] text-[10px] overflow-hidden">
-          <button
-            onClick={() => setSkippedExpanded(prev => !prev)}
-            className="w-full flex items-center justify-between px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors text-left"
-            aria-expanded={skippedExpanded}
-          >
-            <span className="text-[var(--color-figma-text-secondary)]">
-              <span className="text-[var(--color-figma-text)] font-medium">{tokens.length}</span> imported
-              {', '}
-              <span className="text-[var(--color-figma-warning,#e8a100)] font-medium">{skippedEntries.length}</span> skipped
-            </span>
-            <svg
-              width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-              className={`text-[var(--color-figma-text-secondary)] transition-transform ${skippedExpanded ? 'rotate-90' : ''}`}
-              aria-hidden="true"
-            >
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
-          </button>
-          {skippedExpanded && (
-            <div className="max-h-36 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-              {skippedEntries.map((entry, i) => (
-                <div key={i} className="px-2 py-1.5 flex flex-col gap-0.5">
-                  <span className="font-mono text-[var(--color-figma-text)] text-[9px]">{entry.path}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] text-[9px]">
-                    {entry.reason}
-                    {entry.originalExpression && (
-                      <> — <code className="font-mono text-[var(--color-figma-text)]">{entry.originalExpression.length > 48 ? entry.originalExpression.slice(0, 48) + '…' : entry.originalExpression}</code></>
-                    )}
-                  </span>
+      {validation && (
+        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] overflow-hidden">
+          <div className="flex items-center justify-between gap-2 px-3 py-2">
+            <div className="text-[var(--color-figma-text)] font-medium">
+              {validation.summary}
+            </div>
+            <ValidationStatusBadge status={validation.status} />
+          </div>
+          <div className="px-3 pb-2 text-[var(--color-figma-text-secondary)]">
+            {validation.detail}
+          </div>
+          <div className="px-3 pb-2 text-[var(--color-figma-text-secondary)]">
+            Next: {validation.nextAction}
+          </div>
+          {validation.issues.length > 0 && (
+            <div className="px-3 pb-2 flex flex-col gap-1">
+              {validation.issues.map((issue) => (
+                <div
+                  key={`${issue.severity}-${issue.message}`}
+                  className={issue.severity === 'warning' ? 'text-[var(--color-figma-warning,#e8a100)]' : 'text-[var(--color-figma-error)]'}
+                >
+                  {issue.message}
                 </div>
               ))}
             </div>
+          )}
+          {skippedCount > 0 && (
+            <>
+              <button
+                onClick={() => setSkippedExpanded(prev => !prev)}
+                className="w-full flex items-center justify-between border-t border-[var(--color-figma-border)] px-3 py-2 hover:bg-[var(--color-figma-bg)] transition-colors text-left"
+                aria-expanded={skippedExpanded}
+              >
+                <span className="text-[var(--color-figma-text-secondary)]">
+                  <span className="text-[var(--color-figma-text)] font-medium">{tokens.length}</span> parsed
+                  {', '}
+                  <span className="text-[var(--color-figma-warning,#e8a100)] font-medium">{skippedCount}</span> skipped
+                </span>
+                <svg
+                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                  className={`text-[var(--color-figma-text-secondary)] transition-transform ${skippedExpanded ? 'rotate-90' : ''}`}
+                  aria-hidden="true"
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+              </button>
+              {skippedExpanded && (
+                <div className="max-h-36 overflow-y-auto divide-y divide-[var(--color-figma-border)] border-t border-[var(--color-figma-border)]">
+                  {previewSkippedEntries.map((entry, i) => (
+                    <div key={i} className="px-3 py-2 flex flex-col gap-0.5">
+                      <span className="font-mono text-[var(--color-figma-text)] text-[9px]">{entry.path}</span>
+                      <span className="text-[var(--color-figma-text-secondary)] text-[9px]">
+                        {entry.reason}
+                        {entry.originalExpression && (
+                          <> — <code className="font-mono text-[var(--color-figma-text)]">{entry.originalExpression.length > 48 ? entry.originalExpression.slice(0, 48) + '…' : entry.originalExpression}</code></>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

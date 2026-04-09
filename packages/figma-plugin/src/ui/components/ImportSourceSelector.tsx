@@ -143,6 +143,107 @@ const FAMILY_NOTES: Record<SourceFamily, React.ReactNode> = {
   ),
 };
 
+const FAMILY_PARSER_LIMITS: Record<SourceFamily, string[]> = {
+  figma: [
+    'Variables require a Figma Professional plan or above.',
+    'The current file must already contain local variables or styles to read from.',
+  ],
+  'token-files': [
+    'JSON imports expect a DTCG token object or a top-level "tokens" object.',
+    'Tokens Studio exports are auto-detected and routed to the migration parser when possible.',
+  ],
+  code: [
+    'Only static CSS values and static Tailwind theme values are imported.',
+    'Dynamic expressions, arrays, functions, booleans, and null values are skipped and reported.',
+  ],
+  migration: [
+    'Tokens Studio multi-set exports keep their set boundaries.',
+    'Only nested groups with value or $value fields are imported.',
+  ],
+};
+
+function ValidationStatusBadge({ status }: { status: 'ready' | 'partial' | 'error' | 'unsupported' }) {
+  const className = status === 'partial'
+    ? 'bg-[var(--color-figma-warning,#e8a100)]/15 text-[var(--color-figma-warning,#e8a100)]'
+    : status === 'ready'
+      ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]'
+      : 'bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]';
+  const label = status === 'unsupported'
+    ? 'Unsupported'
+    : status === 'error'
+      ? 'Blocked'
+      : status === 'partial'
+        ? 'Partial'
+        : 'Ready';
+  return <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${className}`}>{label}</span>;
+}
+
+function ParserLimitsCard({ items }: { items: string[] }) {
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+      <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+        Parser Limits
+      </div>
+      <div className="mt-1 flex flex-col gap-1">
+        {items.map((item) => (
+          <div key={item} className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            {item}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FileValidationCard({
+  validation,
+}: {
+  validation: NonNullable<ReturnType<typeof useImportPanel>['fileImportValidation']>;
+}) {
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+          {validation.summary}
+        </div>
+        <ValidationStatusBadge status={validation.status} />
+      </div>
+      <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+        {validation.detail}
+      </div>
+      <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+        Next: {validation.nextAction}
+      </div>
+      {validation.supportedFormats.length > 0 && (
+        <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+          Supports: {formatSupportedFileFormats(validation.supportedFormats)}
+        </div>
+      )}
+      {validation.issues.length > 0 && (
+        <div className="mt-2 flex flex-col gap-1">
+          {validation.issues.slice(0, 3).map((issue) => (
+            <div
+              key={`${issue.severity}-${issue.message}`}
+              className={`text-[10px] ${
+                issue.severity === 'warning'
+                  ? 'text-[var(--color-figma-warning,#e8a100)]'
+                  : 'text-[var(--color-figma-error)]'
+              }`}
+            >
+              {issue.message}
+            </div>
+          ))}
+          {validation.issues.length > 3 && (
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              …and {validation.issues.length - 3} more parser issues
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SelectorCard({
   title,
   description,
@@ -264,6 +365,7 @@ export function ImportSourceSelector() {
     cssFileInputRef,
     tailwindFileInputRef,
     tokensStudioFileInputRef,
+    fileImportValidation,
     handleBack,
     selectSourceFamily,
   } = useImportPanel();
@@ -333,6 +435,11 @@ export function ImportSourceSelector() {
       formats: activeFamilyFileFormats,
     }]
     : [];
+  const parserLimitItems = activeFamily
+    ? FAMILY_PARSER_LIMITS[activeFamily]
+    : ['JSON imports expect DTCG or Tokens Studio exports.', 'CSS and Tailwind imports accept static values only.', 'Unsupported files stay in the picker until you choose a supported source.'];
+  const validationFamily = fileImportValidation?.source ? IMPORT_SOURCE_DEFINITIONS[fileImportValidation.source].family : null;
+  const showValidationCard = !!fileImportValidation && (!activeFamily || validationFamily === activeFamily || fileImportValidation.source === null);
 
   return (
     <div className="flex flex-col gap-3">
@@ -351,6 +458,8 @@ export function ImportSourceSelector() {
             entries={familyFileEntries}
             isDragging={isDragging}
           />
+          <ParserLimitsCard items={parserLimitItems} />
+          {showValidationCard && fileImportValidation && <FileValidationCard validation={fileImportValidation} />}
           <div className="flex flex-col gap-2">
             {familyOptions.map((option) => (
               <SelectorCard key={option.id} {...option} />
@@ -379,6 +488,8 @@ export function ImportSourceSelector() {
               isDragging={isDragging}
             />
           )}
+          <ParserLimitsCard items={parserLimitItems} />
+          {showValidationCard && fileImportValidation && <FileValidationCard validation={fileImportValidation} />}
           <div className="flex flex-col gap-2">
             {formatOptions.map((option) => (
               <SelectorCard key={option.id} {...option} />

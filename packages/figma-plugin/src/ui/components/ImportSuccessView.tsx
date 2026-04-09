@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useImportPanel } from './ImportPanelContext';
 
 export function ImportSuccessView() {
+  const [showSkippedDetails, setShowSkippedDetails] = useState(false);
   const {
     successMessage,
     failedImportPaths,
     failedImportBatches,
     succeededImportCount,
     lastImport,
+    fileImportValidation,
     undoing,
     retrying,
     copyFeedback,
@@ -15,6 +18,8 @@ export function ImportSuccessView() {
     handleCopyFailedPaths,
     clearSuccessState,
   } = useImportPanel();
+  const hasParseWarnings = !!fileImportValidation && (fileImportValidation.status === 'partial' || fileImportValidation.skippedCount > 0 || fileImportValidation.issues.length > 0);
+  const showRetryGuidance = hasParseWarnings && failedImportPaths.length > 0;
 
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-10">
@@ -23,6 +28,84 @@ export function ImportSuccessView() {
         <path d="M6 10l3 3 5-5" stroke="var(--color-figma-success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div role="status" aria-live="polite" className="text-[11px] text-[var(--color-figma-success)] font-medium text-center">{successMessage}</div>
+      {fileImportValidation && (
+        <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              {fileImportValidation.summary}
+            </div>
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
+              fileImportValidation.status === 'partial'
+                ? 'bg-[var(--color-figma-warning,#e8a100)]/15 text-[var(--color-figma-warning,#e8a100)]'
+                : 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]'
+            }`}>
+              {fileImportValidation.status === 'partial' ? 'Partial parse' : 'Parsed'}
+            </span>
+          </div>
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            {fileImportValidation.detail}
+          </div>
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Next: {fileImportValidation.nextAction}
+          </div>
+          {fileImportValidation.issues.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {fileImportValidation.issues.map((issue) => (
+                <div
+                  key={`${issue.severity}-${issue.message}`}
+                  className={`text-[10px] ${
+                    issue.severity === 'warning'
+                      ? 'text-[var(--color-figma-warning,#e8a100)]'
+                      : 'text-[var(--color-figma-error)]'
+                  }`}
+                >
+                  {issue.message}
+                </div>
+              ))}
+            </div>
+          )}
+          {fileImportValidation.skippedCount > 0 && (
+            <div className="mt-2 rounded border border-[var(--color-figma-border)] overflow-hidden">
+              <button
+                onClick={() => setShowSkippedDetails(prev => !prev)}
+                className="w-full flex items-center justify-between px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg)] transition-colors"
+                aria-expanded={showSkippedDetails}
+              >
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <span className="text-[var(--color-figma-warning,#e8a100)] font-medium">{fileImportValidation.skippedCount}</span> entries were skipped before import
+                </span>
+                <svg
+                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                  className={`text-[var(--color-figma-text-secondary)] transition-transform ${showSkippedDetails ? 'rotate-90' : ''}`}
+                  aria-hidden="true"
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+              </button>
+              {showSkippedDetails && (
+                <div className="max-h-36 overflow-y-auto divide-y divide-[var(--color-figma-border)] border-t border-[var(--color-figma-border)]">
+                  {fileImportValidation.skippedEntries.map((entry, index) => (
+                    <div key={`${entry.path}-${index}`} className="px-2 py-1.5 flex flex-col gap-0.5">
+                      <span className="font-mono text-[var(--color-figma-text)] text-[9px]">{entry.path}</span>
+                      <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                        {entry.reason}
+                        {entry.originalExpression && (
+                          <> — <code className="font-mono text-[var(--color-figma-text)]">{entry.originalExpression.length > 48 ? entry.originalExpression.slice(0, 48) + '…' : entry.originalExpression}</code></>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {showRetryGuidance && (
+            <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+              Retry only re-sends the tokens that parsed successfully. Skipped entries from this file are still excluded until the source file is fixed and re-imported.
+            </div>
+          )}
+        </div>
+      )}
       {failedImportPaths.length > 0 && (
         <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
           <div className="flex items-center justify-between mb-1.5">

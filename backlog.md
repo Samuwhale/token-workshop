@@ -70,7 +70,7 @@
 - [x] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
 - [x] Unify theme coverage and stale-set issue handoffs with set-role editing
 - [x] Re-home file import affordances inside the family-first intake flow
-- [ ] Unify file import validation feedback across picker, drop, preview, and retry states
+- [x] Unify file import validation feedback across picker, drop, preview, and retry states
 - [ ] Create one shared conflict-review contract for single-set and multi-set imports
 - [ ] Separate Settings recovery workflows from destructive reset controls
 - [ ] Clarify scope and consequences for settings restore versus workspace reset

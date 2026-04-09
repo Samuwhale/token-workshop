@@ -22,6 +22,7 @@ function ImportPanelRoot() {
     source,
     workflowStage,
     successMessage,
+    fileImportValidation,
     conflictPaths,
     destinationReady,
     usesCollectionDestination,
@@ -38,6 +39,7 @@ function ImportPanelRoot() {
   const showDestinationRules = !showSuccess && !loading && workflowStage === 'destination' && !usesCollectionDestination && tokens.length > 0;
   const showVariables = !showSuccess && !loading && workflowStage === 'destination' && usesCollectionDestination;
   const showTokenList = !showSuccess && !loading && workflowStage === 'preview' && tokens.length > 0;
+  const showDestinationValidation = !!fileImportValidation && !showSourceSelector && !showSuccess && !showTokenList && (showDestinationRules || showVariables);
   const sourceDefinition = getSourceDefinition(source);
   const intakeDragHandlers = showSourceSelector
     ? {
@@ -83,6 +85,31 @@ function ImportPanelRoot() {
         {error && (
           <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
             {error}
+          </div>
+        )}
+
+        {showDestinationValidation && (
+          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                {fileImportValidation.summary}
+              </div>
+              <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
+                fileImportValidation.status === 'partial'
+                  ? 'bg-[var(--color-figma-warning,#e8a100)]/15 text-[var(--color-figma-warning,#e8a100)]'
+                  : 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+              }`}>
+                {fileImportValidation.status === 'partial' ? 'Needs review' : 'Ready'}
+              </span>
+            </div>
+            <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+              {fileImportValidation.detail}
+            </div>
+            {fileImportValidation.nextAction && (
+              <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                Next: {fileImportValidation.nextAction}
+              </div>
+            )}
           </div>
         )}
 

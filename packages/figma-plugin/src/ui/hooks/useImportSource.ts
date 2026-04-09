@@ -12,8 +12,10 @@ import {
   type ImportToken,
   type ModeData,
   type CollectionData,
+  type ImportSource,
   type SourceFamily,
   type ImportWorkflowStage,
+  IMPORT_SOURCE_DEFINITIONS,
   markDuplicatePaths,
   defaultSetName,
   modeKey,
@@ -25,6 +27,69 @@ import {
 export interface UseImportSourceParams {
   onClearConflictState: () => void;
   onResetExistingPathsCache: () => void;
+}
+
+export type FileImportSource = Exclude<ImportSource, 'variables' | 'styles'>;
+export type FileImportValidationStatus = 'ready' | 'partial' | 'error' | 'unsupported';
+
+export interface FileImportValidationIssue {
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+export interface FileImportValidation {
+  fileName: string;
+  source: FileImportSource | null;
+  status: FileImportValidationStatus;
+  summary: string;
+  detail: string;
+  nextAction: string;
+  tokenCount: number;
+  skippedCount: number;
+  issues: FileImportValidationIssue[];
+  skippedEntries: SkippedEntry[];
+  supportedFormats: string[];
+  parserLimits: string[];
+}
+
+const FILE_IMPORT_PARSER_LIMITS: Record<FileImportSource, string[]> = {
+  json: [
+    'The root must be a JSON object with nested token groups or a top-level "tokens" object.',
+    'Only DTCG token objects with $value fields are imported.',
+    'Tokens Studio exports are auto-detected and routed to the migration parser when possible.',
+  ],
+  css: [
+    'Only static custom property values are imported.',
+    'Expressions using var(), calc(), env(), min(), max(), or clamp() are skipped.',
+  ],
+  tailwind: [
+    'Only static values from theme or theme.extend are imported.',
+    'Arrays, functions, booleans, and null values are skipped.',
+  ],
+  'tokens-studio': [
+    'Single-set exports stay in one set; multi-set exports preserve set boundaries.',
+    'Only nested groups containing value or $value fields are imported.',
+  ],
+};
+
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function getSupportedFormatsForSource(source: FileImportSource | null): string[] {
+  if (!source) return getAllSupportedFileFormats();
+  const label = IMPORT_SOURCE_DEFINITIONS[source].fileSupport?.label;
+  return label ? [label] : [];
+}
+
+function getParserLimitsForSource(source: FileImportSource | null): string[] {
+  if (!source) {
+    return [
+      'JSON imports expect DTCG or Tokens Studio exports.',
+      'CSS and Tailwind imports accept static values only.',
+    ];
+  }
+  return FILE_IMPORT_PARSER_LIMITS[source];
 }
 
 export function useImportSource({ onClearConflictState, onResetExistingPathsCache }: UseImportSourceParams) {
@@ -42,6 +107,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const [skippedEntries, setSkippedEntries] = useState<SkippedEntry[]>([]);
   const [skippedExpanded, setSkippedExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [fileImportValidation, setFileImportValidation] = useState<FileImportValidation | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cssFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -74,8 +140,17 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setSourceFamily(null);
     setWorkflowStage('family');
     setError(null);
+    setFileImportValidation(null);
     onClearConflictState();
   }, [onClearConflictState, resetLoadedImportState]);
+
+  const clearFileImportValidation = useCallback(() => {
+    setFileImportValidation(null);
+  }, []);
+
+  const updateFileImportValidation = useCallback((validation: FileImportValidation) => {
+    setFileImportValidation(validation);
+  }, []);
 
   const selectSourceFamily = useCallback((family: SourceFamily) => {
     onClearConflictState();
@@ -171,6 +246,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   }, [onResetExistingPathsCache]);
 
   const handleReadVariables = useCallback(() => {
+    clearFileImportValidation();
     pendingSourceRef.current = 'variables';
     const cid = `import-${Date.now()}-${Math.random()}`;
     correlationIdRef.current = cid;
@@ -182,9 +258,10 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setError(null);
     startReadTimeout('variables');
     parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
-  }, [startReadTimeout]);
+  }, [clearFileImportValidation, startReadTimeout]);
 
   const handleReadStyles = useCallback(() => {
+    clearFileImportValidation();
     pendingSourceRef.current = 'styles';
     const cid = `import-${Date.now()}-${Math.random()}`;
     correlationIdRef.current = cid;
@@ -195,12 +272,35 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setError(null);
     startReadTimeout('styles');
     parent.postMessage({ pluginMessage: { type: 'read-styles', correlationId: cid } }, '*');
-  }, [startReadTimeout]);
+  }, [clearFileImportValidation, startReadTimeout]);
 
-  const processTokensStudioContent = useCallback((raw: string, collectionName = 'Token Sets') => {
+  const processTokensStudioContent = useCallback((
+    raw: string,
+    {
+      collectionName = 'Token Sets',
+      fileName = 'Tokens Studio JSON',
+    }: {
+      collectionName?: string;
+      fileName?: string;
+    } = {},
+  ) => {
     const { sets: parsedSets, errors } = parseTokensStudioFile(raw);
     if (parsedSets.size === 0) {
-      setError(errors.length > 0 ? errors.join('; ') : 'No tokens found in Tokens Studio file.');
+      setError(null);
+      updateFileImportValidation({
+        fileName,
+        source: 'tokens-studio',
+        status: 'error',
+        summary: `Could not import ${fileName}`,
+        detail: errors.length > 0 ? errors.join('; ') : 'No tokens found in Tokens Studio file.',
+        nextAction: 'Use a Tokens Studio JSON export with nested token groups, then try again.',
+        tokenCount: 0,
+        skippedCount: 0,
+        issues: errors.map(message => ({ message, severity: 'error' as const })),
+        skippedEntries: [],
+        supportedFormats: getSupportedFormatsForSource('tokens-studio'),
+        parserLimits: getParserLimitsForSource('tokens-studio'),
+      });
       return;
     }
     setError(null);
@@ -208,6 +308,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setCollectionData([]);
     setSourceFamily('migration');
     setWorkflowStage('destination');
+    setSkippedEntries([]);
+    setSkippedExpanded(false);
 
     if (parsedSets.size === 1) {
       const [, setTokenList] = [...parsedSets.entries()][0];
@@ -233,7 +335,29 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       setModeSetNames(names);
       setModeEnabled(enabled);
     }
-  }, [onResetExistingPathsCache]);
+    const tokenCount = [...parsedSets.values()].reduce((count, setTokenList) => count + setTokenList.length, 0);
+    const setCount = parsedSets.size;
+    updateFileImportValidation({
+      fileName,
+      source: 'tokens-studio',
+      status: 'ready',
+      summary: `Parsed ${pluralize(tokenCount, 'token')} from ${fileName}`,
+      detail:
+        setCount === 1
+          ? 'Detected a single Tokens Studio set and prepared it for import.'
+          : `Detected ${pluralize(setCount, 'set')} and preserved each set mapping for import.`,
+      nextAction:
+        setCount === 1
+          ? 'Choose the destination set, then continue to preview or import.'
+          : 'Review the destination set names, then import the parsed sets.',
+      tokenCount,
+      skippedCount: 0,
+      issues: [],
+      skippedEntries: [],
+      supportedFormats: getSupportedFormatsForSource('tokens-studio'),
+      parserLimits: getParserLimitsForSource('tokens-studio'),
+    });
+  }, [onResetExistingPathsCache, updateFileImportValidation]);
 
   const processJsonFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -245,20 +369,52 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           json = JSON.parse(raw);
         } catch (syntaxErr) {
           const detail = syntaxErr instanceof SyntaxError ? syntaxErr.message : String(syntaxErr);
-          setError(`Invalid JSON: ${detail}`);
+          setError(null);
+          updateFileImportValidation({
+            fileName: file.name,
+            source: 'json',
+            status: 'error',
+            summary: `Could not parse ${file.name}`,
+            detail: `Invalid JSON: ${detail}`,
+            nextAction: 'Fix the JSON syntax, then retry the import.',
+            tokenCount: 0,
+            skippedCount: 0,
+            issues: [{ message: detail, severity: 'error' }],
+            skippedEntries: [],
+            supportedFormats: getSupportedFormatsForSource('json'),
+            parserLimits: getParserLimitsForSource('json'),
+          });
           return;
         }
 
         if (json === null || typeof json !== 'object' || Array.isArray(json)) {
           const actual = json === null ? 'null' : Array.isArray(json) ? 'an array' : `a ${typeof json}`;
-          setError(`Invalid token file: expected a JSON object but got ${actual}. DTCG token files must be a JSON object with nested groups or tokens containing $type and $value fields.`);
+          const detail = `Expected a JSON object but got ${actual}.`;
+          setError(null);
+          updateFileImportValidation({
+            fileName: file.name,
+            source: 'json',
+            status: 'error',
+            summary: `Could not import ${file.name}`,
+            detail: `${detail} DTCG token files must contain nested groups or tokens with $type and $value fields.`,
+            nextAction: 'Export a DTCG token object or a Tokens Studio JSON file, then retry.',
+            tokenCount: 0,
+            skippedCount: 0,
+            issues: [{ message: detail, severity: 'error' }],
+            skippedEntries: [],
+            supportedFormats: getSupportedFormatsForSource('json'),
+            parserLimits: getParserLimitsForSource('json'),
+          });
           return;
         }
 
         const root = json as Record<string, unknown>;
 
         if (isTokensStudioFormat(root)) {
-          processTokensStudioContent(raw, file.name.replace(/\.json$/i, '') || 'Token Sets');
+          processTokensStudioContent(raw, {
+            collectionName: file.name.replace(/\.json$/i, '') || 'Token Sets',
+            fileName: file.name,
+          });
           return;
         }
 
@@ -266,7 +422,21 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
 
         const validationError = validateDTCGStructure(group);
         if (validationError) {
-          setError(validationError);
+          setError(null);
+          updateFileImportValidation({
+            fileName: file.name,
+            source: 'json',
+            status: 'error',
+            summary: `Could not import ${file.name}`,
+            detail: validationError,
+            nextAction: 'Use a DTCG JSON token export or switch to the Tokens Studio importer for migration files.',
+            tokenCount: 0,
+            skippedCount: 0,
+            issues: [{ message: validationError, severity: 'error' }],
+            skippedEntries: [],
+            supportedFormats: getSupportedFormatsForSource('json'),
+            parserLimits: getParserLimitsForSource('json'),
+          });
           return;
         }
 
@@ -276,7 +446,22 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           importTokens.push({ path, $type: token.$type ?? 'unknown', $value: token.$value });
         }
         if (importTokens.length === 0) {
-          setError('No tokens found in file. The file appears to be valid JSON but contains no DTCG tokens (objects with $value fields).');
+          const detail = 'No tokens found in file. The file is valid JSON but does not contain any DTCG token objects with $value fields.';
+          setError(null);
+          updateFileImportValidation({
+            fileName: file.name,
+            source: 'json',
+            status: 'error',
+            summary: `Could not import ${file.name}`,
+            detail,
+            nextAction: 'Check that the export contains token objects with $type and $value fields, then retry.',
+            tokenCount: 0,
+            skippedCount: 0,
+            issues: [{ message: detail, severity: 'error' }],
+            skippedEntries: [],
+            supportedFormats: getSupportedFormatsForSource('json'),
+            parserLimits: getParserLimitsForSource('json'),
+          });
           return;
         }
         const markedImportTokens = markDuplicatePaths(importTokens);
@@ -288,16 +473,62 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setCollectionData([]);
         setSourceFamily('token-files');
         setWorkflowStage('destination');
+        setSkippedEntries([]);
+        setSkippedExpanded(false);
         onResetExistingPathsCache();
+        updateFileImportValidation({
+          fileName: file.name,
+          source: 'json',
+          status: 'ready',
+          summary: `Parsed ${pluralize(importTokens.length, 'token')} from ${file.name}`,
+          detail: 'The file matched the DTCG JSON parser and is ready to import.',
+          nextAction: 'Choose the destination set, then continue to preview or import.',
+          tokenCount: importTokens.length,
+          skippedCount: 0,
+          issues: [],
+          skippedEntries: [],
+          supportedFormats: getSupportedFormatsForSource('json'),
+          parserLimits: getParserLimitsForSource('json'),
+        });
       } catch (err) {
-        setError(`Failed to process token file: ${getErrorMessage(err)}`);
+        const detail = getErrorMessage(err);
+        setError(null);
+        updateFileImportValidation({
+          fileName: file.name,
+          source: 'json',
+          status: 'error',
+          summary: `Could not import ${file.name}`,
+          detail: `Failed to process token file: ${detail}`,
+          nextAction: 'Check the file contents and retry the import.',
+          tokenCount: 0,
+          skippedCount: 0,
+          issues: [{ message: detail, severity: 'error' }],
+          skippedEntries: [],
+          supportedFormats: getSupportedFormatsForSource('json'),
+          parserLimits: getParserLimitsForSource('json'),
+        });
       }
     };
     reader.onerror = () => {
-      setError('Failed to read file. The file may be corrupt or inaccessible.');
+      const detail = 'Failed to read file. The file may be corrupt or inaccessible.';
+      setError(null);
+      updateFileImportValidation({
+        fileName: file.name,
+        source: 'json',
+        status: 'error',
+        summary: `Could not open ${file.name}`,
+        detail,
+        nextAction: 'Confirm the file is accessible, then retry the import.',
+        tokenCount: 0,
+        skippedCount: 0,
+        issues: [{ message: detail, severity: 'error' }],
+        skippedEntries: [],
+        supportedFormats: getSupportedFormatsForSource('json'),
+        parserLimits: getParserLimitsForSource('json'),
+      });
     };
     reader.readAsText(file);
-  }, [processTokensStudioContent, onResetExistingPathsCache]);
+  }, [processTokensStudioContent, onResetExistingPathsCache, updateFileImportValidation]);
 
   const processCSSFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -306,17 +537,48 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         const raw = reader.result as string;
         const { tokens: parsed, errors, skipped } = parseCSSCustomProperties(raw);
         if (parsed.length === 0 && skipped.length === 0) {
-          setError(errors.length > 0 ? errors.join('; ') : 'No CSS custom properties found in file.');
+          const detail = errors.length > 0 ? errors.join('; ') : 'No CSS custom properties found in file.';
+          setError(null);
+          updateFileImportValidation({
+            fileName: file.name,
+            source: 'css',
+            status: 'error',
+            summary: `Could not import ${file.name}`,
+            detail,
+            nextAction: 'Use CSS custom properties in the form "--name: value" and retry.',
+            tokenCount: 0,
+            skippedCount: 0,
+            issues: errors.map(message => ({ message, severity: 'error' as const })),
+            skippedEntries: [],
+            supportedFormats: getSupportedFormatsForSource('css'),
+            parserLimits: getParserLimitsForSource('css'),
+          });
           return;
         }
         if (parsed.length === 0) {
-          setError(`All ${skipped.length} CSS custom propert${skipped.length === 1 ? 'y' : 'ies'} contained dynamic expressions and were skipped. Only static values can be imported.`);
+          const detail = `All ${pluralize(skipped.length, 'CSS custom property', 'CSS custom properties')} contained dynamic expressions and were skipped.`;
           setSkippedEntries(skipped);
           setSkippedExpanded(true);
+          setError(null);
+          updateFileImportValidation({
+            fileName: file.name,
+            source: 'css',
+            status: 'error',
+            summary: `No importable tokens found in ${file.name}`,
+            detail,
+            nextAction: 'Replace dynamic expressions with static values or aliases before retrying the import.',
+            tokenCount: 0,
+            skippedCount: skipped.length,
+            issues: [],
+            skippedEntries: skipped,
+            supportedFormats: getSupportedFormatsForSource('css'),
+            parserLimits: getParserLimitsForSource('css'),
+          });
           return;
         }
         const importTokens: ImportToken[] = parsed.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
         const markedImportTokens = markDuplicatePaths(importTokens);
+        const isPartial = skipped.length > 0 || errors.length > 0;
         setSource('css');
         setTokens(markedImportTokens);
         setSelectedTokens(new Set(importTokens.map(t => t.path)));
@@ -328,15 +590,68 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setSourceFamily('code');
         setWorkflowStage('destination');
         onResetExistingPathsCache();
+        updateFileImportValidation({
+          fileName: file.name,
+          source: 'css',
+          status: isPartial ? 'partial' : 'ready',
+          summary: isPartial
+            ? `Parsed ${pluralize(importTokens.length, 'token')} from ${file.name} with warnings`
+            : `Parsed ${pluralize(importTokens.length, 'token')} from ${file.name}`,
+          detail: isPartial
+            ? [
+              skipped.length > 0 ? `${pluralize(skipped.length, 'entry')} skipped because the parser could not resolve them statically` : null,
+              errors.length > 0 ? `${pluralize(errors.length, 'line')} could not be parsed` : null,
+            ].filter(Boolean).join('; ')
+            : 'The file is ready to import.',
+          nextAction: isPartial
+            ? 'Review the skipped entries before importing. Retry only re-sends tokens that parsed successfully.'
+            : 'Choose the destination set, then continue to preview or import.',
+          tokenCount: importTokens.length,
+          skippedCount: skipped.length,
+          issues: errors.map(message => ({ message, severity: 'warning' as const })),
+          skippedEntries: skipped,
+          supportedFormats: getSupportedFormatsForSource('css'),
+          parserLimits: getParserLimitsForSource('css'),
+        });
       } catch (err) {
-        setError(`Could not parse CSS file: ${getErrorMessage(err)}`);
+        const detail = getErrorMessage(err);
+        setError(null);
+        updateFileImportValidation({
+          fileName: file.name,
+          source: 'css',
+          status: 'error',
+          summary: `Could not import ${file.name}`,
+          detail: `Could not parse CSS file: ${detail}`,
+          nextAction: 'Check the stylesheet syntax and retry.',
+          tokenCount: 0,
+          skippedCount: 0,
+          issues: [{ message: detail, severity: 'error' }],
+          skippedEntries: [],
+          supportedFormats: getSupportedFormatsForSource('css'),
+          parserLimits: getParserLimitsForSource('css'),
+        });
       }
     };
     reader.onerror = () => {
-      setError('Failed to read file. The file may be corrupt or inaccessible.');
+      const detail = 'Failed to read file. The file may be corrupt or inaccessible.';
+      setError(null);
+      updateFileImportValidation({
+        fileName: file.name,
+        source: 'css',
+        status: 'error',
+        summary: `Could not open ${file.name}`,
+        detail,
+        nextAction: 'Confirm the file is accessible, then retry the import.',
+        tokenCount: 0,
+        skippedCount: 0,
+        issues: [{ message: detail, severity: 'error' }],
+        skippedEntries: [],
+        supportedFormats: getSupportedFormatsForSource('css'),
+        parserLimits: getParserLimitsForSource('css'),
+      });
     };
     reader.readAsText(file);
-  }, [onResetExistingPathsCache]);
+  }, [onResetExistingPathsCache, updateFileImportValidation]);
 
   const processTailwindFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -345,15 +660,35 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         const raw = reader.result as string;
         const { tokens: parsed, errors, skipped } = parseTailwindConfigFile(raw);
         if (parsed.length === 0) {
-          setError(errors.length > 0 ? errors.join('; ') : 'No theme values found in file. Expected a Tailwind config with a theme object containing static values.');
+          const detail = errors.length > 0
+            ? errors.join('; ')
+            : 'No theme values found in file. Expected a Tailwind config with a theme object containing static values.';
           if (skipped.length > 0) {
             setSkippedEntries(skipped);
             setSkippedExpanded(true);
           }
+          setError(null);
+          updateFileImportValidation({
+            fileName: file.name,
+            source: 'tailwind',
+            status: 'error',
+            summary: `Could not import ${file.name}`,
+            detail,
+            nextAction: skipped.length > 0
+              ? 'Replace dynamic or unsupported theme values with static values before retrying.'
+              : 'Use a Tailwind config with a static theme or theme.extend object, then retry.',
+            tokenCount: 0,
+            skippedCount: skipped.length,
+            issues: errors.map(message => ({ message, severity: 'error' as const })),
+            skippedEntries: skipped,
+            supportedFormats: getSupportedFormatsForSource('tailwind'),
+            parserLimits: getParserLimitsForSource('tailwind'),
+          });
           return;
         }
         const importTokens: ImportToken[] = parsed.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
         const markedImportTokens = markDuplicatePaths(importTokens);
+        const isPartial = skipped.length > 0 || errors.length > 0;
         setSource('tailwind');
         setTokens(markedImportTokens);
         setSelectedTokens(new Set(importTokens.map(t => t.path)));
@@ -365,30 +700,116 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setSourceFamily('code');
         setWorkflowStage('destination');
         onResetExistingPathsCache();
+        updateFileImportValidation({
+          fileName: file.name,
+          source: 'tailwind',
+          status: isPartial ? 'partial' : 'ready',
+          summary: isPartial
+            ? `Parsed ${pluralize(importTokens.length, 'token')} from ${file.name} with warnings`
+            : `Parsed ${pluralize(importTokens.length, 'token')} from ${file.name}`,
+          detail: isPartial
+            ? [
+              skipped.length > 0 ? `${pluralize(skipped.length, 'theme entry')} skipped because it was not a static token value` : null,
+              errors.length > 0 ? `${pluralize(errors.length, 'parser issue')} found while reading the config` : null,
+            ].filter(Boolean).join('; ')
+            : 'The Tailwind theme values are ready to import.',
+          nextAction: isPartial
+            ? 'Review the skipped entries before importing. Retry only re-sends tokens that parsed successfully.'
+            : 'Choose the destination set, then continue to preview or import.',
+          tokenCount: importTokens.length,
+          skippedCount: skipped.length,
+          issues: errors.map(message => ({ message, severity: 'warning' as const })),
+          skippedEntries: skipped,
+          supportedFormats: getSupportedFormatsForSource('tailwind'),
+          parserLimits: getParserLimitsForSource('tailwind'),
+        });
       } catch (err) {
-        setError(`Could not parse Tailwind config: ${getErrorMessage(err)}`);
+        const detail = getErrorMessage(err);
+        setError(null);
+        updateFileImportValidation({
+          fileName: file.name,
+          source: 'tailwind',
+          status: 'error',
+          summary: `Could not import ${file.name}`,
+          detail: `Could not parse Tailwind config: ${detail}`,
+          nextAction: 'Check the Tailwind config syntax and retry.',
+          tokenCount: 0,
+          skippedCount: 0,
+          issues: [{ message: detail, severity: 'error' }],
+          skippedEntries: [],
+          supportedFormats: getSupportedFormatsForSource('tailwind'),
+          parserLimits: getParserLimitsForSource('tailwind'),
+        });
       }
     };
     reader.onerror = () => {
-      setError('Failed to read file. The file may be corrupt or inaccessible.');
+      const detail = 'Failed to read file. The file may be corrupt or inaccessible.';
+      setError(null);
+      updateFileImportValidation({
+        fileName: file.name,
+        source: 'tailwind',
+        status: 'error',
+        summary: `Could not open ${file.name}`,
+        detail,
+        nextAction: 'Confirm the file is accessible, then retry the import.',
+        tokenCount: 0,
+        skippedCount: 0,
+        issues: [{ message: detail, severity: 'error' }],
+        skippedEntries: [],
+        supportedFormats: getSupportedFormatsForSource('tailwind'),
+        parserLimits: getParserLimitsForSource('tailwind'),
+      });
     };
     reader.readAsText(file);
-  }, [onResetExistingPathsCache]);
+  }, [onResetExistingPathsCache, updateFileImportValidation]);
 
   const processTokensStudioFile = useCallback((file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        processTokensStudioContent(reader.result as string, file.name.replace(/\.json$/i, '') || 'Token Sets');
+        processTokensStudioContent(reader.result as string, {
+          collectionName: file.name.replace(/\.json$/i, '') || 'Token Sets',
+          fileName: file.name,
+        });
       } catch (err) {
-        setError(`Failed to process Tokens Studio file: ${getErrorMessage(err)}`);
+        const detail = getErrorMessage(err);
+        setError(null);
+        updateFileImportValidation({
+          fileName: file.name,
+          source: 'tokens-studio',
+          status: 'error',
+          summary: `Could not import ${file.name}`,
+          detail: `Failed to process Tokens Studio file: ${detail}`,
+          nextAction: 'Check that the export is valid Tokens Studio JSON, then retry.',
+          tokenCount: 0,
+          skippedCount: 0,
+          issues: [{ message: detail, severity: 'error' }],
+          skippedEntries: [],
+          supportedFormats: getSupportedFormatsForSource('tokens-studio'),
+          parserLimits: getParserLimitsForSource('tokens-studio'),
+        });
       }
     };
     reader.onerror = () => {
-      setError('Failed to read file. The file may be corrupt or inaccessible.');
+      const detail = 'Failed to read file. The file may be corrupt or inaccessible.';
+      setError(null);
+      updateFileImportValidation({
+        fileName: file.name,
+        source: 'tokens-studio',
+        status: 'error',
+        summary: `Could not open ${file.name}`,
+        detail,
+        nextAction: 'Confirm the file is accessible, then retry the import.',
+        tokenCount: 0,
+        skippedCount: 0,
+        issues: [{ message: detail, severity: 'error' }],
+        skippedEntries: [],
+        supportedFormats: getSupportedFormatsForSource('tokens-studio'),
+        parserLimits: getParserLimitsForSource('tokens-studio'),
+      });
     };
     reader.readAsText(file);
-  }, [processTokensStudioContent]);
+  }, [processTokensStudioContent, updateFileImportValidation]);
 
   const handleReadJson = useCallback(() => { fileInputRef.current?.click(); }, []);
   const handleReadCSS = useCallback(() => { cssFileInputRef.current?.click(); }, []);
@@ -450,8 +871,25 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     if (cssFile) { processCSSFile(cssFile); return; }
     const twFile = files.find(f => /\.(js|ts|mjs|cjs)$/.test(f.name));
     if (twFile) { processTailwindFile(twFile); return; }
-    setError(`Please drop one supported file: ${formatSupportedFileFormats(getAllSupportedFileFormats())}.`);
-  }, [processJsonFile, processCSSFile, processTailwindFile]);
+    const firstFileName = files[0]?.name ?? 'Dropped file';
+    setError(null);
+    updateFileImportValidation({
+      fileName: firstFileName,
+      source: null,
+      status: 'unsupported',
+      summary: `Unsupported file: ${firstFileName}`,
+      detail: `Use ${formatSupportedFileFormats(getAllSupportedFileFormats())}.`,
+      nextAction: 'Drop a supported file or choose a source family to open the matching picker.',
+      tokenCount: 0,
+      skippedCount: 0,
+      issues: files.length > 1
+        ? [{ message: `Received ${files.length} files but none matched a supported import format.`, severity: 'error' }]
+        : [{ message: `${firstFileName} does not match a supported import format.`, severity: 'error' }],
+      skippedEntries: [],
+      supportedFormats: getSupportedFormatsForSource(null),
+      parserLimits: getParserLimitsForSource(null),
+    });
+  }, [processJsonFile, processCSSFile, processTailwindFile, updateFileImportValidation]);
 
   const handleBack = useCallback(() => {
     if (workflowStage === 'preview') {
@@ -526,6 +964,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     skippedEntries,
     skippedExpanded,
     setSkippedExpanded,
+    fileImportValidation,
     isDragging,
     fileInputRef,
     cssFileInputRef,
@@ -552,5 +991,6 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     toggleAll,
     resetAfterImport,
     resetImportFlow,
+    clearFileImportValidation,
   };
 }

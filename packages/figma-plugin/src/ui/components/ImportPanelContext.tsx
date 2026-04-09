@@ -10,7 +10,7 @@ import {
 } from './importPanelTypes';
 import type { SkippedEntry } from '../shared/tokenParsers';
 import { useImportSets } from '../hooks/useImportSets';
-import { useImportSource } from '../hooks/useImportSource';
+import { useImportSource, type FileImportValidation } from '../hooks/useImportSource';
 import type { UndoSlot } from '../hooks/useUndo';
 import { copyToClipboard } from '../shared/comparisonUtils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
@@ -93,6 +93,7 @@ export interface ImportPanelContextValue {
   skippedEntries: SkippedEntry[];
   skippedExpanded: boolean;
   setSkippedExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  fileImportValidation: FileImportValidation | null;
 
   // Drag
   isDragging: boolean;
@@ -732,6 +733,7 @@ export function ImportPanelProvider({
       setLastImport(null);
       setSuccessMessage(null);
       clearFailedState();
+      src.clearFileImportValidation();
       resetExistingPathsCache();
     } catch (err) {
       src.setError(`Undo failed: ${getErrorMessage(err)}`);
@@ -739,7 +741,7 @@ export function ImportPanelProvider({
       undoingRef.current = false;
       setUndoing(false);
     }
-  }, [lastImport, deleteImportedEntries, clearFailedState, resetExistingPathsCache, src.setError]);
+  }, [lastImport, deleteImportedEntries, clearFailedState, resetExistingPathsCache, src.clearFileImportValidation, src.setError]);
 
   const handleRetryFailed = useCallback(async () => {
     src.setError(null);
@@ -818,7 +820,8 @@ export function ImportPanelProvider({
     setSuccessMessage(null);
     clearFailedState();
     setLastImport(null);
-  }, [clearFailedState]);
+    src.clearFileImportValidation();
+  }, [clearFailedState, src.clearFileImportValidation]);
 
   const previewNewCount = useMemo(
     () =>
@@ -913,6 +916,7 @@ export function ImportPanelProvider({
     skippedEntries: src.skippedEntries,
     skippedExpanded: src.skippedExpanded,
     setSkippedExpanded: src.setSkippedExpanded,
+    fileImportValidation: src.fileImportValidation,
     isDragging: src.isDragging,
     existingTokenMap,
     existingPathsFetching,
@@ -968,7 +972,7 @@ export function ImportPanelProvider({
     serverUrl, connected,
     src.collectionData, src.modeSetNames, src.modeEnabled, src.setModeSetNames, src.setModeEnabled,
     src.tokens, src.selectedTokens, src.typeFilter, src.setTypeFilter,
-    src.loading, src.error, src.sourceFamily, src.source, src.workflowStage, src.skippedEntries, src.skippedExpanded, src.setSkippedExpanded,
+    src.loading, src.error, src.sourceFamily, src.source, src.workflowStage, src.skippedEntries, src.skippedExpanded, src.setSkippedExpanded, src.fileImportValidation,
     src.isDragging, src.fileInputRef, src.cssFileInputRef, src.tailwindFileInputRef, src.tokensStudioFileInputRef,
     src.handleReadVariables, src.handleReadStyles, src.handleReadJson, src.handleReadCSS,
     src.handleReadTailwind, src.handleReadTokensStudio, src.handleJsonFileChange, src.handleCSSFileChange,
