@@ -20,7 +20,6 @@ import type {
 } from 'react';
 import { TokenList } from '../components/TokenList';
 import { UnifiedComparePanel } from '../components/UnifiedComparePanel';
-import type { CompareMode } from '../components/UnifiedComparePanel';
 import type { TokenListImperativeHandle } from '../components/tokenListTypes';
 import { TokenEditor } from '../components/TokenEditor';
 import { TokenGeneratorDialog } from '../components/TokenGeneratorDialog';
@@ -155,22 +154,6 @@ export interface PanelRouterProps {
   handleNavigateToSet: (set: string, path: string) => void;
   setFlowPanelInitialPath: (path: string | null) => void;
   flowPanelInitialPath: string | null;
-  handleOpenTokenCompare: (paths: Set<string>) => void;
-  handleOpenCrossThemeCompare: (path: string) => void;
-  /** Compare panel state for the Tokens tab — shown in-place without a tab switch. */
-  tokensCompare: {
-    showCompare: boolean;
-    onClose: () => void;
-    mode: CompareMode;
-    onModeChange: (mode: CompareMode) => void;
-    tokenPaths: Set<string>;
-    onClearTokenPaths: () => void;
-    tokenPath: string;
-    onClearTokenPath: () => void;
-    themeKey: number;
-    defaultA: string;
-    defaultB: string;
-  };
   openCommandPaletteWithQuery: (query: string) => void;
   handleNavigateToGenerator: (id: string) => void;
   setThemeGapCount: (n: number) => void;
@@ -201,6 +184,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken,
     highlightedToken, setHighlightedToken, createFromEmpty,
     setPendingHighlight, handleNavigateToAlias, handleNavigateBack, navHistoryLength,
+    showTokensCompare, setShowTokensCompare, tokensCompareMode, setTokensCompareMode,
+    tokensComparePaths, setTokensComparePaths, tokensComparePath, setTokensComparePath,
+    tokensCompareThemeKey, setTokensCompareThemeKey, tokensCompareDefaultA, tokensCompareDefaultB, activeTokensContextualSurface,
   } = useEditorContext();
 
   // Read all four contexts — these cover ~40% of the data that panels need.
@@ -251,18 +237,21 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // three TokenList render variants (side-panel, no-split, preview-split).
   const tokenListActions = {
     onEdit: (path: string, name?: string) => p.guardEditorAction(() => {
+      setShowTokensCompare(false);
       setEditingGenerator(null);
       setEditingToken({ path, name, set: activeSet });
       setPreviewingToken(null);
       setHighlightedToken(path);
     }),
     onPreview: (path: string, name?: string) => {
+      setShowTokensCompare(false);
       setEditingGenerator(null);
       setPreviewingToken({ path, name, set: activeSet });
       setHighlightedToken(path);
     },
     onCreateNew: (initialPath: string | undefined, initialType: string | undefined, initialValue: string | undefined) =>
       {
+        setShowTokensCompare(false);
         setEditingGenerator(null);
         setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue });
       },
@@ -293,6 +282,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       navigateTo('ship', 'history');
     },
     onEditGenerator: (generatorId: string) => p.guardEditorAction(() => {
+      setShowTokensCompare(false);
       setPreviewingToken(null);
       setEditingToken(null);
       setEditingGenerator({ id: generatorId });
@@ -309,8 +299,24 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onToggleStar: (path: string) => p.starredTokens.toggleStar(path, activeSet),
     starredPaths: new Set(p.starredTokens.tokens.filter(t => t.setName === activeSet).map(t => t.path)),
     onError: p.setErrorToast,
-    onOpenCompare: p.handleOpenTokenCompare,
-    onOpenCrossThemeCompare: p.handleOpenCrossThemeCompare,
+    onOpenCompare: (paths: Set<string>) => {
+      setEditingToken(null);
+      setEditingGenerator(null);
+      setPreviewingToken(null);
+      setTokensCompareMode('tokens');
+      setTokensComparePaths(paths);
+      setTokensCompareThemeKey(key => key + 1);
+      setShowTokensCompare(true);
+    },
+    onOpenCrossThemeCompare: (path: string) => {
+      setEditingToken(null);
+      setEditingGenerator(null);
+      setPreviewingToken(null);
+      setTokensCompareMode('cross-theme');
+      setTokensComparePath(path);
+      setTokensCompareThemeKey(key => key + 1);
+      setShowTokensCompare(true);
+    },
     onOpenCommandPaletteWithQuery: p.openCommandPaletteWithQuery,
     onOpenStartHere: p.onOpenStartHere,
     onTogglePreviewSplit: () => p.setShowPreviewSplit(v => !v),
@@ -348,6 +354,34 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onNavigateToGenerator: p.handleNavigateToGenerator,
   } : null;
 
+  const renderTokensComparePanel = () => (
+    <UnifiedComparePanel
+      mode={tokensCompareMode}
+      onModeChange={setTokensCompareMode}
+      tokenPaths={tokensComparePaths}
+      onClearTokenPaths={() => setTokensComparePaths(new Set())}
+      tokenPath={tokensComparePath}
+      onClearTokenPath={() => setTokensComparePath('')}
+      allTokensFlat={allTokensFlat}
+      pathToSet={pathToSet}
+      dimensions={dimensions}
+      sets={sets}
+      themeOptionsKey={tokensCompareThemeKey}
+      themeOptionsDefaultA={tokensCompareDefaultA}
+      themeOptionsDefaultB={tokensCompareDefaultB}
+      onEditToken={(set, path) => { p.handleNavigateToSet(set, path); }}
+      onCreateToken={(path, set, type, value) => {
+        setShowTokensCompare(false);
+        setEditingToken({ path, set, isCreate: true, initialType: type, initialValue: value });
+      }}
+      onGoToTokens={() => setShowTokensCompare(false)}
+      serverUrl={serverUrl}
+      onTokensCreated={p.refreshAll}
+      onBack={() => setShowTokensCompare(false)}
+      backLabel="Back to tokens"
+    />
+  );
+
   const generatorEditorProps = editingGeneratorData ? {
     serverUrl,
     allSets: sets,
@@ -362,6 +396,78 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onDirtyChange: (dirty: boolean) => { p.editorIsDirtyRef.current = dirty; },
     closeRef: p.editorCloseRef,
   } : null;
+
+  const renderNarrowTokensContextualSurface = () => {
+    if (p.useSidePanel || p.showPreviewSplit || activeTokensContextualSurface === null) return null;
+
+    let height = '65%';
+    let onDismiss = () => setShowTokensCompare(false);
+    let content: ReactNode = null;
+
+    if (activeTokensContextualSurface === 'token-editor' && editingToken && tokenEditorProps) {
+      onDismiss = p.editorCloseRef.current;
+      content = <TokenEditor {...tokenEditorProps} />;
+    } else if (activeTokensContextualSurface === 'generator-editor' && editingGeneratorData && generatorEditorProps) {
+      height = '72%';
+      onDismiss = p.editorCloseRef.current;
+      content = <TokenGeneratorDialog {...generatorEditorProps} />;
+    } else if (activeTokensContextualSurface === 'token-preview' && previewingToken) {
+      height = '50%';
+      onDismiss = p.handlePreviewClose;
+      content = (
+        <TokenDetailPreview
+          tokenPath={previewingToken.path}
+          tokenName={previewingToken.name}
+          setName={previewingToken.set}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          dimensions={dimensions}
+          activeThemes={activeThemes}
+          tokenUsageCounts={tokenUsageCounts}
+          generators={generators}
+          derivedTokenPaths={derivedTokenPaths}
+          lintViolations={p.lintViolations.filter(violation => violation.path === previewingToken.path)}
+          syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
+          serverUrl={serverUrl}
+          onEdit={p.handlePreviewEdit}
+          onClose={p.handlePreviewClose}
+          onNavigateToAlias={handleNavigateToAlias}
+        />
+      );
+    } else if (activeTokensContextualSurface === 'compare' && showTokensCompare) {
+      height = '72%';
+      content = renderTokensComparePanel();
+    }
+
+    if (!content) return null;
+
+    return (
+      <div
+        className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
+        data-surface-kind={p.contextualEditorTransition.kind}
+        data-surface-presentation={p.contextualEditorTransition.presentation}
+        onKeyDown={(e) => {
+          if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            p.handleEditorNavigate(e.key === ']' ? 1 : -1);
+          }
+        }}
+      >
+        <div
+          className="absolute inset-0 bg-black/30 drawer-fade-in"
+          onClick={() => onDismiss()}
+        />
+        <div className="relative flex flex-col rounded-t-xl bg-[var(--color-figma-bg)] shadow-2xl drawer-slide-up" style={{ height }}>
+          <div className="flex justify-center pt-2 pb-1 shrink-0">
+            <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
+          </div>
+          <div className="flex-1 overflow-hidden">
+            {content}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   type SecondaryPanelRenderer = () => ReactNode;
 
@@ -512,31 +618,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       </div>
     );
 
-    // Show the compare panel in-place when triggered from the Tokens tab
-    if (p.tokensCompare.showCompare) {
+    if (showTokensCompare && p.useSidePanel) {
       return (
-        <UnifiedComparePanel
-          mode={p.tokensCompare.mode}
-          onModeChange={p.tokensCompare.onModeChange}
-          tokenPaths={p.tokensCompare.tokenPaths}
-          onClearTokenPaths={p.tokensCompare.onClearTokenPaths}
-          tokenPath={p.tokensCompare.tokenPath}
-          onClearTokenPath={p.tokensCompare.onClearTokenPath}
-          allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          dimensions={dimensions}
-          sets={sets}
-          themeOptionsKey={p.tokensCompare.themeKey}
-          themeOptionsDefaultA={p.tokensCompare.defaultA}
-          themeOptionsDefaultB={p.tokensCompare.defaultB}
-          onEditToken={(set, path) => { p.handleNavigateToSet(set, path); }}
-          onCreateToken={(path, set) => { setEditingToken({ path, set, isCreate: true }); }}
-          onGoToTokens={p.tokensCompare.onClose}
-          serverUrl={serverUrl}
-          onTokensCreated={p.refreshAll}
-          onBack={p.tokensCompare.onClose}
-          backLabel="Back to tokens"
-        />
+        renderTokensComparePanel()
       );
     }
 
@@ -709,6 +793,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             </div>
           </div>
         )}
+        {renderNarrowTokensContextualSurface()}
       </>
     );
   }

@@ -588,3 +588,12 @@
   - If a long-lived review already has a stable workspace host, prefer launching that host directly and move modal-specific focus work into the handoff instead of preserving a second overlay implementation.
   - Token workspace review panels should render in the same inline surface lane as bulk editing so only one non-trivial review/editor surface is visible at a time while lightweight confirmations stay modal.
 ---
+## 2026-04-09 - [Move Tokens narrow contextual drawers behind the shared library surface contract]
+- Moved Tokens compare state into `EditorContext`, then let `PanelRouter` own the full narrow contextual surface switch so token editor, generator editor, preview, and compare now share the same bottom-drawer contract inside the Tokens library route.
+- Removed the duplicate Tokens bottom-drawer branches from `App.tsx`; App now only wires compare-opening callbacks for cross-theme commands while `PanelRouter` renders and dismisses the narrow contextual surface directly.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/panels/PanelRouter.tsx packages/figma-plugin/src/ui/contexts/EditorContext.tsx` (passes; Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for `eslint.config.js`). Attempted `pnpm exec tsc -p packages/figma-plugin/tsconfig.json --noEmit`, but the workspace is already blocked by pre-existing `packages/core/dist` build gaps and unrelated type errors outside this task.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L75, ~L419, ~L2305; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L183, ~L238, ~L357, ~L400, ~L618; `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L33, ~L51, ~L94, ~L130, ~L145; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Tokens compare belongs with the same editor-context state as token edit and preview state, otherwise App ends up duplicating narrow-surface ownership just to arbitrate which drawer should be open.
+  - Once `PanelRouter` owns a workspace's contextual surface contract, keep App limited to shell-level wiring and remove any leftover viewport-specific branches from the root component.
+---

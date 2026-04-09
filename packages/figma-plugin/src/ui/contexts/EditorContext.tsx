@@ -8,9 +8,11 @@
  * App.tsx can wire in its toast callback after useToastStack initialises.
  */
 
-import { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { ReactNode, Dispatch, SetStateAction } from 'react';
+import type { CompareMode } from '../components/UnifiedComparePanel';
 import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
+import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
 
 // ---------------------------------------------------------------------------
@@ -28,6 +30,7 @@ export type EditingToken = {
 
 export type PreviewingToken = { path: string; name?: string; set: string };
 export type EditingGenerator = { id: string };
+export type TokensContextualSurface = 'compare' | 'token-editor' | 'generator-editor' | 'token-preview';
 
 export interface EditorContextValue {
   editingToken: EditingToken | null;
@@ -45,6 +48,19 @@ export interface EditorContextValue {
   handleNavigateToAlias: (path: string, fromPath?: string) => void;
   handleNavigateBack: () => void;
   navHistoryLength: number;
+  showTokensCompare: boolean;
+  setShowTokensCompare: Dispatch<SetStateAction<boolean>>;
+  tokensCompareMode: CompareMode;
+  setTokensCompareMode: Dispatch<SetStateAction<CompareMode>>;
+  tokensComparePaths: Set<string>;
+  setTokensComparePaths: Dispatch<SetStateAction<Set<string>>>;
+  tokensComparePath: string;
+  setTokensComparePath: Dispatch<SetStateAction<string>>;
+  tokensCompareThemeKey: number;
+  setTokensCompareThemeKey: Dispatch<SetStateAction<number>>;
+  tokensCompareDefaultA: string;
+  tokensCompareDefaultB: string;
+  activeTokensContextualSurface: TokensContextualSurface | null;
   /**
    * Wire in the alias-not-found toast handler after the provider mounts.
    * App.tsx calls this once inside a useEffect after useToastStack is ready.
@@ -75,6 +91,19 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
   const [editingGenerator, setEditingGenerator] = useState<EditingGenerator | null>(null);
   const [previewingToken, setPreviewingToken] = useState<PreviewingToken | null>(null);
+  const [showTokensCompare, setShowTokensCompare] = useState(false);
+  const {
+    compareMode: tokensCompareMode,
+    setCompareMode: setTokensCompareMode,
+    compareTokenPaths: tokensComparePaths,
+    setCompareTokenPaths: setTokensComparePaths,
+    compareTokenPath: tokensComparePath,
+    setCompareTokenPath: setTokensComparePath,
+    compareThemeKey: tokensCompareThemeKey,
+    setCompareThemeKey: setTokensCompareThemeKey,
+    compareThemeDefaultA: tokensCompareDefaultA,
+    compareThemeDefaultB: tokensCompareDefaultB,
+  } = useCompareState();
 
   // Late-bound alias-not-found handler so App.tsx can inject the toast callback
   // without creating a circular context dependency.
@@ -98,6 +127,21 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     navHistory,
   } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens, handleAliasNotFound);
 
+  useEffect(() => {
+    if (!showTokensCompare) return;
+    if (editingToken || editingGenerator || previewingToken) {
+      setShowTokensCompare(false);
+    }
+  }, [showTokensCompare, editingToken, editingGenerator, previewingToken]);
+
+  const activeTokensContextualSurface = useMemo<TokensContextualSurface | null>(() => {
+    if (editingToken) return 'token-editor';
+    if (editingGenerator) return 'generator-editor';
+    if (previewingToken) return 'token-preview';
+    if (showTokensCompare) return 'compare';
+    return null;
+  }, [editingToken, editingGenerator, previewingToken, showTokensCompare]);
+
   const value = useMemo<EditorContextValue>(() => ({
     editingToken,
     setEditingToken,
@@ -114,6 +158,19 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     handleNavigateToAlias,
     handleNavigateBack,
     navHistoryLength: navHistory.length,
+    showTokensCompare,
+    setShowTokensCompare,
+    tokensCompareMode,
+    setTokensCompareMode,
+    tokensComparePaths,
+    setTokensComparePaths,
+    tokensComparePath,
+    setTokensComparePath,
+    tokensCompareThemeKey,
+    setTokensCompareThemeKey,
+    tokensCompareDefaultA,
+    tokensCompareDefaultB,
+    activeTokensContextualSurface,
     setAliasNotFoundHandler,
   }), [
     editingToken,
@@ -128,6 +185,19 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     handleNavigateToAlias,
     handleNavigateBack,
     navHistory.length,
+    showTokensCompare,
+    setShowTokensCompare,
+    tokensCompareMode,
+    setTokensCompareMode,
+    tokensComparePaths,
+    setTokensComparePaths,
+    tokensComparePath,
+    setTokensComparePath,
+    tokensCompareThemeKey,
+    setTokensCompareThemeKey,
+    tokensCompareDefaultA,
+    tokensCompareDefaultB,
+    activeTokensContextualSurface,
     setAliasNotFoundHandler,
   ]);
 

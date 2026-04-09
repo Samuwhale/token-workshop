@@ -12,10 +12,11 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: This task codified the shared Tokens library surface contract in navigation metadata, EditorContext, and PanelRouter, but App.tsx still owns the narrow drawer render paths for token editor, generator editor, and token preview. Compare now renders from PanelRouter on narrow viewports, so a follow-up should finish moving the remaining drawers behind the same contract."
-state: ready
+  - "Completed: Moved Tokens compare/editor surface state into EditorContext, let PanelRouter own the shared narrow drawer slot, and removed the duplicate Tokens drawer branches from App."
+state: done
 acceptance_criteria:
   - Token editor, generator editor, token preview, and compare all render through the same Tokens library contextual-panel slot on narrow viewports without App.tsx owning duplicate drawer branches.
   - App.tsx stops conditionally rendering Tokens-specific bottom drawers once PanelRouter owns the full Tokens library surface contract.
 source: task-followup
 created_at: 2026-04-09T07:59:35.567Z
-updated_at: 2026-04-09T07:59:35.567Z
+updated_at: 2026-04-09T14:34:44.693Z

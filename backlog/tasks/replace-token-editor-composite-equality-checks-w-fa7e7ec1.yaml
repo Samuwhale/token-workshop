@@ -15,10 +15,11 @@ status_notes:
   - "Recovered by remediation: Swapped token-editor composite dirty checks to stableStringify in both scoped hooks, verified the figma-plugin build, and cleared the unrelated staged preflight blocker."
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T14:11:05.073Z"
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T14:30:38.613Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T14:49:32.095Z"
 state: ready
 acceptance_criteria:
   - Token editor dirty-state comparisons for composite draft values use stableStringify instead of JSON.stringify.
   - Reordering object keys in draft values, scopes, color modifiers, or mode values no longer marks the token editor dirty.
 source: task-followup
 created_at: 2026-04-08T22:30:38.168Z
-updated_at: 2026-04-09T14:15:38.624Z
+updated_at: 2026-04-09T14:34:32.107Z

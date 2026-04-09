@@ -2,9 +2,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { TokenListImperativeHandle } from './components/tokenListTypes';
 import type { ThemeManagerHandle } from './components/ThemeManager';
 import type { PublishPanelHandle } from './components/PublishPanel';
-import { TokenEditor } from './components/TokenEditor';
-import { TokenGeneratorDialog } from './components/TokenGeneratorDialog';
-import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ToastStack } from './components/ToastStack';
 import { WorkspaceSummaryHeader } from './components/WorkspaceSummaryHeader';
 import { ApplyWorkflowControls } from './components/ApplyWorkflowControls';
@@ -59,7 +56,6 @@ import { useAnalyticsState } from './hooks/useAnalyticsState';
 import { useValidationCache } from './hooks/useValidationCache';
 import { useGraphState } from './hooks/useGraphState';
 import { useCommandPaletteCommands } from './hooks/useCommandPaletteCommands';
-import { useCompareState } from './hooks/useCompareState';
 import { useSettingsListener } from './components/SettingsPanel';
 import type { TokenMapEntry } from '../shared/types';
 import { KNOWN_CONTROLLER_MESSAGE_TYPES, PROPERTY_LABELS } from '../shared/types';
@@ -76,7 +72,23 @@ import { summarizeApplyWorkflow } from './components/selectionInspectorUtils';
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
   const { activeTopTab, activeSubTab, activeSecondarySurface, navigateTo, openSecondarySurface, closeSecondarySurface } = useNavigationContext();
-  const { editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, setAliasNotFoundHandler } = useEditorContext();
+  const {
+    editingToken,
+    setEditingToken,
+    editingGenerator,
+    setEditingGenerator,
+    previewingToken,
+    setPreviewingToken,
+    setHighlightedToken,
+    createFromEmpty,
+    setPendingHighlight,
+    setPendingHighlightForSet,
+    setAliasNotFoundHandler,
+    setShowTokensCompare,
+    setTokensCompareMode,
+    setTokensComparePath,
+    setTokensCompareThemeKey,
+  } = useEditorContext();
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useConnectionContext();
@@ -87,7 +99,7 @@ export function App() {
   const resolverState = useResolverContext();
   const { selectedNodes } = useSelectionContext();
   const { triggerHeatmapScan } = useHeatmapContext();
-  const { triggerUsageScan, tokenUsageCounts } = useUsageContext();
+  const { triggerUsageScan } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
   // Utilities menu owns the connection editor so recovery stays available without
   // pinning a disconnect banner across every workspace.
@@ -407,32 +419,26 @@ export function App() {
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
   const selectionInspectorHandleRef = useRef<SelectionInspectorHandle | null>(null);
   const [themeGapCount, setThemeGapCount] = useState(0);
-  // Compare state for the Tokens tab — shown in-place without switching tabs
-  const {
-    compareMode: tokensCompareMode, setCompareMode: setTokensCompareMode,
-    compareTokenPaths: tokensComparePaths, setCompareTokenPaths: setTokensComparePaths,
-    compareTokenPath: tokensComparePath, setCompareTokenPath: setTokensComparePath,
-    compareThemeKey: tokensCompareThemeKey, setCompareThemeKey: setTokensCompareThemeKey,
-    compareThemeDefaultA: tokensCompareDefaultA,
-    compareThemeDefaultB: tokensCompareDefaultB,
-  } = useCompareState();
-  const [showTokensCompare, setShowTokensCompare] = useState(false);
-  // Open compare view within the Tokens tab in 'tokens' mode (multi-select comparison)
-  const handleOpenTokenCompare = useCallback((paths: Set<string>) => {
-    setTokensCompareMode('tokens');
-    setTokensComparePaths(paths);
-    setTokensCompareThemeKey(k => k + 1);
-    setShowTokensCompare(true);
-    navigateTo('define', 'tokens');
-  }, [navigateTo, setTokensCompareMode, setTokensComparePaths, setTokensCompareThemeKey]);
   // Open compare view within the Tokens tab in 'cross-theme' mode for a specific token
   const handleOpenCrossThemeCompare = useCallback((path: string) => {
+    setEditingToken(null);
+    setEditingGenerator(null);
+    setPreviewingToken(null);
     setTokensCompareMode('cross-theme');
     setTokensComparePath(path);
-    setTokensCompareThemeKey(k => k + 1);
+    setTokensCompareThemeKey(key => key + 1);
     setShowTokensCompare(true);
     navigateTo('define', 'tokens');
-  }, [navigateTo, setTokensCompareMode, setTokensComparePath, setTokensCompareThemeKey]);
+  }, [
+    navigateTo,
+    setEditingGenerator,
+    setEditingToken,
+    setPreviewingToken,
+    setShowTokensCompare,
+    setTokensCompareMode,
+    setTokensComparePath,
+    setTokensCompareThemeKey,
+  ]);
   // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
   const handleEditorNavigate = useCallback((direction: 1 | -1) => {
     if (!editingToken) return;
@@ -2299,21 +2305,6 @@ export function App() {
               handleNavigateToSet={handleNavigateToSet}
               setFlowPanelInitialPath={setFlowPanelInitialPath}
               flowPanelInitialPath={flowPanelInitialPath}
-              handleOpenTokenCompare={handleOpenTokenCompare}
-              handleOpenCrossThemeCompare={handleOpenCrossThemeCompare}
-              tokensCompare={{
-                showCompare: showTokensCompare,
-                onClose: () => setShowTokensCompare(false),
-                mode: tokensCompareMode,
-                onModeChange: setTokensCompareMode,
-                tokenPaths: tokensComparePaths,
-                onClearTokenPaths: () => setTokensComparePaths(new Set()),
-                tokenPath: tokensComparePath,
-                onClearTokenPath: () => setTokensComparePath(''),
-                themeKey: tokensCompareThemeKey,
-                defaultA: tokensCompareDefaultA,
-                defaultB: tokensCompareDefaultB,
-              }}
               openCommandPaletteWithQuery={(query: string) => {
                 setCommandPaletteInitialQuery('>' + (query ? ' ' + query : ''));
                 setShowCommandPalette(true);
@@ -2338,139 +2329,6 @@ export function App() {
         </div>
       </div>
       </ErrorBoundary>
-
-      {/* Contextual token editor: side panel on wide viewports, bottom drawer in constrained viewports. */}
-      {editingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
-        <div
-          className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
-          data-surface-kind={contextualEditorTransition.kind}
-          data-surface-presentation={contextualEditorTransition.presentation}
-          onKeyDown={(e) => {
-            if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
-              e.preventDefault();
-              handleEditorNavigate(e.key === ']' ? 1 : -1);
-            }
-          }}
-        >
-          <div
-            className="absolute inset-0 bg-black/30 drawer-fade-in"
-            onClick={() => editorCloseRef.current()}
-          />
-          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '65%' }}>
-            <div className="flex justify-center pt-2 pb-1 shrink-0">
-              <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <TokenEditor
-                tokenPath={editingToken.path}
-                tokenName={editingToken.name}
-                setName={editingToken.set}
-                serverUrl={serverUrl}
-                onBack={handleEditorClose}
-                allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
-                generators={generators}
-                allSets={sets}
-                onRefreshGenerators={refreshGenerators}
-                isCreateMode={editingToken.isCreate}
-                initialType={editingToken.initialType}
-                initialValue={editingToken.initialValue}
-                onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
-                closeRef={editorCloseRef}
-                onSaved={handleEditorSave}
-                onSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
-                dimensions={dimensions}
-                perSetFlat={perSetFlat}
-                onRefresh={refreshAll}
-                availableFonts={availableFonts}
-                fontWeightsByFamily={fontWeightsByFamily}
-                derivedTokenPaths={derivedTokenPaths}
-                onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
-                onNavigateToToken={handleNavigateToAlias}
-                onNavigateToGenerator={handleNavigateToGenerator}
-                pushUndo={pushUndo}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {editingGeneratorData && !editingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
-        <div
-          className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
-          data-surface-kind={contextualEditorTransition.kind}
-          data-surface-presentation={contextualEditorTransition.presentation}
-        >
-          <div
-            className="absolute inset-0 bg-black/30 drawer-fade-in"
-            onClick={() => editorCloseRef.current()}
-          />
-          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '72%' }}>
-            <div className="flex justify-center pt-2 pb-1 shrink-0">
-              <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <TokenGeneratorDialog
-                serverUrl={serverUrl}
-                allSets={sets}
-                activeSet={activeSet}
-                allTokensFlat={allTokensFlat}
-                existingGenerator={editingGeneratorData}
-                pathToSet={pathToSet}
-                onClose={handleEditorClose}
-                onSaved={() => {
-                  setEditingGenerator(null);
-                  refreshAll();
-                }}
-                onPushUndo={pushUndo}
-                presentation="panel"
-                onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
-                closeRef={editorCloseRef}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {/* Contextual token preview: side panel on wide viewports, bottom drawer in constrained viewports. */}
-      {!editingToken && !editingGeneratorData && previewingToken && activeSecondarySurface === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
-        <div
-          className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
-          data-surface-kind={contextualEditorTransition.kind}
-          data-surface-presentation={contextualEditorTransition.presentation}
-        >
-          <div
-            className="absolute inset-0 bg-black/30 drawer-fade-in"
-            onClick={handlePreviewClose}
-          />
-          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '50%' }}>
-            <div className="flex justify-center pt-2 pb-1 shrink-0">
-              <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <TokenDetailPreview
-                tokenPath={previewingToken.path}
-                tokenName={previewingToken.name}
-                setName={previewingToken.set}
-                allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
-                dimensions={dimensions}
-                activeThemes={activeThemes}
-                tokenUsageCounts={tokenUsageCounts}
-                generatorsBySource={generatorsBySource}
-                derivedTokenPaths={derivedTokenPaths}
-                lintViolations={lintViolations.filter(violation => violation.path === previewingToken.path)}
-                syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
-                serverUrl={serverUrl}
-                onEdit={handlePreviewEdit}
-                onClose={handlePreviewClose}
-                onNavigateToAlias={handleNavigateToAlias}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Command palette delete confirmation */}
       {paletteDeleteConfirm && (

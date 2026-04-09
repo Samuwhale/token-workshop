@@ -59,7 +59,7 @@
 - [x] Merge Tokens empty-state starts into one canonical Start here flow
 - [x] Unify token-based and template-based generator starts into one generator draft flow
 - [x] Reduce TokenListModals to transient confirmations and re-home long-lived review flows
-- [ ] Move Tokens narrow contextual drawers behind the shared library surface contract
+- [x] Move Tokens narrow contextual drawers behind the shared library surface contract
 - [ ] Research import intake surfaces for drag-and-drop discoverability, validation feedback, and conflict handoff
 - [ ] Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets
 - [ ] Research theme gap remediation flow across authoring, coverage review, and override creation
