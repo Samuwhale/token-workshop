@@ -474,3 +474,11 @@
   - Repo-aware delivery can stay in-product when it is token-contextual, but it should remain adjacent to the primary publish flow instead of competing with it.
   - Decision docs in `docs/redesign/` are most useful when they name the target user explicitly and translate existing IA wording into a durable product rule.
 ---
+## 2026-04-09 - [Rework `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` into a cleanup queue grouped by set and lifecycle with search, filters, and staged bulk actions, because the current flat list plus `Delete all` / `Deprecate all` controls does not scale to large libraries with hundreds of unused tokens.]
+- Replaced the flat unused-token list with a cleanup queue that normalizes lifecycle metadata, supports search plus set/lifecycle/staging filters, and groups results by set and lifecycle so large libraries can be triaged in smaller review buckets.
+- Swapped destructive `Delete all` / `Deprecate all` controls for staged cleanup actions at the queue, set, lifecycle, and row levels, then added a single confirmation step that applies the staged delete/deprecate batch while keeping failed items queued.
+- Files changed: `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` ~L6, ~L83, ~L127, ~L213, ~L259; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Cleanup queues benefit from keeping staging state separate from the filtered view, so search and grouping can change without losing the user's pending bulk actions.
+  - When an upstream source cannot be widened inside the current scope, normalizing optional metadata in the panel keeps the new workflow forward-compatible while a later task threads richer data through the parent.
+---

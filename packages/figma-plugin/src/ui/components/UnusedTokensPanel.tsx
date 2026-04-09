@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { tokenPathToUrlSegment } from '../shared/utils';
 import { ConfirmModal } from './ConfirmModal';
@@ -7,6 +7,7 @@ export interface UnusedToken {
   path: string;
   set: string;
   $type: string;
+  $lifecycle?: 'draft' | 'published' | 'deprecated';
 }
 
 export interface UnusedTokensPanelProps {
@@ -19,6 +20,57 @@ export interface UnusedTokensPanelProps {
   onMutate: () => void;
 }
 
+type LifecycleValue = 'draft' | 'published' | 'deprecated';
+type CleanupAction = 'delete' | 'deprecate';
+type StageFilter = 'all' | 'staged' | 'unstaged' | CleanupAction;
+
+interface QueueToken extends UnusedToken {
+  key: string;
+  lifecycle: LifecycleValue;
+}
+
+const LIFECYCLE_ORDER: Record<LifecycleValue, number> = {
+  draft: 0,
+  published: 1,
+  deprecated: 2,
+};
+
+function tokenKey(token: { set: string; path: string }): string {
+  return `${token.set}:${token.path}`;
+}
+
+function normalizeLifecycle(lifecycle?: UnusedToken['$lifecycle']): LifecycleValue {
+  return lifecycle ?? 'published';
+}
+
+function formatLifecycle(lifecycle: LifecycleValue): string {
+  switch (lifecycle) {
+    case 'draft':
+      return 'Draft';
+    case 'deprecated':
+      return 'Deprecated';
+    default:
+      return 'Published';
+  }
+}
+
+function getActionBadgeClass(action: CleanupAction): string {
+  return action === 'delete'
+    ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'
+    : 'border-gray-400/40 bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
+}
+
+function getLifecycleBadgeClass(lifecycle: LifecycleValue): string {
+  switch (lifecycle) {
+    case 'draft':
+      return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
+    case 'deprecated':
+      return 'border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]';
+    default:
+      return 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
+  }
+}
+
 export function UnusedTokensPanel({
   serverUrl,
   unusedTokens,
@@ -29,80 +81,180 @@ export function UnusedTokensPanel({
   onMutate,
 }: UnusedTokensPanelProps) {
   const [showUnused, setShowUnused] = useState(false);
-  const [confirmDeleteAllUnused, setConfirmDeleteAllUnused] = useState(false);
-  const [confirmDeleteUnusedToken, setConfirmDeleteUnusedToken] = useState<{ path: string; set: string } | null>(null);
-  const [confirmDeprecateAllUnused, setConfirmDeprecateAllUnused] = useState(false);
-  const [confirmDeprecateUnusedToken, setConfirmDeprecateUnusedToken] = useState<{ path: string; set: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [setFilter, setSetFilter] = useState('all');
+  const [lifecycleFilter, setLifecycleFilter] = useState<'all' | LifecycleValue>('all');
+  const [stageFilter, setStageFilter] = useState<StageFilter>('all');
+  const [stagedActions, setStagedActions] = useState<Record<string, CleanupAction>>({});
+  const [confirmApplyStaged, setConfirmApplyStaged] = useState(false);
   const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set());
   const [deprecatingUnused, setDeprecatingUnused] = useState<Set<string>>(new Set());
 
-  const handleDeleteUnusedToken = async (path: string, set: string) => {
-    const key = `${set}:${path}`;
-    setDeletingUnused(prev => new Set([...prev, key]));
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${tokenPathToUrlSegment(path)}`, { method: 'DELETE' });
-      onMutate();
-    } catch (err) {
-      console.warn('[UnusedTokensPanel] delete unused token failed:', err);
-      onError('Delete failed — check your connection and try again.');
-    } finally {
-      setDeletingUnused(prev => { const next = new Set(prev); next.delete(key); return next; });
+  const queueTokens = useMemo<QueueToken[]>(() => (
+    [...unusedTokens]
+      .map(token => ({
+        ...token,
+        key: tokenKey(token),
+        lifecycle: normalizeLifecycle(token.$lifecycle),
+      }))
+      .sort((a, b) => (
+        a.set.localeCompare(b.set)
+        || LIFECYCLE_ORDER[a.lifecycle] - LIFECYCLE_ORDER[b.lifecycle]
+        || a.path.localeCompare(b.path)
+      ))
+  ), [unusedTokens]);
+
+  useEffect(() => {
+    const validKeys = new Set(queueTokens.map(token => token.key));
+    setStagedActions(prev => {
+      let changed = false;
+      const next: Record<string, CleanupAction> = {};
+      for (const [key, action] of Object.entries(prev)) {
+        if (validKeys.has(key)) {
+          next[key] = action;
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [queueTokens]);
+
+  const availableSets = useMemo(() => (
+    [...new Set(queueTokens.map(token => token.set))].sort((a, b) => a.localeCompare(b))
+  ), [queueTokens]);
+
+  const filteredTokens = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return queueTokens.filter(token => {
+      if (setFilter !== 'all' && token.set !== setFilter) return false;
+      if (lifecycleFilter !== 'all' && token.lifecycle !== lifecycleFilter) return false;
+
+      const stagedAction = stagedActions[token.key];
+      if (stageFilter === 'staged' && !stagedAction) return false;
+      if (stageFilter === 'unstaged' && stagedAction) return false;
+      if ((stageFilter === 'delete' || stageFilter === 'deprecate') && stagedAction !== stageFilter) return false;
+
+      if (!query) return true;
+      return [token.path, token.set, token.$type, token.lifecycle]
+        .some(value => value.toLowerCase().includes(query));
+    });
+  }, [lifecycleFilter, queueTokens, searchQuery, setFilter, stageFilter, stagedActions]);
+
+  const groupedQueue = useMemo(() => {
+    const grouped = new Map<string, Map<LifecycleValue, QueueToken[]>>();
+    for (const token of filteredTokens) {
+      let lifecycleGroups = grouped.get(token.set);
+      if (!lifecycleGroups) {
+        lifecycleGroups = new Map<LifecycleValue, QueueToken[]>();
+        grouped.set(token.set, lifecycleGroups);
+      }
+      const existing = lifecycleGroups.get(token.lifecycle) ?? [];
+      existing.push(token);
+      lifecycleGroups.set(token.lifecycle, existing);
     }
+    return [...grouped.entries()].map(([setName, lifecycleGroups]) => ({
+      setName,
+      lifecycleGroups: (['draft', 'published', 'deprecated'] as LifecycleValue[])
+        .map(lifecycle => ({ lifecycle, tokens: lifecycleGroups.get(lifecycle) ?? [] }))
+        .filter(group => group.tokens.length > 0),
+    }));
+  }, [filteredTokens]);
+
+  const stagedQueue = useMemo(() => (
+    queueTokens.flatMap(token => {
+      const action = stagedActions[token.key];
+      return action ? [{ token, action }] : [];
+    })
+  ), [queueTokens, stagedActions]);
+
+  const stagedDeleteCount = stagedQueue.filter(entry => entry.action === 'delete').length;
+  const stagedDeprecateCount = stagedQueue.length - stagedDeleteCount;
+  const visibleStagedCount = filteredTokens.filter(token => stagedActions[token.key]).length;
+
+  const busyKeys = useMemo(() => {
+    const next = new Set<string>();
+    for (const key of deletingUnused) next.add(key);
+    for (const key of deprecatingUnused) next.add(key);
+    return next;
+  }, [deletingUnused, deprecatingUnused]);
+
+  const stageTokens = (tokens: QueueToken[], action: CleanupAction) => {
+    if (tokens.length === 0) return;
+    setStagedActions(prev => {
+      const next = { ...prev };
+      for (const token of tokens) next[token.key] = action;
+      return next;
+    });
   };
 
-  const handleDeleteAllUnused = async () => {
-    setDeletingUnused(new Set(['__all__']));
-    try {
-      await Promise.all(unusedTokens.map(({ path, set }) =>
-        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${tokenPathToUrlSegment(path)}`, { method: 'DELETE' })
-      ));
-      setConfirmDeleteAllUnused(false);
-      onMutate();
-    } catch (err) {
-      console.warn('[UnusedTokensPanel] delete all unused tokens failed:', err);
-      onError('Delete failed — some tokens may not have been removed.');
-    } finally {
-      setDeletingUnused(new Set());
-    }
+  const clearStagedTokens = (tokens: QueueToken[]) => {
+    if (tokens.length === 0) return;
+    setStagedActions(prev => {
+      const next = { ...prev };
+      for (const token of tokens) delete next[token.key];
+      return next;
+    });
   };
 
-  const handleDeprecateUnusedToken = async (path: string, set: string) => {
-    const key = `${set}:${path}`;
-    setDeprecatingUnused(prev => new Set([...prev, key]));
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${tokenPathToUrlSegment(path)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $extensions: { tokenmanager: { lifecycle: 'deprecated' } } }),
-      });
-      onMutate();
-    } catch (err) {
-      console.warn('[UnusedTokensPanel] deprecate unused token failed:', err);
-      onError('Deprecate failed — check your connection and try again.');
-    } finally {
-      setDeprecatingUnused(prev => { const next = new Set(prev); next.delete(key); return next; });
+  const executeCleanupAction = async (token: QueueToken, action: CleanupAction) => {
+    const endpoint = `${serverUrl}/api/tokens/${encodeURIComponent(token.set)}/${tokenPathToUrlSegment(token.path)}`;
+    if (action === 'delete') {
+      await apiFetch(endpoint, { method: 'DELETE' });
+      return;
     }
+    await apiFetch(endpoint, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ $extensions: { tokenmanager: { lifecycle: 'deprecated' } } }),
+    });
   };
 
-  const handleDeprecateAllUnused = async () => {
-    setDeprecatingUnused(new Set(['__all__']));
-    try {
-      await Promise.all(unusedTokens.map(({ path, set }) =>
-        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${tokenPathToUrlSegment(path)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $extensions: { tokenmanager: { lifecycle: 'deprecated' } } }),
-        })
-      ));
-      setConfirmDeprecateAllUnused(false);
-      onMutate();
-    } catch (err) {
-      console.warn('[UnusedTokensPanel] deprecate all unused tokens failed:', err);
-      onError('Deprecate failed — some tokens may not have been updated.');
-    } finally {
-      setDeprecatingUnused(new Set());
+  const handleApplyStaged = async () => {
+    const entries = stagedQueue;
+    if (entries.length === 0) {
+      setConfirmApplyStaged(false);
+      return;
     }
+
+    const deleteKeys = new Set(entries.filter(entry => entry.action === 'delete').map(entry => entry.token.key));
+    const deprecateKeys = new Set(entries.filter(entry => entry.action === 'deprecate').map(entry => entry.token.key));
+    setDeletingUnused(deleteKeys);
+    setDeprecatingUnused(deprecateKeys);
+
+    const failures: Array<{ key: string; action: CleanupAction }> = [];
+    let successCount = 0;
+
+    const results = await Promise.allSettled(entries.map(({ token, action }) => executeCleanupAction(token, action)));
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successCount += 1;
+        return;
+      }
+      const failedEntry = entries[index];
+      console.warn(`[UnusedTokensPanel] ${failedEntry.action} unused token failed:`, result.reason);
+      failures.push({ key: failedEntry.token.key, action: failedEntry.action });
+    });
+
+    setDeletingUnused(new Set());
+    setDeprecatingUnused(new Set());
+    setConfirmApplyStaged(false);
+
+    if (failures.length > 0) {
+      setStagedActions(Object.fromEntries(failures.map(({ key, action }) => [key, action])));
+      onError(
+        failures.length === entries.length
+          ? 'Cleanup failed — no unused tokens were updated.'
+          : `Cleanup partially failed — ${failures.length} staged token${failures.length === 1 ? '' : 's'} still need attention.`,
+      );
+    } else {
+      setStagedActions({});
+    }
+
+    if (successCount > 0) onMutate();
   };
+
+  const totalVisibleGroups = groupedQueue.reduce((sum, group) => sum + group.lifecycleGroups.length, 0);
 
   return (
     <>
@@ -134,120 +286,299 @@ export function UnusedTokensPanel({
               </div>
             ) : (
               <>
-                <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
-                  <span>{unusedTokens.length} token{unusedTokens.length !== 1 ? 's' : ''} with zero Figma usage and no alias dependents.</span>
-                  <div className="shrink-0 flex items-center gap-1">
-                    {confirmDeprecateAllUnused ? (
-                      <>
-                        <span className="text-[9px] text-[var(--color-figma-text-secondary)]">Deprecate {unusedTokens.length}?</span>
-                        <button onClick={handleDeprecateAllUnused} disabled={deprecatingUnused.has('__all__')} className="text-[9px] px-2 py-0.5 rounded bg-gray-500 text-white hover:opacity-80 disabled:opacity-40 transition-opacity">
-                          {deprecatingUnused.has('__all__') ? 'Marking…' : 'Confirm'}
+                <div className="px-3 py-3 border-b border-[var(--color-figma-border)] space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <span>{unusedTokens.length} token{unusedTokens.length !== 1 ? 's' : ''} with zero Figma usage and no alias dependents. Stage cleanup actions before applying them.</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] font-mono">Visible {filteredTokens.length}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] font-mono">Staged {stagedQueue.length}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.8fr)_repeat(3,minmax(0,1fr))] gap-2">
+                    <input
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search path, set, type, or lifecycle"
+                      className="px-2.5 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                    />
+                    <label className="flex flex-col gap-1 text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
+                      Set
+                      <select
+                        value={setFilter}
+                        onChange={(event) => setSetFilter(event.target.value)}
+                        className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
+                      >
+                        <option value="all">All sets</option>
+                        {availableSets.map(setName => (
+                          <option key={setName} value={setName}>{setName}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1 text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
+                      Lifecycle
+                      <select
+                        value={lifecycleFilter}
+                        onChange={(event) => setLifecycleFilter(event.target.value as 'all' | LifecycleValue)}
+                        className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
+                      >
+                        <option value="all">All lifecycles</option>
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                        <option value="deprecated">Deprecated</option>
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1 text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
+                      Stage
+                      <select
+                        value={stageFilter}
+                        onChange={(event) => setStageFilter(event.target.value as StageFilter)}
+                        className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
+                      >
+                        <option value="all">All queue items</option>
+                        <option value="staged">Staged only</option>
+                        <option value="unstaged">Unstaged only</option>
+                        <option value="deprecate">Staged to deprecate</option>
+                        <option value="delete">Staged to delete</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        {totalVisibleGroups} queue group{totalVisibleGroups === 1 ? '' : 's'} across {groupedQueue.length} set{groupedQueue.length === 1 ? '' : 's'} match the current filters.
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <button
+                          onClick={() => stageTokens(filteredTokens, 'deprecate')}
+                          disabled={filteredTokens.length === 0}
+                          className="text-[10px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Stage visible to deprecate
                         </button>
-                        <button onClick={() => setConfirmDeprecateAllUnused(false)} className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                          Cancel
+                        <button
+                          onClick={() => stageTokens(filteredTokens, 'delete')}
+                          disabled={filteredTokens.length === 0}
+                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Stage visible to delete
                         </button>
-                      </>
-                    ) : confirmDeleteAllUnused ? (
-                      <>
-                        <span className="text-[9px] text-[var(--color-figma-text-secondary)]">Delete {unusedTokens.length}?</span>
-                        <button onClick={handleDeleteAllUnused} disabled={deletingUnused.has('__all__')} className="text-[9px] px-2 py-0.5 rounded bg-[var(--color-figma-error)] text-white hover:opacity-80 disabled:opacity-40 transition-opacity">
-                          {deletingUnused.has('__all__') ? 'Deleting…' : 'Confirm'}
+                        <button
+                          onClick={() => clearStagedTokens(filteredTokens.filter(token => stagedActions[token.key]))}
+                          disabled={visibleStagedCount === 0}
+                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Clear visible staged
                         </button>
-                        <button onClick={() => setConfirmDeleteAllUnused(false)} className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                          Cancel
+                        <button
+                          onClick={() => setStagedActions({})}
+                          disabled={stagedQueue.length === 0}
+                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Clear all staged
                         </button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => setConfirmDeprecateAllUnused(true)} className="text-[9px] px-2 py-0.5 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                          Deprecate all
+                        <button
+                          onClick={() => setConfirmApplyStaged(true)}
+                          disabled={stagedQueue.length === 0}
+                          className="text-[10px] px-2.5 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Apply staged cleanup
                         </button>
-                        <button onClick={() => setConfirmDeleteAllUnused(true)} className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors">
-                          Delete all
-                        </button>
-                      </>
+                      </div>
+                    </div>
+                    {stagedQueue.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{stagedDeprecateCount} staged to deprecate</span>
+                        <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{stagedDeleteCount} staged to delete</span>
+                      </div>
                     )}
                   </div>
                 </div>
-                <div className="divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
-                  {unusedTokens.map(({ path, set, $type }) => {
-                    const key = `${set}:${path}`;
-                    const isDeleting = deletingUnused.has(key) || deletingUnused.has('__all__');
-                    const isDeprecating = deprecatingUnused.has(key) || deprecatingUnused.has('__all__');
-                    const isBusy = isDeleting || isDeprecating;
-                    return (
-                      <div key={key} className="group relative flex items-center hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                        <button
-                          onClick={() => onNavigateToToken?.(path, set)}
-                          disabled={!onNavigateToToken || isBusy}
-                          className="flex-1 flex items-center justify-between px-3 py-1.5 text-left disabled:cursor-default"
-                        >
-                          <span className={`text-[10px] text-[var(--color-figma-text)] font-mono truncate flex-1 ${isBusy ? 'opacity-40' : ''}`}>{path}</span>
-                          <span className="flex items-center gap-2 shrink-0 ml-2">
-                            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{$type}</span>
-                            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{set}</span>
-                          </span>
-                        </button>
-                        <div className="absolute right-1 top-0 bottom-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
-                          {isBusy ? (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] animate-spin" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                          ) : (
-                            <>
+
+                {filteredTokens.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-[10px] text-[var(--color-figma-text-secondary)]">
+                    No unused tokens match the current search and filters.
+                  </div>
+                ) : (
+                  <div className="max-h-[32rem] overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                    {groupedQueue.map(group => {
+                      const groupTokens = group.lifecycleGroups.flatMap(lifecycleGroup => lifecycleGroup.tokens);
+                      const groupStagedCount = groupTokens.filter(token => stagedActions[token.key]).length;
+                      return (
+                        <section key={group.setName} className="bg-[var(--color-figma-bg)]">
+                          <div className="px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">{group.setName}</h4>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{groupTokens.length} token{groupTokens.length === 1 ? '' : 's'}</span>
+                                {groupStagedCount > 0 && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{groupStagedCount} staged</span>
+                                )}
+                              </div>
+                              <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">Group cleanup by lifecycle so draft work and production tokens can be reviewed separately.</p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1">
                               <button
-                                onClick={() => setConfirmDeprecateUnusedToken({ path, set })}
-                                className="px-1.5 py-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                                aria-label={`Deprecate ${path}`}
-                                title="Mark as deprecated"
+                                onClick={() => stageTokens(groupTokens, 'deprecate')}
+                                className="text-[9px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                               >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10z"/><path d="M4.9 4.9l14.2 14.2"/></svg>
+                                Stage set to deprecate
                               </button>
                               <button
-                                onClick={() => setConfirmDeleteUnusedToken({ path, set })}
-                                className="px-1.5 py-1 rounded transition-colors"
-                                aria-label={`Delete ${path}`}
-                                title="Delete token"
+                                onClick={() => stageTokens(groupTokens, 'delete')}
+                                className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
                               >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-error)]" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                Stage set to delete
                               </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                              <button
+                                onClick={() => clearStagedTokens(groupTokens.filter(token => stagedActions[token.key]))}
+                                disabled={groupStagedCount === 0}
+                                className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                              >
+                                Clear set
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="divide-y divide-[var(--color-figma-border)]">
+                            {group.lifecycleGroups.map(lifecycleGroup => {
+                              const lifecycleStagedCount = lifecycleGroup.tokens.filter(token => stagedActions[token.key]).length;
+                              return (
+                                <div key={`${group.setName}:${lifecycleGroup.lifecycle}`}>
+                                  <div className="px-3 py-2 flex flex-wrap items-center justify-between gap-2 bg-[var(--color-figma-bg-secondary)]/60">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className={`text-[9px] px-1.5 py-0.5 rounded border ${getLifecycleBadgeClass(lifecycleGroup.lifecycle)}`}>
+                                        {formatLifecycle(lifecycleGroup.lifecycle)}
+                                      </span>
+                                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{lifecycleGroup.tokens.length} token{lifecycleGroup.tokens.length === 1 ? '' : 's'}</span>
+                                      {lifecycleStagedCount > 0 && (
+                                        <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{lifecycleStagedCount} staged</span>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1">
+                                      <button
+                                        onClick={() => stageTokens(lifecycleGroup.tokens, 'deprecate')}
+                                        className="text-[9px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                                      >
+                                        Stage lifecycle to deprecate
+                                      </button>
+                                      <button
+                                        onClick={() => stageTokens(lifecycleGroup.tokens, 'delete')}
+                                        className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
+                                      >
+                                        Stage lifecycle to delete
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="divide-y divide-[var(--color-figma-border)]">
+                                    {lifecycleGroup.tokens.map(token => {
+                                      const stagedAction = stagedActions[token.key];
+                                      const isDeleting = deletingUnused.has(token.key);
+                                      const isDeprecating = deprecatingUnused.has(token.key);
+                                      const isBusy = busyKeys.has(token.key);
+                                      return (
+                                        <div key={token.key} className="px-3 py-2 flex items-center gap-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                                          <button
+                                            onClick={() => onNavigateToToken?.(token.path, token.set)}
+                                            disabled={!onNavigateToToken || isBusy}
+                                            className="min-w-0 flex-1 text-left disabled:cursor-default"
+                                          >
+                                            <div className={`text-[10px] font-mono truncate ${isBusy ? 'opacity-40 text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{token.path}</div>
+                                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                                              <span>{token.$type}</span>
+                                              <span>{token.set}</span>
+                                              {stagedAction && (
+                                                <span className={`px-1.5 py-0.5 rounded border ${getActionBadgeClass(stagedAction)}`}>
+                                                  Staged to {stagedAction}
+                                                </span>
+                                              )}
+                                              {isDeleting && <span className="text-[var(--color-figma-error)]">Deleting…</span>}
+                                              {isDeprecating && <span>Deprecating…</span>}
+                                            </div>
+                                          </button>
+
+                                          <div className="shrink-0 flex flex-wrap items-center justify-end gap-1">
+                                            {stagedAction ? (
+                                              <>
+                                                <button
+                                                  onClick={() => setStagedActions(prev => ({ ...prev, [token.key]: stagedAction === 'delete' ? 'deprecate' : 'delete' }))}
+                                                  disabled={isBusy}
+                                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                  Stage to {stagedAction === 'delete' ? 'deprecate' : 'delete'}
+                                                </button>
+                                                <button
+                                                  onClick={() => clearStagedTokens([token])}
+                                                  disabled={isBusy}
+                                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                  Clear
+                                                </button>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <button
+                                                  onClick={() => stageTokens([token], 'deprecate')}
+                                                  disabled={isBusy}
+                                                  className="text-[9px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                  Stage deprecate
+                                                </button>
+                                                <button
+                                                  onClick={() => stageTokens([token], 'delete')}
+                                                  disabled={isBusy}
+                                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                  Stage delete
+                                                </button>
+                                              </>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             )}
           </div>
         )}
       </div>
 
-      {confirmDeleteUnusedToken && (
+      {confirmApplyStaged && (
         <ConfirmModal
-          title="Delete unused token?"
-          description={`"${confirmDeleteUnusedToken.path}" (${confirmDeleteUnusedToken.set}) will be permanently deleted.`}
-          confirmLabel="Delete"
-          danger
-          onConfirm={async () => {
-            const { path, set } = confirmDeleteUnusedToken;
-            setConfirmDeleteUnusedToken(null);
-            await handleDeleteUnusedToken(path, set);
-          }}
-          onCancel={() => setConfirmDeleteUnusedToken(null)}
-        />
-      )}
-      {confirmDeprecateUnusedToken && (
-        <ConfirmModal
-          title="Deprecate unused token?"
-          description={`"${confirmDeprecateUnusedToken.path}" will be marked as deprecated. It will no longer appear in this list and can be deleted later.`}
-          confirmLabel="Deprecate"
-          onConfirm={async () => {
-            const { path, set } = confirmDeprecateUnusedToken;
-            setConfirmDeprecateUnusedToken(null);
-            await handleDeprecateUnusedToken(path, set);
-          }}
-          onCancel={() => setConfirmDeprecateUnusedToken(null)}
-        />
+          title="Apply staged cleanup?"
+          description={`This will apply ${stagedQueue.length} queued cleanup action${stagedQueue.length === 1 ? '' : 's'} to unused tokens.`}
+          confirmLabel="Apply cleanup"
+          danger={stagedDeleteCount > 0}
+          wide
+          onConfirm={handleApplyStaged}
+          onCancel={() => setConfirmApplyStaged(false)}
+        >
+          <div className="mt-3 space-y-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+              <span>Deprecate tokens</span>
+              <span className="font-mono text-[var(--color-figma-text)]">{stagedDeprecateCount}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+              <span>Delete tokens</span>
+              <span className="font-mono text-[var(--color-figma-text)]">{stagedDeleteCount}</span>
+            </div>
+            <p className="leading-relaxed">
+              Tokens staged to delete will be permanently removed. Tokens staged to deprecate will leave the queue after their lifecycle is updated.
+            </p>
+          </div>
+        </ConfirmModal>
       )}
     </>
   );
