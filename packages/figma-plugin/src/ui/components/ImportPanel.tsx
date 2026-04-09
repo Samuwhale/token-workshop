@@ -22,7 +22,6 @@ function ImportPanelRoot() {
     source,
     workflowStage,
     successMessage,
-    isDragging,
     conflictPaths,
     destinationReady,
     usesCollectionDestination,
@@ -40,6 +39,14 @@ function ImportPanelRoot() {
   const showVariables = !showSuccess && !loading && workflowStage === 'destination' && usesCollectionDestination;
   const showTokenList = !showSuccess && !loading && workflowStage === 'preview' && tokens.length > 0;
   const sourceDefinition = getSourceDefinition(source);
+  const intakeDragHandlers = showSourceSelector
+    ? {
+      onDragEnter: handleDragEnter,
+      onDragLeave: handleDragLeave,
+      onDragOver: handleDragOver,
+      onDrop: handleDrop,
+    }
+    : {};
 
   // Escape key: go back from data views or dismiss success screen.
   // Let ImportConflictResolver handle Escape when conflicts are active.
@@ -70,23 +77,8 @@ function ImportPanelRoot() {
   return (
     <div
       className="flex flex-col h-full relative"
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      {...intakeDragHandlers}
     >
-      {isDragging && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 rounded bg-[var(--color-figma-accent)]/10 border-2 border-dashed border-[var(--color-figma-accent)] pointer-events-none">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="12" y1="18" x2="12" y2="12" />
-            <line x1="9" y1="15" x2="15" y2="15" />
-          </svg>
-          <div className="text-[11px] font-medium text-[var(--color-figma-accent)]">Drop a file to import (DTCG JSON, Tokens Studio JSON, CSS, or Tailwind config)</div>
-        </div>
-      )}
-
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
         {error && (
           <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">

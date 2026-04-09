@@ -3,6 +3,8 @@ import { useImportPanel } from './ImportPanelContext';
 import {
   IMPORT_FAMILY_DEFINITIONS,
   IMPORT_SOURCE_DEFINITIONS,
+  formatSupportedFileFormats,
+  getFamilySupportedFileFormats,
   type ImportSource,
   type SourceFamily,
 } from './importPanelTypes';
@@ -11,10 +13,17 @@ interface SelectorOption {
   id: string;
   title: string;
   description: string;
+  supportText?: string;
   iconBgClass: string;
   iconStroke: string;
   onClick: () => void;
   icon: React.ReactNode;
+}
+
+interface FileIntakeEntry {
+  id: string;
+  title: string;
+  formats: string[];
 }
 
 const FAMILY_ORDER: SourceFamily[] = ['figma', 'token-files', 'code', 'migration'];
@@ -137,6 +146,7 @@ const FAMILY_NOTES: Record<SourceFamily, React.ReactNode> = {
 function SelectorCard({
   title,
   description,
+  supportText,
   iconBgClass,
   iconStroke,
   icon,
@@ -157,11 +167,69 @@ function SelectorCard({
       <div className="min-w-0 flex-1">
         <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{title}</div>
         <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{description}</div>
+        {supportText && (
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            {supportText}
+          </div>
+        )}
       </div>
       <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
         <path d="M2 1l4 3-4 3V1z" />
       </svg>
     </button>
+  );
+}
+
+function FileIntakeBox({
+  title,
+  description,
+  entries,
+  isDragging,
+}: {
+  title: string;
+  description: string;
+  entries: FileIntakeEntry[];
+  isDragging: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-col gap-2 rounded border border-dashed px-3 py-3 transition-colors ${
+        isDragging
+          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10'
+          : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <div className={`flex h-7 w-7 items-center justify-center rounded ${
+          isDragging ? 'bg-[var(--color-figma-accent)]/15' : 'bg-[var(--color-figma-bg)]'
+        }`}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isDragging ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'} aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="12" y1="18" x2="12" y2="12" />
+            <line x1="9" y1="15" x2="15" y2="15" />
+          </svg>
+        </div>
+        <div className="min-w-0">
+          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{title}</div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{description}</div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        {entries.map((entry) => (
+          <div
+            key={entry.id}
+            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5"
+          >
+            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">{entry.title}</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              {formatSupportedFileFormats(entry.formats)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -181,6 +249,7 @@ function InfoCallout({ children }: { children: React.ReactNode }) {
 export function ImportSourceSelector() {
   const {
     sourceFamily,
+    isDragging,
     handleReadVariables,
     handleReadStyles,
     handleReadJson,
@@ -211,10 +280,15 @@ export function ImportSourceSelector() {
 
   const familyOptions: SelectorOption[] = FAMILY_ORDER.map((family) => {
     const definition = IMPORT_FAMILY_DEFINITIONS[family];
+    const supportedFileFormats = getFamilySupportedFileFormats(family);
     return {
       id: `family-${family}`,
       title: definition.title,
       description: definition.description,
+      supportText:
+        supportedFileFormats.length > 0
+          ? `Supported files: ${formatSupportedFileFormats(supportedFileFormats)}`
+          : undefined,
       onClick: () => selectSourceFamily(family),
       ...FAMILY_META[family],
     };
@@ -236,10 +310,28 @@ export function ImportSourceSelector() {
         id: source,
         title: definition.label,
         description: definition.description,
+        supportText: definition.fileSupport ? `Supported file: ${definition.fileSupport.label}` : undefined,
         onClick: formatHandlers[source],
         ...SOURCE_META[source],
       };
     })
+    : [];
+
+  const familyFileEntries: FileIntakeEntry[] = FAMILY_ORDER
+    .map((family) => ({
+      id: family,
+      title: IMPORT_FAMILY_DEFINITIONS[family].title,
+      formats: getFamilySupportedFileFormats(family),
+    }))
+    .filter((entry) => entry.formats.length > 0);
+
+  const activeFamilyFileFormats = getFamilySupportedFileFormats(activeFamily);
+  const activeFamilyFileEntries: FileIntakeEntry[] = activeFamily && activeFamilyFileFormats.length > 0
+    ? [{
+      id: activeFamily,
+      title: IMPORT_FAMILY_DEFINITIONS[activeFamily].title,
+      formats: activeFamilyFileFormats,
+    }]
     : [];
 
   return (
@@ -253,14 +345,17 @@ export function ImportSourceSelector() {
           <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
             Start by choosing the kind of source you are importing from.
           </div>
+          <FileIntakeBox
+            title={isDragging ? 'Release to import a supported file' : 'File Intake'}
+            description="Choose a family to pick a file, or drag one here and the parser will route it to the matching family and next step."
+            entries={familyFileEntries}
+            isDragging={isDragging}
+          />
           <div className="flex flex-col gap-2">
             {familyOptions.map((option) => (
               <SelectorCard key={option.id} {...option} />
             ))}
           </div>
-          <InfoCallout>
-            Drag and drop also works for supported file-based imports: DTCG JSON, Tokens Studio JSON, CSS, and Tailwind config files.
-          </InfoCallout>
         </>
       ) : (
         <>
@@ -276,6 +371,14 @@ export function ImportSourceSelector() {
           <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
             {IMPORT_FAMILY_DEFINITIONS[activeFamily].title}:
           </div>
+          {activeFamilyFileEntries.length > 0 && (
+            <FileIntakeBox
+              title={isDragging ? 'Release to import this file' : 'Pick or drop a file'}
+              description={`Supported formats for ${IMPORT_FAMILY_DEFINITIONS[activeFamily].title.toLowerCase()} use the same routing whether you click a format below or drag a file in.`}
+              entries={activeFamilyFileEntries}
+              isDragging={isDragging}
+            />
+          )}
           <div className="flex flex-col gap-2">
             {formatOptions.map((option) => (
               <SelectorCard key={option.id} {...option} />
@@ -288,28 +391,28 @@ export function ImportSourceSelector() {
       <input
         ref={fileInputRef as React.LegacyRef<HTMLInputElement>}
         type="file"
-        accept=".json,application/json"
+        accept={IMPORT_SOURCE_DEFINITIONS.json.fileSupport?.accept}
         className="sr-only"
         onChange={handleJsonFileChange}
       />
       <input
         ref={tokensStudioFileInputRef as React.LegacyRef<HTMLInputElement>}
         type="file"
-        accept=".json,application/json"
+        accept={IMPORT_SOURCE_DEFINITIONS['tokens-studio'].fileSupport?.accept}
         className="sr-only"
         onChange={handleTokensStudioFileChange}
       />
       <input
         ref={cssFileInputRef as React.LegacyRef<HTMLInputElement>}
         type="file"
-        accept=".css,text/css"
+        accept={IMPORT_SOURCE_DEFINITIONS.css.fileSupport?.accept}
         className="sr-only"
         onChange={handleCSSFileChange}
       />
       <input
         ref={tailwindFileInputRef as React.LegacyRef<HTMLInputElement>}
         type="file"
-        accept=".js,.ts,.mjs,.cjs"
+        accept={IMPORT_SOURCE_DEFINITIONS.tailwind.fileSupport?.accept}
         className="sr-only"
         onChange={handleTailwindFileChange}
       />

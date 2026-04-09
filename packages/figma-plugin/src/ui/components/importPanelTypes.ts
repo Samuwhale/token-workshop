@@ -32,6 +32,12 @@ export interface ImportFamilyDefinition {
   description: string;
   destinationLabel: string;
   destinationDescription: string;
+  supportedFileFormats: string[];
+}
+
+export interface ImportFileSupportDefinition {
+  label: string;
+  accept: string;
 }
 
 export interface ImportSourceDefinition {
@@ -42,6 +48,7 @@ export interface ImportSourceDefinition {
   description: string;
   destinationLabel: string;
   destinationDescription: string;
+  fileSupport?: ImportFileSupportDefinition;
 }
 
 export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinition> = {
@@ -51,6 +58,7 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
     description: 'Read variables or styles from the current file',
     destinationLabel: 'Map destinations',
     destinationDescription: 'Choose which sets receive each collection or style payload.',
+    supportedFileFormats: [],
   },
   'token-files': {
     family: 'token-files',
@@ -58,6 +66,7 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
     description: 'Bring in DTCG-compatible token exports from JSON',
     destinationLabel: 'Choose destination',
     destinationDescription: 'Pick the set that should receive the imported token file.',
+    supportedFileFormats: ['DTCG JSON (.json)'],
   },
   code: {
     family: 'code',
@@ -65,6 +74,7 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
     description: 'Extract tokens from CSS custom properties or Tailwind config',
     destinationLabel: 'Choose destination',
     destinationDescription: 'Decide where the extracted code tokens should land before import.',
+    supportedFileFormats: ['CSS files (.css)', 'Tailwind configs (.js, .ts, .mjs, .cjs)'],
   },
   migration: {
     family: 'migration',
@@ -72,6 +82,7 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
     description: 'Bring in token exports from tools such as Tokens Studio',
     destinationLabel: 'Choose destination',
     destinationDescription: 'Route the imported migration data into new or existing token sets.',
+    supportedFileFormats: ['Tokens Studio JSON (.json)'],
   },
 };
 
@@ -102,6 +113,10 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     description: 'Load a DTCG-format JSON token file',
     destinationLabel: 'Choose target set',
     destinationDescription: 'Import the parsed token file into one destination set.',
+    fileSupport: {
+      label: 'DTCG JSON (.json)',
+      accept: '.json,application/json',
+    },
   },
   css: {
     source: 'css',
@@ -111,6 +126,10 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     description: 'Parse static CSS custom properties from a stylesheet',
     destinationLabel: 'Choose target set',
     destinationDescription: 'Import the parsed CSS variables into one destination set.',
+    fileSupport: {
+      label: 'CSS files (.css)',
+      accept: '.css,text/css',
+    },
   },
   tailwind: {
     source: 'tailwind',
@@ -120,6 +139,10 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     description: 'Parse theme values from a Tailwind config file',
     destinationLabel: 'Choose target set',
     destinationDescription: 'Import the extracted Tailwind theme tokens into one destination set.',
+    fileSupport: {
+      label: 'Tailwind configs (.js, .ts, .mjs, .cjs)',
+      accept: '.js,.ts,.mjs,.cjs',
+    },
   },
   'tokens-studio': {
     source: 'tokens-studio',
@@ -129,6 +152,10 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     description: 'Load a Tokens Studio JSON export, including multi-set exports',
     destinationLabel: 'Choose destination',
     destinationDescription: 'Single-set exports go into one set; multi-set exports keep their own set mapping.',
+    fileSupport: {
+      label: 'Tokens Studio JSON (.json)',
+      accept: '.json,application/json',
+    },
   },
 };
 
@@ -147,6 +174,22 @@ export function getFamilyDefinition(family: SourceFamily | null): ImportFamilyDe
 export function getSourceDefinition(source: ImportSource | null): ImportSourceDefinition | null {
   if (!source) return null;
   return IMPORT_SOURCE_DEFINITIONS[source];
+}
+
+export function formatSupportedFileFormats(formats: string[]): string {
+  if (formats.length === 0) return '';
+  if (formats.length === 1) return formats[0];
+  if (formats.length === 2) return `${formats[0]} or ${formats[1]}`;
+  return `${formats.slice(0, -1).join(', ')}, or ${formats[formats.length - 1]}`;
+}
+
+export function getFamilySupportedFileFormats(family: SourceFamily | null): string[] {
+  if (!family) return [];
+  return IMPORT_FAMILY_DEFINITIONS[family].supportedFileFormats;
+}
+
+export function getAllSupportedFileFormats(): string[] {
+  return Object.values(IMPORT_FAMILY_DEFINITIONS).flatMap(definition => definition.supportedFileFormats);
 }
 
 export function truncateValue(v: string, max = 24): string {

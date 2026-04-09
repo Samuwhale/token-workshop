@@ -69,11 +69,12 @@
 - [x] Add summary-first set-role cards and workflow counters to ThemeManager
 - [x] Replace ThemeManager set-role toggle clusters with an explicit edit mode and scoped bulk actions
 - [x] Unify theme coverage and stale-set issue handoffs with set-role editing
-- [ ] Re-home file import affordances inside the family-first intake flow
+- [x] Re-home file import affordances inside the family-first intake flow
 - [ ] Unify file import validation feedback across picker, drop, preview, and retry states
 - [ ] Create one shared conflict-review contract for single-set and multi-set imports
 - [ ] Separate Settings recovery workflows from destructive reset controls
 - [ ] Clarify scope and consequences for settings restore versus workspace reset
 - [ ] Route clean-slate reset into an explicit recovery start flow
+- [ ] Investigate fresh-worktree server dependency resolution during backlog validation
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

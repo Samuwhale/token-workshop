@@ -1,0 +1,20 @@
+id: investigate-fresh-worktree-server-dependency-res-6aa1911d
+title: Investigate fresh-worktree server dependency resolution during backlog validation
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - scripts/backlog/validate.sh
+  - packages/server
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: After repairing worktree `node_modules` symlink recovery, a fresh detached worktree still reproduced `Failed to load url fastify` and `Failed to load url chokidar` during the `packages/server` Vitest gate in `scripts/backlog/validate.sh`, even though the server package symlink targets existed and contained those dependencies."
+state: ready
+acceptance_criteria:
+  - A fresh detached git worktree can run `bash scripts/backlog/validate.sh` without `fastify` or `chokidar` module resolution failures in `packages/server` tests.
+  - The fix preserves the new worktree bootstrap behavior and does not require manual dependency relinking before validation reruns.
+source: task-followup
+created_at: 2026-04-09T16:04:55.298Z
+updated_at: 2026-04-09T16:04:55.298Z

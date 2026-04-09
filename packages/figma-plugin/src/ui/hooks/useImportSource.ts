@@ -18,6 +18,8 @@ import {
   defaultSetName,
   modeKey,
   validateDTCGStructure,
+  formatSupportedFileFormats,
+  getAllSupportedFileFormats,
 } from '../components/importPanelTypes';
 
 export interface UseImportSourceParams {
@@ -448,7 +450,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     if (cssFile) { processCSSFile(cssFile); return; }
     const twFile = files.find(f => /\.(js|ts|mjs|cjs)$/.test(f.name));
     if (twFile) { processTailwindFile(twFile); return; }
-    setError('Please drop a .json (DTCG or Tokens Studio), .css, or .js/.ts file.');
+    setError(`Please drop one supported file: ${formatSupportedFileFormats(getAllSupportedFileFormats())}.`);
   }, [processJsonFile, processCSSFile, processTailwindFile]);
 
   const handleBack = useCallback(() => {
