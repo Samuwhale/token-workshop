@@ -405,3 +405,10 @@
   - If rollback can restore a persisted entity directly, the service that owns disk state needs the same normalization path for `load`, `create`, `update`, and `restore`; otherwise invalid snapshots can bypass route-only validation.
   - Re-exporting service-owned raw input types lets routes stay thin without reintroducing a second validation contract just to satisfy TypeScript.
 ---
+## 2026-04-09 - [Promote any redesign guidance that still matters long-term into the correct permanent docs, then delete or archive the temporary planning docs such as `docs/redesign/plugin-ia-blueprint.md` and `docs/redesign/repo-handoff-decision.md` once their decisions are fully reflected in code and stable documentation]
+- Stale review only. `docs/redesign/repo-handoff-decision.md` is already absent, and `docs/redesign/plugin-ia-blueprint.md` was already converted into an audited implementation reference in commit `5beda3d1`, so there was no remaining in-scope redesign-planning artifact to change.
+- Files changed: `scripts/backlog/progress.txt` ~L408
+- **Learnings for future iterations:**
+  - When a backlog item revisits temporary docs, check recent doc-only commits before editing: the cleanup may already be complete and the correct outcome is a stale-success closeout instead of another rewrite.
+  - A redesign doc that only records current-state shell ownership and implementation anchors is no longer a planning artifact, even if it still lives under `docs/redesign/`.
+---
