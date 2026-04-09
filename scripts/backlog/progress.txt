@@ -359,3 +359,17 @@
   - In this worktree, `packages/server` can fail with TS6305 until `packages/core` has been built once, even though the server package path-maps `@tokenmanager/core` to source.
   - When repair mode reports only build-environment drift, keep the scoped feature edits intact and restore the missing build artifact before reconsidering product code.
 ---
+## 2026-04-09 - [Audit temporary redesign docs after the new IA and major workspace flows are implemented; remove any document in `docs/redesign/` that no longer adds unique value, and update surviving references so the repo does not keep stale redesign planning artifacts around]
+- Audited `docs/redesign/` and kept only the surviving IA document, rewriting `plugin-ia-blueprint.md` into an implementation-focused reference that matches the current shell labels and flow ownership while removing backlog-only planning sections, stale source references, and open-decision scaffolding.
+- Files changed: `docs/redesign/plugin-ia-blueprint.md` ~L1; `scripts/backlog/progress.txt` ~L347
+- **Learnings for future iterations:**
+  - When a temporary redesign doc still adds value, keep it only if it becomes a compact current-state reference; remove backlog workflow instructions, open questions, and other planning text once the IA is implemented.
+  - Cross-workspace IA docs go stale fastest on labels and ownership boundaries, so audits should verify them against `navigationTypes.ts`, `App.tsx`, and `PanelRouter.tsx` before deciding whether to delete or retain them.
+---
+## 2026-04-09 - [Audit temporary redesign docs after the new IA and major workspace flows are implemented; remove any document in `docs/redesign/` that no longer adds unique value, and update surviving references so the repo does not keep stale redesign planning artifacts around]
+- Revalidated the retained IA reference against the implemented shell contract in `navigationTypes.ts` and `WelcomePrompt.tsx`, then repaired the docs-only validation path by rebuilding `packages/core/dist` so the focused `@tokenmanager/server` build passes again without widening source edits.
+- Files changed: `docs/redesign/plugin-ia-blueprint.md` ~L1; `scripts/backlog/progress.txt` ~L354
+- **Learnings for future iterations:**
+  - Docs-only backlog items can still fail validation because workspace package artifacts are missing; rebuild ignored outputs before assuming an unrelated TypeScript error needs product-code changes.
+  - Once `docs/redesign/` collapses to a single survivor, the audit question is whether that file is a current-state implementation reference or stale planning text. Keep only the former.
+---
