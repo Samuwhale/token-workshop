@@ -1,6 +1,7 @@
 id: add-dependency-aware-preflight-to-the-set-delete-d62a3a05
 title: Add dependency-aware preflight to the set delete / merge / split flows in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/server/src/routes/sets.ts` so users can see affected theme options, resolver refs, Figma collection metadata, and generated token ownership before a structural set change runs.
 priority: high
+task_kind: implementation
 depends_on: []
 touch_paths:
   - packages/figma-plugin/src/ui/components/SetSwitcher.tsx
@@ -10,9 +11,11 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Failed: write scope violation: touched backlog.md, scripts/backlog/progress.txt"
-state: failed
+  - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
+  - "Deferred after remediation: validation failed: \e[2m── Gate 1: Tests ──\e[0m | \e[0;31mFAIL\e[0m core tests | npm error npx canceled due to missing packages and no YES option: [\"vitest@4.1.4\"] | npm error A complete log of this run can be found in: /Users/samuel/.npm/_logs/2026-04-09T10_41_22_404Z-debug-0.log until 2026-04-09T10:56:23.102Z"
+state: ready
 acceptance_criteria:
   - Add dependency-aware preflight to the set delete / merge / split flows in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/server/src/routes/sets.ts` so users can see affected theme options, resolver refs, Figma collection metadata, and generated token ownership before a structural set change runs.
 source: manual
 created_at: 2026-04-08T20:14:30.289Z
-updated_at: 2026-04-08T21:10:40.894Z
+updated_at: 2026-04-09T10:41:23.128Z

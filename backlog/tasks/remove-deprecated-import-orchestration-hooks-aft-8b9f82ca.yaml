@@ -12,10 +12,11 @@ validation_profile: plugin
 status_notes:
   - "Context: The import controller now lives in ImportPanelContext.tsx. The old conflict/apply/tokens hooks are no longer on the main path and should be removed or folded into the new controller to avoid drift."
   - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
-state: failed
+  - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
+state: ready
 acceptance_criteria:
   - Delete or repurpose the old import orchestration hooks so the import flow has a single maintained source of truth.
   - Confirm ImportPanelContext.tsx no longer depends on dead import orchestration files.
 source: task-followup
 created_at: 2026-04-08T22:28:37.128Z
-updated_at: 2026-04-08T23:24:41.200Z
+updated_at: 2026-04-09T08:57:42.000Z

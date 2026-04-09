@@ -10,9 +10,11 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Failed: write scope violation: touched scripts/backlog/patterns.md, scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
-state: failed
+  - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
+  - "Completed: Added a batch Figma routing manager to the set manager plus hook-backed dirty/save handling for per-row and bulk collection/mode edits; Prettier passed, while a targeted TypeScript check was blocked by unrelated existing repo/workspace build errors."
+state: done
 acceptance_criteria:
   - Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 source: manual
 created_at: 2026-04-08T20:14:30.290Z
-updated_at: 2026-04-08T22:22:57.770Z
+updated_at: 2026-04-09T10:49:31.921Z

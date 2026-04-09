@@ -8,9 +8,10 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
-state: failed
+  - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
+state: ready
 acceptance_criteria:
   - Add search, alias/type/scope filters, and bulk expand or collapse controls to `packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` so large Figma variable libraries are navigable without opening one collection and one variable row at a time.
 source: manual
 created_at: 2026-04-08T20:14:30.290Z
-updated_at: 2026-04-08T21:45:46.138Z
+updated_at: 2026-04-09T08:57:42.000Z

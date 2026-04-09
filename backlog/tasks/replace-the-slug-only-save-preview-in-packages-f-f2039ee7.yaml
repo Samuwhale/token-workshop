@@ -7,10 +7,10 @@ touch_paths:
 capabilities: []
 validation_profile: plugin
 status_notes:
-  - "Failed: write scope violation: touched backlog.md, backlog/inbox.jsonl, backlog/tasks/add-dependency-aware-preflight-to-the-set-delete-d62a3a05.yaml, backlog/tasks/make-manual-snapshot-restore-in-packages-figma-p-1129f25e.yaml, packages/figma-plugin/src/ui/components/HistoryPanel.tsx, packages/figma-plugin/src/ui/components/SetSwitcher.tsx, packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts, packages/server/src/routes/sets.ts"
-state: failed
+  - "Reconciled: the hook already provides per-item destination mapping, merge strategies, append-path handling, and diff metadata in main; live diff recomputation after remaps remains tracked separately."
+state: done
 acceptance_criteria:
   - Replace the slug-only save preview in `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` with per-destination mapping and merge choices, because the current flow can only create or overwrite whole sets and gives no diff, skip, or append path before writing Figma variables into an existing token library.
 source: manual
 created_at: 2026-04-08T20:14:30.289Z
-updated_at: 2026-04-08T21:22:37.127Z
+updated_at: 2026-04-09T09:55:57.000Z

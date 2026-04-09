@@ -1,15 +1,17 @@
 id: define-a-better-recovery-data-management-ux-for--289a363e
 title: Define a better recovery / data management UX for destructive actions like clearing all data, importing settings, and restoring backups so these operations no longer sit visually adjacent to normal preferences without enough separation
 priority: normal
+task_kind: implementation
 depends_on: []
 touch_paths: []
 capabilities: []
 validation_profile: repo
 status_notes:
   - Planner could not infer touch_paths from the title; refine this task before execution.
-state: planned
+  - "Superseded by planner-pass: research-import-intake-surfaces-for-drag-and-dro-14a46221, research-theme-gap-remediation-flow-across-autho-252ac227, research-settings-recovery-and-destructive-data--1f65bcc7"
+state: superseded
 acceptance_criteria:
   - Define a better recovery / data management UX for destructive actions like clearing all data, importing settings, and restoring backups so these operations no longer sit visually adjacent to normal preferences without enough separation
 source: manual
 created_at: 2026-04-08T20:14:30.290Z
-updated_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-09T08:36:00.765Z

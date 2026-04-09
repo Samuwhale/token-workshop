@@ -1,0 +1,22 @@
+id: research-settings-recovery-and-destructive-data--1f65bcc7
+title: Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets
+priority: normal
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Inspect `packages/figma-plugin/src/ui/components/SettingsPanel.tsx`, `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx`, `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`, `packages/figma-plugin/src/ui/shared/storage.ts`, and `docs/redesign/plugin-ia-blueprint.md`. Focus on the Advanced tab sections for backup/import, guided setup, undo, and clear-all-data, plus any onboarding or shell rules that should govern their separation."
+state: ready
+acceptance_criteria:
+  - Inspect the current recovery, import/export, guided setup, undo, and danger-zone surfaces in Settings and adjacent onboarding flows.
+  - Document which actions are reversible, which reload the plugin, which wipe workspace data, and how closely those controls currently sit to routine preferences or setup actions.
+  - Write concrete follow-up backlog tasks with implementation-ready touch paths for separating recovery workflows from destructive operations, including at least one task for IA/layout changes and one task for confirmation or consequence messaging.
+source: planner-pass
+created_at: 2026-04-09T08:36:00.765Z
+updated_at: 2026-04-09T08:36:00.765Z

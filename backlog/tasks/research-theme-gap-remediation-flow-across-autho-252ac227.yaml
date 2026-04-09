@@ -1,0 +1,22 @@
+id: research-theme-gap-remediation-flow-across-autho-252ac227
+title: Research theme gap remediation flow across authoring, coverage review, and override creation
+priority: normal
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Inspect `packages/figma-plugin/src/ui/components/ThemeManager.tsx`, `packages/figma-plugin/src/ui/components/ThemeCoverageMatrix.tsx`, `packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts`, `packages/figma-plugin/src/ui/hooks/useThemeAutoFill.ts`, `packages/figma-plugin/src/ui/hooks/useThemeOptions.ts`, and `packages/figma-plugin/src/ui/shared/themeWorkflow.ts`. Pay attention to coverage banners, Review gaps entry points, auto-fill preview behavior, and create-override-set flows."
+state: ready
+acceptance_criteria:
+  - Inspect how theme coverage gaps, missing overrides, auto-fill actions, and override-set creation are currently exposed across the authoring and coverage views.
+  - Document the exact user path from detecting a gap to choosing a safe fix, including where the affected set is known, where it is ambiguous, and where the current UI forces users to jump between views.
+  - Write concrete follow-up backlog tasks with implementation-ready touch paths for a clearer gap-to-fix flow, covering contextual explanation, affected-set guidance, and authoring-to-review navigation.
+source: planner-pass
+created_at: 2026-04-09T08:36:00.765Z
+updated_at: 2026-04-09T08:36:00.765Z

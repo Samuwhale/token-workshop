@@ -9,12 +9,11 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - Imported from task-followup.
-  - "Context: useFigmaVariables now returns saveDestinationMap/saveMergeStrategies/saveAppendPaths plus diff metadata on each preview item, but the current preview modal still renders only create/overwrite slugs."
-  - "Failed: write scope violation: touched backlog.md, backlog/inbox.jsonl, backlog/tasks/add-dependency-aware-preflight-to-the-set-delete-d62a3a05.yaml, backlog/tasks/make-manual-snapshot-restore-in-packages-figma-p-1129f25e.yaml, backlog/tasks/replace-the-slug-only-save-preview-in-packages-f-f2039ee7.yaml, packages/figma-plugin/src/ui/components/HistoryPanel.tsx, packages/figma-plugin/src/ui/components/SetSwitcher.tsx, packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts"
-state: failed
+  - "Reconciled: the modal in ExportPanel already exposes destination editing, merge selection, append-path input, and diff summary rows backed by useFigmaVariables state."
+state: done
 acceptance_criteria:
   - The save preview modal exposes per-item destination set editing, merge strategy selection, and optional append-path input backed by useFigmaVariables state.
   - Preview rows surface the diff summary from useFigmaVariables so users can see new, changed, and unchanged token counts before saving.
 source: task-followup
 created_at: 2026-04-08T21:22:37.144Z
-updated_at: 2026-04-08T21:26:51.137Z
+updated_at: 2026-04-09T09:55:57.000Z

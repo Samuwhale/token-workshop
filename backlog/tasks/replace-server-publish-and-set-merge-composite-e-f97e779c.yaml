@@ -1,0 +1,22 @@
+id: replace-server-publish-and-set-merge-composite-e-f97e779c
+title: Replace server, publish, and set-merge composite equality checks with stableStringify
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/routes/operations.ts
+  - packages/server/src/routes/tokens.ts
+  - packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts
+  - packages/figma-plugin/src/ui/components/PublishPanel.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Recovered from `consolidate-composite-token-equality-on-stablest-985f35a1` after splitting the token-editor hook work into its own dedicated task."
+state: ready
+acceptance_criteria:
+  - Replace remaining composite-value equality checks in `packages/server/src/routes/operations.ts`, `packages/server/src/routes/tokens.ts`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/figma-plugin/src/ui/components/PublishPanel.tsx` with `stableStringify`-backed comparisons where equality semantics matter.
+  - Preserve existing request-body serialization uses of `JSON.stringify`; only equality or diff logic should move to `stableStringify`.
+  - The server and publish/set-merge surfaces no longer report false diffs or overwrite prompts when object key order changes.
+source: manual
+created_at: 2026-04-09T08:57:42.000Z
+updated_at: 2026-04-09T08:57:42.000Z

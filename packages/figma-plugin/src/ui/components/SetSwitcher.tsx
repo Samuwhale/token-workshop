@@ -1,11 +1,18 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { RefObject, ReactNode } from 'react';
-import type { ThemeDimension, ThemeSetStatus } from '@tokenmanager/core';
-import { SET_NAME_RE } from '../shared/utils';
-import { fuzzyScore } from '../shared/fuzzyMatch';
-import { apiFetch, createFetchSignal } from '../shared/apiFetch';
-import { useConnectionContext } from '../contexts/ConnectionContext';
-import type { SetPreflightImpact, SetStructuralOperation, SetStructuralPreflight } from '../shared/setStructuralPreflight';
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import type { RefObject, ReactNode } from "react";
+import type { ThemeDimension, ThemeSetStatus } from "@tokenmanager/core";
+import { SET_NAME_RE } from "../shared/utils";
+import { fuzzyScore } from "../shared/fuzzyMatch";
+import { apiFetch, createFetchSignal } from "../shared/apiFetch";
+import { useConnectionContext } from "../contexts/ConnectionContext";
+import { useTokenSetsContext } from "../contexts/TokenDataContext";
+import { useSetMetadata } from "../hooks/useSetMetadata";
+import type {
+  SetPreflightImpact,
+  SetStructuralOperation,
+  SetStructuralPreflight,
+} from "../shared/setStructuralPreflight";
+import { dispatchToast } from "../shared/toastBus";
 
 interface FolderGroup {
   folder: string;
@@ -37,7 +44,7 @@ interface SetManagerProps {
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
-  onReorder?: (setName: string, direction: 'left' | 'right') => void;
+  onReorder?: (setName: string, direction: "left" | "right") => void;
   onReorderFull?: (newOrder: string[]) => void;
   onCreateSet?: (name: string) => Promise<void>;
   onEditInfo?: (setName: string) => void;
@@ -48,7 +55,9 @@ interface SetManagerProps {
   dimensions?: ThemeDimension[];
   onBulkDelete?: (sets: string[]) => Promise<void>;
   onBulkDuplicate?: (sets: string[]) => Promise<void>;
-  onBulkMoveToFolder?: (moves: Array<{ from: string; to: string }>) => Promise<void>;
+  onBulkMoveToFolder?: (
+    moves: Array<{ from: string; to: string }>,
+  ) => Promise<void>;
   renamingSet?: string | null;
   renameValue?: string;
   setRenameValue?: (value: string) => void;
@@ -71,12 +80,22 @@ interface SetManagerProps {
   onDeleteCancel?: () => void;
   mergingSet?: string | null;
   mergeTargetSet?: string;
-  mergeConflicts?: Array<{ path: string; sourceValue: unknown; targetValue: unknown }>;
-  mergeResolutions?: Record<string, 'source' | 'target'>;
+  mergeConflicts?: Array<{
+    path: string;
+    sourceValue: unknown;
+    targetValue: unknown;
+  }>;
+  mergeResolutions?: Record<string, "source" | "target">;
   mergeChecked?: boolean;
   mergeLoading?: boolean;
   onMergeTargetChange?: (target: string) => void;
-  setMergeResolutions?: (updater: Record<string, 'source' | 'target'> | ((prev: Record<string, 'source' | 'target'>) => Record<string, 'source' | 'target'>)) => void;
+  setMergeResolutions?: (
+    updater:
+      | Record<string, "source" | "target">
+      | ((
+          prev: Record<string, "source" | "target">,
+        ) => Record<string, "source" | "target">),
+  ) => void;
   onMergeCheckConflicts?: () => void | Promise<void>;
   onMergeConfirm?: () => void | Promise<void>;
   onMergeClose?: () => void;
@@ -114,7 +133,7 @@ function useSetStructuralPreflight({
       setError(null);
       return;
     }
-    if (operation === 'merge' && !targetSet) {
+    if (operation === "merge" && !targetSet) {
       setData(null);
       setLoading(false);
       setError(null);
@@ -124,16 +143,21 @@ function useSetStructuralPreflight({
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    apiFetch<SetStructuralPreflight>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}/preflight`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        operation,
-        ...(targetSet ? { targetSet } : {}),
-        ...(typeof deleteOriginal === 'boolean' ? { deleteOriginal } : {}),
-      }),
-      signal: createFetchSignal(AbortSignal.any([controller.signal, getDisconnectSignal()])),
-    })
+    apiFetch<SetStructuralPreflight>(
+      `${serverUrl}/api/sets/${encodeURIComponent(setName)}/preflight`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          operation,
+          ...(targetSet ? { targetSet } : {}),
+          ...(typeof deleteOriginal === "boolean" ? { deleteOriginal } : {}),
+        }),
+        signal: createFetchSignal(
+          AbortSignal.any([controller.signal, getDisconnectSignal()]),
+        ),
+      },
+    )
       .then((response) => {
         if (!controller.signal.aborted) {
           setData(response);
@@ -142,7 +166,11 @@ function useSetStructuralPreflight({
       .catch((err) => {
         if (!controller.signal.aborted) {
           setData(null);
-          setError(err instanceof Error ? err.message : 'Failed to inspect set dependencies');
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to inspect set dependencies",
+          );
         }
       })
       .finally(() => {
@@ -152,57 +180,78 @@ function useSetStructuralPreflight({
       });
 
     return () => controller.abort();
-  }, [connected, deleteOriginal, enabled, getDisconnectSignal, operation, serverUrl, setName, targetSet]);
+  }, [
+    connected,
+    deleteOriginal,
+    enabled,
+    getDisconnectSignal,
+    operation,
+    serverUrl,
+    setName,
+    targetSet,
+  ]);
 
   return { data, loading, error };
 }
 
 function formatThemeStatus(status: ThemeSetStatus): string {
-  if (status === 'enabled') return 'enabled';
-  if (status === 'source') return 'source';
-  return 'disabled';
+  if (status === "enabled") return "enabled";
+  if (status === "source") return "source";
+  return "disabled";
 }
 
 function ThemeStatusBadge({ status }: { status: ThemeSetStatus }) {
-  const className = status === 'enabled'
-    ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-    : status === 'source'
-      ? 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]'
-      : 'border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]';
+  const className =
+    status === "enabled"
+      ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
+      : status === "source"
+        ? "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]"
+        : "border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]";
   return (
-    <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase tracking-[0.08em] ${className}`}>
+    <span
+      className={`rounded px-1.5 py-0.5 text-[9px] uppercase tracking-[0.08em] ${className}`}
+    >
       {formatThemeStatus(status)}
     </span>
   );
 }
 
 function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
-  const hasDependencies = impact.themeOptions.length > 0
-    || impact.resolverRefs.length > 0
-    || impact.generatedOwnership.length > 0
-    || impact.generatorTargets.length > 0
-    || !!impact.metadata.description
-    || !!impact.metadata.collectionName
-    || !!impact.metadata.modeName;
+  const hasDependencies =
+    impact.themeOptions.length > 0 ||
+    impact.resolverRefs.length > 0 ||
+    impact.generatedOwnership.length > 0 ||
+    impact.generatorTargets.length > 0 ||
+    !!impact.metadata.description ||
+    !!impact.metadata.collectionName ||
+    !!impact.metadata.modeName;
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">{impact.name}</div>
+          <div className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">
+            {impact.name}
+          </div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {impact.tokenCount} token{impact.tokenCount === 1 ? '' : 's'}
+            {impact.tokenCount} token{impact.tokenCount === 1 ? "" : "s"}
           </div>
         </div>
         {(impact.metadata.collectionName || impact.metadata.modeName) && (
           <div className="text-right text-[9px] text-[var(--color-figma-text-secondary)]">
-            {impact.metadata.collectionName && <div>Collection: {impact.metadata.collectionName}</div>}
-            {impact.metadata.modeName && <div>Mode: {impact.metadata.modeName}</div>}
+            {impact.metadata.collectionName && (
+              <div>Collection: {impact.metadata.collectionName}</div>
+            )}
+            {impact.metadata.modeName && (
+              <div>Mode: {impact.metadata.modeName}</div>
+            )}
           </div>
         )}
       </div>
       {impact.metadata.description && (
-        <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">{impact.metadata.description}</p>
+        <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+          {impact.metadata.description}
+        </p>
       )}
       {!hasDependencies ? (
         <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -217,7 +266,10 @@ function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
               </div>
               <div className="flex flex-col gap-1">
                 {impact.themeOptions.map((themeImpact) => (
-                  <div key={`${themeImpact.dimensionId}-${themeImpact.optionName}`} className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <div
+                    key={`${themeImpact.dimensionId}-${themeImpact.optionName}`}
+                    className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]"
+                  >
                     <span className="truncate">
                       {themeImpact.dimensionName} / {themeImpact.optionName}
                     </span>
@@ -234,7 +286,10 @@ function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
               </div>
               <div className="flex flex-wrap gap-1">
                 {impact.resolverRefs.map((resolver) => (
-                  <span key={resolver.name} className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <span
+                    key={resolver.name}
+                    className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]"
+                  >
                     {resolver.name}
                   </span>
                 ))}
@@ -248,17 +303,27 @@ function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
               </div>
               <div className="flex flex-col gap-1.5">
                 {impact.generatedOwnership.map((ownership) => (
-                  <div key={ownership.generatorId} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <div
+                    key={ownership.generatorId}
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]"
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-[var(--color-figma-text)]">{ownership.generatorName}</span>
-                      <span>{ownership.tokenCount} token{ownership.tokenCount === 1 ? '' : 's'}</span>
+                      <span className="font-medium text-[var(--color-figma-text)]">
+                        {ownership.generatorName}
+                      </span>
+                      <span>
+                        {ownership.tokenCount} token
+                        {ownership.tokenCount === 1 ? "" : "s"}
+                      </span>
                     </div>
                     {ownership.targetGroup && (
-                      <div className="mt-0.5 truncate font-mono text-[9px]">{ownership.targetGroup}</div>
+                      <div className="mt-0.5 truncate font-mono text-[9px]">
+                        {ownership.targetGroup}
+                      </div>
                     )}
                     {ownership.samplePaths.length > 0 && (
                       <div className="mt-1 truncate text-[9px] opacity-80">
-                        {ownership.samplePaths.join(', ')}
+                        {ownership.samplePaths.join(", ")}
                       </div>
                     )}
                   </div>
@@ -273,9 +338,14 @@ function SetPreflightCard({ impact }: { impact: SetPreflightImpact }) {
               </div>
               <div className="flex flex-col gap-1">
                 {impact.generatorTargets.map((generator) => (
-                  <div key={generator.generatorId} className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <div
+                    key={generator.generatorId}
+                    className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]"
+                  >
                     <span className="truncate">{generator.generatorName}</span>
-                    <span className="truncate font-mono text-[9px]">{generator.targetGroup}</span>
+                    <span className="truncate font-mono text-[9px]">
+                      {generator.targetGroup}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -316,10 +386,15 @@ function StructuralPreflightSummary({
     <div className="flex flex-col gap-3">
       {preflight.blockers.length > 0 && (
         <div className="rounded border border-red-500/40 bg-red-500/10 p-3">
-          <div className="text-[10px] font-medium text-red-500">Blocking dependencies</div>
+          <div className="text-[10px] font-medium text-red-500">
+            Blocking dependencies
+          </div>
           <div className="mt-1 flex flex-col gap-1">
             {preflight.blockers.map((blocker) => (
-              <div key={`${blocker.generatorId}-${blocker.setName}`} className="text-[10px] text-red-500">
+              <div
+                key={`${blocker.generatorId}-${blocker.setName}`}
+                className="text-[10px] text-red-500"
+              >
                 {blocker.message}
               </div>
             ))}
@@ -331,7 +406,10 @@ function StructuralPreflightSummary({
           <div className="text-[10px] font-medium text-amber-500">Warnings</div>
           <div className="mt-1 flex flex-col gap-1">
             {preflight.warnings.map((warning, index) => (
-              <div key={`${index}-${warning}`} className="text-[10px] text-amber-600">
+              <div
+                key={`${index}-${warning}`}
+                className="text-[10px] text-amber-600"
+              >
                 {warning}
               </div>
             ))}
@@ -350,7 +428,7 @@ function StructuralPreflightSummary({
 function buildFolderGroups(sets: string[]): GroupItem[] {
   const folderMap = new Map<string, string[]>();
   for (const set of sets) {
-    const slashIdx = set.indexOf('/');
+    const slashIdx = set.indexOf("/");
     if (slashIdx === -1) continue;
     const folder = set.slice(0, slashIdx);
     if (!folderMap.has(folder)) folderMap.set(folder, []);
@@ -360,7 +438,7 @@ function buildFolderGroups(sets: string[]): GroupItem[] {
   const result: GroupItem[] = [];
   const seenFolders = new Set<string>();
   for (const set of sets) {
-    const slashIdx = set.indexOf('/');
+    const slashIdx = set.indexOf("/");
     if (slashIdx === -1) {
       result.push(set);
       continue;
@@ -373,12 +451,14 @@ function buildFolderGroups(sets: string[]): GroupItem[] {
   return result;
 }
 
-function buildSetThemeLabels(dimensions: ThemeDimension[]): Record<string, SetThemeLabel[]> {
+function buildSetThemeLabels(
+  dimensions: ThemeDimension[],
+): Record<string, SetThemeLabel[]> {
   const map: Record<string, SetThemeLabel[]> = {};
   for (const dim of dimensions) {
     for (const opt of dim.options) {
       for (const [setName, status] of Object.entries(opt.sets)) {
-        if (status === 'disabled') continue;
+        if (status === "disabled") continue;
         if (!map[setName]) map[setName] = [];
         map[setName].push({ option: opt.name, status });
       }
@@ -395,11 +475,15 @@ function ThemeBadges({ labels }: { labels: SetThemeLabel[] }) {
         <span
           key={`${label.option}-${index}`}
           className={`rounded px-1 py-px text-[9px] leading-tight ${
-            label.status === 'enabled'
-              ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-              : 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'
+            label.status === "enabled"
+              ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
+              : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
           }`}
-          title={label.status === 'enabled' ? `Theme override: ${label.option}` : `Theme base: ${label.option}`}
+          title={
+            label.status === "enabled"
+              ? `Theme override: ${label.option}`
+              : `Theme base: ${label.option}`
+          }
         >
           {label.option}
         </span>
@@ -409,18 +493,20 @@ function ThemeBadges({ labels }: { labels: SetThemeLabel[] }) {
 }
 
 function SetNameDisplay({ name }: { name: string }) {
-  const slash = name.lastIndexOf('/');
+  const slash = name.lastIndexOf("/");
   if (slash === -1) return <span>{name}</span>;
   return (
     <>
-      <span className="text-[var(--color-figma-text-secondary)]">{name.slice(0, slash + 1)}</span>
+      <span className="text-[var(--color-figma-text-secondary)]">
+        {name.slice(0, slash + 1)}
+      </span>
       <span>{name.slice(slash + 1)}</span>
     </>
   );
 }
 
 function leafName(setName: string): string {
-  const idx = setName.lastIndexOf('/');
+  const idx = setName.lastIndexOf("/");
   return idx === -1 ? setName : setName.slice(idx + 1);
 }
 
@@ -429,10 +515,31 @@ const FOLDER_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 function filterSets(sets: string[], query: string): string[] {
   if (!query) return sets;
   return sets
-    .map(set => ({ set, score: fuzzyScore(query, set) }))
+    .map((set) => ({ set, score: fuzzyScore(query, set) }))
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
     .map(({ set }) => set);
+}
+
+function matchesMappingManagerQuery({
+  query,
+  setName,
+  description,
+  collectionName,
+  modeName,
+}: {
+  query: string;
+  setName: string;
+  description: string;
+  collectionName: string;
+  modeName: string;
+}): boolean {
+  if (!query) return true;
+  const lowered = query.trim().toLowerCase();
+  if (!lowered) return true;
+  return [setName, description, collectionName, modeName].some((value) =>
+    value.toLowerCase().includes(lowered),
+  );
 }
 
 export function SetSwitcher({
@@ -444,7 +551,7 @@ export function SetSwitcher({
   dimensions = [],
 }: SetSwitcherProps) {
   const setThemeLabels = buildSetThemeLabels(dimensions);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(() => {
     const idx = sets.indexOf(activeSet);
     return idx >= 0 ? idx : 0;
@@ -468,26 +575,28 @@ export function SetSwitcher({
     if (!list) return;
     const setName = filtered[activeIdx];
     if (!setName) return;
-    const active = list.querySelector(`[data-set-name="${setName.replace(/"/g, '\\"')}"]`) as HTMLElement | null;
-    active?.scrollIntoView({ block: 'nearest' });
+    const active = list.querySelector(
+      `[data-set-name="${setName.replace(/"/g, '\\"')}"]`,
+    ) as HTMLElement | null;
+    active?.scrollIntoView({ block: "nearest" });
   }, [activeIdx, filtered]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       onClose();
       return;
     }
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIdx(index => Math.min(index + 1, filtered.length - 1));
+      setActiveIdx((index) => Math.min(index + 1, filtered.length - 1));
       return;
     }
-    if (e.key === 'ArrowUp') {
+    if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIdx(index => Math.max(index - 1, 0));
+      setActiveIdx((index) => Math.max(index - 1, 0));
       return;
     }
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       const set = filtered[activeIdx];
       if (set) {
@@ -498,11 +607,14 @@ export function SetSwitcher({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-16" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-16"
+      onClick={onClose}
+    >
       <div
         className="mx-3 flex w-full flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-2xl"
-        style={{ maxHeight: '70vh' }}
-        onClick={e => e.stopPropagation()}
+        style={{ maxHeight: "70vh" }}
+        onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label="Switch token set"
@@ -526,7 +638,7 @@ export function SetSwitcher({
             ref={inputRef}
             type="text"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Switch to set…"
             aria-label="Filter token sets"
@@ -543,7 +655,7 @@ export function SetSwitcher({
           activeSet={activeSet}
           activeIdx={activeIdx}
           query={query}
-          onSelect={set => {
+          onSelect={(set) => {
             onSelect(set);
             onClose();
           }}
@@ -553,7 +665,7 @@ export function SetSwitcher({
         <div className="flex items-center justify-between border-t border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
           <span>
             {filtered.length === sets.length
-              ? `${sets.length} set${sets.length !== 1 ? 's' : ''}`
+              ? `${sets.length} set${sets.length !== 1 ? "s" : ""}`
               : `${filtered.length} of ${sets.length} sets`}
           </span>
           <div className="flex items-center gap-2">
@@ -583,8 +695,18 @@ interface SwitchViewProps {
   setThemeLabels: Record<string, SetThemeLabel[]>;
 }
 
-function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect, setThemeLabels }: SwitchViewProps) {
-  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+function SwitchView({
+  listRef,
+  filtered,
+  activeSet,
+  activeIdx,
+  query,
+  onSelect,
+  setThemeLabels,
+}: SwitchViewProps) {
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     if (query) setCollapsedFolders(new Set());
@@ -593,11 +715,11 @@ function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect, 
   useEffect(() => {
     const set = filtered[activeIdx];
     if (!set) return;
-    const slashIdx = set.indexOf('/');
+    const slashIdx = set.indexOf("/");
     if (slashIdx === -1) return;
     const folder = set.slice(0, slashIdx);
     if (!collapsedFolders.has(folder)) return;
-    setCollapsedFolders(prev => {
+    setCollapsedFolders((prev) => {
       const next = new Set(prev);
       next.delete(folder);
       return next;
@@ -605,7 +727,7 @@ function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect, 
   }, [activeIdx, filtered, collapsedFolders]);
 
   const toggleFolder = (folder: string) => {
-    setCollapsedFolders(prev => {
+    setCollapsedFolders((prev) => {
       const next = new Set(prev);
       if (next.has(folder)) next.delete(folder);
       else next.add(folder);
@@ -613,43 +735,56 @@ function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect, 
     });
   };
 
-  const hasFolders = filtered.some(set => set.includes('/'));
+  const hasFolders = filtered.some((set) => set.includes("/"));
   const groups = hasFolders ? buildFolderGroups(filtered) : null;
 
   const renderSetButton = (set: string, indented: boolean) => {
     const isCurrent = set === activeSet;
     const isHighlighted = filtered[activeIdx] === set;
-    const label = indented ? set.slice(set.indexOf('/') + 1) : null;
+    const label = indented ? set.slice(set.indexOf("/") + 1) : null;
     const themeLabels = setThemeLabels[set] ?? [];
     return (
       <button
         key={set}
         data-set-name={set}
         onClick={() => onSelect(set)}
-        className={`flex w-full items-center justify-between py-2 pr-3 text-left text-[12px] transition-colors ${indented ? 'pl-6' : 'px-3'} ${isHighlighted ? 'bg-[var(--color-figma-bg-hover)]' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
+        className={`flex w-full items-center justify-between py-2 pr-3 text-left text-[12px] transition-colors ${indented ? "pl-6" : "px-3"} ${isHighlighted ? "bg-[var(--color-figma-bg-hover)]" : "hover:bg-[var(--color-figma-bg-hover)]"}`}
         role="option"
         aria-selected={isCurrent}
       >
-        <span className={`flex min-w-0 flex-1 items-center ${isCurrent ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)]'}`}>
-          {label !== null ? <span>{label}</span> : <SetNameDisplay name={set} />}
+        <span
+          className={`flex min-w-0 flex-1 items-center ${isCurrent ? "text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text)]"}`}
+        >
+          {label !== null ? (
+            <span>{label}</span>
+          ) : (
+            <SetNameDisplay name={set} />
+          )}
           <ThemeBadges labels={themeLabels} />
         </span>
         {isCurrent && (
-          <span className="ml-2 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">active</span>
+          <span className="ml-2 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">
+            active
+          </span>
         )}
       </button>
     );
   };
 
   return (
-    <div ref={listRef as RefObject<HTMLDivElement>} className="flex-1 overflow-y-auto" role="listbox" aria-label="Token sets">
+    <div
+      ref={listRef as RefObject<HTMLDivElement>}
+      className="flex-1 overflow-y-auto"
+      role="listbox"
+      aria-label="Token sets"
+    >
       {filtered.length === 0 ? (
         <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
           No sets match &ldquo;{query}&rdquo;
         </div>
       ) : groups ? (
-        groups.map(group => {
-          if (typeof group === 'string') return renderSetButton(group, false);
+        groups.map((group) => {
+          if (typeof group === "string") return renderSetButton(group, false);
           const isCollapsed = collapsedFolders.has(group.folder);
           const hasActiveSet = group.sets.includes(activeSet);
           return (
@@ -663,25 +798,31 @@ function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect, 
                   height="8"
                   viewBox="0 0 8 8"
                   fill="currentColor"
-                  className={`shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                  className={`shrink-0 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
                   aria-hidden="true"
                 >
                   <path d="M2 1l4 3-4 3V1z" />
                 </svg>
                 <span className="font-medium">{group.folder}/</span>
-                <span className="text-[10px] opacity-50">{group.sets.length}</span>
+                <span className="text-[10px] opacity-50">
+                  {group.sets.length}
+                </span>
                 {hasActiveSet && isCollapsed && (
-                  <span className="ml-auto leading-none text-[var(--color-figma-accent)]" aria-label="contains active set">
+                  <span
+                    className="ml-auto leading-none text-[var(--color-figma-accent)]"
+                    aria-label="contains active set"
+                  >
                     ●
                   </span>
                 )}
               </button>
-              {!isCollapsed && group.sets.map(set => renderSetButton(set, true))}
+              {!isCollapsed &&
+                group.sets.map((set) => renderSetButton(set, true))}
             </div>
           );
         })
       ) : (
-        filtered.map(set => renderSetButton(set, false))
+        filtered.map((set) => renderSetButton(set, false))
       )}
     </div>
   );
@@ -709,19 +850,19 @@ export function SetManager({
   onBulkDuplicate,
   onBulkMoveToFolder,
   renamingSet = null,
-  renameValue = '',
+  renameValue = "",
   setRenameValue,
-  renameError = '',
+  renameError = "",
   setRenameError,
   renameInputRef,
   onRenameConfirm,
   onRenameCancel,
   editingMetadataSet = null,
-  metadataDescription = '',
+  metadataDescription = "",
   setMetadataDescription,
-  metadataCollectionName = '',
+  metadataCollectionName = "",
   setMetadataCollectionName,
-  metadataModeName = '',
+  metadataModeName = "",
   setMetadataModeName,
   onMetadataClose,
   onMetadataSave,
@@ -729,7 +870,7 @@ export function SetManager({
   onDeleteConfirm,
   onDeleteCancel,
   mergingSet = null,
-  mergeTargetSet = '',
+  mergeTargetSet = "",
   mergeConflicts = [],
   mergeResolutions = {},
   mergeChecked = false,
@@ -747,32 +888,70 @@ export function SetManager({
   onSplitConfirm,
   onSplitClose,
 }: SetManagerProps) {
+  const { serverUrl, connected } = useConnectionContext();
+  const {
+    setDescriptions: metadataDescriptions,
+    setCollectionNames,
+    setModeNames,
+    updateSetMetadataInState,
+  } = useTokenSetsContext();
   const setThemeLabels = buildSetThemeLabels(dimensions);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [creatingSet, setCreatingSet] = useState(false);
-  const [newSetName, setNewSetName] = useState('');
-  const [newSetError, setNewSetError] = useState('');
+  const [newSetName, setNewSetName] = useState("");
+  const [newSetError, setNewSetError] = useState("");
   const [createPending, setCreatePending] = useState(false);
   const newSetInputRef = useRef<HTMLInputElement>(null);
   const deletePreflight = useSetStructuralPreflight({
-    operation: 'delete',
+    operation: "delete",
     setName: deletingSet,
     enabled: !!deletingSet && !!onDeleteConfirm,
   });
   const mergePreflight = useSetStructuralPreflight({
-    operation: 'merge',
+    operation: "merge",
     setName: mergingSet,
     targetSet: mergeTargetSet,
     enabled: !!mergingSet && !!mergeTargetSet && !!onMergeConfirm,
   });
   const splitPreflight = useSetStructuralPreflight({
-    operation: 'split',
+    operation: "split",
     setName: splittingSet,
     deleteOriginal: splitDeleteOriginal,
     enabled: !!splittingSet && !!onSplitConfirm,
   });
+  const {
+    metadataManagerRows,
+    metadataManagerDirtyCount,
+    metadataManagerSaving,
+    updateMetadataManagerField,
+    resetMetadataManager,
+    saveMetadataManager,
+  } = useSetMetadata({
+    serverUrl,
+    connected,
+    setDescriptions: metadataDescriptions,
+    setCollectionNames,
+    setModeNames,
+    updateSetMetadataInState,
+    onError: (message) => dispatchToast(message, "error"),
+    onSuccess: (message) => dispatchToast(message, "success"),
+    sets,
+  });
 
   const filtered = useMemo(() => filterSets(sets, query), [sets, query]);
+  const visibleMetadataRows = useMemo(
+    () =>
+      metadataManagerRows.filter((row) =>
+        matchesMappingManagerQuery({
+          query,
+          setName: row.setName,
+          description: row.description,
+          collectionName: row.collectionName,
+          modeName: row.modeName,
+        }),
+      ),
+    [metadataManagerRows, query],
+  );
 
   useEffect(() => {
     if (creatingSet) newSetInputRef.current?.focus();
@@ -781,22 +960,24 @@ export function SetManager({
   const handleCreateSubmit = async () => {
     const name = newSetName.trim();
     if (!name) {
-      setNewSetError('Name cannot be empty');
+      setNewSetError("Name cannot be empty");
       return;
     }
     if (!SET_NAME_RE.test(name)) {
-      setNewSetError('Use letters, numbers, - and _ (/ for folders)');
+      setNewSetError("Use letters, numbers, - and _ (/ for folders)");
       return;
     }
     if (!onCreateSet) return;
     setCreatePending(true);
-    setNewSetError('');
+    setNewSetError("");
     try {
       await onCreateSet(name);
       setCreatingSet(false);
-      setNewSetName('');
+      setNewSetName("");
     } catch (err) {
-      setNewSetError(err instanceof Error ? err.message : 'Failed to create set');
+      setNewSetError(
+        err instanceof Error ? err.message : "Failed to create set",
+      );
     } finally {
       setCreatePending(false);
     }
@@ -804,206 +985,246 @@ export function SetManager({
 
   const cancelCreate = () => {
     setCreatingSet(false);
-    setNewSetName('');
-    setNewSetError('');
+    setNewSetName("");
+    setNewSetError("");
   };
 
   return (
     <>
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
-        <button
-          onClick={onClose}
-          className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
-          aria-label="Back"
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M6.5 2L3.5 5l3 3" />
-          </svg>
-          Back
-        </button>
-        <span className="ml-1 text-[10px] font-medium text-[var(--color-figma-text)]">Token set manager</span>
-        {onOpenQuickSwitch && (
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
           <button
-            onClick={onOpenQuickSwitch}
-            className="ml-auto rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            onClick={onClose}
+            className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+            aria-label="Back"
           >
-            Quick switch
-          </button>
-        )}
-      </div>
-
-      <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-        <div className="flex items-center gap-2">
-          <svg
-            aria-hidden="true"
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            className="shrink-0 text-[var(--color-figma-text-secondary)]"
-          >
-            <circle cx="6" cy="6" r="4" />
-            <path d="M9 9l3 3" />
-          </svg>
-          <input
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Filter sets…"
-            aria-label="Filter token sets"
-            className="flex-1 bg-transparent text-[12px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)]"
-          />
-          {!creatingSet && onCreateSet && (
-            <button
-              onClick={() => setCreatingSet(true)}
-              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
             >
-              New set
+              <path d="M6.5 2L3.5 5l3 3" />
+            </svg>
+            Back
+          </button>
+          <span className="ml-1 text-[10px] font-medium text-[var(--color-figma-text)]">
+            Token set manager
+          </span>
+          {onOpenQuickSwitch && (
+            <button
+              onClick={onOpenQuickSwitch}
+              className="ml-auto rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              Quick switch
             </button>
           )}
         </div>
-        <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          <span>{sets.length} set{sets.length !== 1 ? 's' : ''}</span>
-          <span>·</span>
-          <span>Active: {activeSet}</span>
-          <span>·</span>
-          <span>Own all structural set work here: naming, folders, ordering, metadata, merges, splits, and bulk actions.</span>
-        </div>
-        {creatingSet && onCreateSet && (
-          <div className="mt-2 flex flex-col gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-            <div className="flex items-center gap-2">
-              <input
-                ref={newSetInputRef}
-                type="text"
-                value={newSetName}
-                onChange={e => {
-                  setNewSetName(e.target.value);
-                  setNewSetError('');
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleCreateSubmit();
-                  }
-                  if (e.key === 'Escape') {
-                    e.preventDefault();
-                    cancelCreate();
-                  }
-                }}
-                placeholder="Set name (e.g. primitives or brand/colors)"
-                className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                disabled={createPending}
-              />
-              <button
-                onClick={handleCreateSubmit}
-                disabled={createPending || !newSetName.trim()}
-                className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-              >
-                {createPending ? 'Creating…' : 'Create'}
-              </button>
-              <button
-                onClick={cancelCreate}
-                className="rounded px-2 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Cancel
-              </button>
-            </div>
-            {newSetError && <div className="text-[10px] text-red-500">{newSetError}</div>}
-          </div>
-        )}
-      </div>
 
-      <ManageView
-        filtered={filtered}
-        sets={sets}
-        activeSet={activeSet}
-        query={query}
-        setTokenCounts={setTokenCounts}
-        setDescriptions={setDescriptions}
-        setThemeLabels={setThemeLabels}
-        onOpenGenerators={onOpenGenerators}
-        onRename={onRename}
-        onDuplicate={onDuplicate}
-        onDelete={onDelete}
-        onReorder={onReorder}
-        onReorderFull={onReorderFull}
-        onEditInfo={onEditInfo}
-        onMerge={onMerge}
-        onSplit={onSplit}
-        onBulkDelete={onBulkDelete}
-        onBulkDuplicate={onBulkDuplicate}
-        onBulkMoveToFolder={onBulkMoveToFolder}
-        renamingSet={renamingSet}
-        renameValue={renameValue}
-        setRenameValue={setRenameValue}
-        renameError={renameError}
-        setRenameError={setRenameError}
-        renameInputRef={renameInputRef}
-        onRenameConfirm={onRenameConfirm}
-        onRenameCancel={onRenameCancel}
-      />
-    </div>
-    {editingMetadataSet && (
-      <SetMetadataDialog
-        setName={editingMetadataSet}
-        description={metadataDescription}
-        onDescriptionChange={value => setMetadataDescription?.(value)}
-        collectionName={metadataCollectionName}
-        onCollectionNameChange={value => setMetadataCollectionName?.(value)}
-        modeName={metadataModeName}
-        onModeNameChange={value => setMetadataModeName?.(value)}
-        onClose={() => onMetadataClose?.()}
-        onSave={() => onMetadataSave?.()}
-      />
-    )}
-    {deletingSet && onDeleteConfirm && onDeleteCancel && (
-      <SetDeleteDialog
-        deletingSet={deletingSet}
-        preflight={deletePreflight.data}
-        preflightLoading={deletePreflight.loading}
-        preflightError={deletePreflight.error}
-        onConfirm={onDeleteConfirm}
-        onCancel={onDeleteCancel}
-      />
-    )}
-    {mergingSet && onMergeClose && onMergeTargetChange && setMergeResolutions && onMergeCheckConflicts && onMergeConfirm && (
-      <SetMergeDialog
-        sets={sets}
-        mergingSet={mergingSet}
-        preflight={mergePreflight.data}
-        preflightLoading={mergePreflight.loading}
-        preflightError={mergePreflight.error}
-        mergeTargetSet={mergeTargetSet}
-        mergeConflicts={mergeConflicts}
-        mergeResolutions={mergeResolutions}
-        mergeChecked={mergeChecked}
-        mergeLoading={mergeLoading}
-        onTargetChange={onMergeTargetChange}
-        onSetResolutions={setMergeResolutions}
-        onCheckConflicts={onMergeCheckConflicts}
-        onConfirm={onMergeConfirm}
-        onClose={onMergeClose}
-      />
-    )}
-    {splittingSet && onSplitClose && setSplitDeleteOriginal && onSplitConfirm && (
-      <SetSplitDialog
-        sets={sets}
-        splittingSet={splittingSet}
-        preflight={splitPreflight.data}
-        preflightLoading={splitPreflight.loading}
-        preflightError={splitPreflight.error}
-        splitPreview={splitPreview}
-        splitDeleteOriginal={splitDeleteOriginal}
-        splitLoading={splitLoading}
-        onSetDeleteOriginal={setSplitDeleteOriginal}
-        onConfirm={onSplitConfirm}
-        onClose={onSplitClose}
-      />
-    )}
+        <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+          <div className="flex items-center gap-2">
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="shrink-0 text-[var(--color-figma-text-secondary)]"
+            >
+              <circle cx="6" cy="6" r="4" />
+              <path d="M9 9l3 3" />
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter sets…"
+              aria-label="Filter token sets"
+              className="flex-1 bg-transparent text-[12px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)]"
+            />
+            {!creatingSet && onCreateSet && (
+              <button
+                onClick={() => setCreatingSet(true)}
+                className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+              >
+                New set
+              </button>
+            )}
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span>
+              {sets.length} set{sets.length !== 1 ? "s" : ""}
+            </span>
+            <span>·</span>
+            <span>Active: {activeSet}</span>
+            <span>·</span>
+            <span>
+              Own all structural set work here: naming, folders, ordering, Figma
+              routing, merges, splits, and bulk actions.
+            </span>
+          </div>
+          {creatingSet && onCreateSet && (
+            <div className="mt-2 flex flex-col gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={newSetInputRef}
+                  type="text"
+                  value={newSetName}
+                  onChange={(e) => {
+                    setNewSetName(e.target.value);
+                    setNewSetError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCreateSubmit();
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      cancelCreate();
+                    }
+                  }}
+                  placeholder="Set name (e.g. primitives or brand/colors)"
+                  className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                  disabled={createPending}
+                />
+                <button
+                  onClick={handleCreateSubmit}
+                  disabled={createPending || !newSetName.trim()}
+                  className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >
+                  {createPending ? "Creating…" : "Create"}
+                </button>
+                <button
+                  onClick={cancelCreate}
+                  className="rounded px-2 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  Cancel
+                </button>
+              </div>
+              {newSetError && (
+                <div className="text-[10px] text-red-500">{newSetError}</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <ManageView
+          filtered={filtered}
+          sets={sets}
+          activeSet={activeSet}
+          query={query}
+          topContent={
+            <SetMappingManager
+              rows={metadataManagerRows}
+              visibleRows={visibleMetadataRows}
+              dirtyCount={metadataManagerDirtyCount}
+              saving={metadataManagerSaving}
+              onFieldChange={updateMetadataManagerField}
+              onResetRow={(setName) => resetMetadataManager(setName)}
+              onResetAll={() => resetMetadataManager()}
+              onSaveRow={(setName) => saveMetadataManager([setName])}
+              onSaveAll={() => saveMetadataManager()}
+            />
+          }
+          setTokenCounts={setTokenCounts}
+          setDescriptions={setDescriptions}
+          setThemeLabels={setThemeLabels}
+          onOpenGenerators={onOpenGenerators}
+          onRename={onRename}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+          onReorder={onReorder}
+          onReorderFull={onReorderFull}
+          onEditInfo={onEditInfo}
+          onMerge={onMerge}
+          onSplit={onSplit}
+          onBulkDelete={onBulkDelete}
+          onBulkDuplicate={onBulkDuplicate}
+          onBulkMoveToFolder={onBulkMoveToFolder}
+          renamingSet={renamingSet}
+          renameValue={renameValue}
+          setRenameValue={setRenameValue}
+          renameError={renameError}
+          setRenameError={setRenameError}
+          renameInputRef={renameInputRef}
+          onRenameConfirm={onRenameConfirm}
+          onRenameCancel={onRenameCancel}
+        />
+      </div>
+      {editingMetadataSet && (
+        <SetMetadataDialog
+          setName={editingMetadataSet}
+          description={metadataDescription}
+          onDescriptionChange={(value) => setMetadataDescription?.(value)}
+          collectionName={metadataCollectionName}
+          onCollectionNameChange={(value) => setMetadataCollectionName?.(value)}
+          modeName={metadataModeName}
+          onModeNameChange={(value) => setMetadataModeName?.(value)}
+          onClose={() => onMetadataClose?.()}
+          onSave={() => onMetadataSave?.()}
+        />
+      )}
+      {deletingSet && onDeleteConfirm && onDeleteCancel && (
+        <SetDeleteDialog
+          deletingSet={deletingSet}
+          preflight={deletePreflight.data}
+          preflightLoading={deletePreflight.loading}
+          preflightError={deletePreflight.error}
+          onConfirm={onDeleteConfirm}
+          onCancel={onDeleteCancel}
+        />
+      )}
+      {mergingSet &&
+        onMergeClose &&
+        onMergeTargetChange &&
+        setMergeResolutions &&
+        onMergeCheckConflicts &&
+        onMergeConfirm && (
+          <SetMergeDialog
+            sets={sets}
+            mergingSet={mergingSet}
+            preflight={mergePreflight.data}
+            preflightLoading={mergePreflight.loading}
+            preflightError={mergePreflight.error}
+            mergeTargetSet={mergeTargetSet}
+            mergeConflicts={mergeConflicts}
+            mergeResolutions={mergeResolutions}
+            mergeChecked={mergeChecked}
+            mergeLoading={mergeLoading}
+            onTargetChange={onMergeTargetChange}
+            onSetResolutions={setMergeResolutions}
+            onCheckConflicts={onMergeCheckConflicts}
+            onConfirm={onMergeConfirm}
+            onClose={onMergeClose}
+          />
+        )}
+      {splittingSet &&
+        onSplitClose &&
+        setSplitDeleteOriginal &&
+        onSplitConfirm && (
+          <SetSplitDialog
+            sets={sets}
+            splittingSet={splittingSet}
+            preflight={splitPreflight.data}
+            preflightLoading={splitPreflight.loading}
+            preflightError={splitPreflight.error}
+            splitPreview={splitPreview}
+            splitDeleteOriginal={splitDeleteOriginal}
+            splitLoading={splitLoading}
+            onSetDeleteOriginal={setSplitDeleteOriginal}
+            onConfirm={onSplitConfirm}
+            onClose={onSplitClose}
+          />
+        )}
     </>
   );
 }
@@ -1013,6 +1234,7 @@ interface ManageViewProps {
   sets: string[];
   activeSet: string;
   query: string;
+  topContent?: ReactNode;
   setTokenCounts: Record<string, number>;
   setDescriptions: Record<string, string>;
   setThemeLabels: Record<string, SetThemeLabel[]>;
@@ -1020,14 +1242,16 @@ interface ManageViewProps {
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
-  onReorder?: (setName: string, direction: 'left' | 'right') => void;
+  onReorder?: (setName: string, direction: "left" | "right") => void;
   onReorderFull?: (newOrder: string[]) => void;
   onEditInfo?: (setName: string) => void;
   onMerge?: (setName: string) => void;
   onSplit?: (setName: string) => void;
   onBulkDelete?: (sets: string[]) => Promise<void>;
   onBulkDuplicate?: (sets: string[]) => Promise<void>;
-  onBulkMoveToFolder?: (moves: Array<{ from: string; to: string }>) => Promise<void>;
+  onBulkMoveToFolder?: (
+    moves: Array<{ from: string; to: string }>,
+  ) => Promise<void>;
   renamingSet: string | null;
   renameValue: string;
   setRenameValue?: (value: string) => void;
@@ -1043,6 +1267,7 @@ function ManageView({
   sets,
   activeSet,
   query,
+  topContent,
   setTokenCounts,
   setDescriptions,
   setThemeLabels,
@@ -1071,8 +1296,8 @@ function ManageView({
   const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
   const [selectedSets, setSelectedSets] = useState<Set<string>>(new Set());
   const [bulkFolderMode, setBulkFolderMode] = useState(false);
-  const [bulkFolder, setBulkFolder] = useState('');
-  const [bulkFolderError, setBulkFolderError] = useState('');
+  const [bulkFolder, setBulkFolder] = useState("");
+  const [bulkFolderError, setBulkFolderError] = useState("");
   const [bulkPending, setBulkPending] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
 
@@ -1090,10 +1315,11 @@ function ManageView({
 
   const hasBulkOps = !!(onBulkDelete || onBulkDuplicate || onBulkMoveToFolder);
   const hasSelection = selectedSets.size > 0;
-  const canDrag = !!onReorderFull && !hasSelection && !bulkFolderMode && !deleteConfirming;
+  const canDrag =
+    !!onReorderFull && !hasSelection && !bulkFolderMode && !deleteConfirming;
 
   const toggleSelect = (set: string) => {
-    setSelectedSets(prev => {
+    setSelectedSets((prev) => {
       const next = new Set(prev);
       if (next.has(set)) next.delete(set);
       else next.add(set);
@@ -1106,8 +1332,8 @@ function ManageView({
   const clearSelection = () => {
     setSelectedSets(new Set());
     setBulkFolderMode(false);
-    setBulkFolder('');
-    setBulkFolderError('');
+    setBulkFolder("");
+    setBulkFolderError("");
     setDeleteConfirming(false);
   };
 
@@ -1138,30 +1364,30 @@ function ManageView({
     if (!onBulkMoveToFolder || !hasSelection) return;
     const folder = bulkFolder.trim();
     if (!folder) {
-      setBulkFolderError('Folder name cannot be empty');
+      setBulkFolderError("Folder name cannot be empty");
       return;
     }
     if (!FOLDER_NAME_RE.test(folder)) {
-      setBulkFolderError('Use letters, numbers, - and _ (/ for sub-folders)');
+      setBulkFolderError("Use letters, numbers, - and _ (/ for sub-folders)");
       return;
     }
-    const moves = Array.from(selectedSets).map(set => ({
+    const moves = Array.from(selectedSets).map((set) => ({
       from: set,
       to: `${folder}/${leafName(set)}`,
     }));
-    const actualMoves = moves.filter(move => move.from !== move.to);
+    const actualMoves = moves.filter((move) => move.from !== move.to);
     if (!actualMoves.length) {
-      setBulkFolderError('All selected sets are already in that folder');
+      setBulkFolderError("All selected sets are already in that folder");
       return;
     }
     setBulkPending(true);
-    setBulkFolderError('');
+    setBulkFolderError("");
     try {
       await onBulkMoveToFolder(actualMoves);
       clearSelection();
-      setBulkFolder('');
+      setBulkFolder("");
     } catch (err) {
-      setBulkFolderError(err instanceof Error ? err.message : 'Move failed');
+      setBulkFolderError(err instanceof Error ? err.message : "Move failed");
     } finally {
       setBulkPending(false);
     }
@@ -1169,39 +1395,45 @@ function ManageView({
 
   const handleDragStart = useCallback((e: React.DragEvent, setName: string) => {
     setDragSetName(setName);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent, setName: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragSetName && dragSetName !== setName) setDragOverSetName(setName);
-  }, [dragSetName]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, setName: string) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (dragSetName && dragSetName !== setName) setDragOverSetName(setName);
+    },
+    [dragSetName],
+  );
 
   const handleDragEnd = useCallback(() => {
     setDragSetName(null);
     setDragOverSetName(null);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent, targetSetName: string) => {
-    e.preventDefault();
-    if (!dragSetName || dragSetName === targetSetName || !onReorderFull) {
-      handleDragEnd();
-      return;
-    }
-    const fromIdx = sets.indexOf(dragSetName);
-    const toIdx = sets.indexOf(targetSetName);
-    if (fromIdx === -1 || toIdx === -1) {
-      handleDragEnd();
-      return;
-    }
-    const newOrder = [...sets];
-    newOrder.splice(fromIdx, 1);
-    newOrder.splice(toIdx, 0, dragSetName);
-    setDragSetName(null);
-    setDragOverSetName(null);
-    onReorderFull(newOrder);
-  }, [dragSetName, sets, onReorderFull, handleDragEnd]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetSetName: string) => {
+      e.preventDefault();
+      if (!dragSetName || dragSetName === targetSetName || !onReorderFull) {
+        handleDragEnd();
+        return;
+      }
+      const fromIdx = sets.indexOf(dragSetName);
+      const toIdx = sets.indexOf(targetSetName);
+      if (fromIdx === -1 || toIdx === -1) {
+        handleDragEnd();
+        return;
+      }
+      const newOrder = [...sets];
+      newOrder.splice(fromIdx, 1);
+      newOrder.splice(toIdx, 0, dragSetName);
+      setDragSetName(null);
+      setDragOverSetName(null);
+      onReorderFull(newOrder);
+    },
+    [dragSetName, sets, onReorderFull, handleDragEnd],
+  );
 
   if (filtered.length === 0) {
     return (
@@ -1213,6 +1445,7 @@ function ManageView({
 
   return (
     <div className="flex-1 overflow-y-auto">
+      {topContent}
       {hasBulkOps && hasSelection && (
         <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex items-center gap-1 px-2 py-1.5 text-[11px]">
@@ -1247,7 +1480,7 @@ function ManageView({
                 disabled={bulkPending}
                 className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                {bulkPending ? 'Working…' : 'Duplicate'}
+                {bulkPending ? "Working…" : "Duplicate"}
               </button>
             )}
             {onBulkDelete && !deleteConfirming && !bulkFolderMode && (
@@ -1269,7 +1502,16 @@ function ManageView({
               title="Clear selection"
               aria-label="Clear selection"
             >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
                 <path d="M1 1l8 8M9 1L1 9" />
               </svg>
             </button>
@@ -1278,14 +1520,15 @@ function ManageView({
           {deleteConfirming && (
             <div className="flex items-center gap-2 border-t border-red-500/20 bg-red-500/10 px-2 py-1.5 text-[11px]">
               <span className="flex-1 text-[var(--color-figma-text)]">
-                Delete {selectedSets.size} set{selectedSets.size !== 1 ? 's' : ''}? This cannot be undone.
+                Delete {selectedSets.size} set
+                {selectedSets.size !== 1 ? "s" : ""}? This cannot be undone.
               </span>
               <button
                 onClick={handleBulkDeleteConfirm}
                 disabled={bulkPending}
                 className="shrink-0 rounded bg-red-500 px-2 py-0.5 text-[10px] text-white transition-colors hover:bg-red-600 disabled:opacity-50"
               >
-                {bulkPending ? 'Deleting…' : 'Confirm delete'}
+                {bulkPending ? "Deleting…" : "Confirm delete"}
               </button>
               <button
                 onClick={() => setDeleteConfirming(false)}
@@ -1304,20 +1547,20 @@ function ManageView({
                   ref={bulkFolderInputRef}
                   type="text"
                   value={bulkFolder}
-                  onChange={e => {
+                  onChange={(e) => {
                     setBulkFolder(e.target.value);
-                    setBulkFolderError('');
+                    setBulkFolderError("");
                   }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       handleBulkMoveToFolder();
                     }
-                    if (e.key === 'Escape') {
+                    if (e.key === "Escape") {
                       e.preventDefault();
                       setBulkFolderMode(false);
-                      setBulkFolder('');
-                      setBulkFolderError('');
+                      setBulkFolder("");
+                      setBulkFolderError("");
                     }
                   }}
                   placeholder="Folder name (e.g. brand or brand/sub)"
@@ -1329,13 +1572,13 @@ function ManageView({
                   disabled={bulkPending || !bulkFolder.trim()}
                   className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
                 >
-                  {bulkPending ? 'Moving…' : 'Move'}
+                  {bulkPending ? "Moving…" : "Move"}
                 </button>
                 <button
                   onClick={() => {
                     setBulkFolderMode(false);
-                    setBulkFolder('');
-                    setBulkFolderError('');
+                    setBulkFolder("");
+                    setBulkFolderError("");
                   }}
                   disabled={bulkPending}
                   className="shrink-0 rounded px-1.5 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
@@ -1343,13 +1586,17 @@ function ManageView({
                   Cancel
                 </button>
               </div>
-              {bulkFolderError && <div className="mt-1 text-[10px] text-red-500">{bulkFolderError}</div>}
+              {bulkFolderError && (
+                <div className="mt-1 text-[10px] text-red-500">
+                  {bulkFolderError}
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {filtered.map(set => {
+      {filtered.map((set) => {
         const isCurrent = set === activeSet;
         const idx = sets.indexOf(set);
         const isFirst = idx === 0;
@@ -1366,18 +1613,18 @@ function ManageView({
           <div
             key={set}
             draggable={canDrag && !isRenaming}
-            onDragStart={canDrag ? e => handleDragStart(e, set) : undefined}
-            onDragOver={canDrag ? e => handleDragOver(e, set) : undefined}
-            onDrop={canDrag ? e => handleDrop(e, set) : undefined}
+            onDragStart={canDrag ? (e) => handleDragStart(e, set) : undefined}
+            onDragOver={canDrag ? (e) => handleDragOver(e, set) : undefined}
+            onDrop={canDrag ? (e) => handleDrop(e, set) : undefined}
             onDragEnd={canDrag ? handleDragEnd : undefined}
             className={`group relative flex items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2.5 text-[12px] transition-colors last:border-b-0 ${
-              isDragging ? 'opacity-40' : ''
+              isDragging ? "opacity-40" : ""
             } ${
               isDragOver
-                ? 'border-l-2 border-l-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+                ? "border-l-2 border-l-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]"
                 : isSelected
-                  ? 'bg-[var(--color-figma-accent)]/8'
-                  : 'hover:bg-[var(--color-figma-bg-hover)]'
+                  ? "bg-[var(--color-figma-accent)]/8"
+                  : "hover:bg-[var(--color-figma-bg-hover)]"
             }`}
           >
             {hasBulkOps && (
@@ -1385,7 +1632,7 @@ function ManageView({
                 type="checkbox"
                 checked={isSelected}
                 onChange={() => toggleSelect(set)}
-                onClick={e => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
                 className="mt-1 shrink-0 cursor-pointer accent-[var(--color-figma-accent)]"
                 aria-label={`Select ${set}`}
               />
@@ -1396,7 +1643,12 @@ function ManageView({
                 className="mt-1 shrink-0 cursor-grab text-[var(--color-figma-text-secondary)] opacity-0 transition-opacity group-hover:opacity-60 group-focus-within:opacity-60 active:cursor-grabbing"
                 aria-hidden="true"
               >
-                <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+                <svg
+                  width="8"
+                  height="12"
+                  viewBox="0 0 8 12"
+                  fill="currentColor"
+                >
                   <circle cx="2" cy="2" r="1" />
                   <circle cx="6" cy="2" r="1" />
                   <circle cx="2" cy="6" r="1" />
@@ -1413,26 +1665,34 @@ function ManageView({
               {isRenaming ? (
                 <div className="flex flex-col gap-1">
                   <input
-                    ref={renameInputRef as RefObject<HTMLInputElement> | undefined}
+                    ref={
+                      renameInputRef as RefObject<HTMLInputElement> | undefined
+                    }
                     value={renameValue}
-                    onChange={e => {
+                    onChange={(e) => {
                       setRenameValue?.(e.target.value.trimStart());
-                      setRenameError?.('');
+                      setRenameError?.("");
                     }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') onRenameConfirm?.();
-                      if (e.key === 'Escape') onRenameCancel?.();
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") onRenameConfirm?.();
+                      if (e.key === "Escape") onRenameCancel?.();
                     }}
                     onBlur={() => onRenameCancel?.()}
                     aria-label="Rename token set"
                     className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
                   />
-                  {renameError && <span className="text-[10px] text-red-500">{renameError}</span>}
+                  {renameError && (
+                    <span className="text-[10px] text-red-500">
+                      {renameError}
+                    </span>
+                  )}
                 </div>
               ) : (
                 <>
                   <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <span className={`min-w-0 truncate ${isCurrent ? 'font-medium text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)]'}`}>
+                    <span
+                      className={`min-w-0 truncate ${isCurrent ? "font-medium text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text)]"}`}
+                    >
                       <SetNameDisplay name={set} />
                     </span>
                     {isCurrent && (
@@ -1464,7 +1724,7 @@ function ManageView({
                       title="Move up"
                       ariaLabel="Move up"
                       disabled={isFirst}
-                      onClick={() => onReorder(set, 'left')}
+                      onClick={() => onReorder(set, "left")}
                     >
                       <path d="M5 2L9 7H1L5 2Z" />
                     </IconButton>
@@ -1474,37 +1734,57 @@ function ManageView({
                       title="Move down"
                       ariaLabel="Move down"
                       disabled={isLast}
-                      onClick={() => onReorder(set, 'right')}
+                      onClick={() => onReorder(set, "right")}
                     >
                       <path d="M5 8L1 3H9L5 8Z" />
                     </IconButton>
                   )}
                   {onOpenGenerators && (
-                    <StrokeIconButton title="Generate tokens" ariaLabel="Generate tokens" onClick={() => onOpenGenerators(set)}>
+                    <StrokeIconButton
+                      title="Generate tokens"
+                      ariaLabel="Generate tokens"
+                      onClick={() => onOpenGenerators(set)}
+                    >
                       <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
                     </StrokeIconButton>
                   )}
                   {onEditInfo && (
-                    <StrokeIconButton title="Edit set info" ariaLabel="Edit set info" onClick={() => onEditInfo(set)}>
+                    <StrokeIconButton
+                      title="Edit set info"
+                      ariaLabel="Edit set info"
+                      onClick={() => onEditInfo(set)}
+                    >
                       <circle cx="12" cy="12" r="10" />
                       <line x1="12" y1="16" x2="12" y2="12" />
                       <line x1="12" y1="8" x2="12.01" y2="8" />
                     </StrokeIconButton>
                   )}
                   {onRename && (
-                    <StrokeIconButton title="Rename or move" ariaLabel="Rename or move" onClick={() => onRename(set)}>
+                    <StrokeIconButton
+                      title="Rename or move"
+                      ariaLabel="Rename or move"
+                      onClick={() => onRename(set)}
+                    >
                       <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                       <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </StrokeIconButton>
                   )}
                   {onDuplicate && (
-                    <StrokeIconButton title="Duplicate" ariaLabel="Duplicate" onClick={() => onDuplicate(set)}>
+                    <StrokeIconButton
+                      title="Duplicate"
+                      ariaLabel="Duplicate"
+                      onClick={() => onDuplicate(set)}
+                    >
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                       <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                     </StrokeIconButton>
                   )}
                   {onMerge && (
-                    <StrokeIconButton title="Merge into another set" ariaLabel="Merge into another set" onClick={() => onMerge(set)}>
+                    <StrokeIconButton
+                      title="Merge into another set"
+                      ariaLabel="Merge into another set"
+                      onClick={() => onMerge(set)}
+                    >
                       <path d="M7 7h5a4 4 0 014 4v0" />
                       <path d="M7 17h5a4 4 0 004-4v0" />
                       <path d="M7 12h10" />
@@ -1513,7 +1793,11 @@ function ManageView({
                     </StrokeIconButton>
                   )}
                   {onSplit && (
-                    <StrokeIconButton title="Split by group" ariaLabel="Split by group" onClick={() => onSplit(set)}>
+                    <StrokeIconButton
+                      title="Split by group"
+                      ariaLabel="Split by group"
+                      onClick={() => onSplit(set)}
+                    >
                       <path d="M12 3v6" />
                       <path d="M12 9l-5 5" />
                       <path d="M12 9l5 5" />
@@ -1545,6 +1829,213 @@ function ManageView({
   );
 }
 
+function SetMappingManager({
+  rows,
+  visibleRows,
+  dirtyCount,
+  saving,
+  onFieldChange,
+  onResetRow,
+  onResetAll,
+  onSaveRow,
+  onSaveAll,
+}: {
+  rows: Array<{
+    setName: string;
+    description: string;
+    collectionName: string;
+    modeName: string;
+    isDirty: boolean;
+  }>;
+  visibleRows: Array<{
+    setName: string;
+    description: string;
+    collectionName: string;
+    modeName: string;
+    isDirty: boolean;
+  }>;
+  dirtyCount: number;
+  saving: boolean;
+  onFieldChange: (
+    setName: string,
+    field: "collectionName" | "modeName",
+    value: string,
+  ) => void;
+  onResetRow: (setName: string) => void;
+  onResetAll: () => void;
+  onSaveRow: (setName: string) => Promise<unknown>;
+  onSaveAll: () => Promise<unknown>;
+}) {
+  const collectionsCount = new Set(
+    rows.map((row) => row.collectionName.trim()).filter(Boolean),
+  ).size;
+  const customModesCount = rows.filter(
+    (row) => row.modeName.trim().length > 0,
+  ).length;
+
+  return (
+    <section className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+            Figma collection + mode routing
+          </div>
+          <p className="mt-1 max-w-3xl text-[10px] leading-4 text-[var(--color-figma-text-secondary)]">
+            Review every set&rsquo;s Sync destination here. Leave collection
+            blank to use the default TokenManager variable collection, and leave
+            mode blank to use the first mode in the target collection.
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onResetAll}
+            disabled={saving || dirtyCount === 0}
+            className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+          >
+            Reset all
+          </button>
+          <button
+            onClick={() => {
+              void onSaveAll();
+            }}
+            disabled={saving || dirtyCount === 0}
+            className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          >
+            {saving
+              ? "Saving…"
+              : dirtyCount > 0
+                ? `Save ${dirtyCount} change${dirtyCount === 1 ? "" : "s"}`
+                : "Saved"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
+          {rows.length} set{rows.length === 1 ? "" : "s"}
+        </span>
+        <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
+          {collectionsCount} named collection{collectionsCount === 1 ? "" : "s"}
+        </span>
+        <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
+          {customModesCount} custom mode{customModesCount === 1 ? "" : "s"}
+        </span>
+        {dirtyCount > 0 && (
+          <span className="rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[var(--color-figma-accent)]">
+            {dirtyCount} unsaved
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+        <div
+          className="hidden items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)] md:grid"
+          style={{
+            gridTemplateColumns:
+              "minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) auto",
+          }}
+        >
+          <span>Set</span>
+          <span>Collection</span>
+          <span>Mode</span>
+          <span className="text-right">Actions</span>
+        </div>
+        {visibleRows.length === 0 ? (
+          <div className="px-3 py-4 text-[10px] text-[var(--color-figma-text-secondary)]">
+            No sets match the current filter.
+          </div>
+        ) : (
+          <div className="max-h-72 overflow-y-auto">
+            {visibleRows.map((row) => (
+              <div
+                key={row.setName}
+                className={`grid gap-2 border-b border-[var(--color-figma-border)] px-3 py-2.5 last:border-b-0 ${row.isDirty ? "bg-[var(--color-figma-accent)]/5" : ""}`}
+                style={{
+                  gridTemplateColumns:
+                    "minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) auto",
+                }}
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                    <SetNameDisplay name={row.setName} />
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                    <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5">
+                      {row.collectionName.trim()
+                        ? "Custom collection"
+                        : "Default collection"}
+                    </span>
+                    <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5">
+                      {row.modeName.trim() ? "Named mode" : "First mode"}
+                    </span>
+                    {row.isDirty && (
+                      <span className="rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[var(--color-figma-accent)]">
+                        Edited
+                      </span>
+                    )}
+                  </div>
+                  {row.description && (
+                    <div className="mt-1 truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+                      {row.description}
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  value={row.collectionName}
+                  onChange={(event) =>
+                    onFieldChange(
+                      row.setName,
+                      "collectionName",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Default TokenManager collection"
+                  disabled={saving}
+                  className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                  aria-label={`Collection for ${row.setName}`}
+                />
+
+                <input
+                  type="text"
+                  value={row.modeName}
+                  onChange={(event) =>
+                    onFieldChange(row.setName, "modeName", event.target.value)
+                  }
+                  placeholder="First mode"
+                  disabled={saving}
+                  className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                  aria-label={`Mode for ${row.setName}`}
+                />
+
+                <div className="flex items-center justify-end gap-1">
+                  <button
+                    onClick={() => onResetRow(row.setName)}
+                    disabled={saving || !row.isDirty}
+                    className="rounded px-1.5 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => {
+                      void onSaveRow(row.setName);
+                    }}
+                    disabled={saving || !row.isDirty}
+                    className="rounded bg-[var(--color-figma-accent)] px-1.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function SetMetadataDialog({
   setName,
   description,
@@ -1573,40 +2064,57 @@ function SetMetadataDialog({
           Edit set info — {setName}
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Description</label>
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Description
+          </label>
           <textarea
             autoFocus
             value={description}
-            onChange={e => onDescriptionChange(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
+            onChange={(e) => onDescriptionChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onClose();
+            }}
             rows={3}
             placeholder="What is this token set for?"
             className="w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Figma collection name</label>
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Figma collection name
+          </label>
           <input
             type="text"
             value={collectionName}
-            onChange={e => onCollectionNameChange(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
+            onChange={(e) => onCollectionNameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onClose();
+            }}
             placeholder="TokenManager"
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           />
-          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">Tokens in this set will sync to this Figma variable collection.</p>
+          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Tokens in this set will sync to this Figma variable collection.
+          </p>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Figma mode name</label>
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Figma mode name
+          </label>
           <input
             type="text"
             value={modeName}
-            onChange={e => onModeNameChange(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
+            onChange={(e) => onModeNameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onClose();
+            }}
             placeholder="Mode 1"
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           />
-          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">When multiple sets share a collection, each set maps to a mode. Leave blank to use the first mode.</p>
+          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            When multiple sets share a collection, each set maps to a mode.
+            Leave blank to use the first mode.
+          </p>
         </div>
         <div className="flex justify-end gap-2">
           <button
@@ -1642,19 +2150,37 @@ function SetDeleteDialog({
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }) {
-  const hasBlockingPreflight = !!preflightError || preflightLoading || (preflight?.blockers.length ?? 0) > 0;
+  const hasBlockingPreflight =
+    !!preflightError ||
+    preflightLoading ||
+    (preflight?.blockers.length ?? 0) > 0;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Delete "{deletingSet}"?</span>
-          <button onClick={onCancel} className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+            Delete "{deletingSet}"?
+          </span>
+          <button
+            onClick={onCancel}
+            className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto p-4">
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review linked themes, resolvers, Figma metadata, and generated-token ownership before the set is removed.
+            Review linked themes, resolvers, Figma metadata, and generated-token
+            ownership before the set is removed.
           </p>
           <StructuralPreflightSummary
             preflight={preflight}
@@ -1705,37 +2231,70 @@ function SetMergeDialog({
   preflightLoading: boolean;
   preflightError: string | null;
   mergeTargetSet: string;
-  mergeConflicts: Array<{ path: string; sourceValue: unknown; targetValue: unknown }>;
-  mergeResolutions: Record<string, 'source' | 'target'>;
+  mergeConflicts: Array<{
+    path: string;
+    sourceValue: unknown;
+    targetValue: unknown;
+  }>;
+  mergeResolutions: Record<string, "source" | "target">;
   mergeChecked: boolean;
   mergeLoading: boolean;
   onTargetChange: (target: string) => void;
-  onSetResolutions: (updater: Record<string, 'source' | 'target'> | ((prev: Record<string, 'source' | 'target'>) => Record<string, 'source' | 'target'>)) => void;
+  onSetResolutions: (
+    updater:
+      | Record<string, "source" | "target">
+      | ((
+          prev: Record<string, "source" | "target">,
+        ) => Record<string, "source" | "target">),
+  ) => void;
   onCheckConflicts: () => void | Promise<void>;
   onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }) {
-  const hasBlockingPreflight = !!preflightError || preflightLoading || (preflight?.blockers.length ?? 0) > 0;
+  const hasBlockingPreflight =
+    !!preflightError ||
+    preflightLoading ||
+    (preflight?.blockers.length ?? 0) > 0;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Merge "{mergingSet}" into…</span>
-          <button onClick={onClose} className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+            Merge "{mergingSet}" into…
+          </span>
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto p-4">
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Target set</label>
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              Target set
+            </label>
             <select
               value={mergeTargetSet}
-              onChange={e => onTargetChange(e.target.value)}
+              onChange={(e) => onTargetChange(e.target.value)}
               className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             >
-              {sets.filter(set => set !== mergingSet).map(set => (
-                <option key={set} value={set}>{set}</option>
-              ))}
+              {sets
+                .filter((set) => set !== mergingSet)
+                .map((set) => (
+                  <option key={set} value={set}>
+                    {set}
+                  </option>
+                ))}
             </select>
           </div>
           <StructuralPreflightSummary
@@ -1745,43 +2304,74 @@ function SetMergeDialog({
           />
           {!mergeChecked && (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Tokens from <span className="font-mono font-medium">{mergingSet}</span> will be added to <span className="font-mono font-medium">{mergeTargetSet}</span>. Conflicts where both sets have the same path but different values will be shown for resolution.
+              Tokens from{" "}
+              <span className="font-mono font-medium">{mergingSet}</span> will
+              be added to{" "}
+              <span className="font-mono font-medium">{mergeTargetSet}</span>.
+              Conflicts where both sets have the same path but different values
+              will be shown for resolution.
             </p>
           )}
           {mergeChecked && mergeConflicts.length === 0 && (
-            <p className="text-[10px] text-green-500">No conflicts — all tokens can be merged cleanly.</p>
+            <p className="text-[10px] text-green-500">
+              No conflicts — all tokens can be merged cleanly.
+            </p>
           )}
           {mergeChecked && mergeConflicts.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Resolve {mergeConflicts.length} conflict{mergeConflicts.length !== 1 ? 's' : ''} before merging.
+                Resolve {mergeConflicts.length} conflict
+                {mergeConflicts.length !== 1 ? "s" : ""} before merging.
               </p>
               <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
-                {mergeConflicts.map(conflict => (
-                  <div key={conflict.path} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                    <div className="break-all font-mono text-[10px] text-[var(--color-figma-text)]">{conflict.path}</div>
+                {mergeConflicts.map((conflict) => (
+                  <div
+                    key={conflict.path}
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2"
+                  >
+                    <div className="break-all font-mono text-[10px] text-[var(--color-figma-text)]">
+                      {conflict.path}
+                    </div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
-                      <label className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === 'source' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <label
+                        className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === "source" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"}`}
+                      >
                         <input
                           type="radio"
                           name={`merge-${conflict.path}`}
-                          checked={mergeResolutions[conflict.path] === 'source'}
-                          onChange={() => onSetResolutions(prev => ({ ...prev, [conflict.path]: 'source' }))}
+                          checked={mergeResolutions[conflict.path] === "source"}
+                          onChange={() =>
+                            onSetResolutions((prev) => ({
+                              ...prev,
+                              [conflict.path]: "source",
+                            }))
+                          }
                           className="sr-only"
                         />
                         <div className="font-medium">Use source</div>
-                        <div className="mt-0.5 break-all opacity-80">{String(conflict.sourceValue)}</div>
+                        <div className="mt-0.5 break-all opacity-80">
+                          {String(conflict.sourceValue)}
+                        </div>
                       </label>
-                      <label className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === 'target' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <label
+                        className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === "target" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"}`}
+                      >
                         <input
                           type="radio"
                           name={`merge-${conflict.path}`}
-                          checked={mergeResolutions[conflict.path] === 'target'}
-                          onChange={() => onSetResolutions(prev => ({ ...prev, [conflict.path]: 'target' }))}
+                          checked={mergeResolutions[conflict.path] === "target"}
+                          onChange={() =>
+                            onSetResolutions((prev) => ({
+                              ...prev,
+                              [conflict.path]: "target",
+                            }))
+                          }
                           className="sr-only"
                         />
                         <div className="font-medium">Keep target</div>
-                        <div className="mt-0.5 break-all opacity-80">{String(conflict.targetValue)}</div>
+                        <div className="mt-0.5 break-all opacity-80">
+                          {String(conflict.targetValue)}
+                        </div>
                       </label>
                     </div>
                   </div>
@@ -1803,7 +2393,7 @@ function SetMergeDialog({
               disabled={mergeLoading || !mergeTargetSet || hasBlockingPreflight}
               className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
             >
-              {mergeLoading ? 'Checking…' : 'Check conflicts'}
+              {mergeLoading ? "Checking…" : "Check conflicts"}
             </button>
           ) : (
             <button
@@ -1811,7 +2401,7 @@ function SetMergeDialog({
               disabled={mergeLoading || hasBlockingPreflight}
               className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
             >
-              {mergeLoading ? 'Merging…' : 'Merge'}
+              {mergeLoading ? "Merging…" : "Merge"}
             </button>
           )}
         </div>
@@ -1845,14 +2435,31 @@ function SetSplitDialog({
   onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }) {
-  const hasBlockingPreflight = !!preflightError || preflightLoading || (preflight?.blockers.length ?? 0) > 0;
+  const hasBlockingPreflight =
+    !!preflightError ||
+    preflightLoading ||
+    (preflight?.blockers.length ?? 0) > 0;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Split "{splittingSet}"</span>
-          <button onClick={onClose} className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+            Split "{splittingSet}"
+          </span>
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto p-4">
@@ -1862,31 +2469,47 @@ function SetSplitDialog({
             error={preflightError}
           />
           {splitPreview.length === 0 ? (
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No top-level groups found in this set to split.</p>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              No top-level groups found in this set to split.
+            </p>
           ) : (
             <>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Creates {splitPreview.length} new set{splitPreview.length !== 1 ? 's' : ''} from top-level groups:
+                Creates {splitPreview.length} new set
+                {splitPreview.length !== 1 ? "s" : ""} from top-level groups:
               </p>
               <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
-                {splitPreview.map(preview => (
-                  <div key={preview.key} className="flex items-center justify-between rounded bg-[var(--color-figma-bg-hover)] px-2 py-1">
-                    <span className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">{preview.newName}</span>
-                    <span className="ml-2 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">{preview.count} token{preview.count !== 1 ? 's' : ''}</span>
+                {splitPreview.map((preview) => (
+                  <div
+                    key={preview.key}
+                    className="flex items-center justify-between rounded bg-[var(--color-figma-bg-hover)] px-2 py-1"
+                  >
+                    <span className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">
+                      {preview.newName}
+                    </span>
+                    <span className="ml-2 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      {preview.count} token{preview.count !== 1 ? "s" : ""}
+                    </span>
                   </div>
                 ))}
               </div>
-              {splitPreview.some(preview => sets.includes(preview.newName)) && (
-                <p className="text-[10px] text-amber-500">Some sets already exist and will be skipped.</p>
+              {splitPreview.some((preview) =>
+                sets.includes(preview.newName),
+              ) && (
+                <p className="text-[10px] text-amber-500">
+                  Some sets already exist and will be skipped.
+                </p>
               )}
               <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
                   checked={splitDeleteOriginal}
-                  onChange={e => onSetDeleteOriginal(e.target.checked)}
+                  onChange={(e) => onSetDeleteOriginal(e.target.checked)}
                   className="h-3 w-3 rounded"
                 />
-                <span className="text-[11px] text-[var(--color-figma-text)]">Delete "{splittingSet}" after split</span>
+                <span className="text-[11px] text-[var(--color-figma-text)]">
+                  Delete "{splittingSet}" after split
+                </span>
               </label>
             </>
           )}
@@ -1900,10 +2523,12 @@ function SetSplitDialog({
           </button>
           <button
             onClick={onConfirm}
-            disabled={splitLoading || splitPreview.length === 0 || hasBlockingPreflight}
+            disabled={
+              splitLoading || splitPreview.length === 0 || hasBlockingPreflight
+            }
             className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
-            {splitLoading ? 'Splitting…' : 'Split'}
+            {splitLoading ? "Splitting…" : "Split"}
           </button>
         </div>
       </div>
@@ -1932,7 +2557,13 @@ function IconButton({
       aria-label={ariaLabel}
       className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-30"
     >
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 10 10"
+        fill="currentColor"
+        aria-hidden="true"
+      >
         {children}
       </svg>
     </button>
@@ -1959,8 +2590,8 @@ function StrokeIconButton({
       aria-label={ariaLabel}
       className={`rounded p-1 transition-colors ${
         danger
-          ? 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-red-500'
-          : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]'
+          ? "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-red-500"
+          : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
       }`}
     >
       <svg

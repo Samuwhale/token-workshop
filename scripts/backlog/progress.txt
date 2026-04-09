@@ -321,3 +321,11 @@
   - Tokens currently splits the same job across multiple library shells: PanelRouter-level empty state, TokenList's own empty-set state, contextual side panels, and preview split. Establish the surface contract before rewiring entry points.
   - Manual creation is fragmented across embedded forms, create-mode editor panels, search suggestions, keyboard shortcuts, onboarding, and token-row generator affordances, so follow-up work should centralize draft ownership before removing any surface.
 ---
+## 2026-04-09 - [Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.]
+- Added batch mapping draft state to `useSetMetadata`, including dirty-row tracking, row-level and bulk save helpers, and sync-safe draft preservation so the set manager can edit collection/mode routing for every set from one surface.
+- Added a dedicated Figma routing manager to the set manager surface with searchable rows, per-set collection/mode inputs, row-level reset/save controls, bulk save/reset actions, and summary chips that frame the section as Sync destination planning.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts` ~L1; `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L524, ~L891, ~L1125, ~L1832
+- **Learnings for future iterations:**
+  - Batch metadata editors should preserve unsaved row drafts when upstream metadata refreshes, or reconnects and successful saves will clobber in-progress edits for unrelated rows.
+  - Collection/mode routing is easier to audit when it lives beside structural set actions, because maintainers can reorder, rename, and retarget Sync destinations from the same surface before running compare/apply.
+---
