@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Validation pipeline for backlog agents.
-# The TypeScript backlog runner is responsible for preparing worktree dependencies.
 # This script runs the shared repo validation gates that every completed item must satisfy.
+# It must bootstrap referenced workspace builds so fresh worktrees validate consistently.
 #
 # Usage: bash scripts/backlog/validate.sh
 # Exit codes: 0 = all gates pass, 1 = failure
@@ -15,6 +15,10 @@ RESET='\033[0m'
 
 fail() { echo -e "${RED}FAIL${RESET} $1"; exit 1; }
 pass() { echo -e "${GREEN}PASS${RESET} $1"; }
+
+# Bootstrap referenced workspace output so downstream package resolution works in fresh worktrees.
+(cd packages/core && pnpm run build) || fail "core bootstrap build"
+pass "core bootstrap build"
 
 # Gate 1: Unit/integration tests
 echo -e "${DIM}── Gate 1: Tests ──${RESET}"
