@@ -423,7 +423,7 @@ export interface SettingsPanelProps {
   updateServerUrlAndConnect: (url: string) => Promise<boolean>;
   // Guided setup
   onRestartGuidedSetup: () => void;
-  /** Called after "Clear all data" completes — caller should navigate + refresh */
+  /** Called after deleting workspace data so the caller can navigate + refresh. */
   onClearAllComplete?: () => void;
   // Close
   onClose: () => void;
@@ -655,8 +655,6 @@ export function SettingsPanel({
     data: Record<string, string>;
     diff: ImportDiffEntry[];
   } | null>(null);
-  // Two-step confirmation: first click reveals warning, second click applies
-  const [confirmingReload, setConfirmingReload] = useState(false);
 
   const handleExportSettings = useCallback(() => {
     // Keys that represent user-configurable preferences (not navigation or ephemeral state)
@@ -724,7 +722,7 @@ export function SettingsPanel({
     a.click();
     URL.revokeObjectURL(url);
     dispatchToast(
-      "Settings exported — tokenmanager-settings.json downloaded",
+      "Preferences backup exported — tokenmanager-settings.json downloaded",
       "success",
     );
   }, []);
@@ -757,7 +755,7 @@ export function SettingsPanel({
           data[key] = value;
         }
         if (Object.keys(data).length === 0)
-          throw new Error("No settings found in file");
+          throw new Error("No preferences found in backup file");
 
         // Build diff: only entries that differ from current localStorage
         const diff: ImportDiffEntry[] = [];
@@ -815,14 +813,16 @@ export function SettingsPanel({
 
         if (diff.length === 0) {
           setImportError(
-            "No changes — the imported settings match your current configuration.",
+            "No changes — this backup already matches your current preferences.",
           );
           return;
         }
         setPendingImport({ data, diff });
       } catch (err) {
         setImportError(
-          err instanceof Error ? err.message : "Failed to import settings",
+          err instanceof Error
+            ? err.message
+            : "Failed to restore preferences backup",
         );
       }
     };
@@ -835,12 +835,6 @@ export function SettingsPanel({
 
   const handleApplyImport = useCallback(() => {
     if (!pendingImport) return;
-    if (!confirmingReload) {
-      // First click: show the warning and ask user to confirm
-      setConfirmingReload(true);
-      return;
-    }
-    // Second click: confirmed — apply and reload
     let applied = 0;
     for (const [key, value] of Object.entries(pendingImport.data)) {
       if (!isAllowedImportKey(key)) continue; // defense-in-depth: skip any non-whitelisted keys
@@ -853,19 +847,18 @@ export function SettingsPanel({
     }
     if (applied === 0) {
       setImportError("Failed to write settings");
-      setConfirmingReload(false);
       return;
     }
     setPendingImport(null);
     setImportSuccess(true);
     dispatchToast(
-      `Settings imported — ${applied} setting${applied !== 1 ? "s" : ""} applied`,
+      `Preferences restored — ${applied} setting${applied !== 1 ? "s" : ""} applied`,
       "success",
     );
     setTimeout(() => {
       window.location.reload();
     }, 800);
-  }, [pendingImport, confirmingReload]);
+  }, [pendingImport]);
 
   // ---- Export defaults (local state from localStorage) ----
   const [exportPlatforms, setExportPlatforms] = useState<Set<string>>(() => {
@@ -1562,9 +1555,14 @@ export function SettingsPanel({
                   tabBadge={searchQuery ? "Advanced" : undefined}
                 >
                   <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    Save or restore a preferences-only backup. This does not
+                    import tokens, themes, sets, or any other token-system
+                    data from the main Import surface.
+                  </p>
+                  <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
                     Use this when moving to another machine, recovering after
                     browser storage is cleared, or snapshotting preferences
-                    before making broader workflow changes.
+                    before broader workflow changes.
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -1584,7 +1582,7 @@ export function SettingsPanel({
                       >
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                       </svg>
-                      Export settings
+                      Export preferences backup
                     </button>
                     <button
                       onClick={() => {
@@ -1625,7 +1623,9 @@ export function SettingsPanel({
                           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                         </svg>
                       )}
-                      {importLoading ? "Parsing\u2026" : "Import settings"}
+                      {importLoading
+                        ? "Parsing backup\u2026"
+                        : "Restore preferences backup"}
                     </button>
                     <input
                       ref={importFileRef}
@@ -1654,7 +1654,7 @@ export function SettingsPanel({
                       >
                         <path d="M20 6L9 17l-5-5" />
                       </svg>
-                      Settings imported, reloading\u2026
+                      Preferences restored, reloading\u2026
                     </div>
                   )}
                   {importError && (
@@ -1666,13 +1666,13 @@ export function SettingsPanel({
                     <div className="overflow-hidden rounded border border-[var(--color-figma-border)]">
                       <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
                         <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                          Preview changes ({pendingImport.diff.length} setting
+                          Preview preference changes ({pendingImport.diff.length}{" "}
+                          setting
                           {pendingImport.diff.length !== 1 ? "s" : ""})
                         </span>
                         <button
                           onClick={() => {
                             setPendingImport(null);
-                            setConfirmingReload(false);
                           }}
                           className="text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
                           aria-label="Dismiss preview"
@@ -1714,51 +1714,44 @@ export function SettingsPanel({
                           </div>
                         ))}
                       </div>
-                      {confirmingReload && (
-                        <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[#FFF3CD]/30 px-2 py-2 dark:bg-amber-900/20">
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mt-px shrink-0 text-amber-500"
-                            aria-hidden="true"
-                          >
-                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                            <line x1="12" y1="9" x2="12" y2="13" />
-                            <line x1="12" y1="17" x2="12.01" y2="17" />
-                          </svg>
-                          <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                            The plugin reloads immediately after import. Unsaved
-                            token edits, theme changes, and expanded panel state
-                            will be lost.
-                          </p>
-                        </div>
-                      )}
+                      <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[#FFF3CD]/30 px-2 py-2 dark:bg-amber-900/20">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mt-px shrink-0 text-amber-500"
+                          aria-hidden="true"
+                        >
+                          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                          <line x1="12" y1="9" x2="12" y2="13" />
+                          <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                          Restoring this backup reloads the plugin immediately.
+                          Unsaved token or theme edits, selection state, and
+                          expanded panel state will be lost when the reload
+                          happens.
+                        </p>
+                      </div>
                       <div className="flex gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
                         <button
                           onClick={() => {
-                            if (confirmingReload) {
-                              setConfirmingReload(false);
-                            } else {
-                              setPendingImport(null);
-                            }
+                            setPendingImport(null);
                           }}
                           className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
                         >
-                          {confirmingReload ? "Back" : "Cancel"}
+                          Cancel
                         </button>
                         <button
                           onClick={handleApplyImport}
-                          className={`flex-1 rounded px-3 py-1.5 text-[11px] font-medium text-white transition-colors ${confirmingReload ? "bg-amber-500 hover:bg-amber-600" : "bg-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent-hover)]"}`}
+                          className="flex-1 rounded bg-amber-500 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-amber-600"
                         >
-                          {confirmingReload
-                            ? "Confirm & reload"
-                            : "Apply & reload"}
+                          Restore preferences & reload
                         </button>
                       </div>
                     </div>
@@ -1821,7 +1814,7 @@ export function SettingsPanel({
             showSection("danger") && (
               <GroupIntro
                 title="Workspace reset"
-                description="This section is only for a full local wipe. Use it when you intentionally want to delete the current TokenManager workspace and start from an empty state."
+                description="This section is only for a full workspace wipe. It deletes token data in the plugin and on the local server, but it does not automatically reset onboarding or other saved preference state."
                 note="Irreversible"
                 tone="danger"
               />
@@ -1837,9 +1830,11 @@ export function SettingsPanel({
               {!showClearConfirm ? (
                 <>
                   <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                    This permanently deletes all tokens, themes, and sets from
-                    your local TokenManager workspace. It does not just reset
-                    preferences, and it cannot be undone.
+                    This permanently deletes workspace data: tokens, themes,
+                    sets, plus generator, resolver, and undo-history records
+                    stored on the local server. It does not reset your saved
+                    preferences or automatically re-open onboarding / the start
+                    flow.
                   </p>
                   <button
                     onClick={() => {
@@ -1848,7 +1843,7 @@ export function SettingsPanel({
                     }}
                     className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
                   >
-                    Clear all data\u2026
+                    Delete workspace data\u2026
                   </button>
                 </>
               ) : (
@@ -1858,7 +1853,9 @@ export function SettingsPanel({
                     <span className="font-mono font-bold text-[var(--color-figma-error)]">
                       DELETE
                     </span>{" "}
-                    to confirm permanent removal of the entire local workspace.
+                    to confirm permanent removal of tokens, themes, sets, and
+                    local server generator / resolver / history data. Your
+                    onboarding and start-flow completion state will stay as-is.
                   </p>
                   <input
                     type="text"
@@ -1884,7 +1881,7 @@ export function SettingsPanel({
                       disabled={clearConfirmText !== "DELETE" || clearing}
                       className="flex-1 rounded bg-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                     >
-                      {clearing ? "Clearing\u2026" : "Clear all data"}
+                      {clearing ? "Clearing\u2026" : "Delete workspace data"}
                     </button>
                   </div>
                 </>
