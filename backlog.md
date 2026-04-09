@@ -57,7 +57,7 @@
 - [ ] Decode multi-set snapshot keys in operation diff responses
 - [x] Research ThemeManager set-role assignment density and draft implementation slices for a summary-first role editor
 - [x] Merge Tokens empty-state starts into one canonical Start here flow
-- [ ] Unify token-based and template-based generator starts into one generator draft flow
+- [x] Unify token-based and template-based generator starts into one generator draft flow
 - [ ] Reduce TokenListModals to transient confirmations and re-home long-lived review flows
 - [ ] Move Tokens narrow contextual drawers behind the shared library surface contract
 - [ ] Research import intake surfaces for drag-and-drop discoverability, validation feedback, and conflict handoff

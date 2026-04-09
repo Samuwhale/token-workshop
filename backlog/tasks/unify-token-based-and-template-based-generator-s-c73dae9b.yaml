@@ -15,11 +15,12 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: Execution order 4/5. Use the existing quick-generator draft preservation pattern, but apply it consistently across token-row and Start here template entry points."
-state: ready
+  - "Completed: Shared generator launch state now flows through one draft model, and foundation templates hand off directly into the canonical generator editor with consistent close/save behavior."
+state: done
 acceptance_criteria:
   - Token-row quick generation, advanced generator editing, and foundation-template starts all share one draft model and preserve selected type, target group, target set, and config when escalating.
   - Quick generator affordances stay transient launchers only; long-lived generator editing happens in the canonical generator editor surface defined by the Tokens workspace contract.
   - Closing or saving any generator start path returns users to a predictable Tokens workspace context instead of leaving separate quick-start and advanced flows with different handoff behavior.
 source: task-followup
 created_at: 2026-04-09T07:47:03.661Z
-updated_at: 2026-04-09T07:47:03.661Z
+updated_at: 2026-04-09T14:11:43.373Z

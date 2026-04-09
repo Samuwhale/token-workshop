@@ -49,6 +49,51 @@ export interface GeneratorDialogInitialDraft {
   pendingOverrides?: Record<string, { value: unknown; locked: boolean }>;
 }
 
+function cloneGeneratorDraftValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+export function createGeneratorDraftFromTemplate(
+  template: GeneratorTemplate,
+  activeSet: string,
+): GeneratorDialogInitialDraft {
+  return {
+    selectedType: template.generatorType,
+    name: template.label,
+    nameIsAuto: false,
+    targetSet: activeSet,
+    targetGroup: template.defaultPrefix,
+    configs: {
+      [template.generatorType]: cloneGeneratorDraftValue(template.config),
+    },
+  };
+}
+
+function mergeGeneratorDrafts(
+  baseDraft: GeneratorDialogInitialDraft | undefined,
+  overrideDraft: GeneratorDialogInitialDraft | undefined,
+): GeneratorDialogInitialDraft | undefined {
+  if (!baseDraft && !overrideDraft) return undefined;
+
+  return {
+    ...baseDraft,
+    ...overrideDraft,
+    configs: {
+      ...(baseDraft?.configs
+        ? cloneGeneratorDraftValue(baseDraft.configs)
+        : {}),
+      ...(overrideDraft?.configs
+        ? cloneGeneratorDraftValue(overrideDraft.configs)
+        : {}),
+    },
+    pendingOverrides: overrideDraft?.pendingOverrides
+      ? cloneGeneratorDraftValue(overrideDraft.pendingOverrides)
+      : (baseDraft?.pendingOverrides
+          ? cloneGeneratorDraftValue(baseDraft.pendingOverrides)
+          : undefined),
+  };
+}
+
 interface UseGeneratorDialogReturn {
   // Derived
   isEditing: boolean;
@@ -137,6 +182,10 @@ export function useGeneratorDialog({
   pushUndo,
 }: UseGeneratorDialogParams): UseGeneratorDialogReturn {
   const isEditing = Boolean(existingGenerator);
+  const initialTemplateDraft = template
+    ? createGeneratorDraftFromTemplate(template, activeSet)
+    : undefined;
+  const resolvedInitialDraft = mergeGeneratorDrafts(initialTemplateDraft, initialDraft);
 
   // Editable source token path — initialized from existingGenerator.sourceToken when editing,
   // or from the sourceTokenPath prop (clicked token) when creating.
@@ -154,38 +203,33 @@ export function useGeneratorDialog({
 
   const initialType: GeneratorType =
     existingGenerator?.type ??
-    initialDraft?.selectedType ??
-    template?.generatorType ??
+    resolvedInitialDraft?.selectedType ??
     recommendedType ??
     'colorRamp';
-
-  const cloneConfig = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
   const [selectedType, setSelectedType] = useState<GeneratorType>(initialType);
   const [name, setName] = useState(
     existingGenerator?.name ??
-    initialDraft?.name ??
-    (template ? template.label : autoName(sourceTokenPath, initialType))
+    resolvedInitialDraft?.name ??
+    autoName(sourceTokenPath, initialType)
   );
-  const [targetSet, setTargetSet] = useState(existingGenerator?.targetSet ?? initialDraft?.targetSet ?? activeSet);
+  const [targetSet, setTargetSet] = useState(existingGenerator?.targetSet ?? resolvedInitialDraft?.targetSet ?? activeSet);
   const [targetGroup, setTargetGroup] = useState(
     existingGenerator?.targetGroup ??
-    initialDraft?.targetGroup ??
-    (template ? template.defaultPrefix : (sourceTokenPath ? suggestTargetGroup(sourceTokenPath, sourceTokenName) : ''))
+    resolvedInitialDraft?.targetGroup ??
+    (sourceTokenPath ? suggestTargetGroup(sourceTokenPath, sourceTokenName) : '')
   );
   const [inlineValue, setInlineValueRaw] = useState<unknown>(
-    existingGenerator?.inlineValue ?? initialDraft?.inlineValue ?? undefined
+    existingGenerator?.inlineValue ?? resolvedInitialDraft?.inlineValue ?? undefined
   );
 
   const [configs, setConfigs] = useState<Partial<Record<GeneratorType, GeneratorConfig>>>(() => {
     const base: Partial<Record<GeneratorType, GeneratorConfig>> = {};
     for (const t of ALL_TYPES) {
       if (existingGenerator?.type === t) {
-        base[t] = cloneConfig(existingGenerator.config);
-      } else if (initialDraft?.configs?.[t]) {
-        base[t] = cloneConfig(initialDraft.configs[t]!);
-      } else if (template?.generatorType === t) {
-        base[t] = cloneConfig(template.config);
+        base[t] = cloneGeneratorDraftValue(existingGenerator.config);
+      } else if (resolvedInitialDraft?.configs?.[t]) {
+        base[t] = cloneGeneratorDraftValue(resolvedInitialDraft.configs[t]!);
       } else {
         base[t] = defaultConfigForType(t);
       }
@@ -194,7 +238,7 @@ export function useGeneratorDialog({
   });
 
   const [pendingOverrides, setPendingOverrides] = useState<Record<string, { value: unknown; locked: boolean }>>(
-    existingGenerator?.overrides ?? initialDraft?.pendingOverrides ?? {}
+    existingGenerator?.overrides ?? resolvedInitialDraft?.pendingOverrides ?? {}
   );
 
   const [inputTable, setInputTable] = useState<InputTable | undefined>(
@@ -205,7 +249,7 @@ export function useGeneratorDialog({
   );
 
   const nameWasAutoRef = useRef(
-    initialDraft?.nameIsAuto ?? (!existingGenerator && !template && !initialDraft?.name)
+    resolvedInitialDraft?.nameIsAuto ?? (!existingGenerator && !resolvedInitialDraft?.name)
   );
   const isDirtyRef = useRef(false);
   const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);

@@ -248,7 +248,7 @@ export function WelcomePrompt({
       />
       <ActionCard
         title={templateLibraryCopy.title}
-        description="Generate scales like color, spacing, radius, typography, and opacity into your active token set."
+        description="Choose a foundation template, then finish it in the shared generator editor for your active token set."
         disabled={!connected}
         onClick={() => setBranch('template-library')}
         icon={(
@@ -379,7 +379,7 @@ export function WelcomePrompt({
                 allSets={allSets}
                 embedded
                 title="Foundation templates"
-                description="Generate a first layer of system foundations into the active set, then refine the outputs or keep the generator live."
+                description="Choose a first layer of system foundations for the active set, then refine it in the shared generator editor or keep the generator live."
                 onBack={() => setBranch('template')}
                 onClose={onClose}
                 onConfirm={onTemplateCreated}

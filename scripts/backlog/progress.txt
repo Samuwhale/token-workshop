@@ -554,3 +554,12 @@
   - If multiple Tokens empty states need to start onboarding, share branch metadata from the modal itself and deep-link into those branches instead of restating onboarding explanations inline.
   - Manual-start affordances should route into the same token-create launcher used elsewhere so onboarding stays a navigation layer, not a second creation implementation.
 ---
+## 2026-04-09 - [Unify token-based and template-based generator starts into one generator draft flow]
+- Normalized generator startup through a shared draft model in `useGeneratorDialog`, including a reusable template-to-draft helper so template launches and quick-generator escalation seed the same selected type, target set, target group, and config state.
+- Converted foundation-template starts into transient launchers only: selecting a template now snapshots a generator draft and opens the canonical generator editor directly, while the Start here copy now explicitly describes that shared handoff.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts packages/figma-plugin/src/ui/components/QuickStartDialog.tsx packages/figma-plugin/src/ui/components/WelcomePrompt.tsx packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` (passes; Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for `eslint.config.js`).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L41, ~L170; `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx` ~L297; `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx` ~L249; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - If a quick-launch template only exists to seed the full editor, store its handoff as a `GeneratorDialogInitialDraft` snapshot instead of keeping a separate long-lived template mode alive.
+  - `useGeneratorDialog` is the right place to normalize template defaults into draft state, because every launcher then inherits the same target/config merge behavior without duplicating seed logic.
+---

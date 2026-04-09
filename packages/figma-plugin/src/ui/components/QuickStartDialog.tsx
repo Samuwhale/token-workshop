@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { GeneratorTemplate } from '../hooks/useGenerators';
+import { createGeneratorDraftFromTemplate, type GeneratorDialogInitialDraft } from '../hooks/useGeneratorDialog';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 
 // ---------------------------------------------------------------------------
@@ -302,20 +303,23 @@ export function QuickStartDialog({
   onInterceptSemanticMapping,
   embedded = false,
   title = 'Foundation templates',
-  description = 'Choose a starting structure for your token system. Each option creates a live generator in the active set.',
+  description = 'Choose a starting structure for your token system. Each option opens the shared generator editor for a live generator in the active set.',
   onBack,
 }: QuickStartDialogProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState<GeneratorTemplate | null>(null);
+  const [generatorStart, setGeneratorStart] = useState<{
+    draft: GeneratorDialogInitialDraft;
+    template: GeneratorTemplate;
+  } | null>(null);
 
-  if (selectedTemplate) {
-    const stepNames = getTemplateStepNames(selectedTemplate);
+  if (generatorStart) {
+    const stepNames = getTemplateStepNames(generatorStart.template);
     return (
       <TokenGeneratorDialog
         serverUrl={serverUrl}
         activeSet={activeSet}
         allSets={allSets}
-        template={selectedTemplate}
-        onBack={() => setSelectedTemplate(null)}
+        initialDraft={generatorStart.draft}
+        template={generatorStart.template}
         onClose={onClose}
         onInterceptSemanticMapping={onInterceptSemanticMapping}
         onSaved={(info) => {
@@ -349,7 +353,14 @@ export function QuickStartDialog({
           )}
         </div>
       </div>
-      <TemplateCatalog onSelect={setSelectedTemplate} />
+      <TemplateCatalog
+        onSelect={(template) => {
+          setGeneratorStart({
+            template,
+            draft: createGeneratorDraftFromTemplate(template, activeSet),
+          });
+        }}
+      />
       {embedded && onBack && (
         <div className="px-4 py-3 border-t border-[var(--color-figma-border)]">
           <button
