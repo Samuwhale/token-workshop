@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { handleRouteError } from '../errors.js';
+import { stableStringify } from '../services/stable-stringify.js';
 
 export const operationRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
@@ -99,8 +100,8 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
             after: { $value: restoredToken.$value, $type: restoredToken.$type },
           });
         } else if (currentToken && restoredToken) {
-          const currentVal = JSON.stringify(currentToken.$value);
-          const restoredVal = JSON.stringify(restoredToken.$value);
+          const currentVal = stableStringify(currentToken.$value);
+          const restoredVal = stableStringify(restoredToken.$value);
           if (currentVal !== restoredVal) {
             diffs.push({
               path: p, set: setName, status: 'modified',

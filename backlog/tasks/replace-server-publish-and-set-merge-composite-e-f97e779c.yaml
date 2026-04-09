@@ -11,12 +11,13 @@ touch_paths:
 capabilities: []
 validation_profile: repo
 status_notes:
-  - "Recovered from `consolidate-composite-token-equality-on-stablest-985f35a1` after splitting the token-editor hook work into its own dedicated task."
-state: ready
+  - Recovered from `consolidate-composite-token-equality-on-stablest-985f35a1` after splitting the token-editor hook work into its own dedicated task.
+  - "Completed: Replaced scoped diff/equality checks with stableStringify, preserved JSON.stringify for request bodies/display, ran focused eslint, and logged progress."
+state: done
 acceptance_criteria:
   - Replace remaining composite-value equality checks in `packages/server/src/routes/operations.ts`, `packages/server/src/routes/tokens.ts`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, and `packages/figma-plugin/src/ui/components/PublishPanel.tsx` with `stableStringify`-backed comparisons where equality semantics matter.
   - Preserve existing request-body serialization uses of `JSON.stringify`; only equality or diff logic should move to `stableStringify`.
   - The server and publish/set-merge surfaces no longer report false diffs or overwrite prompts when object key order changes.
 source: manual
 created_at: 2026-04-09T08:57:42.000Z
-updated_at: 2026-04-09T08:57:42.000Z
+updated_at: 2026-04-09T13:59:31.749Z

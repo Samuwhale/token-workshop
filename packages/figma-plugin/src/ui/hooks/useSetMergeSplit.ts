@@ -3,7 +3,7 @@ import { flattenTokenGroup, type DTCGGroup, type DTCGToken } from '@tokenmanager
 import type { UndoSlot } from './useUndo';
 import { apiFetch } from '../shared/apiFetch';
 import type { SetStructuralPreflight } from '../shared/setStructuralPreflight';
-import { tokenPathToUrlSegment } from '../shared/utils';
+import { stableStringify, tokenPathToUrlSegment } from '../shared/utils';
 
 interface UseSetMergeSplitParams {
   serverUrl: string;
@@ -32,8 +32,8 @@ function areMergeConflictsEqual(
   if (left.length !== right.length) return false;
   return left.every((conflict, index) => (
     conflict.path === right[index]?.path
-    && JSON.stringify(conflict.sourceValue) === JSON.stringify(right[index]?.sourceValue)
-    && JSON.stringify(conflict.targetValue) === JSON.stringify(right[index]?.targetValue)
+    && stableStringify(conflict.sourceValue) === stableStringify(right[index]?.sourceValue)
+    && stableStringify(conflict.targetValue) === stableStringify(right[index]?.targetValue)
   ));
 }
 

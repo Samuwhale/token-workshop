@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { TOKEN_TYPE_VALUES, TokenValidator, isReference, parseReference, type Token, type TokenGroup } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
 import { snapshotPaths, snapshotSet, snapshotGroup } from '../services/operation-log.js';
+import { stableStringify } from '../services/stable-stringify.js';
 
 function validateTokenBody(body: unknown): body is Partial<Token> {
   if (typeof body !== 'object' || body === null) return false;
@@ -126,7 +127,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: `"path" must not exceed ${PATH_MAX_LEN} characters` });
       }
       const defs = fastify.tokenStore.getTokenDefinitions(tokenPath.trim());
-      const baseValue = defs.length > 0 ? JSON.stringify(defs[0].token.$value) : null;
+      const baseValue = defs.length > 0 ? stableStringify(defs[0].token.$value) : null;
       return {
         path: tokenPath.trim(),
         definitions: defs.map(d => ({
@@ -135,7 +136,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           $value: d.token.$value,
           $description: d.token.$description,
           isAlias: isReference(d.token.$value),
-          isDifferentFromFirst: baseValue !== null && JSON.stringify(d.token.$value) !== baseValue,
+          isDifferentFromFirst: baseValue !== null && stableStringify(d.token.$value) !== baseValue,
         })),
       };
     } catch (err) {

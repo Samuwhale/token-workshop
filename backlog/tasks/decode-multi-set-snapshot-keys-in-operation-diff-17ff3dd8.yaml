@@ -11,9 +11,10 @@ status_notes:
   - "Context: Multi-set folder operations now store collision-safe snapshot keys as setName::tokenPath in the operation log. The diff route still reads snapshot record keys directly, so folder rollback previews will surface the composite key unless it is decoded there."
   - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
   - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
+  - "Deferred after remediation: validation failed: src/services/token-store.ts(800,54): error TS2304: Cannot find name 'clearTimeout'. | src/services/token-store.ts(848,11): error TS2584: Cannot find name 'console'. Do you need to change your target library? Try changing the 'lib' compiler option to include 'dom'. | src/services/token-store.ts(1080,51): error TS2304: Cannot find name 'structuredClone'. | src/services/token-store.ts(1484,52): error TS2304: Cannot find name 'structuredClone'. | src/services/token-store.ts(1497,73): error TS2304: Cannot find name 'structuredClone'. | src/services/token-store.ts(1543,50): error TS2304: Cannot find name 'structuredClone'. | src/services/token-store.ts(1967,36): error TS2304: Cannot find name 'structuredClone'. | src/services/token-store.ts(2026,7): error TS2304: Cannot find name 'clearTimeout'. until 2026-04-09T14:12:11.384Z"
 state: ready
 acceptance_criteria:
   - Rollback diff responses for folder operations display user-facing token paths and set names instead of raw composite snapshot keys.
 source: task-followup
 created_at: 2026-04-08T23:32:14.921Z
-updated_at: 2026-04-09T08:57:42.000Z
+updated_at: 2026-04-09T13:57:11.397Z

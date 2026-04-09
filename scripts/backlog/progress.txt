@@ -497,3 +497,19 @@
   - Preview overrides that depend on server state should be modeled as derived rows, not as UI-only field overlays, so validation and confirm logic consume the same recomputed data.
   - When a preview re-fetches destination data asynchronously, keep confirm disabled until the refreshed rows are ready; otherwise merge defaults and diff counts can lag behind the visible inputs.
 ---
+## 2026-04-09 - [Replace token-editor composite equality checks with stableStringify]
+- Replaced token-editor dirty-state comparisons for draft values, scopes, color modifiers, and mode values with `stableStringify`, including the live editor `isDirty` check and the saved-draft-vs-server snapshot comparison.
+- Repair note: unstaged the previously deleted import-hook files so this task no longer inherited unrelated staged changes from the prior cleanup run.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts` ~L5, ~L120; `packages/figma-plugin/src/ui/hooks/useTokenEditorFields.ts` ~L5, ~L98; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Token editor dirty checks should use stable serialization for composite values; otherwise harmless object-key reordering in persisted drafts produces false dirty states.
+  - In repair mode, clear unrelated staged changes first so scoped tasks can proceed without carrying forward a previous agent's partial finalize state.
+---
+## 2026-04-09 - [Replace server, publish, and set-merge composite equality checks with stableStringify]
+- Replaced rollback diffing, token-definition comparison, set-merge conflict equality, and publish style conflict equality with `stableStringify` so object key order no longer produces false changes.
+- Kept request payload serialization on `JSON.stringify`; only equality and diff logic moved to stable serialization.
+- Files changed: `packages/server/src/routes/operations.ts` ~L3, ~L103; `packages/server/src/routes/tokens.ts` ~L5, ~L130; `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L6, ~L28; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L3, ~L173; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Equality checks on token payloads and publish snapshots should use stable serialization even when the displayed values still use plain `JSON.stringify` for summaries.
+  - Preserve `JSON.stringify` only where wire-format serialization or user-facing display strings are intended; diff logic should not depend on object insertion order.
+---

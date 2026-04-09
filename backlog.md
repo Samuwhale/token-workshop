@@ -63,7 +63,7 @@
 - [ ] Research import intake surfaces for drag-and-drop discoverability, validation feedback, and conflict handoff
 - [ ] Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets
 - [ ] Research theme gap remediation flow across authoring, coverage review, and override creation
-- [ ] Replace server, publish, and set-merge composite equality checks with stableStringify
+- [x] Replace server, publish, and set-merge composite equality checks with stableStringify
 - [ ] Thread real lifecycle metadata into the unused-token cleanup queue
 - [ ] Make multi-set folder operations fully rollbackable in the operation log
 - [ ] Add regression coverage for uncapped operation history and rename propagation persistence

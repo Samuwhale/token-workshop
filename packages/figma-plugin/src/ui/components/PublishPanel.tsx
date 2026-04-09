@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { dispatchToast } from '../shared/toastBus';
-import { describeError } from '../shared/utils';
+import { describeError, stableStringify } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
@@ -170,7 +170,7 @@ const STYLE_SYNC_SPEC: SyncBuildersSpec = {
     if (!STYLE_TYPES.has(type)) return null;
     return { raw: t.$value, type };
   },
-  isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  isEqual: (a, b) => stableStringify(a) === stableStringify(b),
   displayValue: summarizeStyleValue,
 };
 
