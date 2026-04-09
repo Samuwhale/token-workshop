@@ -451,3 +451,11 @@
   - When a route validates only a fixed registry of config keys, model that registry as a typed literal and use a type guard before indexing typed config objects; it keeps runtime validation and TypeScript in sync.
   - Repair-mode build failures on guided config work can often be isolated to route typing even when the visible UI change is much larger; fix the narrow compiler regression first before reworking the product surface.
 ---
+## 2026-04-09 - [Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.]
+- Added batched server folder routes that treat folder prefixes as first-class units, including prefix-safe rename and merge flows, top-level folder reorder, and guarded folder delete checks against generator targets.
+- Reworked the set manager to render folder rows with inline rename, reorder, merge, and delete controls, while keeping child set rows available underneath each folder block for per-set work.
+- Files changed: `packages/server/src/routes/sets.ts` ~L89, ~L587, ~L658, ~L696, ~L772; `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L21, ~L549, ~L1430, ~L1601, ~L1748, ~L2267; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Folder-level rename and merge operations are safest when the route expands them into ordered per-set renames and validates target collisions before any file move begins.
+  - Focused `eslint` runs are clean for the touched files here; targeted package `tsc` checks are still dominated by the known `packages/core` bootstrap drift and unrelated existing type errors outside this task.
+---

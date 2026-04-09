@@ -3,7 +3,7 @@ import type { RefObject, ReactNode } from "react";
 import type { ThemeDimension, ThemeSetStatus } from "@tokenmanager/core";
 import { SET_NAME_RE } from "../shared/utils";
 import { fuzzyScore } from "../shared/fuzzyMatch";
-import { apiFetch, createFetchSignal } from "../shared/apiFetch";
+import { apiFetch, createFetchSignal, isNetworkError } from "../shared/apiFetch";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useTokenSetsContext } from "../contexts/TokenDataContext";
 import { useSetMetadata } from "../hooks/useSetMetadata";
@@ -20,6 +20,40 @@ interface FolderGroup {
 }
 
 type GroupItem = string | FolderGroup;
+
+interface ManageFolderGroup extends FolderGroup {
+  totalSetCount: number;
+}
+
+type ManageItem = string | ManageFolderGroup;
+
+interface FolderRenameResponse {
+  ok: true;
+  folder: string;
+  newFolder: string;
+  renamedSets: Array<{ from: string; to: string }>;
+  sets: string[];
+}
+
+interface FolderMergeResponse {
+  ok: true;
+  sourceFolder: string;
+  targetFolder: string;
+  movedSets: Array<{ from: string; to: string }>;
+  sets: string[];
+}
+
+interface FolderDeleteResponse {
+  ok: true;
+  folder: string;
+  deletedSets: string[];
+  sets: string[];
+}
+
+interface FolderReorderResponse {
+  ok: true;
+  sets: string[];
+}
 
 interface SetThemeLabel {
   option: string;
@@ -510,6 +544,49 @@ function buildFolderGroups(sets: string[]): GroupItem[] {
     result.push({ folder, sets: folderMap.get(folder)! });
   }
   return result;
+}
+
+function buildManageItems(sets: string[], filtered: string[]): ManageItem[] {
+  const filteredLookup = new Set(filtered);
+  return buildFolderGroups(sets).reduce<ManageItem[]>((result, item) => {
+    if (typeof item === "string") {
+      if (filteredLookup.has(item)) {
+        result.push(item);
+      }
+      return result;
+    }
+    const visibleSets = item.sets.filter((set) => filteredLookup.has(set));
+    if (visibleSets.length > 0) {
+      result.push({
+        folder: item.folder,
+        sets: visibleSets,
+        totalSetCount: item.sets.length,
+      });
+    }
+    return result;
+  }, []);
+}
+
+function folderItemKey(folder: string): string {
+  return `${folder}/`;
+}
+
+function isSetInFolder(setName: string, folder: string): boolean {
+  return setName.startsWith(`${folder}/`);
+}
+
+function replaceFolderPrefix(
+  setName: string,
+  fromFolder: string,
+  toFolder: string,
+): string {
+  return `${toFolder}${setName.slice(fromFolder.length)}`;
+}
+
+function buildTopLevelItemOrder(sets: string[]): string[] {
+  return buildFolderGroups(sets).map((item) =>
+    typeof item === "string" ? item : folderItemKey(item.folder),
+  );
 }
 
 function buildSetThemeLabels(
@@ -1353,6 +1430,14 @@ function ManageView({
   onRenameConfirm,
   onRenameCancel,
 }: ManageViewProps) {
+  const { connected, serverUrl, getDisconnectSignal, markDisconnected } =
+    useConnectionContext();
+  const {
+    setSets,
+    setActiveSet,
+    renameSetInState,
+    removeSetFromState,
+  } = useTokenSetsContext();
   const [dragSetName, setDragSetName] = useState<string | null>(null);
   const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
   const [selectedSets, setSelectedSets] = useState<Set<string>>(new Set());
@@ -1361,23 +1446,68 @@ function ManageView({
   const [bulkFolderError, setBulkFolderError] = useState("");
   const [bulkPending, setBulkPending] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
+  const [folderRenameValue, setFolderRenameValue] = useState("");
+  const [folderRenameError, setFolderRenameError] = useState("");
+  const [mergingFolder, setMergingFolder] = useState<string | null>(null);
+  const [folderMergeTarget, setFolderMergeTarget] = useState("");
+  const [folderMergeError, setFolderMergeError] = useState("");
+  const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
+  const [folderDeleteError, setFolderDeleteError] = useState("");
+  const [folderActionPending, setFolderActionPending] = useState(false);
 
   const bulkFolderInputRef = useRef<HTMLInputElement>(null);
+  const folderRenameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSelectedSets(new Set());
     setBulkFolderMode(false);
     setDeleteConfirming(false);
+    setRenamingFolder(null);
+    setFolderRenameValue("");
+    setFolderRenameError("");
+    setMergingFolder(null);
+    setFolderMergeTarget("");
+    setFolderMergeError("");
+    setDeletingFolder(null);
+    setFolderDeleteError("");
   }, [query]);
 
   useEffect(() => {
     if (bulkFolderMode) bulkFolderInputRef.current?.focus();
   }, [bulkFolderMode]);
 
+  useEffect(() => {
+    if (renamingFolder) folderRenameInputRef.current?.focus();
+  }, [renamingFolder]);
+
+  const folderNames = useMemo(
+    () =>
+      buildFolderGroups(sets)
+        .filter((item): item is FolderGroup => typeof item !== "string")
+        .map((item) => item.folder),
+    [sets],
+  );
+  const manageItems = useMemo(() => buildManageItems(sets, filtered), [
+    sets,
+    filtered,
+  ]);
+
   const hasBulkOps = !!(onBulkDelete || onBulkDuplicate || onBulkMoveToFolder);
   const hasSelection = selectedSets.size > 0;
   const canDrag =
     !!onReorderFull && !hasSelection && !bulkFolderMode && !deleteConfirming;
+
+  const handleFolderActionError = (
+    err: unknown,
+    fallback: string,
+    setInlineError?: (value: string) => void,
+  ) => {
+    if (isNetworkError(err)) markDisconnected();
+    const message = err instanceof Error ? err.message : fallback;
+    setInlineError?.(message);
+    dispatchToast(message, "error");
+  };
 
   const toggleSelect = (set: string) => {
     setSelectedSets((prev) => {
@@ -1451,6 +1581,202 @@ function ManageView({
       setBulkFolderError(err instanceof Error ? err.message : "Move failed");
     } finally {
       setBulkPending(false);
+    }
+  };
+
+  const openFolderRename = (folder: string) => {
+    setRenamingFolder(folder);
+    setFolderRenameValue(folder);
+    setFolderRenameError("");
+    setMergingFolder(null);
+    setDeletingFolder(null);
+  };
+
+  const cancelFolderRename = () => {
+    setRenamingFolder(null);
+    setFolderRenameValue("");
+    setFolderRenameError("");
+  };
+
+  const handleFolderRenameConfirm = async () => {
+    if (!renamingFolder || folderActionPending || !connected) return;
+    const nextFolder = folderRenameValue.trim();
+    if (!nextFolder) {
+      setFolderRenameError("Folder name cannot be empty");
+      return;
+    }
+    if (!FOLDER_NAME_RE.test(nextFolder)) {
+      setFolderRenameError("Use letters, numbers, - and _ (/ for sub-folders)");
+      return;
+    }
+    if (nextFolder === renamingFolder) {
+      cancelFolderRename();
+      return;
+    }
+
+    setFolderActionPending(true);
+    setFolderRenameError("");
+    try {
+      const response = await apiFetch<FolderRenameResponse>(
+        `${serverUrl}/api/set-folders/rename`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fromFolder: renamingFolder,
+            toFolder: nextFolder,
+          }),
+          signal: createFetchSignal(getDisconnectSignal()),
+        },
+      );
+      response.renamedSets.forEach(({ from, to }) => renameSetInState(from, to));
+      setSets(response.sets);
+      if (isSetInFolder(activeSet, renamingFolder)) {
+        setActiveSet(replaceFolderPrefix(activeSet, renamingFolder, nextFolder));
+      }
+      cancelFolderRename();
+      dispatchToast(
+        `Renamed folder "${renamingFolder}" → "${nextFolder}"`,
+        "success",
+      );
+    } catch (err) {
+      handleFolderActionError(err, "Failed to rename folder", setFolderRenameError);
+    } finally {
+      setFolderActionPending(false);
+    }
+  };
+
+  const openFolderMerge = (folder: string) => {
+    setMergingFolder(folder);
+    setFolderMergeTarget(folderNames.find((name) => name !== folder) ?? "");
+    setFolderMergeError("");
+    setRenamingFolder(null);
+    setDeletingFolder(null);
+  };
+
+  const cancelFolderMerge = () => {
+    setMergingFolder(null);
+    setFolderMergeTarget("");
+    setFolderMergeError("");
+  };
+
+  const handleFolderMergeConfirm = async () => {
+    if (!mergingFolder || folderActionPending || !connected) return;
+    if (!folderMergeTarget) {
+      setFolderMergeError("Choose a target folder");
+      return;
+    }
+
+    setFolderActionPending(true);
+    setFolderMergeError("");
+    try {
+      const response = await apiFetch<FolderMergeResponse>(
+        `${serverUrl}/api/set-folders/merge`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceFolder: mergingFolder,
+            targetFolder: folderMergeTarget,
+          }),
+          signal: createFetchSignal(getDisconnectSignal()),
+        },
+      );
+      response.movedSets.forEach(({ from, to }) => renameSetInState(from, to));
+      setSets(response.sets);
+      if (isSetInFolder(activeSet, mergingFolder)) {
+        setActiveSet(
+          replaceFolderPrefix(activeSet, mergingFolder, folderMergeTarget),
+        );
+      }
+      cancelFolderMerge();
+      dispatchToast(
+        `Merged folder "${mergingFolder}" into "${folderMergeTarget}"`,
+        "success",
+      );
+    } catch (err) {
+      handleFolderActionError(err, "Failed to merge folders", setFolderMergeError);
+    } finally {
+      setFolderActionPending(false);
+    }
+  };
+
+  const openFolderDelete = (folder: string) => {
+    setDeletingFolder(folder);
+    setFolderDeleteError("");
+    setRenamingFolder(null);
+    setMergingFolder(null);
+  };
+
+  const cancelFolderDelete = () => {
+    setDeletingFolder(null);
+    setFolderDeleteError("");
+  };
+
+  const handleFolderDeleteConfirm = async () => {
+    if (!deletingFolder || folderActionPending || !connected) return;
+    setFolderActionPending(true);
+    setFolderDeleteError("");
+    try {
+      const response = await apiFetch<FolderDeleteResponse>(
+        `${serverUrl}/api/set-folders/delete`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folder: deletingFolder }),
+          signal: createFetchSignal(getDisconnectSignal()),
+        },
+      );
+      response.deletedSets.forEach((setName) => removeSetFromState(setName));
+      setSets(response.sets);
+      if (isSetInFolder(activeSet, deletingFolder)) {
+        const nextActive = response.sets[0] ?? "";
+        setActiveSet(nextActive);
+      }
+      cancelFolderDelete();
+      dispatchToast(
+        `Deleted folder "${deletingFolder}" (${response.deletedSets.length} set${response.deletedSets.length === 1 ? "" : "s"})`,
+        "success",
+      );
+    } catch (err) {
+      handleFolderActionError(err, "Failed to delete folder", setFolderDeleteError);
+    } finally {
+      setFolderActionPending(false);
+    }
+  };
+
+  const handleFolderMove = async (
+    folder: string,
+    direction: "left" | "right",
+  ) => {
+    if (!connected || folderActionPending) return;
+    const order = buildTopLevelItemOrder(sets);
+    const folderKey = folderItemKey(folder);
+    const fromIndex = order.indexOf(folderKey);
+    if (fromIndex === -1) return;
+    const toIndex = direction === "left" ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex < 0 || toIndex >= order.length) return;
+    const nextOrder = [...order];
+    const [moved] = nextOrder.splice(fromIndex, 1);
+    nextOrder.splice(toIndex, 0, moved);
+
+    setFolderActionPending(true);
+    try {
+      const response = await apiFetch<FolderReorderResponse>(
+        `${serverUrl}/api/set-folders/reorder`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: nextOrder }),
+          signal: createFetchSignal(getDisconnectSignal()),
+        },
+      );
+      setSets(response.sets);
+      dispatchToast(`Reordered folder "${folder}"`, "success");
+    } catch (err) {
+      handleFolderActionError(err, "Failed to reorder folders");
+    } finally {
+      setFolderActionPending(false);
     }
   };
 
@@ -1657,194 +1983,376 @@ function ManageView({
         </div>
       )}
 
-      {filtered.map((set) => {
-        const isCurrent = set === activeSet;
-        const idx = sets.indexOf(set);
-        const isFirst = idx === 0;
-        const isLast = idx === sets.length - 1;
-        const tokenCount = setTokenCounts[set];
-        const description = setDescriptions[set];
-        const themeLabels = setThemeLabels[set] ?? [];
-        const isSelected = selectedSets.has(set);
-        const isDragging = dragSetName === set;
-        const isDragOver = dragOverSetName === set && dragSetName !== set;
-        const isRenaming = renamingSet === set;
+      {(() => {
+        const renderSetRow = (set: string, indented = false) => {
+          const isCurrent = set === activeSet;
+          const idx = sets.indexOf(set);
+          const isFirst = idx === 0;
+          const isLast = idx === sets.length - 1;
+          const tokenCount = setTokenCounts[set];
+          const description = setDescriptions[set];
+          const themeLabels = setThemeLabels[set] ?? [];
+          const isSelected = selectedSets.has(set);
+          const isDragging = dragSetName === set;
+          const isDragOver = dragOverSetName === set && dragSetName !== set;
+          const isRenaming = renamingSet === set;
 
-        return (
-          <div
-            key={set}
-            draggable={canDrag && !isRenaming}
-            onDragStart={canDrag ? (e) => handleDragStart(e, set) : undefined}
-            onDragOver={canDrag ? (e) => handleDragOver(e, set) : undefined}
-            onDrop={canDrag ? (e) => handleDrop(e, set) : undefined}
-            onDragEnd={canDrag ? handleDragEnd : undefined}
-            className={`group relative flex items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2.5 text-[12px] transition-colors last:border-b-0 ${
-              isDragging ? "opacity-40" : ""
-            } ${
-              isDragOver
-                ? "border-l-2 border-l-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]"
-                : isSelected
-                  ? "bg-[var(--color-figma-accent)]/8"
-                  : "hover:bg-[var(--color-figma-bg-hover)]"
-            }`}
-          >
-            {hasBulkOps && (
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => toggleSelect(set)}
-                onClick={(e) => e.stopPropagation()}
-                className="mt-1 shrink-0 cursor-pointer accent-[var(--color-figma-accent)]"
-                aria-label={`Select ${set}`}
-              />
-            )}
+          return (
+            <div
+              key={set}
+              draggable={canDrag && !isRenaming}
+              onDragStart={
+                canDrag ? (e) => handleDragStart(e, set) : undefined
+              }
+              onDragOver={canDrag ? (e) => handleDragOver(e, set) : undefined}
+              onDrop={canDrag ? (e) => handleDrop(e, set) : undefined}
+              onDragEnd={canDrag ? handleDragEnd : undefined}
+              className={`group relative flex items-start gap-2 border-b border-[var(--color-figma-border)] py-2.5 pr-3 text-[12px] transition-colors last:border-b-0 ${
+                indented ? "pl-8" : "pl-3"
+              } ${isDragging ? "opacity-40" : ""} ${
+                isDragOver
+                  ? "border-l-2 border-l-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]"
+                  : isSelected
+                    ? "bg-[var(--color-figma-accent)]/8"
+                    : "hover:bg-[var(--color-figma-bg-hover)]"
+              }`}
+            >
+              {hasBulkOps && (
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleSelect(set)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-1 shrink-0 cursor-pointer accent-[var(--color-figma-accent)]"
+                  aria-label={`Select ${set}`}
+                />
+              )}
 
-            {canDrag ? (
-              <span
-                className="mt-1 shrink-0 cursor-grab text-[var(--color-figma-text-secondary)] opacity-0 transition-opacity group-hover:opacity-60 group-focus-within:opacity-60 active:cursor-grabbing"
-                aria-hidden="true"
-              >
-                <svg
-                  width="8"
-                  height="12"
-                  viewBox="0 0 8 12"
-                  fill="currentColor"
+              {canDrag ? (
+                <span
+                  className="mt-1 shrink-0 cursor-grab text-[var(--color-figma-text-secondary)] opacity-0 transition-opacity group-hover:opacity-60 group-focus-within:opacity-60 active:cursor-grabbing"
+                  aria-hidden="true"
                 >
-                  <circle cx="2" cy="2" r="1" />
-                  <circle cx="6" cy="2" r="1" />
-                  <circle cx="2" cy="6" r="1" />
-                  <circle cx="6" cy="6" r="1" />
-                  <circle cx="2" cy="10" r="1" />
-                  <circle cx="6" cy="10" r="1" />
-                </svg>
-              </span>
-            ) : (
-              <span className="w-[8px] shrink-0" aria-hidden="true" />
-            )}
-
-            <div className="min-w-0 flex-1">
-              {isRenaming ? (
-                <div className="flex flex-col gap-1">
-                  <input
-                    ref={
-                      renameInputRef as RefObject<HTMLInputElement> | undefined
-                    }
-                    value={renameValue}
-                    onChange={(e) => {
-                      setRenameValue?.(e.target.value.trimStart());
-                      setRenameError?.("");
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") onRenameConfirm?.();
-                      if (e.key === "Escape") onRenameCancel?.();
-                    }}
-                    onBlur={() => onRenameCancel?.()}
-                    aria-label="Rename token set"
-                    className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
-                  />
-                  {renameError && (
-                    <span className="text-[10px] text-red-500">
-                      {renameError}
-                    </span>
-                  )}
-                </div>
+                  <svg
+                    width="8"
+                    height="12"
+                    viewBox="0 0 8 12"
+                    fill="currentColor"
+                  >
+                    <circle cx="2" cy="2" r="1" />
+                    <circle cx="6" cy="2" r="1" />
+                    <circle cx="2" cy="6" r="1" />
+                    <circle cx="6" cy="6" r="1" />
+                    <circle cx="2" cy="10" r="1" />
+                    <circle cx="6" cy="10" r="1" />
+                  </svg>
+                </span>
               ) : (
-                <>
-                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <span
-                      className={`min-w-0 truncate ${isCurrent ? "font-medium text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text)]"}`}
-                    >
-                      <SetNameDisplay name={set} />
-                    </span>
-                    {isCurrent && (
-                      <span className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-accent)]">
-                        Active
+                <span className="w-[8px] shrink-0" aria-hidden="true" />
+              )}
+
+              <div className="min-w-0 flex-1">
+                {isRenaming ? (
+                  <div className="flex flex-col gap-1">
+                    <input
+                      ref={
+                        renameInputRef as RefObject<HTMLInputElement> | undefined
+                      }
+                      value={renameValue}
+                      onChange={(e) => {
+                        setRenameValue?.(e.target.value.trimStart());
+                        setRenameError?.("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") onRenameConfirm?.();
+                        if (e.key === "Escape") onRenameCancel?.();
+                      }}
+                      onBlur={() => onRenameCancel?.()}
+                      aria-label="Rename token set"
+                      className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
+                    />
+                    {renameError && (
+                      <span className="text-[10px] text-red-500">
+                        {renameError}
                       </span>
                     )}
-                    <ThemeBadges labels={themeLabels} />
                   </div>
-                  {description && (
-                    <div className="mt-0.5 truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                      {description}
+                ) : (
+                  <>
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                      <span
+                        className={`min-w-0 truncate ${isCurrent ? "font-medium text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text)]"}`}
+                      >
+                        <SetNameDisplay name={set} />
+                      </span>
+                      {isCurrent && (
+                        <span className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-accent)]">
+                          Active
+                        </span>
+                      )}
+                      <ThemeBadges labels={themeLabels} />
                     </div>
-                  )}
-                </>
-              )}
-            </div>
+                    {description && (
+                      <div className="mt-0.5 truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+                        {description}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
 
-            <div className="mt-0.5 flex shrink-0 items-center gap-2">
-              {tokenCount !== undefined && (
-                <span className="text-[10px] tabular-nums text-[var(--color-figma-text-secondary)]">
-                  {tokenCount}
+              <div className="mt-0.5 flex shrink-0 items-center gap-2">
+                {tokenCount !== undefined && (
+                  <span className="text-[10px] tabular-nums text-[var(--color-figma-text-secondary)]">
+                    {tokenCount}
+                  </span>
+                )}
+                {!isRenaming && (
+                  <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    {onReorder && !canDrag && (
+                      <IconButton
+                        title="Move up"
+                        ariaLabel="Move up"
+                        disabled={isFirst}
+                        onClick={() => onReorder(set, "left")}
+                      >
+                        <path d="M5 2L9 7H1L5 2Z" />
+                      </IconButton>
+                    )}
+                    {onReorder && !canDrag && (
+                      <IconButton
+                        title="Move down"
+                        ariaLabel="Move down"
+                        disabled={isLast}
+                        onClick={() => onReorder(set, "right")}
+                      >
+                        <path d="M5 8L1 3H9L5 8Z" />
+                      </IconButton>
+                    )}
+                    {onOpenGenerators && (
+                      <StrokeIconButton
+                        title="Generate tokens"
+                        ariaLabel="Generate tokens"
+                        onClick={() => onOpenGenerators(set)}
+                      >
+                        <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
+                      </StrokeIconButton>
+                    )}
+                    {onEditInfo && (
+                      <StrokeIconButton
+                        title="Edit set info"
+                        ariaLabel="Edit set info"
+                        onClick={() => onEditInfo(set)}
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                      </StrokeIconButton>
+                    )}
+                    {onRename && (
+                      <StrokeIconButton
+                        title="Rename or move"
+                        ariaLabel="Rename or move"
+                        onClick={() => onRename(set)}
+                      >
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </StrokeIconButton>
+                    )}
+                    {onDuplicate && (
+                      <StrokeIconButton
+                        title="Duplicate"
+                        ariaLabel="Duplicate"
+                        onClick={() => onDuplicate(set)}
+                      >
+                        <rect
+                          x="9"
+                          y="9"
+                          width="13"
+                          height="13"
+                          rx="2"
+                          ry="2"
+                        />
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                      </StrokeIconButton>
+                    )}
+                    {onMerge && (
+                      <StrokeIconButton
+                        title="Merge into another set"
+                        ariaLabel="Merge into another set"
+                        onClick={() => onMerge(set)}
+                      >
+                        <path d="M7 7h5a4 4 0 014 4v0" />
+                        <path d="M7 17h5a4 4 0 004-4v0" />
+                        <path d="M7 12h10" />
+                        <path d="M5 7l-2 2 2 2" />
+                        <path d="M5 15l-2-2 2-2" />
+                      </StrokeIconButton>
+                    )}
+                    {onSplit && (
+                      <StrokeIconButton
+                        title="Split by group"
+                        ariaLabel="Split by group"
+                        onClick={() => onSplit(set)}
+                      >
+                        <path d="M12 3v6" />
+                        <path d="M12 9l-5 5" />
+                        <path d="M12 9l5 5" />
+                        <circle cx="12" cy="3" r="2" />
+                        <circle cx="7" cy="16" r="2" />
+                        <circle cx="17" cy="16" r="2" />
+                      </StrokeIconButton>
+                    )}
+                    {onDelete && (
+                      <StrokeIconButton
+                        title="Delete"
+                        ariaLabel="Delete"
+                        onClick={() => onDelete(set)}
+                        danger
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+                      </StrokeIconButton>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        };
+
+        const renderFolderRow = (item: ManageFolderGroup) => {
+          const topLevelItems = buildTopLevelItemOrder(sets);
+          const folderIndex = topLevelItems.indexOf(folderItemKey(item.folder));
+          const visibleCount = item.sets.length;
+          const targetFolderOptions = folderNames.filter(
+            (folder) => folder !== item.folder,
+          );
+          const isRenaming = renamingFolder === item.folder;
+          const isMerging = mergingFolder === item.folder;
+          const isDeleting = deletingFolder === item.folder;
+
+          return (
+            <div
+              key={`folder-${item.folder}`}
+              className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/60"
+            >
+              <div className="group flex items-start gap-2 px-3 py-2.5">
+                <span
+                  className="mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]"
+                  aria-hidden="true"
+                >
+                  <svg
+                    width="12"
+                    height="10"
+                    viewBox="0 0 12 10"
+                    fill="currentColor"
+                  >
+                    <path d="M1 2.5A1.5 1.5 0 012.5 1H5l1 1h3.5A1.5 1.5 0 0111 3.5v4A1.5 1.5 0 019.5 9h-7A1.5 1.5 0 011 7.5v-5z" />
+                  </svg>
                 </span>
-              )}
-              {!isRenaming && (
-                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                  {onReorder && !canDrag && (
+                <div className="min-w-0 flex-1">
+                  {isRenaming ? (
+                    <div className="flex flex-col gap-1">
+                      <input
+                        ref={folderRenameInputRef}
+                        value={folderRenameValue}
+                        onChange={(e) => {
+                          setFolderRenameValue(e.target.value.trimStart());
+                          setFolderRenameError("");
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void handleFolderRenameConfirm();
+                          if (e.key === "Escape") cancelFolderRename();
+                        }}
+                        className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
+                        aria-label={`Rename folder ${item.folder}`}
+                        disabled={folderActionPending}
+                      />
+                      {folderRenameError && (
+                        <div className="text-[10px] text-red-500">
+                          {folderRenameError}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => void handleFolderRenameConfirm()}
+                          disabled={folderActionPending || !folderRenameValue.trim()}
+                          className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                        >
+                          {folderActionPending ? "Renaming…" : "Rename folder"}
+                        </button>
+                        <button
+                          onClick={cancelFolderRename}
+                          disabled={folderActionPending}
+                          className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="truncate font-medium text-[var(--color-figma-text)]">
+                          {item.folder}/
+                        </span>
+                        <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)]">
+                          Folder
+                        </span>
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        <span>
+                          {item.totalSetCount} set
+                          {item.totalSetCount === 1 ? "" : "s"}
+                        </span>
+                        {visibleCount !== item.totalSetCount && (
+                          <>
+                            <span>·</span>
+                            <span>{visibleCount} shown by filter</span>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {!isRenaming && (
+                  <div className="mt-0.5 flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     <IconButton
-                      title="Move up"
-                      ariaLabel="Move up"
-                      disabled={isFirst}
-                      onClick={() => onReorder(set, "left")}
+                      title="Move folder up"
+                      ariaLabel="Move folder up"
+                      disabled={folderActionPending || folderIndex <= 0}
+                      onClick={() => void handleFolderMove(item.folder, "left")}
                     >
                       <path d="M5 2L9 7H1L5 2Z" />
                     </IconButton>
-                  )}
-                  {onReorder && !canDrag && (
                     <IconButton
-                      title="Move down"
-                      ariaLabel="Move down"
-                      disabled={isLast}
-                      onClick={() => onReorder(set, "right")}
+                      title="Move folder down"
+                      ariaLabel="Move folder down"
+                      disabled={
+                        folderActionPending ||
+                        folderIndex === -1 ||
+                        folderIndex >= topLevelItems.length - 1
+                      }
+                      onClick={() => void handleFolderMove(item.folder, "right")}
                     >
                       <path d="M5 8L1 3H9L5 8Z" />
                     </IconButton>
-                  )}
-                  {onOpenGenerators && (
                     <StrokeIconButton
-                      title="Generate tokens"
-                      ariaLabel="Generate tokens"
-                      onClick={() => onOpenGenerators(set)}
-                    >
-                      <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
-                    </StrokeIconButton>
-                  )}
-                  {onEditInfo && (
-                    <StrokeIconButton
-                      title="Edit set info"
-                      ariaLabel="Edit set info"
-                      onClick={() => onEditInfo(set)}
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="16" x2="12" y2="12" />
-                      <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </StrokeIconButton>
-                  )}
-                  {onRename && (
-                    <StrokeIconButton
-                      title="Rename or move"
-                      ariaLabel="Rename or move"
-                      onClick={() => onRename(set)}
+                      title="Rename folder"
+                      ariaLabel="Rename folder"
+                      onClick={() => openFolderRename(item.folder)}
                     >
                       <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                       <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </StrokeIconButton>
-                  )}
-                  {onDuplicate && (
                     <StrokeIconButton
-                      title="Duplicate"
-                      ariaLabel="Duplicate"
-                      onClick={() => onDuplicate(set)}
-                    >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                    </StrokeIconButton>
-                  )}
-                  {onMerge && (
-                    <StrokeIconButton
-                      title="Merge into another set"
-                      ariaLabel="Merge into another set"
-                      onClick={() => onMerge(set)}
+                      title="Merge folder into another folder"
+                      ariaLabel="Merge folder into another folder"
+                      onClick={() => openFolderMerge(item.folder)}
                     >
                       <path d="M7 7h5a4 4 0 014 4v0" />
                       <path d="M7 17h5a4 4 0 004-4v0" />
@@ -1852,26 +2360,10 @@ function ManageView({
                       <path d="M5 7l-2 2 2 2" />
                       <path d="M5 15l-2-2 2-2" />
                     </StrokeIconButton>
-                  )}
-                  {onSplit && (
                     <StrokeIconButton
-                      title="Split by group"
-                      ariaLabel="Split by group"
-                      onClick={() => onSplit(set)}
-                    >
-                      <path d="M12 3v6" />
-                      <path d="M12 9l-5 5" />
-                      <path d="M12 9l5 5" />
-                      <circle cx="12" cy="3" r="2" />
-                      <circle cx="7" cy="16" r="2" />
-                      <circle cx="17" cy="16" r="2" />
-                    </StrokeIconButton>
-                  )}
-                  {onDelete && (
-                    <StrokeIconButton
-                      title="Delete"
-                      ariaLabel="Delete"
-                      onClick={() => onDelete(set)}
+                      title="Delete folder"
+                      ariaLabel="Delete folder"
+                      onClick={() => openFolderDelete(item.folder)}
                       danger
                     >
                       <polyline points="3 6 5 6 21 6" />
@@ -1879,13 +2371,107 @@ function ManageView({
                       <path d="M10 11v6M14 11v6" />
                       <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
                     </StrokeIconButton>
+                  </div>
+                )}
+              </div>
+
+              {isMerging && (
+                <div className="border-t border-[var(--color-figma-border)] px-3 py-2.5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      Merge into folder
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={folderMergeTarget}
+                        onChange={(e) => {
+                          setFolderMergeTarget(e.target.value);
+                          setFolderMergeError("");
+                        }}
+                        disabled={folderActionPending}
+                        className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)]"
+                      >
+                        {targetFolderOptions.map((folder) => (
+                          <option key={folder} value={folder}>
+                            {folder}/
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => void handleFolderMergeConfirm()}
+                        disabled={
+                          folderActionPending || targetFolderOptions.length === 0
+                        }
+                        className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                      >
+                        {folderActionPending ? "Merging…" : "Merge"}
+                      </button>
+                      <button
+                        onClick={cancelFolderMerge}
+                        disabled={folderActionPending}
+                        className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {targetFolderOptions.length === 0 && (
+                      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        Create another folder first, then merge into it.
+                      </div>
+                    )}
+                    {folderMergeError && (
+                      <div className="text-[10px] text-red-500">
+                        {folderMergeError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {isDeleting && (
+                <div className="border-t border-red-500/20 bg-red-500/10 px-3 py-2.5">
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="flex-1 text-[var(--color-figma-text)]">
+                      Delete folder "{item.folder}/" and its {item.totalSetCount} set
+                      {item.totalSetCount === 1 ? "" : "s"}?
+                    </span>
+                    <button
+                      onClick={() => void handleFolderDeleteConfirm()}
+                      disabled={folderActionPending}
+                      className="rounded bg-red-500 px-2 py-1 text-[10px] text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                    >
+                      {folderActionPending ? "Deleting…" : "Confirm delete"}
+                    </button>
+                    <button
+                      onClick={cancelFolderDelete}
+                      disabled={folderActionPending}
+                      className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {folderDeleteError && (
+                    <div className="mt-1 text-[10px] text-red-500">
+                      {folderDeleteError}
+                    </div>
                   )}
                 </div>
               )}
             </div>
-          </div>
+          );
+        };
+
+        return manageItems.map((item) =>
+          typeof item === "string" ? (
+            renderSetRow(item, false)
+          ) : (
+            <div key={`folder-block-${item.folder}`}>
+              {renderFolderRow(item)}
+              {item.sets.map((set) => renderSetRow(set, true))}
+            </div>
+          ),
         );
-      })}
+      })()}
     </div>
   );
 }
