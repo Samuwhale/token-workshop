@@ -1,0 +1,24 @@
+id: create-one-shared-conflict-review-contract-for-s-93696f0c
+title: Create one shared conflict-review contract for single-set and multi-set imports
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ImportStylesFooter.tsx
+  - packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx
+  - packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx
+  - packages/figma-plugin/src/ui/components/ImportSuccessView.tsx
+  - packages/figma-plugin/src/ui/components/ImportPanelContext.tsx
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Styles imports escalate into ImportConflictResolver with per-token decisions, while variables imports only expose batch strategy buttons and success/failure happens after the view resets. The redesign should define one review handoff model before deeper UI changes."
+state: ready
+acceptance_criteria:
+  - Single-set and multi-set imports use consistent language for new tokens, overwrites, merges, skips, and post-import failures so the user does not have to relearn conflict behavior by source type.
+  - Conflict previews and commit actions expose one recommended next action per review state, with explicit consequences for overwrite, merge, and keep-existing paths.
+  - Partial failures after apply hand back enough set/path context to continue review or retry without collapsing into an isolated success screen.
+source: task-followup
+created_at: 2026-04-09T14:38:17.615Z
+updated_at: 2026-04-09T14:38:17.615Z

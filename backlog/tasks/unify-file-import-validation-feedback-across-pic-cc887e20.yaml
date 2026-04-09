@@ -1,0 +1,25 @@
+id: unify-file-import-validation-feedback-across-pic-cc887e20
+title: Unify file import validation feedback across picker, drop, preview, and retry states
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ImportPanel.tsx
+  - packages/figma-plugin/src/ui/components/ImportSourceSelector.tsx
+  - packages/figma-plugin/src/ui/components/ImportTokenListView.tsx
+  - packages/figma-plugin/src/ui/components/ImportSuccessView.tsx
+  - packages/figma-plugin/src/ui/components/ImportPanelContext.tsx
+  - packages/figma-plugin/src/ui/hooks/useImportSource.ts
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: JSON, CSS, Tailwind, and Tokens Studio parsing currently report through scattered error strings, skipped-entry summaries, and success-state failure lists. A redesign should turn that into one coherent validation narrative across intake, preview, and retry."
+state: ready
+acceptance_criteria:
+  - File-based imports surface a stage-owned validation summary that distinguishes unsupported files, hard parse failures, and partial parses with skipped entries instead of relying on the generic top-level error banner alone.
+  - Supported formats and parser limits are visible before import starts, and partial-import warnings remain visible through preview and post-import recovery paths.
+  - Success and retry states preserve enough context to explain what failed, what was skipped, and what action the user should take next for the affected file import.
+source: task-followup
+created_at: 2026-04-09T14:38:17.614Z
+updated_at: 2026-04-09T14:38:17.614Z

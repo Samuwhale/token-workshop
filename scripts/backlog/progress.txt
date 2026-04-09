@@ -597,3 +597,12 @@
   - Tokens compare belongs with the same editor-context state as token edit and preview state, otherwise App ends up duplicating narrow-surface ownership just to arbitrate which drawer should be open.
   - Once `PanelRouter` owns a workspace's contextual surface contract, keep App limited to shell-level wiring and remove any leftover viewport-specific branches from the root component.
 ---
+## 2026-04-09 - [Research import intake surfaces for drag-and-drop discoverability, validation feedback, and conflict handoff]
+- Audited the live import intake flow across `ImportPanel`, `ImportSourceSelector`, `ImportPanelContext`, `ImportFileDestinationRules`, `ImportConflictResolver`, `ImportSuccessView`, and `useImportSource`, and confirmed the main file-based path currently works as a panel-wide drag takeover that auto-detects formats and jumps straight to `destination`, bypassing the visible `family -> format` chooser.
+- Mapped the current feedback split: supported formats are named in selector callouts plus the global drop overlay; hard parse failures surface through the generic top-level error banner; CSS/Tailwind partial parses only stay visible in preview via `skippedEntries`; single-set style conflicts escalate into `ImportConflictResolver`; multi-set variable conflicts stay as preview counts plus batch-strategy buttons; post-import failures only show inside `ImportSuccessView` after the source state resets.
+- Queued three implementation-ready follow-ups covering intake affordance ownership, stage-owned validation feedback, and a shared conflict-review contract for single-set versus multi-set imports.
+- Files changed: `../../../../../../Users/samuel/Documents/Projects/TokenManager/backlog/inbox.jsonl` ~L1; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - The shared parser routing in `useImportSource` can stay panel-level, but the visible drag-and-drop affordance should belong to the intake stages; otherwise the family-first workflow reads like one flow while the actual entry path behaves like another.
+  - `ImportPanelContext.tsx` is the live import controller; the checked-in `useImportConflicts.ts` and `useImportApply.ts` hooks are not referenced by the current panel, so redesign tasks should anchor new work in the provider and active footer/views rather than revive the dormant hooks.
+---
