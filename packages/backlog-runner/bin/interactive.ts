@@ -1,8 +1,9 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
+import { resolveModelAlias } from '../src/config.js';
 import type { BacklogRunnerConfig, BacklogRunnerLane, BacklogTool, RunOverrides } from '../src/types.js';
 
-const TOOLS: BacklogTool[] = ['claude', 'codex'];
+const TOOLS: BacklogTool[] = ['codex', 'claude'];
 const LANES: BacklogRunnerLane[] = ['executor', 'planner'];
 const SUMMARY_DIVIDER = '----------------------------------------';
 
@@ -42,8 +43,8 @@ export function summarizeRunOverrides(
   overrides: {
     tool: BacklogTool;
     lane: BacklogRunnerLane;
-    model?: string;
-    passModel?: string;
+    model: string;
+    passModel: string;
     passes: boolean;
     worktrees: boolean;
   },
@@ -53,12 +54,42 @@ export function summarizeRunOverrides(
     SUMMARY_DIVIDER,
     `Tool:           ${overrides.tool}`,
     `Lane:           ${overrides.lane}`,
-    `Model:          ${overrides.model || 'CLI default'}`,
-    `Pass model:     ${overrides.passModel || 'same as main model / CLI default'}`,
+    `Model:          ${overrides.model}`,
+    `Pass model:     ${overrides.passModel}`,
     `Passes:         ${overrides.passes ? 'enabled' : 'disabled'}`,
     `Worktrees:      ${overrides.worktrees ? 'enabled' : 'disabled'}`,
     SUMMARY_DIVIDER,
   ].join('\n');
+}
+
+function formatModelSetting(rawValue: string | undefined, resolvedValue: string | undefined, fallbackLabel: string): string {
+  const normalizedRaw = rawValue?.trim();
+  if (!normalizedRaw) {
+    return fallbackLabel;
+  }
+  if (resolvedValue && resolvedValue !== normalizedRaw) {
+    return `${normalizedRaw} -> ${resolvedValue}`;
+  }
+  return resolvedValue ?? normalizedRaw;
+}
+
+async function describeModelSettings(
+  config: BacklogRunnerConfig,
+  tool: BacklogTool,
+  model: string | undefined,
+  passModel: string | undefined,
+): Promise<{ model: string; passModel: string }> {
+  const resolvedModel = await resolveModelAlias(config, model, tool);
+  const resolvedPassModel = passModel
+    ? await resolveModelAlias(config, passModel, tool)
+    : resolvedModel;
+
+  return {
+    model: formatModelSetting(model, resolvedModel, 'CLI default'),
+    passModel: passModel
+      ? formatModelSetting(passModel, resolvedPassModel, 'same as main model / CLI default')
+      : `same as main model${resolvedModel ? ` -> ${resolvedModel}` : ' / CLI default'}`,
+  };
 }
 
 function hasExplicitOverrides(overrides: RunOverrides): boolean {
@@ -111,12 +142,14 @@ export async function promptForRunOverrides(
       const nextLane = resolveLaneChoice(laneAnswer, defaultLane);
 
       const defaultModel = previous.model ?? config.defaults.model;
-      const modelLabel = defaultModel || 'CLI default';
+      const defaultPassModel = previous.passModel ?? config.defaults.passModel;
+      const describedDefaults = await describeModelSettings(config, nextTool, defaultModel, defaultPassModel);
+      const modelLabel = describedDefaults.model;
       const modelAnswer = await rl.question(`Model (${modelLabel}): `);
       const nextModel = modelAnswer.trim() || defaultModel;
 
-      const defaultPassModel = previous.passModel ?? config.defaults.passModel;
-      const passModelLabel = defaultPassModel || 'same as main model / CLI default';
+      const describedPassDefaults = await describeModelSettings(config, nextTool, nextModel, defaultPassModel);
+      const passModelLabel = describedPassDefaults.passModel;
       const passModelAnswer = await rl.question(`Pass model (${passModelLabel}): `);
       const nextPassModel = passModelAnswer.trim() || defaultPassModel;
 
@@ -139,11 +172,13 @@ export async function promptForRunOverrides(
         interactive: true,
       };
 
+      const describedSelections = await describeModelSettings(config, nextTool, nextModel, nextPassModel);
+
       output.write(`\n${summarizeRunOverrides({
         tool: nextTool,
         lane: nextLane,
-        model: nextModel,
-        passModel: nextPassModel,
+        model: describedSelections.model,
+        passModel: describedSelections.passModel,
         passes: nextPasses,
         worktrees: nextWorktrees,
       })}\n`);

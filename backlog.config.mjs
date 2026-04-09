@@ -29,10 +29,10 @@ export default {
     backlog: 'pnpm --filter @tokenmanager/backlog-runner exec vitest run',
   },
   defaults: {
-    tool: 'claude',
+    tool: 'codex',
     lane: 'executor',
     model: 'default',
-    passModel: 'sonnet',
+    passModel: 'default',
     passes: true,
     worktrees: true,
   },

@@ -62,10 +62,10 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
       ...(config.validationProfiles ?? {}),
     },
     defaults: {
-      tool: config.defaults?.tool ?? 'claude',
+      tool: config.defaults?.tool ?? 'codex',
       lane: config.defaults?.lane ?? 'executor',
       model: config.defaults?.model ?? 'default',
-      passModel: config.defaults?.passModel ?? 'sonnet',
+      passModel: config.defaults?.passModel ?? 'default',
       passes: config.defaults?.passes ?? true,
       worktrees: config.defaults?.worktrees ?? true,
     },
