@@ -2,10 +2,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type {
+  GeneratorType,
+  GeneratorConfig,
   TokenGenerator,
   GeneratedTokenResult,
   TokenType,
   Token,
+  InputTable,
   ColorRampConfig,
   TypeScaleConfig,
   SpacingScaleConfig,
@@ -17,8 +20,11 @@ import type {
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
   ContrastCheckConfig,
+  DimensionUnit,
 } from '@tokenmanager/core';
 import {
+  DIMENSION_UNITS,
+  evalExpr,
   runColorRampGenerator,
   runTypeScaleGenerator,
   runSpacingScaleGenerator,
@@ -31,6 +37,7 @@ import {
   runDarkModeInversionGenerator,
   runContrastCheckGenerator,
   applyOverrides,
+  substituteVars,
   validateStepName,
 } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
@@ -42,26 +49,420 @@ interface GeneratorsFile {
   $generators: TokenGenerator[];
 }
 
-const VALID_GENERATOR_TYPES: ReadonlySet<string> = new Set([
-  'colorRamp', 'typeScale', 'spacingScale', 'opacityScale',
-  'borderRadiusScale', 'zIndexScale', 'shadowScale', 'customScale',
-  'accessibleColorPair', 'darkModeInversion', 'contrastCheck',
-]);
+const VALID_GENERATOR_TYPES = [
+  'colorRamp',
+  'typeScale',
+  'spacingScale',
+  'opacityScale',
+  'borderRadiusScale',
+  'zIndexScale',
+  'shadowScale',
+  'customScale',
+  'accessibleColorPair',
+  'darkModeInversion',
+  'contrastCheck',
+] as const satisfies readonly GeneratorType[];
 
-/**
- * Validates the basic shape of a TokenGenerator loaded from disk.
- * Returns an error string or null if valid.
- */
-function validateGeneratorShape(gen: unknown): string | null {
-  if (typeof gen !== 'object' || gen === null || Array.isArray(gen)) return 'entry is not an object';
-  const g = gen as Record<string, unknown>;
-  if (typeof g.id !== 'string' || !g.id) return 'missing or invalid "id"';
-  if (typeof g.type !== 'string' || !VALID_GENERATOR_TYPES.has(g.type)) return `invalid generator type "${g.type}"`;
-  if (typeof g.name !== 'string') return 'missing or invalid "name"';
-  if (typeof g.targetSet !== 'string') return 'missing or invalid "targetSet"';
-  if (typeof g.targetGroup !== 'string') return 'missing or invalid "targetGroup"';
-  if (g.config !== undefined && (typeof g.config !== 'object' || g.config === null || Array.isArray(g.config))) return '"config" must be an object';
-  return null;
+const VALID_GENERATOR_TYPE_SET = new Set<GeneratorType>(VALID_GENERATOR_TYPES);
+
+export type GeneratorCreateInput = Omit<TokenGenerator, 'id' | 'createdAt' | 'updatedAt' | 'type' | 'config' | 'overrides' | 'inputTable'> & {
+  type: unknown;
+  config?: unknown;
+  overrides?: unknown;
+  inputTable?: unknown;
+};
+
+export type GeneratorUpdateInput = Partial<Omit<TokenGenerator, 'id' | 'createdAt' | 'type' | 'config' | 'overrides' | 'inputTable'>> & {
+  type?: unknown;
+  config?: unknown;
+  overrides?: unknown;
+  inputTable?: unknown;
+};
+
+export type GeneratorPreviewInput = Pick<TokenGenerator, 'sourceToken' | 'inlineValue' | 'targetGroup' | 'targetSet'> & {
+  type: unknown;
+  config?: unknown;
+  overrides?: unknown;
+};
+
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function isFiniteNum(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+
+function validateTokenRefs<K extends string>(
+  raw: unknown,
+  allowedFields: readonly K[],
+): Partial<Record<K, string>> | undefined {
+  if (!isObj(raw)) return undefined;
+  const result: Partial<Record<K, string>> = {};
+  for (const field of allowedFields) {
+    const val = raw[field];
+    if (typeof val === 'string' && val.trim() !== '') {
+      result[field] = val;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function findDuplicateStepName(steps: Array<{ name: string }>): string | undefined {
+  const seen = new Set<string>();
+  for (const step of steps) {
+    if (seen.has(step.name)) return step.name;
+    seen.add(step.name);
+  }
+  return undefined;
+}
+
+function validateFormulaSyntax(formula: string): string | undefined {
+  const dummyVars: Record<string, number> = { base: 1, index: 1, multiplier: 1, prev: 1 };
+  try {
+    const substituted = substituteVars(formula, dummyVars);
+    evalExpr(substituted);
+    return undefined;
+  } catch (err) {
+    return `customScale formula syntax error: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+function normalizeGeneratorType(rawType: unknown): GeneratorType {
+  if (typeof rawType !== 'string' || !VALID_GENERATOR_TYPE_SET.has(rawType as GeneratorType)) {
+    throw new BadRequestError(
+      `Unknown generator type "${String(rawType)}". Valid types: ${VALID_GENERATOR_TYPES.join(', ')}`,
+    );
+  }
+  return rawType as GeneratorType;
+}
+
+function normalizeInputTable(raw: unknown): InputTable | undefined {
+  if (raw === undefined) return undefined;
+  if (!isObj(raw)) {
+    throw new BadRequestError('inputTable must be an object');
+  }
+  if (typeof raw.inputKey !== 'string' || raw.inputKey === '') {
+    throw new BadRequestError('inputTable.inputKey must be a non-empty string');
+  }
+  if (!Array.isArray(raw.rows)) {
+    throw new BadRequestError('inputTable.rows must be an array');
+  }
+  const rows: InputTable['rows'] = [];
+  for (let i = 0; i < raw.rows.length; i++) {
+    const row = raw.rows[i];
+    if (!isObj(row)) {
+      throw new BadRequestError(`inputTable.rows[${i}] must be an object`);
+    }
+    if (typeof row.brand !== 'string' || row.brand === '') {
+      throw new BadRequestError(`inputTable.rows[${i}].brand must be a non-empty string`);
+    }
+    if (!isObj(row.inputs)) {
+      throw new BadRequestError(`inputTable.rows[${i}].inputs must be an object`);
+    }
+    rows.push({ brand: row.brand, inputs: row.inputs });
+  }
+  return { inputKey: raw.inputKey, rows };
+}
+
+function normalizeOverrides(raw: unknown): TokenGenerator['overrides'] | undefined {
+  if (!isObj(raw)) return undefined;
+  const overrides: NonNullable<TokenGenerator['overrides']> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (isObj(value) && typeof value.locked === 'boolean') {
+      overrides[key] = { value: value.value, locked: value.locked };
+    }
+  }
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+function normalizeLastRunError(raw: unknown): TokenGenerator['lastRunError'] | undefined {
+  if (raw === undefined) return undefined;
+  if (!isObj(raw) || typeof raw.message !== 'string' || typeof raw.at !== 'string') {
+    throw new BadRequestError('lastRunError must contain string "message" and "at" fields');
+  }
+  return {
+    message: raw.message,
+    at: raw.at,
+    ...(typeof raw.blockedBy === 'string' ? { blockedBy: raw.blockedBy } : {}),
+  };
+}
+
+function normalizeGeneratorConfig(
+  type: GeneratorType,
+  config: unknown,
+): GeneratorConfig {
+  if (config !== undefined && !isObj(config)) {
+    throw new BadRequestError('"config" must be an object');
+  }
+  const c = (config ?? {}) as Record<string, unknown>;
+
+  switch (type) {
+    case 'colorRamp': {
+      if (!Array.isArray(c.steps) || c.steps.length === 0 || !c.steps.every((step: unknown) => isFiniteNum(step))) {
+        throw new BadRequestError('colorRamp config requires "steps" as non-empty finite number[]');
+      }
+      if (!isFiniteNum(c.lightEnd)) throw new BadRequestError('colorRamp config requires "lightEnd" as finite number');
+      if (c.lightEnd < 0 || c.lightEnd > 100) throw new BadRequestError('colorRamp config "lightEnd" must be between 0 and 100');
+      if (!isFiniteNum(c.darkEnd)) throw new BadRequestError('colorRamp config requires "darkEnd" as finite number');
+      if (c.darkEnd < 0 || c.darkEnd > 100) throw new BadRequestError('colorRamp config "darkEnd" must be between 0 and 100');
+      if (c.lightEnd <= c.darkEnd) throw new BadRequestError('colorRamp config "lightEnd" must be greater than "darkEnd"');
+      if (!isFiniteNum(c.chromaBoost)) throw new BadRequestError('colorRamp config requires "chromaBoost" as finite number');
+      if (c.chromaBoost < 0) throw new BadRequestError('colorRamp config "chromaBoost" must be >= 0');
+      if (typeof c.includeSource !== 'boolean') throw new BadRequestError('colorRamp config requires "includeSource" as boolean');
+      if (c.lightnessCurve !== undefined) {
+        if (!Array.isArray(c.lightnessCurve) || c.lightnessCurve.length !== 4 || !c.lightnessCurve.every((value: unknown) => isFiniteNum(value))) {
+          throw new BadRequestError('colorRamp config "lightnessCurve" must be [number, number, number, number]');
+        }
+        const lightnessCurve = c.lightnessCurve as number[];
+        if (lightnessCurve[0] < 0 || lightnessCurve[0] > 1 || lightnessCurve[2] < 0 || lightnessCurve[2] > 1) {
+          throw new BadRequestError('colorRamp config "lightnessCurve" control point x values must be in [0, 1]');
+        }
+      }
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['lightEnd', 'darkEnd', 'chromaBoost']);
+      return {
+        steps: c.steps as number[],
+        lightEnd: c.lightEnd as number,
+        darkEnd: c.darkEnd as number,
+        chromaBoost: c.chromaBoost as number,
+        includeSource: c.includeSource as boolean,
+        ...(c.lightnessCurve !== undefined && { lightnessCurve: c.lightnessCurve as [number, number, number, number] }),
+        ...(isFiniteNum(c.sourceStep) && { sourceStep: c.sourceStep }),
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
+      } satisfies ColorRampConfig;
+    }
+    case 'typeScale': {
+      if (!Array.isArray(c.steps) || c.steps.length === 0 || !c.steps.every((step: unknown) => isObj(step) && typeof step.name === 'string' && isFiniteNum(step.exponent))) {
+        throw new BadRequestError('typeScale config requires "steps" as non-empty Array<{name: string, exponent: number}>');
+      }
+      const duplicate = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (duplicate !== undefined) throw new BadRequestError(`typeScale config has duplicate step name: "${duplicate}"`);
+      if (!isFiniteNum(c.ratio)) throw new BadRequestError('typeScale config requires "ratio" as finite number');
+      if (c.ratio <= 0) throw new BadRequestError('typeScale config "ratio" must be > 0');
+      if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) {
+        throw new BadRequestError('typeScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")');
+      }
+      if (typeof c.baseStep !== 'string') throw new BadRequestError('typeScale config requires "baseStep" as string');
+      const stepNames = (c.steps as Array<{ name: string }>).map((step) => step.name);
+      if (!stepNames.includes(c.baseStep)) {
+        throw new BadRequestError(`typeScale config "baseStep" ("${c.baseStep}") must match one of the defined step names: ${stepNames.join(', ')}`);
+      }
+      if (!isFiniteNum(c.roundTo)) throw new BadRequestError('typeScale config requires "roundTo" as finite number');
+      if (c.roundTo < 0) throw new BadRequestError('typeScale config "roundTo" must be >= 0');
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['ratio']);
+      return {
+        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({ name: step.name as string, exponent: step.exponent as number })),
+        ratio: c.ratio as number,
+        unit: c.unit as DimensionUnit,
+        baseStep: c.baseStep as string,
+        roundTo: c.roundTo as number,
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
+      } satisfies TypeScaleConfig;
+    }
+    case 'spacingScale': {
+      if (!Array.isArray(c.steps) || c.steps.length === 0 || !c.steps.every((step: unknown) => isObj(step) && typeof step.name === 'string' && isFiniteNum(step.multiplier))) {
+        throw new BadRequestError('spacingScale config requires "steps" as non-empty Array<{name: string, multiplier: number}>');
+      }
+      const duplicate = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (duplicate !== undefined) throw new BadRequestError(`spacingScale config has duplicate step name: "${duplicate}"`);
+      if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) {
+        throw new BadRequestError('spacingScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")');
+      }
+      return {
+        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({ name: step.name as string, multiplier: step.multiplier as number })),
+        unit: c.unit as DimensionUnit,
+      } satisfies SpacingScaleConfig;
+    }
+    case 'opacityScale': {
+      if (!Array.isArray(c.steps) || c.steps.length === 0 || !c.steps.every((step: unknown) => isObj(step) && typeof step.name === 'string' && isFiniteNum(step.value))) {
+        throw new BadRequestError('opacityScale config requires "steps" as non-empty Array<{name: string, value: number}>');
+      }
+      const duplicate = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (duplicate !== undefined) throw new BadRequestError(`opacityScale config has duplicate step name: "${duplicate}"`);
+      for (let i = 0; i < c.steps.length; i++) {
+        const value = (c.steps[i] as Record<string, unknown>).value as number;
+        if (value < 0 || value > 1) {
+          throw new BadRequestError(`opacityScale config steps[${i}].value must be between 0 and 1`);
+        }
+      }
+      return {
+        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({ name: step.name as string, value: step.value as number })),
+      } satisfies OpacityScaleConfig;
+    }
+    case 'borderRadiusScale': {
+      if (!Array.isArray(c.steps) || c.steps.length === 0 || !c.steps.every((step: unknown) => isObj(step) && typeof step.name === 'string' && isFiniteNum(step.multiplier))) {
+        throw new BadRequestError('borderRadiusScale config requires "steps" as non-empty Array<{name: string, multiplier: number}>');
+      }
+      const duplicate = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (duplicate !== undefined) throw new BadRequestError(`borderRadiusScale config has duplicate step name: "${duplicate}"`);
+      if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) {
+        throw new BadRequestError('borderRadiusScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")');
+      }
+      return {
+        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({
+          name: step.name as string,
+          multiplier: step.multiplier as number,
+          ...(isFiniteNum(step.exactValue) && { exactValue: step.exactValue }),
+        })),
+        unit: c.unit as DimensionUnit,
+      } satisfies BorderRadiusScaleConfig;
+    }
+    case 'zIndexScale': {
+      if (!Array.isArray(c.steps) || c.steps.length === 0 || !c.steps.every((step: unknown) => isObj(step) && typeof step.name === 'string' && isFiniteNum(step.value))) {
+        throw new BadRequestError('zIndexScale config requires "steps" as non-empty Array<{name: string, value: number}>');
+      }
+      const duplicate = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (duplicate !== undefined) throw new BadRequestError(`zIndexScale config has duplicate step name: "${duplicate}"`);
+      return {
+        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({ name: step.name as string, value: step.value as number })),
+      } satisfies ZIndexScaleConfig;
+    }
+    case 'shadowScale': {
+      if (typeof c.color !== 'string') throw new BadRequestError('shadowScale config requires "color" as string');
+      if (!Array.isArray(c.steps) || c.steps.length === 0 || !c.steps.every((step: unknown) =>
+        isObj(step) &&
+        typeof step.name === 'string' &&
+        isFiniteNum(step.offsetX) &&
+        isFiniteNum(step.offsetY) &&
+        isFiniteNum(step.blur) &&
+        isFiniteNum(step.spread) &&
+        isFiniteNum(step.opacity)
+      )) {
+        throw new BadRequestError('shadowScale config requires "steps" as non-empty Array<{name, offsetX, offsetY, blur, spread, opacity}>');
+      }
+      const duplicate = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (duplicate !== undefined) throw new BadRequestError(`shadowScale config has duplicate step name: "${duplicate}"`);
+      for (let i = 0; i < c.steps.length; i++) {
+        const step = c.steps[i] as Record<string, unknown>;
+        const opacity = step.opacity as number;
+        if (opacity < 0 || opacity > 1) throw new BadRequestError(`shadowScale config steps[${i}].opacity must be between 0 and 1`);
+        const blur = step.blur as number;
+        if (blur < 0) throw new BadRequestError(`shadowScale config steps[${i}].blur must be >= 0`);
+      }
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['color']);
+      return {
+        color: c.color as string,
+        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({
+          name: step.name as string,
+          offsetX: step.offsetX as number,
+          offsetY: step.offsetY as number,
+          blur: step.blur as number,
+          spread: step.spread as number,
+          opacity: step.opacity as number,
+        })),
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
+      } satisfies ShadowScaleConfig;
+    }
+    case 'customScale': {
+      if (typeof c.outputType !== 'string') throw new BadRequestError('customScale config requires "outputType" as string');
+      if (!Array.isArray(c.steps) || c.steps.length === 0 || !c.steps.every((step: unknown) => isObj(step) && typeof step.name === 'string' && isFiniteNum(step.index))) {
+        throw new BadRequestError('customScale config requires "steps" as non-empty Array<{name: string, index: number}>');
+      }
+      const duplicate = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (duplicate !== undefined) throw new BadRequestError(`customScale config has duplicate step name: "${duplicate}"`);
+      if (typeof c.formula !== 'string') throw new BadRequestError('customScale config requires "formula" as string');
+      const formulaError = validateFormulaSyntax(c.formula);
+      if (formulaError !== undefined) throw new BadRequestError(formulaError);
+      if (!isFiniteNum(c.roundTo)) throw new BadRequestError('customScale config requires "roundTo" as finite number');
+      if (c.roundTo < 0) throw new BadRequestError('customScale config "roundTo" must be >= 0');
+      return {
+        outputType: c.outputType as TokenType,
+        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({
+          name: step.name as string,
+          index: step.index as number,
+          ...(isFiniteNum(step.multiplier) && { multiplier: step.multiplier }),
+        })),
+        formula: c.formula as string,
+        roundTo: c.roundTo as number,
+        ...(DIMENSION_UNITS.includes(c.unit as DimensionUnit) ? { unit: c.unit as DimensionUnit } : {}),
+      } satisfies CustomScaleConfig;
+    }
+    case 'accessibleColorPair': {
+      if (c.contrastLevel !== 'AA' && c.contrastLevel !== 'AAA') {
+        throw new BadRequestError('accessibleColorPair config requires "contrastLevel" as "AA" | "AAA"');
+      }
+      if (typeof c.backgroundStep !== 'string') throw new BadRequestError('accessibleColorPair config requires "backgroundStep" as string');
+      if (typeof c.foregroundStep !== 'string') throw new BadRequestError('accessibleColorPair config requires "foregroundStep" as string');
+      return {
+        contrastLevel: c.contrastLevel as 'AA' | 'AAA',
+        backgroundStep: c.backgroundStep as string,
+        foregroundStep: c.foregroundStep as string,
+      } satisfies AccessibleColorPairConfig;
+    }
+    case 'darkModeInversion': {
+      if (typeof c.stepName !== 'string') throw new BadRequestError('darkModeInversion config requires "stepName" as string');
+      if (!isFiniteNum(c.chromaBoost)) throw new BadRequestError('darkModeInversion config requires "chromaBoost" as finite number');
+      if (c.chromaBoost < 0) throw new BadRequestError('darkModeInversion config "chromaBoost" must be >= 0');
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['chromaBoost']);
+      return {
+        stepName: c.stepName as string,
+        chromaBoost: c.chromaBoost as number,
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
+      } satisfies DarkModeInversionConfig;
+    }
+    case 'contrastCheck': {
+      if (typeof c.backgroundHex !== 'string') throw new BadRequestError('contrastCheck config requires "backgroundHex" as string');
+      if (!Array.isArray(c.steps) || !c.steps.every((step: unknown) => isObj(step) && typeof step.name === 'string' && typeof step.hex === 'string')) {
+        throw new BadRequestError('contrastCheck config requires "steps" as Array<{name: string, hex: string}>');
+      }
+      if (!Array.isArray(c.levels) || !c.levels.every((level: unknown) => level === 'AA' || level === 'AAA')) {
+        throw new BadRequestError('contrastCheck config requires "levels" as Array<"AA" | "AAA">');
+      }
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['backgroundHex']);
+      return {
+        backgroundHex: c.backgroundHex as string,
+        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({ name: step.name as string, hex: step.hex as string })),
+        levels: c.levels as ('AA' | 'AAA')[],
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
+      } satisfies ContrastCheckConfig;
+    }
+  }
+}
+
+function normalizeStoredGenerator(raw: unknown): TokenGenerator {
+  if (!isObj(raw)) throw new BadRequestError('entry is not an object');
+  if (typeof raw.id !== 'string' || raw.id === '') throw new BadRequestError('missing or invalid "id"');
+  if (typeof raw.name !== 'string') throw new BadRequestError('missing or invalid "name"');
+  if (typeof raw.targetSet !== 'string') throw new BadRequestError('missing or invalid "targetSet"');
+  if (typeof raw.targetGroup !== 'string') throw new BadRequestError('missing or invalid "targetGroup"');
+  if (typeof raw.createdAt !== 'string') throw new BadRequestError('missing or invalid "createdAt"');
+  if (typeof raw.updatedAt !== 'string') throw new BadRequestError('missing or invalid "updatedAt"');
+  if (raw.sourceToken !== undefined && typeof raw.sourceToken !== 'string') {
+    throw new BadRequestError('sourceToken must be a string when provided');
+  }
+  if (raw.targetSetTemplate !== undefined && typeof raw.targetSetTemplate !== 'string') {
+    throw new BadRequestError('targetSetTemplate must be a string when provided');
+  }
+  if (raw.enabled !== undefined && typeof raw.enabled !== 'boolean') {
+    throw new BadRequestError('enabled must be a boolean when provided');
+  }
+  if (raw.lastRunAt !== undefined && typeof raw.lastRunAt !== 'string') {
+    throw new BadRequestError('lastRunAt must be a string when provided');
+  }
+
+  const type = normalizeGeneratorType(raw.type);
+  const overrides = normalizeOverrides(raw.overrides);
+  const inputTable = normalizeInputTable(raw.inputTable);
+  const lastRunError = normalizeLastRunError(raw.lastRunError);
+  return {
+    id: raw.id,
+    type,
+    name: raw.name,
+    ...(raw.sourceToken !== undefined && { sourceToken: raw.sourceToken }),
+    ...(raw.inlineValue !== undefined && { inlineValue: raw.inlineValue }),
+    targetSet: raw.targetSet,
+    targetGroup: raw.targetGroup,
+    config: normalizeGeneratorConfig(type, raw.config),
+    ...(overrides && { overrides }),
+    ...(inputTable && { inputTable }),
+    ...(raw.targetSetTemplate !== undefined && { targetSetTemplate: raw.targetSetTemplate }),
+    ...(raw.enabled !== undefined && { enabled: raw.enabled }),
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+    ...(raw.lastRunAt !== undefined && { lastRunAt: raw.lastRunAt }),
+    ...(raw.lastRunSourceValue !== undefined && { lastRunSourceValue: raw.lastRunSourceValue }),
+    ...(lastRunError && { lastRunError }),
+  };
 }
 
 export class GeneratorService {
@@ -95,12 +496,15 @@ export class GeneratorService {
       }
       this.generators.clear();
       for (const gen of data.$generators) {
-        const err = validateGeneratorShape(gen);
-        if (err) {
-          console.warn(`[GeneratorService] Skipping invalid generator entry: ${err}`, gen?.id ?? '(no id)');
+        try {
+          const normalized = normalizeStoredGenerator(gen);
+          this.generators.set(normalized.id, normalized);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          const id = isObj(gen) && typeof gen.id === 'string' ? gen.id : '(no id)';
+          console.warn(`[GeneratorService] Skipping invalid generator entry: ${message}`, id);
           continue;
         }
-        this.generators.set((gen as TokenGenerator).id, gen as TokenGenerator);
       }
     } catch {
       // File doesn't exist yet — perfectly normal on first run
@@ -142,14 +546,14 @@ export class GeneratorService {
     return this.generators.get(id);
   }
 
-  async create(data: Omit<TokenGenerator, 'id' | 'createdAt' | 'updatedAt'>): Promise<TokenGenerator> {
+  async create(data: GeneratorCreateInput): Promise<TokenGenerator> {
     const now = new Date().toISOString();
-    const generator: TokenGenerator = {
+    const generator = normalizeStoredGenerator({
       ...data,
       id: randomUUID(),
       createdAt: now,
       updatedAt: now,
-    };
+    });
     this.generators.set(generator.id, generator);
     try {
       this.buildDependencyOrder();
@@ -171,17 +575,17 @@ export class GeneratorService {
 
   async update(
     id: string,
-    updates: Partial<Omit<TokenGenerator, 'id' | 'createdAt'>>,
+    updates: GeneratorUpdateInput,
   ): Promise<TokenGenerator> {
     const existing = this.generators.get(id);
     if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
-    const updated: TokenGenerator = {
+    const updated = normalizeStoredGenerator({
       ...existing,
       ...updates,
       id,
       createdAt: existing.createdAt,
       updatedAt: new Date().toISOString(),
-    };
+    });
     this.generators.set(id, updated);
     try {
       this.buildDependencyOrder();
@@ -219,8 +623,20 @@ export class GeneratorService {
    * Used by rollback to re-create or revert a generator to a prior state.
    */
   async restore(generator: TokenGenerator): Promise<void> {
-    this.generators.set(generator.id, generator);
-    await this.saveGenerators();
+    const existing = this.generators.get(generator.id);
+    const normalized = normalizeStoredGenerator(generator);
+    this.generators.set(normalized.id, normalized);
+    try {
+      this.buildDependencyOrder();
+      await this.saveGenerators();
+    } catch (err) {
+      if (existing) {
+        this.generators.set(existing.id, existing);
+      } else {
+        this.generators.delete(normalized.id);
+      }
+      throw err;
+    }
   }
 
   /**
@@ -349,17 +765,26 @@ export class GeneratorService {
 
   /** Compute what would be generated without persisting anything. */
   async preview(
-    data: Pick<TokenGenerator, 'type' | 'sourceToken' | 'inlineValue' | 'targetGroup' | 'targetSet' | 'config' | 'overrides'>,
+    data: GeneratorPreviewInput,
     tokenStore: TokenStore,
     sourceValue?: unknown,
   ): Promise<GeneratedTokenResult[]> {
+    const type = normalizeGeneratorType(data.type);
+    const normalizedData = {
+      ...data,
+      type,
+      config: normalizeGeneratorConfig(type, data.config),
+      overrides: normalizeOverrides(data.overrides),
+    };
     if (sourceValue !== undefined) {
       // source value already resolved on the client; still resolve config tokenRefs on the server
-      const resolvedConfig = await this.resolveConfigTokenRefs(data.config, tokenStore);
-      const resolvedData = resolvedConfig !== data.config ? { ...data, config: resolvedConfig } : data;
+      const resolvedConfig = await this.resolveConfigTokenRefs(normalizedData.config, tokenStore);
+      const resolvedData = resolvedConfig !== normalizedData.config
+        ? { ...normalizedData, config: resolvedConfig }
+        : normalizedData;
       return this.computeResultsWithValue(resolvedData, sourceValue);
     }
-    return this.computeResults(data, tokenStore);
+    return this.computeResults(normalizedData, tokenStore);
   }
 
   /** Run a saved generator and persist the derived tokens. */
@@ -681,7 +1106,7 @@ export class GeneratorService {
     const overrides = generator.overrides;
     if (!overrides) return;
     const cleaned: Record<string, { value: unknown; locked: boolean }> = {};
-    for (const [key, val] of Object.entries(overrides)) {
+    for (const [key, val] of Object.entries(overrides as Record<string, { value: unknown; locked: boolean }>)) {
       if (val.locked) cleaned[key] = val;
     }
     if (Object.keys(cleaned).length !== Object.keys(overrides).length) {

@@ -397,3 +397,11 @@
   - When adjacent analysis tools are already self-contained, merging them cleanly can happen at the shell level by turning tabs into a guided sequence instead of rewriting each panel's internal state machine.
   - Fixed-height section shells let existing full-height panels keep their own scan and result behavior while still participating in a single scrollable workflow surface.
 ---
+## 2026-04-09 - [Move generator validation and allowed-type ownership into `packages/server/src/services/generator-service.ts` and delete the parallel contract layer in `packages/server/src/routes/generators.ts`, because route-only validation currently drifts from service rules and rollback `restore()` can reintroduce generator configs the service itself never checks.]
+- Moved generator type/config normalization into `GeneratorService`, reused it for load, create, update, preview, and rollback restore paths, and expanded service-side normalization to sanitize input tables, overrides, and persisted error metadata before generators are accepted back into storage.
+- Removed the route-local generator contract layer so the route now forwards raw generator payloads to the service-owned contract, while keeping only the minimal request-shape checks needed before route-specific snapshot work.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L52, ~L140, ~L191, ~L488, ~L549, ~L625, ~L767; `packages/server/src/routes/generators.ts` ~L1, ~L81, ~L123, ~L161; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - If rollback can restore a persisted entity directly, the service that owns disk state needs the same normalization path for `load`, `create`, `update`, and `restore`; otherwise invalid snapshots can bypass route-only validation.
+  - Re-exporting service-owned raw input types lets routes stay thin without reintroducing a second validation contract just to satisfy TypeScript.
+---

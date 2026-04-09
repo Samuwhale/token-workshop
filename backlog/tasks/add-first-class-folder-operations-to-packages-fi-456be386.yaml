@@ -12,9 +12,10 @@ status_notes:
   - "Failed: write scope violation: touched scripts/backlog/progress.txt, node_modules, packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
   - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
   - "Failed: impossible — folder operations are implemented in scope, but repo validation still fails on unrelated TypeScript errors outside the allowed files."
-state: failed
+  - "Recovered: `scripts/backlog/validate.sh` now bootstraps `packages/core` before downstream tests and builds, so the prior validation failure was workspace bootstrap drift rather than an out-of-scope repo TypeScript blocker. Requeue this task directly."
+state: ready
 acceptance_criteria:
   - Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
 source: manual
 created_at: 2026-04-08T20:14:30.290Z
-updated_at: 2026-04-09T12:21:37.284Z
+updated_at: 2026-04-09T12:33:00.000Z
