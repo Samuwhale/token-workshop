@@ -7,12 +7,16 @@ export function ImportSuccessView() {
     successMessage,
     failedImportPaths,
     failedImportBatches,
+    failedImportGroups,
+    failedImportStrategy,
     succeededImportCount,
     lastImport,
+    lastImportReviewSummary,
     fileImportValidation,
     undoing,
     retrying,
     copyFeedback,
+    reviewActionCopy,
     handleUndoImport,
     handleRetryFailed,
     handleCopyFailedPaths,
@@ -20,14 +24,51 @@ export function ImportSuccessView() {
   } = useImportPanel();
   const hasParseWarnings = !!fileImportValidation && (fileImportValidation.status === 'partial' || fileImportValidation.skippedCount > 0 || fileImportValidation.issues.length > 0);
   const showRetryGuidance = hasParseWarnings && failedImportPaths.length > 0;
+  const hasFailedWrites = failedImportPaths.length > 0;
+  const statusColor = hasFailedWrites ? 'var(--color-figma-warning,#e8a100)' : 'var(--color-figma-success)';
+  const failureStrategyLabel = reviewActionCopy[failedImportStrategy].label;
 
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-10">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="9" stroke="var(--color-figma-success)" strokeWidth="1.5" />
-        <path d="M6 10l3 3 5-5" stroke="var(--color-figma-success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="10" cy="10" r="9" stroke={statusColor} strokeWidth="1.5" />
+        {hasFailedWrites ? (
+          <>
+            <path d="M10 5.5v5" stroke={statusColor} strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="10" cy="13.5" r="0.8" fill={statusColor} />
+          </>
+        ) : (
+          <path d="M6 10l3 3 5-5" stroke={statusColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        )}
       </svg>
-      <div role="status" aria-live="polite" className="text-[11px] text-[var(--color-figma-success)] font-medium text-center">{successMessage}</div>
+      <div role="status" aria-live="polite" className="text-[11px] font-medium text-center" style={{ color: statusColor }}>
+        {successMessage}
+      </div>
+      {lastImportReviewSummary && (
+        <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              Applied import review for {lastImportReviewSummary.destinationLabel}
+            </div>
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
+              hasFailedWrites
+                ? 'bg-[var(--color-figma-warning,#e8a100)]/15 text-[var(--color-figma-warning,#e8a100)]'
+                : 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]'
+            }`}>
+              {hasFailedWrites ? 'Needs follow-up' : 'Applied'}
+            </span>
+          </div>
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            {lastImportReviewSummary.newCount} new
+            {lastImportReviewSummary.overwriteCount > 0 && ` · ${lastImportReviewSummary.overwriteCount} overwrite`}
+            {lastImportReviewSummary.mergeCount > 0 && ` · ${lastImportReviewSummary.mergeCount} merge`}
+            {lastImportReviewSummary.keepExistingCount > 0 && ` · ${lastImportReviewSummary.keepExistingCount} keep existing`}
+          </div>
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Next: {hasFailedWrites ? 'Retry the failed set writes below or copy the remaining paths to continue the review from the listed sets.' : 'Import more, or undo this import if you want to revise the review.'}
+          </div>
+        </div>
+      )}
       {fileImportValidation && (
         <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
           <div className="flex items-center justify-between gap-2">
@@ -106,16 +147,21 @@ export function ImportSuccessView() {
           )}
         </div>
       )}
-      {failedImportPaths.length > 0 && (
+      {hasFailedWrites && (
         <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] text-[var(--color-figma-success)] font-medium">
-                ✓ {succeededImportCount} succeeded
-              </span>
-              <span className="text-[10px] text-[var(--color-figma-error)] font-medium">
-                ✗ {failedImportPaths.length} failed
-              </span>
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-[var(--color-figma-success)] font-medium">
+                  ✓ {succeededImportCount} succeeded
+                </span>
+                <span className="text-[10px] text-[var(--color-figma-error)] font-medium">
+                  ✗ {failedImportPaths.length} failed
+                </span>
+              </div>
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Import strategy: {failureStrategyLabel}. Next: retry the failed set writes below.
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -136,14 +182,39 @@ export function ImportSuccessView() {
               )}
             </div>
           </div>
-          <ul className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
-            {failedImportPaths.slice(0, 5).map(p => (
-              <li key={p} className="font-mono truncate" title={p}>{p}</li>
-            ))}
-            {failedImportPaths.length > 5 && (
-              <li className="italic">…and {failedImportPaths.length - 5} more</li>
+          <div className="space-y-2">
+            {failedImportGroups.length > 0 ? (
+              failedImportGroups.map(group => (
+                <div key={group.setName} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.setName}</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      {group.paths.length} failed path{group.paths.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <ul className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
+                    {group.paths.slice(0, 3).map(path => (
+                      <li key={`${group.setName}:${path}`} className="font-mono truncate" title={path}>
+                        {path}
+                      </li>
+                    ))}
+                    {group.paths.length > 3 && (
+                      <li className="italic">…and {group.paths.length - 3} more in this set</li>
+                    )}
+                  </ul>
+                </div>
+              ))
+            ) : (
+              <ul className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
+                {failedImportPaths.slice(0, 5).map(path => (
+                  <li key={path} className="font-mono truncate" title={path}>{path}</li>
+                ))}
+                {failedImportPaths.length > 5 && (
+                  <li className="italic">…and {failedImportPaths.length - 5} more</li>
+                )}
+              </ul>
             )}
-          </ul>
+          </div>
         </div>
       )}
       <div className="flex items-center gap-3 mt-1">

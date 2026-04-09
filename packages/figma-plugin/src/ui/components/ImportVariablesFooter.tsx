@@ -22,6 +22,7 @@ export function ImportVariablesFooter() {
     collectionData,
     modeEnabled,
     modeSetNames,
+    reviewActionCopy,
   } = useImportPanel();
 
   const hasInvalidSetNames = collectionData.some(col =>
@@ -42,6 +43,7 @@ export function ImportVariablesFooter() {
   const hiddenCount = varConflictDetails && !showAllConflicts
     ? Math.max(0, varConflictDetails.length - MAX_VISIBLE_CONFLICTS)
     : 0;
+  const recommendedConflictAction = reviewActionCopy.merge;
 
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
@@ -71,7 +73,7 @@ export function ImportVariablesFooter() {
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                     <path d="M4 1v4M4 6.5v.5" />
                   </svg>
-                  {varConflictPreview.overwriteCount} will update
+                  {varConflictPreview.overwriteCount} conflict{varConflictPreview.overwriteCount !== 1 ? 's' : ''} to review
                 </span>
               )}
               {varConflictPreview.newCount === 0 && varConflictPreview.overwriteCount === 0 && totalEnabledSets > 0 && (
@@ -79,6 +81,22 @@ export function ImportVariablesFooter() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {hasConflicts && varConflictPreview && !importing && (
+        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              Recommended next step: {recommendedConflictAction.buttonLabel.toLowerCase()}
+            </div>
+            <span className="rounded px-1.5 py-0.5 text-[9px] font-medium bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]">
+              Recommended
+            </span>
+          </div>
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Import {varConflictPreview.newCount} new token{varConflictPreview.newCount !== 1 ? 's' : ''} and update {varConflictPreview.overwriteCount} conflict{varConflictPreview.overwriteCount !== 1 ? 's' : ''}. {recommendedConflictAction.consequence}
+          </div>
         </div>
       )}
 
@@ -97,7 +115,7 @@ export function ImportVariablesFooter() {
             >
               <path d="M2 1l4 3-4 3V1z" />
             </svg>
-            {varConflictDetailsExpanded ? 'Hide' : 'Show'} {varConflictDetails.length} conflicting token{varConflictDetails.length !== 1 ? 's' : ''}
+            {varConflictDetailsExpanded ? 'Hide' : 'Show'} {varConflictDetails.length} token{varConflictDetails.length !== 1 ? 's' : ''} that need review
           </button>
 
           {varConflictDetailsExpanded && (
@@ -149,28 +167,28 @@ export function ImportVariablesFooter() {
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-0.5">
             <button
-              onClick={() => handleImportVariables('overwrite')}
+              onClick={() => handleImportVariables('merge')}
               disabled={totalEnabledSets === 0 || hasInvalidSetNames}
               title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
               className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
-              Import & overwrite ({totalEnabledTokens} token{totalEnabledTokens !== 1 ? 's' : ''})
+              {reviewActionCopy.merge.buttonLabel} and import ({varConflictPreview.newCount} new + {varConflictPreview.overwriteCount} updates)
             </button>
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
-              Overwrites all {varConflictPreview.overwriteCount} conflicting token{varConflictPreview.overwriteCount !== 1 ? 's' : ''} with the incoming values
+              {reviewActionCopy.merge.consequence}
             </p>
           </div>
           <div className="flex flex-col gap-0.5">
             <button
-              onClick={() => handleImportVariables('merge')}
+              onClick={() => handleImportVariables('overwrite')}
               disabled={totalEnabledSets === 0 || hasInvalidSetNames}
               title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
               className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
             >
-              Import & merge ({varConflictPreview.newCount} new + {varConflictPreview.overwriteCount} value updates)
+              {reviewActionCopy.overwrite.buttonLabel} and import ({totalEnabledTokens} token{totalEnabledTokens !== 1 ? 's' : ''})
             </button>
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
-              Adds new tokens and updates existing values. Any notes or metadata on conflicting tokens are kept as-is.
+              {reviewActionCopy.overwrite.consequence}
             </p>
           </div>
           <div className="flex flex-col gap-0.5">
@@ -180,10 +198,10 @@ export function ImportVariablesFooter() {
               title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
               className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
             >
-              Import & keep existing ({varConflictPreview.newCount} new only)
+              {reviewActionCopy.skip.buttonLabel} ({varConflictPreview.newCount} new only)
             </button>
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
-              Adds only new tokens. Skips any tokens that already exist — nothing is overwritten.
+              {reviewActionCopy.skip.consequence}
             </p>
           </div>
           {hasInvalidSetNames && (

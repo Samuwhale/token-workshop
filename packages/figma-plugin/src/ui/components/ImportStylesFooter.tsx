@@ -19,6 +19,7 @@ export function ImportStylesFooter() {
     selectedTokens,
     checkingConflicts,
     tokens,
+    reviewActionCopy,
     handleImportStyles,
   } = useImportPanel();
 
@@ -41,6 +42,8 @@ export function ImportStylesFooter() {
     allConflictingPreviewTokens !== null && !showAllPreviewConflicts
       ? Math.max(0, allConflictingPreviewTokens.length - MAX_PREVIEW_CONFLICTS)
       : 0;
+  const previewConflictCount = previewOverwriteCount ?? 0;
+  const hasPreviewConflicts = conflictPaths === null && previewConflictCount > 0;
 
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
@@ -78,7 +81,7 @@ export function ImportStylesFooter() {
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                     <path d="M4 1v4M4 6.5v.5" />
                   </svg>
-                  {previewOverwriteCount} will overwrite
+                  {previewOverwriteCount} conflict{previewOverwriteCount !== 1 ? 's' : ''} to review
                 </span>
               )}
               {previewNewCount === 0 && previewOverwriteCount === 0 && (
@@ -86,6 +89,22 @@ export function ImportStylesFooter() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {hasPreviewConflicts && !importing && (
+        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              Recommended next step: review {previewConflictCount} conflict{previewConflictCount !== 1 ? 's' : ''}
+            </div>
+            <span className="rounded px-1.5 py-0.5 text-[9px] font-medium bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]">
+              {reviewActionCopy.merge.label} recommended
+            </span>
+          </div>
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            {reviewActionCopy.merge.label} keeps existing notes and metadata. {reviewActionCopy.overwrite.label} replaces the current value, and {reviewActionCopy.skip.label.toLowerCase()} skips the conflict while still importing {previewNewCount ?? 0} new token{previewNewCount === 1 ? '' : 's'}.
+          </div>
         </div>
       )}
 
@@ -104,7 +123,7 @@ export function ImportStylesFooter() {
             >
               <path d="M2 1l4 3-4 3V1z" />
             </svg>
-            {previewConflictsExpanded ? 'Hide' : 'Show'} {previewOverwriteCount} conflicting token{previewOverwriteCount !== 1 ? 's' : ''}
+            {previewConflictsExpanded ? 'Hide' : 'Show'} {previewOverwriteCount} token{previewOverwriteCount !== 1 ? 's' : ''} that need review
           </button>
 
           {previewConflictsExpanded && (
@@ -163,10 +182,17 @@ export function ImportStylesFooter() {
                 ? importProgress
                   ? `Importing ${importProgress.done}/${importProgress.total}…`
                   : 'Importing…'
-                : `Import ${selectedTokens.size} token${selectedTokens.size !== 1 ? 's' : ''} to "${targetSet}"`}
+                : hasPreviewConflicts
+                  ? `Review ${previewConflictCount} conflict${previewConflictCount !== 1 ? 's' : ''} before import`
+                  : `Import ${selectedTokens.size} new token${selectedTokens.size !== 1 ? 's' : ''} to "${targetSet}"`}
           </button>
           {!importing && !checkingConflicts && selectedTokens.size === 0 && tokens.length > 0 && (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">Select at least one token above to import</p>
+          )}
+          {hasPreviewConflicts && !checkingConflicts && (
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">
+              Review decides whether each conflict should {reviewActionCopy.overwrite.label.toLowerCase()}, {reviewActionCopy.merge.label.toLowerCase()}, or {reviewActionCopy.skip.label.toLowerCase()}.
+            </p>
           )}
         </div>
       )}

@@ -14,11 +14,12 @@ capabilities:
 validation_profile: backlog
 status_notes:
   - "Context: Styles imports escalate into ImportConflictResolver with per-token decisions, while variables imports only expose batch strategy buttons and success/failure happens after the view resets. The redesign should define one review handoff model before deeper UI changes."
-state: ready
+  - "Completed: Shared overwrite/merge/keep-existing review copy now drives styles and variables import review, the single-set resolver exposes one clear next action per state, and partial failures retain set/path context in the success handoff."
+state: done
 acceptance_criteria:
   - Single-set and multi-set imports use consistent language for new tokens, overwrites, merges, skips, and post-import failures so the user does not have to relearn conflict behavior by source type.
   - Conflict previews and commit actions expose one recommended next action per review state, with explicit consequences for overwrite, merge, and keep-existing paths.
   - Partial failures after apply hand back enough set/path context to continue review or retry without collapsing into an isolated success screen.
 source: task-followup
 created_at: 2026-04-09T14:38:17.615Z
-updated_at: 2026-04-09T14:38:17.615Z
+updated_at: 2026-04-09T16:41:04.101Z

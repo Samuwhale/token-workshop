@@ -14,6 +14,7 @@ export function ImportConflictResolver() {
     selectedTokens,
     importing,
     importProgress,
+    reviewActionCopy,
     setConflictSearch,
     setConflictStatusFilter,
     setConflictTypeFilter,
@@ -37,12 +38,34 @@ export function ImportConflictResolver() {
   if (!conflictPaths || conflictPaths.length === 0) return null;
 
   const newCount = selectedTokens.size - conflictPaths.length;
-  const acceptCount = [...conflictDecisions.values()].filter(v => v === 'accept').length;
+  const overwriteCount = [...conflictDecisions.values()].filter(v => v === 'accept').length;
   const mergeCount = [...conflictDecisions.values()].filter(v => v === 'merge').length;
-  const rejectCount = conflictPaths.length - acceptCount - mergeCount;
-  const totalToImport = newCount + acceptCount + mergeCount;
+  const keepExistingCount = conflictPaths.length - overwriteCount - mergeCount;
+  const totalToImport = newCount + overwriteCount + mergeCount;
   const hasActiveFilter = conflictSearch !== '' || conflictStatusFilter !== 'all' || conflictTypeFilter !== 'all';
   const searchLower = conflictSearch.toLowerCase();
+  const isUniformReview =
+    overwriteCount === conflictPaths.length ||
+    mergeCount === conflictPaths.length ||
+    keepExistingCount === conflictPaths.length;
+  const recommendedActionKey =
+    overwriteCount === conflictPaths.length
+      ? 'overwrite'
+      : mergeCount === conflictPaths.length
+        ? 'merge'
+        : keepExistingCount === conflictPaths.length
+          ? 'skip'
+          : null;
+  const recommendedAction = recommendedActionKey ? reviewActionCopy[recommendedActionKey] : null;
+  const reviewSummary = recommendedAction
+    ? {
+        title: `Recommended next step: ${recommendedAction.buttonLabel.toLowerCase()}`,
+        detail: `${recommendedAction.consequence} ${newCount > 0 ? `${newCount} new token${newCount !== 1 ? 's' : ''} will also import.` : ''}`.trim(),
+      }
+    : {
+        title: `Recommended next step: apply this mixed review`,
+        detail: `${overwriteCount} overwrite, ${mergeCount} merge, ${keepExistingCount} keep existing. ${newCount} new token${newCount !== 1 ? 's' : ''} will also import.`,
+      };
 
   const getFilteredPaths = () => conflictPaths.filter(path => {
     if (searchLower && !path.toLowerCase().includes(searchLower)) return false;
@@ -97,28 +120,46 @@ export function ImportConflictResolver() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => applyToVisible('accept')}
-            title={`Accept ${hasActiveFilter ? 'visible' : 'all'} (A)`}
+            title={`${reviewActionCopy.overwrite.label} ${hasActiveFilter ? 'visible' : 'all'} (A)`}
             aria-keyshortcuts="a"
             className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10 transition-colors"
           >
-            Accept{hasActiveFilter ? ' visible' : ' all'}
+            {reviewActionCopy.overwrite.label}{hasActiveFilter ? ' visible' : ' all'}
           </button>
           <button
             onClick={() => applyToVisible('merge')}
-            title={`Merge ${hasActiveFilter ? 'visible' : 'all'} (M)`}
+            title={`${reviewActionCopy.merge.label} ${hasActiveFilter ? 'visible' : 'all'} (M)`}
             aria-keyshortcuts="m"
             className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
           >
-            Merge{hasActiveFilter ? ' visible' : ' all'}
+            {reviewActionCopy.merge.label}{hasActiveFilter ? ' visible' : ' all'}
           </button>
           <button
             onClick={() => applyToVisible('reject')}
-            title={`Reject ${hasActiveFilter ? 'visible' : 'all'} (R)`}
+            title={`${reviewActionCopy.skip.label} ${hasActiveFilter ? 'visible' : 'all'} (R)`}
             aria-keyshortcuts="r"
             className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30 transition-colors"
           >
-            Reject{hasActiveFilter ? ' visible' : ' all'}
+            {reviewActionCopy.skip.label}{hasActiveFilter ? ' visible' : ' all'}
           </button>
+        </div>
+      </div>
+
+      <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            {reviewSummary.title}
+          </div>
+          <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${
+            isUniformReview
+              ? 'bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]'
+              : 'bg-[var(--color-figma-border)]/40 text-[var(--color-figma-text-secondary)]'
+          }`}>
+            {isUniformReview ? 'Ready to apply' : 'Mixed review'}
+          </span>
+        </div>
+        <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+          {reviewSummary.detail}
         </div>
       </div>
 
@@ -141,9 +182,9 @@ export function ImportConflictResolver() {
             className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
           >
             <option value="all">All status</option>
-            <option value="accept">Accepted</option>
-            <option value="merge">Merged</option>
-            <option value="reject">Rejected</option>
+            <option value="accept">{reviewActionCopy.overwrite.label}</option>
+            <option value="merge">{reviewActionCopy.merge.label}</option>
+            <option value="reject">{reviewActionCopy.skip.label}</option>
           </select>
           {sortedConflictTypes.length > 1 && (
             <select
@@ -192,10 +233,10 @@ export function ImportConflictResolver() {
                         aria-pressed={decision === d}
                         title={
                           d === 'accept'
-                            ? 'Accept: replace the current value with the incoming value'
+                            ? `${reviewActionCopy.overwrite.label}: ${reviewActionCopy.overwrite.consequence}`
                             : d === 'merge'
-                              ? 'Merge: update the value but keep any notes or metadata on the existing token'
-                              : 'Reject: skip this token, keep the current value'
+                              ? `${reviewActionCopy.merge.label}: ${reviewActionCopy.merge.consequence}`
+                              : `${reviewActionCopy.skip.label}: ${reviewActionCopy.skip.consequence}`
                         }
                         className={`px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
                           i > 0 ? 'border-l border-[var(--color-figma-border)]' : ''
@@ -209,7 +250,7 @@ export function ImportConflictResolver() {
                             : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/20'
                         }`}
                       >
-                        {d === 'accept' ? 'Accept' : d === 'merge' ? 'Merge' : 'Reject'}
+                        {d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}
                       </button>
                     ))}
                   </div>
@@ -254,9 +295,9 @@ export function ImportConflictResolver() {
 
       {/* Import action */}
       <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-        <span className="text-[var(--color-figma-success,#16a34a)]">{acceptCount} accepted</span>
-        {mergeCount > 0 && <><span>·</span><span className="text-[var(--color-figma-accent)]">{mergeCount} merged</span></>}
-        {rejectCount > 0 && <><span>·</span><span>{rejectCount} rejected</span></>}
+        <span className="text-[var(--color-figma-success,#16a34a)]">{overwriteCount} overwrite</span>
+        {mergeCount > 0 && <><span>·</span><span className="text-[var(--color-figma-accent)]">{mergeCount} merge</span></>}
+        {keepExistingCount > 0 && <><span>·</span><span>{keepExistingCount} keep existing</span></>}
       </div>
       <button
         onClick={() => {
@@ -277,7 +318,9 @@ export function ImportConflictResolver() {
             : 'Importing…'
           : totalToImport === 0
             ? 'No tokens to import'
-            : `Import ${totalToImport} token${totalToImport !== 1 ? 's' : ''}`}
+            : isUniformReview && recommendedAction
+              ? `${recommendedAction.buttonLabel} and import ${totalToImport} token${totalToImport !== 1 ? 's' : ''}`
+              : `Apply review and import ${totalToImport} token${totalToImport !== 1 ? 's' : ''}`}
       </button>
       {importing && importProgress && importProgress.total > 0 && (
         <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
@@ -294,7 +337,7 @@ export function ImportConflictResolver() {
         aria-keyshortcuts="Escape"
         className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
       >
-        Revise selection
+        Back to selection
       </button>
     </div>
   );

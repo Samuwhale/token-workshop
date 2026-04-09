@@ -25,6 +25,28 @@ export interface ImportPanelProps {
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
+export type ImportReviewActionKey = 'overwrite' | 'merge' | 'skip';
+
+export interface ImportReviewActionCopy {
+  key: ImportReviewActionKey;
+  label: string;
+  buttonLabel: string;
+  consequence: string;
+}
+
+export interface ImportFailureGroup {
+  setName: string;
+  paths: string[];
+}
+
+export interface LastImportReviewSummary {
+  destinationLabel: string;
+  newCount: number;
+  overwriteCount: number;
+  mergeCount: number;
+  keepExistingCount: number;
+}
+
 export interface ImportPanelContextValue {
   // Props
   serverUrl: string;
@@ -71,7 +93,10 @@ export interface ImportPanelContextValue {
   retrying: boolean;
   copyFeedback: boolean;
   lastImport: { entries: { setName: string; paths: string[] }[] } | null;
+  lastImportReviewSummary: LastImportReviewSummary | null;
   undoing: boolean;
+  failedImportGroups: ImportFailureGroup[];
+  reviewActionCopy: Record<ImportReviewActionKey, ImportReviewActionCopy>;
 
   // Conflict state
   conflictPaths: string[] | null;
@@ -168,6 +193,27 @@ type ImportHistory = { entries: { setName: string; paths: string[] }[] };
 type ImportStrategy = 'overwrite' | 'skip' | 'merge';
 type ImportSource = ImportPanelContextValue['source'];
 
+export const IMPORT_REVIEW_ACTION_COPY: Record<ImportReviewActionKey, ImportReviewActionCopy> = {
+  overwrite: {
+    key: 'overwrite',
+    label: 'Overwrite',
+    buttonLabel: 'Overwrite conflicts',
+    consequence: 'Replace the current value with the incoming value.',
+  },
+  merge: {
+    key: 'merge',
+    label: 'Merge',
+    buttonLabel: 'Merge conflicts',
+    consequence: 'Update the value and keep any notes or metadata already on the token.',
+  },
+  skip: {
+    key: 'skip',
+    label: 'Keep existing',
+    buttonLabel: 'Keep existing conflicts',
+    consequence: 'Skip conflicting tokens and only import tokens that are still new.',
+  },
+};
+
 function getImportSourceTag(source: ImportSource): string | null {
   if (source === 'variables') return 'figma-variables';
   if (source === 'styles') return 'figma-styles';
@@ -205,6 +251,17 @@ function flattenExistingTokens(tokens: Record<string, unknown> | undefined): Map
     });
   }
   return mapped;
+}
+
+function buildFailedImportGroups(batches: ImportBatch[]): ImportFailureGroup[] {
+  return batches
+    .map(batch => ({
+      setName: batch.setName,
+      paths: batch.tokens
+        .map(token => token.path)
+        .filter((path): path is string => typeof path === 'string'),
+    }))
+    .filter(group => group.paths.length > 0);
 }
 
 export function useImportPanel(): ImportPanelContextValue {
@@ -247,6 +304,7 @@ export function ImportPanelProvider({
   const [retrying, setRetrying] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [lastImport, setLastImport] = useState<ImportHistory | null>(null);
+  const [lastImportReviewSummary, setLastImportReviewSummary] = useState<LastImportReviewSummary | null>(null);
   const [undoing, setUndoing] = useState(false);
 
   const existingPathsCacheRef = useRef<Map<string, Map<string, ExistingTokenValue>>>(new Map());
@@ -321,6 +379,22 @@ export function ImportPanelProvider({
   const totalEnabledTokens = useMemo(
     () => collectionImportEntries.reduce((count, entry) => count + entry.tokens.length, 0),
     [collectionImportEntries],
+  );
+
+  const previewNewCount = useMemo(
+    () =>
+      existingTokenMap !== null
+        ? [...src.selectedTokens].filter(path => !existingTokenMap.has(path)).length
+        : null,
+    [existingTokenMap, src.selectedTokens],
+  );
+
+  const previewOverwriteCount = useMemo(
+    () =>
+      existingTokenMap !== null
+        ? [...src.selectedTokens].filter(path => existingTokenMap.has(path)).length
+        : null,
+    [existingTokenMap, src.selectedTokens],
   );
 
   const fetchSetTokenMap = useCallback(
@@ -529,6 +603,7 @@ export function ImportPanelProvider({
           await deleteImportedEntries(capturedEntries);
           onImportedRef.current();
           setLastImport(null);
+          setLastImportReviewSummary(null);
           setSuccessMessage(null);
           clearFailedState();
           resetExistingPathsCache();
@@ -601,6 +676,16 @@ export function ImportPanelProvider({
           setSucceededImportCount(importedTokens);
         }
 
+        setLastImportReviewSummary({
+          destinationLabel:
+            collectionImportEntries.length === 1
+              ? `"${collectionImportEntries[0]?.setName ?? 'Unknown set'}"`
+              : `${collectionImportEntries.length} sets`,
+          newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
+          overwriteCount: strategy === 'overwrite' ? varConflictPreview?.overwriteCount ?? 0 : 0,
+          mergeCount: strategy === 'merge' ? varConflictPreview?.overwriteCount ?? 0 : 0,
+          keepExistingCount: strategy === 'skip' ? varConflictPreview?.overwriteCount ?? 0 : 0,
+        });
         setLastImportWithUndo(rollbackEntries.length > 0 ? { entries: rollbackEntries } : null);
         setSuccessMessage(successSummary);
       } catch (err) {
@@ -618,6 +703,8 @@ export function ImportPanelProvider({
       importTokenBatch,
       resetExistingPathsCache,
       setLastImportWithUndo,
+      totalEnabledTokens,
+      varConflictPreview,
       src.resetAfterImport,
       src.setError,
       src.source,
@@ -658,6 +745,16 @@ export function ImportPanelProvider({
         onImportCompleteRef.current(setsHook.targetSet);
         resetExistingPathsCache();
         src.resetAfterImport();
+        const mergeCount = mergePaths?.size ?? 0;
+        const keepExistingCount = excludePaths?.size ?? 0;
+        const reviewedConflictCount = conflictPaths?.length ?? previewOverwriteCount ?? 0;
+        setLastImportReviewSummary({
+          destinationLabel: `"${setsHook.targetSet}"`,
+          newCount: previewNewCount ?? Math.max(0, selectedImportTokens.length - reviewedConflictCount),
+          overwriteCount: Math.max(0, reviewedConflictCount - mergeCount - keepExistingCount),
+          mergeCount,
+          keepExistingCount,
+        });
         setLastImportWithUndo(
           imported > 0
             ? { entries: [{ setName: setsHook.targetSet, paths: tokensToImport.map(token => token.path) }] }
@@ -682,6 +779,9 @@ export function ImportPanelProvider({
       importTokenBatch,
       resetExistingPathsCache,
       setLastImportWithUndo,
+      conflictPaths,
+      previewNewCount,
+      previewOverwriteCount,
       src.resetAfterImport,
       src.setError,
     ],
@@ -704,7 +804,7 @@ export function ImportPanelProvider({
         for (const path of conflicts) {
           const current = existing.get(path);
           if (current) existingValues.set(path, current);
-          decisions.set(path, 'accept');
+          decisions.set(path, 'merge');
         }
         setConflictPaths(conflicts);
         setConflictExistingValues(existingValues);
@@ -731,6 +831,7 @@ export function ImportPanelProvider({
       dispatchToast('Import undone', 'success');
       onImportedRef.current();
       setLastImport(null);
+      setLastImportReviewSummary(null);
       setSuccessMessage(null);
       clearFailedState();
       src.clearFileImportValidation();
@@ -820,23 +921,13 @@ export function ImportPanelProvider({
     setSuccessMessage(null);
     clearFailedState();
     setLastImport(null);
+    setLastImportReviewSummary(null);
     src.clearFileImportValidation();
   }, [clearFailedState, src.clearFileImportValidation]);
 
-  const previewNewCount = useMemo(
-    () =>
-      existingTokenMap !== null
-        ? [...src.selectedTokens].filter(path => !existingTokenMap.has(path)).length
-        : null,
-    [existingTokenMap, src.selectedTokens],
-  );
-
-  const previewOverwriteCount = useMemo(
-    () =>
-      existingTokenMap !== null
-        ? [...src.selectedTokens].filter(path => existingTokenMap.has(path)).length
-        : null,
-    [existingTokenMap, src.selectedTokens],
+  const failedImportGroups = useMemo(
+    () => buildFailedImportGroups(failedImportBatches),
+    [failedImportBatches],
   );
 
   const usesCollectionDestination = src.collectionData.length > 0;
@@ -900,7 +991,10 @@ export function ImportPanelProvider({
     retrying,
     copyFeedback,
     lastImport,
+    lastImportReviewSummary,
     undoing,
+    failedImportGroups,
+    reviewActionCopy: IMPORT_REVIEW_ACTION_COPY,
     conflictPaths,
     conflictExistingValues,
     conflictDecisions,
@@ -979,7 +1073,7 @@ export function ImportPanelProvider({
     src.handleTailwindFileChange, src.handleTokensStudioFileChange, src.handleDragEnter, src.handleDragLeave,
     src.handleDragOver, src.handleDrop, src.handleBack, src.selectSourceFamily, src.continueToPreview, src.toggleToken, src.toggleAll,
     importing, importProgress, successMessage, failedImportPaths, failedImportBatches,
-    failedImportStrategy, succeededImportCount, retrying, copyFeedback, lastImport, undoing,
+    failedImportStrategy, succeededImportCount, retrying, copyFeedback, lastImport, lastImportReviewSummary, undoing,
     handleCopyFailedPaths, clearSuccessState,
     setsHook.targetSet, setsHook.sets, setsHook.setsError, setsHook.newSetInputVisible,
     setsHook.newSetDraft, setsHook.newSetError, setsHook.setNewSetInputVisible, setsHook.setNewSetDraft,
@@ -989,7 +1083,7 @@ export function ImportPanelProvider({
     conflictTypeFilter, checkingConflicts, setConflictSearch, setConflictStatusFilter,
     setConflictTypeFilter, setConflictDecisions, existingTokenMap, existingPathsFetching,
     existingTokenMapError, varConflictPreview, varConflictDetails, varConflictDetailsExpanded,
-    setVarConflictDetailsExpanded, checkingVarConflicts, clearConflictState,
+    setVarConflictDetailsExpanded, checkingVarConflicts, clearConflictState, failedImportGroups,
     previewNewCount, previewOverwriteCount,
     totalEnabledSets, totalEnabledTokens, usesCollectionDestination, destinationReady, canContinueToPreview,
     handleImportVariables, handleImportStyles, executeImport, handleUndoImport, handleRetryFailed,
