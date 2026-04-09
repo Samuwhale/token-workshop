@@ -51,6 +51,7 @@ import { useTokenSelection } from '../hooks/useTokenSelection';
 import { dispatchToast } from '../shared/toastBus';
 import { TokenSearchFilterBuilder } from './TokenSearchFilterBuilder';
 import type { FilterBuilderSection } from './TokenSearchFilterBuilder';
+import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES } from './WelcomePrompt';
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
@@ -3559,7 +3560,6 @@ export function TokenList({
           </div>
         ) : tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 px-5 gap-4 text-center">
-            {/* Icon + heading */}
             <div className="flex flex-col items-center gap-2">
               <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -3569,29 +3569,41 @@ export function TokenList({
               </div>
               <div>
                 <p className="text-[12px] font-medium text-[var(--color-figma-text)]">This set is empty</p>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Get started by adding tokens</p>
+                <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Open the start branch you need instead of bouncing through a separate empty-state flow.
+                </p>
               </div>
             </div>
 
-            {/* Start-here actions */}
-            <div className="flex flex-col gap-1.5 w-full max-w-[240px]">
-              <button
-                onClick={() => onOpenStartHere?.('root')}
-                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 6h16" />
-                    <path d="M4 12h10" />
-                    <path d="M4 18h7" />
-                  </svg>
-                  <span className="text-[11px] font-medium">Start here</span>
-                </div>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-                  Import an existing system, generate foundations from templates, or start manually
-                </p>
-              </button>
-
+            <div className="flex w-full max-w-[260px] flex-col gap-1.5 text-left">
+              {TOKENS_START_HERE_BRANCHES.map((branch) => {
+                const shortcut = getStartHereBranchCopy(branch);
+                const isRecommended = branch === 'guided-setup';
+                return (
+                  <button
+                    key={branch}
+                    onClick={() => onOpenStartHere?.(branch)}
+                    className={[
+                      'rounded border px-3 py-2 transition-colors',
+                      isRecommended
+                        ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/5 hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10'
+                        : 'border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]',
+                    ].join(' ')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{shortcut.title}</span>
+                      {isRecommended && (
+                        <span className="rounded-full bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                          Recommended
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                      {shortcut.description}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : displayedTokens.length === 0 && filtersActive ? (

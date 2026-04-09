@@ -4,6 +4,41 @@ import { QuickStartDialog } from './QuickStartDialog';
 import { QuickStartWizard } from './QuickStartWizard';
 
 export type StartHereBranch = 'root' | 'import' | 'template' | 'guided-setup' | 'template-library' | 'manual';
+type StartHereDetailBranch = Exclude<StartHereBranch, 'root'>;
+
+type StartHereBranchCopy = {
+  title: string;
+  description: string;
+};
+
+const START_HERE_BRANCH_COPY: Record<StartHereDetailBranch, StartHereBranchCopy> = {
+  import: {
+    title: 'Import an existing system',
+    description: 'Bring in a system you already have, then refine it inside Token Manager.',
+  },
+  template: {
+    title: 'Start from a template',
+    description: 'Pick a guided or generated starting point, then shape it into your design system.',
+  },
+  'guided-setup': {
+    title: 'Guided system setup',
+    description: 'Recommended for new systems. Build foundations, semantics, and theme modes in one flow.',
+  },
+  'template-library': {
+    title: 'Foundation templates',
+    description: 'Generate common scales and foundations into your active token set.',
+  },
+  manual: {
+    title: 'Start manually',
+    description: 'Open the shared token creator once you already know the first token or group you want to add.',
+  },
+};
+
+export const TOKENS_START_HERE_BRANCHES = ['guided-setup', 'template-library', 'import', 'manual'] as const satisfies readonly StartHereBranch[];
+
+export function getStartHereBranchCopy(branch: StartHereDetailBranch): StartHereBranchCopy {
+  return START_HERE_BRANCH_COPY[branch];
+}
 
 interface WelcomePromptProps {
   connected: boolean;
@@ -92,45 +127,28 @@ export function WelcomePrompt({
   onSetCreated,
 }: WelcomePromptProps) {
   const [branch, setBranch] = useState<StartHereBranch>(initialBranch);
+  const importCopy = getStartHereBranchCopy('import');
+  const templateCopy = getStartHereBranchCopy('template');
+  const guidedSetupCopy = getStartHereBranchCopy('guided-setup');
+  const templateLibraryCopy = getStartHereBranchCopy('template-library');
+  const manualCopy = getStartHereBranchCopy('manual');
 
   useEffect(() => {
     setBranch(initialBranch);
   }, [initialBranch]);
 
   const branchTitle = useMemo(() => {
-    switch (branch) {
-      case 'import':
-        return 'Import an existing system';
-      case 'template':
-        return 'Start from a template';
-      case 'guided-setup':
-        return 'Guided system setup';
-      case 'template-library':
-        return 'Foundation templates';
-      case 'manual':
-        return 'Start manually';
-      default:
-        return 'How do you want to begin?';
-    }
+    return branch === 'root'
+      ? 'How do you want to begin?'
+      : getStartHereBranchCopy(branch).title;
   }, [branch]);
 
   const branchDescription = useMemo(() => {
-    switch (branch) {
-      case 'import':
-        return 'Bring in a system you already have, then refine it inside Token Manager.';
-      case 'template':
-        return 'Pick a guided or generated starting point, then shape it into your design system.';
-      case 'guided-setup':
-        return 'Recommended for new systems. Build foundations, semantics, and theme modes in one flow.';
-      case 'template-library':
-        return 'Generate common scales and foundations into your active token set.';
-      case 'manual':
-        return 'Create your system structure yourself when you already know the shape you want.';
-      default:
-        return isFirstRun
-          ? 'Start with one clear decision, then follow the branch that matches the system you want to build.'
-          : 'Choose one path. Import, generate, or handcraft your system foundations from here.';
-    }
+    return branch === 'root'
+      ? (isFirstRun
+        ? 'Start with one clear decision, then follow the branch that matches the system you want to build.'
+        : 'Choose one path. Import, generate, or handcraft your system foundations from here.')
+      : getStartHereBranchCopy(branch).description;
   }, [branch, isFirstRun]);
 
   const requiresServer = !connected && branch !== 'guided-setup';
@@ -143,7 +161,7 @@ export function WelcomePrompt({
   const renderRoot = () => (
     <div className="flex flex-col gap-3">
       <ActionCard
-        title="Import an existing system"
+        title={importCopy.title}
         description="Bring in Figma variables or an existing token file and use that as the starting point for your system."
         onClick={() => setBranch('import')}
         icon={(
@@ -155,7 +173,7 @@ export function WelcomePrompt({
         )}
       />
       <ActionCard
-        title="Start from a template"
+        title={templateCopy.title}
         description="Use guided setup or generate proven foundations like color, spacing, and type scales."
         accent
         badge={isFirstRun ? 'Recommended' : undefined}
@@ -170,8 +188,8 @@ export function WelcomePrompt({
         )}
       />
       <ActionCard
-        title="Start manually"
-        description="Open a blank system and create tokens yourself once you know exactly what you need."
+        title={manualCopy.title}
+        description="Jump into the same token creator used from the Tokens workspace once you know what you want to add."
         onClick={() => setBranch('manual')}
         icon={(
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -217,7 +235,7 @@ export function WelcomePrompt({
   const renderTemplate = () => (
     <div className="flex flex-col gap-3">
       <ActionCard
-        title="Guided setup"
+        title={guidedSetupCopy.title}
         description="Walk through foundations, semantic roles, and theme modes in one recommended flow."
         accent
         badge="Recommended"
@@ -229,7 +247,7 @@ export function WelcomePrompt({
         )}
       />
       <ActionCard
-        title="Browse foundation templates"
+        title={templateLibraryCopy.title}
         description="Generate scales like color, spacing, radius, typography, and opacity into your active token set."
         disabled={!connected}
         onClick={() => setBranch('template-library')}
@@ -261,8 +279,8 @@ export function WelcomePrompt({
   const renderManual = () => (
     <div className="flex flex-col gap-3">
       <ActionCard
-        title="Create your first token"
-        description="Start with one foundation token and expand the system from there."
+        title="Open the token creator"
+        description="Hand off to the same create flow used from the Tokens workspace so manual starts stay on the shared path."
         disabled={!connected}
         onClick={() => handleAction(onCreateToken)}
         icon={(

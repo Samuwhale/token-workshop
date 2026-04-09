@@ -65,7 +65,7 @@ The implemented start flow still resolves through `WelcomePrompt` and its shared
 - `template-library`
 - `manual`
 
-Empty states and recovery entry points should continue deep-linking into these branches instead of creating parallel root-level onboarding flows.
+Tokens empty states and recovery entry points should deep-link straight into these branches instead of recreating onboarding copy inline. The current Tokens start shortcuts reopen `guided-setup`, `template-library`, `import`, and `manual` directly while still resolving through the same `WelcomePrompt` branch model.
 
 ## Surface model
 

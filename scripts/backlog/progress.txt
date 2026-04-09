@@ -545,3 +545,12 @@
   - Operation-history pagination tests should assert specific entry ordering across page boundaries, not just total counts, because the API stores entries oldest-first and pages from the newest end.
   - Rename-propagation tests need to filter the path-rename feed by the paths under test since unrelated rename operations can remain active across the shared API suite.
 ---
+## 2026-04-09 - [Merge Tokens empty-state starts into one canonical Start here flow]
+- Replaced the Tokens library empty state and empty-set state with direct deep links into the shared `WelcomePrompt` branches, and centralized the branch copy so both entry points use the same guided-setup, template-library, import, and manual labels.
+- Updated the manual branch copy to explicitly hand off into the shared token creator path instead of presenting manual start as a separate onboarding flow, and documented the deep-link contract in the IA blueprint.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/WelcomePrompt.tsx packages/figma-plugin/src/ui/components/TokenList.tsx packages/figma-plugin/src/ui/panels/PanelRouter.tsx` (passes; repo still has pre-existing warnings in `TokenList.tsx` around `syncChangedCount` and a duplicate `useMemo` dependency).
+- Files changed: `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx` ~L6, ~L161, ~L279; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L451; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3562; `docs/redesign/plugin-ia-blueprint.md` ~L57; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - If multiple Tokens empty states need to start onboarding, share branch metadata from the modal itself and deep-link into those branches instead of restating onboarding explanations inline.
+  - Manual-start affordances should route into the same token-create launcher used elsewhere so onboarding stays a navigation layer, not a second creation implementation.
+---

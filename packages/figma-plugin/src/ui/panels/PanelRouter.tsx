@@ -39,8 +39,7 @@ import { ExportPanel } from '../components/ExportPanel';
 import { HistoryPanel } from '../components/HistoryPanel';
 import { HealthPanel } from '../components/HealthPanel';
 import { PreviewPanel } from '../components/PreviewPanel';
-import { EmptyState } from '../components/EmptyState';
-import type { StartHereBranch } from '../components/WelcomePrompt';
+import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES, type StartHereBranch } from '../components/WelcomePrompt';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { NotificationsPanel } from '../components/NotificationsPanel';
 import { KeyboardShortcutsPanel } from '../components/KeyboardShortcutsPanel';
@@ -450,6 +449,69 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // ---------------------------------------------------------------------------
 
   function renderDefineTokens(): ReactNode {
+    const renderTokensStartSurface = (title: string, description: string) => (
+      <div className="flex h-full flex-col items-center justify-center gap-5 overflow-y-auto px-5 py-8 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-1">
+            <p className="text-[13px] font-semibold text-[var(--color-figma-text)]">{title}</p>
+            <p className="max-w-[280px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              {description}
+            </p>
+          </div>
+        </div>
+
+        {!connected && (
+          <div className="flex w-full max-w-[310px] items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              Start here still works offline. Guided setup can walk you through reconnecting before you import, generate, or create tokens.
+            </p>
+          </div>
+        )}
+
+        <div className="flex w-full max-w-[310px] flex-col gap-2 text-left">
+          {TOKENS_START_HERE_BRANCHES.map((branch) => {
+            const shortcut = getStartHereBranchCopy(branch);
+            const isRecommended = branch === 'guided-setup';
+            return (
+              <button
+                key={branch}
+                onClick={() => p.onOpenStartHere(branch)}
+                className={[
+                  'rounded-lg border px-3 py-2.5 text-left transition-colors',
+                  isRecommended
+                    ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/5 hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10'
+                    : 'border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]',
+                ].join(' ')}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{shortcut.title}</span>
+                  {isRecommended && (
+                    <span className="rounded-full bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                      Recommended
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                  {shortcut.description}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+
     // Show the compare panel in-place when triggered from the Tokens tab
     if (p.tokensCompare.showCompare) {
       return (
@@ -495,10 +557,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         )}
         {/* Empty state */}
         {tokens.length === 0 && !createFromEmpty && !editingToken && (
-          <EmptyState
-            connected={connected}
-            onOpenStartHere={() => p.onOpenStartHere('root')}
-          />
+          renderTokensStartSurface(
+            'Build your token system',
+            'Choose the exact start branch you want to open. Every onboarding path resolves through the same Start here flow.',
+          )
         )}
         {/* Main content: TokenList variants */}
         {(tokens.length > 0 || createFromEmpty) && !p.showPreviewSplit && (
