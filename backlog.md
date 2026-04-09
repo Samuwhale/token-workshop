@@ -50,7 +50,7 @@
 - [x] Split the History workspace into task-based recovery surfaces like `Undo recent edits`, `Restore snapshot`, and `Return to git commit` instead of one mixed timeline in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because designers currently have to learn four different recovery systems from a legend before they know which action is safe.
 - [ ] Turn `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` into an actionable inbox with severity filters, deduping, sticky blockers, and deep links back to the affected token or workspace instead of a passive transcript of past toast messages.
 - [ ] Turn audit and validation signals into actionable product feedback instead of raw counts and badges: each issue type should explain why it matters, where it comes from, and how to fix it from the relevant workflow (Planned)
-- [ ] Write `docs/redesign/repo-handoff-decision.md` to decide whether the Git-based handoff workflow remains inside the plugin or moves out of the primary UX, documenting the target user, rationale, and chosen product direction
+- [x] Write `docs/redesign/repo-handoff-decision.md` to decide whether the Git-based handoff workflow remains inside the plugin or moves out of the primary UX, documenting the target user, rationale, and chosen product direction
 - [ ] Recompute Figma variable save preview diffs after destination remaps
 - [ ] Remove deprecated import orchestration hooks after controller consolidation
 - [ ] Replace token-editor composite equality checks with stableStringify
@@ -64,5 +64,6 @@
 - [ ] Research settings recovery and destructive-data surfaces to separate backup/import from irreversible resets
 - [ ] Research theme gap remediation flow across authoring, coverage review, and override creation
 - [ ] Replace server, publish, and set-merge composite equality checks with stableStringify
+- [ ] Thread real lifecycle metadata into the unused-token cleanup queue
 - [ ] Make multi-set folder operations fully rollbackable in the operation log
 - [ ] Add regression coverage for uncapped operation history and rename propagation persistence

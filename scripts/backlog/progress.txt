@@ -467,3 +467,10 @@
   - When multiple recovery backends exist, organizing by user intent is clearer than exposing storage/source types first and explaining them with a separate legend.
   - Keeping secondary tools such as snapshot creation or commit comparison inside the related recovery surface reduces mode-switching and makes destructive actions easier to reason about.
 ---
+## 2026-04-09 - [Write `docs/redesign/repo-handoff-decision.md` to decide whether the Git-based handoff workflow remains inside the plugin or moves out of the primary UX, documenting the target user, rationale, and chosen product direction]
+- Wrote the redesign decision doc and chose to keep Git-based repo handoff inside the plugin as an explicit expert-only `Sync > Repo / Handoff` surface rather than part of the default publish journey.
+- Files changed: `docs/redesign/repo-handoff-decision.md` ~L1; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Repo-aware delivery can stay in-product when it is token-contextual, but it should remain adjacent to the primary publish flow instead of competing with it.
+  - Decision docs in `docs/redesign/` are most useful when they name the target user explicitly and translate existing IA wording into a durable product rule.
+---

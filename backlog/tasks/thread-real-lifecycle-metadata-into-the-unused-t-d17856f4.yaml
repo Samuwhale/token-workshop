@@ -1,0 +1,18 @@
+id: thread-real-lifecycle-metadata-into-the-unused-t-d17856f4
+title: Thread real lifecycle metadata into the unused-token cleanup queue
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/HealthPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: `UnusedTokensPanel.tsx` now supports lifecycle grouping via optional `$lifecycle`, but `HealthPanel.tsx` still maps unused tokens without passing that field through."
+state: ready
+acceptance_criteria:
+  - Unused token queue items include each token's actual lifecycle from the health panel data source instead of defaulting missing values to published.
+  - The unused-token cleanup queue groups draft and published tokens into separate lifecycle buckets when both exist in the source data.
+source: task-followup
+created_at: 2026-04-09T13:45:42.041Z
+updated_at: 2026-04-09T13:45:42.041Z
