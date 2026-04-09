@@ -313,6 +313,7 @@ export interface WorkspaceStrategy {
 
 export interface WorkspaceCommitOptions {
   retryPendingPush?: boolean;
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface WorkspaceApplyResult {

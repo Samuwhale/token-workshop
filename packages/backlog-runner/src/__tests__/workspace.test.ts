@@ -139,4 +139,104 @@ describe('git worktree strategy', () => {
     expect(result.ok).toBe(true);
     expect(calls).not.toContain('run:git push');
   });
+
+  it('retries push failures without waiting on real timers and succeeds when the remote recovers', async () => {
+    const { root, config } = await makeRepo();
+    const calls: string[] = [];
+    const sleeps: number[] = [];
+    let pushFailuresRemaining = 2;
+    const runner: CommandRunner = {
+      async run(command: string, args: string[]): Promise<CommandResult> {
+        calls.push(`run:${command} ${args.join(' ')}`.trim());
+        if (command === 'git' && args[0] === 'status') {
+          return { code: 0, stdout: ' M feature.txt', stderr: '' };
+        }
+        if (command === 'git' && args[0] === 'diff' && args[1] === '--cached') {
+          return { code: 0, stdout: args.includes('--name-only') ? 'feature.txt' : '', stderr: '' };
+        }
+        if (command === 'git' && args[0] === 'remote') {
+          return { code: 0, stdout: 'origin', stderr: '' };
+        }
+        if (command === 'git' && args[0] === 'push') {
+          if (pushFailuresRemaining > 0) {
+            pushFailuresRemaining -= 1;
+            return { code: 1, stdout: '', stderr: 'push failed' };
+          }
+          return { code: 0, stdout: '', stderr: '' };
+        }
+        if (command === 'git' && args[0] === 'pull') {
+          return { code: 0, stdout: '', stderr: '' };
+        }
+        return { code: 0, stdout: '', stderr: '' };
+      },
+      async runShell(): Promise<CommandResult> {
+        return { code: 0, stdout: '', stderr: '' };
+      },
+      async which(): Promise<string | null> {
+        return '/usr/bin/mock';
+      },
+    };
+
+    const result = await gitCommitAndPush(
+      runner,
+      config,
+      root,
+      'chore(backlog): done – test item',
+      ['feature.txt'],
+      { sleep: async ms => { sleeps.push(ms); } },
+    );
+
+    expect(result).toMatchObject({ ok: true, createdCommit: true, pushed: true });
+    expect(calls.filter(call => call === 'run:git push')).toHaveLength(3);
+    expect(calls.filter(call => call === 'run:git pull --rebase --autostash')).toHaveLength(2);
+    expect(sleeps).toEqual([2000, 4000]);
+  });
+
+  it('returns a pending-push failure after exhausting push retries', async () => {
+    const { root, config } = await makeRepo();
+    const sleeps: number[] = [];
+    const runner: CommandRunner = {
+      async run(command: string, args: string[]): Promise<CommandResult> {
+        if (command === 'git' && args[0] === 'status') {
+          return { code: 0, stdout: ' M feature.txt', stderr: '' };
+        }
+        if (command === 'git' && args[0] === 'diff' && args[1] === '--cached') {
+          return { code: 0, stdout: args.includes('--name-only') ? 'feature.txt' : '', stderr: '' };
+        }
+        if (command === 'git' && args[0] === 'remote') {
+          return { code: 0, stdout: 'origin', stderr: '' };
+        }
+        if (command === 'git' && args[0] === 'push') {
+          return { code: 1, stdout: '', stderr: 'push failed' };
+        }
+        if (command === 'git' && args[0] === 'pull') {
+          return { code: 0, stdout: '', stderr: '' };
+        }
+        return { code: 0, stdout: '', stderr: '' };
+      },
+      async runShell(): Promise<CommandResult> {
+        return { code: 0, stdout: '', stderr: '' };
+      },
+      async which(): Promise<string | null> {
+        return '/usr/bin/mock';
+      },
+    };
+
+    const result = await gitCommitAndPush(
+      runner,
+      config,
+      root,
+      'chore(backlog): done – test item',
+      ['feature.txt'],
+      { sleep: async ms => { sleeps.push(ms); } },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      createdCommit: true,
+      pendingPush: true,
+      reason: 'git push failed after retries; local commit preserved for inspection',
+    });
+    expect(sleeps).toEqual([2000, 4000, 6000]);
+  });
 });

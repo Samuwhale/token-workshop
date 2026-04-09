@@ -8,7 +8,7 @@ import { PLANNER_RESULT_SCHEMA, PLANNER_SCHEMA_SMOKE_PROMPT } from './planner.js
 import { createCommandRunner } from './process.js';
 import { validateProvider } from './providers/index.js';
 import { lintBacklogQueue } from './queue-lint.js';
-import type { BacklogRunnerConfig, RunOverrides, ToolValidationResult } from './types.js';
+import type { BacklogRunnerConfig, CommandRunner, RunOverrides, ToolValidationResult } from './types.js';
 
 const VALIDATION_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
 const GIT_READINESS_TIMEOUT_MS = 2 * 60 * 1000;
@@ -26,10 +26,14 @@ function shellEscape(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-async function validateCommandReadiness(
+export type ValidateDependencies = {
+  commandRunner?: CommandRunner;
+};
+
+export async function validateCommandReadiness(
   config: BacklogRunnerConfig,
+  commandRunner: CommandRunner = createCommandRunner(),
 ): Promise<{ ok: boolean; message: string }> {
-  const commandRunner = createCommandRunner();
   const bashScriptMatch = config.validationCommand.match(/^\s*bash\s+([^\s]+)\s*$/);
   if (bashScriptMatch) {
     const scriptPath = bashScriptMatch[1]!;
@@ -65,10 +69,10 @@ async function validateCommandReadiness(
   return { ok: true, message: `  ✓ validation command executable '${firstToken}' is available` };
 }
 
-async function executeValidationCommand(
+export async function executeValidationCommand(
   config: BacklogRunnerConfig,
+  commandRunner: CommandRunner = createCommandRunner(),
 ): Promise<{ ok: boolean; message: string }> {
-  const commandRunner = createCommandRunner();
   const startedAt = Date.now();
   const result = await commandRunner.runShell(config.validationCommand, {
     cwd: config.projectRoot,
@@ -86,11 +90,11 @@ async function executeValidationCommand(
   };
 }
 
-async function validateGitReadiness(
+export async function validateGitReadiness(
   config: BacklogRunnerConfig,
   worktreesEnabled: boolean,
+  commandRunner: CommandRunner = createCommandRunner(),
 ): Promise<{ ok: boolean; messages: string[] }> {
-  const commandRunner = createCommandRunner();
   const messages: string[] = [];
 
   const git = await commandRunner.which('git');
@@ -148,7 +152,7 @@ async function validateGitReadiness(
   }
 }
 
-async function validateBacklogState(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
+export async function validateBacklogState(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
   const messages: string[] = [];
   const state = await inspectBacklogState(config);
   const legacyInboxPath = path.join(config.projectRoot, 'backlog-inbox.md');
@@ -189,7 +193,7 @@ async function validateBacklogState(config: BacklogRunnerConfig): Promise<{ ok: 
   return { ok: true, messages };
 }
 
-async function validatePromptContracts(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
+export async function validatePromptContracts(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
   const messages: string[] = [];
   const promptChecks: Array<[string, string]> = [
     ['planner pass prompt', config.prompts.planner],
@@ -225,9 +229,10 @@ async function validatePromptContracts(config: BacklogRunnerConfig): Promise<{ o
 export async function validateBacklogRunner(
   config: BacklogRunnerConfig,
   overrides: RunOverrides = {},
+  deps: ValidateDependencies = {},
 ): Promise<ToolValidationResult> {
   await ensureConfigReady(config);
-  const commandRunner = createCommandRunner();
+  const commandRunner = deps.commandRunner ?? createCommandRunner();
   const runOptions = await resolveRunOptions(config, overrides);
   const providerValidation = await validateProvider(runOptions.tool, commandRunner, {
     model: runOptions.model,
@@ -290,13 +295,13 @@ export async function validateBacklogRunner(
   }
   messages.push(...promptContracts.messages);
 
-  const gitReadiness = await validateGitReadiness(config, runOptions.worktrees);
+  const gitReadiness = await validateGitReadiness(config, runOptions.worktrees, commandRunner);
   if (!gitReadiness.ok) {
     ok = false;
   }
   messages.push(...gitReadiness.messages);
 
-  const validationCommand = await validateCommandReadiness(config);
+  const validationCommand = await validateCommandReadiness(config, commandRunner);
   if (!validationCommand.ok) {
     ok = false;
     messages.push(validationCommand.message);
@@ -304,7 +309,7 @@ export async function validateBacklogRunner(
   }
   messages.push(validationCommand.message);
 
-  const validationExecution = await executeValidationCommand(config);
+  const validationExecution = await executeValidationCommand(config, commandRunner);
   if (!validationExecution.ok) {
     ok = false;
   }

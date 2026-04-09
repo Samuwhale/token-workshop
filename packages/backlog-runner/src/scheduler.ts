@@ -432,6 +432,7 @@ async function attemptTaskReconciliation(
   taskAlreadyCompleted: boolean,
   commitMessage: string,
   priorFinalizeResult?: WorkspaceApplyResult,
+  sleep?: (ms: number) => Promise<void>,
 ): Promise<WorkspaceRepairResult> {
   logger.line('');
   logger.line(`  Attempting autonomous reconciliation: ${failureReason}`);
@@ -538,7 +539,7 @@ async function attemptTaskReconciliation(
     const finalizeResult = await workspaceStrategy.commitAndPush(
       commitMessage,
       taskCommitPaths(config, claim.task.touchPaths),
-      { retryPendingPush: priorFinalizeResult?.pendingPush === true },
+      { retryPendingPush: priorFinalizeResult?.pendingPush === true, sleep },
     );
     if (!finalizeResult.ok) {
       logger.line(`  ✗ reconciliation finalize failed: ${finalizeResult.reason ?? 'commit/push failed'}`);
@@ -629,6 +630,7 @@ async function runPass(
   logger: RunnerLogger,
   options: ResolvedRunOptions,
   passType: BacklogPassType,
+  sleep?: (ms: number) => Promise<void>,
 ): Promise<void> {
   logger.line('');
   logger.line('================================================================');
@@ -675,7 +677,7 @@ async function runPass(
       }
 
       logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
-      const finalizeResult = await workspaceStrategy.commitAndPush(commitMessage, bookkeepingPaths(config));
+      const finalizeResult = await workspaceStrategy.commitAndPush(commitMessage, bookkeepingPaths(config), { sleep });
       if (!finalizeResult.ok) {
         logger.line(`  WARNING: ${finalizeResult.reason ?? 'pass finalize failed'}`);
       }
@@ -966,7 +968,7 @@ export async function runBacklogRunner(
 
         logger.line('  No tasks found — running discovery passes to replenish backlog…');
         for (const passType of ['product', 'code', 'ux'] as const) {
-          await runPass(config, store, workspaceStrategy, commandRunner, logger, options, passType);
+          await runPass(config, store, workspaceStrategy, commandRunner, logger, options, passType, sleep);
         }
 
         const refreshed = await store.getQueueCounts();
@@ -1272,6 +1274,7 @@ export async function runBacklogRunner(
                 false,
                 message,
                 mergeResult,
+                sleep,
               );
               if (!recovered.recovered) {
                 await applyClaimRepairOutcome(store, logger, claim, recovered, mergeResult.reason ?? 'merge failed');
@@ -1283,7 +1286,11 @@ export async function runBacklogRunner(
             logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
             await store.completeClaim(claim, result.note || 'completed');
 
-            const finalizeResult = await workspaceStrategy.commitAndPush(message, taskCommitPaths(config, claim.task.touchPaths));
+            const finalizeResult = await workspaceStrategy.commitAndPush(
+              message,
+              taskCommitPaths(config, claim.task.touchPaths),
+              { sleep },
+            );
             if (!finalizeResult.ok) {
               const recovered = await attemptTaskReconciliation(
                 config,
@@ -1298,6 +1305,7 @@ export async function runBacklogRunner(
                 true,
                 message,
                 finalizeResult,
+                sleep,
               );
               if (!recovered.recovered) {
                 await applyTaskRepairOutcome(store, logger, claim.task.id, recovered, finalizeResult.reason ?? 'finalize failed after merge');
@@ -1314,7 +1322,11 @@ export async function runBacklogRunner(
             logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
             await store.completeClaim(claim, result.note || 'completed');
 
-            const finalizeResult = await workspaceStrategy.commitAndPush(message, taskCommitPaths(config, claim.task.touchPaths));
+            const finalizeResult = await workspaceStrategy.commitAndPush(
+              message,
+              taskCommitPaths(config, claim.task.touchPaths),
+              { sleep },
+            );
             if (!finalizeResult.ok) {
               const recovered = await attemptTaskReconciliation(
                 config,
@@ -1329,6 +1341,7 @@ export async function runBacklogRunner(
                 true,
                 message,
                 finalizeResult,
+                sleep,
               );
               if (!recovered.recovered) {
                 await applyTaskRepairOutcome(store, logger, claim.task.id, recovered, finalizeResult.reason ?? 'commit/push failed');

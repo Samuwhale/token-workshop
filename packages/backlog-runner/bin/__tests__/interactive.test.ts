@@ -1,5 +1,18 @@
-import { describe, expect, it } from 'vitest';
-import { resolveLaneChoice, resolveToolChoice, summarizeRunOverrides } from '../interactive.js';
+import { afterEach, describe, expect, it } from 'vitest';
+import { resolveLaneChoice, resolveToolChoice, shouldPromptInteractively, summarizeRunOverrides } from '../interactive.js';
+
+const originalStdinTty = process.stdin.isTTY;
+const originalStdoutTty = process.stdout.isTTY;
+
+function setTtyState(stdinTty: boolean | undefined, stdoutTty: boolean | undefined): void {
+  Object.defineProperty(process.stdin, 'isTTY', { configurable: true, value: stdinTty });
+  Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: stdoutTty });
+}
+
+afterEach(() => {
+  Object.defineProperty(process.stdin, 'isTTY', { configurable: true, value: originalStdinTty });
+  Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: originalStdoutTty });
+});
 
 describe('interactive helpers', () => {
   it('resolves tools from number or name', () => {
@@ -31,5 +44,22 @@ describe('interactive helpers', () => {
     expect(summary).toContain('Model:          CLI default');
     expect(summary).toContain('Pass model:     same as main model / CLI default');
     expect(summary).toContain('Worktrees:      disabled');
+  });
+
+  it('only prompts interactively for run when a TTY is present and no explicit overrides were supplied', () => {
+    setTtyState(true, true);
+
+    expect(shouldPromptInteractively('run', {})).toBe(true);
+    expect(shouldPromptInteractively('validate', {})).toBe(false);
+    expect(shouldPromptInteractively('run', { lane: 'planner' })).toBe(false);
+  });
+
+  it('honors explicit interactive overrides and non-tty sessions', () => {
+    setTtyState(false, false);
+    expect(shouldPromptInteractively('run', {})).toBe(false);
+
+    setTtyState(true, true);
+    expect(shouldPromptInteractively('run', { interactive: false })).toBe(false);
+    expect(shouldPromptInteractively('run', { interactive: true, lane: 'planner' })).toBe(true);
   });
 });

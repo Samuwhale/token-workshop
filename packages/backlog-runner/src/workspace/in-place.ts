@@ -1,4 +1,5 @@
 import { lockPath, withLock } from '../locks.js';
+import { sleep as defaultSleep } from '../process.js';
 import { scopedFiles, unexpectedFiles } from '../git-scope.js';
 import type {
   BacklogRunnerConfig,
@@ -60,6 +61,7 @@ async function remoteExists(commandRunner: CommandRunner, cwd: string): Promise<
 async function pushWithRetries(
   commandRunner: CommandRunner,
   cwd: string,
+  sleep: (ms: number) => Promise<void>,
 ): Promise<WorkspaceApplyResult> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const push = await commandRunner.run('git', ['push'], { cwd, ignoreFailure: true });
@@ -70,7 +72,7 @@ async function pushWithRetries(
     if (pull.code !== 0) {
       return { ok: false, reason: `git pull --rebase failed: ${summarizeGitFailure(pull.stdout, pull.stderr)}` };
     }
-    await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
+    await sleep((attempt + 1) * 2000);
   }
 
   return {
@@ -89,12 +91,13 @@ export async function gitCommitAndPush(
   options: WorkspaceCommitOptions = {},
 ): Promise<WorkspaceApplyResult> {
   return withLock(lockPath(config, 'git'), 30, async () => {
+    const sleep = options.sleep ?? defaultSleep;
     const changedFiles = await collectChangedFiles(commandRunner, cwd);
     if (changedFiles.length === 0) {
       if (!options.retryPendingPush || !await remoteExists(commandRunner, cwd)) {
         return { ok: true };
       }
-      return pushWithRetries(commandRunner, cwd);
+      return pushWithRetries(commandRunner, cwd, sleep);
     }
 
     const stagedBefore = await collectStagedFiles(commandRunner, cwd);
@@ -127,7 +130,7 @@ export async function gitCommitAndPush(
       return { ok: true, createdCommit: true };
     }
 
-    const pushResult = await pushWithRetries(commandRunner, cwd);
+    const pushResult = await pushWithRetries(commandRunner, cwd, sleep);
     if (pushResult.ok) {
       return { ok: true, createdCommit: true, pushed: true };
     }
