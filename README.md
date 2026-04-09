@@ -45,11 +45,13 @@ Use the autonomous backlog runner with:
 ```bash
 pnpm backlog:sync
 pnpm backlog
+pnpm backlog -- --lane planner
 pnpm backlog:validate
 ```
 
 - `pnpm backlog:sync` performs the queue-maintenance step only: drain the structured candidate queue into YAML task specs and rebuild the generated `backlog.md` report.
-- `pnpm backlog` starts the TypeScript runner that claims one backlog item at a time, validates it once at scheduler finalization, and can replenish the queue with discovery passes only when the queue is empty.
+- `pnpm backlog` starts the executor lane of the TypeScript runner. It claims one runnable backlog item at a time, validates it once at scheduler finalization, and can replenish the queue with discovery passes only when the queue is empty.
+- `pnpm backlog -- --lane planner` starts a dedicated planner lane that only refines `planned` tasks into runnable child tasks and keeps a small ready-task buffer for executor lanes.
 - `pnpm backlog:validate` verifies the runner toolchain, prompts, validation command, and queue state before a longer autonomous run. It fails fast if legacy markdown planner files or prompt instructions remain.
 - These are the only supported backlog entrypoints. Do not use legacy Codex skill wrappers or edit generated backlog state by hand.
 - Task specs live in [`backlog/tasks`](/Users/samuel/Documents/Projects/TokenManager/backlog/tasks).

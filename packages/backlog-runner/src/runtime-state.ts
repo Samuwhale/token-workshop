@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import Database from 'better-sqlite3';
 import type {
   BacklogTaskClaim,
   BacklogTaskLease,
@@ -12,12 +12,31 @@ import type {
 
 const DEFAULT_LEASE_DURATION_MS = 10 * 60 * 1000;
 
+type RuntimeStatement = {
+  run(...params: unknown[]): unknown;
+  get(...params: unknown[]): unknown;
+  all(...params: unknown[]): unknown[];
+};
+
+type RuntimeDatabase = {
+  exec(source: string): unknown;
+  prepare(source: string): RuntimeStatement;
+  close(): unknown;
+};
+
 function isoNow(offsetMs = 0): string {
   return new Date(Date.now() + offsetMs).toISOString();
 }
 
+function openRuntimeDatabase(dbPath: string): RuntimeDatabase {
+  const db = new Database(dbPath);
+  db.exec('PRAGMA journal_mode = WAL;');
+  db.exec('PRAGMA busy_timeout = 5000;');
+  return db;
+}
+
 export class RuntimeStateStore {
-  private readonly db: DatabaseSync;
+  private readonly db: RuntimeDatabase;
   readonly leaseDurationMs: number;
 
   constructor(
@@ -25,9 +44,7 @@ export class RuntimeStateStore {
     options: { leaseDurationMs?: number } = {},
   ) {
     this.leaseDurationMs = options.leaseDurationMs ?? DEFAULT_LEASE_DURATION_MS;
-    this.db = new DatabaseSync(dbPath);
-    this.db.exec('PRAGMA journal_mode = WAL;');
-    this.db.exec('PRAGMA busy_timeout = 5000;');
+    this.db = openRuntimeDatabase(dbPath);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS leases (
         task_id TEXT PRIMARY KEY,

@@ -50,6 +50,7 @@ describe('config', () => {
     expect(config.files.stateDb).toBe(path.join(root, '.backlog-runner', 'state.sqlite'));
     expect(config.prompts.agent).toBe(path.join(root, 'scripts/backlog/agent.md'));
     expect(config.prompts.planner).toBe(path.join(root, 'scripts/backlog/planner.md'));
+    expect(config.defaults.lane).toBe('executor');
     expect(config.validationProfiles.repo).toBe('bash scripts/backlog/validate.sh');
   });
 
@@ -88,6 +89,7 @@ describe('config', () => {
         validationCommand: 'bash scripts/backlog/validate.sh',
         defaults: {
           tool: 'codex',
+          lane: 'planner',
           model: 'default',
           passModel: 'sonnet',
           passes: true,
@@ -98,10 +100,12 @@ describe('config', () => {
     );
 
     const options = await resolveRunOptions(config, {
+      lane: 'executor',
       model: 'sonnet',
       worktrees: false,
     });
 
+    expect(options.lane).toBe('executor');
     expect(options.model).toBe('gpt-5.5');
     expect(options.passModel).toBe('gpt-5.5');
     expect(options.worktrees).toBe(false);
@@ -129,6 +133,7 @@ describe('config', () => {
         validationCommand: 'bash scripts/backlog/validate.sh',
         defaults: {
           tool: 'codex',
+          lane: 'planner',
           model: 'default',
           passModel: 'sonnet',
           passes: true,
@@ -140,6 +145,7 @@ describe('config', () => {
 
     const options = await resolveRunOptions(config);
 
+    expect(options.lane).toBe('planner');
     expect(options.model).toBe('gpt-5.4');
     expect(options.passModel).toBe('gpt-5.4');
   });

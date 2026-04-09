@@ -63,6 +63,7 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
     },
     defaults: {
       tool: config.defaults?.tool ?? 'claude',
+      lane: config.defaults?.lane ?? 'executor',
       model: config.defaults?.model ?? 'default',
       passModel: config.defaults?.passModel ?? 'sonnet',
       passes: config.defaults?.passes ?? true,
@@ -144,6 +145,7 @@ export async function resolveRunOptions(
 
   return {
     tool,
+    lane: overrides.lane ?? config.defaults.lane,
     model,
     passModel,
     passes: overrides.passes ?? config.defaults.passes,

@@ -14,6 +14,7 @@ import type {
   BacklogDrainResult,
   BacklogPassType,
   BacklogRunnerConfig,
+  BacklogRunnerLane,
   BacklogSyncResult,
   CommandRunner,
   ResolvedRunOptions,
@@ -24,6 +25,23 @@ import type {
 } from './types.js';
 import { GitWorktreeWorkspaceStrategy } from './workspace/git-worktree.js';
 import { InPlaceWorkspaceStrategy } from './workspace/in-place.js';
+
+const PLANNER_LANE_READY_TARGET = 2;
+const EXECUTOR_FALLBACK_READY_TARGET = 1;
+const RUNNER_POLL_INTERVAL_MS = 15_000;
+const EMPTY_QUEUE_POLL_INTERVAL_MS = 30_000;
+
+type RunnerRegistryRecord = {
+  runnerId: string;
+  pid: number;
+  startedAt: number;
+  lane?: BacklogRunnerLane;
+};
+
+type ActiveRunnerCounts = {
+  executor: number;
+  planner: number;
+};
 
 function formatDuration(seconds?: number): string {
   if (!seconds) return '';
@@ -86,8 +104,13 @@ async function changedFiles(commandRunner: CommandRunner, cwd: string): Promise<
   return [...files];
 }
 
+function isWorktreeBootstrapArtifact(file: string): boolean {
+  const normalized = normalizePathForGit(file).replace(/\/+$/, '');
+  return normalized === 'node_modules' || /^packages\/[^/]+\/node_modules$/.test(normalized);
+}
+
 function scopeViolations(changed: string[], allowed: string[]): string[] {
-  return changed.filter(file => !isPathWithinTouchPaths(file, allowed));
+  return changed.filter(file => !isWorktreeBootstrapArtifact(file) && !isPathWithinTouchPaths(file, allowed));
 }
 
 function normalizePathForGit(value: string): string {
@@ -159,35 +182,64 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function registerRunner(config: BacklogRunnerConfig): Promise<{ runnerId: string; registryFile: string }> {
+function normalizeRunnerLane(value: unknown): BacklogRunnerLane {
+  return value === 'planner' ? 'planner' : 'executor';
+}
+
+function formatRunnerCounts(counts: ActiveRunnerCounts): string {
+  return `${counts.executor} executor · ${counts.planner} planner`;
+}
+
+function totalRunnerCount(counts: ActiveRunnerCounts): number {
+  return counts.executor + counts.planner;
+}
+
+function plannerLaneActive(counts: ActiveRunnerCounts): boolean {
+  return counts.planner > 0;
+}
+
+async function registerRunner(
+  config: BacklogRunnerConfig,
+  lane: BacklogRunnerLane,
+): Promise<{ runnerId: string; registryFile: string }> {
   const runnerId = `${process.pid}-${Date.now()}`;
   const runnersDir = path.join(config.files.runtimeDir, 'runners');
   await mkdir(runnersDir, { recursive: true });
   const filePath = path.join(runnersDir, `${runnerId}.json`);
-  await writeFile(filePath, JSON.stringify({ runnerId, pid: process.pid, startedAt: Date.now() }), 'utf8');
+  await writeFile(filePath, JSON.stringify({ runnerId, pid: process.pid, startedAt: Date.now(), lane }), 'utf8');
   return { runnerId, registryFile: filePath };
 }
 
-async function countOtherRunners(config: BacklogRunnerConfig, ownRunnerId: string): Promise<number> {
+async function activeRunnerCounts(config: BacklogRunnerConfig, ownRunnerId: string): Promise<ActiveRunnerCounts> {
   const runnersDir = path.join(config.files.runtimeDir, 'runners');
+  const counts: ActiveRunnerCounts = { executor: 0, planner: 0 };
   try {
     const entries = await readdir(runnersDir);
-    let count = 0;
     for (const entry of entries) {
-      const runnerId = entry.replace(/\.json$/, '');
+      const filePath = path.join(runnersDir, entry);
+      const fallbackRunnerId = entry.replace(/\.json$/, '');
+      let parsed: RunnerRegistryRecord | null = null;
+      try {
+        parsed = JSON.parse(await readFile(filePath, 'utf8')) as RunnerRegistryRecord;
+      } catch {
+        parsed = null;
+      }
+
+      const runnerId = parsed?.runnerId ?? fallbackRunnerId;
       if (runnerId === ownRunnerId) continue;
-      const pid = Number.parseInt(runnerId.split('-')[0] ?? '', 10);
+
+      const pid = parsed?.pid ?? Number.parseInt(fallbackRunnerId.split('-')[0] ?? '', 10);
       if (!Number.isFinite(pid)) continue;
       try {
         process.kill(pid, 0);
-        count += 1;
+        counts[normalizeRunnerLane(parsed?.lane)] += 1;
       } catch {
-        await rm(path.join(runnersDir, entry), { force: true });
+        await rm(filePath, { force: true });
       }
     }
-    return count;
+    return counts;
   } catch {
-    return 0;
+    return counts;
   }
 }
 
@@ -313,9 +365,6 @@ async function runPlannerRefinementPass(
         return false;
       }
 
-      logger.line(`  ✓ planner pass: ${result.item}`);
-      if (result.note) logger.line(`    ${result.note}`);
-
       const workspaceCheck = await validateWorkspaceScope(
         commandRunner,
         session.cwd,
@@ -336,6 +385,8 @@ async function runPlannerRefinementPass(
       const applied = await store.applyPlannerSupersede(action, {
         allowedParentTaskIds: plannedTasks.map(task => task.id),
       });
+      logger.line(`  ✓ planner pass: ${result.item}`);
+      if (result.note) logger.line(`    ${result.note}`);
       logger.line(`  ✓ superseded ${applied.parentTaskIds.length} planned task${applied.parentTaskIds.length === 1 ? '' : 's'} with ${applied.childTaskIds.length} child task${applied.childTaskIds.length === 1 ? '' : 's'}`);
       return true;
     } catch (error) {
@@ -350,6 +401,13 @@ async function runPlannerRefinementPass(
       await session.teardown();
     }
   });
+}
+
+async function currentPlannerBatchKey(
+  store: ReturnType<typeof createFileBackedTaskStore>,
+): Promise<string> {
+  const plannedTasks = await store.listPlannedTasks(plannerBatchSize());
+  return plannedTasks.map(task => task.id).join(',');
 }
 
 export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<BacklogSyncResult> {
@@ -386,7 +444,7 @@ export async function runBacklogRunner(
     await pruneGitWorktrees(commandRunner, config, logger);
   }
 
-  const { runnerId, registryFile } = await registerRunner(config);
+  const { runnerId, registryFile } = await registerRunner(config, options.lane);
 
   let stopRequested = false;
   const onSignal = () => {
@@ -408,6 +466,7 @@ export async function runBacklogRunner(
     logger.line('╚═══════════════════════════════════════════════════════════════╝');
     logger.line(`  Runner: ${runnerId}`);
     logger.line(`  Tool:   ${options.tool}`);
+    logger.line(`  Lane:   ${options.lane}`);
     logger.line(`  Model:  ${options.model}`);
     logger.line(`  Pass model: ${options.passModel}`);
     logger.line(`  Mode:   ${options.worktrees ? 'parallel (worktrees)' : 'single (no worktrees)'}`);
@@ -416,17 +475,26 @@ export async function runBacklogRunner(
     logger.line(
       `  Queue:  ${queue.ready} ready · ${queue.blocked} blocked · ${queue.planned} planned · ${queue.inProgress} in-progress · ${queue.failed} failed · ${queue.done} done`,
     );
-    logger.line(`  Other runners: ${await countOtherRunners(config, runnerId)}`);
+    const otherRunners = await activeRunnerCounts(config, runnerId);
+    logger.line(`  Other runners: ${formatRunnerCounts(otherRunners)}`);
+    logger.line(`  Another planner lane: ${plannerLaneActive(otherRunners) ? 'yes' : 'no'}`);
     logger.line(`  Stop:  Ctrl+C  (or: touch ${config.files.stop})`);
 
     let iteration = 0;
     let previousDurationSeconds = 0;
+    let waitingPlannerBatchKey: string | null = null;
 
     while (true) {
+      if (stopRequested || (await fileExists(config.files.stop))) {
+        break;
+      }
+
       iteration += 1;
       logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
 
       const counts = await store.getQueueCounts();
+      const otherRunnerCounts = await activeRunnerCounts(config, runnerId);
+      const hasPlannerPeer = plannerLaneActive(otherRunnerCounts);
       logger.line('');
       logger.line('═══════════════════════════════════════════════════════════════');
       logger.line(
@@ -435,14 +503,78 @@ export async function runBacklogRunner(
       );
       logger.line('═══════════════════════════════════════════════════════════════');
 
+      if (options.lane === 'planner') {
+        if (counts.planned > 0 && counts.ready < PLANNER_LANE_READY_TARGET) {
+          const batchKey = await currentPlannerBatchKey(store);
+          if (batchKey && batchKey !== waitingPlannerBatchKey) {
+            waitingPlannerBatchKey = batchKey;
+            const refined = await runPlannerRefinementPass(
+              config,
+              store,
+              workspaceStrategy,
+              commandRunner,
+              logger,
+              options,
+            );
+            if (refined) {
+              waitingPlannerBatchKey = null;
+              continue;
+            }
+          }
+
+          logger.line('  Planner lane made no progress on the current batch — polling in 15s…');
+          await sleep(RUNNER_POLL_INTERVAL_MS);
+          continue;
+        }
+
+        waitingPlannerBatchKey = null;
+        if (counts.ready >= PLANNER_LANE_READY_TARGET) {
+          logger.line(`  Planner buffer satisfied (${counts.ready}/${PLANNER_LANE_READY_TARGET} ready) — polling in 15s…`);
+        } else if (counts.planned === 0) {
+          logger.line('  No planned tasks to refine — polling in 15s…');
+        } else {
+          logger.line('  Planner lane is idle — polling in 15s…');
+        }
+        await sleep(RUNNER_POLL_INTERVAL_MS);
+        continue;
+      }
+
       if (counts.ready === 0) {
         if (counts.inProgress > 0) {
-          logger.line('  No runnable task available locally — waiting 15s for other runner activity…');
-          await sleep(15_000);
+          if (counts.planned > 0 && counts.ready < EXECUTOR_FALLBACK_READY_TARGET && !hasPlannerPeer) {
+            const batchKey = await currentPlannerBatchKey(store);
+            if (batchKey && batchKey !== waitingPlannerBatchKey) {
+              waitingPlannerBatchKey = batchKey;
+              const refined = await runPlannerRefinementPass(
+                config,
+                store,
+                workspaceStrategy,
+                commandRunner,
+                logger,
+                options,
+              );
+              if (refined) {
+                waitingPlannerBatchKey = null;
+                continue;
+              }
+            }
+          }
+          if (counts.planned > 0 && hasPlannerPeer) {
+            logger.line('  No runnable task available locally — planner lane active, waiting for refined work…');
+          } else {
+            logger.line('  No runnable task available locally — waiting 15s for other runner activity…');
+          }
+          await sleep(RUNNER_POLL_INTERVAL_MS);
           continue;
         }
 
         if (counts.planned > 0) {
+          if (hasPlannerPeer) {
+            logger.line('  No runnable task available locally — planner lane active, waiting for refined work…');
+            await sleep(RUNNER_POLL_INTERVAL_MS);
+            continue;
+          }
+          waitingPlannerBatchKey = null;
           const refined = await runPlannerRefinementPass(
             config,
             store,
@@ -476,29 +608,41 @@ export async function runBacklogRunner(
         const refreshed = await store.getQueueCounts();
         if (refreshed.ready === 0 && refreshed.planned === 0 && refreshed.inProgress === 0) {
           logger.line('  Still no tasks available. Polling inbox every 30s…');
-          await sleep(30_000);
+          await sleep(EMPTY_QUEUE_POLL_INTERVAL_MS);
         }
         continue;
       }
 
+      waitingPlannerBatchKey = null;
       const claim = await store.claimNextRunnableTask(runnerId);
       if (!claim) {
         const refreshed = await store.getQueueCounts();
-        if (refreshed.planned > 0) {
-          const refined = await runPlannerRefinementPass(
-            config,
-            store,
-            workspaceStrategy,
-            commandRunner,
-            logger,
-            options,
-          );
-          if (refined) {
-            continue;
+        const refreshedOtherRunnerCounts = await activeRunnerCounts(config, runnerId);
+        const refreshedHasPlannerPeer = plannerLaneActive(refreshedOtherRunnerCounts);
+        if (refreshed.planned > 0 && refreshed.ready < EXECUTOR_FALLBACK_READY_TARGET && !refreshedHasPlannerPeer) {
+          const batchKey = await currentPlannerBatchKey(store);
+          if (batchKey && batchKey !== waitingPlannerBatchKey) {
+            waitingPlannerBatchKey = batchKey;
+            const refined = await runPlannerRefinementPass(
+              config,
+              store,
+              workspaceStrategy,
+              commandRunner,
+              logger,
+              options,
+            );
+            if (refined) {
+              waitingPlannerBatchKey = null;
+              continue;
+            }
           }
         }
-        logger.line('  Ready tasks were claimed elsewhere — waiting 15s…');
-        await sleep(15_000);
+        if (refreshed.planned > 0 && refreshedHasPlannerPeer) {
+          logger.line('  Ready tasks were claimed elsewhere and planner lane is active — waiting for refined work…');
+        } else {
+          logger.line('  Ready tasks were claimed elsewhere — waiting 15s…');
+        }
+        await sleep(RUNNER_POLL_INTERVAL_MS);
         continue;
       }
 
@@ -662,9 +806,6 @@ export async function runBacklogRunner(
         await session.teardown();
       }
 
-      if (stopRequested || (await fileExists(config.files.stop))) {
-        break;
-      }
     }
   } finally {
     process.removeListener('SIGINT', onSignal);

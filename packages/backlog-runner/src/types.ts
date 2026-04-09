@@ -1,4 +1,5 @@
 export type BacklogTool = 'claude' | 'codex';
+export type BacklogRunnerLane = 'executor' | 'planner';
 export type BacklogPassType = 'product' | 'ux' | 'code';
 export type BacklogTaskPriority = 'high' | 'normal' | 'low';
 export type BacklogTaskState = 'planned' | 'ready' | 'done' | 'failed' | 'superseded';
@@ -31,6 +32,7 @@ export interface BacklogRunnerConfigInput {
   validationProfiles?: Record<string, string>;
   defaults?: {
     tool?: BacklogTool;
+    lane?: BacklogRunnerLane;
     model?: string;
     passModel?: string;
     passes?: boolean;
@@ -60,6 +62,7 @@ export interface BacklogRunnerConfig {
   validationProfiles: Record<string, string>;
   defaults: {
     tool: BacklogTool;
+    lane: BacklogRunnerLane;
     model?: string;
     passModel?: string;
     passes: boolean;
@@ -70,6 +73,7 @@ export interface BacklogRunnerConfig {
 
 export interface RunOverrides {
   tool?: BacklogTool;
+  lane?: BacklogRunnerLane;
   model?: string;
   passModel?: string;
   passes?: boolean;
@@ -79,6 +83,7 @@ export interface RunOverrides {
 
 export interface ResolvedRunOptions {
   tool: BacklogTool;
+  lane: BacklogRunnerLane;
   model?: string;
   passModel?: string;
   passes: boolean;

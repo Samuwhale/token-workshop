@@ -1,0 +1,24 @@
+id: research-tokens-workspace-surface-ownership-and--2bc9dbf9
+title: Research Tokens workspace surface ownership and unify creation entry points into executable follow-up tasks
+priority: normal
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Current drift is spread across PanelRouter no-split/split/drawer variants, App-level editor and preview drawers, TokenTreeNode inline popovers and quick-generator affordances, TokenList embedded create form and Start here actions, and QuickStart/Welcome flows. Research should produce implementation-ready children rather than product copy."
+  - "Completed: Queued five ordered follow-up backlog items, added a reusable create-launcher pattern, and logged the Tokens workspace surface audit."
+  - "Failed: refusing to commit unrelated staged files: packages/backlog-runner/node_modules, packages/core/node_modules, packages/figma-plugin/node_modules, packages/server/node_modules"
+state: failed
+acceptance_criteria:
+  - Inspect the Tokens workspace flow across `docs/redesign/plugin-ia-blueprint.md`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`, `packages/figma-plugin/src/ui/components/TokenList.tsx`, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/TokenListModals.tsx`, `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts`, `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx`, `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx`, and `packages/figma-plugin/src/ui/components/QuickGeneratorPopover.tsx` and inventory every browse, preview, edit, and create surface now exposed to the user.
+  - Write concrete follow-up backlog tasks that separate persistent token-library panels from transient overlays, identify which existing surfaces should be kept, merged, or removed, and define the execution order needed to make browse, preview, and edit behaviors consistent.
+  - Write concrete follow-up backlog tasks that unify empty-state start, manual token creation, search-no-results creation, inline sibling creation, and quick generator entry points into one coherent Tokens workflow model, with explicit implementation touch paths for each follow-up task.
+source: planner-pass
+created_at: 2026-04-09T07:34:46.657Z
+updated_at: 2026-04-09T07:48:05.795Z

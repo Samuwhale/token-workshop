@@ -1,0 +1,25 @@
+id: unify-token-based-and-template-based-generator-s-c73dae9b
+title: Unify token-based and template-based generator starts into one generator draft flow
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenTreeNode.tsx
+  - packages/figma-plugin/src/ui/components/QuickGeneratorPopover.tsx
+  - packages/figma-plugin/src/ui/components/QuickStartDialog.tsx
+  - packages/figma-plugin/src/ui/components/WelcomePrompt.tsx
+  - packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts
+  - packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Execution order 4/5. Use the existing quick-generator draft preservation pattern, but apply it consistently across token-row and Start here template entry points."
+state: ready
+acceptance_criteria:
+  - Token-row quick generation, advanced generator editing, and foundation-template starts all share one draft model and preserve selected type, target group, target set, and config when escalating.
+  - Quick generator affordances stay transient launchers only; long-lived generator editing happens in the canonical generator editor surface defined by the Tokens workspace contract.
+  - Closing or saving any generator start path returns users to a predictable Tokens workspace context instead of leaving separate quick-start and advanced flows with different handoff behavior.
+source: task-followup
+created_at: 2026-04-09T07:47:03.661Z
+updated_at: 2026-04-09T07:47:03.661Z

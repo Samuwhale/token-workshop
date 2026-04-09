@@ -1,0 +1,23 @@
+id: research-thememanager-set-role-assignment-densit-c0fe8c92
+title: Research ThemeManager set-role assignment density and draft implementation slices for a summary-first role editor
+priority: normal
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: The current ThemeManager flow combines a merge explainer, batch toolbar, grouped sections, per-row three-state toggle controls, stale-set warnings, and coverage hints in one dense authoring block. Research should turn that into a small set of implementation-ready tasks grounded in the existing theme workflow stage model."
+  - "Failed: validation failed: ❯ src/__tests__/providers.test.ts:201:27 | 199| ); | 200| | 201| expect(validation.ok).toBe(true); | | ^ | 202| expect(validation.messages.join('\\n')).toContain('planner schema s… | 203| }); | ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯"
+state: failed
+acceptance_criteria:
+  - Inspect the set-role authoring surface across `packages/figma-plugin/src/ui/components/ThemeManager.tsx`, `packages/figma-plugin/src/ui/components/themeManagerTypes.ts`, `packages/figma-plugin/src/ui/shared/themeWorkflow.ts`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts`, and `packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts` to document how source/base, override, and excluded states are currently explained, grouped, edited, and summarized.
+  - Write concrete follow-up backlog tasks that replace dense per-row toggle clusters and helper copy with an at-a-glance role summary model, explicit edit affordances, and clearer bulk-assignment patterns, with concrete implementation touch paths for each slice.
+  - Write concrete follow-up backlog tasks that clarify how coverage gaps, missing overrides, empty override sets, and deleted-set warnings hand back into set-role editing so the role-assignment stage reads as one coherent workflow rather than separate status blocks.
+source: planner-pass
+created_at: 2026-04-09T07:34:46.657Z
+updated_at: 2026-04-09T07:41:16.150Z

@@ -2,6 +2,7 @@ export { defineBacklogRunnerConfig, loadBacklogRunnerConfig, normalizeBacklogRun
 export { runBacklogRunner, syncBacklogRunner } from './scheduler.js';
 export { validateBacklogRunner } from './validate.js';
 export type {
+  BacklogRunnerLane,
   BacklogRunnerConfig,
   BacklogRunnerConfigInput,
   BacklogTool,

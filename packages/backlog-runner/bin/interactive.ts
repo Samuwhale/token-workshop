@@ -1,8 +1,9 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
-import type { BacklogRunnerConfig, BacklogTool, RunOverrides } from '../src/types.js';
+import type { BacklogRunnerConfig, BacklogRunnerLane, BacklogTool, RunOverrides } from '../src/types.js';
 
 const TOOLS: BacklogTool[] = ['claude', 'codex'];
+const LANES: BacklogRunnerLane[] = ['executor', 'planner'];
 const SUMMARY_DIVIDER = '----------------------------------------';
 
 function parseBooleanAnswer(value: string, fallback: boolean): boolean {
@@ -25,9 +26,22 @@ export function resolveToolChoice(value: string, fallback: BacklogTool): Backlog
   return TOOLS.includes(normalized as BacklogTool) ? (normalized as BacklogTool) : fallback;
 }
 
+export function resolveLaneChoice(value: string, fallback: BacklogRunnerLane): BacklogRunnerLane {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return fallback;
+
+  const numeric = Number.parseInt(normalized, 10);
+  if (Number.isFinite(numeric) && numeric >= 1 && numeric <= LANES.length) {
+    return LANES[numeric - 1]!;
+  }
+
+  return LANES.includes(normalized as BacklogRunnerLane) ? (normalized as BacklogRunnerLane) : fallback;
+}
+
 export function summarizeRunOverrides(
   overrides: {
     tool: BacklogTool;
+    lane: BacklogRunnerLane;
     model?: string;
     passModel?: string;
     passes: boolean;
@@ -38,6 +52,7 @@ export function summarizeRunOverrides(
     'Selected options',
     SUMMARY_DIVIDER,
     `Tool:           ${overrides.tool}`,
+    `Lane:           ${overrides.lane}`,
     `Model:          ${overrides.model || 'CLI default'}`,
     `Pass model:     ${overrides.passModel || 'same as main model / CLI default'}`,
     `Passes:         ${overrides.passes ? 'enabled' : 'disabled'}`,
@@ -49,6 +64,7 @@ export function summarizeRunOverrides(
 function hasExplicitOverrides(overrides: RunOverrides): boolean {
   return Boolean(
       overrides.tool !== undefined ||
+      overrides.lane !== undefined ||
       overrides.model !== undefined ||
       overrides.passModel !== undefined ||
       overrides.passes !== undefined ||
@@ -85,6 +101,15 @@ export async function promptForRunOverrides(
       const toolAnswer = await rl.question(`Tool [1-${TOOLS.length} or name] (${defaultTool}): `);
       const nextTool = resolveToolChoice(toolAnswer, defaultTool);
 
+      const defaultLane = previous.lane ?? config.defaults.lane;
+      output.write('Lane options:\n');
+      LANES.forEach((lane, index) => {
+        const marker = lane === defaultLane ? ' (default)' : '';
+        output.write(`  ${index + 1}. ${lane}${marker}\n`);
+      });
+      const laneAnswer = await rl.question(`Lane [1-${LANES.length} or name] (${defaultLane}): `);
+      const nextLane = resolveLaneChoice(laneAnswer, defaultLane);
+
       const defaultModel = previous.model ?? config.defaults.model;
       const modelLabel = defaultModel || 'CLI default';
       const modelAnswer = await rl.question(`Model (${modelLabel}): `);
@@ -106,6 +131,7 @@ export async function promptForRunOverrides(
       const nextOverrides: RunOverrides = {
         ...previous,
         tool: nextTool,
+        lane: nextLane,
         model: nextModel,
         passModel: nextPassModel,
         passes: nextPasses,
@@ -115,6 +141,7 @@ export async function promptForRunOverrides(
 
       output.write(`\n${summarizeRunOverrides({
         tool: nextTool,
+        lane: nextLane,
         model: nextModel,
         passModel: nextPassModel,
         passes: nextPasses,

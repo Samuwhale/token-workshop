@@ -1,0 +1,24 @@
+id: merge-tokens-empty-state-starts-into-one-canonic-a6f2a185
+title: Merge Tokens empty-state starts into one canonical Start here flow
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/WelcomePrompt.tsx
+  - packages/figma-plugin/src/ui/components/QuickStartDialog.tsx
+  - packages/figma-plugin/src/ui/components/TokenList.tsx
+  - packages/figma-plugin/src/ui/panels/PanelRouter.tsx
+  - docs/redesign/plugin-ia-blueprint.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Execution order 3/5. Build this after the shared create launcher so every empty-state and onboarding entry can deep-link into the same start surface."
+state: ready
+acceptance_criteria:
+  - PanelRouter's empty library state and TokenList's empty-set state resolve to one canonical Start here surface with deep-link branches instead of separate in-body cards and modal copy.
+  - The manual branch hands off to the shared Tokens create launcher rather than owning a separate create action path.
+  - Template library and guided setup reuse the same branch model and can be reopened to a specific branch from any Tokens start entry point.
+source: task-followup
+created_at: 2026-04-09T07:47:03.661Z
+updated_at: 2026-04-09T07:47:03.661Z

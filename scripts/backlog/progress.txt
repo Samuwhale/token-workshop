@@ -314,3 +314,10 @@
   - When a preview row can remap its destination after diffing, show that the counts are tied to the original inspected target unless the preview is regenerated; otherwise the UI implies live recomputation it does not have.
   - Preview modals that gate writes should validate duplicate targets and append-path syntax inline, not only after the confirm action fails.
 ---
+## 2026-04-09 - [Research Tokens workspace surface ownership and unify creation entry points into executable follow-up tasks]
+- Audited the Tokens workspace blueprint, router, library, row actions, editor, modal stack, and start flows, then queued five implementation-ready follow-up items covering surface ownership, creation unification, start-flow consolidation, generator entry alignment, and modal reclassification.
+- Files changed: `backlog/inbox.jsonl` ~L1; `scripts/backlog/patterns.md` ~L180; `scripts/backlog/progress.txt` ~L317
+- **Learnings for future iterations:**
+  - Tokens currently splits the same job across multiple library shells: PanelRouter-level empty state, TokenList's own empty-set state, contextual side panels, and preview split. Establish the surface contract before rewiring entry points.
+  - Manual creation is fragmented across embedded forms, create-mode editor panels, search suggestions, keyboard shortcuts, onboarding, and token-row generator affordances, so follow-up work should centralize draft ownership before removing any surface.
+---

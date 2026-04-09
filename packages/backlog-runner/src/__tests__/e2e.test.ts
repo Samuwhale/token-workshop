@@ -31,6 +31,7 @@ function createFakeCommandRunner(
     calls?: string[];
     emitFollowup?: boolean;
     plannerOutput?: Record<string, unknown>;
+    plannerOutputs?: Record<string, unknown>[];
     failCommitMessages?: string[];
     onGitCommit?: (message: string) => Promise<void> | void;
   } = {},
@@ -45,10 +46,11 @@ function createFakeCommandRunner(
           options.calls?.push(`input:${runOptions.input}`);
         }
         if (runOptions?.input === 'planner prompt') {
+          const plannerOutput = options.plannerOutputs?.shift() ?? options.plannerOutput;
           return {
             code: 0,
             stdout: JSON.stringify({
-              structured_output: options.plannerOutput ?? {
+              structured_output: plannerOutput ?? {
                 status: 'done',
                 item: 'planner-pass',
                 note: 'superseded one parent',
@@ -188,6 +190,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
       },
       defaults: {
         tool: 'claude',
+        lane: 'executor',
         model: 'default',
         passModel: 'sonnet',
         passes: false,
@@ -225,6 +228,10 @@ function baseTask(overrides: Partial<BacklogTaskSpec> = {}): BacklogTaskSpec {
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map(dir => rm(dir, { recursive: true, force: true })));
 });
+
+async function stopAfterFirstSleep(filePath: string): Promise<void> {
+  await writeFile(filePath, 'stop\n', 'utf8');
+}
 
 describe('runner e2e', () => {
   it('finalizes code changes before marking a non-worktree task done', async () => {
@@ -463,6 +470,41 @@ describe('runner e2e', () => {
     expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).not.toContain('test item (Planned)');
   });
 
+  it('ignores worktree bootstrap node_modules symlinks during planner scope validation', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    })]);
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          statusResponses: [
+            [
+              'node_modules',
+              'packages/backlog-runner/node_modules',
+              'packages/core/node_modules',
+              'packages/figma-plugin/node_modules',
+              'packages/server/node_modules',
+            ],
+            ['scripts/backlog/progress.txt'],
+            ['scripts/backlog/progress.txt'],
+          ],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(logSink.lines.join('')).toContain('superseded 1 planned task');
+    expect(logSink.lines.join('')).not.toContain('planner pass touched repo files');
+    expect(logSink.lines.join('')).not.toContain('No runnable tasks remain and planner refinement made no progress');
+  });
+
   it('runs executable work before invoking planner refinement', async () => {
     const { root, config } = await makeFixture([
       baseTask({ id: 'task-ready', title: 'Ready task', touchPaths: ['feature.txt'] }),
@@ -528,5 +570,198 @@ describe('runner e2e', () => {
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: planned');
     expect(logSink.lines.join('')).toContain('planner refinement skipped');
     expect(logSink.lines.join('')).not.toContain('superseded 1 planned task');
+  });
+
+  it('planner lane refines planned work without executing ready tasks', async () => {
+    const { root, config } = await makeFixture([
+      baseTask({ id: 'task-ready', title: 'Ready task', touchPaths: ['feature.txt'] }),
+      baseTask({
+        id: 'task-a',
+        title: 'Planned task',
+        state: 'planned',
+        touchPaths: [],
+        statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+      }),
+    ]);
+    const calls: string[] = [];
+    const logSink = new MemoryLogSink();
+    let sleepCalls = 0;
+
+    await runBacklogRunner(
+      config,
+      { lane: 'planner' },
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          statusResponses: [[]],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 1) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
+      },
+    );
+
+    expect(calls).toContain('input:planner prompt');
+    expect(calls).not.toContain('input:agent prompt');
+    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: superseded');
+    expect(logSink.lines.join('')).toContain('Lane:   planner');
+    expect(logSink.lines.join('')).toContain('Planner buffer satisfied (2/2 ready)');
+  });
+
+  it('planner lane does not refine when the ready buffer is already full', async () => {
+    const { root, config } = await makeFixture([
+      baseTask({ id: 'task-ready-a', title: 'Ready A', touchPaths: ['feature-a.txt'] }),
+      baseTask({ id: 'task-ready-b', title: 'Ready B', touchPaths: ['feature-b.txt'] }),
+      baseTask({
+        id: 'task-a',
+        title: 'Planned task',
+        state: 'planned',
+        touchPaths: [],
+        statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+      }),
+    ]);
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      { lane: 'planner' },
+      {
+        commandRunner: createFakeCommandRunner(root, { calls }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => {
+          await stopAfterFirstSleep(config.files.stop);
+        },
+      },
+    );
+
+    expect(calls).not.toContain('input:planner prompt');
+    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: planned');
+  });
+
+  it('planner lane polls instead of exiting when refinement makes no progress', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    })]);
+    const logSink = new MemoryLogSink();
+    let sleepCalls = 0;
+
+    await runBacklogRunner(
+      config,
+      { lane: 'planner' },
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          plannerOutput: {
+            status: 'failed',
+            item: 'planner-pass',
+            note: 'could not safely refine this batch',
+            action: 'supersede',
+            parent_task_ids: ['task-a'],
+            children: [{
+              title: 'Research test item implementation plan',
+              task_kind: 'research',
+              priority: 'normal',
+              touch_paths: ['packages/figma-plugin/src/ui'],
+              acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
+            }],
+          },
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 1) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
+      },
+    );
+
+    expect(logSink.lines.join('')).toContain('planner refinement skipped');
+    expect(logSink.lines.join('')).toContain('Planner lane made no progress on the current batch');
+    expect(logSink.lines.join('')).not.toContain('No runnable tasks remain and planner refinement made no progress');
+  });
+
+  it('executor fallback planning waits when another planner lane is active', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    })]);
+    const calls: string[] = [];
+    const logSink = new MemoryLogSink();
+    const runnersDir = path.join(config.files.runtimeDir, 'runners');
+    await mkdir(runnersDir, { recursive: true });
+    await writeFile(
+      path.join(runnersDir, 'other-runner.json'),
+      JSON.stringify({ runnerId: 'other-runner', pid: process.pid, startedAt: Date.now(), lane: 'planner' }),
+      'utf8',
+    );
+
+    await runBacklogRunner(
+      config,
+      { lane: 'executor' },
+      {
+        commandRunner: createFakeCommandRunner(root, { calls }),
+        createLogSink: async () => logSink,
+        sleep: async () => {
+          await stopAfterFirstSleep(config.files.stop);
+        },
+      },
+    );
+
+    expect(calls).not.toContain('input:planner prompt');
+    expect(logSink.lines.join('')).toContain('Another planner lane: yes');
+    expect(logSink.lines.join('')).toContain('planner lane active, waiting for refined work');
+  });
+
+  it('planner lane never runs discovery passes', async () => {
+    const { root, config } = await makeFixture([]);
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      { lane: 'planner', passes: true },
+      {
+        commandRunner: createFakeCommandRunner(root, { calls }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => {
+          await stopAfterFirstSleep(config.files.stop);
+        },
+      },
+    );
+
+    expect(calls).not.toContain('input:agent prompt');
+    expect(calls).not.toContain('input:product prompt');
+    expect(calls).not.toContain('input:code prompt');
+    expect(calls).not.toContain('input:ux prompt');
+  });
+
+  it('prunes dead runner registrations when checking lane presence', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    const runnersDir = path.join(config.files.runtimeDir, 'runners');
+    const deadRunnerFile = path.join(runnersDir, 'dead-runner.json');
+    await mkdir(runnersDir, { recursive: true });
+    await writeFile(
+      deadRunnerFile,
+      JSON.stringify({ runnerId: 'dead-runner', pid: 999999, startedAt: Date.now(), lane: 'planner' }),
+      'utf8',
+    );
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    await expect(readFile(deadRunnerFile, 'utf8')).rejects.toThrow();
   });
 });

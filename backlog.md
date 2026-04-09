@@ -10,10 +10,9 @@
 - [x] [HIGH] Make theme-dimension duplication atomic in `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` and `packages/server/src/routes/themes.ts`, because the current create-dimension-then-copy-options loop can leave a half-copied axis behind if any follow-up option write fails.
 - [!] [HIGH] Replace the slug-only save preview in `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` with per-destination mapping and merge choices, because the current flow can only create or overwrite whole sets and gives no diff, skip, or append path before writing Figma variables into an existing token library.
 - [!] [HIGH] Wire the Figma variable save preview modal to destination mapping and merge controls
-- [ ] Define a cleaner split between browsing, previewing, and editing tokens so users are not forced to interpret drawers, preview splits, inline popovers, and modal editors as separate editing paradigms (Planned)
-- [ ] Redesign the set-role assignment UI so source, override, and excluded states are obvious at a glance and can be edited without scanning dense toggle rows and helper text (Planned)
+- [!] [HIGH] Codify Tokens workspace surface ownership and remove competing library body variants
+- [!] [HIGH] Unify manual token creation entry points behind one Tokens create launcher
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
-- [ ] Rework token creation entry points so “new token”, “new group”, quick generators, inline creation, and manual start flows all feel like one product model instead of several unrelated creation patterns (Planned)
 - [!] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [!] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
 - [!] Add search, alias/type/scope filters, and bulk expand or collapse controls to `packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` so large Figma variable libraries are navigable without opening one collection and one variable row at a time.
@@ -58,4 +57,10 @@
 - [!] Remove deprecated import orchestration hooks after controller consolidation
 - [!] Replace token-editor composite equality checks with stableStringify
 - [!] Decode multi-set snapshot keys in operation diff responses
+- [!] Research ThemeManager set-role assignment density and draft implementation slices for a summary-first role editor
+- [!] Research Tokens workspace surface ownership and unify creation entry points into executable follow-up tasks
+- [ ] Merge Tokens empty-state starts into one canonical Start here flow
+- [ ] Unify token-based and template-based generator starts into one generator draft flow
+- [ ] Reduce TokenListModals to transient confirmations and re-home long-lived review flows
+- [ ] Move Tokens narrow contextual drawers behind the shared library surface contract
 - [!] Make multi-set folder operations fully rollbackable in the operation log

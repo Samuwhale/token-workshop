@@ -30,6 +30,7 @@ export default {
   },
   defaults: {
     tool: 'claude',
+    lane: 'executor',
     model: 'default',
     passModel: 'sonnet',
     passes: true,

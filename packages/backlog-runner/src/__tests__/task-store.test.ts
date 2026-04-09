@@ -1,7 +1,7 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it } from 'vitest';
 import { normalizeBacklogRunnerConfig } from '../config.js';
 import { createFileBackedTaskStore } from '../store/task-store.js';
@@ -242,7 +242,7 @@ describe('task store', () => {
     const claimA = await storeA.claimNextRunnableTask('runner-a');
     expect(claimA?.task.id).toBe('task-a');
 
-    const db = new DatabaseSync(config.files.stateDb);
+    const db = new Database(config.files.stateDb);
     db.prepare('UPDATE leases SET expires_at = ? WHERE task_id = ?').run('2000-01-01T00:00:00.000Z', 'task-a');
     db.close();
 
