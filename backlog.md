@@ -54,7 +54,7 @@
 - [x] Recompute Figma variable save preview diffs after destination remaps
 - [x] Remove deprecated import orchestration hooks after controller consolidation
 - [ ] Replace token-editor composite equality checks with stableStringify
-- [ ] Decode multi-set snapshot keys in operation diff responses
+- [x] Decode multi-set snapshot keys in operation diff responses
 - [x] Research ThemeManager set-role assignment density and draft implementation slices for a summary-first role editor
 - [x] Merge Tokens empty-state starts into one canonical Start here flow
 - [x] Unify token-based and template-based generator starts into one generator draft flow

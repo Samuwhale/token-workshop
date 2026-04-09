@@ -14,10 +14,11 @@ status_notes:
   - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
   - "Recovered by remediation: Swapped token-editor composite dirty checks to stableStringify in both scoped hooks, verified the figma-plugin build, and cleared the unrelated staged preflight blocker."
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T14:11:05.073Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-09T14:30:38.613Z"
 state: ready
 acceptance_criteria:
   - Token editor dirty-state comparisons for composite draft values use stableStringify instead of JSON.stringify.
   - Reordering object keys in draft values, scopes, color modifiers, or mode values no longer marks the token editor dirty.
 source: task-followup
 created_at: 2026-04-08T22:30:38.168Z
-updated_at: 2026-04-09T13:56:05.085Z
+updated_at: 2026-04-09T14:15:38.624Z

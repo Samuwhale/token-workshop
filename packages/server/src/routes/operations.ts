@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { handleRouteError } from '../errors.js';
+import { getSnapshotTokenPath } from '../services/operation-log.js';
 import { stableStringify } from '../services/stable-stringify.js';
 
 export const operationRoutes: FastifyPluginAsync = async (fastify) => {
@@ -87,16 +88,17 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
         const currentToken = currentEntry?.token;
         const restoredToken = restoredEntry?.token;
         const setName = currentEntry?.setName ?? restoredEntry?.setName ?? '';
+        const userFacingPath = getSnapshotTokenPath(p, setName);
         if (currentToken && !restoredToken) {
           // Rollback will remove this token
           diffs.push({
-            path: p, set: setName, status: 'removed',
+            path: userFacingPath, set: setName, status: 'removed',
             before: { $value: currentToken.$value, $type: currentToken.$type },
           });
         } else if (!currentToken && restoredToken) {
           // Rollback will add this token back
           diffs.push({
-            path: p, set: setName, status: 'added',
+            path: userFacingPath, set: setName, status: 'added',
             after: { $value: restoredToken.$value, $type: restoredToken.$type },
           });
         } else if (currentToken && restoredToken) {
@@ -104,7 +106,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
           const restoredVal = stableStringify(restoredToken.$value);
           if (currentVal !== restoredVal) {
             diffs.push({
-              path: p, set: setName, status: 'modified',
+              path: userFacingPath, set: setName, status: 'modified',
               before: { $value: currentToken.$value, $type: currentToken.$type },
               after: { $value: restoredToken.$value, $type: restoredToken.$type },
             });

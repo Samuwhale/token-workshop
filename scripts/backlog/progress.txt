@@ -572,3 +572,10 @@
   - Multi-set operation snapshots need set-qualified keys whenever one history entry can contain the same token path from more than one set; otherwise later entries overwrite earlier ones in the serialized snapshot map.
   - When multi-set snapshots use set-qualified keys internally, derive user-facing `affectedPaths` and rollback responses back to plain token paths so operation history stays readable.
 ---
+## 2026-04-09 - [Decode multi-set snapshot keys in operation diff responses]
+- Updated the rollback diff route to decode set-qualified snapshot keys before returning diff rows, so multi-set folder previews now show plain token paths while keeping the recorded set name alongside each change.
+- Validation: `pnpm exec eslint packages/server/src/routes/operations.ts`, `pnpm --filter @tokenmanager/core build`, and `pnpm --filter @tokenmanager/server build` (all passed; Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for `eslint.config.js`).
+- Files changed: `packages/server/src/routes/operations.ts` ~L3, ~L91; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Any operation-history response that surfaces snapshot keys should translate them through the operation-log helper first, because multi-set snapshots are serialized with internal collision-safe keys rather than UI-facing token paths.
+---
