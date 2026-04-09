@@ -41,6 +41,17 @@ Do not write follow-up items directly into `backlog.md`.
 
 **Paths:** Always use relative paths (e.g., `scripts/backlog/progress.txt`, not absolute). Your working directory is the project root.
 
+## Workspace Repair Mode
+
+When the prompt explicitly says you are in workspace repair or reconciliation mode:
+
+- This repository is agent-operated by default. Assume repo changes are agent-originated unless local evidence clearly proves otherwise.
+- You may inspect, keep, discard, restage, or split changes into follow-up backlog work when that is the best way to recover the assigned task.
+- You may use git to inspect and repair state, but do not force-push.
+- Leave an audit trail in `scripts/backlog/progress.txt` when you discard work or split it into follow-up items.
+- If the task is stale or impossible, end with a failure note that starts exactly with `stale —` or `impossible —`.
+- Otherwise, repair the workspace so the scheduler can re-run preflight, scope, validation, and finalization successfully.
+
 ---
 
 ## Quality Rules

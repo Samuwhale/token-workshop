@@ -1,6 +1,7 @@
 import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { summarizeCommandOutput } from './command-output.js';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
 import { inspectBacklogState } from './context.js';
 import { PLANNER_RESULT_SCHEMA, PLANNER_SCHEMA_SMOKE_PROMPT } from './planner.js';
@@ -22,15 +23,6 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 function shellEscape(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-function summarizeCommandOutput(stdout: string, stderr: string): string {
-  const lines = [stdout, stderr]
-    .join('\n')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-  return lines.slice(-8).join(' | ') || 'no output';
 }
 
 async function validateCommandReadiness(

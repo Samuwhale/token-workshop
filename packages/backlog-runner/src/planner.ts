@@ -161,6 +161,7 @@ export function plannerContextForTasks(tasks: BacklogTaskSpec[]): string {
     .map(task => {
       const notes = task.statusNotes.length > 0 ? task.statusNotes.map(note => `- ${note}`).join('\n') : '- None';
       const criteria = task.acceptanceCriteria.length > 0 ? task.acceptanceCriteria.map(item => `- ${item}`).join('\n') : '- None';
+      const notesLabel = task.state === 'failed' ? 'Recovery evidence:' : 'Status notes:';
       return `### ${task.title}
 ID: ${task.id}
 Priority: ${task.priority}
@@ -168,7 +169,7 @@ Task kind: ${task.taskKind}
 State: ${task.state}
 Acceptance criteria:
 ${criteria}
-Status notes:
+${notesLabel}
 ${notes}`;
     })
     .join('\n\n');

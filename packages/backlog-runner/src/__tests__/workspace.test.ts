@@ -4,7 +4,9 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { normalizeBacklogRunnerConfig } from '../config.js';
 import { createCommandRunner } from '../process.js';
+import type { CommandResult, CommandRunner } from '../types.js';
 import { GitWorktreeWorkspaceStrategy } from '../workspace/git-worktree.js';
+import { gitCommitAndPush } from '../workspace/in-place.js';
 
 const tempDirs: string[] = [];
 
@@ -84,10 +86,12 @@ describe('git worktree strategy', () => {
 
     const merge = await session.merge();
     await session.teardown();
+    const status = await runner.run('git', ['status', '--porcelain'], { cwd: root });
 
     expect(merge.ok).toBe(true);
     expect(await readFile(path.join(root, 'feature.txt'), 'utf8')).toBe('after\n');
     expect(await readFile(path.join(root, 'scripts/backlog/progress.txt'), 'utf8')).toContain('## entry');
+    expect(status.stdout).not.toContain('node_modules');
   }, 15000);
 
   it('fails cleanly on merge conflicts without overwriting main repo changes', async () => {
@@ -107,4 +111,32 @@ describe('git worktree strategy', () => {
     expect(merge.reason).toBe('Cherry-pick conflict');
     expect(await readFile(path.join(root, 'feature.txt'), 'utf8')).toBe('main change\n');
   }, 15000);
+
+  it('does not push on a clean tree unless the runner explicitly retries a pending push', async () => {
+    const { root, config } = await makeRepo();
+    const calls: string[] = [];
+    const runner: CommandRunner = {
+      async run(command: string, args: string[]): Promise<CommandResult> {
+        calls.push(`run:${command} ${args.join(' ')}`.trim());
+        if (command === 'git' && args[0] === 'status') {
+          return { code: 0, stdout: '', stderr: '' };
+        }
+        if (command === 'git' && args[0] === 'remote') {
+          return { code: 0, stdout: 'origin', stderr: '' };
+        }
+        return { code: 0, stdout: '', stderr: '' };
+      },
+      async runShell(): Promise<CommandResult> {
+        return { code: 0, stdout: '', stderr: '' };
+      },
+      async which(): Promise<string | null> {
+        return '/usr/bin/mock';
+      },
+    };
+
+    const result = await gitCommitAndPush(runner, config, root, 'chore(backlog): done – test item', ['feature.txt']);
+
+    expect(result.ok).toBe(true);
+    expect(calls).not.toContain('run:git push');
+  });
 });

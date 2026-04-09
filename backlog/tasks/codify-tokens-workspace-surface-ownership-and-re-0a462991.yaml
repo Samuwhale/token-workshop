@@ -16,11 +16,12 @@ status_notes:
   - "Context: Execution order 1/5. Do this first so later creation and modal work can target a stable Tokens surface model. Keep persistent library panels separate from shell destinations and overlays."
   - "Failed: write scope violation: touched scripts/backlog/progress.txt"
   - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
-state: ready
+  - "Failed: impossible — the Tokens workspace changes are in place, but the required validation command still fails in out-of-scope backlog-runner tests (`bin/__tests__/interactive.test.ts`, `src/__tests__/providers.test.ts`), so I recorded the blocker and queued a follow-up instead of widening scope."
+state: failed
 acceptance_criteria:
   - Tokens > Library renders through one explicit surface contract for body, contextual panel, and split preview instead of separate empty/no-split/side-panel branches.
   - Token editor, generator editor, token preview, and compare surfaces all open and close through the same contextual panel state while preserving the current library browse context.
   - The IA blueprint documents which Tokens surfaces are primary screens, persistent contextual panels, secondary takeovers, and transient overlays, and the implementation matches that contract.
 source: task-followup
 created_at: 2026-04-09T07:47:03.656Z
-updated_at: 2026-04-09T08:57:42.000Z
+updated_at: 2026-04-09T10:52:00.330Z

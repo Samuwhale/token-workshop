@@ -250,6 +250,41 @@ describe('task store', () => {
     expect(reclaimed?.task.id).toBe('task-a');
   });
 
+  it('blocks deferred ready tasks until the runtime deferral expires', async () => {
+    const { config } = await makeFixture();
+    await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
+
+    const store = createFileBackedTaskStore(config);
+    const claim = await store.claimNextRunnableTask('runner-a');
+    expect(claim?.task.id).toBe('task-a');
+
+    await store.deferClaim(claim!, 'dirty workspace preflight: staged user-staged.txt', 15 * 60 * 1000);
+
+    const countsWhileDeferred = await store.getQueueCounts();
+    const blockage = await store.getTaskBlockage('task-a');
+    const blockedClaim = await store.claimNextRunnableTask('runner-b');
+    const taskYaml = await readFile(path.join(config.files.taskSpecsDir, 'task-a.yaml'), 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(countsWhileDeferred.ready).toBe(0);
+    expect(countsWhileDeferred.blocked).toBe(1);
+    expect(blockage?.reason).toBe('dirty workspace preflight: staged user-staged.txt');
+    expect(blockage?.retryAt).toMatch(/\d{4}-\d{2}-\d{2}T/);
+    expect(blockedClaim).toBeNull();
+    expect(taskYaml).toContain('Deferred: dirty workspace preflight: staged user-staged.txt');
+    expect(runtimeReport).toContain('retry after');
+
+    const db = new Database(config.files.stateDb);
+    db.prepare('UPDATE deferrals SET retry_at = ? WHERE task_id = ?').run('2000-01-01T00:00:00.000Z', 'task-a');
+    db.close();
+
+    const countsAfterExpiry = await store.getQueueCounts();
+    const reclaimed = await store.claimNextRunnableTask('runner-b');
+
+    expect(countsAfterExpiry.blocked).toBe(0);
+    expect(reclaimed?.task.id).toBe('task-a');
+  });
+
   it('refreshes queue counts without rewriting backlog.md and writes runtime-report.md', async () => {
     const { config, store } = await makeFixture();
     await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
@@ -319,8 +354,79 @@ describe('task store', () => {
     expect(counts.ready).toBe(1);
     expect(backlogReport).not.toContain('- [ ] Parent A');
     expect(backlogReport).toContain('Research Parent A implementation plan');
-    expect(runtimeReport).toContain('## Planned Tasks Awaiting Refinement');
+    expect(runtimeReport).toContain('## Planner Candidates Awaiting Refinement');
     expect(runtimeReport).toContain('- None');
+  });
+
+  it('lists failed planner candidates ahead of planned work', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({
+      id: 'planned-high',
+      title: 'Planned High',
+      state: 'planned',
+      priority: 'high',
+      touchPaths: [],
+    }));
+    await seedTask(config, taskSpec({
+      id: 'failed-normal',
+      title: 'Failed Normal',
+      state: 'failed',
+      priority: 'normal',
+      touchPaths: ['packages/core/src/failed-normal.ts'],
+      statusNotes: ['Failed: validation failed'],
+    }));
+    await seedTask(config, taskSpec({
+      id: 'failed-low',
+      title: 'Failed Low',
+      state: 'failed',
+      priority: 'low',
+      touchPaths: ['packages/core/src/failed-low.ts'],
+      statusNotes: ['Failed: write scope violation'],
+    }));
+
+    const candidates = await store.listPlannerCandidates();
+    await store.getQueueCounts();
+
+    expect(candidates.map(task => task.id)).toEqual(['failed-normal', 'failed-low', 'planned-high']);
+    expect(await readFile(config.files.runtimeReport, 'utf8')).toContain('## Planner Candidates Awaiting Refinement');
+  });
+
+  it('supersedes failed parents into runnable recovery children', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({
+      id: 'failed-parent',
+      title: 'Failed Parent',
+      state: 'failed',
+      touchPaths: ['packages/figma-plugin/src/ui/App.tsx'],
+      statusNotes: ['Failed: validation failed: missing dependency'],
+    }));
+
+    const applied = await store.applyPlannerSupersede({
+      action: 'supersede',
+      parentTaskIds: ['failed-parent'],
+      children: [{
+        title: 'Recover failed parent with narrower implementation scope',
+        taskKind: 'implementation',
+        priority: 'high',
+        touchPaths: ['packages/figma-plugin/src/ui/App.tsx'],
+        acceptanceCriteria: ['Narrower recovery task is runnable'],
+        validationProfile: 'repo',
+        context: 'Recover the failed task with tighter scope.',
+      }],
+    }, {
+      allowedParentTaskIds: ['failed-parent'],
+    });
+
+    const parent = await store.getTaskSpec('failed-parent');
+    const child = await store.getTaskSpec(applied.childTaskIds[0]!);
+    const counts = await store.getQueueCounts();
+
+    expect(parent?.state).toBe('superseded');
+    expect(parent?.statusNotes.join('\n')).toContain('Superseded by planner-pass');
+    expect(child?.state).toBe('ready');
+    expect(child?.priority).toBe('high');
+    expect(counts.failed).toBe(0);
+    expect(counts.ready).toBe(1);
   });
 
   it('rejects planner children that collide with each other', async () => {

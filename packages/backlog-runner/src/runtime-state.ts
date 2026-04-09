@@ -67,6 +67,13 @@ export class RuntimeStateStore {
         reason TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS deferrals (
+        task_id TEXT PRIMARY KEY,
+        reason TEXT NOT NULL,
+        retry_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
     `);
   }
 
@@ -91,6 +98,10 @@ export class RuntimeStateStore {
     }
   }
 
+  private pruneExpiredDeferrals(): void {
+    this.db.prepare('DELETE FROM deferrals WHERE retry_at <= ?').run(isoNow());
+  }
+
   transaction<T>(fn: () => T): T {
     this.db.exec('BEGIN IMMEDIATE');
     try {
@@ -107,6 +118,7 @@ export class RuntimeStateStore {
     const now = isoNow();
     this.transaction(() => {
       this.pruneExpiredLeases();
+      this.pruneExpiredDeferrals();
       this.db.exec('DELETE FROM blockers');
       const insert = this.db.prepare('INSERT INTO blockers (task_id, reason, updated_at) VALUES (?, ?, ?)');
       for (const blockage of blockages) {
@@ -117,20 +129,42 @@ export class RuntimeStateStore {
 
   getBlockage(taskId: string): TaskBlockage | null {
     this.pruneExpiredLeases();
-    const row = this.db.prepare('SELECT task_id, reason FROM blockers WHERE task_id = ?').get(taskId) as
-      | { task_id: string; reason: string }
+    this.pruneExpiredDeferrals();
+    const row = this.db.prepare(`
+      SELECT blockers.task_id, blockers.reason, deferrals.retry_at
+      FROM blockers
+      LEFT JOIN deferrals ON deferrals.task_id = blockers.task_id
+      WHERE blockers.task_id = ?
+    `).get(taskId) as
+      | { task_id: string; reason: string; retry_at: string | null }
       | undefined;
-    return row ? { taskId: row.task_id, reason: row.reason } : null;
+    return row ? { taskId: row.task_id, reason: row.reason, retryAt: row.retry_at ?? undefined } : null;
+  }
+
+  listActiveDeferrals(): TaskBlockage[] {
+    this.pruneExpiredDeferrals();
+    const rows = this.db.prepare('SELECT task_id, reason, retry_at FROM deferrals').all() as {
+      task_id: string;
+      reason: string;
+      retry_at: string;
+    }[];
+    return rows.map(row => ({
+      taskId: row.task_id,
+      reason: row.reason,
+      retryAt: row.retry_at,
+    }));
   }
 
   listActiveTaskIds(): Set<string> {
     this.pruneExpiredLeases();
+    this.pruneExpiredDeferrals();
     const rows = this.db.prepare('SELECT task_id FROM leases').all() as { task_id: string }[];
     return new Set(rows.map(row => row.task_id));
   }
 
   listActiveLeases(taskIndex: Map<string, BacklogTaskSpec>, excludeTaskId?: string): TaskLeaseSnapshot[] {
     this.pruneExpiredLeases();
+    this.pruneExpiredDeferrals();
     const rows = this.db.prepare('SELECT task_id, runner_id, claimed_at, heartbeat_at, expires_at FROM leases').all() as {
       task_id: string;
       runner_id: string;
@@ -157,6 +191,7 @@ export class RuntimeStateStore {
 
   listActiveReservations(taskIndex: Map<string, BacklogTaskSpec>, excludeTaskId?: string): TaskReservationSnapshot[] {
     this.pruneExpiredLeases();
+    this.pruneExpiredDeferrals();
     const leaseRows = this.db.prepare('SELECT task_id, runner_id, expires_at FROM leases').all() as {
       task_id: string;
       runner_id: string;
@@ -199,6 +234,7 @@ export class RuntimeStateStore {
   claimTask(task: BacklogTaskSpec, runnerId: string, claimToken: string): BacklogTaskLease | null {
     return this.transaction(() => {
       this.pruneExpiredLeases();
+      this.pruneExpiredDeferrals();
       const existing = this.db.prepare('SELECT task_id FROM leases WHERE task_id = ?').get(task.id) as { task_id: string } | undefined;
       if (existing) return null;
 
@@ -225,6 +261,8 @@ export class RuntimeStateStore {
         insertReservation.run(task.id, 'capability', capability);
       }
 
+      this.db.prepare('DELETE FROM deferrals WHERE task_id = ?').run(task.id);
+
       return lease;
     });
   }
@@ -232,6 +270,7 @@ export class RuntimeStateStore {
   heartbeatClaim(claim: BacklogTaskClaim): void {
     this.transaction(() => {
       this.pruneExpiredLeases();
+      this.pruneExpiredDeferrals();
       this.db.prepare(`
         UPDATE leases
         SET heartbeat_at = ?, expires_at = ?
@@ -249,5 +288,23 @@ export class RuntimeStateStore {
         claim.lease.claimToken,
       );
     });
+  }
+
+  deferTask(taskId: string, reason: string, retryAt: string): void {
+    this.transaction(() => {
+      this.pruneExpiredDeferrals();
+      this.db.prepare(`
+        INSERT INTO deferrals (task_id, reason, retry_at, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(task_id) DO UPDATE SET
+          reason = excluded.reason,
+          retry_at = excluded.retry_at,
+          updated_at = excluded.updated_at
+      `).run(taskId, reason, retryAt, isoNow());
+    });
+  }
+
+  clearTaskDeferral(taskId: string): void {
+    this.db.prepare('DELETE FROM deferrals WHERE task_id = ?').run(taskId);
   }
 }

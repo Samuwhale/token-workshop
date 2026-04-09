@@ -41,6 +41,16 @@ export interface SetMetadataState {
   modeName?: string;
 }
 
+function summarizeError(err: unknown): string {
+  if (!err || typeof err !== 'object') {
+    return String(err);
+  }
+
+  const code = 'code' in err && typeof err.code === 'string' ? err.code : null;
+  const message = err instanceof Error ? err.message : String(err);
+  return code ? `${code}: ${message}` : message;
+}
+
 export class TokenStore {
   /** Shared async mutex — route handlers and watcher callbacks serialize through this single lock. */
   readonly lock = new PromiseChainLock();
@@ -74,16 +84,30 @@ export class TokenStore {
     this.startWatching();
   }
 
+  private async readOptionalRegularFile(filePath: string): Promise<string | null> {
+    let stats: Awaited<ReturnType<typeof fs.stat>>;
+    try {
+      stats = await fs.stat(filePath);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
+      throw err;
+    }
+
+    if (!stats.isFile()) {
+      const kind = stats.isDirectory() ? 'directory' : 'non-file path';
+      throw new Error(`${path.basename(filePath)} must be a regular file, found ${kind}`);
+    }
+
+    return await fs.readFile(filePath, 'utf-8');
+  }
+
   /** Applies the set-name substitution to $themes.json atomically. No-ops if no themes file or no matches. */
   private async applyThemesRename(oldName: string, newName: string): Promise<void> {
     const themesPath = path.join(this.dir, '$themes.json');
-    let content: string;
-    try {
-      content = await fs.readFile(themesPath, 'utf-8');
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
-      throw err;
-    }
+    const content = await this.readOptionalRegularFile(themesPath);
+    if (content === null) return;
     const data = JSON.parse(content) as { $themes: Array<{ options: Array<{ sets: Record<string, unknown> }> }> };
     if (!Array.isArray(data.$themes)) return;
     let changed = false;
@@ -135,7 +159,9 @@ export class TokenStore {
         await fs.unlink(markerPath).catch(() => {});
       } catch (err) {
         // Keep the marker so the next server restart will retry the themes update.
-        console.error('[TokenStore] Recovery: themes update failed — marker preserved for retry on next restart:', err);
+        console.error(
+          `[TokenStore] Recovery: themes update failed — marker preserved for retry on next restart: ${summarizeError(err)}`,
+        );
       }
     } else if (oldExists && !newExists) {
       // File rename didn't complete — state is consistent, just remove the marker

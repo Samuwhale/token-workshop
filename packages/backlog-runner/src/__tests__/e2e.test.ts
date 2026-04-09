@@ -26,17 +26,28 @@ function createFakeCommandRunner(
   root: string,
   options: {
     validationOk?: boolean;
+    validationResponses?: boolean[];
     changedFiles?: string[];
     statusResponses?: string[][];
+    initialStagedFiles?: string[];
+    clearStagedFilesOnRepair?: boolean;
+    remoteName?: string;
+    failPushCount?: number;
     calls?: string[];
     emitFollowup?: boolean;
     plannerOutput?: Record<string, unknown>;
     plannerOutputs?: Record<string, unknown>[];
     failCommitMessages?: string[];
+    failCommitCounts?: Record<string, number>;
     onGitCommit?: (message: string) => Promise<void> | void;
   } = {},
 ): CommandRunner {
-  const stagedFiles = new Set<string>();
+  const stagedFiles = new Set(options.initialStagedFiles ?? []);
+  const remainingCommitFailures = new Map<string, number>(
+    Object.entries(options.failCommitCounts ?? {}),
+  );
+  let remainingPushFailures = options.failPushCount ?? 0;
+  const validationResponses = [...(options.validationResponses ?? [])];
 
   return {
     async run(command: string, args: string[], runOptions?: { input?: string }): Promise<CommandResult> {
@@ -45,6 +56,7 @@ function createFakeCommandRunner(
         if (runOptions?.input) {
           options.calls?.push(`input:${runOptions.input}`);
         }
+        const isRepairPrompt = runOptions?.input?.includes('## Workspace Repair Mode') || runOptions?.input?.includes('## Reconciliation Mode');
         if (runOptions?.input === 'planner prompt') {
           const plannerOutput = options.plannerOutputs?.shift() ?? options.plannerOutput;
           return {
@@ -68,6 +80,9 @@ function createFakeCommandRunner(
             }),
             stderr: '',
           };
+        }
+        if (isRepairPrompt && options.clearStagedFilesOnRepair) {
+          stagedFiles.clear();
         }
         await writeFile(
           path.join(root, 'scripts/backlog/progress.txt'),
@@ -118,6 +133,11 @@ function createFakeCommandRunner(
         if (args[0] === 'commit' && args[1] === '-m') {
           const message = args[2] ?? '';
           await options.onGitCommit?.(message);
+          const remainingFailures = remainingCommitFailures.get(message) ?? 0;
+          if (remainingFailures > 0) {
+            remainingCommitFailures.set(message, remainingFailures - 1);
+            return { code: 1, stdout: '', stderr: 'commit failed' };
+          }
           if (options.failCommitMessages?.includes(message)) {
             return { code: 1, stdout: '', stderr: 'commit failed' };
           }
@@ -125,6 +145,16 @@ function createFakeCommandRunner(
           return { code: 0, stdout: '', stderr: '' };
         }
         if (args[0] === 'remote') {
+          return { code: 0, stdout: options.remoteName ?? '', stderr: '' };
+        }
+        if (args[0] === 'push') {
+          if (remainingPushFailures > 0) {
+            remainingPushFailures -= 1;
+            return { code: 1, stdout: '', stderr: 'push failed' };
+          }
+          return { code: 0, stdout: '', stderr: '' };
+        }
+        if (args[0] === 'pull') {
           return { code: 0, stdout: '', stderr: '' };
         }
         return { code: 0, stdout: '', stderr: '' };
@@ -133,8 +163,9 @@ function createFakeCommandRunner(
       return { code: 0, stdout: '', stderr: '' };
     },
     async runShell(): Promise<CommandResult> {
-      options.calls?.push(`shell:${options.validationOk === false ? 'fail' : 'pass'}`);
-      return options.validationOk === false
+      const nextValidation = validationResponses.length > 0 ? validationResponses.shift() : options.validationOk !== false;
+      options.calls?.push(`shell:${nextValidation === false ? 'fail' : 'pass'}`);
+      return nextValidation === false
         ? { code: 1, stdout: '', stderr: 'validation failed' }
         : { code: 0, stdout: 'validation passed', stderr: '' };
     },
@@ -268,7 +299,7 @@ describe('runner e2e', () => {
     expect(calls).not.toContain('run:git commit -m chore(backlog): planner sync – test item');
   });
 
-  it('marks the task failed when validation fails', async () => {
+  it('defers the task after remediation when validation still fails', async () => {
     const { root, config } = await makeFixture([baseTask()]);
     const logSink = new MemoryLogSink();
 
@@ -282,12 +313,16 @@ describe('runner e2e', () => {
       },
     );
 
-    expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [!] test item');
-    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: failed');
-    expect(logSink.lines.join('')).toContain('validation failed');
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('Deferred after remediation: validation failed: validation failed');
+    expect(logSink.lines.join('')).toContain('Attempting autonomous workspace repair');
+    expect(runtimeReport).toContain('remediation: validation failed: validation failed');
   });
 
-  it('fails the task when the agent edits files outside the declared touch_paths', async () => {
+  it('defers the task after remediation when the agent edits files outside the declared touch_paths', async () => {
     const { root, config } = await makeFixture([baseTask({ touchPaths: ['allowed.txt'] })]);
     const logSink = new MemoryLogSink();
 
@@ -301,12 +336,16 @@ describe('runner e2e', () => {
       },
     );
 
-    expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [!] test item');
-    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('write scope violation');
-    expect(logSink.lines.join('')).toContain('write scope violation');
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('Deferred after remediation: write scope violation: touched feature.txt');
+    expect(logSink.lines.join('')).toContain('Attempting autonomous workspace repair');
+    expect(runtimeReport).toContain('remediation: write scope violation: touched feature.txt');
   });
 
-  it('fails the task when validation introduces files outside the declared touch_paths', async () => {
+  it('defers the task after remediation when validation introduces files outside the declared touch_paths', async () => {
     const { root, config } = await makeFixture([baseTask({ touchPaths: ['feature.txt'] })]);
     const logSink = new MemoryLogSink();
 
@@ -315,15 +354,104 @@ describe('runner e2e', () => {
       {},
       {
         commandRunner: createFakeCommandRunner(root, {
-          statusResponses: [['feature.txt'], ['feature.txt', 'packages/server/generated.ts']],
+          statusResponses: [
+            ['feature.txt'],
+            ['feature.txt', 'packages/server/generated.ts'],
+            ['feature.txt', 'packages/server/generated.ts'],
+            ['feature.txt', 'packages/server/generated.ts'],
+          ],
         }),
         createLogSink: async () => logSink,
         sleep: async () => undefined,
       },
     );
 
-    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('post-validation scope violation');
-    expect(logSink.lines.join('')).toContain('validation introduced out-of-scope changes');
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('Deferred after remediation: post-validation scope violation: touched packages/server/generated.ts');
+    expect(logSink.lines.join('')).toContain('Attempting autonomous workspace repair');
+    expect(runtimeReport).toContain('remediation: post-validation scope violation: touched packages/server/generated.ts');
+  });
+
+  it('allows bookkeeping files during execution scope validation', async () => {
+    const { root, config } = await makeFixture([baseTask({ touchPaths: ['feature.txt'] })]);
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          statusResponses: [
+            ['feature.txt', 'scripts/backlog/progress.txt', 'scripts/backlog/patterns.md'],
+            ['feature.txt', 'scripts/backlog/progress.txt', 'scripts/backlog/patterns.md'],
+          ],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: done');
+    expect(logSink.lines.join('')).not.toContain('write scope violation');
+    expect(logSink.lines.join('')).toContain('Marked done after finalize');
+  });
+
+  it('defers the claim when remediation cannot clean unrelated staged files before execution', async () => {
+    const { root, config } = await makeFixture([baseTask({ touchPaths: ['feature.txt'] })]);
+    const logSink = new MemoryLogSink();
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          initialStagedFiles: ['user-staged.txt'],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('Deferred after remediation: dirty workspace preflight: staged user-staged.txt');
+    expect(calls).not.toContain('input:agent prompt');
+    expect(calls.some(call => call.includes('## Workspace Repair Mode'))).toBe(true);
+    expect(logSink.lines.join('')).toContain('dirty workspace preflight');
+    expect(runtimeReport).toContain('Queue: 0 ready · 1 blocked');
+    expect(runtimeReport).toContain('remediation: dirty workspace preflight: staged user-staged.txt');
+  });
+
+  it('continues execution when remediation clears staged preflight issues', async () => {
+    const { root, config } = await makeFixture([baseTask({ touchPaths: ['feature.txt'] })]);
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          initialStagedFiles: ['user-staged.txt'],
+          clearStagedFilesOnRepair: true,
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+
+    expect(taskYaml).toContain('state: done');
+    expect(taskYaml).toContain('Recovered by remediation');
+    expect(calls.some(call => call.includes('## Workspace Repair Mode'))).toBe(true);
   });
 
   it('keeps the completion state in the single final task commit', async () => {
@@ -354,7 +482,7 @@ describe('runner e2e', () => {
     expect(logSink.lines.join('')).toContain('Marked done after finalize');
   });
 
-  it('fails the task without ever marking it done when the initial finalize commit fails', async () => {
+  it('defers the task when the initial finalize commit still fails after remediation', async () => {
     const { root, config } = await makeFixture([baseTask()]);
     const logSink = new MemoryLogSink();
     const calls: string[] = [];
@@ -379,12 +507,89 @@ describe('runner e2e', () => {
       },
     );
 
-    expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [!] test item');
-    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: failed');
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('Deferred after remediation: git commit failed: commit failed');
     expect(events).toContain('done-at-finalize');
-    expect(logSink.lines.join('')).toContain('marked failed');
+    expect(logSink.lines.join('')).toContain('deferred for retry');
     expect(calls).not.toContain('run:git commit -m chore(backlog): planner sync – test item');
   });
+
+  it('reconciles and finalizes autonomously after a transient finalize failure', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    const logSink = new MemoryLogSink();
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          remoteName: 'origin',
+          failPushCount: 3,
+          statusResponses: [
+            ['feature.txt'],
+            ['feature.txt'],
+            ['feature.txt'],
+            [],
+            [],
+            [],
+          ],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: done');
+    expect(logSink.lines.join('')).toContain('Attempting autonomous reconciliation');
+    expect(logSink.lines.join('')).toContain('Reconciliation finalized successfully');
+    expect(calls.filter(call => call === 'input:agent prompt')).toHaveLength(1);
+    expect(calls.some(call => call.includes('## Reconciliation Mode'))).toBe(true);
+    expect(calls.filter(call => call === 'run:git commit -m chore(backlog): done – test item')).toHaveLength(1);
+    expect(calls.filter(call => call === 'run:git push')).toHaveLength(4);
+  }, 30000);
+
+  it('defers the task when pending-push retry still cannot reach the remote', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    const logSink = new MemoryLogSink();
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          remoteName: 'origin',
+          failPushCount: 6,
+          statusResponses: [
+            ['feature.txt'],
+            ['feature.txt'],
+            ['feature.txt'],
+            [],
+            [],
+            [],
+          ],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('Deferred after remediation: git push failed after retries; local commit preserved for inspection');
+    expect(logSink.lines.join('')).toContain('Attempting autonomous reconciliation');
+    expect(logSink.lines.join('')).toContain('reconciliation finalize failed');
+    expect(calls.filter(call => call === 'run:git commit -m chore(backlog): done – test item')).toHaveLength(1);
+    expect(calls.filter(call => call === 'run:git push')).toHaveLength(6);
+    expect(runtimeReport).toContain('remediation: git push failed after retries; local commit preserved for inspection');
+  }, 30000);
 
   it('closes the task store during runner shutdown', async () => {
     const { root, config } = await makeFixture([baseTask()]);
@@ -466,8 +671,110 @@ describe('runner e2e', () => {
 
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: superseded');
     expect(logSink.lines.join('')).toContain('Planner Refinement Pass');
-    expect(logSink.lines.join('')).toContain('superseded 1 planned task');
+    expect(logSink.lines.join('')).toContain('superseded 1 planner candidate');
     expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).not.toContain('test item (Planned)');
+  });
+
+  it('attempts planner refinement before stopping when only failed tasks remain', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      state: 'failed',
+      statusNotes: ['Failed: validation failed: missing dependency'],
+    })]);
+    const calls: string[] = [];
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          plannerOutput: {
+            status: 'failed',
+            item: 'planner-pass',
+            note: 'could not safely recover this failed item',
+            action: 'supersede',
+            parent_task_ids: ['task-a'],
+            children: [{
+              title: 'Recover failed test item',
+              task_kind: 'implementation',
+              priority: 'normal',
+              touch_paths: ['feature.txt'],
+              acceptance_criteria: ['Recover failed task'],
+              validation_profile: 'repo',
+              capabilities: null,
+              context: 'Retry the failed item.',
+            }],
+          },
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(calls).toContain('input:planner prompt');
+    expect(logSink.lines.join('')).toContain('planner refinement skipped');
+    expect(logSink.lines.join('')).toContain('No runnable tasks remain and planner refinement made no progress');
+  });
+
+  it('recovers failed parents into ready child tasks before executor shutdown', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      state: 'failed',
+      statusNotes: ['Failed: validation failed: missing dependency'],
+    })]);
+    class StopAfterRecoveryLogSink extends MemoryLogSink {
+      override write(line: string): void {
+        super.write(line);
+        if (line.includes('superseded 1 planner candidate')) {
+          void writeFile(path.join(root, 'backlog-stop'), 'stop\n', 'utf8');
+        }
+      }
+    }
+    const logSink = new StopAfterRecoveryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          statusResponses: [[]],
+          plannerOutput: {
+            status: 'done',
+            item: 'planner-pass',
+            note: 'recovered failed item into a narrower task',
+            action: 'supersede',
+            parent_task_ids: ['task-a'],
+            children: [{
+              title: 'Recover failed test item with narrower scope',
+              task_kind: 'implementation',
+              priority: 'high',
+              touch_paths: ['feature.txt'],
+              acceptance_criteria: ['Failed task is replaced with a runnable narrower task'],
+              validation_profile: 'repo',
+              capabilities: null,
+              context: 'Recover the failed item with tighter scope.',
+            }],
+          },
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    const store = createFileBackedTaskStore(config);
+    const counts = await store.getQueueCounts();
+
+    try {
+      expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: superseded');
+      expect(logSink.lines.join('')).toContain('superseded 1 planner candidate');
+      expect(counts.ready).toBe(1);
+      expect(counts.failed).toBe(0);
+      const childTask = await store.listPlannerCandidates();
+      expect(childTask).toHaveLength(0);
+      expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('Recover failed test item with narrower scope');
+    } finally {
+      await store.close();
+    }
   });
 
   it('ignores worktree bootstrap node_modules symlinks during planner scope validation', async () => {
@@ -500,7 +807,7 @@ describe('runner e2e', () => {
       },
     );
 
-    expect(logSink.lines.join('')).toContain('superseded 1 planned task');
+    expect(logSink.lines.join('')).toContain('superseded 1 planner candidate');
     expect(logSink.lines.join('')).not.toContain('planner pass touched repo files');
     expect(logSink.lines.join('')).not.toContain('No runnable tasks remain and planner refinement made no progress');
   });
@@ -569,7 +876,7 @@ describe('runner e2e', () => {
 
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: planned');
     expect(logSink.lines.join('')).toContain('planner refinement skipped');
-    expect(logSink.lines.join('')).not.toContain('superseded 1 planned task');
+    expect(logSink.lines.join('')).not.toContain('superseded 1 planner candidate');
   });
 
   it('planner lane refines planned work without executing ready tasks', async () => {
@@ -765,3 +1072,22 @@ describe('runner e2e', () => {
     await expect(readFile(deadRunnerFile, 'utf8')).rejects.toThrow();
   });
 });
+  it('continues when remediation repairs validation failure', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          validationResponses: [false, true, true],
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    expect(taskYaml).toContain('state: done');
+    expect(taskYaml).toContain('Recovered by remediation');
+  });

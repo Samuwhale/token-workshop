@@ -7,6 +7,7 @@ import type {
   BacklogRunnerConfig,
   CommandRunner,
   WorkspaceApplyResult,
+  WorkspaceCommitOptions,
   WorkspaceSession,
   WorkspaceStrategy,
 } from '../types.js';
@@ -83,6 +84,24 @@ async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: s
   }
 }
 
+async function removeBootstrapWorkspaceNodeModules(worktreeDir: string): Promise<void> {
+  await rm(path.join(worktreeDir, 'node_modules'), { recursive: true, force: true });
+
+  const packagesDir = path.join(worktreeDir, 'packages');
+  let packageNames: string[] = [];
+  try {
+    packageNames = await readdir(packagesDir);
+  } catch {
+    return;
+  }
+
+  await Promise.all(
+    packageNames.map(async packageName => {
+      await rm(path.join(packagesDir, packageName, 'node_modules'), { recursive: true, force: true });
+    }),
+  );
+}
+
 class GitWorktreeSession implements WorkspaceSession {
   constructor(
     readonly cwd: string,
@@ -108,7 +127,7 @@ class GitWorktreeSession implements WorkspaceSession {
       ignoreFailure: true,
     });
 
-    await rm(path.join(this.cwd, 'node_modules'), { force: true });
+    await removeBootstrapWorkspaceNodeModules(this.cwd);
     const status = await this.commandRunner.run('git', ['status', '--porcelain'], {
       cwd: this.cwd,
       ignoreFailure: true,
@@ -178,7 +197,7 @@ class GitWorktreeSession implements WorkspaceSession {
   }
 
   async teardown(): Promise<void> {
-    await rm(path.join(this.cwd, 'node_modules'), { force: true });
+    await removeBootstrapWorkspaceNodeModules(this.cwd);
     await this.commandRunner.run('git', ['worktree', 'remove', this.cwd, '--force'], {
       cwd: this.config.projectRoot,
       ignoreFailure: true,
@@ -222,7 +241,11 @@ export class GitWorktreeWorkspaceStrategy implements WorkspaceStrategy {
     );
   }
 
-  async commitAndPush(message: string, allowedPaths: string[]): Promise<WorkspaceApplyResult> {
-    return gitCommitAndPush(this.commandRunner, this.config, this.config.projectRoot, message, allowedPaths);
+  async commitAndPush(
+    message: string,
+    allowedPaths: string[],
+    options: WorkspaceCommitOptions = {},
+  ): Promise<WorkspaceApplyResult> {
+    return gitCommitAndPush(this.commandRunner, this.config, this.config.projectRoot, message, allowedPaths, options);
   }
 }

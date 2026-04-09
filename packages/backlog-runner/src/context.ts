@@ -302,6 +302,90 @@ Schema:
 - If task kind is research, inspect code and write concrete follow-up backlog items only. Do not implement product or server code during the research task.`;
 }
 
+function renderPathList(items: string[]): string {
+  return items.length > 0 ? items.map(item => `- ${item}`).join('\n') : '- None';
+}
+
+export async function buildWorkspaceRepairContext(
+  config: BacklogRunnerConfig,
+  cwd: string,
+  claim: BacklogTaskClaim,
+  dependencies: TaskDependencySnapshot[],
+  reservations: TaskReservationSnapshot[],
+  options: {
+    failureReason: string;
+    mode: 'preflight' | 'scope' | 'validation' | 'finalize';
+    changedFiles: string[];
+    stagedFiles: string[];
+    inScopeFiles: string[];
+    outOfScopeFiles: string[];
+    validationSummary?: string;
+    originalDiff?: string;
+  },
+): Promise<string> {
+  const base = await buildExecutionContext(config, cwd, claim, dependencies, reservations);
+  const trimmedDiff = options.originalDiff
+    ? trimToBudget(options.originalDiff, 12_000)
+    : null;
+
+  return `${base}
+
+## Workspace Repair Failure
+Repair mode: ${options.mode}
+
+Failure reason:
+${options.failureReason}
+
+Validation summary:
+${options.validationSummary ?? 'None'}
+
+Changed files:
+${renderPathList(options.changedFiles)}
+
+Staged files:
+${renderPathList(options.stagedFiles)}
+
+In-scope changed files:
+${renderPathList(options.inScopeFiles)}
+
+Out-of-scope changed files:
+${renderPathList(options.outOfScopeFiles)}
+${trimmedDiff ? `
+
+## Relevant Diff
+\`\`\`diff
+${trimmedDiff}
+\`\`\`` : ''}
+
+## Workspace Repair Goal
+- This repository is agent-operated by default. Assume repo changes are agent-originated unless the local code clearly proves otherwise.
+- You may inspect, preserve, discard, split into follow-up work, or restage changes when that is the best way to recover the assigned task.
+- If you discard or split work, leave an audit trail in progress notes so a later agent can understand the decision.
+- If the task is stale or impossible, return failed with a note starting exactly \`stale —\` or \`impossible —\`.
+- If the workspace can be repaired so scheduler checks pass, return done.
+- Keep the final result coherent with the assigned acceptance criteria and inside the declared touch_paths plus allowed backlog bookkeeping files whenever possible.`;
+}
+
+export async function buildReconciliationContext(
+  config: BacklogRunnerConfig,
+  cwd: string,
+  claim: BacklogTaskClaim,
+  dependencies: TaskDependencySnapshot[],
+  reservations: TaskReservationSnapshot[],
+  failureReason: string,
+  originalDiff: string,
+): Promise<string> {
+  return buildWorkspaceRepairContext(config, cwd, claim, dependencies, reservations, {
+    failureReason,
+    mode: 'finalize',
+    changedFiles: [],
+    stagedFiles: [],
+    inScopeFiles: [],
+    outOfScopeFiles: [],
+    originalDiff,
+  });
+}
+
 export async function buildDiscoveryContext(
   config: BacklogRunnerConfig,
 ): Promise<string> {
@@ -329,7 +413,7 @@ Do not modify backlog.md directly.`;
 
 export async function buildPlannerContext(
   config: BacklogRunnerConfig,
-  plannedTasks: BacklogTaskSpec[],
+  plannerCandidates: BacklogTaskSpec[],
 ): Promise<string> {
   const [patternsContent, recent, backlogContent] = await Promise.all([
     readFileIfExists(config.files.patterns, ''),
@@ -347,17 +431,20 @@ ${recent}
 ## Backlog Digest
 ${renderBacklogDigest(backlogContent)}
 
-## Planned Tasks To Refine
-Refine at most ${plannerBatchSize()} planned items in this pass.
+## Tasks To Refine
+Refine at most ${plannerBatchSize()} planner candidates in this pass.
+Failed tasks are recovery work and should be treated as higher-priority planner inputs than untouched planned tasks.
 
-${plannerContextForTasks(plannedTasks)}
+${plannerContextForTasks(plannerCandidates)}
 
 ## Refinement Rules
 - Treat this as a read-only planning pass. Do not edit repo files directly.
-- Prefer one clustered research task when multiple planned items clearly overlap.
+- Failed task status notes are recovery evidence. Use them to decide whether to replace the task as-is, narrow it, or emit prerequisite work.
+- Prefer one clustered research task when multiple selected items clearly overlap.
 - Supersede parents with child tasks; do not keep duplicate parent work alive.
 - Prefer research tasks that inspect code and emit concrete implementation follow-up tasks.
 - Research children must stay backlog-only; the scheduler will force backlog touch_paths and the backlog validation profile.
+- For every selected failed task, either emit a like-for-like replacement child or emit narrower/prerequisite children that explain the recovery path.
 - Return one strict JSON object matching the requested schema.`;
 }
 

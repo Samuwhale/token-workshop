@@ -23,6 +23,7 @@ import type {
   BacklogTaskSpec,
   PlannerSupersedeAction,
   TaskBlockage,
+  TaskDeferralOptions,
   TaskDependencySnapshot,
   TaskLeaseSnapshot,
   TaskReservationSnapshot,
@@ -36,6 +37,11 @@ type RuntimeSnapshot = {
   blockages: TaskBlockage[];
   counts: BacklogQueueCounts;
 };
+
+function plannerCandidateSort(a: BacklogTaskSpec, b: BacklogTaskSpec): number {
+  const stateRank = (task: BacklogTaskSpec): number => (task.state === 'failed' ? 0 : 1);
+  return stateRank(a) - stateRank(b) || taskSort(a, b);
+}
 
 function splitLines(value: string): string[] {
   return value.replace(/\r\n/g, '\n').split('\n');
@@ -54,6 +60,20 @@ function normalizeWhitespace(value: string): string {
 function reservationConflict(task: BacklogTaskSpec, reservation: TaskReservationSnapshot): boolean {
   const capabilityConflict = task.capabilities.some(capability => reservation.capabilities.includes(capability));
   return capabilityConflict || touchPathsOverlap(task.touchPaths, reservation.touchPaths);
+}
+
+function renderDeferralReason(note: string, options: TaskDeferralOptions = {}): string {
+  if (options.category === 'remediation') {
+    return `remediation: ${note}`;
+  }
+  return note;
+}
+
+function renderDeferralStatusNote(note: string, retryAt: string, options: TaskDeferralOptions = {}): string {
+  if (options.category === 'remediation') {
+    return `Deferred after remediation: ${note} until ${retryAt}`;
+  }
+  return `Deferred: ${note} until ${retryAt}`;
 }
 
 export class FileBackedTaskStore implements BacklogStore {
@@ -109,6 +129,7 @@ export class FileBackedTaskStore implements BacklogStore {
     tasks: BacklogTaskSpec[],
     activeReservations: TaskReservationSnapshot[],
     activeTaskIds: Set<string>,
+    activeDeferrals: TaskBlockage[],
   ): TaskBlockage[] {
     const taskIndex = this.taskIndex(tasks);
     const blockages: TaskBlockage[] = [];
@@ -152,6 +173,16 @@ export class FileBackedTaskStore implements BacklogStore {
       }
     }
 
+    const blockedIds = new Set(blockages.map(blockage => blockage.taskId));
+    for (const deferral of activeDeferrals) {
+      const task = taskIndex.get(deferral.taskId);
+      if (!task || task.state !== 'ready' || activeTaskIds.has(task.id) || blockedIds.has(task.id)) {
+        continue;
+      }
+      blockages.push(deferral);
+      blockedIds.add(deferral.taskId);
+    }
+
     return blockages;
   }
 
@@ -162,7 +193,8 @@ export class FileBackedTaskStore implements BacklogStore {
     const activeTaskIds = runtime.listActiveTaskIds();
     const activeLeases = runtime.listActiveLeases(taskIndex);
     const activeReservations = runtime.listActiveReservations(taskIndex);
-    const blockages = this.computeBlockages(loadedTasks, activeReservations, activeTaskIds);
+    const activeDeferrals = runtime.listActiveDeferrals();
+    const blockages = this.computeBlockages(loadedTasks, activeReservations, activeTaskIds, activeDeferrals);
     runtime.syncBlockers(blockages);
 
     const blockedIds = new Set(blockages.map(blockage => blockage.taskId));
@@ -191,7 +223,9 @@ export class FileBackedTaskStore implements BacklogStore {
   }
 
   private async writeRuntimeReport(snapshot: RuntimeSnapshot): Promise<void> {
-    const plannerPending = snapshot.blockages.filter(blockage => blockage.reason === 'planner pending');
+    const plannerCandidates = snapshot.tasks
+      .filter(task => task.state === 'planned' || task.state === 'failed')
+      .sort(plannerCandidateSort);
     const otherBlockages = snapshot.blockages.filter(blockage => blockage.reason !== 'planner pending');
     const lines = [
       '# Backlog Runner Runtime Status',
@@ -214,15 +248,18 @@ export class FileBackedTaskStore implements BacklogStore {
             return `- ${reservation.title} (${reservation.taskId}) — touch_paths: ${touchPaths}; capabilities: ${capabilities}`;
           })),
       '',
-      '## Planned Tasks Awaiting Refinement',
-      ...(plannerPending.length === 0
+      '## Planner Candidates Awaiting Refinement',
+      ...(plannerCandidates.length === 0
         ? ['- None']
-        : plannerPending.map(blockage => `- ${blockage.taskId}: ${blockage.reason}`)),
+        : plannerCandidates.map(task => `- ${task.id}: ${task.state}`)),
       '',
       '## Other Blockages',
       ...(otherBlockages.length === 0
         ? ['- None']
-        : otherBlockages.map(blockage => `- ${blockage.taskId}: ${blockage.reason}`)),
+        : otherBlockages.map(blockage => {
+            const retrySuffix = blockage.retryAt ? ` (retry after ${blockage.retryAt})` : '';
+            return `- ${blockage.taskId}: ${blockage.reason}${retrySuffix}`;
+          })),
       '',
     ];
     await atomicWrite(this.config.files.runtimeReport, lines.join('\n'));
@@ -296,6 +333,54 @@ export class FileBackedTaskStore implements BacklogStore {
     });
   }
 
+  async appendTaskNote(taskId: string, note: string): Promise<void> {
+    await withLock(this.backlogLock, 30, async () => {
+      const normalizedNote = normalizeWhitespace(note);
+      await this.updateTask(taskId, task => updateTask(task, {
+        statusNotes: [...task.statusNotes, normalizedNote],
+      }));
+      await this.refreshEverything();
+    });
+  }
+
+  async deferClaim(
+    claim: BacklogTaskClaim,
+    note: string,
+    retryAfterMs: number,
+    options: TaskDeferralOptions = {},
+  ): Promise<void> {
+    await withLock(this.backlogLock, 30, async () => {
+      const runtime = await this.getRuntime();
+      const normalizedNote = normalizeWhitespace(note);
+      const retryAt = new Date(Date.now() + retryAfterMs).toISOString();
+      await this.updateTask(claim.task.id, task => updateTask(task, {
+        statusNotes: [...task.statusNotes, renderDeferralStatusNote(normalizedNote, retryAt, options)],
+      }));
+      runtime.deferTask(claim.task.id, renderDeferralReason(normalizedNote, options), retryAt);
+      runtime.releaseClaim(claim);
+      await this.refreshEverything();
+    });
+  }
+
+  async deferTaskById(
+    taskId: string,
+    note: string,
+    retryAfterMs: number,
+    options: TaskDeferralOptions = {},
+  ): Promise<void> {
+    await withLock(this.backlogLock, 30, async () => {
+      const runtime = await this.getRuntime();
+      const normalizedNote = normalizeWhitespace(note);
+      const retryAt = new Date(Date.now() + retryAfterMs).toISOString();
+      await this.updateTask(taskId, task => updateTask(task, {
+        state: 'ready',
+        statusNotes: [...task.statusNotes, renderDeferralStatusNote(normalizedNote, retryAt, options)],
+      }));
+      runtime.deferTask(taskId, renderDeferralReason(normalizedNote, options), retryAt);
+      await this.refreshEverything();
+    });
+  }
+
   private async persistTask(task: BacklogTaskSpec): Promise<void> {
     await writeTaskSpec(this.config.files.taskSpecsDir, task);
   }
@@ -316,6 +401,7 @@ export class FileBackedTaskStore implements BacklogStore {
         state: 'done',
         statusNotes: [...task.statusNotes, `Completed: ${normalizeWhitespace(note)}`],
       }));
+      runtime.clearTaskDeferral(claim.task.id);
       runtime.releaseClaim(claim);
       await this.refreshEverything();
     });
@@ -328,6 +414,7 @@ export class FileBackedTaskStore implements BacklogStore {
         state: 'failed',
         statusNotes: [...task.statusNotes, `Failed: ${normalizeWhitespace(note)}`],
       }));
+      runtime.clearTaskDeferral(claim.task.id);
       runtime.releaseClaim(claim);
       await this.refreshEverything();
     });
@@ -335,10 +422,12 @@ export class FileBackedTaskStore implements BacklogStore {
 
   async failTaskById(taskId: string, note: string): Promise<void> {
     await withLock(this.backlogLock, 30, async () => {
+      const runtime = await this.getRuntime();
       await this.updateTask(taskId, task => updateTask(task, {
         state: 'failed',
         statusNotes: [...task.statusNotes, `Failed: ${normalizeWhitespace(note)}`],
       }));
+      runtime.clearTaskDeferral(taskId);
       await this.refreshEverything();
     });
   }
@@ -397,9 +486,12 @@ export class FileBackedTaskStore implements BacklogStore {
     });
   }
 
-  async listPlannedTasks(limit = Number.POSITIVE_INFINITY): Promise<BacklogTaskSpec[]> {
+  async listPlannerCandidates(limit = Number.POSITIVE_INFINITY): Promise<BacklogTaskSpec[]> {
     const tasks = await this.loadTasks();
-    return tasks.filter(task => task.state === 'planned').sort(taskSort).slice(0, limit);
+    return tasks
+      .filter(task => task.state === 'failed' || task.state === 'planned')
+      .sort(plannerCandidateSort)
+      .slice(0, limit);
   }
 
   async applyPlannerSupersede(
@@ -423,8 +515,8 @@ export class FileBackedTaskStore implements BacklogStore {
       if (parents.length !== action.parentTaskIds.length) {
         throw new Error('Planner action referenced unknown parent task');
       }
-      if (parents.some(task => task.state !== 'planned')) {
-        throw new Error('Planner action referenced non-planned parent task');
+      if (parents.some(task => task.state !== 'planned' && task.state !== 'failed')) {
+        throw new Error('Planner action referenced non-recoverable parent task');
       }
 
       const nowIso = new Date().toISOString();

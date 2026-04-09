@@ -260,6 +260,11 @@ export interface TaskDependencySnapshot {
 export interface TaskBlockage {
   taskId: string;
   reason: string;
+  retryAt?: string;
+}
+
+export interface TaskDeferralOptions {
+  category?: 'generic' | 'preflight' | 'remediation';
 }
 
 export interface BacklogStore {
@@ -274,12 +279,15 @@ export interface BacklogStore {
   claimNextRunnableTask(runnerId: string): Promise<BacklogTaskClaim | null>;
   heartbeatClaim(claim: BacklogTaskClaim): Promise<void>;
   releaseClaim(claim: BacklogTaskClaim): Promise<void>;
+  deferClaim(claim: BacklogTaskClaim, note: string, retryAfterMs: number, options?: TaskDeferralOptions): Promise<void>;
+  deferTaskById(taskId: string, note: string, retryAfterMs: number, options?: TaskDeferralOptions): Promise<void>;
+  appendTaskNote(taskId: string, note: string): Promise<void>;
   completeClaim(claim: BacklogTaskClaim, note: string): Promise<void>;
   failClaim(claim: BacklogTaskClaim, note: string): Promise<void>;
   failTaskById(taskId: string, note: string): Promise<void>;
   rewriteBacklogReport(): Promise<void>;
   drainCandidateQueue(): Promise<BacklogDrainResult>;
-  listPlannedTasks(limit?: number): Promise<BacklogTaskSpec[]>;
+  listPlannerCandidates(limit?: number): Promise<BacklogTaskSpec[]>;
   applyPlannerSupersede(
     action: PlannerSupersedeAction,
     options?: { allowedParentTaskIds?: string[] },
@@ -300,12 +308,26 @@ export interface WorkspaceSession {
 
 export interface WorkspaceStrategy {
   setup(): Promise<WorkspaceSession>;
-  commitAndPush(message: string, allowedPaths: string[]): Promise<WorkspaceApplyResult>;
+  commitAndPush(message: string, allowedPaths: string[], options?: WorkspaceCommitOptions): Promise<WorkspaceApplyResult>;
+}
+
+export interface WorkspaceCommitOptions {
+  retryPendingPush?: boolean;
 }
 
 export interface WorkspaceApplyResult {
   ok: boolean;
   reason?: string;
+  createdCommit?: boolean;
+  pushed?: boolean;
+  pendingPush?: boolean;
+}
+
+export interface WorkspaceRepairResult {
+  recovered: boolean;
+  deferred: boolean;
+  failureReason?: string;
+  queuedFollowups: number;
 }
 
 export interface RunnerDependencies {

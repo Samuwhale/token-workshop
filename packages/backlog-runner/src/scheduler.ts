@@ -1,7 +1,8 @@
 import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
-import { buildDiscoveryContext, buildExecutionContext, buildPlannerContext } from './context.js';
+import { summarizeCommandOutput } from './command-output.js';
+import { buildDiscoveryContext, buildExecutionContext, buildPlannerContext, buildReconciliationContext, buildWorkspaceRepairContext } from './context.js';
 import { createDefaultLogSink, RunnerLogger } from './logger.js';
 import { withLock, lockPath } from './locks.js';
 import { PLANNER_RESULT_SCHEMA, parsePlannerSupersedeAction, plannerBatchSize } from './planner.js';
@@ -9,18 +10,21 @@ import { createCommandRunner, sleep as defaultSleep } from './process.js';
 import { runProvider } from './providers/index.js';
 import { JSON_SCHEMA, isAuthFailure, isRateLimited } from './providers/common.js';
 import { createFileBackedTaskStore } from './store/task-store.js';
-import { isPathWithinTouchPaths } from './task-specs.js';
+import { normalizePathForGit, unexpectedFiles } from './git-scope.js';
 import type {
   BacklogDrainResult,
   BacklogPassType,
   BacklogRunnerConfig,
   BacklogRunnerLane,
   BacklogSyncResult,
+  BacklogTaskClaim,
   CommandRunner,
   ResolvedRunOptions,
   RunnerDependencies,
   RunOverrides,
   ValidationCommandResult,
+  WorkspaceApplyResult,
+  WorkspaceRepairResult,
   WorkspaceStrategy,
 } from './types.js';
 import { GitWorktreeWorkspaceStrategy } from './workspace/git-worktree.js';
@@ -30,6 +34,8 @@ const PLANNER_LANE_READY_TARGET = 2;
 const EXECUTOR_FALLBACK_READY_TARGET = 1;
 const RUNNER_POLL_INTERVAL_MS = 15_000;
 const EMPTY_QUEUE_POLL_INTERVAL_MS = 30_000;
+const RECONCILIATION_MAX_TURNS = 60;
+const PREFLIGHT_DEFERRAL_MS = 15 * 60 * 1000;
 
 type RunnerRegistryRecord = {
   runnerId: string;
@@ -53,15 +59,6 @@ function formatDuration(seconds?: number): string {
 
 function retryTime(): string {
   return new Date(Date.now() + 60_000).toTimeString().slice(0, 8);
-}
-
-function summarizeCommandOutput(stdout: string, stderr: string): string {
-  const lines = [stdout, stderr]
-    .join('\n')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-  return lines.slice(-8).join(' | ') || 'no output';
 }
 
 function logDrainResult(logger: RunnerLogger, label: string, result: BacklogDrainResult): void {
@@ -104,17 +101,8 @@ async function changedFiles(commandRunner: CommandRunner, cwd: string): Promise<
   return [...files];
 }
 
-function isWorktreeBootstrapArtifact(file: string): boolean {
-  const normalized = normalizePathForGit(file).replace(/\/+$/, '');
-  return normalized === 'node_modules' || /^packages\/[^/]+\/node_modules$/.test(normalized);
-}
-
 function scopeViolations(changed: string[], allowed: string[]): string[] {
-  return changed.filter(file => !isWorktreeBootstrapArtifact(file) && !isPathWithinTouchPaths(file, allowed));
-}
-
-function normalizePathForGit(value: string): string {
-  return value.split(path.sep).join('/');
+  return unexpectedFiles(changed, allowed);
 }
 
 async function validateWorkspaceScope(
@@ -134,6 +122,34 @@ async function validateWorkspaceScope(
   return { ok: true };
 }
 
+async function stagedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {
+  const staged = await commandRunner.run('git', ['diff', '--cached', '--name-only'], {
+    cwd,
+    ignoreFailure: true,
+  });
+  if (staged.code !== 0) {
+    return [];
+  }
+  return staged.stdout.split('\n').map(line => line.trim()).filter(Boolean);
+}
+
+async function validateStagedWorkspace(
+  commandRunner: CommandRunner,
+  cwd: string,
+  allowedPaths: string[],
+  label: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const staged = await stagedFiles(commandRunner, cwd);
+  const unexpected = unexpectedFiles(staged, allowedPaths);
+  if (unexpected.length > 0) {
+    return {
+      ok: false,
+      reason: `${label}: staged ${unexpected.slice(0, 8).join(', ')}`,
+    };
+  }
+  return { ok: true };
+}
+
 function bookkeepingPaths(config: BacklogRunnerConfig): string[] {
   return [
     normalizePathForGit(path.relative(config.projectRoot, config.files.candidateQueue)),
@@ -146,6 +162,10 @@ function bookkeepingPaths(config: BacklogRunnerConfig): string[] {
 
 function taskCommitPaths(config: BacklogRunnerConfig, touchPaths: string[]): string[] {
   return [...new Set([...touchPaths.map(normalizePathForGit), ...bookkeepingPaths(config)])];
+}
+
+function taskExecutionPaths(config: BacklogRunnerConfig, touchPaths: string[]): string[] {
+  return taskCommitPaths(config, touchPaths);
 }
 
 async function runValidationCommand(
@@ -173,6 +193,21 @@ async function readPrompt(filePath: string): Promise<string> {
   return readFile(filePath, 'utf8');
 }
 
+async function diffForPaths(
+  commandRunner: CommandRunner,
+  cwd: string,
+  allowedPaths: string[],
+): Promise<string> {
+  if (allowedPaths.length === 0) {
+    return '';
+  }
+  const result = await commandRunner.run('git', ['diff', '--no-ext-diff', '--', ...allowedPaths], {
+    cwd,
+    ignoreFailure: true,
+  });
+  return result.code === 0 ? result.stdout.trim() : '';
+}
+
 async function fileExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);
@@ -196,6 +231,335 @@ function totalRunnerCount(counts: ActiveRunnerCounts): number {
 
 function plannerLaneActive(counts: ActiveRunnerCounts): boolean {
   return counts.planner > 0;
+}
+
+function reconciliationPrompt(basePrompt: string): string {
+  return `${basePrompt}
+
+## Reconciliation Mode
+You are reconciling an already-implemented task after a git merge/finalization failure.
+- Treat the provided diff and failure reason as primary evidence.
+- Inspect current local code before deciding how to adapt the change.
+- Resolve conflicts autonomously when you can do so coherently and safely.
+- Do not drop the task or narrow scope unless the current repo state makes the acceptance criteria impossible.
+- Keep the final edits inside the declared touch_paths plus allowed backlog bookkeeping files.
+- End with the same strict JSON success/failure object as normal execution.`;
+}
+
+function workspaceRepairPrompt(basePrompt: string): string {
+  return `${basePrompt}
+
+## Workspace Repair Mode
+You are repairing repo/workspace state for an already-assigned task.
+- This repository is agent-operated by default. You may decide what to keep, discard, split into follow-up work, or restage when needed.
+- Inspect local code and git state before deciding; do not guess when the repo can answer the question.
+- Leave an audit trail in progress notes when you discard or split work.
+- If the task is stale or impossible, return failed with a note starting exactly "stale —" or "impossible —".
+- Otherwise, repair the workspace so scheduler preflight, scope, validation, and finalization can proceed.
+- End with the same strict JSON success/failure object as normal execution.`;
+}
+
+function shouldFailFromRepairReason(reason?: string): boolean {
+  return /^stale\s+—/i.test(reason ?? '') || /^impossible\s+—/i.test(reason ?? '');
+}
+
+async function collectWorkspaceSnapshot(
+  commandRunner: CommandRunner,
+  cwd: string,
+  allowedPaths: string[],
+): Promise<{
+  changedFiles: string[];
+  stagedFiles: string[];
+  inScopeFiles: string[];
+  outOfScopeFiles: string[];
+}> {
+  const [currentChangedFiles, currentStagedFiles] = await Promise.all([
+    changedFiles(commandRunner, cwd),
+    stagedFiles(commandRunner, cwd),
+  ]);
+  const outOfScopeFiles = scopeViolations(currentChangedFiles, allowedPaths);
+  const outOfScope = new Set(outOfScopeFiles);
+  return {
+    changedFiles: currentChangedFiles,
+    stagedFiles: currentStagedFiles,
+    inScopeFiles: currentChangedFiles.filter(file => !outOfScope.has(file)),
+    outOfScopeFiles,
+  };
+}
+
+async function appendRepairNotes(
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  taskId: string,
+  note: string | undefined,
+  drainResult: BacklogDrainResult,
+): Promise<void> {
+  if (note) {
+    await store.appendTaskNote(taskId, `Recovered by remediation: ${note}`);
+  } else {
+    await store.appendTaskNote(taskId, 'Recovered by remediation');
+  }
+  if (drainResult.createdTasks > 0) {
+    await store.appendTaskNote(taskId, `Follow-up queued by remediation: ${drainResult.createdTasks} task(s)`);
+  }
+}
+
+async function attemptWorkspaceRemediation(
+  config: BacklogRunnerConfig,
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  commandRunner: CommandRunner,
+  logger: RunnerLogger,
+  options: ResolvedRunOptions,
+  claim: BacklogTaskClaim,
+  remediation: {
+    mode: 'preflight' | 'scope' | 'validation';
+    cwd: string;
+    allowedPaths: string[];
+    failureReason: string;
+    validationSummary?: string;
+    verify: () => Promise<{ ok: boolean; reason?: string }>;
+  },
+): Promise<WorkspaceRepairResult> {
+  logger.line('');
+  logger.line(`  Attempting autonomous workspace repair: ${remediation.failureReason}`);
+
+  const snapshot = await collectWorkspaceSnapshot(commandRunner, remediation.cwd, remediation.allowedPaths);
+  const context = await buildWorkspaceRepairContext(
+    config,
+    remediation.cwd,
+    claim,
+    await store.getTaskDependencies(claim.task.id),
+    await store.getActiveReservations(claim.task.id),
+    {
+      failureReason: remediation.failureReason,
+      mode: remediation.mode,
+      changedFiles: snapshot.changedFiles,
+      stagedFiles: snapshot.stagedFiles,
+      inScopeFiles: snapshot.inScopeFiles,
+      outOfScopeFiles: snapshot.outOfScopeFiles,
+      validationSummary: remediation.validationSummary,
+      originalDiff: await diffForPaths(commandRunner, remediation.cwd, remediation.allowedPaths),
+    },
+  );
+  const result = await runProvider(commandRunner, {
+    tool: options.tool,
+    model: options.model,
+    context,
+    prompt: workspaceRepairPrompt(await readPrompt(config.prompts.agent)),
+    cwd: remediation.cwd,
+    maxTurns: RECONCILIATION_MAX_TURNS,
+    schema: JSON_SCHEMA,
+  });
+
+  logger.line(`  ${result.status === 'done' ? '✓' : '✗'} workspace repair: ${result.item}`);
+  if (result.note) logger.line(`    ${result.note}`);
+
+  const drainResult = await store.drainCandidateQueue();
+  logDrainResult(logger, 'Candidate planner', drainResult);
+
+  if (result.status !== 'done') {
+    return {
+      recovered: false,
+      deferred: !shouldFailFromRepairReason(result.note),
+      failureReason: result.note || 'workspace repair agent reported failure',
+      queuedFollowups: drainResult.createdTasks,
+    };
+  }
+
+  const verification = await remediation.verify();
+  if (!verification.ok) {
+    logger.line(`  ✗ workspace repair verification failed: ${verification.reason ?? remediation.failureReason}`);
+    return {
+      recovered: false,
+      deferred: true,
+      failureReason: verification.reason ?? remediation.failureReason,
+      queuedFollowups: drainResult.createdTasks,
+    };
+  }
+
+  await appendRepairNotes(store, claim.task.id, result.note, drainResult);
+  logger.line('  ✓ Workspace repair recovered the task');
+  return {
+    recovered: true,
+    deferred: false,
+    queuedFollowups: drainResult.createdTasks,
+  };
+}
+
+async function applyClaimRepairOutcome(
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  logger: RunnerLogger,
+  claim: BacklogTaskClaim,
+  outcome: WorkspaceRepairResult,
+  fallbackReason: string,
+): Promise<void> {
+  const failureReason = outcome.failureReason ?? fallbackReason;
+  if (outcome.deferred) {
+    await store.deferClaim(claim, failureReason, PREFLIGHT_DEFERRAL_MS, { category: 'remediation' });
+    logger.line(`  ⚠ ${failureReason} — deferred for retry`);
+    return;
+  }
+  await store.failClaim(claim, failureReason);
+  logger.line(`  ✗ ${failureReason} — marked failed`);
+}
+
+async function applyTaskRepairOutcome(
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  logger: RunnerLogger,
+  taskId: string,
+  outcome: WorkspaceRepairResult,
+  fallbackReason: string,
+): Promise<void> {
+  const failureReason = outcome.failureReason ?? fallbackReason;
+  if (outcome.deferred) {
+    await store.deferTaskById(taskId, failureReason, PREFLIGHT_DEFERRAL_MS, { category: 'remediation' });
+    logger.line(`  ⚠ ${failureReason} — deferred for retry`);
+    return;
+  }
+  await store.failTaskById(taskId, failureReason);
+  logger.line(`  ✗ ${failureReason} — marked failed`);
+}
+
+async function attemptTaskReconciliation(
+  config: BacklogRunnerConfig,
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  workspaceStrategy: WorkspaceStrategy,
+  commandRunner: CommandRunner,
+  logger: RunnerLogger,
+  options: ResolvedRunOptions,
+  claim: BacklogTaskClaim,
+  failureReason: string,
+  originalDiff: string,
+  taskAlreadyCompleted: boolean,
+  commitMessage: string,
+  priorFinalizeResult?: WorkspaceApplyResult,
+): Promise<WorkspaceRepairResult> {
+  logger.line('');
+  logger.line(`  Attempting autonomous reconciliation: ${failureReason}`);
+
+  const allowedPaths = taskExecutionPaths(config, claim.task.touchPaths);
+  const reconcileInPlace = taskAlreadyCompleted;
+  const reconciliationSession = reconcileInPlace ? null : await workspaceStrategy.setup();
+  const reconciliationCwd = reconciliationSession?.cwd ?? config.projectRoot;
+
+  try {
+    const context = await buildReconciliationContext(
+      config,
+      reconciliationCwd,
+      claim,
+      await store.getTaskDependencies(claim.task.id),
+      await store.getActiveReservations(claim.task.id),
+      failureReason,
+      originalDiff,
+    );
+    const result = await runProvider(commandRunner, {
+      tool: options.tool,
+      model: options.model,
+      context,
+      prompt: reconciliationPrompt(await readPrompt(config.prompts.agent)),
+      cwd: reconciliationCwd,
+      maxTurns: RECONCILIATION_MAX_TURNS,
+      schema: JSON_SCHEMA,
+    });
+
+    logger.line(`  ${result.status === 'done' ? '✓' : '✗'} reconciliation: ${result.item}`);
+    if (result.note) logger.line(`    ${result.note}`);
+    if (result.status !== 'done') {
+      return {
+        recovered: false,
+        deferred: !shouldFailFromRepairReason(result.note),
+        failureReason: result.note || 'reconciliation agent reported failure',
+        queuedFollowups: 0,
+      };
+    }
+
+    const scopeCheck = await validateWorkspaceScope(commandRunner, reconciliationCwd, allowedPaths, 'reconciliation scope violation');
+    if (!scopeCheck.ok) {
+      logger.line(`  ✗ ${scopeCheck.reason ?? 'reconciliation scope violation'}`);
+      return {
+        recovered: false,
+        deferred: true,
+        failureReason: scopeCheck.reason ?? 'reconciliation scope violation',
+        queuedFollowups: 0,
+      };
+    }
+
+    const validationCommand = config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand;
+    logger.line(`  Reconciliation validation: ${validationCommand}`);
+    const validation = await runValidationCommand(commandRunner, validationCommand, reconciliationCwd);
+    if (!validation.ok) {
+      logger.line(`  ✗ reconciliation validation failed: ${validation.summary}`);
+      return {
+        recovered: false,
+        deferred: true,
+        failureReason: `reconciliation validation failed: ${validation.summary}`,
+        queuedFollowups: 0,
+      };
+    }
+
+    const postValidationScopeCheck = await validateWorkspaceScope(
+      commandRunner,
+      reconciliationCwd,
+      allowedPaths,
+      'post-reconciliation scope violation',
+    );
+    if (!postValidationScopeCheck.ok) {
+      logger.line(`  ✗ ${postValidationScopeCheck.reason ?? 'post-reconciliation scope violation'}`);
+      return {
+        recovered: false,
+        deferred: true,
+        failureReason: postValidationScopeCheck.reason ?? 'post-reconciliation scope violation',
+        queuedFollowups: 0,
+      };
+    }
+
+    if (reconciliationSession) {
+      const mergeResult = await reconciliationSession.merge();
+      if (!mergeResult.ok) {
+        logger.line(`  ✗ reconciliation merge failed: ${mergeResult.reason ?? 'merge failed'}`);
+        return {
+          recovered: false,
+          deferred: true,
+          failureReason: mergeResult.reason ?? 'reconciliation merge failed',
+          queuedFollowups: 0,
+        };
+      }
+      logger.line('  ✓ Reconciled changes merged to main');
+    }
+
+    const drainResult = await store.drainCandidateQueue();
+    logDrainResult(logger, 'Candidate planner', drainResult);
+    if (!taskAlreadyCompleted) {
+      await store.completeClaim(claim, `completed after reconciliation: ${result.note || 'reconciled successfully'}`);
+      if (drainResult.createdTasks > 0) {
+        await store.appendTaskNote(claim.task.id, `Follow-up queued by remediation: ${drainResult.createdTasks} task(s)`);
+      }
+    }
+
+    const finalizeResult = await workspaceStrategy.commitAndPush(
+      commitMessage,
+      taskCommitPaths(config, claim.task.touchPaths),
+      { retryPendingPush: priorFinalizeResult?.pendingPush === true },
+    );
+    if (!finalizeResult.ok) {
+      logger.line(`  ✗ reconciliation finalize failed: ${finalizeResult.reason ?? 'commit/push failed'}`);
+      return {
+        recovered: false,
+        deferred: true,
+        failureReason: finalizeResult.reason ?? 'reconciliation finalize failed',
+        queuedFollowups: drainResult.createdTasks,
+      };
+    }
+
+    if (taskAlreadyCompleted) {
+      await appendRepairNotes(store, claim.task.id, result.note, drainResult);
+    }
+    logger.line('  ✓ Reconciliation finalized successfully');
+    return { recovered: true, deferred: false, queuedFollowups: drainResult.createdTasks };
+  } finally {
+    if (reconciliationSession) {
+      await reconciliationSession.teardown();
+    }
+  }
 }
 
 async function registerRunner(
@@ -337,8 +701,8 @@ async function runPlannerRefinementPass(
   options: ResolvedRunOptions,
 ): Promise<boolean> {
   return withLock(lockPath(config, 'planner'), 30, async () => {
-    const plannedTasks = await store.listPlannedTasks(plannerBatchSize());
-    if (plannedTasks.length === 0) {
+    const plannerCandidates = await store.listPlannerCandidates(plannerBatchSize());
+    if (plannerCandidates.length === 0) {
       return false;
     }
 
@@ -349,7 +713,7 @@ async function runPlannerRefinementPass(
 
     const session = await workspaceStrategy.setup();
     try {
-      const context = await buildPlannerContext(config, plannedTasks);
+      const context = await buildPlannerContext(config, plannerCandidates);
       const result = await runProvider(commandRunner, {
         tool: options.tool,
         model: options.passModel,
@@ -383,11 +747,11 @@ async function runPlannerRefinementPass(
       }
 
       const applied = await store.applyPlannerSupersede(action, {
-        allowedParentTaskIds: plannedTasks.map(task => task.id),
+        allowedParentTaskIds: plannerCandidates.map(task => task.id),
       });
       logger.line(`  ✓ planner pass: ${result.item}`);
       if (result.note) logger.line(`    ${result.note}`);
-      logger.line(`  ✓ superseded ${applied.parentTaskIds.length} planned task${applied.parentTaskIds.length === 1 ? '' : 's'} with ${applied.childTaskIds.length} child task${applied.childTaskIds.length === 1 ? '' : 's'}`);
+      logger.line(`  ✓ superseded ${applied.parentTaskIds.length} planner candidate${applied.parentTaskIds.length === 1 ? '' : 's'} with ${applied.childTaskIds.length} child task${applied.childTaskIds.length === 1 ? '' : 's'}`);
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -406,8 +770,8 @@ async function runPlannerRefinementPass(
 async function currentPlannerBatchKey(
   store: ReturnType<typeof createFileBackedTaskStore>,
 ): Promise<string> {
-  const plannedTasks = await store.listPlannedTasks(plannerBatchSize());
-  return plannedTasks.map(task => task.id).join(',');
+  const plannerCandidates = await store.listPlannerCandidates(plannerBatchSize());
+  return plannerCandidates.map(task => task.id).join(',');
 }
 
 export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<BacklogSyncResult> {
@@ -504,7 +868,7 @@ export async function runBacklogRunner(
       logger.line('═══════════════════════════════════════════════════════════════');
 
       if (options.lane === 'planner') {
-        if (counts.planned > 0 && counts.ready < PLANNER_LANE_READY_TARGET) {
+        if ((counts.planned > 0 || counts.failed > 0) && counts.ready < PLANNER_LANE_READY_TARGET) {
           const batchKey = await currentPlannerBatchKey(store);
           if (batchKey && batchKey !== waitingPlannerBatchKey) {
             waitingPlannerBatchKey = batchKey;
@@ -530,8 +894,8 @@ export async function runBacklogRunner(
         waitingPlannerBatchKey = null;
         if (counts.ready >= PLANNER_LANE_READY_TARGET) {
           logger.line(`  Planner buffer satisfied (${counts.ready}/${PLANNER_LANE_READY_TARGET} ready) — polling in 15s…`);
-        } else if (counts.planned === 0) {
-          logger.line('  No planned tasks to refine — polling in 15s…');
+        } else if (counts.planned === 0 && counts.failed === 0) {
+          logger.line('  No planner candidates to refine — polling in 15s…');
         } else {
           logger.line('  Planner lane is idle — polling in 15s…');
         }
@@ -541,7 +905,7 @@ export async function runBacklogRunner(
 
       if (counts.ready === 0) {
         if (counts.inProgress > 0) {
-          if (counts.planned > 0 && counts.ready < EXECUTOR_FALLBACK_READY_TARGET && !hasPlannerPeer) {
+          if ((counts.planned > 0 || counts.failed > 0) && counts.ready < EXECUTOR_FALLBACK_READY_TARGET && !hasPlannerPeer) {
             const batchKey = await currentPlannerBatchKey(store);
             if (batchKey && batchKey !== waitingPlannerBatchKey) {
               waitingPlannerBatchKey = batchKey;
@@ -559,7 +923,7 @@ export async function runBacklogRunner(
               }
             }
           }
-          if (counts.planned > 0 && hasPlannerPeer) {
+          if ((counts.planned > 0 || counts.failed > 0) && hasPlannerPeer) {
             logger.line('  No runnable task available locally — planner lane active, waiting for refined work…');
           } else {
             logger.line('  No runnable task available locally — waiting 15s for other runner activity…');
@@ -568,7 +932,7 @@ export async function runBacklogRunner(
           continue;
         }
 
-        if (counts.planned > 0) {
+        if (counts.planned > 0 || counts.failed > 0) {
           if (hasPlannerPeer) {
             logger.line('  No runnable task available locally — planner lane active, waiting for refined work…');
             await sleep(RUNNER_POLL_INTERVAL_MS);
@@ -590,8 +954,8 @@ export async function runBacklogRunner(
           break;
         }
 
-        if (counts.blocked > 0 || counts.failed > 0) {
-          logger.line('  No runnable tasks remain. Remaining tasks are blocked or failed; stopping instead of spending tokens on new discovery.');
+        if (counts.blocked > 0) {
+          logger.line('  No runnable tasks remain. Remaining tasks are blocked; stopping instead of spending tokens on new discovery.');
           break;
         }
 
@@ -619,7 +983,7 @@ export async function runBacklogRunner(
         const refreshed = await store.getQueueCounts();
         const refreshedOtherRunnerCounts = await activeRunnerCounts(config, runnerId);
         const refreshedHasPlannerPeer = plannerLaneActive(refreshedOtherRunnerCounts);
-        if (refreshed.planned > 0 && refreshed.ready < EXECUTOR_FALLBACK_READY_TARGET && !refreshedHasPlannerPeer) {
+        if ((refreshed.planned > 0 || refreshed.failed > 0) && refreshed.ready < EXECUTOR_FALLBACK_READY_TARGET && !refreshedHasPlannerPeer) {
           const batchKey = await currentPlannerBatchKey(store);
           if (batchKey && batchKey !== waitingPlannerBatchKey) {
             waitingPlannerBatchKey = batchKey;
@@ -637,7 +1001,7 @@ export async function runBacklogRunner(
             }
           }
         }
-        if (refreshed.planned > 0 && refreshedHasPlannerPeer) {
+        if ((refreshed.planned > 0 || refreshed.failed > 0) && refreshedHasPlannerPeer) {
           logger.line('  Ready tasks were claimed elsewhere and planner lane is active — waiting for refined work…');
         } else {
           logger.line('  Ready tasks were claimed elsewhere — waiting 15s…');
@@ -659,6 +1023,76 @@ export async function runBacklogRunner(
 
       const startedAt = Date.now();
       try {
+        const allowedPaths = taskExecutionPaths(config, claim.task.touchPaths);
+        const stagedPreflight = await validateStagedWorkspace(
+          commandRunner,
+          session.cwd,
+          allowedPaths,
+          'dirty workspace preflight',
+        );
+        if (!stagedPreflight.ok) {
+          logger.line(`  WARNING: ${stagedPreflight.reason}`);
+          const repaired = await attemptWorkspaceRemediation(
+            config,
+            store,
+            commandRunner,
+            logger,
+            options,
+            claim,
+            {
+              mode: 'preflight',
+              cwd: session.cwd,
+              allowedPaths,
+              failureReason: stagedPreflight.reason ?? 'dirty workspace preflight',
+              verify: async () => validateStagedWorkspace(
+                commandRunner,
+                session.cwd,
+                allowedPaths,
+                'dirty workspace preflight',
+              ),
+            },
+          );
+          if (!repaired.recovered) {
+            await applyClaimRepairOutcome(store, logger, claim, repaired, stagedPreflight.reason ?? 'dirty workspace preflight');
+            continue;
+          }
+        }
+        if (session.cwd !== config.projectRoot) {
+          const mainRepoStagedPreflight = await validateStagedWorkspace(
+            commandRunner,
+            config.projectRoot,
+            allowedPaths,
+            'main repo staged preflight',
+          );
+          if (!mainRepoStagedPreflight.ok) {
+            logger.line(`  WARNING: ${mainRepoStagedPreflight.reason}`);
+            const repaired = await attemptWorkspaceRemediation(
+              config,
+              store,
+              commandRunner,
+              logger,
+              options,
+              claim,
+              {
+                mode: 'preflight',
+                cwd: config.projectRoot,
+                allowedPaths,
+                failureReason: mainRepoStagedPreflight.reason ?? 'main repo staged preflight',
+                verify: async () => validateStagedWorkspace(
+                  commandRunner,
+                  config.projectRoot,
+                  allowedPaths,
+                  'main repo staged preflight',
+                ),
+              },
+            );
+            if (!repaired.recovered) {
+              await applyClaimRepairOutcome(store, logger, claim, repaired, mainRepoStagedPreflight.reason ?? 'main repo staged preflight');
+              continue;
+            }
+          }
+        }
+
         logger.line(`  Running agent… (started ${new Date().toTimeString().slice(0, 8)})`);
         const context = await buildExecutionContext(
           config,
@@ -697,16 +1131,35 @@ export async function runBacklogRunner(
         const initialScopeCheck = await validateWorkspaceScope(
           commandRunner,
           session.cwd,
-          claim.task.touchPaths,
+          allowedPaths,
           'write scope violation',
         );
         if (!initialScopeCheck.ok) {
-          await store.failClaim(
+          const repaired = await attemptWorkspaceRemediation(
+            config,
+            store,
+            commandRunner,
+            logger,
+            options,
             claim,
-            initialScopeCheck.reason ?? 'write scope violation',
+            {
+              mode: 'scope',
+              cwd: session.cwd,
+              allowedPaths,
+              failureReason: initialScopeCheck.reason ?? 'write scope violation',
+              verify: async () => validateWorkspaceScope(
+                commandRunner,
+                session.cwd,
+                allowedPaths,
+                'write scope violation',
+              ),
+            },
           );
-          logger.line(`  ✗ write scope violation — marked failed`);
-          continue;
+          if (!repaired.recovered) {
+            await applyClaimRepairOutcome(store, logger, claim, repaired, initialScopeCheck.reason ?? 'write scope violation');
+            continue;
+          }
+          logger.line('  ✓ write scope repaired');
         }
 
         const validationCommand = config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand;
@@ -714,33 +1167,88 @@ export async function runBacklogRunner(
         logger.line(`  Running validation profile "${claim.task.validationProfile}": ${validationCommand}`);
         const validation = await runValidationCommand(commandRunner, validationCommand, session.cwd);
         if (!validation.ok) {
-          await store.failClaim(claim, `validation failed: ${validation.summary}`);
-          logger.line(
-            `  ✗ validation failed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
+          const repaired = await attemptWorkspaceRemediation(
+            config,
+            store,
+            commandRunner,
+            logger,
+            options,
+            claim,
+            {
+              mode: 'validation',
+              cwd: session.cwd,
+              allowedPaths,
+              failureReason: `validation failed: ${validation.summary}`,
+              validationSummary: validation.summary,
+              verify: async () => {
+                const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
+                if (!rerun.ok) {
+                  return { ok: false, reason: `validation failed: ${rerun.summary}` };
+                }
+                const postRepairScope = await validateWorkspaceScope(
+                  commandRunner,
+                  session.cwd,
+                  allowedPaths,
+                  'post-validation scope violation',
+                );
+                return postRepairScope.ok
+                  ? { ok: true }
+                  : { ok: false, reason: postRepairScope.reason ?? 'post-validation scope violation' };
+              },
+            },
           );
-          logger.line(`    ${validation.summary}`);
-          if (!options.worktrees) {
-            logger.line('    Workspace left dirty for inspection because worktrees are disabled');
+          if (!repaired.recovered) {
+            await applyClaimRepairOutcome(store, logger, claim, repaired, `validation failed: ${validation.summary}`);
+            continue;
           }
-          continue;
+          logger.line('  ✓ validation recovered by remediation');
+        } else {
+          logger.line(
+            `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
+          );
         }
-        logger.line(
-          `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
-        );
 
         const postValidationScopeCheck = await validateWorkspaceScope(
           commandRunner,
           session.cwd,
-          claim.task.touchPaths,
+          allowedPaths,
           'post-validation scope violation',
         );
         if (!postValidationScopeCheck.ok) {
-          await store.failClaim(
+          const repaired = await attemptWorkspaceRemediation(
+            config,
+            store,
+            commandRunner,
+            logger,
+            options,
             claim,
-            postValidationScopeCheck.reason ?? 'post-validation scope violation',
+            {
+              mode: 'scope',
+              cwd: session.cwd,
+              allowedPaths,
+              failureReason: postValidationScopeCheck.reason ?? 'post-validation scope violation',
+              verify: async () => {
+                const scopeResult = await validateWorkspaceScope(
+                  commandRunner,
+                  session.cwd,
+                  allowedPaths,
+                  'post-validation scope violation',
+                );
+                if (!scopeResult.ok) {
+                  return scopeResult;
+                }
+                const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
+                return rerun.ok
+                  ? { ok: true }
+                  : { ok: false, reason: `validation failed: ${rerun.summary}` };
+              },
+            },
           );
-          logger.line('  ✗ validation introduced out-of-scope changes — marked failed');
-          continue;
+          if (!repaired.recovered) {
+            await applyClaimRepairOutcome(store, logger, claim, repaired, postValidationScopeCheck.reason ?? 'post-validation scope violation');
+            continue;
+          }
+          logger.line('  ✓ post-validation scope repaired');
         }
 
         const message = `chore(backlog): done – ${result.item || claim.task.title}`;
@@ -748,10 +1256,26 @@ export async function runBacklogRunner(
           await withLock(lockPath(config, 'git'), 30, async () => {
             logger.line('');
             logger.line(`  Merging to main: ${claim.task.title}`);
+            const originalDiff = await diffForPaths(commandRunner, session.cwd, allowedPaths);
             const mergeResult = await session.merge();
             if (!mergeResult.ok) {
-              await store.failClaim(claim, mergeResult.reason ?? 'merge failed');
-              logger.line(`  ✗ ${mergeResult.reason ?? 'merge failed'} — marked failed`);
+              const recovered = await attemptTaskReconciliation(
+                config,
+                store,
+                workspaceStrategy,
+                commandRunner,
+                logger,
+                options,
+                claim,
+                mergeResult.reason ?? 'merge failed',
+                originalDiff,
+                false,
+                message,
+                mergeResult,
+              );
+              if (!recovered.recovered) {
+                await applyClaimRepairOutcome(store, logger, claim, recovered, mergeResult.reason ?? 'merge failed');
+              }
               return;
             }
 
@@ -761,8 +1285,23 @@ export async function runBacklogRunner(
 
             const finalizeResult = await workspaceStrategy.commitAndPush(message, taskCommitPaths(config, claim.task.touchPaths));
             if (!finalizeResult.ok) {
-              await store.failTaskById(claim.task.id, finalizeResult.reason ?? 'finalize failed after merge');
-              logger.line(`  ✗ ${finalizeResult.reason ?? 'finalize failed after merge'} — marked failed`);
+              const recovered = await attemptTaskReconciliation(
+                config,
+                store,
+                workspaceStrategy,
+                commandRunner,
+                logger,
+                options,
+                claim,
+                finalizeResult.reason ?? 'finalize failed after merge',
+                await diffForPaths(commandRunner, config.projectRoot, allowedPaths),
+                true,
+                message,
+                finalizeResult,
+              );
+              if (!recovered.recovered) {
+                await applyTaskRepairOutcome(store, logger, claim.task.id, recovered, finalizeResult.reason ?? 'finalize failed after merge');
+              }
               return;
             }
 
@@ -777,8 +1316,23 @@ export async function runBacklogRunner(
 
             const finalizeResult = await workspaceStrategy.commitAndPush(message, taskCommitPaths(config, claim.task.touchPaths));
             if (!finalizeResult.ok) {
-              await store.failTaskById(claim.task.id, finalizeResult.reason ?? 'commit/push failed');
-              logger.line(`  ✗ ${finalizeResult.reason ?? 'commit/push failed'} — marked failed`);
+              const recovered = await attemptTaskReconciliation(
+                config,
+                store,
+                workspaceStrategy,
+                commandRunner,
+                logger,
+                options,
+                claim,
+                finalizeResult.reason ?? 'commit/push failed',
+                await diffForPaths(commandRunner, config.projectRoot, allowedPaths),
+                true,
+                message,
+                finalizeResult,
+              );
+              if (!recovered.recovered) {
+                await applyTaskRepairOutcome(store, logger, claim.task.id, recovered, finalizeResult.reason ?? 'commit/push failed');
+              }
               return;
             }
 
