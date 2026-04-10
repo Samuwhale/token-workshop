@@ -1,0 +1,25 @@
+id: normalize-sync-and-audit-notices-around-blocking-93629dbf
+title: Normalize sync and audit notices around blocking, stale, and validation states
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/PublishPanel.tsx
+  - packages/figma-plugin/src/ui/components/publish/SyncPreflightStep.tsx
+  - packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx
+  - packages/figma-plugin/src/ui/components/HealthPanel.tsx
+  - packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts
+  - packages/figma-plugin/src/ui/hooks/useValidationCache.ts
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Publish already has the strongest staged workflow, but it mixes step cards, inline alerts, badges, and success toasts. HealthPanel separately uses header tones, priority rows, stale text chips, severity filter pills, and global onError callbacks. This slice aligns the two review-heavy surfaces before wider cleanup."
+state: ready
+acceptance_criteria:
+  - Keep blocking publish failures and audit request failures in owner-surface banners, not only inline text or shell pills.
+  - Represent stale results explicitly with stale chips/banners plus rerun actions in publish preflight and audit report headers.
+  - Differentiate validation/lint issue rows from general warnings so grouped audit results, publish cluster cards, and per-target sync errors all use the same severity vocabulary.
+source: task-followup
+created_at: 2026-04-10T23:20:40.126Z
+updated_at: 2026-04-10T23:20:40.126Z

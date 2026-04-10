@@ -1,0 +1,24 @@
+id: normalize-authoring-notices-across-tokens-themes-f4e698f8
+title: Normalize authoring notices across Tokens, Themes, and Apply
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenList.tsx
+  - packages/figma-plugin/src/ui/components/ThemeManager.tsx
+  - packages/figma-plugin/src/ui/components/SelectionInspector.tsx
+  - packages/figma-plugin/src/ui/components/PropertyRow.tsx
+  - packages/figma-plugin/src/ui/components/TokenListModals.tsx
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Research found four competing patterns in authoring flows: top-of-panel banners in TokenList, issue cards and badges in ThemeManager, inline status text plus persistent suggestion rails in SelectionInspector, and row-local alert boxes in PropertyRow. Adoption should preserve the existing workflows but align severity and placement."
+state: ready
+acceptance_criteria:
+  - Convert authoring-surface warnings and stale cues to the shared notice primitives, including stale generators, theme issue handoff cards, apply maintenance results, and property binding failures.
+  - Use field-level validation consistently for token/create/edit inputs instead of mixed inline paragraphs and one-off amber/red classes.
+  - Keep remediation CTAs attached to the owning notice so theme/apply/token authoring problems can be resolved without depending on shell pills or toast-only feedback.
+source: task-followup
+created_at: 2026-04-10T23:20:40.126Z
+updated_at: 2026-04-10T23:20:40.126Z

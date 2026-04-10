@@ -755,3 +755,20 @@
   - The `opacity-0 group-hover:opacity-100` pattern for secondary actions hides functionality behind hover — always prefer visible labeled actions for primary paths on compact chips.
   - Pre-export summaries (scope, filter state) and post-export summaries (result count, applied scope) are distinct concerns; both belong in the footer, not just in a modal.
 ---
+## 2026-04-11 - [Research a plugin-wide notice severity and placement model across shell, authoring, sync, and audit surfaces]
+- Audited the current notice surfaces in the shared shell and the main workspace panels. Shell state currently lives in `WorkspaceSummaryHeader` pills plus the utilities-menu attention dot and connection editor, while workspace-specific notices are split across inline help banners, status/warning/error banners, issue cards, stale chips, field-level alerts, and success/error toasts.
+- Recorded the current inconsistencies that need a shared contract: the IA blueprint still mentions a global status banner even though `App.tsx` now keeps connection recovery in the utilities menu; authoring flows mix top-of-panel banners (`TokenList.tsx`), issue cards and badges (`ThemeManager.tsx`), summary pills plus inline status text (`SelectionInspector.tsx`), and row-local alerts (`PropertyRow.tsx`); sync and audit each define their own severity ladders (`SyncPreflightStep.tsx`, `SyncSubPanel.tsx`, `HealthPanel.tsx`).
+- Defined the concrete notice model for follow-up work:
+  Blocking error = owner-surface top banner or step card with a direct recovery CTA, mirrored to the shell only as a danger pill/count.
+  Warning = non-blocking but actionable owner-surface banner, card, or row notice with a local fix CTA.
+  Stale = warning-class state tied to outdated results; show it as a stale chip/banner in the owning summary row with a rerun action, not as a toast.
+  Success = mostly ephemeral toast after explicit user actions, with short in-context confirmation only when the result must stay visible inside the current step.
+  Info = passive explanatory help, neutral pills, or hint banners; never the only vehicle for required action.
+  Validation/lint = inline field/row/report feedback (`FieldMessage`, row alerts, grouped audit lists), not generic top-level banners unless the validation request itself failed.
+- Queued four implementation-ready follow-ups covering shared notice primitives, shell adoption, authoring-surface adoption, and sync/audit adoption.
+- Files changed: `../../../../../../../Users/samuel/Documents/Projects/TokenManager/backlog/inbox.jsonl` ~L1; `scripts/backlog/patterns.md` ~L189; `scripts/backlog/progress.txt` ~L746
+- **Learnings for future iterations:**
+  - Shell notices should stay summary-only. The current codebase works best when detailed remediation stays inside the owning workspace or step, with the shell reduced to aggregate pills and attention dots.
+  - `stale` needs to be modeled separately from generic warning. Both publish preflight and audit already have rerun semantics, but each surface currently expresses them with different copy and chroming.
+  - Validation/lint feedback is already closest to a reusable pattern because `FieldMessage.tsx` and `fieldBorderClass()` exist; later adoption work should replace hand-rolled field paragraphs before inventing new validation components.
+---

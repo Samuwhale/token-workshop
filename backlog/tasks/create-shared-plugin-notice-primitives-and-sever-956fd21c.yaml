@@ -1,0 +1,26 @@
+id: create-shared-plugin-notice-primitives-and-sever-956fd21c
+title: Create shared plugin notice primitives and severity contract
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/shared/FieldMessage.tsx
+  - packages/figma-plugin/src/ui/shared/editorClasses.ts
+  - packages/figma-plugin/src/ui/shared/toastBus.ts
+  - packages/figma-plugin/src/ui/components/ToastStack.tsx
+  - packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx
+  - packages/figma-plugin/src/ui/components/PanelHelpHint.tsx
+  - docs/redesign/plugin-ia-blueprint.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Research found the same severities implemented with different ad hoc classes across WorkspaceSummaryHeader, PanelHelpBanner, ThemeManager, TokenList, SelectionInspector, PublishPanel, and HealthPanel. The first slice should centralize severity names, tone classes, and placement rules before panel-by-panel adoption."
+state: ready
+acceptance_criteria:
+  - Introduce one shared notice severity model that covers `info`, `success`, `warning`, `stale`, `error`, and validation-specific inline feedback.
+  - Provide shared primitives/helpers for shell pills, surface banners, and field-level messages so workspace panels stop hand-rolling amber/red variants.
+  - Document when to use shell pills vs banners vs inline messages vs toasts in the IA/design guidance consumed by later backlog items.
+source: task-followup
+created_at: 2026-04-10T23:20:40.124Z
+updated_at: 2026-04-10T23:20:40.124Z

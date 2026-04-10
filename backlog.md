@@ -14,12 +14,16 @@
 - [x] [HIGH] Repair repo TypeScript validation blockers outside folder operations scope
 - [x] [HIGH] Repair worktree validation environment
 - [x] [HIGH] Collapse Tokens > Library onto one contextual surface contract
-- [ ] [HIGH] Research a plugin-wide notice severity and placement model across shell, authoring, sync, and audit surfaces
+- [x] [HIGH] Research a plugin-wide notice severity and placement model across shell, authoring, sync, and audit surfaces
 - [ ] [HIGH] Route manual token starts through a single Tokens create-launcher state
 - [ ] [HIGH] Research a canonical plugin UI blueprint for visual density, typography hierarchy, and motion/layout transitions
 - [ ] [HIGH] Research Apply workspace selection-state contract across compare, review, and binding feedback surfaces
 - [ ] [HIGH] Research a shared plugin contract for zero-state, loading, progress, success, and error feedback across workspace and secondary surfaces
 - [ ] [HIGH] Research Tokens workspace edit-surface ownership across inline row edits, contextual editors, preview surfaces, and modal flows
+- [ ] [HIGH] Create shared plugin notice primitives and severity contract
+- [ ] [HIGH] Adopt the notice model in shell connection and workspace summary surfaces
+- [ ] [HIGH] Normalize authoring notices across Tokens, Themes, and Apply
+- [ ] [HIGH] Normalize sync and audit notices around blocking, stale, and validation states
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
