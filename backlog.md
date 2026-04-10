@@ -72,7 +72,7 @@
 - [x] Make figma-plugin stableStringify recurse through arrays of objects
 - [x] Add a focused theme context summary with in-place gap actions to Theme authoring
 - [x] Clarify export presets, scope, and output expectations on the handoff files surface
-- [ ] Split Sync handoff into a primary export surface and a repository expert route
+- [x] Split Sync handoff into a primary export surface and a repository expert route
 - [ ] Research post-import handoff routing and next-step recommendations across import success and workspace navigation
 - [ ] Research the Tokens authoring contract for token-editor consistency, generator escalation, and inline generated-group status
 - [ ] Add explicit preflight, compare, and apply stage navigation to the Figma Sync publish panel

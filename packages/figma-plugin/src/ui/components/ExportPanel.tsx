@@ -16,7 +16,7 @@ import { GitWorkflowPanel } from './publish/GitWorkflowPanel';
 import { FieldMessage } from '../shared/FieldMessage';
 import { fieldBorderClass } from '../shared/editorClasses';
 
-export type ExportMode = 'platforms' | 'figma-variables' | 'repository';
+export type ExportMode = 'platforms' | 'figma-variables';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -31,6 +31,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const help = usePanelHelp('export');
   const { sets, addSetToState } = useTokenSetsContext();
   const [mode, setMode] = useState<ExportMode>('platforms');
+  const [showRepo, setShowRepo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const platformConfig = usePlatformConfig();
@@ -172,8 +173,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         </div>
         {help.expanded && (
           <PanelHelpBanner
-            title="Repo / Handoff"
-            description="Generate platform-specific handoff files, inspect Figma variables for import, or switch into repository actions when downstream delivery needs saved files and branch coordination."
+            title="Handoff files"
+            description="Generate platform-specific handoff files or inspect Figma variables for import. For commit, push, pull, and merge work, expand the Repository workflow section at the bottom."
             onDismiss={help.dismiss}
           />
         )}
@@ -224,35 +225,13 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               </svg>
               Figma Variables
             </button>
-            <button
-              onClick={() => setMode('repository')}
-              disabled={!connected}
-              title={!connected ? 'Connect to server to use repository workflow' : undefined}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-medium transition-all ${
-                !connected
-                  ? 'opacity-40 cursor-not-allowed text-[var(--color-figma-text-tertiary)]'
-                  : mode === 'repository'
-                    ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
-                    : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
-              }`}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="6" y1="3" x2="6" y2="15" />
-                <circle cx="18" cy="6" r="3" />
-                <circle cx="6" cy="18" r="3" />
-                <path d="M18 9a9 9 0 01-9 9" />
-              </svg>
-              Repository
-            </button>
           </div>
 
           {/* Mode description */}
           <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed -mt-1">
             {mode === 'platforms'
               ? 'Generate platform-specific code files from the token server — CSS variables, Dart, Swift, Android, or W3C JSON.'
-              : mode === 'figma-variables'
-                ? 'Inspect variables from this Figma file, preview them, and copy as DTCG JSON or save them to the token server.'
-                : 'Inspect repository status, reconcile incoming or outgoing token changes, and save branch-ready handoff updates.'}
+              : 'Inspect variables from this Figma file, preview them, and copy as DTCG JSON or save them to the token server.'}
           </div>
 
           {/* Auto-switch notice */}
@@ -317,44 +296,75 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             />
           )}
 
-          {mode === 'repository' && (
-            <GitWorkflowPanel serverUrl={serverUrl} connected={connected} />
-          )}
+          {/* Repository workflow — expert entry, collapsed by default */}
+          <div className="border-t border-[var(--color-figma-border)] pt-3 -mx-3 px-3">
+            <button
+              onClick={() => setShowRepo(prev => !prev)}
+              disabled={!connected}
+              title={!connected ? 'Connect to server to use repository workflow' : undefined}
+              className={`w-full flex items-center gap-2 text-[10px] font-medium transition-colors ${
+                !connected
+                  ? 'opacity-40 cursor-not-allowed text-[var(--color-figma-text-tertiary)]'
+                  : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+              }`}
+            >
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 8 8"
+                fill="currentColor"
+                className={`shrink-0 transition-transform text-[var(--color-figma-text-tertiary)] ${showRepo ? 'rotate-90' : ''}`}
+                aria-hidden="true"
+              >
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+                <line x1="6" y1="3" x2="6" y2="15" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <path d="M18 9a9 9 0 01-9 9" />
+              </svg>
+              Repository workflow
+            </button>
+            {showRepo && (
+              <div className="mt-3">
+                <GitWorkflowPanel serverUrl={serverUrl} connected={connected} />
+              </div>
+            )}
+          </div>
         </div>
 
-        {mode !== 'repository' && (
-          <ExportFooter
-            mode={mode}
-            connected={connected}
-            changesOnly={diffState.changesOnly}
-            setChangesOnly={diffState.setChangesOnly}
-            diffPaths={diffState.diffPaths}
-            diffLoading={diffState.diffLoading}
-            isGitRepo={diffState.isGitRepo}
-            lastExportTimestamp={diffState.lastExportTimestamp}
-            fetchDiff={diffState.fetchDiff}
-            fetchDiffSince={diffState.fetchDiffSince}
-            results={exportResults.results}
-            exporting={exportResults.exporting}
-            selected={platformConfig.selected}
-            selectedSets={platformConfig.selectedSets}
-            zipProgress={exportResults.zipProgress}
-            handleExport={exportResults.handleExport}
-            handleCopyAllPlatformResults={exportResults.handleCopyAllPlatformResults}
-            handleDownloadZip={exportResults.handleDownloadZip}
-            figmaLoading={figmaVariables.figmaLoading}
-            figmaCollections={figmaVariables.figmaCollections}
-            savePhase={figmaVariables.savePhase}
-            copiedAll={figmaVariables.copiedAll}
-            selectedExportMode={figmaVariables.selectedExportMode}
-            setSelectedExportMode={figmaVariables.setSelectedExportMode}
-            savePerMode={figmaVariables.savePerMode}
-            setSavePerMode={figmaVariables.setSavePerMode}
-            handleExportFigmaVariables={figmaVariables.handleExportFigmaVariables}
-            handleCopyAll={figmaVariables.handleCopyAll}
-            handlePreviewSave={figmaVariables.handlePreviewSave}
-          />
-        )}
+        <ExportFooter
+          mode={mode}
+          connected={connected}
+          changesOnly={diffState.changesOnly}
+          setChangesOnly={diffState.setChangesOnly}
+          diffPaths={diffState.diffPaths}
+          diffLoading={diffState.diffLoading}
+          isGitRepo={diffState.isGitRepo}
+          lastExportTimestamp={diffState.lastExportTimestamp}
+          fetchDiff={diffState.fetchDiff}
+          fetchDiffSince={diffState.fetchDiffSince}
+          results={exportResults.results}
+          exporting={exportResults.exporting}
+          selected={platformConfig.selected}
+          selectedSets={platformConfig.selectedSets}
+          zipProgress={exportResults.zipProgress}
+          handleExport={exportResults.handleExport}
+          handleCopyAllPlatformResults={exportResults.handleCopyAllPlatformResults}
+          handleDownloadZip={exportResults.handleDownloadZip}
+          figmaLoading={figmaVariables.figmaLoading}
+          figmaCollections={figmaVariables.figmaCollections}
+          savePhase={figmaVariables.savePhase}
+          copiedAll={figmaVariables.copiedAll}
+          selectedExportMode={figmaVariables.selectedExportMode}
+          setSelectedExportMode={figmaVariables.setSelectedExportMode}
+          savePerMode={figmaVariables.savePerMode}
+          setSavePerMode={figmaVariables.setSavePerMode}
+          handleExportFigmaVariables={figmaVariables.handleExportFigmaVariables}
+          handleCopyAll={figmaVariables.handleCopyAll}
+          handlePreviewSave={figmaVariables.handlePreviewSave}
+        />
       </div>
 
       {/* Delete preset confirmation */}

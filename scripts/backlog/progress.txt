@@ -772,3 +772,15 @@
   - `stale` needs to be modeled separately from generic warning. Both publish preflight and audit already have rerun semantics, but each surface currently expresses them with different copy and chroming.
   - Validation/lint feedback is already closest to a reusable pattern because `FieldMessage.tsx` and `fieldBorderClass()` exist; later adoption work should replace hand-rolled field paragraphs before inventing new validation components.
 ---
+## 2026-04-11 - [Split Sync handoff into a primary export surface and a repository expert route]
+- Removed `repository` from the primary `ExportMode` toggle in `ExportPanel`. The three-button toggle (Handoff files / Figma Variables / Repository) is now a two-button toggle (Handoff files / Figma Variables).
+- Added a `showRepo` collapsed-by-default expert section at the bottom of the scrollable body with a chevron toggle button labeled "Repository workflow". When expanded it mounts `GitWorkflowPanel` inline below the primary content.
+- `ExportFooter` is now always rendered (removed the `mode !== 'repository'` conditional guard).
+- Updated `GitWorkflowPanel` framing text to explicitly say Figma publish and handoff file generation live above, and this panel is for commit/push/pull/merge work.
+- Updated `navigationTypes.ts`: renamed the export section label from "Repo / Handoff" to "Handoff files", updated description and summaryGuidance to clearly distinguish primary handoff file generation from secondary repository work, updated the sync workspace description, and updated the TOP_TABS entry label.
+- Updated `PanelRouter.tsx` ErrorBoundary name from "Repo / Handoff" to "Handoff files".
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L19–340; `packages/figma-plugin/src/ui/components/publish/GitWorkflowPanel.tsx` ~L22–27; `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L62–375; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L1001
+- **Learnings for future iterations:**
+  - When collapsing a peer top-level mode into an expert section, move the toggle into the scrollable body rather than keeping it as a footer or header action — this keeps the footer clean for primary CTA actions.
+  - The collapsed expert section pattern works well when the expert workflow has its own rich framing text and the primary content doesn't need to know whether the expert section is open.
+---

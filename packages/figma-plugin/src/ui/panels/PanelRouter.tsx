@@ -998,7 +998,7 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipExport(): ReactNode {
     return (
-      <ErrorBoundary panelName="Repo / Handoff" onReset={() => navigateTo('ship', 'export')}>
+      <ErrorBoundary panelName="Handoff files" onReset={() => navigateTo('ship', 'export')}>
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );

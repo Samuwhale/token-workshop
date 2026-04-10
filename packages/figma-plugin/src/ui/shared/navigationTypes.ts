@@ -59,7 +59,7 @@ export const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label
   ]},
   { id: 'ship', label: 'Sync', subTabs: [
     { id: 'publish', label: 'Figma Sync' },
-    { id: 'export', label: 'Repo / Handoff' },
+    { id: 'export', label: 'Handoff files' },
     { id: 'history', label: 'History' },
     { id: 'health', label: 'Audit' },
   ]},
@@ -344,7 +344,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: 'sync',
     label: 'Sync',
-    description: 'Keep Figma publishing primary, then switch into repo or handoff tooling only when files or repository work is needed.',
+    description: 'Publish Figma variables and styles first, then generate handoff files or open repository controls only when downstream delivery needs them.',
     topTab: 'ship',
     subTab: 'publish',
     transition: workspaceTransition('Primary delivery workspace for publish and handoff work.'),
@@ -361,13 +361,13 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       },
       {
         id: 'export',
-        label: 'Repo / Handoff',
-        description: 'Generate handoff files, inspect repository state, and reconcile saved token changes.',
-        summaryTitle: 'Repo / Handoff',
-        summaryGuidance: 'Package handoff files, inspect repository status, and handle commit, pull, push, or merge-resolution work when downstream delivery needs it.',
+        label: 'Handoff files',
+        description: 'Generate platform-specific handoff files from the token server. Open the repository workflow section only when saved files or branch coordination are needed.',
+        summaryTitle: 'Handoff files',
+        summaryGuidance: 'Generate CSS, Dart, Swift, Android, or W3C JSON handoff files as the primary path. Use the repository workflow section — reachable at the bottom of this surface — only when commit, pull, push, or merge-resolution work is needed.',
         topTab: 'ship',
         subTab: 'export',
-        transition: workspaceTransition('Handoff and repository delivery screen inside Sync.'),
+        transition: workspaceTransition('Handoff files screen inside Sync; repository actions are a secondary expert section at the bottom.'),
       },
     ],
     matchRoutes: [
