@@ -13,7 +13,7 @@
 - [x] [HIGH] Repair backlog-runner interactive defaults and Codex planner smoke validation
 - [x] [HIGH] Repair repo TypeScript validation blockers outside folder operations scope
 - [x] [HIGH] Repair worktree validation environment
-- [ ] [HIGH] Collapse Tokens > Library onto one contextual surface contract
+- [x] [HIGH] Collapse Tokens > Library onto one contextual surface contract
 - [ ] [HIGH] Research a plugin-wide notice severity and placement model across shell, authoring, sync, and audit surfaces
 - [ ] [HIGH] Route manual token starts through a single Tokens create-launcher state
 - [ ] [HIGH] Research a canonical plugin UI blueprint for visual density, typography hierarchy, and motion/layout transitions

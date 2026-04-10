@@ -72,6 +72,8 @@ const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
 const VALID_SORT_ORDERS: SortOrder[] = ['default', 'alpha-asc', 'by-type'];
+const TOKENS_LIBRARY_BODY_SURFACE = 'library-body';
+const TOKENS_LIBRARY_SPLIT_PREVIEW_LABEL = 'Split preview';
 
 type BulkEditScope = {
   source: 'current-scope' | 'saved-preset';
@@ -442,6 +444,7 @@ export function TokenList({
   editingTokenPath,
   compareHandle,
 }: TokenListProps) {
+  const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<{ type: 'variables' | 'styles'; count: number } | null>(null);
@@ -1273,7 +1276,7 @@ export function TokenList({
       items.push(multiModeDimensionName ? `Mode columns · ${multiModeDimensionName}` : 'Mode columns');
     }
     if (condensedView) items.push('Condensed');
-    if (showPreviewSplit) items.push('Preview split');
+    if (showPreviewSplit) items.push(TOKENS_LIBRARY_SPLIT_PREVIEW_LABEL);
     return items;
   }, [condensedView, multiModeDimensionName, multiModeEnabled, showPreviewSplit]);
 
@@ -2852,7 +2855,11 @@ export function TokenList({
     dismissedStaleGeneratorSignature !== staleGeneratorSignature;
 
   return (
-    <div className="flex flex-col h-full relative" onKeyDown={handleListKeyDown}>
+    <div
+      className="flex flex-col h-full relative"
+      data-tokens-library-surface-slot={librarySurfaceSlot}
+      onKeyDown={handleListKeyDown}
+    >
       {/* ⌘⌥C alias-ref copy feedback toast */}
       {copyAliasFeedback && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-[11px] font-medium shadow-md" aria-live="polite">
@@ -3384,7 +3391,7 @@ export function TokenList({
                           }}
                           className={`w-full rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showPreviewSplit ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
                         >
-                          {showPreviewSplit ? 'Hide preview split' : 'Show preview split'}
+                          {showPreviewSplit ? 'Hide split preview' : 'Show split preview'}
                         </button>
                       </section>
 

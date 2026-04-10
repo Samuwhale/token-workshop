@@ -82,14 +82,17 @@ Tokens empty states and recovery entry points should deep-link straight into the
 | Primary workspace screen        | Shell-owned route reachable from workspace or section tabs                       | `Tokens > Library`, `Apply > Canvas`, `Sync > Repo / Handoff`                               |
 | Contextual workspace sub-screen | Deeper route that stays owned by one workspace and preserves parent context      | Theme coverage, theme compare, advanced theme logic, dependency tracing                     |
 | Secondary takeover              | Full-height body replacement that keeps the shell visible                        | `Import`, `Sets`, `Notifications`, `Shortcuts`, `Settings`                                  |
-| Persistent contextual panel     | Editing or preview surface shown beside the current screen or in a bottom drawer | Token editor, generator editor, token preview, split preview                                |
+| Persistent contextual panel     | Editing or review surface shown beside the current screen or in a bottom drawer  | Token compare, token editor, generator editor, token preview                                 |
+| Split preview                   | Library body plus a dedicated live preview pane that stays mounted in the layout | `Tokens > Library` split preview                                                             |
 | Transient overlay               | Short-lived modal or picker that dismisses back to the current surface           | Start flow, command palette, quick apply, set switcher, paste tokens, color scale generator |
 
 ## Contextual screen inventory
 
 ### Tokens workspace
 
-- `Tokens > Library` is the parent for token browsing, set switching, token compare, token preview, and token editing.
+- `Tokens > Library` owns one surface contract: the library body stays mounted, compare or editors attach as contextual panels, and live preview can expand into the split preview pane without changing workspace ownership.
+- Token compare, token editor, generator editor, and token preview are all contextual library surfaces. They never replace the underlying library browse state.
+- Split preview is a presentation of the `Tokens > Library` contract, not a separate workspace or shell route.
 - `Tokens > Generators` owns generator authoring and returns to the library after creation or refinement.
 - `Sets` is the structural management takeover for rename, reorder, merge, split, duplicate, and metadata work.
 

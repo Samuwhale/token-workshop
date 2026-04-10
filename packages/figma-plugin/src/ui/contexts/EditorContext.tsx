@@ -14,6 +14,7 @@ import type { CompareMode } from '../components/UnifiedComparePanel';
 import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
 import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
+import type { TokensLibraryContextualSurface } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,7 +31,11 @@ export type EditingToken = {
 
 export type PreviewingToken = { path: string; name?: string; set: string };
 export type EditingGenerator = { id: string };
-export type TokensContextualSurface = 'compare' | 'token-editor' | 'generator-editor' | 'token-preview';
+
+export interface TokensContextualSurfaceState {
+  activeSurface: TokensLibraryContextualSurface | null;
+  preservesLibraryBrowseContext: boolean;
+}
 
 export interface EditorContextValue {
   editingToken: EditingToken | null;
@@ -60,7 +65,7 @@ export interface EditorContextValue {
   setTokensCompareThemeKey: Dispatch<SetStateAction<number>>;
   tokensCompareDefaultA: string;
   tokensCompareDefaultB: string;
-  activeTokensContextualSurface: TokensContextualSurface | null;
+  tokensContextualSurfaceState: TokensContextualSurfaceState;
   /**
    * Wire in the alias-not-found toast handler after the provider mounts.
    * App.tsx calls this once inside a useEffect after useToastStack is ready.
@@ -134,13 +139,18 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }
   }, [showTokensCompare, editingToken, editingGenerator, previewingToken]);
 
-  const activeTokensContextualSurface = useMemo<TokensContextualSurface | null>(() => {
+  const activeSurface = useMemo<TokensLibraryContextualSurface | null>(() => {
     if (editingToken) return 'token-editor';
     if (editingGenerator) return 'generator-editor';
     if (previewingToken) return 'token-preview';
     if (showTokensCompare) return 'compare';
     return null;
   }, [editingToken, editingGenerator, previewingToken, showTokensCompare]);
+
+  const tokensContextualSurfaceState = useMemo<TokensContextualSurfaceState>(() => ({
+    activeSurface,
+    preservesLibraryBrowseContext: activeSurface !== null,
+  }), [activeSurface]);
 
   const value = useMemo<EditorContextValue>(() => ({
     editingToken,
@@ -170,7 +180,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setTokensCompareThemeKey,
     tokensCompareDefaultA,
     tokensCompareDefaultB,
-    activeTokensContextualSurface,
+    tokensContextualSurfaceState,
     setAliasNotFoundHandler,
   }), [
     editingToken,
@@ -197,7 +207,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setTokensCompareThemeKey,
     tokensCompareDefaultA,
     tokensCompareDefaultB,
-    activeTokensContextualSurface,
+    tokensContextualSurfaceState,
     setAliasNotFoundHandler,
   ]);
 

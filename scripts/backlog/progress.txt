@@ -730,3 +730,16 @@
   - `focusedDimension`, `focusedOptionName`, `focusedPrimaryIssue`, and `focusedIssueCount` were already computed; adding the context summary required only a render change, not new state or memos.
   - The existing `focusRoleTarget` and `openCoverageView` functions already had the correct signatures for routing inline actions from the header without additional wiring.
 ---
+- Files changed: `../../../../../../../Users/samuel/Documents/Projects/TokenManager/backlog/inbox.jsonl` ~L1; `scripts/backlog/patterns.md` ~L214; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Theme gap remediation needs two distinct contracts: review should explain what is wrong and name the target set when possible, while authoring should own the actual set-role edits and override-set creation.
+  - `ThemeCoverageMatrix.tsx` is currently a summary-only navigator; the create-missing-overrides plumbing in `useThemeCoverage.ts` is unused, so any future remediation work should either wire that path into a concrete review detail surface or delete the dormant helper rather than leaving the split model implicit.
+---
+## 2026-04-11 - [Collapse Tokens > Library onto one contextual surface contract]
+- Documented a single Tokens > Library surface contract, moved compare into the shared contextual-panel classification, and kept split preview as a separate presentation that does not replace the library route.
+- Refactored the Tokens router to keep the library body mounted while compare, token editor, generator editor, and token preview attach through one contextual-surface state; incompatible surfaces now collapse split preview before opening so browse context stays intact.
+- Files changed: `docs/redesign/plugin-ia-blueprint.md` ~L80; `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L30; `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L35; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L187; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L75
+- **Learnings for future iterations:**
+  - Treat `Tokens > Library` as the stable body contract first, then vary only the attached presentation (`contextual-panel` or `split-preview`) so search, filters, scroll position, and set context survive compare/editor opens.
+  - Split preview and contextual editors compete for the same secondary slot; when a surface cannot render inside the split layout, close split preview instead of branching the main library body into a different owner.
+---

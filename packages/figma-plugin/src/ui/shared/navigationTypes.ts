@@ -27,6 +27,12 @@ export type SurfacePresentation =
   | 'centered-dialog'
   | 'bottom-sheet';
 export type SurfaceCloseBehavior = 'none' | 'restore-underlying-surface' | 'dismiss-in-place';
+export type TokensLibraryContextualSurface =
+  | 'compare'
+  | 'token-editor'
+  | 'generator-editor'
+  | 'token-preview';
+export type TokensLibrarySurfaceSlot = 'library-body' | 'contextual-panel' | 'split-preview';
 
 export interface SurfaceTransition {
   kind: SurfaceKind;
@@ -200,13 +206,67 @@ export const CONTEXTUAL_PANEL_TRANSITIONS = {
   },
 } satisfies Record<'sidePanel' | 'bottomDrawer' | 'splitPreview', SurfaceTransition>;
 
+export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
+  body: {
+    id: 'library-body',
+    label: 'Tokens > Library body',
+    usage: 'Keep token browsing, search, filters, and set switching mounted as the stable parent surface for the Tokens workspace.',
+  },
+  contextualPanel: {
+    id: 'contextual-panel',
+    label: 'Tokens > Library contextual panel',
+    usage: 'Attach compare, token editing, generator editing, and token detail preview to the current library browse state instead of replacing it.',
+    presentations: {
+      wide: CONTEXTUAL_PANEL_TRANSITIONS.sidePanel,
+      narrow: CONTEXTUAL_PANEL_TRANSITIONS.bottomDrawer,
+    },
+    surfaces: {
+      compare: {
+        label: 'Compare',
+        usage: 'Review token-to-token or cross-theme differences without leaving the current library browse context.',
+      },
+      'token-editor': {
+        label: 'Token editor',
+        usage: 'Edit or create a token while keeping the current library list, search, and set context mounted.',
+      },
+      'generator-editor': {
+        label: 'Generator editor',
+        usage: 'Tune a generator from the library without replacing the underlying browse state.',
+      },
+      'token-preview': {
+        label: 'Token preview',
+        usage: 'Inspect one token in detail while keeping the current library browse context available.',
+      },
+    } satisfies Record<TokensLibraryContextualSurface, { label: string; usage: string }>,
+  },
+  splitPreview: {
+    id: 'split-preview',
+    label: 'Tokens > Library split preview',
+    usage: 'Keep the library body mounted while a live preview occupies the secondary pane and can optionally focus a specific token.',
+    transition: CONTEXTUAL_PANEL_TRANSITIONS.splitPreview,
+  },
+} satisfies {
+  body: { id: TokensLibrarySurfaceSlot; label: string; usage: string };
+  contextualPanel: {
+    id: TokensLibrarySurfaceSlot;
+    label: string;
+    usage: string;
+    presentations: {
+      wide: SurfaceTransition;
+      narrow: SurfaceTransition;
+    };
+    surfaces: Record<TokensLibraryContextualSurface, { label: string; usage: string }>;
+  };
+  splitPreview: { id: TokensLibrarySurfaceSlot; label: string; usage: string; transition: SurfaceTransition };
+};
+
 export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: 'tokens',
     label: 'Tokens',
-    description: 'Edit token sets, compare values, and automate new scales.',
+    description: 'Edit token sets, keep the library browse state mounted, compare values, and automate new scales.',
     summaryTitle: 'Token library',
-    summaryGuidance: 'Build and edit the token library, switch the active set, and open deeper comparison or generation tools when needed.',
+    summaryGuidance: 'Build and edit the token library, keep browsing context mounted, and open compare, preview, or generator tools as attached contextual surfaces when needed.',
     topTab: 'define',
     subTab: 'tokens',
     transition: workspaceTransition('Primary authoring home for the token library and its generator workflows.'),
@@ -216,7 +276,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         label: 'Library',
         description: 'Browse and edit token sets.',
         summaryTitle: 'Token library',
-        summaryGuidance: 'Build and edit the token library, switch the active set, and create new tokens in the current workspace.',
+        summaryGuidance: 'Browse the library as the stable parent surface, then attach compare, preview, or editor work without replacing the current browse context.',
         topTab: 'define',
         subTab: 'tokens',
         transition: workspaceTransition('Default token authoring screen.'),

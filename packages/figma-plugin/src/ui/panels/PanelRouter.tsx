@@ -57,7 +57,14 @@ import type { OperationEntry } from '../hooks/useRecentOperations';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
 import type { StarredTokensState } from '../hooks/useStarredTokens';
 import type { NotificationEntry } from '../hooks/useToastStack';
-import type { TopTab, SubTab, SecondarySurfaceId, SurfaceTransition } from '../shared/navigationTypes';
+import type {
+  TopTab,
+  SubTab,
+  SecondarySurfaceId,
+  SurfaceTransition,
+  TokensLibraryContextualSurface,
+} from '../shared/navigationTypes';
+import { TOKENS_LIBRARY_SURFACE_CONTRACT } from '../shared/navigationTypes';
 import type { ThemeWorkspaceShellState } from '../shared/themeWorkflow';
 import { useEditorWidth } from '../hooks/useEditorWidth';
 
@@ -186,8 +193,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     setPendingHighlight, handleNavigateToAlias, handleNavigateBack, navHistoryLength,
     showTokensCompare, setShowTokensCompare, tokensCompareMode, setTokensCompareMode,
     tokensComparePaths, setTokensComparePaths, tokensComparePath, setTokensComparePath,
-    tokensCompareThemeKey, setTokensCompareThemeKey, tokensCompareDefaultA, tokensCompareDefaultB, activeTokensContextualSurface,
+    tokensCompareThemeKey, setTokensCompareThemeKey, tokensCompareDefaultA, tokensCompareDefaultB, tokensContextualSurfaceState,
   } = useEditorContext();
+  const activeTokensContextualSurface = tokensContextualSurfaceState.activeSurface;
 
   // Read all four contexts — these cover ~40% of the data that panels need.
   const {
@@ -228,15 +236,28 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     setEditingGenerator(null);
   }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
 
+  useEffect(() => {
+    if (!p.showPreviewSplit) return;
+    if (
+      activeTokensContextualSurface === 'compare'
+      || activeTokensContextualSurface === 'token-editor'
+      || activeTokensContextualSurface === 'generator-editor'
+    ) {
+      p.setShowPreviewSplit(false);
+    }
+  }, [activeTokensContextualSurface, p.showPreviewSplit, p.setShowPreviewSplit]);
+
   const editingTokenType = editingToken
     ? (allTokensFlat[editingToken.path]?.$type ?? editingToken.initialType)
     : undefined;
   const { editorWidth, handleEditorWidthDragStart } = useEditorWidth(editingTokenType);
+  const tokenListHighlightedPath = editingToken?.path || previewingToken?.path || highlightedToken;
 
   // Build the common TokenList `actions` object once — it's identical across the
   // three TokenList render variants (side-panel, no-split, preview-split).
   const tokenListActions = {
     onEdit: (path: string, name?: string) => p.guardEditorAction(() => {
+      p.setShowPreviewSplit(false);
       setShowTokensCompare(false);
       setEditingGenerator(null);
       setEditingToken({ path, name, set: activeSet });
@@ -251,6 +272,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     },
     onCreateNew: (initialPath: string | undefined, initialType: string | undefined, initialValue: string | undefined) =>
       {
+        p.setShowPreviewSplit(false);
         setShowTokensCompare(false);
         setEditingGenerator(null);
         setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue });
@@ -282,6 +304,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       navigateTo('ship', 'history');
     },
     onEditGenerator: (generatorId: string) => p.guardEditorAction(() => {
+      p.setShowPreviewSplit(false);
       setShowTokensCompare(false);
       setPreviewingToken(null);
       setEditingToken(null);
@@ -300,6 +323,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     starredPaths: new Set(p.starredTokens.tokens.filter(t => t.setName === activeSet).map(t => t.path)),
     onError: p.setErrorToast,
     onOpenCompare: (paths: Set<string>) => {
+      p.setShowPreviewSplit(false);
       setEditingToken(null);
       setEditingGenerator(null);
       setPreviewingToken(null);
@@ -309,6 +333,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       setShowTokensCompare(true);
     },
     onOpenCrossThemeCompare: (path: string) => {
+      p.setShowPreviewSplit(false);
       setEditingToken(null);
       setEditingGenerator(null);
       setPreviewingToken(null);
@@ -397,55 +422,132 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     closeRef: p.editorCloseRef,
   } : null;
 
-  const renderNarrowTokensContextualSurface = () => {
-    if (p.useSidePanel || p.showPreviewSplit || activeTokensContextualSurface === null) return null;
+  type TokensContextualSurfaceRenderState = {
+    surface: TokensLibraryContextualSurface;
+    content: ReactNode;
+    onDismiss: () => void;
+    height: string;
+  };
 
-    let height = '65%';
-    let onDismiss = () => setShowTokensCompare(false);
-    let content: ReactNode = null;
-
+  const getTokensContextualSurfaceRenderState = (): TokensContextualSurfaceRenderState | null => {
     if (activeTokensContextualSurface === 'token-editor' && editingToken && tokenEditorProps) {
-      onDismiss = p.editorCloseRef.current;
-      content = <TokenEditor {...tokenEditorProps} />;
-    } else if (activeTokensContextualSurface === 'generator-editor' && editingGeneratorData && generatorEditorProps) {
-      height = '72%';
-      onDismiss = p.editorCloseRef.current;
-      content = <TokenGeneratorDialog {...generatorEditorProps} />;
-    } else if (activeTokensContextualSurface === 'token-preview' && previewingToken) {
-      height = '50%';
-      onDismiss = p.handlePreviewClose;
-      content = (
-        <TokenDetailPreview
-          tokenPath={previewingToken.path}
-          tokenName={previewingToken.name}
-          setName={previewingToken.set}
-          allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          dimensions={dimensions}
-          activeThemes={activeThemes}
-          tokenUsageCounts={tokenUsageCounts}
-          generators={generators}
-          derivedTokenPaths={derivedTokenPaths}
-          lintViolations={p.lintViolations.filter(violation => violation.path === previewingToken.path)}
-          syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
-          serverUrl={serverUrl}
-          onEdit={p.handlePreviewEdit}
-          onClose={p.handlePreviewClose}
-          onNavigateToAlias={handleNavigateToAlias}
-        />
-      );
-    } else if (activeTokensContextualSurface === 'compare' && showTokensCompare) {
-      height = '72%';
-      content = renderTokensComparePanel();
+      return {
+        surface: 'token-editor',
+        content: <TokenEditor {...tokenEditorProps} />,
+        onDismiss: p.editorCloseRef.current,
+        height: '65%',
+      };
     }
 
-    if (!content) return null;
+    if (activeTokensContextualSurface === 'generator-editor' && editingGeneratorData && generatorEditorProps) {
+      return {
+        surface: 'generator-editor',
+        content: <TokenGeneratorDialog {...generatorEditorProps} />,
+        onDismiss: p.editorCloseRef.current,
+        height: '72%',
+      };
+    }
+
+    if (activeTokensContextualSurface === 'token-preview' && previewingToken) {
+      return {
+        surface: 'token-preview',
+        content: (
+          <TokenDetailPreview
+            tokenPath={previewingToken.path}
+            tokenName={previewingToken.name}
+            setName={previewingToken.set}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            dimensions={dimensions}
+            activeThemes={activeThemes}
+            tokenUsageCounts={tokenUsageCounts}
+            generators={generators}
+            derivedTokenPaths={derivedTokenPaths}
+            lintViolations={p.lintViolations.filter(violation => violation.path === previewingToken.path)}
+            syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
+            serverUrl={serverUrl}
+            onEdit={p.handlePreviewEdit}
+            onClose={p.handlePreviewClose}
+            onNavigateToAlias={handleNavigateToAlias}
+          />
+        ),
+        onDismiss: p.handlePreviewClose,
+        height: '50%',
+      };
+    }
+
+    if (activeTokensContextualSurface === 'compare' && showTokensCompare) {
+      return {
+        surface: 'compare',
+        content: renderTokensComparePanel(),
+        onDismiss: () => setShowTokensCompare(false),
+        height: '72%',
+      };
+    }
+
+    return null;
+  };
+
+  const renderTokensLibraryBody = () => (
+    <div
+      className="flex-1 min-w-0 overflow-hidden"
+      data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.body.id}
+    >
+      <TokenList
+        ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
+        data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
+        actions={tokenListActions}
+        recentlyTouched={p.recentlyTouched}
+        defaultCreateOpen={createFromEmpty}
+        highlightedToken={tokenListHighlightedPath}
+        showIssuesOnly={p.showIssuesOnly}
+        showPreviewSplit={p.showPreviewSplit}
+        editingTokenPath={editingToken?.path}
+        compareHandle={p.tokenListCompareRef}
+      />
+    </div>
+  );
+
+  const renderWideTokensContextualSurface = (surfaceState: TokensContextualSurfaceRenderState) => (
+    <div
+      className="shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-row overflow-hidden"
+      style={{ width: editorWidth }}
+      data-surface-kind={p.contextualEditorTransition.kind}
+      data-surface-presentation={p.contextualEditorTransition.presentation}
+      data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
+      data-tokens-library-contextual-surface={surfaceState.surface}
+      onKeyDown={(e) => {
+        if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+          e.preventDefault();
+          p.handleEditorNavigate(e.key === ']' ? 1 : -1);
+        }
+      }}
+    >
+      <div
+        className="w-1 shrink-0 cursor-col-resize hover:bg-[var(--color-figma-accent)]/30 active:bg-[var(--color-figma-accent)]/50 transition-colors"
+        onMouseDown={handleEditorWidthDragStart}
+        title="Drag to resize"
+        aria-hidden="true"
+      />
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {surfaceState.content}
+      </div>
+    </div>
+  );
+
+  const renderNarrowTokensContextualSurface = () => {
+    if (p.useSidePanel || p.showPreviewSplit) return null;
+
+    const surfaceState = getTokensContextualSurfaceRenderState();
+    if (!surfaceState) return null;
 
     return (
       <div
         className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
         data-surface-kind={p.contextualEditorTransition.kind}
         data-surface-presentation={p.contextualEditorTransition.presentation}
+        data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
+        data-tokens-library-contextual-surface={surfaceState.surface}
         onKeyDown={(e) => {
           if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
             e.preventDefault();
@@ -455,14 +557,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       >
         <div
           className="absolute inset-0 bg-black/30 drawer-fade-in"
-          onClick={() => onDismiss()}
+          onClick={() => surfaceState.onDismiss()}
         />
-        <div className="relative flex flex-col rounded-t-xl bg-[var(--color-figma-bg)] shadow-2xl drawer-slide-up" style={{ height }}>
+        <div className="relative flex flex-col rounded-t-xl bg-[var(--color-figma-bg)] shadow-2xl drawer-slide-up" style={{ height: surfaceState.height }}>
           <div className="flex justify-center pt-2 pb-1 shrink-0">
             <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
           </div>
           <div className="flex-1 overflow-hidden">
-            {content}
+            {surfaceState.content}
           </div>
         </div>
       </div>
@@ -618,11 +720,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       </div>
     );
 
-    if (showTokensCompare && p.useSidePanel) {
-      return (
-        renderTokensComparePanel()
-      );
-    }
+    const wideContextualSurface = !p.showPreviewSplit && p.useSidePanel
+      ? getTokensContextualSurfaceRenderState()
+      : null;
 
     return (
       <>
@@ -648,83 +748,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         )}
         {/* Main content: TokenList variants */}
         {(tokens.length > 0 || createFromEmpty) && !p.showPreviewSplit && (
-          p.useSidePanel ? (
-            <div className="flex h-full overflow-hidden">
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <TokenList
-                  ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                  data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                  actions={tokenListActions}
-                  recentlyTouched={p.recentlyTouched}
-                  defaultCreateOpen={createFromEmpty}
-                  highlightedToken={editingToken?.path ?? previewingToken?.path ?? highlightedToken}
-                  showIssuesOnly={p.showIssuesOnly}
-                  showPreviewSplit={p.showPreviewSplit}
-                  editingTokenPath={editingToken?.path}
-                  compareHandle={p.tokenListCompareRef}
-                />
-              </div>
-              <div
-                className="shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-row overflow-hidden"
-                style={{ width: editorWidth }}
-                data-surface-kind={p.contextualEditorTransition.kind}
-                data-surface-presentation={p.contextualEditorTransition.presentation}
-                onKeyDown={(e) => {
-                  if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
-                    e.preventDefault();
-                    p.handleEditorNavigate(e.key === ']' ? 1 : -1);
-                  }
-                }}
-              >
-                {/* Drag handle — user drags left to widen, right to narrow */}
-                <div
-                  className="w-1 shrink-0 cursor-col-resize hover:bg-[var(--color-figma-accent)]/30 active:bg-[var(--color-figma-accent)]/50 transition-colors"
-                  onMouseDown={handleEditorWidthDragStart}
-                  title="Drag to resize"
-                  aria-hidden="true"
-                />
-                <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-                {editingToken && tokenEditorProps ? (
-                  <TokenEditor {...tokenEditorProps} />
-                ) : editingGeneratorData && generatorEditorProps ? (
-                  <TokenGeneratorDialog {...generatorEditorProps} />
-                ) : previewingToken ? (
-                  <TokenDetailPreview
-                    tokenPath={previewingToken.path}
-                    tokenName={previewingToken.name}
-                    setName={previewingToken.set}
-                    allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
-                    dimensions={dimensions}
-                    activeThemes={activeThemes}
-                    tokenUsageCounts={tokenUsageCounts}
-                    generators={generators}
-                    derivedTokenPaths={derivedTokenPaths}
-                    lintViolations={p.lintViolations.filter(violation => violation.path === previewingToken.path)}
-                    syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
-                    serverUrl={serverUrl}
-                    onEdit={p.handlePreviewEdit}
-                    onClose={p.handlePreviewClose}
-                    onNavigateToAlias={handleNavigateToAlias}
-                  />
-                ) : null}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <TokenList
-              ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-              data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-              actions={tokenListActions}
-              recentlyTouched={p.recentlyTouched}
-              defaultCreateOpen={createFromEmpty}
-              highlightedToken={highlightedToken}
-              showIssuesOnly={p.showIssuesOnly}
-              showPreviewSplit={p.showPreviewSplit}
-              editingTokenPath={editingToken?.path}
-              compareHandle={p.tokenListCompareRef}
-            />
-          )
+          <div className="flex h-full overflow-hidden">
+            {renderTokensLibraryBody()}
+            {wideContextualSurface ? renderWideTokensContextualSurface(wideContextualSurface) : null}
+          </div>
         )}
         {/* Preview split view */}
         {(tokens.length > 0 || createFromEmpty) && p.showPreviewSplit && (
@@ -733,20 +760,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             className="flex flex-col h-full overflow-hidden"
             data-surface-kind={p.splitPreviewTransition.kind}
             data-surface-presentation={p.splitPreviewTransition.presentation}
+            data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.splitPreview.id}
           >
             <div style={{ height: `${p.splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
-              <TokenList
-                ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                actions={tokenListActions}
-                recentlyTouched={p.recentlyTouched}
-                defaultCreateOpen={createFromEmpty}
-                highlightedToken={previewingToken?.path ?? highlightedToken}
-                showIssuesOnly={p.showIssuesOnly}
-                showPreviewSplit={p.showPreviewSplit}
-                editingTokenPath={editingToken?.path}
-                compareHandle={p.tokenListCompareRef}
-              />
+              {renderTokensLibraryBody()}
             </div>
             <div
               role="separator"
