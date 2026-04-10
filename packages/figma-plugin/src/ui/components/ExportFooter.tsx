@@ -138,6 +138,16 @@ export function ExportFooter({
         </div>
       )}
 
+      {/* Platform mode — result summary */}
+      {mode === 'platforms' && results.length > 0 && (
+        <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
+          {results.length} file{results.length !== 1 ? 's' : ''} exported
+          {selected.size > 0 && ` · ${Array.from(selected).join(', ')}`}
+          {selectedSets !== null && ` · ${selectedSets.size} set${selectedSets.size !== 1 ? 's' : ''}`}
+          {changesOnly && diffPaths !== null && ` · ${diffPaths.length} changed token${diffPaths.length !== 1 ? 's' : ''}`}
+        </div>
+      )}
+
       {/* Platform mode — with results */}
       {mode === 'platforms' && results.length > 0 && (
         <>
@@ -200,28 +210,56 @@ export function ExportFooter({
 
       {/* Platform mode — no results yet */}
       {mode === 'platforms' && results.length === 0 && (
-        <button
-          onClick={() => handleExport(true)}
-          disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting || (changesOnly && isGitRepo === false)}
-          className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
-        >
-          {exporting ? (
-            <>
-              <Spinner />
-              Exporting…
-            </>
-          ) : selected.size === 0
-            ? 'Select a platform to export'
-            : selectedSets !== null && selectedSets.size === 0
-            ? 'Select at least one set'
-            : changesOnly && isGitRepo === false
-            ? 'Changes only — requires git'
-            : changesOnly && diffPaths !== null && diffPaths.length > 0
-            ? `Export ${diffPaths.length} Changed Token${diffPaths.length !== 1 ? 's' : ''} · ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`
-            : selectedSets !== null
-            ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}`
-            : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
-        </button>
+        <>
+          {selected.size > 0 && !(selectedSets !== null && selectedSets.size === 0) && !(changesOnly && isGitRepo === false) && (
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
+              {Array.from(selected).join(', ')}
+              {selectedSets !== null && ` · ${selectedSets.size} set${selectedSets.size !== 1 ? 's' : ''}`}
+              {changesOnly
+                ? diffPaths !== null
+                  ? ` · ${diffPaths.length} changed token${diffPaths.length !== 1 ? 's' : ''}`
+                  : ' · changes only'
+                : ' · all tokens'}
+            </div>
+          )}
+          <button
+            onClick={() => handleExport(true)}
+            disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting || (changesOnly && isGitRepo === false)}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+          >
+            {exporting ? (
+              <>
+                <Spinner />
+                Exporting…
+              </>
+            ) : selected.size === 0
+              ? 'Select a platform to export'
+              : selectedSets !== null && selectedSets.size === 0
+              ? 'Select at least one set'
+              : changesOnly && isGitRepo === false
+              ? 'Changes only — requires git'
+              : changesOnly && diffPaths !== null && diffPaths.length > 0
+              ? `Export ${diffPaths.length} Changed Token${diffPaths.length !== 1 ? 's' : ''} · ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`
+              : selectedSets !== null
+              ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}`
+              : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
+          </button>
+          {selected.size === 0 && (
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center leading-tight">
+              Select at least one platform in the list above.
+            </p>
+          )}
+          {selectedSets !== null && selectedSets.size === 0 && (
+            <p className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] text-center leading-tight">
+              No token sets selected — open Token Sets above to choose which sets to include.
+            </p>
+          )}
+          {changesOnly && isGitRepo === false && (
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center leading-tight">
+              Changes-only without git requires a baseline — open Scope above to set one.
+            </p>
+          )}
+        </>
       )}
 
       {/* Figma variables mode — no collections yet */}

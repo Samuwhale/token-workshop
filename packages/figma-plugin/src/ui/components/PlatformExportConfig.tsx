@@ -168,35 +168,35 @@ export function PlatformExportConfig({
 
         {presets.length === 0 && !showSavePreset && (
           <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
-            No presets yet. Configure your export settings and click "Save current" to create one. Hover a preset to apply its filters independently of platforms.
+            No presets yet. Configure your export settings and click "Save current" to create one.
           </div>
         )}
 
         {presets.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {presets.map(preset => (
-              <div key={preset.id} className="group flex items-center gap-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden">
+              <div key={preset.id} className="flex items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden">
                 <button
                   onClick={() => onLoadPreset(preset)}
-                  title={`Load preset: ${preset.name} (platforms + filters)`}
+                  title="Load full preset — replaces current platform selection and all filters"
                   className="px-2 py-1 text-[10px] text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   {preset.name}
                 </button>
+                <div className="w-px self-stretch bg-[var(--color-figma-border)]" />
                 <button
                   onClick={() => onLoadPresetFiltersOnly(preset)}
-                  title="Apply filters only: sets, types, path prefix (keeps current platforms)"
-                  className="px-1 py-1 opacity-0 group-hover:opacity-100 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                  title="Apply sets, types, and path prefix from this preset — keeps the current platform selection"
+                  className="px-1.5 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   aria-label={`Apply filters only from preset ${preset.name}`}
                 >
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                  </svg>
+                  Filters
                 </button>
+                <div className="w-px self-stretch bg-[var(--color-figma-border)]" />
                 <button
                   onClick={() => onDeletePreset(preset.id)}
                   title="Delete preset"
-                  className="px-1 py-1 opacity-0 group-hover:opacity-100 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                  className="px-1.5 py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   aria-label={`Delete preset ${preset.name}`}
                 >
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

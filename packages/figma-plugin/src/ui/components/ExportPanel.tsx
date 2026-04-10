@@ -563,6 +563,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           zipFilename={platformConfig.zipFilename}
           nestByPlatform={platformConfig.nestByPlatform}
           copiedFile={exportResults.copiedFile}
+          changesOnly={diffState.changesOnly}
+          changedTokenCount={diffState.changesOnly && diffState.diffPaths !== null ? diffState.diffPaths.length : null}
+          selectedSetCount={platformConfig.selectedSets !== null ? platformConfig.selectedSets.size : null}
           onDownloadZip={exportResults.handleDownloadZip}
           onDownloadFile={exportResults.handleDownloadFile}
           onCopyFile={exportResults.handleCopyFile}

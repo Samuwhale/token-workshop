@@ -35,9 +35,6 @@
 - [x] Replace the current 50-entry `OperationLog` ring-buffer design in `packages/server/src/services/operation-log.ts` with separate persistence for rollback/history versus rename propagation — `PublishPanel.tsx` and `/api/operations/*` both depend on data that silently disappears once enough unrelated operations have been recorded.
 - [x] Replace the rule-console feel of `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` and `packages/server/src/routes/lint.ts` with a guided quality-policy surface that starts from presets and uses set pickers and exception chips rather than free-text path filters and per-rule override names.
 - [x] Rework `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` into a cleanup queue grouped by set and lifecycle with search, filters, and staged bulk actions, because the current flat list plus `Delete all` / `Deprecate all` controls does not scale to large libraries with hundreds of unused tokens.
-- [ ] Rework connection settings so server URL management, connection testing, retry behavior, and setup guidance live in one coherent place instead of being split between the top banner, onboarding, and the settings panel (Planned)
-- [ ] Rework the Figma Variables and Figma Styles compare/apply flow so “compare”, “review differences”, and “apply” form one guided sequence rather than several accordions and banners that the user must mentally stitch together (Planned)
-- [ ] Rework the suggestion model so the “Suggested” section is easier to trust and scan: explain why a token is suggested, group the best matches, and reduce the current long undifferentiated action list (Planned)
 - [ ] Simplify advanced tools inside Apply by consolidating layer search, remap, extract, selection sync, deep inspect, and filtering into one secondary tools surface with clearer status and fewer simultaneous toggles (Planned)
 - [ ] Simplify generator discovery, naming, and editing so users can understand what a generator owns, what will change on save, and how to get back to the generated tokens without using the graph or command palette as a workaround (Planned)
 - [x] Split the History workspace into task-based recovery surfaces like `Undo recent edits`, `Restore snapshot`, and `Return to git commit` instead of one mixed timeline in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because designers currently have to learn four different recovery systems from a legend before they know which action is safe.
@@ -70,9 +67,13 @@
 - [x] Investigate fresh-worktree server dependency resolution during backlog validation
 - [x] Make figma-plugin stableStringify recurse through arrays of objects
 - [x] Add a focused theme context summary with in-place gap actions to Theme authoring
-- [ ] Clarify export presets, scope, and output expectations on the handoff files surface
+- [x] Clarify export presets, scope, and output expectations on the handoff files surface
 - [ ] Split Sync handoff into a primary export surface and a repository expert route
 - [ ] Research post-import handoff routing and next-step recommendations across import success and workspace navigation
 - [ ] Research the Tokens authoring contract for token-editor consistency, generator escalation, and inline generated-group status
+- [ ] Add explicit preflight, compare, and apply stage navigation to the Figma Sync publish panel
+- [ ] Centralize server connection editing in Settings and reduce shell/onboarding affordances to passive recovery entry points
+- [ ] Introduce confidence-based suggestion groups and shared reason copy across Apply suggestion lists
+- [ ] Restructure variable and style diff review into apply-ready review groups inside each sync target
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

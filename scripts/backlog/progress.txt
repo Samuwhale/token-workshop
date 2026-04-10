@@ -743,3 +743,15 @@
   - Treat `Tokens > Library` as the stable body contract first, then vary only the attached presentation (`contextual-panel` or `split-preview`) so search, filters, scroll position, and set context survive compare/editor opens.
   - Split preview and contextual editors compete for the same secondary slot; when a surface cannot render inside the split layout, close split preview instead of branching the main library body into a different owner.
 ---
+## 2026-04-11 - [Clarify export presets, scope, and output expectations on the handoff files surface]
+- Made preset filter-only action always visible: replaced `opacity-0 group-hover:opacity-100` icon-only button with an always-visible labeled "Filters" button and dividers between all three preset actions (load all / filters / delete).
+- Removed the "Hover a preset" instruction from the empty-state help text since hover is no longer required.
+- Added pre-export scope summary in ExportFooter (platforms, set count, tokens scope) when results are empty and a platform is selected.
+- Added post-export result summary in ExportFooter (N files exported, platforms, sets, changed tokens) above Copy All / Download ZIP.
+- Added disabled-state explanatory notes below the export CTA for three key cases: no platform selected, empty set scope, and changes-only without git.
+- Extended ExportPreviewModal with optional `changesOnly`, `changedTokenCount`, and `selectedSetCount` props; threaded them from ExportPanel so the modal header reflects the full scope of what was exported.
+- Files changed: `packages/figma-plugin/src/ui/components/PlatformExportConfig.tsx` ~L169–210; `packages/figma-plugin/src/ui/components/ExportFooter.tsx` ~L141–240; `packages/figma-plugin/src/ui/components/ExportPreviewModal.tsx` ~L5–70; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L557–573
+- **Learnings for future iterations:**
+  - The `opacity-0 group-hover:opacity-100` pattern for secondary actions hides functionality behind hover — always prefer visible labeled actions for primary paths on compact chips.
+  - Pre-export summaries (scope, filter state) and post-export summaries (result count, applied scope) are distinct concerns; both belong in the footer, not just in a modal.
+---

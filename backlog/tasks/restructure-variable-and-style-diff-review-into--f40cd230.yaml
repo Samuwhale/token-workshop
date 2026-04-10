@@ -1,0 +1,22 @@
+id: restructure-variable-and-style-diff-review-into--f40cd230
+title: Restructure variable and style diff review into apply-ready review groups inside each sync target
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx
+  - packages/figma-plugin/src/ui/components/publish/PublishShared.tsx
+capabilities:
+  - react
+  - typescript
+validation_profile: repo
+status_notes:
+  - "Context: The current review experience is split between section badges, per-row controls, and the final apply footer. Collapse that into target-local review groups that make decisions legible before the combined apply step."
+state: ready
+acceptance_criteria:
+  - Variable and style review panels group local-only, Figma-only, and conflicting rows with explicit counts and clearer bulk push, pull, and skip actions.
+  - Each sync target shows a concise review summary that matches the actions the apply step will execute for that target.
+  - Preview and apply affordances remain visible from the review context and no longer rely on users stitching together section badges, headers, and footer copy.
+source: planner-pass
+created_at: 2026-04-10T23:16:39.398Z
+updated_at: 2026-04-10T23:16:39.398Z

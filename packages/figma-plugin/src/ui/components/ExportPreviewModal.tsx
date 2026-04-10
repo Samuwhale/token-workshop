@@ -10,6 +10,9 @@ export interface ExportPreviewModalProps {
   zipFilename: string;
   nestByPlatform: boolean;
   copiedFile: string | null;
+  changesOnly?: boolean;
+  changedTokenCount?: number | null;
+  selectedSetCount?: number | null; // null = all sets
   onDownloadZip: () => void;
   onDownloadFile: (file: ExportResultFile) => void;
   onCopyFile: (file: ExportResultFile) => void;
@@ -24,6 +27,9 @@ export function ExportPreviewModal({
   zipFilename,
   nestByPlatform,
   copiedFile,
+  changesOnly,
+  changedTokenCount,
+  selectedSetCount,
   onDownloadZip,
   onDownloadFile,
   onCopyFile,
@@ -65,6 +71,8 @@ export function ExportPreviewModal({
           <div className="flex items-center gap-3">
             <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
               {results.length} file{results.length !== 1 ? 's' : ''} · {platformIds.join(', ')}
+              {selectedSetCount !== null && selectedSetCount !== undefined && ` · ${selectedSetCount} set${selectedSetCount !== 1 ? 's' : ''}`}
+              {changesOnly && changedTokenCount != null && ` · ${changedTokenCount} changed token${changedTokenCount !== 1 ? 's' : ''}`}
             </span>
             <button
               onClick={onClose}

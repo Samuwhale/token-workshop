@@ -14,11 +14,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: `PlatformExportConfig.tsx` currently hides filter-only preset application behind a hover icon, while `ExportFooter.tsx` and `useExportResults.ts` spread output expectations across button labels, toast copy, and modal behavior instead of one clear handoff summary."
-state: ready
+  - 'Completed: Made preset filter-only button always visible with a labeled "Filters" action (removing hover dependency); added pre-export scope summary and post-export result summary in ExportFooter; added disabled-state explanatory notes for no-platform, empty-set, and changes-only-without-git states; extended ExportPreviewModal to reflect applied scope in the header.'
+state: done
 acceptance_criteria:
   - The handoff-files surface presents a concise summary of selected platforms, filters, and expected output before export, and a matching result summary after export completes.
   - Preset actions are explicit about full-load versus filter-only behavior and no longer rely on hover-only affordances to discover alternate preset application paths.
   - Export CTAs and footer copy explain disabled or limited states such as no platform selection, empty set scope, or changes-only constraints directly in the visible UI.
 source: planner-pass
 created_at: 2026-04-10T23:09:52.282Z
-updated_at: 2026-04-10T23:09:52.282Z
+updated_at: 2026-04-10T23:18:54.452Z

@@ -1,0 +1,26 @@
+id: centralize-server-connection-editing-in-settings-ecb7d5dd
+title: Centralize server connection editing in Settings and reduce shell/onboarding affordances to passive recovery entry points
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/SettingsPanel.tsx
+  - packages/figma-plugin/src/ui/components/WelcomePrompt.tsx
+  - packages/figma-plugin/src/ui/panels/PanelRouter.tsx
+  - packages/figma-plugin/src/ui/App.tsx
+  - packages/figma-plugin/src/ui/hooks/useServerConnection.ts
+  - packages/figma-plugin/src/ui/components/ServerConnectionSection.tsx
+capabilities:
+  - react
+  - typescript
+validation_profile: repo
+status_notes:
+  - "Context: Follow the passive shell connection-status pattern already documented in `scripts/backlog/patterns.md`: shell surfaces should expose status and recovery entry points, while full connection editing lives in one coherent place."
+state: ready
+acceptance_criteria:
+  - Settings owns one shared connection section for server URL editing, connect/test, reset-to-default, and troubleshooting copy.
+  - App, WelcomePrompt, and Tokens start/offline affordances stop rendering their own standalone URL editors and instead show passive status plus a clear route into Settings or guided setup.
+  - Connected, checking, disconnected, and failed-connect states use consistent status and helper copy across every remaining connection entry point.
+source: planner-pass
+created_at: 2026-04-10T23:16:39.398Z
+updated_at: 2026-04-10T23:16:39.398Z
