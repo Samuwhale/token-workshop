@@ -784,3 +784,13 @@
   - When collapsing a peer top-level mode into an expert section, move the toggle into the scrollable body rather than keeping it as a footer or header action — this keeps the footer clean for primary CTA actions.
   - The collapsed expert section pattern works well when the expert workflow has its own rich framing text and the primary content doesn't need to know whether the expert section is open.
 ---
+## 2026-04-11 - [Research a canonical plugin UI blueprint for visual density, typography hierarchy, and motion/layout transitions]
+- Audited the shared UI foundations and shell entry points in `styles.css`, `navigationTypes.ts`, `shellControlStyles.ts`, `App.tsx`, and `WorkspaceSummaryHeader.tsx`; the current visual system still relies on hard-coded `9px` to `12px` text sizes, local radius/spacing decisions, and a partial primitive layer that mostly stops at shell controls.
+- Traced the highest-traffic authoring and review surfaces across Tokens, Apply, Themes, Sync, and Audit. Shared patterns are currently duplicated as local implementations: workflow stage strips in `ApplyWorkflowControls.tsx`, `ThemeStageModelControls.tsx`, `SyncWorkflowControls.tsx`, and `ImportWorkflowSteps.tsx`; per-surface chip/pill/status chrome in `TokenList.tsx`, `SelectionInspector.tsx`, `ThemeManager.tsx`, `SyncPreflightStep.tsx`, `SyncSubPanel.tsx`, and `HealthPanel.tsx`; and motion rules split between a few shared CSS animations plus many inline transition classes.
+- Queued four implementation-ready follow-ups covering shared visual primitives, shell-level transition adoption, Tokens and Apply adoption, and Themes/Sync/Audit adoption.
+- Files changed: `scripts/backlog/progress.txt` ~L775; `scripts/backlog/patterns.md` ~L190; `backlog/inbox.jsonl` ~L1
+- **Learnings for future iterations:**
+  - The plugin already has a canonical IA contract and surface-transition taxonomy. The missing piece is a semantic visual contract, not another round of one-off panel polish.
+  - Workflow step strips are already close to one reusable pattern, but they are duplicated in four components with separate tone maps and spacing decisions. Converge them before workspace-specific restyling.
+  - Motion is only partly centralized today: drawer, toast, and step animations live in `styles.css`, while menus, accordions, chips, and sticky-region affordances still rely on ad hoc per-component transitions. A real motion pass needs shared tokens plus shell-aware adoption in `App.tsx` and `PanelRouter.tsx`.
+---

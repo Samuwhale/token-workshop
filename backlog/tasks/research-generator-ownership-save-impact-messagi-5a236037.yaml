@@ -1,0 +1,22 @@
+id: research-generator-ownership-save-impact-messagi-5a236037
+title: Research generator ownership, save-impact messaging, and return-to-generated-token flows across Tokens and Generators surfaces
+priority: high
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Inspect `packages/figma-plugin/src/ui/components/GraphPanel.tsx`, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`, `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx`, `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts`, `packages/figma-plugin/src/ui/hooks/useGenerators.ts`, `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts`, `packages/figma-plugin/src/ui/App.tsx`, and `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`. Focus on ownership visibility, naming clarity, save consequences, and post-save return paths to generated tokens without relying on graph-only or command-palette-only recovery."
+state: ready
+acceptance_criteria:
+  - Map the current generator discovery and editing entry points across Tokens, Generators, quick-start templates, graph/list views, inline token editing, and command-palette navigation with concrete file references.
+  - Document where the UI currently fails to explain generator ownership, what save will overwrite or create, and how users can get back to the generated token group after editing or creating a generator.
+  - Write implementation-ready follow-up backlog tasks with exact repo touch paths for discovery/naming changes, save-impact review changes, and generated-token handoff/navigation changes.
+source: planner-pass
+created_at: 2026-04-10T23:25:03.289Z
+updated_at: 2026-04-10T23:25:03.289Z

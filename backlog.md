@@ -16,7 +16,7 @@
 - [x] [HIGH] Collapse Tokens > Library onto one contextual surface contract
 - [x] [HIGH] Research a plugin-wide notice severity and placement model across shell, authoring, sync, and audit surfaces
 - [ ] [HIGH] Route manual token starts through a single Tokens create-launcher state
-- [ ] [HIGH] Research a canonical plugin UI blueprint for visual density, typography hierarchy, and motion/layout transitions
+- [x] [HIGH] Research a canonical plugin UI blueprint for visual density, typography hierarchy, and motion/layout transitions
 - [ ] [HIGH] Research Apply workspace selection-state contract across compare, review, and binding feedback surfaces
 - [ ] [HIGH] Research a shared plugin contract for zero-state, loading, progress, success, and error feedback across workspace and secondary surfaces
 - [ ] [HIGH] Research Tokens workspace edit-surface ownership across inline row edits, contextual editors, preview surfaces, and modal flows
@@ -24,6 +24,9 @@
 - [ ] [HIGH] Adopt the notice model in shell connection and workspace summary surfaces
 - [ ] [HIGH] Normalize authoring notices across Tokens, Themes, and Apply
 - [ ] [HIGH] Normalize sync and audit notices around blocking, stale, and validation states
+- [ ] [HIGH] Research Apply maintenance-tools surface ownership across SelectionInspector advanced controls, shell routing, and status summaries
+- [ ] [HIGH] Research Audit issue explanations and remediation handoffs across validation, lint, duplicate, unused, and contrast panels
+- [ ] [HIGH] Research generator ownership, save-impact messaging, and return-to-generated-token flows across Tokens and Generators surfaces
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -39,11 +42,8 @@
 - [x] Replace the current 50-entry `OperationLog` ring-buffer design in `packages/server/src/services/operation-log.ts` with separate persistence for rollback/history versus rename propagation — `PublishPanel.tsx` and `/api/operations/*` both depend on data that silently disappears once enough unrelated operations have been recorded.
 - [x] Replace the rule-console feel of `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` and `packages/server/src/routes/lint.ts` with a guided quality-policy surface that starts from presets and uses set pickers and exception chips rather than free-text path filters and per-rule override names.
 - [x] Rework `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` into a cleanup queue grouped by set and lifecycle with search, filters, and staged bulk actions, because the current flat list plus `Delete all` / `Deprecate all` controls does not scale to large libraries with hundreds of unused tokens.
-- [ ] Simplify advanced tools inside Apply by consolidating layer search, remap, extract, selection sync, deep inspect, and filtering into one secondary tools surface with clearer status and fewer simultaneous toggles (Planned)
-- [ ] Simplify generator discovery, naming, and editing so users can understand what a generator owns, what will change on save, and how to get back to the generated tokens without using the graph or command palette as a workaround (Planned)
 - [x] Split the History workspace into task-based recovery surfaces like `Undo recent edits`, `Restore snapshot`, and `Return to git commit` instead of one mixed timeline in `packages/figma-plugin/src/ui/components/HistoryPanel.tsx`, because designers currently have to learn four different recovery systems from a legend before they know which action is safe.
 - [x] Turn `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` into an actionable inbox with severity filters, deduping, sticky blockers, and deep links back to the affected token or workspace instead of a passive transcript of past toast messages.
-- [ ] Turn audit and validation signals into actionable product feedback instead of raw counts and badges: each issue type should explain why it matters, where it comes from, and how to fix it from the relevant workflow (Planned)
 - [x] Write `docs/redesign/repo-handoff-decision.md` to decide whether the Git-based handoff workflow remains inside the plugin or moves out of the primary UX, documenting the target user, rationale, and chosen product direction
 - [x] Recompute Figma variable save preview diffs after destination remaps
 - [x] Remove deprecated import orchestration hooks after controller consolidation
