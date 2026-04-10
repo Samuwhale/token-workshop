@@ -15,7 +15,7 @@
 - [x] [HIGH] Repair worktree validation environment
 - [x] [HIGH] Collapse Tokens > Library onto one contextual surface contract
 - [x] [HIGH] Research a plugin-wide notice severity and placement model across shell, authoring, sync, and audit surfaces
-- [ ] [HIGH] Route manual token starts through a single Tokens create-launcher state
+- [x] [HIGH] Route manual token starts through a single Tokens create-launcher state
 - [x] [HIGH] Research a canonical plugin UI blueprint for visual density, typography hierarchy, and motion/layout transitions
 - [ ] [HIGH] Research Apply workspace selection-state contract across compare, review, and binding feedback surfaces
 - [ ] [HIGH] Research a shared plugin contract for zero-state, loading, progress, success, and error feedback across workspace and secondary surfaces

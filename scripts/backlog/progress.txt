@@ -804,3 +804,19 @@
   - App.tsx already builds a shell-level `SyncWorkflowControls` from the broadcasted `publish-preflight-state` event; the panel-internal control complements it with richer live state (diff counts, sync counts, loading flags) that only the panel can see.
   - A pre-existing TypeScript error in App.tsx (tone: string not assignable to SyncWorkflowTone) is unrelated to this task and was present before these changes.
 ---
+## 2026-04-11 - [Route manual token starts through a single Tokens create-launcher state]
+- Routed the Tokens create entry points through `PanelRouter` so toolbar launch, keyboard create, search suggestions, sibling create, compare create, and create-from-empty all open the same contextual create launcher state instead of `TokenList` mounting its own inline form.
+- Removed the TokenList-local single-token create form and collapsed `useTokenCreate` to the sibling-path suggestion helper. The list now forwards create requests straight into the contextual editor while keeping bulk create unchanged.
+- Added a launcher presentation to `TokenEditor` that starts with path/type/value, keeps the draft alive while switching into the full editor in place, and hides lifecycle/metadata/inheritance controls until the user expands.
+- Files changed: `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L83; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L233; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L978; `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L1; `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L30; `scripts/backlog/progress.txt` ~L816
+- **Learnings for future iterations:**
+  - If a contextual create flow needs both a quick-start surface and a full editor, keep both presentations inside the same mounted editor instance. Switching presentations in place avoids draft-loss bugs and removes the need for cross-component draft syncing.
+  - When an empty-state create flow depends on shell routing, the library/body render condition should key off the active contextual surface as well as token count. Otherwise save-and-create-another can briefly unmount the editor before refreshed data arrives.
+---
+## 2026-04-11 - [Route manual token starts through a single Tokens create-launcher state]
+- Repaired this workspace's stale `node_modules` symlinks, which were still pointing at a deleted backlog temp directory and prevented `build.mjs` from importing `esbuild` during validation.
+- Reinstalled workspace dependencies with `pnpm install --frozen-lockfile` and re-ran `pnpm --filter @tokenmanager/figma-plugin build`, which now completes successfully against the create-launcher changes above.
+- Files changed: `scripts/backlog/progress.txt` ~L828
+- **Learnings for future iterations:**
+  - Temp backlog workspaces can inherit package symlinks that still target an older temp directory. If a build reports `ERR_MODULE_NOT_FOUND` for an installed package, inspect the symlink target before assuming the manifest is wrong.
+---

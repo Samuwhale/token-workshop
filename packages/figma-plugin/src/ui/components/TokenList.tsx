@@ -24,7 +24,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenListProps, MultiModeValue, Density, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
 import { VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
-import { validateJsonRefs, parseInlineValue, inferTypeFromValue, highlightMatch, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
+import { validateJsonRefs, inferTypeFromValue, highlightMatch } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenTreeProvider } from './TokenTreeContext';
@@ -43,7 +43,6 @@ import { useTokenPromotion } from '../hooks/useTokenPromotion';
 import { useTokenCrud } from '../hooks/useTokenCrud';
 import { useFigmaMessage } from '../hooks/useFigmaMessage';
 import { extractSyncApplyResult } from '../hooks/useTokenSyncBase';
-import { TOKEN_TYPE_CATEGORIES } from '../shared/tokenTypeCategories';
 import { useTokenWhereIs } from '../hooks/useTokenWhereIs';
 import { useTokenExpansion } from '../hooks/useTokenExpansion';
 import { useTokenVirtualScroll } from '../hooks/useTokenVirtualScroll';
@@ -437,7 +436,7 @@ export function TokenList({
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, generatorsByTargetGroup, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
   actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onToggleStar, starredPaths, onError, onViewTokenHistory, onEditGenerator, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd, onOpenStartHere, onTogglePreviewSplit },
   recentlyTouched,
-  defaultCreateOpen,
+  defaultCreateOpen: _defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
   showPreviewSplit = false,
@@ -538,7 +537,6 @@ export function TokenList({
   const viewOptionsRef = useRef<HTMLDivElement>(null);
   const bulkWorkflowRef = useRef<HTMLDivElement>(null);
   const batchEditorPanelRef = useRef<HTMLDivElement>(null);
-  // createFormRef is managed by useTokenCreate hook
   const virtualListRef = useRef<HTMLDivElement>(null);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
@@ -977,34 +975,11 @@ export function TokenList({
   // --- Custom hooks for extracted state groups ---
   const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
 
-  const tokenCreate = useTokenCreate({
-    defaultCreateOpen,
-    connected,
-    serverUrl,
-    setName,
+  const { handleOpenCreateSibling } = useTokenCreate({
     selectedNodes,
     siblingOrderMap,
-    allGroupPaths,
-    allTokensFlat,
     onCreateNew,
-    onRefresh,
-    onPushUndo,
-    onTokenCreated,
-    onRecordTouch: recentlyTouched.recordTouch,
   });
-  const {
-    showCreateForm, setShowCreateForm,
-    newTokenGroup, setNewTokenGroup, newTokenName, setNewTokenName,
-    newTokenPath, pathValidation, newTokenType, setNewTokenType, newTokenValue, setNewTokenValue,
-    typeAutoInferred, setTypeAutoInferred,
-    createError, setCreateError,
-    createFormRef, nameInputRef, nameSuggestions,
-    resetCreateForm, handleOpenCreateSibling, handleCreate, handleCreateAndNew,
-  } = tokenCreate;
-
-  const resetCreateFormFull = useCallback(() => {
-    resetCreateForm();
-  }, [resetCreateForm]);
 
   const tableCreate = useTableCreate({
     connected,
@@ -1699,11 +1674,6 @@ export function TokenList({
 
     // Escape: close create form, exit select mode, exit zoom, or blur search
     if (e.key === 'Escape') {
-      if (showCreateForm) {
-        e.preventDefault();
-        resetCreateFormFull();
-        return;
-      }
       if (selectMode) {
         e.preventDefault();
         setSelectMode(false);
@@ -1881,8 +1851,6 @@ export function TokenList({
         handleOpenCreateSibling(prefixPath, 'color');
       } else if (onCreateNew) {
         onCreateNew();
-      } else {
-        setShowCreateForm(true);
       }
       return;
     }
@@ -2019,7 +1987,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected, requestBulkDeleteFromHook, sets, setName, setBatchMoveToSetTarget, setShowBatchMoveToSet, setBatchCopyToSetTarget, setShowBatchCopyToSet, editingTokenPath, handleTokenSelect, lastSelectedPathRef, onEdit, resetCreateFormFull, searchRef, setSelectMode, setSelectedPaths, setShowBatchEditor, setShowCreateForm, setVirtualScrollTop]);
+  }, [selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected, requestBulkDeleteFromHook, sets, setName, setBatchMoveToSetTarget, setShowBatchMoveToSet, setBatchCopyToSetTarget, setShowBatchCopyToSet, editingTokenPath, handleTokenSelect, lastSelectedPathRef, onEdit, searchRef, setSelectMode, setSelectedPaths, setShowBatchEditor, setVirtualScrollTop]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -2092,12 +2060,8 @@ export function TokenList({
   }, [condensedView, multiModeEnabled, onTogglePreviewSplit, setCondensedView, showPreviewSplit, toggleMultiMode]);
 
   const handleOpenPrimaryCreate = useCallback(() => {
-    if (onCreateNew) {
-      onCreateNew();
-      return;
-    }
-    setShowCreateForm(true);
-  }, [onCreateNew, setShowCreateForm]);
+    onCreateNew?.();
+  }, [onCreateNew]);
 
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities = useMemo<NodeCapabilities | null>(() => selectedNodes.length > 0
@@ -4102,19 +4066,7 @@ export function TokenList({
                   label: `Create token at "${formatDisplayPath(q, q.split('.').pop() || q)}"`,
                   icon: 'create',
                   action: () => {
-                    if (onCreateNew) {
-                      onCreateNew(q);
-                    } else {
-                      const lastDot = q.lastIndexOf('.');
-                      if (lastDot >= 0) {
-                        setNewTokenGroup(q.slice(0, lastDot));
-                        setNewTokenName(q.slice(lastDot + 1));
-                      } else {
-                        setNewTokenGroup('');
-                        setNewTokenName(q);
-                      }
-                      setShowCreateForm(true);
-                    }
+                    onCreateNew?.(q);
                   },
                 });
               }
@@ -4125,13 +4077,7 @@ export function TokenList({
                   label: `Create token "${q}"`,
                   icon: 'create',
                   action: () => {
-                    if (onCreateNew) {
-                      onCreateNew(q);
-                    } else {
-                      setNewTokenGroup('');
-                      setNewTokenName(q);
-                      setShowCreateForm(true);
-                    }
+                    onCreateNew?.(q);
                   },
                 });
               }
@@ -4332,168 +4278,6 @@ export function TokenList({
         )}
       </TokenTreeProvider>
       </div>
-
-      {/* Create form */}
-      {showCreateForm && (
-        <div ref={createFormRef} className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="flex flex-col gap-2">
-            {/* Active set indicator */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              </svg>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Creating in:</span>
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{setName}</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              </svg>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Group:</span>
-              <span className="min-w-0 truncate text-[10px] text-[var(--color-figma-text)]">
-                {newTokenGroup.trim() || 'Root'}
-              </span>
-            </div>
-            {/* Token name */}
-            <div>
-              <div className="flex items-baseline gap-1 mb-0.5">
-                <label className="text-[10px] text-[var(--color-figma-text-tertiary)]">Name</label>
-                {(() => {
-                  const siblings = siblingOrderMap.get(newTokenGroup.trim());
-                  if (!siblings || siblings.length === 0) return null;
-                  const display = siblings.length <= 5
-                    ? siblings.join(', ')
-                    : siblings.slice(0, 4).join(', ') + `, +${siblings.length - 4} more`;
-                  return (
-                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)] truncate" title={siblings.join(', ')}>
-                      siblings: {display}
-                    </span>
-                  );
-                })()}
-              </div>
-              <input
-                type="text"
-                placeholder={(() => {
-                  // Dynamic placeholder based on sibling patterns
-                  if (nameSuggestions.length > 0) {
-                    const first = nameSuggestions[0];
-                    const leafName = first.value.includes('.') ? first.value.slice(first.value.lastIndexOf('.') + 1) : first.value;
-                    return `e.g. ${leafName}`;
-                  }
-                  return 'Token name (e.g. 500, base, primary)';
-                })()}
-                ref={nameInputRef}
-                value={newTokenName}
-                onChange={e => { setNewTokenName(e.target.value); setCreateError(''); }}
-                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${createError || pathValidation.error ? 'border-[var(--color-figma-error)]' : pathValidation.warning ? 'border-amber-400' : 'border-[var(--color-figma-border)]'}`}
-                onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
-                autoFocus
-              />
-              {newTokenPath && (
-                <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                  Path: <span className="text-[var(--color-figma-text-secondary)]">{newTokenPath}</span>
-                </div>
-              )}
-              {pathValidation.error && (
-                <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)]" role="alert">{pathValidation.error}</p>
-              )}
-              {pathValidation.warning && (
-                <p className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400">&#9888; {pathValidation.warning}</p>
-              )}
-              {pathValidation.info && (
-                <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">&#8505; {pathValidation.info}</p>
-              )}
-            </div>
-            {createError && <p className="text-[10px] text-[var(--color-figma-error)]" role="alert">{createError}</p>}
-            {nameSuggestions.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">Suggest:</span>
-                {nameSuggestions.map(s => {
-                  // Suggestions return full paths; extract just the leaf name
-                  const leafName = s.value.includes('.') ? s.value.slice(s.value.lastIndexOf('.') + 1) : s.value;
-                  return (
-                    <button
-                      key={s.value}
-                      type="button"
-                      title={s.source}
-                      onClick={() => { setNewTokenName(leafName); setCreateError(''); }}
-                      className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
-                    >
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {/* Inline create stays intentionally minimal: name, value, and type only. */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5">
-                {newTokenValue.trim() && (
-                  <ValuePreview type={newTokenType} value={parseInlineValue(newTokenType, newTokenValue.trim())} />
-                )}
-                <input
-                  type="text"
-                  placeholder={valuePlaceholderForType(newTokenType)}
-                  value={newTokenValue}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setNewTokenValue(val);
-                    const inferred = inferTypeFromValue(val);
-                    if (inferred) {
-                      setNewTokenType(inferred);
-                      setTypeAutoInferred(true);
-                    } else if (typeAutoInferred && !val.trim()) {
-                      setTypeAutoInferred(false);
-                    }
-                  }}
-                  className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-                  onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
-                />
-              </div>
-            </div>
-            {!newTokenValue.trim() && valueFormatHint(newTokenType) && (
-              <p className="text-[9px] leading-snug text-[var(--color-figma-text-tertiary)] -mt-0.5 px-0.5">{valueFormatHint(newTokenType)}</p>
-            )}
-            <select
-              value={newTokenType}
-              onChange={e => { setNewTokenType(e.target.value); setTypeAutoInferred(false); }}
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none ${typeAutoInferred ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'}`}
-            >
-              {TOKEN_TYPE_CATEGORIES.map(cat => (
-                <optgroup key={cat.group} label={cat.group}>
-                  {cat.options.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            <div className="flex gap-1.5">
-              <button
-                onClick={handleCreate}
-                disabled={!newTokenName.trim() || !!pathValidation.error}
-                title={!newTokenName.trim() ? 'Enter a token name first' : pathValidation.error ? pathValidation.error : 'Create token (Enter)'}
-                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-              >
-                Create
-              </button>
-              <button
-                onClick={handleCreateAndNew}
-                disabled={!newTokenName.trim() || !!pathValidation.error}
-                title={!newTokenName.trim() ? 'Enter a token name first' : pathValidation.error ? pathValidation.error : 'Create and start a new token in the same group (Shift+Enter)'}
-                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)] hover:text-white disabled:opacity-40 whitespace-nowrap"
-              >
-                & New
-              </button>
-              <button
-                onClick={resetCreateFormFull}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Table create mode */}
       {showTableCreate && (
@@ -4696,7 +4480,7 @@ export function TokenList({
       )}
 
       {/* Bottom actions — streamlined primary actions only */}
-      {!showCreateForm && !showTableCreate && (
+      {!showTableCreate && (
         <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
           <div className="flex flex-wrap items-center gap-2">
             {!primaryCreateInToolbar && (
@@ -4715,7 +4499,7 @@ export function TokenList({
               </div>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 <button
-                  onClick={() => { resetCreateForm(); openTableCreate(); }}
+                  onClick={openTableCreate}
                   disabled={!connected}
                   title="Create multiple tokens at once in a spreadsheet-like table (Tab between cells)"
                   className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"

@@ -230,6 +230,27 @@ function parseInitialValueForType(type: string, raw: string): any {
   return v;
 }
 
+function getInitialCreateValue(type: string, raw?: string): any {
+  if (raw && !isAlias(raw)) {
+    return parseInitialValueForType(type, raw);
+  }
+  if (type === "color") return "#000000";
+  if (type === "dimension") return { value: 0, unit: "px" };
+  if (type === "number" || type === "duration") return 0;
+  if (type === "boolean") return false;
+  if (type === "shadow") {
+    return {
+      x: 0,
+      y: 0,
+      blur: 4,
+      spread: 0,
+      color: "#000000",
+      type: "dropShadow",
+    };
+  }
+  return "";
+}
+
 /**
  * Try to parse clipboard text as a structured value for the given token type.
  * Returns the parsed value on success, or null if no valid parse was found.
@@ -693,6 +714,8 @@ interface TokenEditorProps {
   initialType?: string;
   /** Initial value for create mode — when it looks like an alias (e.g. "{color.primary}"), alias mode is activated automatically. */
   initialValue?: string;
+  /** Initial create surface presentation. */
+  createPresentation?: 'launcher' | 'editor';
   /** Called whenever the dirty state changes so the parent can guard backdrop clicks. */
   onDirtyChange?: (dirty: boolean) => void;
   /** Called with the final saved path on a successful save so the parent can highlight it. */
@@ -816,6 +839,7 @@ export function TokenEditor({
   isCreateMode = false,
   initialType,
   initialValue,
+  createPresentation: initialCreatePresentation = 'editor',
   onDirtyChange,
   onSaved,
   onSaveAndCreateAnother,
@@ -1055,6 +1079,76 @@ export function TokenEditor({
     setError(v);
     setSaveError(v);
   };
+  const [createPresentation, setCreatePresentation] = useState<'launcher' | 'editor'>(initialCreatePresentation);
+  const showAdvancedCreateFields = !isCreateMode || createPresentation === 'editor';
+
+  useEffect(() => {
+    if (!isCreateMode) return;
+    setCreatePresentation(initialCreatePresentation);
+  }, [initialCreatePresentation, isCreateMode, setName, tokenPath]);
+
+  useEffect(() => {
+    if (!isCreateMode) return;
+    const resolvedType = initialType || 'color';
+    const aliasInitialValue = initialValue && isAlias(initialValue) ? initialValue : '';
+    const initialCreateValue = getInitialCreateValue(resolvedType, initialValue);
+    initialRef.current = {
+      value: initialCreateValue,
+      description: '',
+      reference: aliasInitialValue,
+      scopes: [],
+      type: resolvedType,
+      colorModifiers: [],
+      modeValues: {},
+      extensionsJsonText: '',
+      lifecycle: 'published',
+      extendsPath: '',
+    };
+    setTokenType(resolvedType);
+    setValue(initialCreateValue);
+    setDescription('');
+    setReference(aliasInitialValue);
+    setAliasMode(Boolean(aliasInitialValue));
+    setScopes([]);
+    setColorModifiers([]);
+    setModeValues({});
+    setExtensionsJsonText('');
+    setExtensionsJsonError(null);
+    setLifecycle('published');
+    setExtendsPath('');
+    setEditPath(tokenPath);
+    setShowPathAutocomplete(tokenPath.trim().endsWith('.'));
+    setDisplayError(null);
+  }, [
+    initialRef,
+    initialType,
+    initialValue,
+    isCreateMode,
+    setAliasMode,
+    setColorModifiers,
+    setDescription,
+    setEditPath,
+    setExtensionsJsonError,
+    setExtensionsJsonText,
+    setExtendsPath,
+    setLifecycle,
+    setModeValues,
+    setReference,
+    setScopes,
+    setShowPathAutocomplete,
+    setTokenType,
+    setValue,
+    tokenPath,
+  ]);
+
+  useEffect(() => {
+    if (!isCreateMode) return;
+    try {
+      localStorage.setItem('tm_last_token_type', tokenType);
+    } catch (error) {
+      console.debug('[TokenEditor] failed to persist last create type:', error);
+    }
+  }, [isCreateMode, tokenType]);
 
   // 8. Generators hook
   const generators$ = useTokenEditorGenerators({
@@ -1292,7 +1386,9 @@ export function TokenEditor({
             </div>
           ) : (
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              {isCreateMode ? "new token" : `in ${setName}`}
+              {isCreateMode
+                ? (createPresentation === 'launcher' ? 'quick create' : 'new token')
+                : `in ${setName}`}
             </div>
           )}
           {isCreateMode &&
@@ -1456,6 +1552,28 @@ export function TokenEditor({
         </div>
       )}
 
+      {isCreateMode && createPresentation === 'launcher' && (
+        <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                Start with the essentials
+              </div>
+              <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                Set the path, type, and value here. Open the full editor when you need metadata, lifecycle, or inheritance controls.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCreatePresentation('editor')}
+              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)]"
+            >
+              Open full editor
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Editor body */}
       <div
         ref={scrollContainerRef}
@@ -1608,7 +1726,7 @@ export function TokenEditor({
         />
 
         {/* $extends — base token inheritance for composite types */}
-        {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
+        {showAdvancedCreateFields && !aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
           <div className="flex flex-col gap-1">
             <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
               Extends
@@ -1928,36 +2046,38 @@ export function TokenEditor({
         )}
 
         {/* Lifecycle — collapsed by default */}
-        <Collapsible
-          open={lifecycleOpen}
-          onToggle={() => setLifecycleOpen((v) => !v)}
-          label={
-            <>
-              Lifecycle{" "}
-              <span className="opacity-60 font-normal">{lifecycle}</span>
-            </>
-          }
-        >
-          <div className="flex gap-1 mt-1.5">
-            {(["draft", "published", "deprecated"] as const).map((lc) => (
-              <button
-                key={lc}
-                onClick={() => setLifecycle(lc)}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                  lifecycle === lc
-                    ? lc === "draft"
-                      ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40"
-                      : lc === "deprecated"
-                        ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/40"
-                        : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
-                    : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                }`}
-              >
-                {lc}
-              </button>
-            ))}
-          </div>
-        </Collapsible>
+        {showAdvancedCreateFields && (
+          <Collapsible
+            open={lifecycleOpen}
+            onToggle={() => setLifecycleOpen((v) => !v)}
+            label={
+              <>
+                Lifecycle{" "}
+                <span className="opacity-60 font-normal">{lifecycle}</span>
+              </>
+            }
+          >
+            <div className="flex gap-1 mt-1.5">
+              {(["draft", "published", "deprecated"] as const).map((lc) => (
+                <button
+                  key={lc}
+                  onClick={() => setLifecycle(lc)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                    lifecycle === lc
+                      ? lc === "draft"
+                        ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40"
+                        : lc === "deprecated"
+                          ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/40"
+                          : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
+                      : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  }`}
+                >
+                  {lc}
+                </button>
+              ))}
+            </div>
+          </Collapsible>
+        )}
 
         {/* Inline theme values — per-set overrides for each theme option */}
         {!isCreateMode &&
@@ -1975,36 +2095,38 @@ export function TokenEditor({
           )}
 
         {/* Description, Scopes, Mode Values, Extensions — collapsed by default */}
-        <Collapsible
-          open={metaOpen}
-          onToggle={() => setMetaOpen((v) => !v)}
-          label={
-            description ? `Description & metadata` : "Description & metadata"
-          }
-        >
-          <div className="mt-2">
-            <MetadataEditor
-              description={description}
-              onDescriptionChange={setDescription}
-              tokenType={tokenType}
-              scopes={scopes}
-              onScopesChange={setScopes}
-              dimensions={dimensions}
-              modeValues={modeValues}
-              onModeValuesChange={setModeValues}
-              aliasMode={aliasMode}
-              reference={reference}
-              value={value}
-              extensionsJsonText={extensionsJsonText}
-              onExtensionsJsonTextChange={setExtensionsJsonText}
-              extensionsJsonError={extensionsJsonError}
-              onExtensionsJsonErrorChange={setExtensionsJsonError}
-              isCreateMode={isCreateMode}
-              allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
-            />
-          </div>
-        </Collapsible>
+        {showAdvancedCreateFields && (
+          <Collapsible
+            open={metaOpen}
+            onToggle={() => setMetaOpen((v) => !v)}
+            label={
+              description ? `Description & metadata` : "Description & metadata"
+            }
+          >
+            <div className="mt-2">
+              <MetadataEditor
+                description={description}
+                onDescriptionChange={setDescription}
+                tokenType={tokenType}
+                scopes={scopes}
+                onScopesChange={setScopes}
+                dimensions={dimensions}
+                modeValues={modeValues}
+                onModeValuesChange={setModeValues}
+                aliasMode={aliasMode}
+                reference={reference}
+                value={value}
+                extensionsJsonText={extensionsJsonText}
+                onExtensionsJsonTextChange={setExtensionsJsonText}
+                extensionsJsonError={extensionsJsonError}
+                onExtensionsJsonErrorChange={setExtensionsJsonError}
+                isCreateMode={isCreateMode}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+              />
+            </div>
+          </Collapsible>
+        )}
 
         {/* Dependency trace — inline references and dependent impact, with the graph kept as a deeper explorer */}
         {!isCreateMode &&
@@ -2537,6 +2659,15 @@ export function TokenEditor({
             className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
           >
             Revert
+          </button>
+        )}
+        {isCreateMode && createPresentation === 'launcher' && (
+          <button
+            type="button"
+            onClick={() => setCreatePresentation('editor')}
+            className="px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-default"
+          >
+            Full editor
           </button>
         )}
         {isCreateMode && onSaveAndCreateAnother && (

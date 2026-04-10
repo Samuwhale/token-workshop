@@ -8,7 +8,7 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type {
   ReactNode,
   MutableRefObject,
@@ -67,6 +67,50 @@ import type {
 import { TOKENS_LIBRARY_SURFACE_CONTRACT } from '../shared/navigationTypes';
 import type { ThemeWorkspaceShellState } from '../shared/themeWorkflow';
 import { useEditorWidth } from '../hooks/useEditorWidth';
+
+const LAST_CREATE_GROUP_STORAGE_KEY = 'tm_last_create_group';
+const LAST_CREATE_TYPE_STORAGE_KEY = 'tm_last_token_type';
+
+function readLastCreateGroup(): string {
+  try {
+    return localStorage.getItem(LAST_CREATE_GROUP_STORAGE_KEY) || '';
+  } catch (error) {
+    console.debug('[PanelRouter] failed to read last create group:', error);
+    return '';
+  }
+}
+
+function readLastCreateType(): string {
+  try {
+    return localStorage.getItem(LAST_CREATE_TYPE_STORAGE_KEY) || 'color';
+  } catch (error) {
+    console.debug('[PanelRouter] failed to read last create type:', error);
+    return 'color';
+  }
+}
+
+function persistLastCreateGroup(tokenPath: string): void {
+  const groupPath = tokenPath.includes('.') ? tokenPath.split('.').slice(0, -1).join('.') : '';
+  try {
+    localStorage.setItem(LAST_CREATE_GROUP_STORAGE_KEY, groupPath);
+  } catch (error) {
+    console.debug('[PanelRouter] failed to persist last create group:', error);
+  }
+}
+
+function persistLastCreateType(tokenType: string): void {
+  try {
+    localStorage.setItem(LAST_CREATE_TYPE_STORAGE_KEY, tokenType);
+  } catch (error) {
+    console.debug('[PanelRouter] failed to persist last create type:', error);
+  }
+}
+
+function resolveCreateLauncherPath(initialPath?: string): string {
+  if (initialPath !== undefined) return initialPath;
+  const lastGroup = readLastCreateGroup();
+  return lastGroup ? `${lastGroup}.` : '';
+}
 
 // ---------------------------------------------------------------------------
 // Props interface
@@ -189,7 +233,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   const { activeTopTab, activeSubTab, activeSecondarySurface, navigateTo, closeSecondarySurface } = useNavigationContext();
   const {
     editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken,
-    highlightedToken, setHighlightedToken, createFromEmpty,
+    highlightedToken, setHighlightedToken, createFromEmpty, setCreateFromEmpty,
     setPendingHighlight, handleNavigateToAlias, handleNavigateBack, navHistoryLength,
     showTokensCompare, setShowTokensCompare, tokensCompareMode, setTokensCompareMode,
     tokensComparePaths, setTokensComparePaths, tokensComparePath, setTokensComparePath,
@@ -252,6 +296,71 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     : undefined;
   const { editorWidth, handleEditorWidthDragStart } = useEditorWidth(editingTokenType);
   const tokenListHighlightedPath = editingToken?.path || previewingToken?.path || highlightedToken;
+  const hasTokensLibrarySurface = tokens.length > 0 || createFromEmpty || activeTokensContextualSurface !== null;
+
+  const openCreateLauncher = useCallback((options?: {
+    initialPath?: string;
+    initialType?: string;
+    initialValue?: string;
+    set?: string;
+  }) => {
+    const targetSet = options?.set ?? activeSet;
+    setEditingToken({
+      path: resolveCreateLauncherPath(options?.initialPath),
+      set: targetSet,
+      isCreate: true,
+      initialType: options?.initialType ?? readLastCreateType(),
+      initialValue: options?.initialValue,
+      createPresentation: 'launcher',
+    });
+  }, [activeSet, setEditingToken]);
+
+  const handleTokenEditorBack = useCallback(() => {
+    if (editingToken?.isCreate) {
+      setCreateFromEmpty(false);
+    }
+    setEditingToken(null);
+    p.refreshAll();
+  }, [editingToken?.isCreate, p.refreshAll, setCreateFromEmpty, setEditingToken]);
+
+  const handleTokenEditorSaved = useCallback((savedPath: string) => {
+    if (editingToken?.isCreate) {
+      persistLastCreateGroup(savedPath);
+      setCreateFromEmpty(false);
+    }
+    p.handleEditorSave(savedPath);
+  }, [editingToken?.isCreate, p.handleEditorSave, setCreateFromEmpty]);
+
+  const handleTokenEditorSaveAndCreateAnother = useCallback((savedPath: string, savedType: string) => {
+    persistLastCreateGroup(savedPath);
+    persistLastCreateType(savedType);
+    setCreateFromEmpty(false);
+    setHighlightedToken(savedPath);
+    p.refreshAll();
+    const segments = savedPath.split('.');
+    const parentPrefix = segments.length > 1 ? `${segments.slice(0, -1).join('.')}.` : '';
+    setEditingToken({
+      path: parentPrefix,
+      set: editingToken?.set ?? activeSet,
+      isCreate: true,
+      initialType: savedType,
+      createPresentation: 'launcher',
+    });
+  }, [activeSet, editingToken?.set, p.refreshAll, setCreateFromEmpty, setEditingToken, setHighlightedToken]);
+
+  useEffect(() => {
+    if (!createFromEmpty || editingToken || editingGenerator || previewingToken || showTokensCompare) return;
+    p.setShowPreviewSplit(false);
+    openCreateLauncher();
+  }, [
+    createFromEmpty,
+    editingGenerator,
+    editingToken,
+    openCreateLauncher,
+    p.setShowPreviewSplit,
+    previewingToken,
+    showTokensCompare,
+  ]);
 
   // Build the common TokenList `actions` object once — it's identical across the
   // three TokenList render variants (side-panel, no-split, preview-split).
@@ -275,7 +384,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         p.setShowPreviewSplit(false);
         setShowTokensCompare(false);
         setEditingGenerator(null);
-        setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue });
+        openCreateLauncher({ initialPath, initialType, initialValue });
       },
     onRefresh: p.refreshAll,
     onPushUndo: p.pushUndo,
@@ -355,7 +464,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     tokenName: editingToken.name,
     setName: editingToken.set,
     serverUrl,
-    onBack: () => { setEditingToken(null); p.refreshAll(); },
+    onBack: handleTokenEditorBack,
     allTokensFlat,
     pathToSet,
     generators,
@@ -364,10 +473,11 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     isCreateMode: editingToken.isCreate,
     initialType: editingToken.initialType,
     initialValue: editingToken.initialValue,
+    createPresentation: editingToken.createPresentation,
     onDirtyChange: (dirty: boolean) => { p.editorIsDirtyRef.current = dirty; },
     closeRef: p.editorCloseRef,
-    onSaved: p.handleEditorSave,
-    onSaveAndCreateAnother: p.handleEditorSaveAndCreateAnother,
+    onSaved: handleTokenEditorSaved,
+    onSaveAndCreateAnother: handleTokenEditorSaveAndCreateAnother,
     dimensions,
     perSetFlat,
     onRefresh: p.refreshAll,
@@ -397,7 +507,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       onEditToken={(set, path) => { p.handleNavigateToSet(set, path); }}
       onCreateToken={(path, set, type, value) => {
         setShowTokensCompare(false);
-        setEditingToken({ path, set, isCreate: true, initialType: type, initialValue: value });
+        openCreateLauncher({ initialPath: path, initialType: type, initialValue: value, set });
       }}
       onGoToTokens={() => setShowTokensCompare(false)}
       serverUrl={serverUrl}
@@ -747,14 +857,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           )
         )}
         {/* Main content: TokenList variants */}
-        {(tokens.length > 0 || createFromEmpty) && !p.showPreviewSplit && (
+        {hasTokensLibrarySurface && !p.showPreviewSplit && (
           <div className="flex h-full overflow-hidden">
             {renderTokensLibraryBody()}
             {wideContextualSurface ? renderWideTokensContextualSurface(wideContextualSurface) : null}
           </div>
         )}
         {/* Preview split view */}
-        {(tokens.length > 0 || createFromEmpty) && p.showPreviewSplit && (
+        {hasTokensLibrarySurface && p.showPreviewSplit && (
           <div
             ref={p.splitContainerRef}
             className="flex flex-col h-full overflow-hidden"
