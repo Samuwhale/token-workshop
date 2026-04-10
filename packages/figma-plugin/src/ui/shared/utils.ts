@@ -43,11 +43,15 @@ export function logCatch(context: string, err: unknown, level: 'debug' | 'warn' 
 
 /** JSON.stringify with keys sorted recursively, so key-insertion-order differences never produce different strings. */
 export function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+  if (value === null || typeof value !== 'object') {
     return JSON.stringify(value);
   }
-  const keys = Object.keys(value as object).sort();
-  const parts = keys.map(k => JSON.stringify(k) + ':' + stableStringify((value as Record<string, unknown>)[k]));
+  if (Array.isArray(value)) {
+    return '[' + value.map(item => stableStringify(item)).join(',') + ']';
+  }
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).sort();
+  const parts = keys.map(k => JSON.stringify(k) + ':' + stableStringify(record[k]));
   return '{' + parts.join(',') + '}';
 }
 

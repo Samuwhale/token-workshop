@@ -76,5 +76,6 @@
 - [x] Clarify scope and consequences for settings restore versus workspace reset
 - [x] Route clean-slate reset into an explicit recovery start flow
 - [x] Investigate fresh-worktree server dependency resolution during backlog validation
+- [x] Make figma-plugin stableStringify recurse through arrays of objects
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
