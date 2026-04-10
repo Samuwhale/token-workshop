@@ -1,0 +1,25 @@
+id: route-manual-token-starts-through-a-single-token-855f5b55
+title: Route manual token starts through a single Tokens create-launcher state
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/contexts/EditorContext.tsx
+  - packages/figma-plugin/src/ui/hooks/useTokenNavigation.ts
+  - packages/figma-plugin/src/ui/hooks/useTokenCreate.ts
+  - packages/figma-plugin/src/ui/panels/PanelRouter.tsx
+  - packages/figma-plugin/src/ui/components/TokenList.tsx
+  - packages/figma-plugin/src/ui/components/TokenEditor.tsx
+capabilities:
+  - backlog-runtime
+validation_profile: plugin
+status_notes:
+  - "Context: Execute after the Tokens surface-contract task. Reuse the canonical contextual panel model instead of introducing another local create mode."
+state: ready
+acceptance_criteria:
+  - Toolbar `New token`, the `TOKEN_NEW` keyboard shortcut, search-no-results create suggestions, inline sibling create, and create-from-empty all dispatch into one create-launcher state instead of opening TokenList-local create UI directly.
+  - The create launcher owns one draft for set, group, path, type, and value, and that draft survives escalation between lightweight start and full editor presentations without duplicating mounted create UIs.
+  - Canceling or completing creation restores the same Tokens browse context the user came from, and the old single-token inline create form path in `packages/figma-plugin/src/ui/components/TokenList.tsx` is removed as a competing entry flow.
+source: planner-pass
+created_at: 2026-04-10T23:04:56.803Z
+updated_at: 2026-04-10T23:04:56.803Z

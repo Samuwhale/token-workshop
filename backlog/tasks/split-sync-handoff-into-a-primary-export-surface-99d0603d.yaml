@@ -1,0 +1,23 @@
+id: split-sync-handoff-into-a-primary-export-surface-99d0603d
+title: Split Sync handoff into a primary export surface and a repository expert route
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ExportPanel.tsx
+  - packages/figma-plugin/src/ui/components/publish/GitWorkflowPanel.tsx
+  - packages/figma-plugin/src/ui/shared/navigationTypes.ts
+  - packages/figma-plugin/src/ui/panels/PanelRouter.tsx
+  - packages/figma-plugin/src/ui/App.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Current Sync navigation already describes publish as primary and repo/handoff as secondary, but `ExportPanel.tsx` still mixes handoff files, Figma Variables, and repository work through one mode toggle while `GitWorkflowPanel.tsx` renders full repo controls inline."
+state: ready
+acceptance_criteria:
+  - "`ExportPanel` defaults to a handoff-files flow and no longer exposes repository actions as a peer top-level mode in the default surface."
+  - Repository actions are reachable only through an explicitly labeled expert entry with dedicated framing that explains when to use repo workflows and what completed actions did.
+  - Shell copy and section metadata in the Sync workspace distinguish primary Figma publish from secondary repo handoff work and stop surfacing repository controls in the default designer publishing path.
+source: planner-pass
+created_at: 2026-04-10T23:09:52.282Z
+updated_at: 2026-04-10T23:09:52.282Z

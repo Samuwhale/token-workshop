@@ -720,3 +720,13 @@
   - Theme gap remediation needs two distinct contracts: review should explain what is wrong and name the target set when possible, while authoring should own the actual set-role edits and override-set creation.
   - `ThemeCoverageMatrix.tsx` is currently a summary-only navigator; the create-missing-overrides plumbing in `useThemeCoverage.ts` is unused, so any future remediation work should either wire that path into a concrete review detail surface or delete the dormant helper rather than leaving the split model implicit.
 ---
+## 2026-04-11 - [Add a focused theme context summary with in-place gap actions to Theme authoring]
+- Replaced the generic "Stay in the guided theme flow here" header text in the authoring view with a focused context summary showing: focused axis → option label, issue count and recommended next action for the primary issue, and an inline action button (Edit set roles / Review coverage) that routes directly to the fix without requiring the user to open the Review tools menu.
+- When `focusedPrimaryIssue.kind` is `stale-set` or `empty-override`, the inline button calls `focusRoleTarget(target, true)` to open the role editor in-place. For `coverage-gap` and `missing-override`, it calls `openCoverageView(target, false)` to open the focused coverage view.
+- Removed the issue count badge from the "Review tools" button since the primary issue is now surfaced inline; the menu still shows per-option counts for coverage-all, compare, and advanced tools.
+- Context preservation from authoring → coverage → authoring was already implemented via `coverageContext` in `returnToAuthoring`; the new summary confirms the active axis/option on return so users see exactly where they landed.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1975
+- **Learnings for future iterations:**
+  - `focusedDimension`, `focusedOptionName`, `focusedPrimaryIssue`, and `focusedIssueCount` were already computed; adding the context summary required only a render change, not new state or memos.
+  - The existing `focusRoleTarget` and `openCoverageView` functions already had the correct signatures for routing inline actions from the header without additional wiring.
+---

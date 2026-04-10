@@ -17,11 +17,12 @@ status_notes:
   - "Failed: write scope violation: touched scripts/backlog/progress.txt"
   - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
   - "Deferred for planner refinement: queue lint keeps this broad create-launcher unification task out of the executor lane until it is superseded into narrower child work."
-state: planned
+  - "Superseded by planner-pass: collapse-tokens-library-onto-one-contextual-surf-f152294f, route-manual-token-starts-through-a-single-token-855f5b55, research-a-plugin-wide-notice-severity-and-place-a3a3f134"
+state: superseded
 acceptance_criteria:
   - Toolbar New token, keyboard create, search-no-results create suggestions, inline sibling create, and create-from-empty all open the same create-launcher state instead of mixing an embedded form with a create-mode drawer.
   - The create launcher preserves draft context for set, group, path, type, and value when the user escalates between quick and full-editor presentations.
   - Cancelling or completing creation returns the user to the same library browse context without leaving duplicate create UIs mounted.
 source: task-followup
 created_at: 2026-04-09T07:47:03.660Z
-updated_at: 2026-04-09T08:57:42.000Z
+updated_at: 2026-04-10T23:04:56.803Z

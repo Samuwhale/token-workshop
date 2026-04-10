@@ -1,0 +1,22 @@
+id: research-tokens-workspace-edit-surface-ownership-ab2af312
+title: Research Tokens workspace edit-surface ownership across inline row edits, contextual editors, preview surfaces, and modal flows
+priority: high
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Use the existing contextual surface model in `packages/figma-plugin/src/ui/shared/navigationTypes.ts`, `packages/figma-plugin/src/ui/contexts/EditorContext.tsx`, and `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` as the starting point. Include inline edit affordances in `packages/figma-plugin/src/ui/components/TokenList.tsx` and `packages/figma-plugin/src/ui/components/tokenListTypes.ts`, and inspect modal/panel usage in `packages/figma-plugin/src/ui/components/TokenListModals.tsx`, `packages/figma-plugin/src/ui/components/ConfirmModal.tsx`, and `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`."
+state: ready
+acceptance_criteria:
+  - Inspect the current token editing surface inventory across `TokenList`, `tokenListTypes`, `EditorContext`, `PanelRouter`, `TokenEditor`, `TokenGeneratorDialog`, and token-related modal components, and capture where editing currently happens inline, in contextual panels/drawers, or in modal dialogs.
+  - Define a concrete surface-ownership contract for token actions that covers create, quick primitive edits, composite value edits, generator edits, preview-to-edit handoff, compare-to-edit handoff, and unsaved-change dismissal/navigation behavior.
+  - Write implementation-ready follow-up backlog tasks with concrete repo touch paths for the chosen routing/state changes, including at least one task for surface ownership/routing and one task for unsaved-change and close-behavior cleanup.
+source: planner-pass
+created_at: 2026-04-10T23:07:09.240Z
+updated_at: 2026-04-10T23:07:09.240Z

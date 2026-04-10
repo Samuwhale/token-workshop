@@ -1,0 +1,22 @@
+id: research-post-import-handoff-routing-and-next-st-a537c0ba
+title: Research post-import handoff routing and next-step recommendations across import success and workspace navigation
+priority: normal
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Focus on the unresolved gap after import apply succeeds: `PanelRouter` currently closes the import takeover and routes straight back to Tokens via `onImportComplete`, while `ImportSuccessView` only exposes local retry/undo copy. Use the completed import tasks around shared conflict review and file-validation feedback as constraints, and determine what additional state is needed to recommend Tokens, Themes, or Sync without guessing."
+state: ready
+acceptance_criteria:
+  - Inspect `packages/figma-plugin/src/ui/components/ImportPanel.tsx`, `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx`, `packages/figma-plugin/src/ui/components/ImportSuccessView.tsx`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`, `packages/figma-plugin/src/ui/shared/navigationTypes.ts`, and the relevant redesign docs to map the current import-complete close behavior, surviving summary state, and every existing route into Tokens, Themes, and Sync.
+  - Write concrete follow-up backlog tasks that separate summary-data plumbing, next-step recommendation rules, and navigation/close behavior, with implementation-ready `touch_paths` and acceptance criteria for each child.
+  - Explicitly reconcile the follow-ups with the already-completed import conflict-review and validation work so the new tasks only cover the unresolved post-import handoff gap and do not duplicate finished import-review changes.
+source: planner-pass
+created_at: 2026-04-10T23:12:56.839Z
+updated_at: 2026-04-10T23:12:56.839Z

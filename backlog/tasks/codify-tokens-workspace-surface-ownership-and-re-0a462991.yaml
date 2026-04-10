@@ -17,11 +17,12 @@ status_notes:
   - "Failed: write scope violation: touched scripts/backlog/progress.txt"
   - "Recovered: backlog-runner now permits required bookkeeping writes and strips bootstrap node_modules before finalize, so this task can return to the runnable queue."
   - "Failed: impossible — the Tokens workspace changes are in place, but the required validation command still fails in out-of-scope backlog-runner tests (`bin/__tests__/interactive.test.ts`, `src/__tests__/providers.test.ts`), so I recorded the blocker and queued a follow-up instead of widening scope."
-state: failed
+  - "Superseded by planner-pass: collapse-tokens-library-onto-one-contextual-surf-f152294f, route-manual-token-starts-through-a-single-token-855f5b55, research-a-plugin-wide-notice-severity-and-place-a3a3f134"
+state: superseded
 acceptance_criteria:
   - Tokens > Library renders through one explicit surface contract for body, contextual panel, and split preview instead of separate empty/no-split/side-panel branches.
   - Token editor, generator editor, token preview, and compare surfaces all open and close through the same contextual panel state while preserving the current library browse context.
   - The IA blueprint documents which Tokens surfaces are primary screens, persistent contextual panels, secondary takeovers, and transient overlays, and the implementation matches that contract.
 source: task-followup
 created_at: 2026-04-09T07:47:03.656Z
-updated_at: 2026-04-09T10:52:00.330Z
+updated_at: 2026-04-10T23:04:56.803Z

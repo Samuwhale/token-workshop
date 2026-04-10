@@ -10,36 +10,28 @@
 - [x] [HIGH] Make theme-dimension duplication atomic in `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` and `packages/server/src/routes/themes.ts`, because the current create-dimension-then-copy-options loop can leave a half-copied axis behind if any follow-up option write fails.
 - [x] [HIGH] Replace the slug-only save preview in `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` with per-destination mapping and merge choices, because the current flow can only create or overwrite whole sets and gives no diff, skip, or append path before writing Figma variables into an existing token library.
 - [x] [HIGH] Wire the Figma variable save preview modal to destination mapping and merge controls
-- [!] [HIGH] Codify Tokens workspace surface ownership and remove competing library body variants
-- [ ] [HIGH] Unify manual token creation entry points behind one Tokens create launcher (Planned)
 - [x] [HIGH] Repair backlog-runner interactive defaults and Codex planner smoke validation
 - [x] [HIGH] Repair repo TypeScript validation blockers outside folder operations scope
 - [x] [HIGH] Repair worktree validation environment
+- [ ] [HIGH] Collapse Tokens > Library onto one contextual surface contract
+- [ ] [HIGH] Research a plugin-wide notice severity and placement model across shell, authoring, sync, and audit surfaces
+- [ ] [HIGH] Route manual token starts through a single Tokens create-launcher state
+- [ ] [HIGH] Research a canonical plugin UI blueprint for visual density, typography hierarchy, and motion/layout transitions
+- [ ] [HIGH] Research Apply workspace selection-state contract across compare, review, and binding feedback surfaces
+- [ ] [HIGH] Research a shared plugin contract for zero-state, loading, progress, success, and error feedback across workspace and secondary surfaces
+- [ ] [HIGH] Research Tokens workspace edit-surface ownership across inline row edits, contextual editors, preview surfaces, and modal flows
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
 - [x] Add search, alias/type/scope filters, and bulk expand or collapse controls to `packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` so large Figma variable libraries are navigable without opening one collection and one variable row at a time.
 - [x] Audit temporary redesign docs after the new IA and major workspace flows are implemented; remove any document in `docs/redesign/` that no longer adds unique value, and update surviving references so the repo does not keep stale redesign planning artifacts around
 - [x] Break the import flow into one coherent domain controller instead of the current late-bound ref cycle across `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx`, `useImportSource.ts`, `useImportConflicts.ts`, `useImportApply.ts`, and `useTokensImport.ts`, where single-set and multi-set imports still duplicate flattening, conflict detection, cache resets, and success/undo plumbing.
-- [ ] Define a shared pattern for warnings, lint results, stale state, and informational notices so the app stops mixing neutral pills, danger pills, banners, and inline warnings without a clear severity hierarchy (Planned)
-- [ ] Define how Apply should respond as the canvas selection changes, including empty state, multi-layer mixed state, loading state, successful binding feedback, and when to surface sync status versus hide it (Planned)
-- [ ] Define plugin-specific motion and layout-change rules for drawers, accordions, split views, sticky regions, and contextual previews so the app can become calmer and easier to follow while still feeling responsive (Planned)
-- [ ] Define the new plugin-wide visual system for density, typography, spacing, chips, badges, section headers, and CTA hierarchy, raising the baseline readability above the current 9–11px-heavy interface (Planned)
-- [ ] Define when token editing should happen inline, in a side panel, or in a modal drawer so the app stops mixing editing surfaces in ways that make navigation and unsaved-change behavior harder to understand (Planned)
-- [ ] Establish one consistent empty-state system for first run, no sets, no selection, disconnected server, no results, and no issues found, so the app stops solving each zero-data case with a different visual and interaction pattern (Planned)
-- [ ] Establish one consistent loading / progress / success / error feedback model across imports, sync, binding, generator runs, audits, and settings changes so users can predict what is happening after every mutation (Planned)
-- [ ] If the repo handoff workflow stays in the plugin, collapse it behind a clearly advanced expert-only entry point with its own framing, success states, and no presence in the default designer publishing flow (Planned)
-- [ ] Improve theme option navigation for multi-axis systems by making the current focus, option context, and unresolved gaps visible without forcing users to parse chips, badges, and side controls scattered across the page (Planned)
 - [x] Merge dependency tracing into `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx`, and `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` so alias chains and dependents can be inspected inline, with the standalone Dependencies screen kept as an advanced escape hatch instead of the default place to understand one token.
 - [x] Merge the `Coverage`, `Suggestions`, and `Components` tabs in `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` into one canvas cleanup workflow so users can scan, inspect untokenized nodes, review suggested tokens, and apply fixes without bouncing across separate sub-panels.
 - [x] Move generator validation and allowed-type ownership into `packages/server/src/services/generator-service.ts` and delete the parallel contract layer in `packages/server/src/routes/generators.ts`, because route-only validation currently drifts from service rules and rollback `restore()` can reintroduce generator configs the service itself never checks.
 - [x] Promote any redesign guidance that still matters long-term into the correct permanent docs, then delete or archive the temporary planning docs such as `docs/redesign/plugin-ia-blueprint.md` and `docs/redesign/repo-handoff-decision.md` once their decisions are fully reflected in code and stable documentation
 - [x] Promote bulk token editing in `packages/figma-plugin/src/ui/components/TokenList.tsx` and `packages/figma-plugin/src/ui/components/BatchEditor.tsx` into a first-class workflow with query-backed scopes or saved selections, because the most powerful maintenance tools currently only appear after entering select mode and hand-picking rows.
 - [x] Redesign duplicate-value cleanup in `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx`, `packages/figma-plugin/src/ui/components/HealthPanel.tsx`, and `packages/server/src/services/lint.ts` so users can choose the canonical token per group, preview metadata differences, and batch-resolve safely instead of accepting the shortest-path token as canonical by default.
-- [ ] Redesign Export as a dedicated handoff surface with a narrower control set, clearer preset behavior, and more obvious output expectations, rather than an advanced sub-view bolted onto the sync workspace (Planned)
-- [ ] Redesign the post-import handoff so the user always lands in a sensible next step with a summary of what was created, what needs review, and whether they should go to Tokens, Themes, or Sync next (Planned)
-- [ ] Redesign the token editor so it feels like one consistent editor across token types, with shared header structure, clearer field grouping, and better distinction between always-needed fields versus advanced metadata (Planned)
-- [ ] Reframe generators as a supporting creation tool inside the Tokens workflow instead of a parallel product area; define when generators deserve a full editor, when quick-start templates are enough, and how generated groups communicate their status inline (Planned)
 - [x] Replace the current 50-entry `OperationLog` ring-buffer design in `packages/server/src/services/operation-log.ts` with separate persistence for rollback/history versus rename propagation — `PublishPanel.tsx` and `/api/operations/*` both depend on data that silently disappears once enough unrelated operations have been recorded.
 - [x] Replace the rule-console feel of `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` and `packages/server/src/routes/lint.ts` with a guided quality-policy surface that starts from presets and uses set pickers and exception chips rather than free-text path filters and per-rule override names.
 - [x] Rework `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` into a cleanup queue grouped by set and lifecycle with search, filters, and staged bulk actions, because the current flat list plus `Delete all` / `Deprecate all` controls does not scale to large libraries with hundreds of unused tokens.
@@ -77,5 +69,10 @@
 - [x] Route clean-slate reset into an explicit recovery start flow
 - [x] Investigate fresh-worktree server dependency resolution during backlog validation
 - [x] Make figma-plugin stableStringify recurse through arrays of objects
+- [x] Add a focused theme context summary with in-place gap actions to Theme authoring
+- [ ] Clarify export presets, scope, and output expectations on the handoff files surface
+- [ ] Split Sync handoff into a primary export surface and a repository expert route
+- [ ] Research post-import handoff routing and next-step recommendations across import success and workspace navigation
+- [ ] Research the Tokens authoring contract for token-editor consistency, generator escalation, and inline generated-group status
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

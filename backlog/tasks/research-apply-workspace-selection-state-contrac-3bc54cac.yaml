@@ -1,0 +1,22 @@
+id: research-apply-workspace-selection-state-contrac-3bc54cac
+title: Research Apply workspace selection-state contract across compare, review, and binding feedback surfaces
+priority: high
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Inspect the Apply workflow and adjacent selection/sync surfaces in the Figma plugin UI. Focus on where canvas selection enters the UI state model, how compare/review/apply panes react to no selection vs mixed selection, how loading and success states are surfaced, and when sync status is shown versus suppressed. Use the resulting map to queue narrow implementation tasks rather than editing product code."
+state: ready
+acceptance_criteria:
+  - Inspect the current Apply workspace code paths for empty selection, mixed multi-layer selection, loading, successful binding feedback, and sync-status visibility.
+  - Document the existing state transitions, banners/notices, and selection-driven UI branches with concrete file references.
+  - Write implementation-ready follow-up backlog tasks that cover the chosen Apply state contract, including the exact UI surfaces and repo paths each change should touch.
+source: planner-pass
+created_at: 2026-04-10T23:05:22.564Z
+updated_at: 2026-04-10T23:05:22.564Z

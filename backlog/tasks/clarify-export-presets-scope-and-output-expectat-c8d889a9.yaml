@@ -1,0 +1,24 @@
+id: clarify-export-presets-scope-and-output-expectat-c8d889a9
+title: Clarify export presets, scope, and output expectations on the handoff files surface
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ExportPanel.tsx
+  - packages/figma-plugin/src/ui/components/PlatformExportConfig.tsx
+  - packages/figma-plugin/src/ui/components/ExportFooter.tsx
+  - packages/figma-plugin/src/ui/components/ExportPreviewModal.tsx
+  - packages/figma-plugin/src/ui/hooks/useExportPresets.ts
+  - packages/figma-plugin/src/ui/hooks/useExportResults.ts
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: `PlatformExportConfig.tsx` currently hides filter-only preset application behind a hover icon, while `ExportFooter.tsx` and `useExportResults.ts` spread output expectations across button labels, toast copy, and modal behavior instead of one clear handoff summary."
+state: ready
+acceptance_criteria:
+  - The handoff-files surface presents a concise summary of selected platforms, filters, and expected output before export, and a matching result summary after export completes.
+  - Preset actions are explicit about full-load versus filter-only behavior and no longer rely on hover-only affordances to discover alternate preset application paths.
+  - Export CTAs and footer copy explain disabled or limited states such as no platform selection, empty set scope, or changes-only constraints directly in the visible UI.
+source: planner-pass
+created_at: 2026-04-10T23:09:52.282Z
+updated_at: 2026-04-10T23:09:52.282Z

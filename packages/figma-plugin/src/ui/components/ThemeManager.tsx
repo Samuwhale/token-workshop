@@ -1974,14 +1974,67 @@ export function ThemeManager({
                   <>
                     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                            Stay in the guided theme flow here.
-                          </p>
-                          <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                            Coverage review, compare, and resolver logic open in
-                            secondary views for {focusedContextLabel}.
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                              {focusedDimension?.name ?? "Themes"}
+                            </span>
+                            {focusedOptionName && (
+                              <>
+                                <span
+                                  className="text-[10px] text-[var(--color-figma-text-tertiary)]"
+                                  aria-hidden="true"
+                                >
+                                  →
+                                </span>
+                                <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                                  {focusedOptionName}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {focusedPrimaryIssue ? (
+                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                              <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                                <span className="font-medium">
+                                  {focusedIssueCount} issue
+                                  {focusedIssueCount !== 1 ? "s" : ""}:
+                                </span>{" "}
+                                {focusedPrimaryIssue.recommendedNextAction}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const target = {
+                                    dimId: focusedPrimaryIssue.dimensionId,
+                                    optionName: focusedPrimaryIssue.optionName,
+                                    preferredSetName:
+                                      focusedPrimaryIssue.preferredSetName,
+                                  };
+                                  if (
+                                    focusedPrimaryIssue.kind === "stale-set" ||
+                                    focusedPrimaryIssue.kind === "empty-override"
+                                  ) {
+                                    focusRoleTarget(target, true);
+                                  } else {
+                                    openCoverageView(target, false);
+                                  }
+                                }}
+                                className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                              >
+                                {focusedPrimaryIssue.kind === "stale-set" ||
+                                focusedPrimaryIssue.kind === "empty-override"
+                                  ? "Edit set roles"
+                                  : "Review coverage"}
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                              {focusedDimension
+                                ? "No open issues for this option."
+                                : "Add axes and options to begin."}
+                            </p>
+                          )}
                         </div>
                         <div
                           className="relative shrink-0"
@@ -2022,11 +2075,6 @@ export function ThemeManager({
                               <line x1="17" y1="16" x2="23" y2="16" />
                             </svg>
                             <span>Review tools</span>
-                            {totalIssueCount > 0 && (
-                              <span className="rounded-full bg-[var(--color-figma-warning)]/20 px-1.5 py-0.5 text-[9px] leading-none text-[var(--color-figma-warning)]">
-                                {totalIssueCount}
-                              </span>
-                            )}
                           </button>
 
                           {secondaryToolsOpen && (

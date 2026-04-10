@@ -117,10 +117,16 @@ status_notes:
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-10T21:06:17.268Z"
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-10T21:27:55.165Z"
   - "Deferred after remediation: Cherry-pick conflict until 2026-04-10T21:47:28.507Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-10T22:07:15.043Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-10T22:27:16.164Z"
+  - "Recovered by remediation: Repaired missing workspace dependencies, kept the stableStringify dirty-check updates in the token editor hooks, and verified the figma-plugin build passes."
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-10T22:48:05.088Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-10T23:07:00.715Z"
+  - "Deferred after remediation: Cherry-pick conflict until 2026-04-10T23:28:56.095Z"
 state: ready
 acceptance_criteria:
   - Token editor dirty-state comparisons for composite draft values use stableStringify instead of JSON.stringify.
   - Reordering object keys in draft values, scopes, color modifiers, or mode values no longer marks the token editor dirty.
 source: task-followup
 created_at: 2026-04-08T22:30:38.168Z
-updated_at: 2026-04-10T21:32:28.517Z
+updated_at: 2026-04-10T23:13:56.124Z

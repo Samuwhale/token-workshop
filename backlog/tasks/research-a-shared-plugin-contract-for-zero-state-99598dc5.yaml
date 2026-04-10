@@ -1,0 +1,22 @@
+id: research-a-shared-plugin-contract-for-zero-state-99598dc5
+title: Research a shared plugin contract for zero-state, loading, progress, success, and error feedback across workspace and secondary surfaces
+priority: high
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: Inspect `packages/figma-plugin/src/ui/components/EmptyState.tsx`, `WelcomePrompt`, `TokenList.tsx`, `ImportPanel.tsx`, `ImportSuccessView.tsx`, `SettingsPanel.tsx`, `HistoryPanel.tsx`, `NotificationsPanel.tsx`, `ToastStack.tsx`, `useToastStack.ts`, and the sync/progress overlays in `packages/figma-plugin/src/ui/App.tsx`. Use the completed Tokens Start Here consolidation as baseline context, but cover non-Tokens surfaces too so the resulting contract spans first-run, no selection, disconnected, no results, loading, success, and error states consistently."
+state: ready
+acceptance_criteria:
+  - Inventory the current feedback primitives and bespoke cases across full-surface empty states, section empty states, no-results states, inline validation banners, blocking progress overlays, toasts, and notification history.
+  - Separate zero-data/empty-state patterns from mutation-feedback patterns, and define where each state should appear for Tokens, Import, Settings, History, Sync/Publish, and other secondary surfaces.
+  - Write implementation-ready follow-up backlog tasks with concrete repo touch paths for shared primitives and workspace migrations, including explicit tasks for empty-state standardization and mutation feedback/progress standardization.
+source: planner-pass
+created_at: 2026-04-10T23:07:09.240Z
+updated_at: 2026-04-10T23:07:09.240Z

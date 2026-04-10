@@ -1,0 +1,22 @@
+id: research-the-tokens-authoring-contract-for-token-0937243c
+title: Research the Tokens authoring contract for token-editor consistency, generator escalation, and inline generated-group status
+priority: normal
+task_kind: research
+depends_on: []
+touch_paths:
+  - backlog/inbox.jsonl
+  - scripts/backlog/progress.txt
+  - scripts/backlog/patterns.md
+capabilities:
+  - backlog-runtime
+validation_profile: backlog
+status_notes:
+  - "Context: This parent cluster mixes three different concerns that currently overlap in the same workspace: `TokenEditor` still owns a large all-in-one layout with collapsible metadata/lifecycle/reference sections, generator authoring still spans `TokenGeneratorDialog`, `GraphPanel`, quick-start surfaces, and route-level sections, and inline generator status currently appears in scattered places like `TokenList`, `TokenTreeNode`, and token usages. The research output should turn that drift into implementation-ready slices rather than one broad redesign task."
+state: ready
+acceptance_criteria:
+  - Inspect `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/MetadataEditor.tsx`, `packages/figma-plugin/src/ui/components/ValueEditors.tsx`, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`, `packages/figma-plugin/src/ui/components/GraphPanel.tsx`, `packages/figma-plugin/src/ui/components/TokenList.tsx`, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx`, `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`, and `packages/figma-plugin/src/ui/shared/navigationTypes.ts` to inventory the current editor layout, generator entry/escalation paths, and generated-group status affordances.
+  - Write ordered follow-up backlog tasks that split the redesign into non-overlapping implementation slices for a shared token-editor shell/layout pass, generator placement and escalation rules inside the Tokens workspace, and inline generated-group/status communication in library surfaces, each with concrete `touch_paths` and direct acceptance criteria.
+  - Reconcile those follow-ups against `docs/redesign/plugin-ia-blueprint.md`, the completed generator draft-flow unification work, and the existing create-launcher planning so the new tasks extend the canonical Tokens workflow instead of reopening already-settled entry-point behavior.
+source: planner-pass
+created_at: 2026-04-10T23:12:56.839Z
+updated_at: 2026-04-10T23:12:56.839Z

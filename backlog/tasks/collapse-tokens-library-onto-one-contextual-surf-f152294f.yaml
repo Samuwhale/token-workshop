@@ -1,0 +1,24 @@
+id: collapse-tokens-library-onto-one-contextual-surf-f152294f
+title: Collapse Tokens > Library onto one contextual surface contract
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - docs/redesign/plugin-ia-blueprint.md
+  - packages/figma-plugin/src/ui/shared/navigationTypes.ts
+  - packages/figma-plugin/src/ui/contexts/EditorContext.tsx
+  - packages/figma-plugin/src/ui/panels/PanelRouter.tsx
+  - packages/figma-plugin/src/ui/components/TokenList.tsx
+capabilities:
+  - backlog-runtime
+validation_profile: plugin
+status_notes:
+  - "Context: Recovery replacement for the failed Tokens workspace task. Keep this slice focused on surface ownership and contextual panel routing so later create-launcher work can plug into a stable contract without reopening shell IA decisions."
+state: ready
+acceptance_criteria:
+  - "`docs/redesign/plugin-ia-blueprint.md` and `packages/figma-plugin/src/ui/shared/navigationTypes.ts` define one Tokens > Library contract for library body, contextual panel, and split preview, with compare, token editor, generator editor, and token preview classified consistently."
+  - "`packages/figma-plugin/src/ui/contexts/EditorContext.tsx` and `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` drive token editor, generator editor, token preview, and compare from one contextual surface state that preserves the current library browse context when those surfaces open and close."
+  - "`packages/figma-plugin/src/ui/components/TokenList.tsx` no longer relies on separate empty/no-split/side-panel ownership branches to decide which Tokens surface is active; the library body renders through one explicit surface contract and only the contextual presentation changes around it."
+source: planner-pass
+created_at: 2026-04-10T23:04:56.803Z
+updated_at: 2026-04-10T23:04:56.803Z

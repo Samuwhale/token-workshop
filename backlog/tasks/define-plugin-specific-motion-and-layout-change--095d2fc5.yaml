@@ -1,15 +1,17 @@
 id: define-plugin-specific-motion-and-layout-change--095d2fc5
 title: Define plugin-specific motion and layout-change rules for drawers, accordions, split views, sticky regions, and contextual previews so the app can become calmer and easier to follow while still feeling responsive
 priority: normal
+task_kind: implementation
 depends_on: []
 touch_paths: []
 capabilities: []
 validation_profile: repo
 status_notes:
   - Planner could not infer touch_paths from the title; refine this task before execution.
-state: planned
+  - "Superseded by planner-pass: research-apply-workspace-selection-state-contrac-3bc54cac, research-a-canonical-plugin-ui-blueprint-for-vis-51c3b2a7"
+state: superseded
 acceptance_criteria:
   - Define plugin-specific motion and layout-change rules for drawers, accordions, split views, sticky regions, and contextual previews so the app can become calmer and easier to follow while still feeling responsive
 source: manual
 created_at: 2026-04-08T20:14:30.290Z
-updated_at: 2026-04-08T20:14:30.290Z
+updated_at: 2026-04-10T23:05:22.564Z
