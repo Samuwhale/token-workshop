@@ -14,7 +14,8 @@ import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
 import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
 import { FIGMA_SCOPES } from './MetadataEditor';
-import type { PublishPreflightActionId, SyncWorkflowStage } from '../shared/syncWorkflow';
+import type { PublishPreflightActionId, SyncWorkflowStage, SyncWorkflowTone } from '../shared/syncWorkflow';
+import { SyncWorkflowControls } from './publish/SyncWorkflowControls';
 
 /* ── Sync entity types ───────────────────────────────────────────────────── */
 
@@ -365,6 +366,62 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     preflightStage,
   ]);
 
+  const workflowStages = useMemo(() => {
+    const preflightTone: SyncWorkflowTone =
+      preflightStage === 'blocked' ? 'blocked' :
+      (preflightStage === 'advisory' || preflightStage === 'ready') ? 'complete' :
+      'current';
+
+    const compareTone: SyncWorkflowTone =
+      !canProceedToCompare
+        ? (preflightStage === 'blocked' ? 'blocked' : 'pending')
+        : hasComparedAnything ? 'complete' : 'current';
+
+    const applyTone: SyncWorkflowTone =
+      !canProceedToCompare ? 'pending' :
+      !hasComparedAnything ? 'pending' :
+      (publishAllAvailable || publishAllBusy || quickSyncing) ? 'current' :
+      'complete';
+
+    const preflightDetail =
+      readinessLoading ? 'Running checks\u2026' :
+      preflightStage === 'blocked'
+        ? `${blockingReadinessChecks.length} blocking issue${blockingReadinessChecks.length !== 1 ? 's' : ''} \u2014 resolve to continue` :
+      preflightStage === 'advisory'
+        ? `${advisoryReadinessChecks.length} advisory item${advisoryReadinessChecks.length !== 1 ? 's' : ''} \u2014 can proceed` :
+      preflightStage === 'ready' ? 'All checks passed' :
+      'Run to unlock compare and apply';
+
+    const diffCount = varSync.rows.length + styleSync.rows.length;
+    const compareDetail =
+      !canProceedToCompare ? 'Locked until preflight passes' :
+      (varSync.loading || styleSync.loading) ? 'Comparing\u2026' :
+      hasComparedAnything
+        ? (diffCount > 0 ? `${diffCount} difference${diffCount !== 1 ? 's' : ''} found` : 'All targets in sync')
+        : 'Compare variables and styles';
+
+    const pendingCount = (hasVarChanges ? varSync.syncCount : 0) + (hasStyleChanges ? styleSync.syncCount : 0);
+    const applyDetail =
+      !canProceedToCompare ? 'Locked until preflight passes' :
+      !hasComparedAnything ? 'Compare first to see changes' :
+      (publishAllBusy || quickSyncing) ? 'Applying changes\u2026' :
+      publishAllAvailable
+        ? `${pendingCount} change${pendingCount !== 1 ? 's' : ''} to apply`
+        : 'Nothing to apply';
+
+    return [
+      { id: 'preflight' as SyncWorkflowStage, step: 1, label: 'Preflight', detail: preflightDetail, tone: preflightTone },
+      { id: 'compare' as SyncWorkflowStage, step: 2, label: 'Compare', detail: compareDetail, tone: compareTone, disabled: !canProceedToCompare },
+      { id: 'apply' as SyncWorkflowStage, step: 3, label: 'Apply', detail: applyDetail, tone: applyTone, disabled: !canProceedToCompare },
+    ];
+  }, [
+    preflightStage, canProceedToCompare, hasComparedAnything, publishAllAvailable, publishAllBusy, quickSyncing,
+    readinessLoading, blockingReadinessChecks.length, advisoryReadinessChecks.length,
+    varSync.loading, varSync.rows.length, varSync.syncCount,
+    styleSync.loading, styleSync.rows.length, styleSync.syncCount,
+    hasVarChanges, hasStyleChanges,
+  ]);
+
   const focusStage = useCallback((stage: SyncWorkflowStage) => {
     const target =
       stage === 'preflight' ? preflightRef.current :
@@ -460,6 +517,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           onDismiss={help.dismiss}
         />
       )}
+
+      <SyncWorkflowControls stages={workflowStages} onSelectStage={focusStage} />
 
       <div ref={preflightRef}>
         <SyncPreflightStep

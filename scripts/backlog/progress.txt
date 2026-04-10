@@ -794,3 +794,13 @@
   - Workflow step strips are already close to one reusable pattern, but they are duplicated in four components with separate tone maps and spacing decisions. Converge them before workspace-specific restyling.
   - Motion is only partly centralized today: drawer, toast, and step animations live in `styles.css`, while menus, accordions, chips, and sticky-region affordances still rely on ad hoc per-component transitions. A real motion pass needs shared tokens plus shell-aware adoption in `App.tsx` and `PanelRouter.tsx`.
 ---
+## 2026-04-11 - [Add explicit preflight, compare, and apply stage navigation to the Figma Sync publish panel]
+- Added `SyncWorkflowControls` to `PublishPanel.tsx` between the help banner and the preflight section.
+- Added a `workflowStages` useMemo that computes stage `tone` (`current`/`complete`/`pending`/`blocked`) and `detail` text from live state: `preflightStage`, `blockingReadinessChecks.length`, `advisoryReadinessChecks.length`, `varSync.rows.length`, `styleSync.rows.length`, `varSync.syncCount`, `styleSync.syncCount`, `publishAllAvailable`, `publishAllBusy`, `quickSyncing`.
+- Wired `onSelectStage={focusStage}` so clicking a stage pill scrolls to the matching ref-anchored section (preflight, compare header, apply footer).
+- Added `SyncWorkflowTone` to the import from `../shared/syncWorkflow` and added the `SyncWorkflowControls` import.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L17–522
+- **Learnings for future iterations:**
+  - App.tsx already builds a shell-level `SyncWorkflowControls` from the broadcasted `publish-preflight-state` event; the panel-internal control complements it with richer live state (diff counts, sync counts, loading flags) that only the panel can see.
+  - A pre-existing TypeScript error in App.tsx (tone: string not assignable to SyncWorkflowTone) is unrelated to this task and was present before these changes.
+---

@@ -13,11 +13,12 @@ capabilities:
 validation_profile: repo
 status_notes:
   - "Context: Keep `Sync > Figma Sync` as the primary publish route defined in `docs/redesign/plugin-ia-blueprint.md`, but make the internal flow read as one guided sequence instead of several disconnected sections."
-state: ready
+  - "Completed: Wired SyncWorkflowControls into PublishPanel with live-computed stage tones and detail text derived from preflight/compare/apply state; onSelectStage scrolls to the matching anchored section."
+state: done
 acceptance_criteria:
   - Figma Sync renders one workflow control that shows preflight, compare, and apply as explicit stages with current, complete, pending, or blocked state.
   - Stage status and CTA copy derive from real readiness and compare state instead of duplicated one-off banners or badges.
   - Workflow controls and section CTAs move focus to the matching stage so users can progress through preflight, review, and apply without hunting through the screen.
 source: planner-pass
 created_at: 2026-04-10T23:16:39.398Z
-updated_at: 2026-04-10T23:16:39.398Z
+updated_at: 2026-04-10T23:26:49.633Z

@@ -75,7 +75,7 @@
 - [x] Split Sync handoff into a primary export surface and a repository expert route
 - [ ] Research post-import handoff routing and next-step recommendations across import success and workspace navigation
 - [ ] Research the Tokens authoring contract for token-editor consistency, generator escalation, and inline generated-group status
-- [ ] Add explicit preflight, compare, and apply stage navigation to the Figma Sync publish panel
+- [x] Add explicit preflight, compare, and apply stage navigation to the Figma Sync publish panel
 - [ ] Centralize server connection editing in Settings and reduce shell/onboarding affordances to passive recovery entry points
 - [ ] Introduce confidence-based suggestion groups and shared reason copy across Apply suggestion lists
 - [ ] Restructure variable and style diff review into apply-ready review groups inside each sync target
