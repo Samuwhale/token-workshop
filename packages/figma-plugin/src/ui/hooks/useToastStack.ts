@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
-import type { ToastVariant } from '../shared/toastBus';
+import { useState, useCallback, useRef } from "react";
+import type { ToastVariant } from "../shared/toastBus";
 
 export interface ToastAction {
   label: string;
@@ -28,36 +28,74 @@ export function useToastStack() {
   const nextId = useRef(1);
 
   const addToHistory = useCallback((message: string, variant: ToastVariant) => {
-    const entry: NotificationEntry = { id: nextId.current, message, variant, timestamp: Date.now() };
-    setHistory(prev => [entry, ...prev].slice(0, MAX_HISTORY));
+    const entry: NotificationEntry = {
+      id: nextId.current,
+      message,
+      variant,
+      timestamp: Date.now(),
+    };
+    setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY));
   }, []);
 
   const dismiss = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const pushSuccess = useCallback((message: string) => {
-    const id = nextId.current++;
-    setToasts(prev => [...prev, { id, message, variant: 'success' }]);
-    addToHistory(message, 'success');
-  }, [addToHistory]);
+  const pushToast = useCallback(
+    (message: string, variant: ToastVariant) => {
+      const id = nextId.current++;
+      setToasts((prev) => [...prev, { id, message, variant }]);
+      addToHistory(message, variant);
+    },
+    [addToHistory],
+  );
 
-  const pushError = useCallback((message: string) => {
-    const id = nextId.current++;
-    setToasts(prev => [...prev, { id, message, variant: 'error' }]);
-    addToHistory(message, 'error');
-  }, [addToHistory]);
+  const pushSuccess = useCallback(
+    (message: string) => {
+      pushToast(message, "success");
+    },
+    [pushToast],
+  );
 
-  const pushAction = useCallback((message: string, action: ToastAction) => {
-    const id = nextId.current++;
-    setToasts(prev => [...prev, { id, message, variant: 'success', action }]);
-    addToHistory(message, 'success');
-    return id;
-  }, [addToHistory]);
+  const pushWarning = useCallback(
+    (message: string) => {
+      pushToast(message, "warning");
+    },
+    [pushToast],
+  );
+
+  const pushError = useCallback(
+    (message: string) => {
+      pushToast(message, "error");
+    },
+    [pushToast],
+  );
+
+  const pushAction = useCallback(
+    (message: string, action: ToastAction) => {
+      const id = nextId.current++;
+      setToasts((prev) => [
+        ...prev,
+        { id, message, variant: "success", action },
+      ]);
+      addToHistory(message, "success");
+      return id;
+    },
+    [addToHistory],
+  );
 
   const clearHistory = useCallback(() => {
     setHistory([]);
   }, []);
 
-  return { toasts, dismiss, pushSuccess, pushError, pushAction, history, clearHistory };
+  return {
+    toasts,
+    dismiss,
+    pushSuccess,
+    pushWarning,
+    pushError,
+    pushAction,
+    history,
+    clearHistory,
+  };
 }

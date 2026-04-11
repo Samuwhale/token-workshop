@@ -1114,3 +1114,11 @@
   - Blocking apply states should reuse one overlay primitive and pass only the message plus optional progress counts from the owning flow.
   - Keeping the numeric `current / total` counter separate from the status copy makes it easy to reuse the same overlay for flows that do or do not report incremental progress.
 ---
+## 2026-04-12 - Add warning variant to toast system and unify disconnected-state feedback
+- Added a dedicated warning toast path in `useToastStack`, wired `dispatchToast(..., "warning")` through the toast bus into App, shortened warning auto-dismiss to 5 seconds with the amber warning icon, and treated warning history entries as attention items in the notifications inbox.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/hooks/useToastStack.ts packages/figma-plugin/src/ui/shared/toastBus.ts packages/figma-plugin/src/ui/components/ToastStack.tsx packages/figma-plugin/src/ui/components/NotificationsPanel.tsx packages/figma-plugin/src/ui/App.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "useToastStack\\.ts|toastBus\\.ts|ToastStack\\.tsx|NotificationsPanel\\.tsx|App\\.tsx|error TS6305"` still reports pre-existing workspace issues: `packages/core/dist` `TS6305` build-artifact failures plus long-standing `App.tsx` workflow typing errors; no new diagnostics appeared for `useToastStack.ts`, `toastBus.ts`, `ToastStack.tsx`, or `NotificationsPanel.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useToastStack.ts` ~L25, `packages/figma-plugin/src/ui/shared/toastBus.ts` ~L26, `packages/figma-plugin/src/ui/components/ToastStack.tsx` ~L131, `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` ~L99, `packages/figma-plugin/src/ui/App.tsx` ~L535
+- **Learnings for future iterations:**
+  - If a toast variant needs different inbox treatment, preserve the original variant in history instead of routing it through an existing success or error callback.
+  - Toast bus listeners should expose one handler per supported variant so render timing and notification severity stay aligned.
+---

@@ -98,6 +98,7 @@ function extractQuotedStrings(message: string): string[] {
 
 function classifySeverity(entry: NotificationEntry): InboxSeverity {
   if (entry.variant === "success") return "success";
+  if (entry.variant === "warning") return "attention";
   const message = entry.message.toLowerCase();
   const blockerPatterns = [
     /failed/,

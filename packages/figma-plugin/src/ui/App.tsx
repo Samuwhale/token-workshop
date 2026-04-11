@@ -536,6 +536,7 @@ export function App() {
     toasts: toastStack,
     dismiss: dismissStackToast,
     pushSuccess: setSuccessToast,
+    pushWarning: setWarningToast,
     pushError: setErrorToast,
     pushAction: pushActionToast,
     history: notificationHistory,
@@ -572,7 +573,7 @@ export function App() {
     );
   }, []);
   // Route all dispatchToast() calls from deeply-nested components/hooks into the in-plugin ToastStack
-  useToastBusListener(setSuccessToast, setErrorToast);
+  useToastBusListener(setSuccessToast, setWarningToast, setErrorToast);
   const {
     toastVisible,
     slot: undoSlot,
