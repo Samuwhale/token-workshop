@@ -239,6 +239,16 @@ export interface ImportNextStepRecommendation {
   rationale: string;
 }
 
+const PRIMARY_IMPORT_SET_SEGMENTS = new Set([
+  "base",
+  "default",
+  "core",
+  "global",
+  "primitives",
+  "primitive",
+  "tokens",
+]);
+
 const route = (topTab: TopTab, subTab: SubTab): WorkspaceRoute => ({
   topTab,
   subTab,
@@ -734,6 +744,54 @@ export function getImportResultNextStepRecommendations(
   }
 
   return recommendations;
+}
+
+function getImportSetSortKey(setName: string): [number, number, number] {
+  const segments = setName
+    .split("/")
+    .map((segment) => segment.trim().toLowerCase())
+    .filter(Boolean);
+  const lastSegment = segments.at(-1) ?? "";
+  const hasPrimarySegment = segments.some((segment) =>
+    PRIMARY_IMPORT_SET_SEGMENTS.has(segment),
+  );
+  const primaryRank = PRIMARY_IMPORT_SET_SEGMENTS.has(lastSegment)
+    ? 0
+    : hasPrimarySegment
+      ? 1
+      : 2;
+
+  return [primaryRank, segments.length || 1, setName.length];
+}
+
+export function getMostRelevantImportDestinationSet(
+  summary: Pick<ImportResultSummary, "destinationSets">,
+): string | null {
+  const uniqueSets = [...new Set(summary.destinationSets.filter(Boolean))];
+  if (uniqueSets.length === 0) {
+    return null;
+  }
+
+  const rankedSets = uniqueSets.map((setName, index) => ({
+    setName,
+    index,
+    sortKey: getImportSetSortKey(setName),
+  }));
+
+  rankedSets.sort((a, b) => {
+    if (a.sortKey[0] !== b.sortKey[0]) {
+      return a.sortKey[0] - b.sortKey[0];
+    }
+    if (a.sortKey[1] !== b.sortKey[1]) {
+      return a.sortKey[1] - b.sortKey[1];
+    }
+    if (a.sortKey[2] !== b.sortKey[2]) {
+      return a.sortKey[2] - b.sortKey[2];
+    }
+    return a.index - b.index;
+  });
+
+  return rankedSets[0]?.setName ?? null;
 }
 
 function matchesRoute(

@@ -9,8 +9,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/components/TokenList.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Collapsed Tokens shell chrome, hid one-set switcher/status pill noise, and merged search/filter state into a single compact toolbar row."
+state: done
 acceptance_criteria:
   - Search input and action buttons share a single toolbar row instead of separate bands
   - Theme preview bar is hidden behind a toggle or collapsed when not actively relevant
@@ -20,4 +21,4 @@ acceptance_criteria:
   - Token list shows at least 6-8 rows in a standard 400px plugin viewport
 source: manual
 created_at: 2026-04-11T22:00:00.000Z
-updated_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T21:54:39.304Z

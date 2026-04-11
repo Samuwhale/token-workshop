@@ -53,7 +53,7 @@
 - [x] [HIGH] Collapse workflow stage cards to minimal step indicators in Themes, Apply, and Sync
 - [x] [HIGH] Consolidate token creation entry points into a single launcher menu
 - [x] [HIGH] Merge secondary surfaces into compact navigation targets instead of 5 always-visible buttons
-- [ ] [HIGH] Reduce Tokens workspace chrome bands by merging search, toolbar, and conditional bars
+- [x] [HIGH] Reduce Tokens workspace chrome bands by merging search, toolbar, and conditional bars
 - [x] [HIGH] Remove all-caps section labels from shell, workspace headers, and footer bands
 - [x] [HIGH] Remove description paragraphs and implementation-language copy from all workspaces and surfaces
 - [x] [HIGH] Remove MORE CREATION footer and merge its actions into the existing toolbar

@@ -28,12 +28,20 @@ import { copyToClipboard } from "../shared/comparisonUtils";
 import { apiFetch, ApiError } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
 import { getErrorMessage, SET_NAME_RE } from "../shared/utils";
+import {
+  getImportResultNextStepRecommendations,
+  type ImportNextStepRecommendation,
+} from "../shared/navigationTypes";
 
 export interface ImportPanelProps {
   serverUrl: string;
   connected: boolean;
   onImported: () => void;
   onImportComplete: (result: ImportCompletionResult) => void;
+  onOpenImportNextStep: (
+    result: ImportCompletionResult,
+    recommendation: ImportNextStepRecommendation,
+  ) => void;
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
@@ -126,6 +134,7 @@ export interface ImportPanelContextValue {
   copyFeedback: boolean;
   lastImport: { entries: { setName: string; paths: string[] }[] } | null;
   lastImportReviewSummary: LastImportReviewSummary | null;
+  importNextStepRecommendations: ImportNextStepRecommendation[];
   undoing: boolean;
   failedImportGroups: ImportFailureGroup[];
   reviewActionCopy: Record<ImportReviewActionKey, ImportReviewActionCopy>;
@@ -229,6 +238,7 @@ export interface ImportPanelContextValue {
   handleUndoImport: () => Promise<void>;
   handleRetryFailed: () => Promise<void>;
   handleCopyFailedPaths: () => void;
+  openImportNextStep: (recommendation: ImportNextStepRecommendation) => void;
   toggleToken: (path: string) => void;
   toggleAll: () => void;
   commitNewSet: () => void;
@@ -341,6 +351,7 @@ export function ImportPanelProvider({
   connected,
   onImported,
   onImportComplete,
+  onOpenImportNextStep,
   onPushUndo,
   children,
 }: ImportPanelProps & { children: React.ReactNode }) {
@@ -398,6 +409,8 @@ export function ImportPanelProvider({
   const [retrying, setRetrying] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [lastImport, setLastImport] = useState<ImportHistory | null>(null);
+  const [lastImportResult, setLastImportResult] =
+    useState<ImportCompletionResult | null>(null);
   const [lastImportReviewSummary, setLastImportReviewSummary] =
     useState<LastImportReviewSummary | null>(null);
   const [undoing, setUndoing] = useState(false);
@@ -412,10 +425,12 @@ export function ImportPanelProvider({
   const onPushUndoRef = useRef(onPushUndo);
   const onImportedRef = useRef(onImported);
   const onImportCompleteRef = useRef(onImportComplete);
+  const onOpenImportNextStepRef = useRef(onOpenImportNextStep);
   const serverUrlRef = useRef(serverUrl);
   onPushUndoRef.current = onPushUndo;
   onImportedRef.current = onImported;
   onImportCompleteRef.current = onImportComplete;
+  onOpenImportNextStepRef.current = onOpenImportNextStep;
   serverUrlRef.current = serverUrl;
 
   const clearFailedState = useCallback(() => {
@@ -774,11 +789,13 @@ export function ImportPanelProvider({
         return;
       }
 
-      onImportCompleteRef.current({
+      const completionResult: ImportCompletionResult = {
         sourceType: src.source,
         sourceFamily: src.sourceFamily,
         ...result,
-      });
+      };
+      setLastImportResult(completionResult);
+      onImportCompleteRef.current(completionResult);
     },
     [src.source, src.sourceFamily],
   );
@@ -1090,6 +1107,7 @@ export function ImportPanelProvider({
       dispatchToast("Import undone", "success");
       onImportedRef.current();
       setLastImport(null);
+      setLastImportResult(null);
       setLastImportReviewSummary(null);
       setSuccessMessage(null);
       clearFailedState();
@@ -1195,6 +1213,7 @@ export function ImportPanelProvider({
     setSuccessMessage(null);
     clearFailedState();
     setLastImport(null);
+    setLastImportResult(null);
     setLastImportReviewSummary(null);
     src.clearFileImportValidation();
   }, [clearFailedState, src.clearFileImportValidation]);
@@ -1202,6 +1221,25 @@ export function ImportPanelProvider({
   const failedImportGroups = useMemo(
     () => buildFailedImportGroups(failedImportBatches),
     [failedImportBatches],
+  );
+  const importNextStepRecommendations = useMemo(
+    () =>
+      lastImportResult === null
+        ? []
+        : getImportResultNextStepRecommendations(lastImportResult).filter(
+            (recommendation) => recommendation.target.kind === "workspace",
+          ),
+    [lastImportResult],
+  );
+  const openImportNextStep = useCallback(
+    (recommendation: ImportNextStepRecommendation) => {
+      if (lastImportResult === null) {
+        return;
+      }
+
+      onOpenImportNextStepRef.current(lastImportResult, recommendation);
+    },
+    [lastImportResult],
   );
 
   const usesCollectionDestination = src.collectionData.length > 0;
@@ -1276,6 +1314,7 @@ export function ImportPanelProvider({
       copyFeedback,
       lastImport,
       lastImportReviewSummary,
+      importNextStepRecommendations,
       undoing,
       failedImportGroups,
       reviewActionCopy: IMPORT_REVIEW_ACTION_COPY,
@@ -1339,6 +1378,7 @@ export function ImportPanelProvider({
       handleUndoImport,
       handleRetryFailed,
       handleCopyFailedPaths,
+      openImportNextStep,
       toggleToken: src.toggleToken,
       toggleAll: src.toggleAll,
       commitNewSet: setsHook.commitNewSet,
@@ -1402,10 +1442,13 @@ export function ImportPanelProvider({
       retrying,
       copyFeedback,
       lastImport,
+      lastImportResult,
       lastImportReviewSummary,
+      importNextStepRecommendations,
       undoing,
       handleCopyFailedPaths,
       clearSuccessState,
+      openImportNextStep,
       setsHook.targetSet,
       setsHook.sets,
       setsHook.setsError,
@@ -1452,6 +1495,7 @@ export function ImportPanelProvider({
       executeImport,
       handleUndoImport,
       handleRetryFailed,
+      openImportNextStep,
     ],
   );
 

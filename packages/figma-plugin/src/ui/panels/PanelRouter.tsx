@@ -80,6 +80,7 @@ import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { StarredTokensState } from "../hooks/useStarredTokens";
 import type { NotificationEntry } from "../hooks/useToastStack";
 import type {
+  ImportNextStepRecommendation,
   TopTab,
   SubTab,
   SecondarySurfaceId,
@@ -89,6 +90,7 @@ import type {
 } from "../shared/navigationTypes";
 import {
   getImportResultNextStepRecommendations,
+  getMostRelevantImportDestinationSet,
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
 import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
@@ -982,6 +984,30 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     );
   };
 
+  const openImportNextStep = useCallback(
+    (
+      result: ImportCompletionResult,
+      recommendation: ImportNextStepRecommendation,
+      options?: { preserveSecondarySurface?: boolean },
+    ) => {
+      if (recommendation.target.kind !== "workspace") {
+        return;
+      }
+
+      const targetSet = getMostRelevantImportDestinationSet(result);
+      if (targetSet) {
+        setActiveSet(targetSet);
+      }
+
+      navigateTo(
+        recommendation.target.topTab,
+        recommendation.target.subTab,
+        options,
+      );
+    },
+    [navigateTo, setActiveSet],
+  );
+
   type SecondaryPanelRenderer = () => ReactNode;
 
   // Secondary surfaces are full-height takeovers: they keep the shell visible
@@ -1007,28 +1033,25 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             onImported={refreshTokens}
             onImportComplete={(result) => {
               p.onImportComplete(result);
-              const nextStep =
-                getImportResultNextStepRecommendations(result)[0];
-              if (nextStep?.target.kind === "secondary-surface") {
+              const nextWorkspaceStep = getImportResultNextStepRecommendations(
+                result,
+              ).find(
+                (recommendation) => recommendation.target.kind === "workspace",
+              );
+              if (nextWorkspaceStep) {
+                openImportNextStep(result, nextWorkspaceStep, {
+                  preserveSecondarySurface: true,
+                });
                 return;
               }
 
-              if (nextStep) {
-                if (
-                  nextStep.target.topTab === "define" &&
-                  nextStep.target.subTab === "tokens"
-                ) {
-                  const primaryDestinationSet = result.destinationSets[0];
-                  if (primaryDestinationSet) {
-                    setActiveSet(primaryDestinationSet);
-                  }
-                }
-                navigateTo(nextStep.target.topTab, nextStep.target.subTab);
-                return;
-              }
-
-              navigateTo("define", "tokens");
+              navigateTo("define", "tokens", {
+                preserveSecondarySurface: true,
+              });
             }}
+            onOpenImportNextStep={(result, recommendation) =>
+              openImportNextStep(result, recommendation)
+            }
             onPushUndo={p.pushUndo}
           />
         </div>
