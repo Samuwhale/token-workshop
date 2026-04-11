@@ -1176,3 +1176,9 @@
 - **Learnings for future iterations:**
   - When shell navigation metadata leaks into user copy, rewrite the string around the action a person can take rather than the internal navigation model behind it.
 ---
+- Rewrote the shell menu helper copy to describe the user task directly and updated the Apply > Best matches status text so it no longer uses implementation terms like "surface" or "surfaced."
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/App.tsx` passed.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2255, `packages/figma-plugin/src/ui/App.tsx` ~L2952
+- **Learnings for future iterations:**
+  - When shell navigation metadata leaks into user copy, rewrite the string around the action a person can take rather than the internal navigation model behind it.
+---

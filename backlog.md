@@ -59,6 +59,8 @@
 - [x] [HIGH] Remove MORE CREATION footer and merge its actions into the existing toolbar
 - [x] [HIGH] Rewrite UI copy to use task language instead of implementation language
 - [x] [HIGH] Simplify Settings to a flat scrollable list without search or tabs
+- [ ] [HIGH] Move set rename, merge, split, and delete into server-owned structural transactions that also rewrite dependent themes, resolvers, and generator state
+- [ ] [HIGH] Extend manual snapshots to capture and restore themes, resolvers, and generators instead of only token sets
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -127,6 +129,7 @@
 - [x] Add named parameter presets as entry path for generator configuration
 - [x] Cap visible status pills at four with expandable overflow
 - [x] Standardize mode and option and context terminology to use option everywhere
-- [ ] Rewrite remaining shell menu and match-copy strings to task language
+- [x] Rewrite remaining shell menu and match-copy strings to task language
+- [ ] Unify external-change reloading and SSE refresh across token, theme, resolver, and generator files
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
