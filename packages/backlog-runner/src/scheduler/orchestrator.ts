@@ -47,6 +47,26 @@ function collectActiveControlPromises(worker: ActiveControlWorker | null): Promi
   return worker ? [worker.promise] : [];
 }
 
+function renderLoopSummary(options: {
+  iteration: number;
+  ready: number;
+  blocked: number;
+  planned: number;
+  inProgress: number;
+  taskWorkers: number;
+  effectiveWorkers: number;
+  activeControlKind: string;
+  previousCompletedTaskDuration: number;
+}): string[] {
+  return [
+    '═══════════════════════════════════════════════════════════════',
+    `  #${options.iteration} · ${options.ready} ready · ${options.blocked} blocked · ${options.planned} planned · ${options.inProgress} in-progress` +
+      (options.previousCompletedTaskDuration ? ` · last task ${formatDuration(options.previousCompletedTaskDuration)}` : ''),
+    `  Active workers: ${options.taskWorkers}/${options.effectiveWorkers} task · ${options.activeControlKind} control`,
+    '═══════════════════════════════════════════════════════════════',
+  ];
+}
+
 async function writeOrchestratorStatus(config: BacklogRunnerConfig, status: OrchestratorRuntimeStatus): Promise<void> {
   await writeFile(
     path.join(config.files.runtimeDir, 'orchestrator-status.json'),
@@ -131,6 +151,7 @@ export async function runBacklogRunner(
   let plannerCooldownUntil = 0;
   let iteration = 0;
   let previousCompletedTaskDuration = 0;
+  let lastLoopSummaryKey = '';
 
   const taskWorkers = new Map<string, { title: string; promise: Promise<BacklogWorkerResult> }>();
   let controlWorker: ActiveControlWorker | null = null;
@@ -304,19 +325,39 @@ export async function runBacklogRunner(
       iteration += 1;
       logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
       const counts = await store.getQueueCounts();
-
-      logger.line('');
-      logger.line('═══════════════════════════════════════════════════════════════');
       const activeControlKind = describeActiveControlWorker(controlWorker);
-      logger.line(
-        `  #${iteration} · ${counts.ready} ready · ${counts.blocked} blocked · ${counts.planned} planned · ${counts.inProgress} in-progress` +
-        (previousCompletedTaskDuration ? ` · last task ${formatDuration(previousCompletedTaskDuration)}` : ''),
-      );
-      logger.line(`  Active workers: ${taskWorkers.size}/${effectiveWorkers} task · ${activeControlKind} control`);
-      logger.line('═══════════════════════════════════════════════════════════════');
+      const loopSummary = renderLoopSummary({
+        iteration,
+        ready: counts.ready,
+        blocked: counts.blocked,
+        planned: counts.planned,
+        inProgress: counts.inProgress,
+        taskWorkers: taskWorkers.size,
+        effectiveWorkers,
+        activeControlKind,
+        previousCompletedTaskDuration,
+      });
+      const loopSummaryKey = JSON.stringify({
+        ready: counts.ready,
+        blocked: counts.blocked,
+        planned: counts.planned,
+        inProgress: counts.inProgress,
+        taskWorkers: taskWorkers.size,
+        effectiveWorkers,
+        activeControlKind,
+        previousCompletedTaskDuration,
+      });
+      const now = Date.now();
+      if (loopSummaryKey !== lastLoopSummaryKey) {
+        logger.line('');
+        for (const line of loopSummary) {
+          logger.line(line);
+        }
+        lastLoopSummaryKey = loopSummaryKey;
+      }
+
       await updateStatus();
 
-      const now = Date.now();
       if (now < rateLimitUntil) {
         logger.line(`  Rate limit backoff active until ${new Date(rateLimitUntil).toTimeString().slice(0, 8)}.`);
         await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);

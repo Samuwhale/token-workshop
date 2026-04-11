@@ -888,3 +888,10 @@
   - Contextual-surface transitions are easier to reason about when payload selection and mutual-exclusion live in the same context API; callers should only manage adjacent UI state like preview-split layout.
   - Dirty-state guards belong at the navigation boundary, not inside individual preview widgets, so all entry points to editor transitions can reuse the same confirmation flow.
 ---
+## 2026-04-11 - Guard compare-to-edit and preview-to-edit transitions through dirty-state check
+- Routed compare-panel edit/create actions and preview-split edit actions through `guardEditorAction`, using a shared `openTokenEditor` helper so dirty token or generator sessions now hit the existing discard-confirmation modal before swapping surfaces.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json` still fails on unrelated pre-existing workspace TypeScript issues (`packages/core/dist` alias output, `NoticeSeverity` mismatches, and existing implicit-`any` errors).
+- Files changed: `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L324, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L536, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L947
+- **Learnings for future iterations:**
+  - Compare and preview CTA handlers should reuse the same editor-opening helper as list actions so dirty-state guarding and surface cleanup stay consistent across every entry point.
+---

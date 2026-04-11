@@ -321,6 +321,34 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     });
   }, [activeSet, switchContextualSurface]);
 
+  const openTokenEditor = useCallback((options: {
+    path: string;
+    set: string;
+    name?: string;
+  }) => {
+    p.setShowPreviewSplit(false);
+    setPreviewingToken(null);
+    setHighlightedToken(options.path);
+    if (options.set !== activeSet) {
+      setActiveSet(options.set);
+    }
+    switchContextualSurface({
+      surface: 'token-editor',
+      token: {
+        path: options.path,
+        name: options.name,
+        set: options.set,
+      },
+    });
+  }, [
+    activeSet,
+    p.setShowPreviewSplit,
+    setActiveSet,
+    setHighlightedToken,
+    setPreviewingToken,
+    switchContextualSurface,
+  ]);
+
   const handleTokenEditorBack = useCallback(() => {
     if (editingToken?.isCreate) {
       setCreateFromEmpty(false);
@@ -505,10 +533,15 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       themeOptionsKey={tokensCompareThemeKey}
       themeOptionsDefaultA={tokensCompareDefaultA}
       themeOptionsDefaultB={tokensCompareDefaultB}
-      onEditToken={(set, path) => { p.handleNavigateToSet(set, path); }}
+      onEditToken={(set, path) => {
+        p.guardEditorAction(() => {
+          openTokenEditor({ path, set });
+        });
+      }}
       onCreateToken={(path, set, type, value) => {
-        setShowTokensCompare(false);
-        openCreateLauncher({ initialPath: path, initialType: type, initialValue: value, set });
+        p.guardEditorAction(() => {
+          openCreateLauncher({ initialPath: path, initialType: type, initialValue: value, set });
+        });
       }}
       onGoToTokens={() => setShowTokensCompare(false)}
       serverUrl={serverUrl}
@@ -912,9 +945,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   lintViolations={p.lintViolations}
                   syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                   onEditToken={(path, name, set) => {
-                    p.setShowPreviewSplit(false);
-                    setEditingToken({ path, name, set: set ?? activeSet });
-                    setPreviewingToken(null);
+                    p.guardEditorAction(() => {
+                      openTokenEditor({ path, name, set: set ?? activeSet });
+                    });
                   }}
                   serverUrl={serverUrl}
                   tokenUsageCounts={tokenUsageCounts}

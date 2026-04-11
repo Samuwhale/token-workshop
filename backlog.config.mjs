@@ -31,26 +31,27 @@ export default {
   runners: {
     task: {
       tool: 'codex',
-      model: 'default',
+      model: 'gpt-5.4',
     },
     planner: {
       tool: 'claude',
-      model: 'opus',
+      model: 'claude-opus-4-6',
     },
     product: {
       tool: 'claude',
-      model: 'sonnet',
+      model: 'claude-sonnet-4-6',
     },
     ux: {
       tool: 'claude',
-      model: 'opus',
+      model: 'claude-opus-4-6',
     },
     code: {
       tool: 'codex',
-      model: 'default',
+      model: 'gpt-5.4',
     },
   },
   defaults: {
+    workers: 2,
     passes: true,
     worktrees: true,
   },

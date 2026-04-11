@@ -71,6 +71,7 @@ export function resolveWorkerChoice(value: string, fallback: number, maxWorkers 
 type StartSummaryInput = {
   tool?: BacklogTool;
   runners?: RunOverrides['runners'];
+  repoRunners?: BacklogRunnerConfig['runners'];
   workers: number;
   model?: string;
   passes: boolean;
@@ -97,24 +98,28 @@ function roleLabel(role: BacklogRunnerRole): string {
 }
 
 function modelLabel(model?: string): string {
-  return model?.trim() || 'repo default';
+  return model?.trim() || 'unspecified';
 }
 
-function renderRunnerSummaryLines(overrides: StartSummaryInput): string[] {
-  if (overrides.runners && Object.keys(overrides.runners).length > 0) {
-    return [
-      'Runner setup:              mixed per role',
-      ...RUNNER_ROLES.map(role => {
-        const runner = overrides.runners?.[role];
-        return `  ${roleLabel(role)}: ${runner?.tool ?? 'repo default'} · ${modelLabel(runner?.model)}`;
-      }),
-    ];
-  }
+function effectiveRunnerSummary(
+  input: StartSummaryInput,
+  role: BacklogRunnerRole,
+): { tool: string; model?: string } {
+  const repoRunner = input.repoRunners?.[role];
+  const roleOverride = input.runners?.[role];
+  return {
+    tool: roleOverride?.tool ?? input.tool ?? repoRunner?.tool ?? 'repo default',
+    model: roleOverride?.model ?? input.model ?? repoRunner?.model,
+  };
+}
 
+function renderRunnerSummaryLines(input: StartSummaryInput): string[] {
   return [
-    'Runner setup:              one setting for all runners',
-    `All-runner tool override:  ${overrides.tool ?? 'repo defaults'}`,
-    `All-runner model override: ${overrides.model?.trim() || 'repo defaults'}`,
+    'Runners:',
+    ...RUNNER_ROLES.map(role => {
+      const runner = effectiveRunnerSummary(input, role);
+      return `  ${role.padEnd(7, ' ')} ${runner.tool}${runner.model ? ` · ${runner.model}` : ''}`;
+    }),
   ];
 }
 
@@ -192,14 +197,15 @@ export async function promptForStartOverrides(
 
     while (true) {
       prompter.write('\nBacklog Runner Start\n\n');
-      prompter.write(`Repo defaults\n${SUMMARY_DIVIDER}\n`);
-      prompter.write(`Workspace mode: ${workspaceModeLabel(config.defaults.worktrees)}\n`);
-      prompter.write(`Requested task workers: ${config.defaults.workers}\n`);
-      prompter.write(`Discovery when queue is empty: ${config.defaults.passes ? 'enabled' : 'disabled'}\n`);
-      prompter.write('Runner setup: one setting for all runners\n');
-      prompter.write('All-runner tool override: repo defaults\n');
-      prompter.write('All-runner model override: repo defaults\n');
-      prompter.write(`${SUMMARY_DIVIDER}\n`);
+      prompter.write(`Repo defaults\n${summarizeStartOverrides({
+        tool: undefined,
+        runners: undefined,
+        repoRunners: config.runners,
+        workers: config.defaults.workers,
+        model: undefined,
+        passes: config.defaults.passes,
+        worktrees: config.defaults.worktrees,
+      })}\n`);
 
       const startChoice = (await prompter.question(
         'Press Enter to start with repo defaults, type "customize" to change launch settings, or "cancel" to abort: ',
@@ -215,6 +221,7 @@ export async function promptForStartOverrides(
         prompter.write(`\n${summarizeStartOverrides({
           tool: undefined,
           runners: undefined,
+          repoRunners: config.runners,
           workers: config.defaults.workers,
           model: undefined,
           passes: config.defaults.passes,
@@ -318,6 +325,7 @@ export async function promptForStartOverrides(
       prompter.write(`\n${summarizeStartOverrides({
         tool: nextTool,
         runners: nextRunners,
+        repoRunners: config.runners,
         workers: nextWorkers,
         model: nextModel,
         passes: nextPasses,

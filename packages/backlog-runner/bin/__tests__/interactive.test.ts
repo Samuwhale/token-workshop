@@ -29,11 +29,11 @@ function makeConfig() {
       },
       validationCommand: 'bash scripts/backlog/validate.sh',
       runners: {
-        task: { tool: 'codex', model: 'default' },
-        planner: { tool: 'claude', model: 'opus' },
-        product: { tool: 'codex', model: 'default' },
-        ux: { tool: 'claude', model: 'sonnet' },
-        code: { tool: 'codex', model: 'default' },
+        task: { tool: 'codex', model: 'gpt-5.4' },
+        planner: { tool: 'claude', model: 'claude-opus-4-6' },
+        product: { tool: 'codex', model: 'gpt-5.4' },
+        ux: { tool: 'claude', model: 'claude-sonnet-4-6' },
+        code: { tool: 'codex', model: 'gpt-5.4' },
       },
       defaults: {
         workers: 2,
@@ -81,6 +81,8 @@ describe('interactive helpers', () => {
   it('renders a readable launch summary including shared-workspace worker limits', () => {
     const summary = summarizeStartOverrides({
       tool: undefined,
+      runners: undefined,
+      repoRunners: makeConfig().runners,
       workers: 3,
       model: undefined,
       passes: true,
@@ -90,8 +92,9 @@ describe('interactive helpers', () => {
     expect(summary).toContain('Workspace mode:            shared workspace');
     expect(summary).toContain('Requested task workers:    3 requested, 1 effective in shared workspace');
     expect(summary).toContain('Discovery when queue is empty: enabled');
-    expect(summary).toContain('Runner setup:              one setting for all runners');
-    expect(summary).toContain('All-runner tool override:  repo defaults');
+    expect(summary).toContain('Runners:');
+    expect(summary).toContain('  task    codex · gpt-5.4');
+    expect(summary).toContain('  planner claude · claude-opus-4-6');
   });
 
   it('only prompts interactively for start when a TTY is present, no explicit overrides were supplied, and --yes is absent', () => {
@@ -196,9 +199,9 @@ describe('interactive helpers', () => {
     });
     expect(prompter.prompts).toContain('Runner setup [1-2] (1): ');
     expect(prompter.prompts).toContain('  Tool [1-3 or name] (claude): ');
-    expect(prompter.prompts).toContain('  Model (blank keeps repo default) (opus): ');
+    expect(prompter.prompts).toContain('  Model (blank keeps repo default) (claude-opus-4-6): ');
     expect(prompter.writes.join('')).toContain('Per-role runner setup');
     expect(prompter.writes.join('')).toContain('Planner runner');
-    expect(prompter.writes.join('')).toContain('Runner setup:              mixed per role');
+    expect(prompter.writes.join('')).toContain('Runners:\n  task    codex · gpt-5.4');
   });
 });
