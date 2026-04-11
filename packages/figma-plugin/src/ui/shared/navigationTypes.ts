@@ -195,6 +195,50 @@ export interface AppShellNavigation {
   utilityMenu: UtilityMenu;
 }
 
+export type ImportResultSourceType =
+  | "variables"
+  | "styles"
+  | "json"
+  | "css"
+  | "tailwind"
+  | "tokens-studio";
+export type ImportResultSourceFamily =
+  | "figma"
+  | "token-files"
+  | "code"
+  | "migration";
+
+export interface ImportResultSummary {
+  sourceType: ImportResultSourceType;
+  sourceFamily: ImportResultSourceFamily;
+  destinationSets: string[];
+  newCount: number;
+  overwriteCount: number;
+  mergeCount: number;
+  keepExistingCount: number;
+  totalImportedCount: number;
+  hadFailures: boolean;
+  sourceCollectionCount?: number;
+}
+
+export type ImportNextStepTarget =
+  | {
+      kind: "workspace";
+      workspaceId: WorkspaceId;
+      topTab: TopTab;
+      subTab: SubTab;
+    }
+  | {
+      kind: "secondary-surface";
+      secondarySurfaceId: SecondarySurfaceId;
+    };
+
+export interface ImportNextStepRecommendation {
+  target: ImportNextStepTarget;
+  label: string;
+  rationale: string;
+}
+
 const route = (topTab: TopTab, subTab: SubTab): WorkspaceRoute => ({
   topTab,
   subTab,
@@ -561,6 +605,136 @@ export const APP_SHELL_NAVIGATION: AppShellNavigation = {
   secondarySurfaces: SECONDARY_SURFACES,
   utilityMenu: UTILITY_MENU,
 };
+
+export const LARGE_INITIAL_IMPORT_TOKEN_THRESHOLD = 150;
+export const LARGE_INITIAL_IMPORT_SET_THRESHOLD = 4;
+
+function createWorkspaceRecommendation(
+  topTab: TopTab,
+  subTab: SubTab,
+  rationale: string,
+): ImportNextStepRecommendation {
+  const workspace = resolveWorkspace(topTab, subTab);
+  return {
+    target: {
+      kind: "workspace",
+      workspaceId: workspace.id,
+      topTab,
+      subTab,
+    },
+    label: workspace.label,
+    rationale,
+  };
+}
+
+function createSecondarySurfaceRecommendation(
+  secondarySurfaceId: SecondarySurfaceId,
+  rationale: string,
+): ImportNextStepRecommendation {
+  const surface = resolveSecondarySurface(secondarySurfaceId);
+  return {
+    target: {
+      kind: "secondary-surface",
+      secondarySurfaceId,
+    },
+    label: surface?.label ?? secondarySurfaceId,
+    rationale,
+  };
+}
+
+function isLargeInitialImport(summary: ImportResultSummary): boolean {
+  const reviewedExistingCount =
+    summary.overwriteCount + summary.mergeCount + summary.keepExistingCount;
+  return (
+    reviewedExistingCount === 0 &&
+    (summary.totalImportedCount >= LARGE_INITIAL_IMPORT_TOKEN_THRESHOLD ||
+      summary.destinationSets.length >= LARGE_INITIAL_IMPORT_SET_THRESHOLD)
+  );
+}
+
+function importedMultipleVariableCollections(
+  summary: ImportResultSummary,
+): boolean {
+  if (summary.sourceType !== "variables") {
+    return false;
+  }
+
+  if (summary.sourceCollectionCount !== undefined) {
+    return summary.sourceCollectionCount > 1;
+  }
+
+  return summary.destinationSets.length > 1;
+}
+
+export function getImportResultNextStepRecommendations(
+  summary: ImportResultSummary,
+): ImportNextStepRecommendation[] {
+  const recommendations: ImportNextStepRecommendation[] = [];
+  const seenTargets = new Set<string>();
+
+  const addRecommendation = (recommendation: ImportNextStepRecommendation) => {
+    const targetKey =
+      recommendation.target.kind === "workspace"
+        ? `${recommendation.target.topTab}:${recommendation.target.subTab}`
+        : `secondary:${recommendation.target.secondarySurfaceId}`;
+    if (seenTargets.has(targetKey)) {
+      return;
+    }
+    seenTargets.add(targetKey);
+    recommendations.push(recommendation);
+  };
+
+  if (summary.hadFailures) {
+    addRecommendation(
+      createSecondarySurfaceRecommendation(
+        "import",
+        "Stay here to retry failed batches and review anything that did not save cleanly.",
+      ),
+    );
+  }
+
+  if (importedMultipleVariableCollections(summary)) {
+    addRecommendation(
+      createWorkspaceRecommendation(
+        "define",
+        "themes",
+        "Multiple imported variable collections usually need theme structure before you fine-tune individual tokens.",
+      ),
+    );
+  }
+
+  if (isLargeInitialImport(summary)) {
+    addRecommendation(
+      createWorkspaceRecommendation(
+        "ship",
+        "publish",
+        "A large first import is the right time to confirm sync mapping before more edits pile on.",
+      ),
+    );
+  }
+
+  if (summary.sourceFamily === "code" || summary.sourceFamily === "migration") {
+    addRecommendation(
+      createWorkspaceRecommendation(
+        "define",
+        "tokens",
+        "Code and migration imports usually need a pass in the token library to verify naming, grouping, and cleanup.",
+      ),
+    );
+  }
+
+  if (recommendations.length === 0) {
+    addRecommendation(
+      createWorkspaceRecommendation(
+        "define",
+        "tokens",
+        "Review the imported tokens in the library before moving on to the next workflow.",
+      ),
+    );
+  }
+
+  return recommendations;
+}
 
 function matchesRoute(
   routeDef: WorkspaceRoute,

@@ -1,5 +1,13 @@
-import { createContext, useContext, useRef, useCallback, useMemo, useState, useEffect } from 'react';
-import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
+import {
+  createContext,
+  useContext,
+  useRef,
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
+import { flattenTokenGroup, type DTCGGroup } from "@tokenmanager/core";
 import {
   type ImportToken,
   type CollectionData,
@@ -8,15 +16,18 @@ import {
   type ImportWorkflowStage,
   defaultSetName,
   modeKey,
-} from './importPanelTypes';
-import type { SkippedEntry } from '../shared/tokenParsers';
-import { useImportSets } from '../hooks/useImportSets';
-import { useImportSource, type FileImportValidation } from '../hooks/useImportSource';
-import type { UndoSlot } from '../hooks/useUndo';
-import { copyToClipboard } from '../shared/comparisonUtils';
-import { apiFetch, ApiError } from '../shared/apiFetch';
-import { dispatchToast } from '../shared/toastBus';
-import { getErrorMessage, SET_NAME_RE } from '../shared/utils';
+} from "./importPanelTypes";
+import type { SkippedEntry } from "../shared/tokenParsers";
+import { useImportSets } from "../hooks/useImportSets";
+import {
+  useImportSource,
+  type FileImportValidation,
+} from "../hooks/useImportSource";
+import type { UndoSlot } from "../hooks/useUndo";
+import { copyToClipboard } from "../shared/comparisonUtils";
+import { apiFetch, ApiError } from "../shared/apiFetch";
+import { dispatchToast } from "../shared/toastBus";
+import { getErrorMessage, SET_NAME_RE } from "../shared/utils";
 
 export interface ImportPanelProps {
   serverUrl: string;
@@ -26,7 +37,7 @@ export interface ImportPanelProps {
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
-export type ImportReviewActionKey = 'overwrite' | 'merge' | 'skip';
+export type ImportReviewActionKey = "overwrite" | "merge" | "skip";
 
 export interface ImportReviewActionCopy {
   key: ImportReviewActionKey;
@@ -58,6 +69,7 @@ export interface ImportCompletionResult {
   keepExistingCount: number;
   totalImportedCount: number;
   hadFailures: boolean;
+  sourceCollectionCount?: number;
 }
 
 export interface ImportPanelContextValue {
@@ -83,7 +95,14 @@ export interface ImportPanelContextValue {
   importing: boolean;
   error: string | null;
   sourceFamily: SourceFamily | null;
-  source: 'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio' | null;
+  source:
+    | "variables"
+    | "styles"
+    | "json"
+    | "css"
+    | "tailwind"
+    | "tokens-studio"
+    | null;
   workflowStage: ImportWorkflowStage;
 
   // Sets state
@@ -101,7 +120,7 @@ export interface ImportPanelContextValue {
   successMessage: string | null;
   failedImportPaths: string[];
   failedImportBatches: { setName: string; tokens: Record<string, unknown>[] }[];
-  failedImportStrategy: 'overwrite' | 'skip' | 'merge';
+  failedImportStrategy: "overwrite" | "skip" | "merge";
   succeededImportCount: number;
   retrying: boolean;
   copyFeedback: boolean;
@@ -113,16 +132,23 @@ export interface ImportPanelContextValue {
 
   // Conflict state
   conflictPaths: string[] | null;
-  conflictExistingValues: Map<string, { $type: string; $value: unknown }> | null;
-  conflictDecisions: Map<string, 'accept' | 'merge' | 'reject'>;
+  conflictExistingValues: Map<
+    string,
+    { $type: string; $value: unknown }
+  > | null;
+  conflictDecisions: Map<string, "accept" | "merge" | "reject">;
   conflictSearch: string;
-  conflictStatusFilter: 'all' | 'accept' | 'merge' | 'reject';
+  conflictStatusFilter: "all" | "accept" | "merge" | "reject";
   conflictTypeFilter: string;
   checkingConflicts: boolean;
   setConflictSearch: React.Dispatch<React.SetStateAction<string>>;
-  setConflictStatusFilter: React.Dispatch<React.SetStateAction<'all' | 'accept' | 'merge' | 'reject'>>;
+  setConflictStatusFilter: React.Dispatch<
+    React.SetStateAction<"all" | "accept" | "merge" | "reject">
+  >;
   setConflictTypeFilter: React.Dispatch<React.SetStateAction<string>>;
-  setConflictDecisions: React.Dispatch<React.SetStateAction<Map<string, 'accept' | 'merge' | 'reject'>>>;
+  setConflictDecisions: React.Dispatch<
+    React.SetStateAction<Map<string, "accept" | "merge" | "reject">>
+  >;
 
   // Progress state
   importProgress: { done: number; total: number } | null;
@@ -143,7 +169,14 @@ export interface ImportPanelContextValue {
 
   // Variables conflict preview
   varConflictPreview: { newCount: number; overwriteCount: number } | null;
-  varConflictDetails: { path: string; setName: string; existing: { $type: string; $value: unknown }; incoming: ImportToken }[] | null;
+  varConflictDetails:
+    | {
+        path: string;
+        setName: string;
+        existing: { $type: string; $value: unknown };
+        incoming: ImportToken;
+      }[]
+    | null;
   varConflictDetailsExpanded: boolean;
   setVarConflictDetailsExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   checkingVarConflicts: boolean;
@@ -174,7 +207,9 @@ export interface ImportPanelContextValue {
   handleJsonFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleCSSFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleTailwindFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleTokensStudioFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleTokensStudioFileChange: (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => void;
   handleDragEnter: (e: React.DragEvent) => void;
   handleDragLeave: (e: React.DragEvent) => void;
   handleDragOver: (e: React.DragEvent) => void;
@@ -182,9 +217,15 @@ export interface ImportPanelContextValue {
   handleBack: () => void;
   selectSourceFamily: (family: SourceFamily) => void;
   continueToPreview: () => void;
-  handleImportVariables: (strategy?: 'overwrite' | 'skip' | 'merge') => Promise<void>;
+  handleImportVariables: (
+    strategy?: "overwrite" | "skip" | "merge",
+  ) => Promise<void>;
   handleImportStyles: () => Promise<void>;
-  executeImport: (strategy: 'skip' | 'overwrite', excludePaths?: Set<string>, mergePaths?: Set<string>) => Promise<void>;
+  executeImport: (
+    strategy: "skip" | "overwrite",
+    excludePaths?: Set<string>,
+    mergePaths?: Set<string>,
+  ) => Promise<void>;
   handleUndoImport: () => Promise<void>;
   handleRetryFailed: () => Promise<void>;
   handleCopyFailedPaths: () => void;
@@ -200,47 +241,56 @@ export interface ImportPanelContextValue {
 const ImportPanelContext = createContext<ImportPanelContextValue | null>(null);
 
 type ExistingTokenValue = { $type: string; $value: unknown };
-type ConflictDecision = 'accept' | 'merge' | 'reject';
+type ConflictDecision = "accept" | "merge" | "reject";
 type ImportBatch = { setName: string; tokens: Record<string, unknown>[] };
 type ImportHistory = { entries: { setName: string; paths: string[] }[] };
-type ImportStrategy = 'overwrite' | 'skip' | 'merge';
-type ImportSource = ImportPanelContextValue['source'];
+type ImportStrategy = "overwrite" | "skip" | "merge";
+type ImportSource = ImportPanelContextValue["source"];
 
-export const IMPORT_REVIEW_ACTION_COPY: Record<ImportReviewActionKey, ImportReviewActionCopy> = {
+export const IMPORT_REVIEW_ACTION_COPY: Record<
+  ImportReviewActionKey,
+  ImportReviewActionCopy
+> = {
   overwrite: {
-    key: 'overwrite',
-    label: 'Overwrite',
-    buttonLabel: 'Overwrite conflicts',
-    consequence: 'Replace the current value with the incoming value.',
+    key: "overwrite",
+    label: "Overwrite",
+    buttonLabel: "Overwrite conflicts",
+    consequence: "Replace the current value with the incoming value.",
   },
   merge: {
-    key: 'merge',
-    label: 'Merge',
-    buttonLabel: 'Merge conflicts',
-    consequence: 'Update the value and keep any notes or metadata already on the token.',
+    key: "merge",
+    label: "Merge",
+    buttonLabel: "Merge conflicts",
+    consequence:
+      "Update the value and keep any notes or metadata already on the token.",
   },
   skip: {
-    key: 'skip',
-    label: 'Keep existing',
-    buttonLabel: 'Keep existing conflicts',
-    consequence: 'Skip conflicting tokens and only import tokens that are still new.',
+    key: "skip",
+    label: "Keep existing",
+    buttonLabel: "Keep existing conflicts",
+    consequence:
+      "Skip conflicting tokens and only import tokens that are still new.",
   },
 };
 
 function getImportSourceTag(source: ImportSource): string | null {
-  if (source === 'variables') return 'figma-variables';
-  if (source === 'styles') return 'figma-styles';
+  if (source === "variables") return "figma-variables";
+  if (source === "styles") return "figma-styles";
   return source;
 }
 
-function buildImportPayload(token: ImportToken, source: ImportSource): Record<string, unknown> {
+function buildImportPayload(
+  token: ImportToken,
+  source: ImportSource,
+): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     path: token.path,
     $type: token.$type,
     $value: token.$value,
   };
   if (token.$description) payload.$description = token.$description;
-  if (token.$scopes && token.$scopes.length > 0) payload.$scopes = token.$scopes;
+  if (token.$scopes && token.$scopes.length > 0)
+    payload.$scopes = token.$scopes;
   const sourceTag = getImportSourceTag(source);
   if (sourceTag) {
     payload.$extensions = {
@@ -254,12 +304,14 @@ function buildImportPayload(token: ImportToken, source: ImportSource): Record<st
   return payload;
 }
 
-function flattenExistingTokens(tokens: Record<string, unknown> | undefined): Map<string, ExistingTokenValue> {
+function flattenExistingTokens(
+  tokens: Record<string, unknown> | undefined,
+): Map<string, ExistingTokenValue> {
   const flat = flattenTokenGroup((tokens ?? {}) as DTCGGroup);
   const mapped = new Map<string, ExistingTokenValue>();
   for (const [path, token] of flat) {
     mapped.set(path, {
-      $type: typeof token.$type === 'string' ? token.$type : 'unknown',
+      $type: typeof token.$type === "string" ? token.$type : "unknown",
       $value: token.$value,
     });
   }
@@ -268,18 +320,19 @@ function flattenExistingTokens(tokens: Record<string, unknown> | undefined): Map
 
 function buildFailedImportGroups(batches: ImportBatch[]): ImportFailureGroup[] {
   return batches
-    .map(batch => ({
+    .map((batch) => ({
       setName: batch.setName,
       paths: batch.tokens
-        .map(token => token.path)
-        .filter((path): path is string => typeof path === 'string'),
+        .map((token) => token.path)
+        .filter((path): path is string => typeof path === "string"),
     }))
-    .filter(group => group.paths.length > 0);
+    .filter((group) => group.paths.length > 0);
 }
 
 export function useImportPanel(): ImportPanelContextValue {
   const ctx = useContext(ImportPanelContext);
-  if (!ctx) throw new Error('useImportPanel must be used within ImportPanelProvider');
+  if (!ctx)
+    throw new Error("useImportPanel must be used within ImportPanelProvider");
   return ctx;
 }
 
@@ -292,35 +345,66 @@ export function ImportPanelProvider({
   children,
 }: ImportPanelProps & { children: React.ReactNode }) {
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
-  const [conflictExistingValues, setConflictExistingValues] = useState<Map<string, ExistingTokenValue> | null>(null);
-  const [conflictDecisions, setConflictDecisions] = useState<Map<string, ConflictDecision>>(new Map());
-  const [conflictSearch, setConflictSearch] = useState('');
-  const [conflictStatusFilter, setConflictStatusFilter] = useState<'all' | 'accept' | 'merge' | 'reject'>('all');
-  const [conflictTypeFilter, setConflictTypeFilter] = useState('all');
+  const [conflictExistingValues, setConflictExistingValues] = useState<Map<
+    string,
+    ExistingTokenValue
+  > | null>(null);
+  const [conflictDecisions, setConflictDecisions] = useState<
+    Map<string, ConflictDecision>
+  >(new Map());
+  const [conflictSearch, setConflictSearch] = useState("");
+  const [conflictStatusFilter, setConflictStatusFilter] = useState<
+    "all" | "accept" | "merge" | "reject"
+  >("all");
+  const [conflictTypeFilter, setConflictTypeFilter] = useState("all");
   const [checkingConflicts, setCheckingConflicts] = useState(false);
-  const [existingTokenMap, setExistingTokenMap] = useState<Map<string, ExistingTokenValue> | null>(null);
+  const [existingTokenMap, setExistingTokenMap] = useState<Map<
+    string,
+    ExistingTokenValue
+  > | null>(null);
   const [existingPathsFetching, setExistingPathsFetching] = useState(false);
-  const [existingTokenMapError, setExistingTokenMapError] = useState<string | null>(null);
-  const [varConflictPreview, setVarConflictPreview] = useState<{ newCount: number; overwriteCount: number } | null>(null);
-  const [varConflictDetails, setVarConflictDetails] = useState<
-    { path: string; setName: string; existing: ExistingTokenValue; incoming: ImportToken }[] | null
+  const [existingTokenMapError, setExistingTokenMapError] = useState<
+    string | null
   >(null);
-  const [varConflictDetailsExpanded, setVarConflictDetailsExpanded] = useState(false);
+  const [varConflictPreview, setVarConflictPreview] = useState<{
+    newCount: number;
+    overwriteCount: number;
+  } | null>(null);
+  const [varConflictDetails, setVarConflictDetails] = useState<
+    | {
+        path: string;
+        setName: string;
+        existing: ExistingTokenValue;
+        incoming: ImportToken;
+      }[]
+    | null
+  >(null);
+  const [varConflictDetailsExpanded, setVarConflictDetailsExpanded] =
+    useState(false);
   const [checkingVarConflicts, setCheckingVarConflicts] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [importProgress, setImportProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
-  const [failedImportBatches, setFailedImportBatches] = useState<ImportBatch[]>([]);
-  const [failedImportStrategy, setFailedImportStrategy] = useState<ImportStrategy>('overwrite');
+  const [failedImportBatches, setFailedImportBatches] = useState<ImportBatch[]>(
+    [],
+  );
+  const [failedImportStrategy, setFailedImportStrategy] =
+    useState<ImportStrategy>("overwrite");
   const [succeededImportCount, setSucceededImportCount] = useState(0);
   const [retrying, setRetrying] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [lastImport, setLastImport] = useState<ImportHistory | null>(null);
-  const [lastImportReviewSummary, setLastImportReviewSummary] = useState<LastImportReviewSummary | null>(null);
+  const [lastImportReviewSummary, setLastImportReviewSummary] =
+    useState<LastImportReviewSummary | null>(null);
   const [undoing, setUndoing] = useState(false);
 
-  const existingPathsCacheRef = useRef<Map<string, Map<string, ExistingTokenValue>>>(new Map());
+  const existingPathsCacheRef = useRef<
+    Map<string, Map<string, ExistingTokenValue>>
+  >(new Map());
   const existingFetchIdRef = useRef(0);
   const varConflictFetchIdRef = useRef(0);
   const retryingRef = useRef(false);
@@ -344,9 +428,9 @@ export function ImportPanelProvider({
     setConflictPaths(null);
     setConflictExistingValues(null);
     setConflictDecisions(new Map());
-    setConflictSearch('');
-    setConflictStatusFilter('all');
-    setConflictTypeFilter('all');
+    setConflictSearch("");
+    setConflictStatusFilter("all");
+    setConflictTypeFilter("all");
   }, []);
 
   const resetExistingPathsCache = useCallback(() => {
@@ -369,19 +453,25 @@ export function ImportPanelProvider({
   });
 
   const selectedImportTokens = useMemo(
-    () => src.tokens.filter(token => src.selectedTokens.has(token.path)),
+    () => src.tokens.filter((token) => src.selectedTokens.has(token.path)),
     [src.tokens, src.selectedTokens],
   );
 
   const collectionImportEntries = useMemo(
     () =>
-      src.collectionData.flatMap(collection =>
+      src.collectionData.flatMap((collection) =>
         collection.modes
-          .filter(mode => src.modeEnabled[modeKey(collection.name, mode.modeId)])
-          .map(mode => ({
+          .filter(
+            (mode) => src.modeEnabled[modeKey(collection.name, mode.modeId)],
+          )
+          .map((mode) => ({
             setName:
               src.modeSetNames[modeKey(collection.name, mode.modeId)] ||
-              defaultSetName(collection.name, mode.modeName, collection.modes.length),
+              defaultSetName(
+                collection.name,
+                mode.modeName,
+                collection.modes.length,
+              ),
             tokens: mode.tokens,
           })),
       ),
@@ -389,15 +479,29 @@ export function ImportPanelProvider({
   );
 
   const totalEnabledSets = collectionImportEntries.length;
+  const enabledCollectionCount = useMemo(
+    () =>
+      src.collectionData.filter((collection) =>
+        collection.modes.some(
+          (mode) => src.modeEnabled[modeKey(collection.name, mode.modeId)],
+        ),
+      ).length,
+    [src.collectionData, src.modeEnabled],
+  );
   const totalEnabledTokens = useMemo(
-    () => collectionImportEntries.reduce((count, entry) => count + entry.tokens.length, 0),
+    () =>
+      collectionImportEntries.reduce(
+        (count, entry) => count + entry.tokens.length,
+        0,
+      ),
     [collectionImportEntries],
   );
 
   const previewNewCount = useMemo(
     () =>
       existingTokenMap !== null
-        ? [...src.selectedTokens].filter(path => !existingTokenMap.has(path)).length
+        ? [...src.selectedTokens].filter((path) => !existingTokenMap.has(path))
+            .length
         : null,
     [existingTokenMap, src.selectedTokens],
   );
@@ -405,7 +509,8 @@ export function ImportPanelProvider({
   const previewOverwriteCount = useMemo(
     () =>
       existingTokenMap !== null
-        ? [...src.selectedTokens].filter(path => existingTokenMap.has(path)).length
+        ? [...src.selectedTokens].filter((path) => existingTokenMap.has(path))
+            .length
         : null,
     [existingTokenMap, src.selectedTokens],
   );
@@ -447,7 +552,9 @@ export function ImportPanelProvider({
       } catch (err) {
         if (fetchId !== existingFetchIdRef.current) return;
         setExistingTokenMap(null);
-        setExistingTokenMapError(getErrorMessage(err, 'Failed to load existing tokens'));
+        setExistingTokenMapError(
+          getErrorMessage(err, "Failed to load existing tokens"),
+        );
       } finally {
         if (fetchId === existingFetchIdRef.current) {
           setExistingPathsFetching(false);
@@ -464,7 +571,9 @@ export function ImportPanelProvider({
       setExistingPathsFetching(false);
       return;
     }
-    void prefetchExistingPaths(setsHook.targetSetRef.current ?? setsHook.targetSet);
+    void prefetchExistingPaths(
+      setsHook.targetSetRef.current ?? setsHook.targetSet,
+    );
   }, [src.tokens, prefetchExistingPaths, setsHook.targetSetRef]);
 
   useEffect(() => {
@@ -472,7 +581,12 @@ export function ImportPanelProvider({
     if (src.tokens.length > 0) {
       void prefetchExistingPaths(setsHook.targetSet);
     }
-  }, [setsHook.targetSet, src.tokens.length, clearConflictState, prefetchExistingPaths]);
+  }, [
+    setsHook.targetSet,
+    src.tokens.length,
+    clearConflictState,
+    prefetchExistingPaths,
+  ]);
 
   useEffect(() => {
     if (collectionImportEntries.length === 0) {
@@ -484,9 +598,14 @@ export function ImportPanelProvider({
       return;
     }
 
-    const setsToCheck = collectionImportEntries.filter(entry => setsHook.sets.includes(entry.setName));
+    const setsToCheck = collectionImportEntries.filter((entry) =>
+      setsHook.sets.includes(entry.setName),
+    );
     if (setsToCheck.length === 0) {
-      setVarConflictPreview({ newCount: totalEnabledTokens, overwriteCount: 0 });
+      setVarConflictPreview({
+        newCount: totalEnabledTokens,
+        overwriteCount: 0,
+      });
       setVarConflictDetails([]);
       setVarConflictDetailsExpanded(false);
       setCheckingVarConflicts(false);
@@ -499,7 +618,12 @@ export function ImportPanelProvider({
     void (async () => {
       try {
         let overwriteCount = 0;
-        const details: { path: string; setName: string; existing: ExistingTokenValue; incoming: ImportToken }[] = [];
+        const details: {
+          path: string;
+          setName: string;
+          existing: ExistingTokenValue;
+          incoming: ImportToken;
+        }[] = [];
 
         for (const entry of setsToCheck) {
           const existing = await fetchSetTokenMap(entry.setName);
@@ -536,20 +660,25 @@ export function ImportPanelProvider({
         }
       }
     })();
-  }, [collectionImportEntries, totalEnabledTokens, setsHook.sets, fetchSetTokenMap]);
+  }, [
+    collectionImportEntries,
+    totalEnabledTokens,
+    setsHook.sets,
+    fetchSetTokenMap,
+  ]);
 
   const ensureSetExists = useCallback(
     async (setName: string) => {
       try {
         await apiFetch(`${serverUrl}/api/sets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: setName }),
         });
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) return;
         throw new Error(
-          `Failed to create set "${setName}": ${err instanceof Error ? err.message : 'Unknown error'}`,
+          `Failed to create set "${setName}": ${err instanceof Error ? err.message : "Unknown error"}`,
         );
       }
     },
@@ -557,12 +686,16 @@ export function ImportPanelProvider({
   );
 
   const importPayloadBatch = useCallback(
-    async (setName: string, tokens: Record<string, unknown>[], strategy: ImportStrategy) => {
+    async (
+      setName: string,
+      tokens: Record<string, unknown>[],
+      strategy: ImportStrategy,
+    ) => {
       const result = await apiFetch<{ imported: number; skipped: number }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tokens, strategy }),
         },
       );
@@ -575,40 +708,48 @@ export function ImportPanelProvider({
     async (setName: string, tokens: ImportToken[], strategy: ImportStrategy) =>
       importPayloadBatch(
         setName,
-        tokens.map(token => buildImportPayload(token, src.source)),
+        tokens.map((token) => buildImportPayload(token, src.source)),
         strategy,
       ),
     [importPayloadBatch, src.source],
   );
 
-  const deleteImportedEntries = useCallback(async (entries: ImportHistory['entries']) => {
-    for (const entry of entries) {
-      await apiFetch(
-        `${serverUrlRef.current}/api/tokens/${encodeURIComponent(entry.setName)}/batch-delete`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paths: entry.paths, force: true }),
-        },
-      );
-    }
-  }, []);
+  const deleteImportedEntries = useCallback(
+    async (entries: ImportHistory["entries"]) => {
+      for (const entry of entries) {
+        await apiFetch(
+          `${serverUrlRef.current}/api/tokens/${encodeURIComponent(entry.setName)}/batch-delete`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ paths: entry.paths, force: true }),
+          },
+        );
+      }
+    },
+    [],
+  );
 
   const setLastImportWithUndo = useCallback(
     (entries: ImportHistory | null) => {
       setLastImport(entries);
       if (!entries || !onPushUndoRef.current) return;
 
-      const capturedEntries = entries.entries.map(entry => ({
+      const capturedEntries = entries.entries.map((entry) => ({
         setName: entry.setName,
         paths: [...entry.paths],
       }));
-      const totalPaths = capturedEntries.reduce((sum, entry) => sum + entry.paths.length, 0);
-      const setNames = [...new Set(capturedEntries.map(entry => entry.setName))];
+      const totalPaths = capturedEntries.reduce(
+        (sum, entry) => sum + entry.paths.length,
+        0,
+      );
+      const setNames = [
+        ...new Set(capturedEntries.map((entry) => entry.setName)),
+      ];
       const description =
         setNames.length === 1
-          ? `Import ${totalPaths} token${totalPaths !== 1 ? 's' : ''} to "${setNames[0]}"`
-          : `Import ${totalPaths} token${totalPaths !== 1 ? 's' : ''} to ${setNames.length} sets`;
+          ? `Import ${totalPaths} token${totalPaths !== 1 ? "s" : ""} to "${setNames[0]}"`
+          : `Import ${totalPaths} token${totalPaths !== 1 ? "s" : ""} to ${setNames.length} sets`;
 
       onPushUndoRef.current({
         description,
@@ -627,9 +768,9 @@ export function ImportPanelProvider({
   );
 
   const publishImportCompletion = useCallback(
-    (result: Omit<ImportCompletionResult, 'sourceType' | 'sourceFamily'>) => {
+    (result: Omit<ImportCompletionResult, "sourceType" | "sourceFamily">) => {
       if (!src.source || !src.sourceFamily) {
-        console.warn('[ImportPanel] import completion metadata missing');
+        console.warn("[ImportPanel] import completion metadata missing");
         return;
       }
 
@@ -643,7 +784,7 @@ export function ImportPanelProvider({
   );
 
   const handleImportVariables = useCallback(
-    async (strategy: ImportStrategy = 'overwrite') => {
+    async (strategy: ImportStrategy = "overwrite") => {
       src.setError(null);
       setImporting(true);
       setImportProgress({ done: 0, total: collectionImportEntries.length });
@@ -655,53 +796,72 @@ export function ImportPanelProvider({
       let importedTokens = 0;
       const failedPaths: string[] = [];
       const failedBatches: ImportBatch[] = [];
-      const rollbackEntries: ImportHistory['entries'] = [];
+      const rollbackEntries: ImportHistory["entries"] = [];
 
       try {
         for (const entry of collectionImportEntries) {
           await ensureSetExists(entry.setName);
           try {
-            const imported = await importTokenBatch(entry.setName, entry.tokens, strategy);
+            const imported = await importTokenBatch(
+              entry.setName,
+              entry.tokens,
+              strategy,
+            );
             importedTokens += imported;
             if (imported > 0) {
               rollbackEntries.push({
                 setName: entry.setName,
-                paths: entry.tokens.map(token => token.path),
+                paths: entry.tokens.map((token) => token.path),
               });
             }
           } catch (err) {
-            console.warn('[ImportPanel] failed to import token batch:', err);
-            failedPaths.push(...entry.tokens.map(token => token.path));
+            console.warn("[ImportPanel] failed to import token batch:", err);
+            failedPaths.push(...entry.tokens.map((token) => token.path));
             failedBatches.push({
               setName: entry.setName,
-              tokens: entry.tokens.map(token => buildImportPayload(token, src.source)),
+              tokens: entry.tokens.map((token) =>
+                buildImportPayload(token, src.source),
+              ),
             });
           }
 
           importedSets += 1;
-          setImportProgress({ done: importedSets, total: collectionImportEntries.length });
+          setImportProgress({
+            done: importedSets,
+            total: collectionImportEntries.length,
+          });
         }
 
         const failedCount = failedPaths.length;
         const toastMessage =
           failedCount > 0
-            ? `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''} (${failedCount} failed)`
-            : `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
+            ? `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? "s" : ""} (${failedCount} failed)`
+            : `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? "s" : ""}`;
         const successSummary =
           failedCount > 0
-            ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''} — ${failedCount} token${failedCount !== 1 ? 's' : ''} could not be saved`
-            : `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
+            ? `Imported ${importedTokens} token${importedTokens !== 1 ? "s" : ""} across ${importedSets} set${importedSets !== 1 ? "s" : ""} — ${failedCount} token${failedCount !== 1 ? "s" : ""} could not be saved`
+            : `Imported ${importedTokens} token${importedTokens !== 1 ? "s" : ""} across ${importedSets} set${importedSets !== 1 ? "s" : ""}`;
 
-        dispatchToast(toastMessage, failedCount > 0 ? 'error' : 'success');
+        dispatchToast(toastMessage, failedCount > 0 ? "error" : "success");
         onImportedRef.current();
         publishImportCompletion({
-          destinationSets: collectionImportEntries.map(entry => entry.setName),
+          destinationSets: collectionImportEntries.map(
+            (entry) => entry.setName,
+          ),
           newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
-          overwriteCount: strategy === 'overwrite' ? varConflictPreview?.overwriteCount ?? 0 : 0,
-          mergeCount: strategy === 'merge' ? varConflictPreview?.overwriteCount ?? 0 : 0,
-          keepExistingCount: strategy === 'skip' ? varConflictPreview?.overwriteCount ?? 0 : 0,
+          overwriteCount:
+            strategy === "overwrite"
+              ? (varConflictPreview?.overwriteCount ?? 0)
+              : 0,
+          mergeCount:
+            strategy === "merge"
+              ? (varConflictPreview?.overwriteCount ?? 0)
+              : 0,
+          keepExistingCount:
+            strategy === "skip" ? (varConflictPreview?.overwriteCount ?? 0) : 0,
           totalImportedCount: importedTokens,
           hadFailures: failedCount > 0,
+          sourceCollectionCount: enabledCollectionCount,
         });
         resetExistingPathsCache();
         src.resetAfterImport();
@@ -715,14 +875,23 @@ export function ImportPanelProvider({
         setLastImportReviewSummary({
           destinationLabel:
             collectionImportEntries.length === 1
-              ? `"${collectionImportEntries[0]?.setName ?? 'Unknown set'}"`
+              ? `"${collectionImportEntries[0]?.setName ?? "Unknown set"}"`
               : `${collectionImportEntries.length} sets`,
           newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
-          overwriteCount: strategy === 'overwrite' ? varConflictPreview?.overwriteCount ?? 0 : 0,
-          mergeCount: strategy === 'merge' ? varConflictPreview?.overwriteCount ?? 0 : 0,
-          keepExistingCount: strategy === 'skip' ? varConflictPreview?.overwriteCount ?? 0 : 0,
+          overwriteCount:
+            strategy === "overwrite"
+              ? (varConflictPreview?.overwriteCount ?? 0)
+              : 0,
+          mergeCount:
+            strategy === "merge"
+              ? (varConflictPreview?.overwriteCount ?? 0)
+              : 0,
+          keepExistingCount:
+            strategy === "skip" ? (varConflictPreview?.overwriteCount ?? 0) : 0,
         });
-        setLastImportWithUndo(rollbackEntries.length > 0 ? { entries: rollbackEntries } : null);
+        setLastImportWithUndo(
+          rollbackEntries.length > 0 ? { entries: rollbackEntries } : null,
+        );
         setSuccessMessage(successSummary);
       } catch (err) {
         src.setError(getErrorMessage(err));
@@ -741,6 +910,7 @@ export function ImportPanelProvider({
       resetExistingPathsCache,
       setLastImportWithUndo,
       totalEnabledTokens,
+      enabledCollectionCount,
       varConflictPreview,
       src.resetAfterImport,
       src.setError,
@@ -749,43 +919,69 @@ export function ImportPanelProvider({
   );
 
   const executeImport = useCallback(
-    async (strategy: 'skip' | 'overwrite', excludePaths?: Set<string>, mergePaths?: Set<string>) => {
+    async (
+      strategy: "skip" | "overwrite",
+      excludePaths?: Set<string>,
+      mergePaths?: Set<string>,
+    ) => {
       src.setError(null);
       setImporting(true);
       clearConflictState();
       clearFailedState();
 
       try {
-        const tokensToImport = selectedImportTokens.filter(token => !excludePaths?.has(token.path));
+        const tokensToImport = selectedImportTokens.filter(
+          (token) => !excludePaths?.has(token.path),
+        );
         setImportProgress({ done: 0, total: tokensToImport.length });
 
         await ensureSetExists(setsHook.targetSet);
 
         const mergeTokens = mergePaths
-          ? tokensToImport.filter(token => mergePaths.has(token.path))
+          ? tokensToImport.filter((token) => mergePaths.has(token.path))
           : [];
         const overwriteTokens = mergePaths
-          ? tokensToImport.filter(token => !mergePaths.has(token.path))
+          ? tokensToImport.filter((token) => !mergePaths.has(token.path))
           : tokensToImport;
 
         let imported = 0;
         if (overwriteTokens.length > 0) {
-          imported += await importTokenBatch(setsHook.targetSet, overwriteTokens, strategy);
+          imported += await importTokenBatch(
+            setsHook.targetSet,
+            overwriteTokens,
+            strategy,
+          );
         }
         if (mergeTokens.length > 0) {
-          imported += await importTokenBatch(setsHook.targetSet, mergeTokens, 'merge');
+          imported += await importTokenBatch(
+            setsHook.targetSet,
+            mergeTokens,
+            "merge",
+          );
         }
 
-        setImportProgress({ done: tokensToImport.length, total: tokensToImport.length });
-        dispatchToast(`Imported ${imported} tokens to "${setsHook.targetSet}"`, 'success');
+        setImportProgress({
+          done: tokensToImport.length,
+          total: tokensToImport.length,
+        });
+        dispatchToast(
+          `Imported ${imported} tokens to "${setsHook.targetSet}"`,
+          "success",
+        );
         onImportedRef.current();
         resetExistingPathsCache();
         src.resetAfterImport();
         const mergeCount = mergePaths?.size ?? 0;
         const keepExistingCount = excludePaths?.size ?? 0;
-        const reviewedConflictCount = conflictPaths?.length ?? previewOverwriteCount ?? 0;
-        const newCount = previewNewCount ?? Math.max(0, selectedImportTokens.length - reviewedConflictCount);
-        const overwriteCount = Math.max(0, reviewedConflictCount - mergeCount - keepExistingCount);
+        const reviewedConflictCount =
+          conflictPaths?.length ?? previewOverwriteCount ?? 0;
+        const newCount =
+          previewNewCount ??
+          Math.max(0, selectedImportTokens.length - reviewedConflictCount);
+        const overwriteCount = Math.max(
+          0,
+          reviewedConflictCount - mergeCount - keepExistingCount,
+        );
         publishImportCompletion({
           destinationSets: [setsHook.targetSet],
           newCount,
@@ -804,11 +1000,18 @@ export function ImportPanelProvider({
         });
         setLastImportWithUndo(
           imported > 0
-            ? { entries: [{ setName: setsHook.targetSet, paths: tokensToImport.map(token => token.path) }] }
+            ? {
+                entries: [
+                  {
+                    setName: setsHook.targetSet,
+                    paths: tokensToImport.map((token) => token.path),
+                  },
+                ],
+              }
             : null,
         );
         setSuccessMessage(
-          `Imported ${imported} token${imported !== 1 ? 's' : ''} to "${setsHook.targetSet}"`,
+          `Imported ${imported} token${imported !== 1 ? "s" : ""} to "${setsHook.targetSet}"`,
         );
       } catch (err) {
         src.setError(getErrorMessage(err));
@@ -843,8 +1046,8 @@ export function ImportPanelProvider({
     try {
       const existing = await fetchSetTokenMap(setsHook.targetSet);
       const conflicts = selectedImportTokens
-        .filter(token => existing.has(token.path))
-        .map(token => token.path);
+        .filter((token) => existing.has(token.path))
+        .map((token) => token.path);
 
       if (conflicts.length > 0) {
         const existingValues = new Map<string, ExistingTokenValue>();
@@ -852,7 +1055,7 @@ export function ImportPanelProvider({
         for (const path of conflicts) {
           const current = existing.get(path);
           if (current) existingValues.set(path, current);
-          decisions.set(path, 'merge');
+          decisions.set(path, "merge");
         }
         setConflictPaths(conflicts);
         setConflictExistingValues(existingValues);
@@ -860,13 +1063,21 @@ export function ImportPanelProvider({
         return;
       }
 
-      await executeImport('overwrite');
+      await executeImport("overwrite");
     } catch (err) {
       src.setError(getErrorMessage(err));
     } finally {
       setCheckingConflicts(false);
     }
-  }, [connected, executeImport, fetchSetTokenMap, selectedImportTokens, setsHook.targetSet, src.selectedTokens.size, src.setError]);
+  }, [
+    connected,
+    executeImport,
+    fetchSetTokenMap,
+    selectedImportTokens,
+    setsHook.targetSet,
+    src.selectedTokens.size,
+    src.setError,
+  ]);
 
   const handleUndoImport = useCallback(async () => {
     src.setError(null);
@@ -876,7 +1087,7 @@ export function ImportPanelProvider({
     setUndoing(true);
     try {
       await deleteImportedEntries(lastImport.entries);
-      dispatchToast('Import undone', 'success');
+      dispatchToast("Import undone", "success");
       onImportedRef.current();
       setLastImport(null);
       setLastImportReviewSummary(null);
@@ -890,7 +1101,14 @@ export function ImportPanelProvider({
       undoingRef.current = false;
       setUndoing(false);
     }
-  }, [lastImport, deleteImportedEntries, clearFailedState, resetExistingPathsCache, src.clearFileImportValidation, src.setError]);
+  }, [
+    lastImport,
+    deleteImportedEntries,
+    clearFailedState,
+    resetExistingPathsCache,
+    src.clearFileImportValidation,
+    src.setError,
+  ]);
 
   const handleRetryFailed = useCallback(async () => {
     src.setError(null);
@@ -906,13 +1124,21 @@ export function ImportPanelProvider({
     try {
       for (const batch of failedImportBatches) {
         try {
-          retried += await importPayloadBatch(batch.setName, batch.tokens, failedImportStrategy);
+          retried += await importPayloadBatch(
+            batch.setName,
+            batch.tokens,
+            failedImportStrategy,
+          );
         } catch (err) {
-          console.warn('[ImportPanel] retry failed for batch:', batch.setName, err);
+          console.warn(
+            "[ImportPanel] retry failed for batch:",
+            batch.setName,
+            err,
+          );
           stillFailedPaths.push(
             ...batch.tokens
-              .map(token => token.path)
-              .filter((path): path is string => typeof path === 'string'),
+              .map((token) => token.path)
+              .filter((path): path is string => typeof path === "string"),
           );
           stillFailedBatches.push(batch);
         }
@@ -922,20 +1148,20 @@ export function ImportPanelProvider({
       if (stillFailedPaths.length === 0) {
         setFailedImportPaths([]);
         setFailedImportBatches([]);
-        setSucceededImportCount(prev => prev + retried);
-        setSuccessMessage(prev =>
+        setSucceededImportCount((prev) => prev + retried);
+        setSuccessMessage((prev) =>
           prev
             ? `${prev} (${retried} recovered on retry)`
-            : `Recovered ${retried} token${retried !== 1 ? 's' : ''} on retry`,
+            : `Recovered ${retried} token${retried !== 1 ? "s" : ""} on retry`,
         );
-        dispatchToast(`Retried: ${retried} tokens imported`, 'success');
+        dispatchToast(`Retried: ${retried} tokens imported`, "success");
       } else {
         setFailedImportPaths(stillFailedPaths);
         setFailedImportBatches(stillFailedBatches);
-        setSucceededImportCount(prev => prev + retried);
+        setSucceededImportCount((prev) => prev + retried);
         dispatchToast(
           `Retry: ${retried} recovered, ${stillFailedPaths.length} still failed`,
-          'error',
+          "error",
         );
       }
       onImportedRef.current();
@@ -956,12 +1182,12 @@ export function ImportPanelProvider({
   const handleCopyFailedPaths = useCallback(() => {
     if (failedImportPaths.length === 0) return;
     void copyToClipboard(
-      failedImportPaths.join('\n'),
+      failedImportPaths.join("\n"),
       () => {
         setCopyFeedback(true);
         window.setTimeout(() => setCopyFeedback(false), 2000);
       },
-      () => dispatchToast('Failed to copy failed import paths', 'error'),
+      () => dispatchToast("Failed to copy failed import paths", "error"),
     );
   }, [failedImportPaths]);
 
@@ -980,162 +1206,254 @@ export function ImportPanelProvider({
 
   const usesCollectionDestination = src.collectionData.length > 0;
 
-  const hasInvalidModeSetNames = useMemo(() => (
-    src.collectionData.some(col =>
-      col.modes.some(mode => {
-        const key = modeKey(col.name, mode.modeId);
-        if (!(src.modeEnabled[key] ?? true)) return false;
-        const candidate = (src.modeSetNames[key] ?? '').trim();
-        return !candidate || !SET_NAME_RE.test(candidate);
-      })
-    )
-  ), [src.collectionData, src.modeEnabled, src.modeSetNames]);
+  const hasInvalidModeSetNames = useMemo(
+    () =>
+      src.collectionData.some((col) =>
+        col.modes.some((mode) => {
+          const key = modeKey(col.name, mode.modeId);
+          if (!(src.modeEnabled[key] ?? true)) return false;
+          const candidate = (src.modeSetNames[key] ?? "").trim();
+          return !candidate || !SET_NAME_RE.test(candidate);
+        }),
+      ),
+    [src.collectionData, src.modeEnabled, src.modeSetNames],
+  );
 
   const hasValidSingleSetDestination = useMemo(() => {
     const trimmedTarget = setsHook.targetSet.trim();
-    return !setsHook.newSetInputVisible && !!trimmedTarget && SET_NAME_RE.test(trimmedTarget);
+    return (
+      !setsHook.newSetInputVisible &&
+      !!trimmedTarget &&
+      SET_NAME_RE.test(trimmedTarget)
+    );
   }, [setsHook.newSetInputVisible, setsHook.targetSet]);
 
   const destinationReady = usesCollectionDestination
     ? totalEnabledSets > 0 && !hasInvalidModeSetNames
     : hasValidSingleSetDestination;
 
-  const canContinueToPreview = src.tokens.length > 0 && !usesCollectionDestination && hasValidSingleSetDestination;
+  const canContinueToPreview =
+    src.tokens.length > 0 &&
+    !usesCollectionDestination &&
+    hasValidSingleSetDestination;
 
   // ── Context value ─────────────────────────────────────────────────────────
 
-  const value = useMemo<ImportPanelContextValue>(() => ({
-    serverUrl,
-    connected,
-    collectionData: src.collectionData,
-    modeSetNames: src.modeSetNames,
-    modeEnabled: src.modeEnabled,
-    setModeSetNames: src.setModeSetNames,
-    setModeEnabled: src.setModeEnabled,
-    tokens: src.tokens,
-    selectedTokens: src.selectedTokens,
-    typeFilter: src.typeFilter,
-    setTypeFilter: src.setTypeFilter,
-    loading: src.loading,
-    importing,
-    error: src.error,
-    sourceFamily: src.sourceFamily,
-    source: src.source,
-    workflowStage: src.workflowStage,
-    targetSet: setsHook.targetSet,
-    sets: setsHook.sets,
-    setsError: setsHook.setsError,
-    newSetInputVisible: setsHook.newSetInputVisible,
-    newSetDraft: setsHook.newSetDraft,
-    newSetError: setsHook.newSetError,
-    setNewSetInputVisible: setsHook.setNewSetInputVisible,
-    setNewSetDraft: setsHook.setNewSetDraft,
-    setNewSetError: setsHook.setNewSetError,
-    successMessage,
-    failedImportPaths,
-    failedImportBatches,
-    failedImportStrategy,
-    succeededImportCount,
-    retrying,
-    copyFeedback,
-    lastImport,
-    lastImportReviewSummary,
-    undoing,
-    failedImportGroups,
-    reviewActionCopy: IMPORT_REVIEW_ACTION_COPY,
-    conflictPaths,
-    conflictExistingValues,
-    conflictDecisions,
-    conflictSearch,
-    conflictStatusFilter,
-    conflictTypeFilter,
-    checkingConflicts,
-    setConflictSearch,
-    setConflictStatusFilter,
-    setConflictTypeFilter,
-    setConflictDecisions,
-    importProgress,
-    skippedEntries: src.skippedEntries,
-    skippedExpanded: src.skippedExpanded,
-    setSkippedExpanded: src.setSkippedExpanded,
-    fileImportValidation: src.fileImportValidation,
-    isDragging: src.isDragging,
-    existingTokenMap,
-    existingPathsFetching,
-    existingTokenMapError,
-    varConflictPreview,
-    varConflictDetails,
-    varConflictDetailsExpanded,
-    setVarConflictDetailsExpanded,
-    checkingVarConflicts,
-    totalEnabledSets,
-    totalEnabledTokens,
-    previewNewCount,
-    previewOverwriteCount,
-    usesCollectionDestination,
-    destinationReady,
-    canContinueToPreview,
-    fileInputRef: src.fileInputRef,
-    cssFileInputRef: src.cssFileInputRef,
-    tailwindFileInputRef: src.tailwindFileInputRef,
-    tokensStudioFileInputRef: src.tokensStudioFileInputRef,
-    clearConflictState,
-    handleReadVariables: src.handleReadVariables,
-    handleReadStyles: src.handleReadStyles,
-    handleReadJson: src.handleReadJson,
-    handleReadCSS: src.handleReadCSS,
-    handleReadTailwind: src.handleReadTailwind,
-    handleReadTokensStudio: src.handleReadTokensStudio,
-    handleJsonFileChange: src.handleJsonFileChange,
-    handleCSSFileChange: src.handleCSSFileChange,
-    handleTailwindFileChange: src.handleTailwindFileChange,
-    handleTokensStudioFileChange: src.handleTokensStudioFileChange,
-    handleDragEnter: src.handleDragEnter,
-    handleDragLeave: src.handleDragLeave,
-    handleDragOver: src.handleDragOver,
-    handleDrop: src.handleDrop,
-    handleBack: src.handleBack,
-    selectSourceFamily: src.selectSourceFamily,
-    continueToPreview: src.continueToPreview,
-    handleImportVariables,
-    handleImportStyles,
-    executeImport,
-    handleUndoImport,
-    handleRetryFailed,
-    handleCopyFailedPaths,
-    toggleToken: src.toggleToken,
-    toggleAll: src.toggleAll,
-    commitNewSet: setsHook.commitNewSet,
-    cancelNewSet: setsHook.cancelNewSet,
-    setTargetSetAndPersist: setsHook.setTargetSetAndPersist,
-    fetchSets: setsHook.fetchSets,
-    clearSuccessState,
-  }), [
-    serverUrl, connected,
-    src.collectionData, src.modeSetNames, src.modeEnabled, src.setModeSetNames, src.setModeEnabled,
-    src.tokens, src.selectedTokens, src.typeFilter, src.setTypeFilter,
-    src.loading, src.error, src.sourceFamily, src.source, src.workflowStage, src.skippedEntries, src.skippedExpanded, src.setSkippedExpanded, src.fileImportValidation,
-    src.isDragging, src.fileInputRef, src.cssFileInputRef, src.tailwindFileInputRef, src.tokensStudioFileInputRef,
-    src.handleReadVariables, src.handleReadStyles, src.handleReadJson, src.handleReadCSS,
-    src.handleReadTailwind, src.handleReadTokensStudio, src.handleJsonFileChange, src.handleCSSFileChange,
-    src.handleTailwindFileChange, src.handleTokensStudioFileChange, src.handleDragEnter, src.handleDragLeave,
-    src.handleDragOver, src.handleDrop, src.handleBack, src.selectSourceFamily, src.continueToPreview, src.toggleToken, src.toggleAll,
-    importing, importProgress, successMessage, failedImportPaths, failedImportBatches,
-    failedImportStrategy, succeededImportCount, retrying, copyFeedback, lastImport, lastImportReviewSummary, undoing,
-    handleCopyFailedPaths, clearSuccessState,
-    setsHook.targetSet, setsHook.sets, setsHook.setsError, setsHook.newSetInputVisible,
-    setsHook.newSetDraft, setsHook.newSetError, setsHook.setNewSetInputVisible, setsHook.setNewSetDraft,
-    setsHook.setNewSetError, setsHook.fetchSets, setsHook.commitNewSet, setsHook.cancelNewSet,
-    setsHook.setTargetSetAndPersist,
-    conflictPaths, conflictExistingValues, conflictDecisions, conflictSearch, conflictStatusFilter,
-    conflictTypeFilter, checkingConflicts, setConflictSearch, setConflictStatusFilter,
-    setConflictTypeFilter, setConflictDecisions, existingTokenMap, existingPathsFetching,
-    existingTokenMapError, varConflictPreview, varConflictDetails, varConflictDetailsExpanded,
-    setVarConflictDetailsExpanded, checkingVarConflicts, clearConflictState, failedImportGroups,
-    previewNewCount, previewOverwriteCount,
-    totalEnabledSets, totalEnabledTokens, usesCollectionDestination, destinationReady, canContinueToPreview,
-    handleImportVariables, handleImportStyles, executeImport, handleUndoImport, handleRetryFailed,
-  ]);
+  const value = useMemo<ImportPanelContextValue>(
+    () => ({
+      serverUrl,
+      connected,
+      collectionData: src.collectionData,
+      modeSetNames: src.modeSetNames,
+      modeEnabled: src.modeEnabled,
+      setModeSetNames: src.setModeSetNames,
+      setModeEnabled: src.setModeEnabled,
+      tokens: src.tokens,
+      selectedTokens: src.selectedTokens,
+      typeFilter: src.typeFilter,
+      setTypeFilter: src.setTypeFilter,
+      loading: src.loading,
+      importing,
+      error: src.error,
+      sourceFamily: src.sourceFamily,
+      source: src.source,
+      workflowStage: src.workflowStage,
+      targetSet: setsHook.targetSet,
+      sets: setsHook.sets,
+      setsError: setsHook.setsError,
+      newSetInputVisible: setsHook.newSetInputVisible,
+      newSetDraft: setsHook.newSetDraft,
+      newSetError: setsHook.newSetError,
+      setNewSetInputVisible: setsHook.setNewSetInputVisible,
+      setNewSetDraft: setsHook.setNewSetDraft,
+      setNewSetError: setsHook.setNewSetError,
+      successMessage,
+      failedImportPaths,
+      failedImportBatches,
+      failedImportStrategy,
+      succeededImportCount,
+      retrying,
+      copyFeedback,
+      lastImport,
+      lastImportReviewSummary,
+      undoing,
+      failedImportGroups,
+      reviewActionCopy: IMPORT_REVIEW_ACTION_COPY,
+      conflictPaths,
+      conflictExistingValues,
+      conflictDecisions,
+      conflictSearch,
+      conflictStatusFilter,
+      conflictTypeFilter,
+      checkingConflicts,
+      setConflictSearch,
+      setConflictStatusFilter,
+      setConflictTypeFilter,
+      setConflictDecisions,
+      importProgress,
+      skippedEntries: src.skippedEntries,
+      skippedExpanded: src.skippedExpanded,
+      setSkippedExpanded: src.setSkippedExpanded,
+      fileImportValidation: src.fileImportValidation,
+      isDragging: src.isDragging,
+      existingTokenMap,
+      existingPathsFetching,
+      existingTokenMapError,
+      varConflictPreview,
+      varConflictDetails,
+      varConflictDetailsExpanded,
+      setVarConflictDetailsExpanded,
+      checkingVarConflicts,
+      totalEnabledSets,
+      totalEnabledTokens,
+      previewNewCount,
+      previewOverwriteCount,
+      usesCollectionDestination,
+      destinationReady,
+      canContinueToPreview,
+      fileInputRef: src.fileInputRef,
+      cssFileInputRef: src.cssFileInputRef,
+      tailwindFileInputRef: src.tailwindFileInputRef,
+      tokensStudioFileInputRef: src.tokensStudioFileInputRef,
+      clearConflictState,
+      handleReadVariables: src.handleReadVariables,
+      handleReadStyles: src.handleReadStyles,
+      handleReadJson: src.handleReadJson,
+      handleReadCSS: src.handleReadCSS,
+      handleReadTailwind: src.handleReadTailwind,
+      handleReadTokensStudio: src.handleReadTokensStudio,
+      handleJsonFileChange: src.handleJsonFileChange,
+      handleCSSFileChange: src.handleCSSFileChange,
+      handleTailwindFileChange: src.handleTailwindFileChange,
+      handleTokensStudioFileChange: src.handleTokensStudioFileChange,
+      handleDragEnter: src.handleDragEnter,
+      handleDragLeave: src.handleDragLeave,
+      handleDragOver: src.handleDragOver,
+      handleDrop: src.handleDrop,
+      handleBack: src.handleBack,
+      selectSourceFamily: src.selectSourceFamily,
+      continueToPreview: src.continueToPreview,
+      handleImportVariables,
+      handleImportStyles,
+      executeImport,
+      handleUndoImport,
+      handleRetryFailed,
+      handleCopyFailedPaths,
+      toggleToken: src.toggleToken,
+      toggleAll: src.toggleAll,
+      commitNewSet: setsHook.commitNewSet,
+      cancelNewSet: setsHook.cancelNewSet,
+      setTargetSetAndPersist: setsHook.setTargetSetAndPersist,
+      fetchSets: setsHook.fetchSets,
+      clearSuccessState,
+    }),
+    [
+      serverUrl,
+      connected,
+      src.collectionData,
+      src.modeSetNames,
+      src.modeEnabled,
+      src.setModeSetNames,
+      src.setModeEnabled,
+      src.tokens,
+      src.selectedTokens,
+      src.typeFilter,
+      src.setTypeFilter,
+      src.loading,
+      src.error,
+      src.sourceFamily,
+      src.source,
+      src.workflowStage,
+      src.skippedEntries,
+      src.skippedExpanded,
+      src.setSkippedExpanded,
+      src.fileImportValidation,
+      src.isDragging,
+      src.fileInputRef,
+      src.cssFileInputRef,
+      src.tailwindFileInputRef,
+      src.tokensStudioFileInputRef,
+      src.handleReadVariables,
+      src.handleReadStyles,
+      src.handleReadJson,
+      src.handleReadCSS,
+      src.handleReadTailwind,
+      src.handleReadTokensStudio,
+      src.handleJsonFileChange,
+      src.handleCSSFileChange,
+      src.handleTailwindFileChange,
+      src.handleTokensStudioFileChange,
+      src.handleDragEnter,
+      src.handleDragLeave,
+      src.handleDragOver,
+      src.handleDrop,
+      src.handleBack,
+      src.selectSourceFamily,
+      src.continueToPreview,
+      src.toggleToken,
+      src.toggleAll,
+      importing,
+      importProgress,
+      successMessage,
+      failedImportPaths,
+      failedImportBatches,
+      failedImportStrategy,
+      succeededImportCount,
+      retrying,
+      copyFeedback,
+      lastImport,
+      lastImportReviewSummary,
+      undoing,
+      handleCopyFailedPaths,
+      clearSuccessState,
+      setsHook.targetSet,
+      setsHook.sets,
+      setsHook.setsError,
+      setsHook.newSetInputVisible,
+      setsHook.newSetDraft,
+      setsHook.newSetError,
+      setsHook.setNewSetInputVisible,
+      setsHook.setNewSetDraft,
+      setsHook.setNewSetError,
+      setsHook.fetchSets,
+      setsHook.commitNewSet,
+      setsHook.cancelNewSet,
+      setsHook.setTargetSetAndPersist,
+      conflictPaths,
+      conflictExistingValues,
+      conflictDecisions,
+      conflictSearch,
+      conflictStatusFilter,
+      conflictTypeFilter,
+      checkingConflicts,
+      setConflictSearch,
+      setConflictStatusFilter,
+      setConflictTypeFilter,
+      setConflictDecisions,
+      existingTokenMap,
+      existingPathsFetching,
+      existingTokenMapError,
+      varConflictPreview,
+      varConflictDetails,
+      varConflictDetailsExpanded,
+      setVarConflictDetailsExpanded,
+      checkingVarConflicts,
+      clearConflictState,
+      failedImportGroups,
+      previewNewCount,
+      previewOverwriteCount,
+      totalEnabledSets,
+      totalEnabledTokens,
+      usesCollectionDestination,
+      destinationReady,
+      canContinueToPreview,
+      handleImportVariables,
+      handleImportStyles,
+      executeImport,
+      handleUndoImport,
+      handleRetryFailed,
+    ],
+  );
 
   return (
     <ImportPanelContext.Provider value={value}>

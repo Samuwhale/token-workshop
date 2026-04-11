@@ -87,7 +87,10 @@ import type {
   TokensLibraryContextualSurface,
   TokensLibraryGeneratorEditorTarget,
 } from "../shared/navigationTypes";
-import { TOKENS_LIBRARY_SURFACE_CONTRACT } from "../shared/navigationTypes";
+import {
+  getImportResultNextStepRecommendations,
+  TOKENS_LIBRARY_SURFACE_CONTRACT,
+} from "../shared/navigationTypes";
 import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
 import { useEditorWidth } from "../hooks/useEditorWidth";
 
@@ -1004,12 +1007,27 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             onImported={refreshTokens}
             onImportComplete={(result) => {
               p.onImportComplete(result);
-              navigateTo("define", "tokens");
-              const primaryDestinationSet = result.destinationSets[0];
-              if (primaryDestinationSet) {
-                setActiveSet(primaryDestinationSet);
+              const nextStep =
+                getImportResultNextStepRecommendations(result)[0];
+              if (nextStep?.target.kind === "secondary-surface") {
+                return;
               }
-              closeSecondarySurface();
+
+              if (nextStep) {
+                if (
+                  nextStep.target.topTab === "define" &&
+                  nextStep.target.subTab === "tokens"
+                ) {
+                  const primaryDestinationSet = result.destinationSets[0];
+                  if (primaryDestinationSet) {
+                    setActiveSet(primaryDestinationSet);
+                  }
+                }
+                navigateTo(nextStep.target.topTab, nextStep.target.subTab);
+                return;
+              }
+
+              navigateTo("define", "tokens");
             }}
             onPushUndo={p.pushUndo}
           />
