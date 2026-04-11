@@ -55,7 +55,7 @@
 - [x] [HIGH] Merge secondary surfaces into compact navigation targets instead of 5 always-visible buttons
 - [ ] [HIGH] Reduce Tokens workspace chrome bands by merging search, toolbar, and conditional bars
 - [ ] [HIGH] Remove all-caps section labels from shell, workspace headers, and footer bands
-- [ ] [HIGH] Remove description paragraphs and implementation-language copy from all workspaces and surfaces
+- [x] [HIGH] Remove description paragraphs and implementation-language copy from all workspaces and surfaces
 - [x] [HIGH] Remove MORE CREATION footer and merge its actions into the existing toolbar
 - [ ] [HIGH] Rewrite UI copy to use task language instead of implementation language
 - [ ] [HIGH] Simplify Settings to a flat scrollable list without search or tabs

@@ -9,8 +9,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/App.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Removed workspace/surface description copy from the shell header and navigation metadata; focused Prettier passed, while existing unrelated App.tsx TypeScript errors remain."
+state: done
 acceptance_criteria:
   - Every workspace tab description paragraph is removed from the rendered UI
   - Every secondary surface summaryGuidance and description paragraph is removed from the rendered UI
@@ -18,4 +19,4 @@ acceptance_criteria:
   - No UI text references implementation concepts like "takeover", "stable parent surface", "contextual surface", or "mount"
 source: manual
 created_at: 2026-04-11T22:00:00.000Z
-updated_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T21:16:33.819Z

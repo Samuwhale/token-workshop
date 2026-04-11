@@ -1026,3 +1026,11 @@
   - If the shell header should stay scannable, keep navigation metadata limited to titles and labels; long guidance copy in shared route config quickly leaks implementation language into the UI.
   - Workspace-local secondary actions read better as concise buttons or pills than as mini explainer blocks once the shell already names the active workspace above them.
 ---
+## 2026-04-11 - Simplify Settings to a flat scrollable list without search or tabs
+- Removed the Settings panel's search, tab state, tab badges, and grouped intro callouts so all settings now render as one straightforward scrollable list, with a short introductory sentence at the top and the destructive reset area separated at the bottom.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/components/SettingsPanel.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "SettingsPanel\\.tsx"` returned no matches; the broader typecheck still reports unrelated pre-existing workspace issues including `packages/core/dist` `TS6305` build-artifact errors and long-standing diagnostics in other plugin files.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L61, `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L655, `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1320
+- **Learnings for future iterations:**
+  - When a settings surface becomes hard to scan, removing navigation chrome entirely can be cleaner than reorganizing it again; a single ordered list of collapsible sections is often enough.
+  - Destructive controls read more clearly when they are separated by a visual break and a short warning block instead of being mixed into the main preference flow.
+---
