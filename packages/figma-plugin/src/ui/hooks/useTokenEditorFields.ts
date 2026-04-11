@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
+import { stableStringify } from '../shared/utils';
 
 export interface FieldsSnapshot {
   value: any;
@@ -92,12 +93,12 @@ export function useTokenEditorFields(params: {
     const init = initialRef.current;
     return (
       tokenType !== init.type ||
-      value !== init.value ||
+      stableStringify(value) !== stableStringify(init.value) ||
       description !== init.description ||
       reference !== init.reference ||
-      JSON.stringify(scopes) !== JSON.stringify(init.scopes) ||
-      JSON.stringify(colorModifiers) !== JSON.stringify(init.colorModifiers) ||
-      JSON.stringify(modeValues) !== JSON.stringify(init.modeValues) ||
+      stableStringify(scopes) !== stableStringify(init.scopes) ||
+      stableStringify(colorModifiers) !== stableStringify(init.colorModifiers) ||
+      stableStringify(modeValues) !== stableStringify(init.modeValues) ||
       extensionsJsonText !== init.extensionsJsonText ||
       lifecycle !== init.lifecycle ||
       extendsPath !== init.extendsPath

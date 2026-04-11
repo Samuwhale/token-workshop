@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import { validateColorModifiers } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
-import { getErrorMessage, tokenPathToUrlSegment, isAbortError } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment, isAbortError, stableStringify } from '../shared/utils';
 import { isAlias } from '../../shared/resolveAlias';
 import type { FieldsSnapshot } from './useTokenEditorFields';
 import {
@@ -117,12 +117,12 @@ export function useTokenEditorLoad({
           const init = initialRef.current!;
           const draftDiffers = (
             draft.tokenType !== init.type ||
-            JSON.stringify(draft.value) !== JSON.stringify(init.value) ||
+            stableStringify(draft.value) !== stableStringify(init.value) ||
             draft.description !== init.description ||
             draft.reference !== init.reference ||
-            JSON.stringify(draft.scopes) !== JSON.stringify(init.scopes) ||
-            JSON.stringify(draft.colorModifiers) !== JSON.stringify(init.colorModifiers) ||
-            JSON.stringify(draft.modeValues) !== JSON.stringify(init.modeValues) ||
+            stableStringify(draft.scopes) !== stableStringify(init.scopes) ||
+            stableStringify(draft.colorModifiers) !== stableStringify(init.colorModifiers) ||
+            stableStringify(draft.modeValues) !== stableStringify(init.modeValues) ||
             draft.extensionsJsonText !== init.extensionsJsonText ||
             draft.lifecycle !== init.lifecycle ||
             draft.extendsPath !== init.extendsPath
