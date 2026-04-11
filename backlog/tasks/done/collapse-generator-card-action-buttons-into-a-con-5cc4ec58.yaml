@@ -7,8 +7,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Replaced the generator card’s 7-button action row with a compact inline Re-run button plus an overflow menu, and logged the change with targeted validation."
+state: done
 acceptance_criteria:
   - Each generator card shows at most 1-2 inline actions (e.g. Re-run) plus a single "..." overflow menu
   - The 7-button row (Re-run, Preview, Steps, Edit, Edit config, Clone, Delete) is replaced by the overflow menu
@@ -16,4 +17,4 @@ acceptance_criteria:
   - Card visual density drops noticeably with the button row removed
 source: manual
 created_at: 2026-04-11T22:00:00.000Z
-updated_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T20:58:55.587Z
