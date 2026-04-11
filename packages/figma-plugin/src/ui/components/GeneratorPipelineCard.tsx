@@ -6,6 +6,7 @@ import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { VALUE_REQUIRED_TYPES } from './generators/generatorUtils';
 import { OverrideRow, formatValue } from './generators/generatorShared';
 import { swatchBgColor } from '../shared/colorUtils';
+import { dispatchToast } from '../shared/toastBus';
 import { ConfirmModal } from './ConfirmModal';
 import { useGeneratorPreview, type GeneratorPreviewDiff } from '../hooks/useGeneratorPreview';
 
@@ -566,6 +567,7 @@ function QuickEditPanel({ generator, serverUrl, allSets, onSaved, onOpenFullDial
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      dispatchToast(`Generator "${name.trim()}" updated`, 'success');
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');

@@ -90,11 +90,16 @@ export function TokenGeneratorDialog({
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const previousPreviewCountRef = useRef(dialog.previewTokens.length);
 
-  // Auto-open review when confirmation is required (e.g. overwrite check)
   useEffect(() => {
-    if (dialog.showConfirmation) setReviewOpen(true);
-  }, [dialog.showConfirmation]);
+    const hadPreview = previousPreviewCountRef.current > 0;
+    const hasPreview = dialog.previewTokens.length > 0;
+    if (dialog.showConfirmation || (hasPreview && !hadPreview)) {
+      setReviewOpen(true);
+    }
+    previousPreviewCountRef.current = dialog.previewTokens.length;
+  }, [dialog.previewTokens.length, dialog.showConfirmation]);
 
   const handleClose = useCallback(() => {
     if (dialog.isDirtyRef.current) {
@@ -123,7 +128,9 @@ export function TokenGeneratorDialog({
     const aliasCount = dialog.semanticEnabled
       ? dialog.semanticMappings.filter(m => m.semantic.trim()).length
       : 0;
-    if (dialog.isEditing) return 'Save Changes';
+    if (dialog.isEditing) {
+      return `Save Changes (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? '' : 's'})`;
+    }
     return aliasCount > 0
       ? `Create Generator (+${aliasCount} aliases)`
       : 'Create Generator';
@@ -151,7 +158,7 @@ export function TokenGeneratorDialog({
   }, [handleClose]);
 
   useEffect(() => {
-    onDirtyChange?.(dialog.isDirtyRef.current);
+    onDirtyChange?.(Boolean(dialog.isDirtyRef.current));
   });
 
   useEffect(() => {

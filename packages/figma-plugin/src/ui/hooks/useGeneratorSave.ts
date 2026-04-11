@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
 import type { UndoSlot } from './useUndo';
@@ -88,6 +88,9 @@ export function useGeneratorSave({
   const [semanticPrefix, setSemanticPrefix] = useState('semantic');
   const [semanticMappings, setSemanticMappings] = useState<Array<{ semantic: string; step: string }>>([]);
   const [selectedSemanticPatternId, setSelectedSemanticPatternId] = useState<string | null>(null);
+  const overwriteCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overwriteCheckAbortRef = useRef<AbortController | null>(null);
+  const overwriteCheckRequestIdRef = useRef(0);
 
   const validateBeforeSave = useCallback((): boolean => {
     if (!targetGroup.trim()) { setSaveError('Target group is required.'); return false; }
@@ -229,9 +232,94 @@ export function useGeneratorSave({
     }
   }, [serverUrl, isEditing, existingGenerator, selectedType, name, sourceTokenPath, inlineValue, config, pendingOverrides, isMultiBrand, inputTable, targetSetTemplate, previewTokens, onSaved, onInterceptSemanticMapping, pushUndo]);
 
-  /** Step 1: Validate inputs, show the confirmation preview.
-   *  For editing: kicks off the overwrite check in the background so the preview
-   *  shows the result without a blocking modal.
+  const runOverwriteCheck = useCallback(async () => {
+    if (!isEditing || !existingGenerator) return;
+
+    const requestId = overwriteCheckRequestIdRef.current + 1;
+    overwriteCheckRequestIdRef.current = requestId;
+    overwriteCheckAbortRef.current?.abort();
+
+    const controller = new AbortController();
+    overwriteCheckAbortRef.current = controller;
+    setOverwriteCheckLoading(true);
+    setOverwriteCheckError('');
+
+    try {
+      const { modified } = await apiFetch<{ modified: { path: string }[] }>(
+        `${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`,
+        {
+          method: 'POST',
+          signal: createFetchSignal(controller.signal),
+        },
+      );
+      if (controller.signal.aborted || overwriteCheckRequestIdRef.current !== requestId) return;
+      setOverwritePendingPaths(modified.map(m => m.path));
+    } catch (err) {
+      if (controller.signal.aborted || overwriteCheckRequestIdRef.current !== requestId) return;
+      setOverwritePendingPaths([]);
+      setOverwriteCheckError(`Could not check for manually-edited tokens: ${getErrorMessage(err)}`);
+    } finally {
+      if (!controller.signal.aborted && overwriteCheckRequestIdRef.current === requestId) {
+        setOverwriteCheckLoading(false);
+      }
+    }
+  }, [isEditing, existingGenerator, serverUrl]);
+
+  useEffect(() => {
+    if (!isEditing || !existingGenerator) {
+      overwriteCheckAbortRef.current?.abort();
+      if (overwriteCheckTimerRef.current) clearTimeout(overwriteCheckTimerRef.current);
+      setOverwritePendingPaths([]);
+      setOverwriteCheckLoading(false);
+      setOverwriteCheckError('');
+      return;
+    }
+
+    const hasReviewData = previewTokens.length > 0 || isMultiBrand;
+    if (!hasReviewData) {
+      overwriteCheckAbortRef.current?.abort();
+      if (overwriteCheckTimerRef.current) clearTimeout(overwriteCheckTimerRef.current);
+      setOverwritePendingPaths([]);
+      setOverwriteCheckLoading(false);
+      setOverwriteCheckError('');
+      return;
+    }
+
+    if (overwriteCheckTimerRef.current) clearTimeout(overwriteCheckTimerRef.current);
+    overwriteCheckTimerRef.current = setTimeout(() => {
+      void runOverwriteCheck();
+    }, 350);
+
+    return () => {
+      if (overwriteCheckTimerRef.current) clearTimeout(overwriteCheckTimerRef.current);
+    };
+  }, [
+    config,
+    existingGenerator,
+    inlineValue,
+    inputTable,
+    isEditing,
+    isMultiBrand,
+    name,
+    pendingOverrides,
+    previewTokens.length,
+    runOverwriteCheck,
+    selectedType,
+    sourceTokenPath,
+    targetGroup,
+    targetSet,
+    targetSetTemplate,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      overwriteCheckAbortRef.current?.abort();
+      if (overwriteCheckTimerRef.current) clearTimeout(overwriteCheckTimerRef.current);
+    };
+  }, []);
+
+  /** Step 1: Validate inputs and show the confirmation preview.
+   *  Background overwrite checks stay live while the draft changes.
    *  For new generators: pre-populates semantic mapping state based on generator type.
    */
   const handleSave = useCallback(async () => {
@@ -256,26 +344,7 @@ export function useGeneratorSave({
     }
 
     setShowConfirmation(true);
-
-    // For editing: check for manually-edited tokens in the background so the review
-    // screen shows the info immediately rather than gating on it.
-    if (isEditing && existingGenerator) {
-      setOverwriteCheckLoading(true);
-      setOverwritePendingPaths([]);
-      setOverwriteCheckError('');
-      try {
-        const { modified } = await apiFetch<{ modified: { path: string }[] }>(
-          `${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`,
-          { method: 'POST' },
-        );
-        setOverwritePendingPaths(modified.map(m => m.path));
-      } catch (err) {
-        setOverwriteCheckError(`Could not check for manually-edited tokens: ${getErrorMessage(err)}`);
-      } finally {
-        setOverwriteCheckLoading(false);
-      }
-    }
-  }, [validateBeforeSave, isEditing, existingGenerator, serverUrl, selectedType, previewTokens]);
+  }, [validateBeforeSave, isEditing, previewTokens, isMultiBrand, selectedType]);
 
   const handleQuickSave = useCallback(async () => {
     if (!validateBeforeSave()) return;

@@ -912,3 +912,12 @@
   - Keep shared feedback primitives narrow: title, description, variant, size, and at most two actions cover most panel states without forcing panel-specific layouts into the shared component.
   - When a panel needs richer follow-up affordances after the placeholder, compose those controls around the shared primitive instead of adding custom slots for every one-off layout.
 ---
+## 2026-04-11 - Surface save-impact summary before confirmation in TokenGeneratorDialog
+- Auto-opened the generator review section as soon as preview tokens appear, added edit-mode save counts to the primary CTA, and moved manually-edited overwrite checks into a debounced background effect so review data stays warm before the user confirms.
+- Added a success toast for inline quick-save edits in the generator pipeline card used from the Tokens workflow.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false` still fails on unrelated pre-existing workspace issues (`packages/core/dist` build artifacts, `NoticeSeverity` mismatches, and existing implicit-`any` / type errors elsewhere). A follow-up grep showed no remaining TypeScript diagnostics in `TokenGeneratorDialog`, `useGeneratorSave`, or `GeneratorPipelineCard`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L91, `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L91, `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L235, `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L9, `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L559
+- **Learnings for future iterations:**
+  - Generator review surfaces feel more stable when expensive overwrite detection runs opportunistically off preview availability instead of waiting for the save click path.
+  - Inline generator edit affordances should use the same toast bus as the full dialog so Tokens-surface saves behave consistently with dedicated generator flows.
+---
