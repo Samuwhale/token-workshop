@@ -33,7 +33,7 @@
 - [x] [HIGH] Centralize contextual surface mutual-exclusion into EditorContext
 - [x] [HIGH] Guard compare-to-edit and preview-to-edit transitions through dirty-state check
 - [x] [HIGH] Add generator ownership indicators to TokenDetailPreview and group headers
-- [ ] [HIGH] Surface save-impact summary before confirmation in TokenGeneratorDialog
+- [x] [HIGH] Surface save-impact summary before confirmation in TokenGeneratorDialog
 - [ ] [HIGH] Extract shared editor shell layout from TokenEditor
 - [ ] [HIGH] Consolidate generator escalation paths through contextual surface contract
 - [x] [HIGH] Add aggregate summary bar above PublishPanel variable and style diff sections

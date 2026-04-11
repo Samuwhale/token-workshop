@@ -15,6 +15,7 @@ import { ExportPreviewModal } from './ExportPreviewModal';
 import { GitWorkflowPanel } from './publish/GitWorkflowPanel';
 import { FieldMessage } from '../shared/FieldMessage';
 import { fieldBorderClass } from '../shared/editorClasses';
+import { InlineBanner } from './InlineBanner';
 
 export type ExportMode = 'platforms' | 'figma-variables';
 
@@ -180,14 +181,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         )}
         <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
           {error && (
-            <div role="alert" className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
+            <InlineBanner variant="error">
               {error}
-            </div>
+            </InlineBanner>
           )}
 
           {/* Mode toggle */}
@@ -236,26 +232,15 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
           {/* Auto-switch notice */}
           {modeAutoSwitched && (
-            <div role="status" className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-text-secondary)] text-[10px]">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px text-[var(--color-figma-warning)]" aria-hidden="true">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              <span className="flex-1">
+            <InlineBanner
+              variant="warning"
+              onDismiss={() => setModeAutoSwitched(false)}
+              dismissMode="icon"
+            >
+              <span className="block">
                 Switched to <strong>Figma Variables</strong> — server disconnected. Platforms mode requires a server connection. Reconnect to switch back.
               </span>
-              <button
-                onClick={() => setModeAutoSwitched(false)}
-                className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-                aria-label="Dismiss"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
+            </InlineBanner>
           )}
 
           {/* Platform export config */}

@@ -19,6 +19,7 @@ import { CommitCompareView } from './history/CommitCompareView';
 import { SnapshotsSource } from './history/SnapshotsSource';
 import { RollbackPreviewModal } from './history/RollbackPreviewModal';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
+import { InlineBanner } from './InlineBanner';
 
 function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }) {
   const styles: Record<string, string> = {
@@ -374,26 +375,24 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
 
       {/* Token filter banner */}
       {filterTokenPath && (
-        <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-[color-mix(in_srgb,var(--color-figma-accent)_8%,transparent)] border-b border-[var(--color-figma-border)]">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-          </svg>
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 min-w-0">
+        <InlineBanner
+          variant="info"
+          layout="strip"
+          size="sm"
+          className="bg-[color-mix(in_srgb,var(--color-figma-accent)_8%,transparent)]"
+          icon={(
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          )}
+          onDismiss={onClearFilter}
+          dismissMode="icon"
+        >
+          <span className="block text-[10px] text-[var(--color-figma-text-secondary)]">
             Filtering: <span className="font-mono text-[var(--color-figma-text)] truncate">{filterTokenPath}</span>
           </span>
-          {onClearFilter && (
-            <button
-              onClick={onClearFilter}
-              className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
-              title="Clear filter"
-              aria-label="Clear filter"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
+        </InlineBanner>
       )}
 
       {/* Toolbar */}

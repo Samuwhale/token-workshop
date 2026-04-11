@@ -33,6 +33,7 @@ import { RemapBindingsPanel } from './RemapBindingsPanel';
 import { ExtractTokensPanel } from './ExtractTokensPanel';
 import { ConfirmModal } from './ConfirmModal';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
+import { InlineBanner } from './InlineBanner';
 import { NoticePill, NoticeFieldMessage } from '../shared/noticeSystem';
 
 type InspectorPropFilterMode = 'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions';
@@ -1313,9 +1314,9 @@ export function SelectionInspector({
                   )}
 
                   {deepRemoveError && (
-                    <div className="mt-2 rounded border border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
+                    <InlineBanner variant="error" className="mt-2">
                       {deepRemoveError}
-                    </div>
+                    </InlineBanner>
                   )}
                 </div>
 
@@ -1372,19 +1373,31 @@ export function SelectionInspector({
                     </button>
                   )}
                   {extractingUnbound && (
-                    <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">Extracting and binding unbound properties…</p>
+                    <InlineBanner variant="loading" className="mt-2 border-0 bg-transparent px-0 py-0">
+                      Extracting and binding unbound properties…
+                    </InlineBanner>
                   )}
                   {extractUnboundResult && (
-                    <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--color-figma-success,#18a058)]">
-                      <span>Created {extractUnboundResult.created}, bound {extractUnboundResult.bound}</span>
-                      <button onClick={() => setExtractUnboundResult(null)} className="opacity-60 hover:opacity-100" aria-label="Dismiss extract result">×</button>
-                    </div>
+                    <InlineBanner
+                      variant="success"
+                      className="mt-2"
+                      onDismiss={() => setExtractUnboundResult(null)}
+                      dismissMode="icon"
+                      dismissLabel="Dismiss extract result"
+                    >
+                      Created {extractUnboundResult.created}, bound {extractUnboundResult.bound}
+                    </InlineBanner>
                   )}
                   {extractUnboundError && (
-                    <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--color-figma-error,#f56565)]" title={extractUnboundError}>
-                      <span>Extract failed</span>
-                      <button onClick={() => setExtractUnboundError(null)} className="opacity-60 hover:opacity-100" aria-label="Dismiss extract error">×</button>
-                    </div>
+                    <InlineBanner
+                      variant="error"
+                      className="mt-2"
+                      onDismiss={() => setExtractUnboundError(null)}
+                      dismissMode="icon"
+                      dismissLabel="Dismiss extract error"
+                    >
+                      <span title={extractUnboundError}>Extract failed</span>
+                    </InlineBanner>
                   )}
 
                   {showExtractPanel && (
@@ -1566,34 +1579,40 @@ export function SelectionInspector({
 
       {/* All bound — advance to next layer */}
       {allPropertiesBound && rootNodes.length === 1 && (
-        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex items-center gap-2 bg-[var(--color-figma-success,#18a058)]/5 shrink-0">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-success,#18a058)]" aria-hidden="true">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          <span className="text-[10px] text-[var(--color-figma-text)] font-medium flex-1">All properties bound</span>
-          {noMoreSiblings ? (
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No more layers</span>
-          ) : (
-            <button
-              onClick={() => parent.postMessage({ pluginMessage: { type: 'select-next-sibling' } }, '*')}
-              className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors font-medium"
-            >
-              Next layer →
-            </button>
-          )}
-        </div>
+        <InlineBanner
+          variant="success"
+          layout="strip"
+          size="sm"
+          className="border-t border-b-0 bg-[var(--color-figma-success,#18a058)]/5"
+          action={noMoreSiblings
+            ? undefined
+            : {
+              label: 'Next layer →',
+              onClick: () => parent.postMessage({ pluginMessage: { type: 'select-next-sibling' } }, '*'),
+              className: 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
+            }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">All properties bound</span>
+            {noMoreSiblings ? (
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No more layers</span>
+            ) : null}
+          </div>
+        </InlineBanner>
       )}
 
       {/* Apply-to-nodes progress banner */}
       {applyProgress && applyProgress.total > 1 && (
-        <div className="border-t border-[var(--color-figma-border)] px-3 py-1.5 flex items-center gap-2 bg-[var(--color-figma-bg-secondary)] shrink-0" aria-live="polite">
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)] animate-spin" aria-hidden="true">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-          </svg>
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">
+        <InlineBanner
+          variant="loading"
+          layout="strip"
+          size="sm"
+          className="border-t border-b-0"
+        >
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
             Applying… {applyProgress.processed}/{applyProgress.total} layers
           </span>
-        </div>
+        </InlineBanner>
       )}
 
       {/* Clear all bindings confirmation */}
@@ -1613,30 +1632,28 @@ export function SelectionInspector({
 
       {/* Create success banner */}
       {createdTokenPath && (
-        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex items-center gap-2 bg-[var(--color-figma-bg)]">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-success,#18a058)]" aria-hidden="true">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          <span className="text-[10px] text-[var(--color-figma-text)] font-mono truncate flex-1" title={createdTokenPath}>{createdTokenPath}</span>
-          {onNavigateToToken && (
-            <button
-              onClick={() => { onNavigateToToken(createdTokenPath); setCreatedTokenPath(null); }}
-              className="text-[10px] text-[var(--color-figma-accent)] hover:underline shrink-0"
-            >
-              Go to token →
-            </button>
-          )}
-          <button
-            onClick={() => setCreatedTokenPath(null)}
-            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
-            title="Dismiss"
-            aria-label="Dismiss"
-          >
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        <InlineBanner
+          variant="success"
+          layout="strip"
+          size="sm"
+          className="border-t border-b-0 bg-[var(--color-figma-bg)]"
+          action={onNavigateToToken
+            ? {
+              label: 'Go to token →',
+              onClick: () => {
+                onNavigateToToken(createdTokenPath);
+                setCreatedTokenPath(null);
+              },
+              className: 'bg-transparent text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10',
+            }
+            : undefined}
+          onDismiss={() => setCreatedTokenPath(null)}
+          dismissMode="icon"
+        >
+          <span className="block truncate font-mono text-[10px] text-[var(--color-figma-text)]" title={createdTokenPath}>
+            {createdTokenPath}
+          </span>
+        </InlineBanner>
       )}
     </div>
   );

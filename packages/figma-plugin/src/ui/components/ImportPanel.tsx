@@ -11,6 +11,7 @@ import { ImportFileDestinationRules } from './ImportFileDestinationRules';
 import { ImportWorkflowSteps } from './ImportWorkflowSteps';
 import { getSourceDefinition } from './importPanelTypes';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
+import { InlineBanner } from './InlineBanner';
 
 function ImportPanelRoot() {
   const {
@@ -95,7 +96,11 @@ function ImportPanelRoot() {
         )}
 
         {showDestinationValidation && (
-          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+          <InlineBanner
+            variant={fileImportValidation.status === 'partial' ? 'warning' : 'info'}
+            icon={null}
+            className="px-3 py-2"
+          >
             <div className="flex items-center justify-between gap-2">
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
                 {fileImportValidation.summary}
@@ -116,7 +121,7 @@ function ImportPanelRoot() {
                 Next: {fileImportValidation.nextAction}
               </div>
             )}
-          </div>
+          </InlineBanner>
         )}
 
         {!showSuccess && (

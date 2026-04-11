@@ -921,3 +921,11 @@
   - Generator review surfaces feel more stable when expensive overwrite detection runs opportunistically off preview availability instead of waiting for the save click path.
   - Inline generator edit affordances should use the same toast bus as the full dialog so Tokens-surface saves behave consistently with dedicated generator flows.
 ---
+## 2026-04-11 - Extract shared InlineBanner component and migrate all bespoke inline feedback strips
+- Added a reusable `InlineBanner` primitive for loading, error, warning, info, and success feedback, with shared `alert`/`status` roles plus optional action and dismiss controls. Migrated the assigned plugin surfaces off bespoke inline strips while preserving strip-vs-inset layout intent.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false` still fails on unrelated pre-existing workspace issues (`packages/core/dist` alias output, existing `NoticeSeverity` mismatches, and unrelated type errors). The touched banner files did not surface new task-specific TypeScript errors in that run.
+- Files changed: `packages/figma-plugin/src/ui/components/InlineBanner.tsx` ~L1, `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L98, `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L183, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L376, `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L805, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L1316, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L1580, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3750, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4276
+- **Learnings for future iterations:**
+  - Shared inline feedback needs a small layout switch (`inline` vs `strip`) so inset cards and edge-to-edge panel rails can reuse one primitive without collapsing into one-off wrappers.
+  - Keep the shared banner body generic and let callers override icons or button styling only when a surface needs to preserve a specific accent treatment.
+---

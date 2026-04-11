@@ -8,8 +8,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Auto-opened generator review on preview availability, added edit-mode save counts, moved overwrite checks into a debounced background flow, and added inline quick-edit success toasts; full plugin tsc remains blocked by unrelated pre-existing repo errors."
+state: done
 acceptance_criteria:
   - Review section auto-opens as soon as preview tokens are available not only after clicking Save
   - "Save button label for edit mode includes a count: Save Changes (N tokens)"
@@ -17,4 +18,4 @@ acceptance_criteria:
   - Inline generator edits from the Tokens tab fire a toast on successful save
 source: task-followup
 created_at: 2026-04-11T10:39:50.216Z
-updated_at: 2026-04-11T10:39:50.216Z
+updated_at: 2026-04-11T20:37:40.622Z

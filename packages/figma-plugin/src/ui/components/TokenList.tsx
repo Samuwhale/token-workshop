@@ -54,6 +54,7 @@ import { TokenSearchFilterChips } from './TokenSearchFilterBuilder';
 import type { FilterBuilderSection } from './TokenSearchFilterBuilder';
 import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES } from './WelcomePrompt';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
+import { InlineBanner } from './InlineBanner';
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
@@ -3748,27 +3749,26 @@ export function TokenList({
       )}
       {/* Promote duplicates callout — shown when the duplicates filter is active */}
       {showDuplicates && promotableDuplicateCount > 0 && (
-        <div role="status" aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[11px]">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
-          </svg>
-          <span className="flex-1 text-[var(--color-figma-text-secondary)]">
+        <InlineBanner
+          variant="info"
+          layout="strip"
+          size="md"
+          action={{
+            label: 'Promote all to aliases',
+            onClick: () => handleOpenPromoteReview(duplicateValuePaths),
+            className: 'bg-transparent text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)]',
+          }}
+        >
+          <span className="block text-[var(--color-figma-text-secondary)]">
             {promotableDuplicateCount} token{promotableDuplicateCount !== 1 ? 's' : ''} share duplicate values
           </span>
-          <button
-            onClick={() => handleOpenPromoteReview(duplicateValuePaths)}
-            className="shrink-0 px-2 py-0.5 rounded text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] font-medium transition-colors"
-          >
-            Promote all to aliases
-          </button>
-        </div>
+        </InlineBanner>
       )}
       {/* Operation loading banner */}
       {operationLoading && (
-        <div role="status" aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text-secondary)]">
-          <Spinner size="sm" />
+        <InlineBanner variant="loading" layout="strip" size="md">
           <span>{operationLoading}</span>
-        </div>
+        </InlineBanner>
       )}
       {/* Delete error banner */}
       {deleteError && (
@@ -4274,23 +4274,22 @@ export function TokenList({
           <div className="flex flex-col gap-2">
             {/* Draft recovery banner */}
             {tableCreateHasDraft && (
-              <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[11px]">
-                <span className="flex-1 text-[var(--color-figma-text)]">You have unsaved bulk-create data. Restore it?</span>
-                <button
-                  type="button"
-                  onClick={restoreTableDraft}
-                  className="px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
-                >
-                  Restore
-                </button>
-                <button
-                  type="button"
-                  onClick={dismissTableDraft}
-                  className="px-2 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  Discard
-                </button>
-              </div>
+              <InlineBanner
+                variant="info"
+                size="md"
+                className="border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)]"
+                action={{
+                  label: 'Restore',
+                  onClick: restoreTableDraft,
+                  className: 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]',
+                }}
+                onDismiss={dismissTableDraft}
+                dismissLabel="Discard"
+                dismissMode="text"
+                dismissClassName="border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                <span className="block text-[var(--color-figma-text)]">You have unsaved bulk-create data. Restore it?</span>
+              </InlineBanner>
             )}
             {/* Active set indicator */}
             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">

@@ -19,6 +19,7 @@ import { Spinner } from './Spinner';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { swatchBgColor } from '../shared/colorUtils';
+import { InlineBanner } from './InlineBanner';
 
 export interface ResolverContentProps {
   serverUrl: string;
@@ -804,28 +805,28 @@ function ResolverInner({
                   {/* Resolution status */}
                   <div className="rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] px-2 py-1.5">
                     {loading ? (
-                      <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                        <Spinner size="sm" />
+                      <InlineBanner variant="loading" icon={<Spinner size="sm" />} className="border-0 bg-transparent px-0 py-0 text-[10px]">
                         Resolving tokens…
-                      </div>
+                      </InlineBanner>
                     ) : resolverError ? (
-                      <div className="text-[10px] text-red-500">{resolverError}</div>
+                      <InlineBanner variant="error" className="border-0 bg-transparent px-0 py-0 text-[10px]">
+                        {resolverError}
+                      </InlineBanner>
                     ) : resolvedTokens ? (
-                      <div className="flex items-center justify-between">
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                          <span className="font-medium text-[var(--color-figma-text)]">{resolvedCount}</span> tokens resolved
+                      <InlineBanner variant="success" className="border-0 bg-transparent px-0 py-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                            <span className="font-medium text-[var(--color-figma-text)]">{resolvedCount}</span> tokens resolved
+                          </div>
+                          <div className="text-[9px] text-[var(--color-figma-success,#18a058)] flex items-center gap-1">
+                            Active
+                          </div>
                         </div>
-                        <div className="text-[9px] text-green-600 flex items-center gap-1">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M20 6L9 17l-5-5" />
-                          </svg>
-                          Active
-                        </div>
-                      </div>
+                      </InlineBanner>
                     ) : (
-                      <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      <InlineBanner variant="info" className="border-0 bg-transparent px-0 py-0 text-[10px]">
                         Select dimension options to resolve tokens
-                      </div>
+                      </InlineBanner>
                     )}
                   </div>
 
@@ -897,9 +898,9 @@ function ResolverInner({
 
       {/* Resolver error banner */}
       {resolverError && !activeResolver && (
-        <div className="shrink-0 px-3 py-1.5 bg-red-50 border-t border-red-200">
-          <div className="text-[10px] text-red-600">{resolverError}</div>
-        </div>
+        <InlineBanner variant="error" layout="strip" size="sm" className="border-t border-b-0">
+          {resolverError}
+        </InlineBanner>
       )}
 
       {/* Delete confirmation modal */}
