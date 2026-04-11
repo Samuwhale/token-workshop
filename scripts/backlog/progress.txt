@@ -1042,3 +1042,11 @@
   - When a workspace accumulates multiple creation affordances, centralize them behind one menu-backed launcher and wire every option through explicit callbacks instead of reopening separate empty-state or shell-level entry points.
   - Empty states should describe where the shared launcher lives rather than duplicating the same creation choices with another stack of CTAs.
 ---
+## 2026-04-11 - Rewrite UI copy to use task language instead of implementation language
+- Rewrote notification, shortcuts, settings, and shared shell helper copy so the visible language stays task-focused; the notifications empty state is now a single short sentence, settings guidance is more action-oriented, and navigation/menu tooltips no longer describe internal surfaces or overlays.
+- Files changed: `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` ~L232, `packages/figma-plugin/src/ui/components/NotificationsPanel.tsx` ~L377, `packages/figma-plugin/src/ui/components/KeyboardShortcutsPanel.tsx` ~L8, `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L654, `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L815, `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1008, `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1035, `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1062, `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1304, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L236, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L261, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L328, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L471, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L519
+- **Learnings for future iterations:**
+  - Shared navigation metadata feeds visible tooltips and menu copy, so wording changes there can clean up multiple shell entry points at once.
+  - Empty states read better when they answer only the immediate question of "what will show up here" instead of explaining inbox mechanics.
+  - A follow-up backlog item was queued for remaining App shell copy that is still under another active reservation.
+---

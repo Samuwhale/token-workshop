@@ -9,8 +9,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/App.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Centralized Tokens workspace creation into one Create menu and removed the duplicate shell and empty-state entry points."
+state: done
 acceptance_criteria:
   - One primary "+" or "Create" button serves as the single entry point for all token creation
   - That button opens a menu with options for single token, bulk, group, paste, and import
@@ -18,4 +19,4 @@ acceptance_criteria:
   - Total visible creation entry points on the Tokens workspace drop from 7+ to 2 or fewer (primary button + per-group inline add)
 source: manual
 created_at: 2026-04-11T22:00:00.000Z
-updated_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T21:34:36.490Z

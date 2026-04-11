@@ -51,7 +51,7 @@
 - [x] [HIGH] Add selection-loading state to useSelection to prevent empty-state flash in SelectionInspector and QuickApplyPicker
 - [x] [HIGH] Collapse generator card action buttons into a context menu
 - [x] [HIGH] Collapse workflow stage cards to minimal step indicators in Themes, Apply, and Sync
-- [ ] [HIGH] Consolidate token creation entry points into a single launcher menu
+- [x] [HIGH] Consolidate token creation entry points into a single launcher menu
 - [x] [HIGH] Merge secondary surfaces into compact navigation targets instead of 5 always-visible buttons
 - [ ] [HIGH] Reduce Tokens workspace chrome bands by merging search, toolbar, and conditional bars
 - [ ] [HIGH] Remove all-caps section labels from shell, workspace headers, and footer bands

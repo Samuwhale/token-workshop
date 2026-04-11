@@ -652,15 +652,14 @@ export function SettingsPanel({
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-3 p-3">
           <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-            Choose how TokenManager behaves on this machine. Most changes apply
-            immediately.
+            Adjust how TokenManager feels on this machine. Most changes apply
+            right away.
           </p>
 
           <Section title="Workspace behavior">
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              These defaults shape the day-to-day browsing experience in
-              TokenManager. Change them when you want the library to feel denser
-              or quieter while reviewing tokens.
+              Tune the library so everyday review feels faster and easier to
+              scan.
             </p>
             <div className="flex items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -815,9 +814,8 @@ export function SettingsPanel({
 
           <Section title="Local server connection" defaultOpen={false}>
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Only adjust this when the plugin should read token files from your
-              machine, sync changes back to disk, or run server-backed tooling
-              such as lint configuration.
+              Update this only when you want to work with token files on your
+              machine or use server-backed tools like lint rules.
             </p>
             <div className="mb-1 flex items-center justify-between">
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -855,10 +853,10 @@ export function SettingsPanel({
               className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Run <span className="font-mono">npm start</span> in the
-              TokenManager directory, then connect here. The default local
-              server is <span className="font-mono">http://localhost:9400</span>
-              .
+              Start the local server with{" "}
+              <span className="font-mono">npm start</span>, then connect here.
+              The default address is{" "}
+              <span className="font-mono">http://localhost:9400</span>.
             </p>
             {connectResult === "ok" && (
               <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
@@ -1009,10 +1007,9 @@ export function SettingsPanel({
 
           <Section title="Validation rules" defaultOpen={false}>
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Change this only when your team needs different linting rules than
-              the defaults or when you are debugging why validation is behaving
-              unexpectedly. These rules are stored on the local server, not in
-              the Figma plugin itself.
+              Change these when your team needs different lint rules or when you
+              need to troubleshoot validation. The rules are saved with the
+              local server.
             </p>
             {!connected ? (
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1037,10 +1034,8 @@ export function SettingsPanel({
 
           <Section title="Guided setup" defaultOpen={false}>
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Re-open the onboarding flow when you want help reconnecting the
-              server, creating a foundation set, mapping semantic roles, or
-              rebuilding your theme setup from scratch after a full workspace
-              wipe.
+              Run setup again to reconnect the server, rebuild foundations, or
+              reset theme work from a clean start.
             </p>
             <button
               onClick={onRestartGuidedSetup}
@@ -1066,14 +1061,12 @@ export function SettingsPanel({
 
           <Section title="Backup and restore" defaultOpen={false}>
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Save or restore a preferences-only backup. This does not import
-              tokens, themes, sets, or any other token-system data from the main
-              Import surface.
+              Save a copy of your settings or restore them later. This covers
+              preferences only, not tokens, themes, or sets.
             </p>
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Use this when moving to another machine, recovering after browser
-              storage is cleared, or snapshotting preferences before broader
-              workflow changes.
+              Use it before switching machines or before a big round of setup
+              changes.
             </p>
             <div className="flex gap-2">
               <button
@@ -1312,8 +1305,8 @@ export function SettingsPanel({
                 Workspace reset
               </h2>
               <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Use this only when you want to wipe local workspace data and
-                restart from a clean setup flow.
+                Use this only when you need to clear local data and start setup
+                again.
               </p>
             </div>
 
@@ -1321,11 +1314,9 @@ export function SettingsPanel({
               {!showClearConfirm ? (
                 <>
                   <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                    This permanently deletes workspace data: tokens, themes,
-                    sets, plus generator, resolver, and undo-history records
-                    stored on the local server. Saved preferences stay intact,
-                    but the app resets its start-flow completion state and
-                    reopens guided setup so you can recover from a clean slate.
+                    This removes local tokens, themes, sets, generators,
+                    resolvers, and undo history. Saved preferences stay in
+                    place, then setup opens again.
                   </p>
                   <button
                     onClick={() => {
@@ -1344,10 +1335,9 @@ export function SettingsPanel({
                     <span className="font-mono font-bold text-[var(--color-figma-error)]">
                       DELETE
                     </span>{" "}
-                    to confirm permanent removal of tokens, themes, sets, and
-                    local server generator / resolver / history data. The app
-                    will then reopen guided setup so you can reconnect or
-                    rebuild from an explicit recovery flow.
+                    to permanently remove local tokens, themes, sets,
+                    generators, resolvers, and history. Setup opens again after
+                    the reset.
                   </p>
                   <input
                     type="text"
