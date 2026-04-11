@@ -50,7 +50,7 @@
 - [x] [HIGH] Add inline explanations, specific CTAs, and live counts to HealthPanel priority issues strip
 - [x] [HIGH] Add selection-loading state to useSelection to prevent empty-state flash in SelectionInspector and QuickApplyPicker
 - [x] [HIGH] Collapse generator card action buttons into a context menu
-- [ ] [HIGH] Collapse workflow stage cards to minimal step indicators in Themes, Apply, and Sync
+- [x] [HIGH] Collapse workflow stage cards to minimal step indicators in Themes, Apply, and Sync
 - [ ] [HIGH] Consolidate token creation entry points into a single launcher menu
 - [ ] [HIGH] Merge secondary surfaces into compact navigation targets instead of 5 always-visible buttons
 - [ ] [HIGH] Reduce Tokens workspace chrome bands by merging search, toolbar, and conditional bars

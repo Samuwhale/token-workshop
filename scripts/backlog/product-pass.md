@@ -14,7 +14,7 @@ The primary users are UX/UI designers and design system maintainers working insi
 
 ## Goal
 
-Find **5–15 concrete, actionable items** across the product and write them to `backlog/inbox.jsonl`. Think like a power user who manages hundreds of design tokens daily — what's missing, what's painful, what would make this the best tool in its category? Explore as many areas as you need.
+Find **up to 3 concrete, actionable items** across the product and write them to `backlog/inbox.jsonl`. **0–1 items is fine if that is all that clears the bar.** Think like a power user who manages hundreds of design tokens daily — what's missing, what's painful, what would make this the best tool in its category? Explore as many areas as you need.
 
 Good targets (in priority order):
 
@@ -36,6 +36,20 @@ Items can range from atomic fixes to full overhauls — don't artificially limit
 - Overhaul: `{"title":"Restructure the token editor from a monolithic component into focused sub-components with shared state boundaries","priority":"high","touch_paths":["packages/figma-plugin/src/ui/components"],"acceptance_criteria":["The token editor is split into cohesive sub-components without the current prop-drilling and local-state sprawl"],"source":"product-pass"}`
 
 Overhaul, consolidation, and removal items are encouraged when a whole area of the product would benefit from a rethink rather than incremental patches. Don't bloat the app — if removing or merging something makes it simpler without losing real value, that's a win. The implementing agent has full freedom to touch as many files as needed.
+
+---
+
+## Quality Bar
+
+Only write an item if it passes **all** of these checks:
+
+- **Durable** — would this still look worth doing next week, or is it a transient observation?
+- **Root-level** — does this address a root cause or workflow gap, not a surface symptom?
+- **Non-redundant** — does this add meaningfully new work, or does it overlap with something already on the backlog?
+- **Consolidating** — if you found several related gaps, did you merge them into one broader item instead of writing each separately?
+- **Ownable** — can a single agent coherently own this item from start to finish?
+
+Prefer broader workflow or architectural tasks over micro-fixes. Prefer consolidation over fragmentation. If nothing clears this bar, write 0 items — that is a valid outcome.
 
 ---
 

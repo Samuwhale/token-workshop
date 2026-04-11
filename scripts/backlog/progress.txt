@@ -1002,3 +1002,11 @@
   - Once selection bootstrap state exists in `InspectContext`, every selection-driven surface should consume that shared loading flag instead of interpreting the hook's initial `[]` as a real empty selection.
   - Neutral loading placeholders are preferable to search or empty-state affordances while the first Figma selection message is still in flight, because they avoid implying that the canvas has already reported "nothing selected."
 ---
+## 2026-04-11 - Merge secondary surfaces into compact navigation targets instead of 5 always-visible buttons
+- Replaced the shell's always-visible secondary-surface row with compact header affordances: notifications now use a conditional bell badge, settings and shortcuts moved into the gear-style app menu, import now lives in Tokens workspace contextual controls, and the top-level set-manager button was removed so set management stays behind the set switcher.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/shared/navigationTypes.ts` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "navigationTypes\\.ts"` returned no diagnostics, and a line-targeted `rg` over the touched `App.tsx` ranges returned no matches. The broader typecheck still reports unrelated pre-existing `App.tsx` type issues and the long-standing `packages/core/dist` `TS6305` build-artifact error surfaced via `SetSwitcher.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L107, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L445, `packages/figma-plugin/src/ui/App.tsx` ~L414, `packages/figma-plugin/src/ui/App.tsx` ~L1339, `packages/figma-plugin/src/ui/App.tsx` ~L1935, `packages/figma-plugin/src/ui/App.tsx` ~L2613, `packages/figma-plugin/src/ui/App.tsx` ~L3063
+- **Learnings for future iterations:**
+  - Secondary surfaces should declare how they are reached (`workspace`, `attention`, `menu`, `set switcher`) so the shell can stay compact without hard-coding per-surface placement rules in `App.tsx`.
+  - Reference and maintenance surfaces do not need persistent top-level buttons if the shell still preserves one compact access point plus clear workspace-local entry points for task-specific takeovers.
+---

@@ -411,6 +411,15 @@ export function App() {
     () => resolveSecondarySurface(activeSecondarySurface),
     [activeSecondarySurface],
   );
+  const shellMenuSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
+    (surface) => surface.access === "shell-menu",
+  );
+  const importSurface = APP_SHELL_NAVIGATION.secondarySurfaces.find(
+    (surface) => surface.id === "import",
+  );
+  const notificationSurface = APP_SHELL_NAVIGATION.secondarySurfaces.find(
+    (surface) => surface.access === "attention-bell",
+  );
   const themeSetTokenCounts = useMemo(() => {
     const counts: Record<string, number | null> = {};
     for (const setName of sets) {
@@ -689,7 +698,9 @@ export function App() {
 
   const editorIsDirtyRef = useRef(false);
   // Pending navigation action — set when user tries to navigate away from a dirty editor
-  const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(null);
+  const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(
+    null,
+  );
   const guardEditorAction = useCallback((fn: () => void) => {
     if (editorIsDirtyRef.current) {
       setPendingNavAction(() => fn);
@@ -705,7 +716,7 @@ export function App() {
     guardEditorAction(() => {
       if (!previewingToken) return;
       switchContextualSurface({
-        surface: 'token-editor',
+        surface: "token-editor",
         token: {
           path: previewingToken.path,
           name: previewingToken.name,
@@ -1325,6 +1336,23 @@ export function App() {
     },
     [dismissEphemeralOverlays, openSecondarySurface],
   );
+  const toggleSecondarySurface = useCallback(
+    (panel: SecondarySurfaceId) => {
+      guardEditorAction(() => {
+        if (activeSecondarySurface === panel) {
+          closeSecondarySurface();
+          return;
+        }
+        openSecondaryPanel(panel);
+      });
+    },
+    [
+      activeSecondarySurface,
+      closeSecondarySurface,
+      guardEditorAction,
+      openSecondaryPanel,
+    ],
+  );
 
   // Keyboard shortcuts — use a stable callback ref so the effect never
   // re-registers the listener yet always calls the latest handler.
@@ -1904,6 +1932,39 @@ export function App() {
     [closeSecondarySurface, guardEditorAction, navigateTo],
   );
 
+  const tokensContextualControls = useMemo(() => {
+    if (activeSecondarySurface !== null || activeWorkspace.id !== "tokens") {
+      return null;
+    }
+
+    return (
+      <div className="flex items-center justify-between gap-3 px-3 py-2">
+        <div className="min-w-0">
+          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            Bring tokens in
+          </div>
+          <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            {importSurface?.description ??
+              "Bring in token files, code exports, migration data, or Figma variables without leaving the token workflow."}
+          </div>
+        </div>
+        <button
+          onClick={() => toggleSecondarySurface("import")}
+          className={`${shellControlClass({ size: "sm", shape: "rounded" })} shrink-0`}
+          title={importSurface?.transition.usage}
+        >
+          Import
+        </button>
+      </div>
+    );
+  }, [
+    activeSecondarySurface,
+    activeWorkspace.id,
+    importSurface?.description,
+    importSurface?.transition.usage,
+    toggleSecondarySurface,
+  ]);
+
   const themeContextualControls = useMemo(() => {
     if (activeSecondarySurface !== null || activeWorkspace.id !== "themes")
       return null;
@@ -2429,15 +2490,20 @@ export function App() {
   ]);
 
   const workspaceContextualControls =
-    activeWorkspace.id === "themes"
-      ? themeContextualControls
-      : activeWorkspace.id === "apply"
-        ? applyContextualControls
-        : activeWorkspace.id === "sync"
-          ? syncContextualControls
-          : null;
+    activeWorkspace.id === "tokens"
+      ? tokensContextualControls
+      : activeWorkspace.id === "themes"
+        ? themeContextualControls
+        : activeWorkspace.id === "apply"
+          ? applyContextualControls
+          : activeWorkspace.id === "sync"
+            ? syncContextualControls
+            : null;
 
-  const secondarySurfacePills = useMemo((): Array<{ label: string; tone: NoticeSeverity }> => {
+  const secondarySurfacePills = useMemo((): Array<{
+    label: string;
+    tone: NoticeSeverity;
+  }> => {
     switch (activeSecondarySurface) {
       case "import":
         return [
@@ -2460,10 +2526,7 @@ export function App() {
               notificationHistory.length === 0
                 ? "No notifications"
                 : `${notificationHistory.length} entr${notificationHistory.length === 1 ? "y" : "ies"}`,
-            tone:
-              notificationHistory.length === 0
-                ? "info"
-                : "info",
+            tone: notificationHistory.length === 0 ? "info" : "info",
           },
         ];
       case "shortcuts":
@@ -2547,6 +2610,13 @@ export function App() {
     : connected
       ? `Connected to ${serverUrl}`
       : `Server offline · ${serverUrl}`;
+  const shellMenuActive =
+    menuOpen ||
+    activeSecondarySurface === "settings" ||
+    activeSecondarySurface === "shortcuts";
+  const notificationCount = notificationHistory.length;
+  const showNotificationButton =
+    notificationCount > 0 || activeSecondarySurface === "notifications";
 
   return (
     <div className="relative flex flex-col h-screen">
@@ -2586,176 +2656,192 @@ export function App() {
                 );
               })}
             </div>
-
-            <div className="mt-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-              Secondary surfaces
-            </div>
-            {/* Secondary surfaces are full-height body takeovers that keep the shell visible. */}
-            <div className="mt-1 flex min-w-0 items-center gap-1 overflow-x-auto rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-1">
-              {APP_SHELL_NAVIGATION.secondarySurfaces.map((surface) => {
-                const isActive = surface.id === activeSecondarySurface;
-                const isAttentionSurface =
-                  surface.id === "notifications" &&
-                  notificationHistory.length > 0;
-                const detail =
-                  surface.id === "sets"
-                    ? String(sets.length)
-                    : surface.id === "notifications"
-                      ? String(notificationHistory.length)
-                      : surface.id === "shortcuts"
-                        ? adaptShortcut(SHORTCUT_KEYS.SHOW_SHORTCUTS)
-                        : null;
-                return (
-                  <button
-                    key={surface.id}
-                    onClick={() =>
-                      guardEditorAction(() => {
-                        if (activeSecondarySurface === surface.id) {
-                          closeSecondarySurface();
-                        } else {
-                          openSecondaryPanel(surface.id);
-                        }
-                      })
-                    }
-                    className={`${shellControlClass({ active: isActive, size: "md", shape: "rounded" })} shrink-0`}
-                    title={surface.transition.usage}
-                    aria-pressed={isActive}
-                  >
-                    <span>{surface.label}</span>
-                    {detail && (
-                      <span
-                        className={`text-[10px] ${shellMetaTextClass(isActive)}`}
-                      >
-                        {detail}
-                      </span>
-                    )}
-                    {isAttentionSurface && (
-                      <span
-                        className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--color-figma-accent)]"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
-          <div className="relative shrink-0" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className={`${shellControlClass({ active: menuOpen, size: "md", shape: "rounded" })} min-h-[36px]`}
-              aria-label="Open tools"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-            >
-              <span>{APP_SHELL_NAVIGATION.utilityMenu.triggerLabel}</span>
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 8 8"
-                fill="currentColor"
-                aria-hidden="true"
-                className={`transition-transform ${menuOpen ? "rotate-90" : ""}`}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {showNotificationButton && notificationSurface && (
+              <button
+                onClick={() => toggleSecondarySurface(notificationSurface.id)}
+                className={`${shellControlClass({
+                  active: activeSecondarySurface === notificationSurface.id,
+                  size: "md",
+                  shape: "rounded",
+                })} h-9 w-9 min-h-0 px-0 py-0`}
+                aria-label={`Open notifications (${notificationCount})`}
+                aria-pressed={activeSecondarySurface === notificationSurface.id}
+                title={notificationSurface.transition.usage}
               >
-                <path d="M2 1l4 3-4 3V1z" />
-              </svg>
-              {utilitiesAttention && (
-                <span
-                  className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`}
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   aria-hidden="true"
-                />
-              )}
-            </button>
+                >
+                  <path d="M8 2.5a3 3 0 0 0-3 3v1.1c0 .8-.23 1.58-.67 2.23L3.2 10.5h9.6l-1.13-1.67A4 4 0 0 1 11 6.6V5.5a3 3 0 0 0-3-3Z" />
+                  <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
+                </svg>
+                <span className="absolute right-0.5 top-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-1 text-[9px] font-semibold leading-4 text-white">
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              </button>
+            )}
 
-            {menuOpen && (
-              <div
-                className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
-                role="menu"
+            <div className="relative shrink-0" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className={`${shellControlClass({
+                  active: shellMenuActive,
+                  size: "md",
+                  shape: "rounded",
+                })} h-9 w-9 min-h-0 px-0 py-0`}
+                aria-label="Open app menu"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
               >
-                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                    {APP_SHELL_NAVIGATION.utilityMenu.label}
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    {utilitiesStatusLabel}
-                  </div>
-                  {!connected && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={retryConnection}
-                        disabled={checking}
-                        className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {checking ? "Checking…" : "Retry"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowConnectionEditor((v) => !v);
-                          setConnectionUrlInput(serverUrl);
-                          setConnectionConnectResult(null);
-                        }}
-                        className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                      >
-                        {showConnectionEditor ? "Hide URL" : "Change URL"}
-                      </button>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="8" cy="8" r="2.1" />
+                  <path d="M8 1.7v1.6M8 12.7v1.6M3.54 3.54l1.13 1.13M11.33 11.33l1.13 1.13M1.7 8h1.6M12.7 8h1.6M3.54 12.46l1.13-1.13M11.33 4.67l1.13-1.13" />
+                </svg>
+                {utilitiesAttention && (
+                  <span
+                    className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`}
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+
+              {menuOpen && (
+                <div
+                  className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
+                  role="menu"
+                >
+                  <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                      App menu
                     </div>
-                  )}
-                  {showConnectionEditor && (
-                    <div className="mt-2 flex flex-col gap-1.5">
-                      <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                        Server URL
-                      </label>
-                      <div className="flex gap-1.5">
-                        <input
-                          type="text"
-                          value={connectionUrlInput}
-                          onChange={(e) => {
-                            setConnectionUrlInput(e.target.value);
-                            setConnectionConnectResult(null);
-                          }}
-                          onKeyDown={async (e) => {
-                            if (e.key !== "Enter") return;
-                            const url = connectionUrlInput.trim();
-                            if (!url) return;
-                            setConnectionConnectResult(null);
-                            const ok = await updateServerUrlAndConnect(url);
-                            setConnectionConnectResult(ok ? "ok" : "fail");
-                            if (ok) setShowConnectionEditor(false);
-                          }}
-                          placeholder="http://localhost:9400"
-                          autoFocus
-                          className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
-                        />
+                    <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      {utilitiesStatusLabel}
+                    </div>
+                    {!connected && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <button
-                          onClick={async () => {
-                            const url = connectionUrlInput.trim();
-                            if (!url) return;
-                            setConnectionConnectResult(null);
-                            const ok = await updateServerUrlAndConnect(url);
-                            setConnectionConnectResult(ok ? "ok" : "fail");
-                            if (ok) setShowConnectionEditor(false);
-                          }}
-                          disabled={checking || !connectionUrlInput.trim()}
-                          className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                          onClick={retryConnection}
+                          disabled={checking}
+                          className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          Connect
+                          {checking ? "Checking…" : "Retry"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowConnectionEditor((v) => !v);
+                            setConnectionUrlInput(serverUrl);
+                            setConnectionConnectResult(null);
+                          }}
+                          className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                        >
+                          {showConnectionEditor ? "Hide URL" : "Change URL"}
                         </button>
                       </div>
-                      {connectionConnectResult === "fail" && (
-                        <NoticeFieldMessage severity="error">
-                          Cannot reach server. Check the URL and try again.
-                        </NoticeFieldMessage>
-                      )}
+                    )}
+                    {showConnectionEditor && (
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                          Server URL
+                        </label>
+                        <div className="flex gap-1.5">
+                          <input
+                            type="text"
+                            value={connectionUrlInput}
+                            onChange={(e) => {
+                              setConnectionUrlInput(e.target.value);
+                              setConnectionConnectResult(null);
+                            }}
+                            onKeyDown={async (e) => {
+                              if (e.key !== "Enter") return;
+                              const url = connectionUrlInput.trim();
+                              if (!url) return;
+                              setConnectionConnectResult(null);
+                              const ok = await updateServerUrlAndConnect(url);
+                              setConnectionConnectResult(ok ? "ok" : "fail");
+                              if (ok) setShowConnectionEditor(false);
+                            }}
+                            placeholder="http://localhost:9400"
+                            autoFocus
+                            className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
+                          />
+                          <button
+                            onClick={async () => {
+                              const url = connectionUrlInput.trim();
+                              if (!url) return;
+                              setConnectionConnectResult(null);
+                              const ok = await updateServerUrlAndConnect(url);
+                              setConnectionConnectResult(ok ? "ok" : "fail");
+                              if (ok) setShowConnectionEditor(false);
+                            }}
+                            disabled={checking || !connectionUrlInput.trim()}
+                            className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Connect
+                          </button>
+                        </div>
+                        {connectionConnectResult === "fail" && (
+                          <NoticeFieldMessage severity="error">
+                            Cannot reach server. Check the URL and try again.
+                          </NoticeFieldMessage>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {shellMenuSurfaces.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5">
+                        <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                          Settings & shortcuts
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          Reference surfaces that stay open in the shell.
+                        </div>
+                      </div>
+                      {shellMenuSurfaces.map((surface) => (
+                        <button
+                          key={surface.id}
+                          role="menuitem"
+                          tabIndex={-1}
+                          onClick={() => {
+                            setMenuOpen(false);
+                            toggleSecondarySurface(surface.id);
+                          }}
+                          className="mx-1 mb-1 flex w-[calc(100%-0.5rem)] items-center justify-between rounded-[10px] border border-transparent px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out outline-none hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-border)] focus-visible:bg-[var(--color-figma-bg-secondary)] focus-visible:text-[var(--color-figma-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px active:bg-[var(--color-figma-bg-hover)]"
+                          title={surface.transition.usage}
+                        >
+                          <span>{surface.label}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                            {surface.id === "shortcuts"
+                              ? adaptShortcut(SHORTCUT_KEYS.SHOW_SHORTCUTS)
+                              : adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   )}
-                </div>
-                {APP_SHELL_NAVIGATION.utilityMenu.sections.map(
-                  (section, sectionIndex) => (
+                  {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section) => (
                     <div key={section.id}>
-                      {sectionIndex > 0 && (
-                        <div className="border-t border-[var(--color-figma-border)]" />
-                      )}
+                      <div className="border-t border-[var(--color-figma-border)]" />
                       <div className="px-3 py-1.5">
                         <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                           {section.label}
@@ -2786,10 +2872,10 @@ export function App() {
                         </button>
                       ))}
                     </div>
-                  ),
-                )}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -2977,13 +3063,6 @@ export function App() {
                   </>
                 )}
               </div>
-
-              <button
-                onClick={() => openSecondaryPanel("sets")}
-                className={shellControlClass({ size: "sm", shape: "rounded" })}
-              >
-                Set manager
-              </button>
             </div>
             {tokenDragState && (
               <div className="border-t border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">

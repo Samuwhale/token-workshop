@@ -9,8 +9,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/components/publish/SyncWorkflowControls.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Replaced the tall workflow cards with a shared compact horizontal stage strip across Themes/Apply/Sync, moved lock messaging onto disabled pills, and the targeted plugin TypeScript check reported no diagnostics for the touched files."
+state: done
 acceptance_criteria:
   - Numbered workflow cards no longer consume ~100px of vertical height
   - Stage navigation is either hidden until needed or reduced to a compact inline indicator
@@ -18,4 +19,4 @@ acceptance_criteria:
   - Net vertical space recovered is at least 60px per workspace that had workflow cards
 source: manual
 created_at: 2026-04-11T22:00:00.000Z
-updated_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T21:00:42.453Z
