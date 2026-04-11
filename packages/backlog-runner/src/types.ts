@@ -1,9 +1,15 @@
 export type BacklogTool = 'claude' | 'codex';
-export type BacklogRunnerLane = 'executor' | 'planner';
 export type BacklogPassType = 'product' | 'ux' | 'code';
 export type BacklogTaskPriority = 'high' | 'normal' | 'low';
 export type BacklogTaskState = 'planned' | 'ready' | 'done' | 'failed' | 'superseded';
 export type BacklogTaskKind = 'implementation' | 'research';
+export type BacklogWorkerResultKind =
+  | 'completed'
+  | 'failed'
+  | 'deferred'
+  | 'released'
+  | 'rate_limited'
+  | 'no_progress';
 
 export interface BacklogRunnerConfigInput {
   projectRoot?: string;
@@ -32,7 +38,7 @@ export interface BacklogRunnerConfigInput {
   validationProfiles?: Record<string, string>;
   defaults?: {
     tool?: BacklogTool;
-    lane?: BacklogRunnerLane;
+    workers?: number;
     model?: string;
     passModel?: string;
     passes?: boolean;
@@ -62,7 +68,7 @@ export interface BacklogRunnerConfig {
   validationProfiles: Record<string, string>;
   defaults: {
     tool: BacklogTool;
-    lane: BacklogRunnerLane;
+    workers: number;
     model?: string;
     passModel?: string;
     passes: boolean;
@@ -73,7 +79,7 @@ export interface BacklogRunnerConfig {
 
 export interface RunOverrides {
   tool?: BacklogTool;
-  lane?: BacklogRunnerLane;
+  workers?: number;
   model?: string;
   passModel?: string;
   passes?: boolean;
@@ -83,7 +89,7 @@ export interface RunOverrides {
 
 export interface ResolvedRunOptions {
   tool: BacklogTool;
-  lane: BacklogRunnerLane;
+  workers: number;
   model?: string;
   passModel?: string;
   passes: boolean;
@@ -271,12 +277,8 @@ export interface BacklogStore {
   ensureProgressFile(): Promise<void>;
   ensureTaskSpecsReady(): Promise<void>;
   close(): Promise<void>;
-  countReady(): Promise<number>;
-  countInProgress(): Promise<number>;
-  countFailed(): Promise<number>;
-  countDone(): Promise<number>;
   getQueueCounts(): Promise<BacklogQueueCounts>;
-  claimNextRunnableTask(runnerId: string): Promise<BacklogTaskClaim | null>;
+  claimNextRunnableTasks(limit: number, runnerId: string): Promise<BacklogTaskClaim[]>;
   heartbeatClaim(claim: BacklogTaskClaim): Promise<void>;
   releaseClaim(claim: BacklogTaskClaim): Promise<void>;
   deferClaim(claim: BacklogTaskClaim, note: string, retryAfterMs: number, options?: TaskDeferralOptions): Promise<void>;
@@ -285,7 +287,6 @@ export interface BacklogStore {
   completeClaim(claim: BacklogTaskClaim, note: string): Promise<void>;
   failClaim(claim: BacklogTaskClaim, note: string): Promise<void>;
   failTaskById(taskId: string, note: string): Promise<void>;
-  rewriteBacklogReport(): Promise<void>;
   enqueueCandidate(candidate: BacklogCandidateRecord): Promise<void>;
   drainCandidateQueue(): Promise<BacklogDrainResult>;
   listPlannerCandidates(limit?: number): Promise<BacklogTaskSpec[]>;
@@ -297,8 +298,6 @@ export interface BacklogStore {
   getActiveReservations(excludeTaskId?: string): Promise<TaskReservationSnapshot[]>;
   getTaskBlockage(taskId: string): Promise<TaskBlockage | null>;
   getTaskSpec(taskId: string): Promise<BacklogTaskSpec | null>;
-  appendProgress(section: string): Promise<void>;
-  appendPatterns(section: string): Promise<void>;
 }
 
 export interface WorkspaceSession {
@@ -330,6 +329,26 @@ export interface WorkspaceRepairResult {
   deferred: boolean;
   failureReason?: string;
   queuedFollowups: number;
+}
+
+export interface BacklogWorkerResult {
+  kind: BacklogWorkerResultKind;
+  taskId?: string;
+  note?: string;
+  durationSeconds: number;
+  queuedFollowups: number;
+  validationSummary?: string;
+  retryAt?: string;
+}
+
+export interface OrchestratorRuntimeStatus {
+  orchestratorId: string;
+  requestedWorkers: number;
+  effectiveWorkers: number;
+  activeTaskWorkers: Array<{ taskId: string; title: string }>;
+  activeControlWorker?: { kind: 'planner' | 'discovery'; passType?: BacklogPassType };
+  shutdownRequested: boolean;
+  pollIntervalMs: number;
 }
 
 export interface RunnerDependencies {

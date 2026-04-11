@@ -1,0 +1,23 @@
+id: collapse-token-editor-to-three-default-sections-d6dc25a1
+title: Collapse token editor to three default sections with grouped details and info tab
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/panels/TokenEditor.tsx
+capabilities:
+  - react
+  - typescript
+validation_profile: plugin
+status_notes:
+  - "Context: The token editor currently renders 8-10 collapsible sections stacked vertically — Path, Value/Alias, Type, Modifiers, Extends, Metadata, Scopes, History, Dependents, Usage. For 90% of edits users only need Path, Value, and Type. The remaining sections add visual weight even when collapsed (8-10 section headers with expand toggles)."
+state: ready
+acceptance_criteria:
+  - Default view shows only three sections — Path, Value (with alias toggle inline), and Type.
+  - Modifiers, Extends, Metadata, and Scopes are grouped under a single collapsible 'Details' section.
+  - History, Dependents, and Usage (read-only reference data) move to a separate 'Info' tab or bottom section within the editor, distinct from the editing fields.
+  - Section expand/collapse state continues to persist via localStorage.
+  - No changes to value editors, alias picker, or type-specific editor behavior.
+source: ux-pass
+created_at: 2026-04-11T12:00:00.000Z
+updated_at: 2026-04-11T12:00:00.000Z

@@ -1,0 +1,23 @@
+id: cap-visible-status-pills-at-four-with-expandable-f0575ce4
+title: Cap visible status pills at four with expandable overflow
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx
+capabilities:
+  - react
+  - typescript
+validation_profile: plugin
+status_notes:
+  - "Context: WorkspaceSummaryHeader renders dynamic status pills per workspace. In complex states (e.g. Sync workspace with git, preflight, coverage review active) these can reach 12+ pills. Each pill has a color, icon, and label. Scanning 12 pills in a ~300px-wide header requires significant cognitive effort. Some pills restate what the user can already see (e.g. 'Live preview open' when the preview panel is visually open)."
+state: ready
+acceptance_criteria:
+  - Maximum 4 status pills are visible at once in the WorkspaceSummaryHeader.
+  - Blocking and actionable states (errors, required actions) are prioritized for the visible slots.
+  - Overflow pills collapse into a '+N more' indicator that expands on click to show the full list.
+  - Pills that restate visually obvious state (e.g. 'Live preview open' when preview panel is mounted) are deprioritized or removed.
+  - Each workspace's pill priority order is explicitly defined, not implicit from render order.
+source: ux-pass
+created_at: 2026-04-11T12:00:00.000Z
+updated_at: 2026-04-11T12:00:00.000Z

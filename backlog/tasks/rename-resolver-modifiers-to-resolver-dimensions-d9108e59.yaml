@@ -1,0 +1,22 @@
+id: rename-resolver-modifiers-to-resolver-dimensions-d9108e59
+title: Rename resolver modifiers to resolver dimensions to fix dual-meaning modifier terminology
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/panels/ResolverPanel.tsx
+  - packages/figma-plugin/src/ui/components/publish/SyncPreflightStep.tsx
+capabilities:
+  - react
+  - typescript
+validation_profile: plugin
+status_notes:
+  - "Context: The term 'modifier' is used for two unrelated concepts — color transform operations (lighten, darken, saturate, mix, alpha) and DTCG resolver dimension entries. Color modifiers are industry-standard and should keep the name. Resolver modifiers should be renamed to avoid confusion."
+state: ready
+acceptance_criteria:
+  - All user-facing labels, headers, tooltips, and guidance text referring to resolver modifiers use the term 'resolver dimensions' or 'resolver variables' instead of 'modifiers'.
+  - Color modifier terminology (lighten, darken, saturate, mix, alpha) remains unchanged.
+  - No user-facing string uses 'modifier' in the resolver context.
+source: ux-pass
+created_at: 2026-04-11T12:00:00.000Z
+updated_at: 2026-04-11T12:00:00.000Z

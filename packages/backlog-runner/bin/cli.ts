@@ -4,10 +4,10 @@ import { promptForRunOverrides, shouldPromptInteractively } from './interactive.
 import { loadBacklogRunnerConfig } from '../src/config.js';
 import { runBacklogRunner, syncBacklogRunner } from '../src/scheduler.js';
 import { validateBacklogRunner } from '../src/validate.js';
-import type { BacklogRunnerLane, BacklogTool, RunOverrides } from '../src/types.js';
+import type { BacklogTool, RunOverrides } from '../src/types.js';
 
 function usage(): never {
-  console.error('Usage: backlog-runner <run|validate|sync> --config backlog.config.mjs [--tool TOOL] [--lane executor|planner] [--model MODEL] [--pass-model MODEL] [--passes true|false] [--worktrees true|false] [--interactive|--no-interactive]');
+  console.error('Usage: backlog-runner <run|validate|sync> --config backlog.config.mjs [--tool TOOL] [--workers N] [--model MODEL] [--pass-model MODEL] [--passes true|false] [--worktrees true|false] [--interactive|--no-interactive]');
   process.exit(1);
   throw new Error('unreachable');
 }
@@ -19,10 +19,11 @@ function parseBoolean(value: string | undefined): boolean | undefined {
   throw new Error(`Invalid boolean value: ${value}`);
 }
 
-function parseLane(value: string | undefined): BacklogRunnerLane | undefined {
+function parseWorkers(value: string | undefined): number | undefined {
   if (value === undefined) return undefined;
-  if (value === 'executor' || value === 'planner') return value;
-  throw new Error(`Invalid lane value: ${value}`);
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isInteger(parsed) && parsed > 0) return parsed;
+  throw new Error(`Invalid worker count: ${value}`);
 }
 
 async function main() {
@@ -36,7 +37,7 @@ async function main() {
     options: {
       config: { type: 'string' },
       tool: { type: 'string' },
-      lane: { type: 'string' },
+      workers: { type: 'string' },
       model: { type: 'string' },
       'pass-model': { type: 'string' },
       passes: { type: 'string' },
@@ -54,7 +55,7 @@ async function main() {
   const config = await loadBacklogRunnerConfig(values.config);
   let overrides: RunOverrides = {
     tool: values.tool as BacklogTool | undefined,
-    lane: parseLane(values.lane),
+    workers: parseWorkers(values.workers),
     model: values.model,
     passModel: values['pass-model'],
     passes: parseBoolean(values.passes),

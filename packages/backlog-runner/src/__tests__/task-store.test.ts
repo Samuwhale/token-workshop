@@ -88,6 +88,20 @@ async function seedTask(config: BacklogRunnerConfig, task: BacklogTaskSpec): Pro
   await writeTaskSpec(config.files.taskSpecsDir, task);
 }
 
+async function seedTaskInSubdir(config: BacklogRunnerConfig, subdir: string, task: BacklogTaskSpec): Promise<void> {
+  const targetDir = path.join(config.files.taskSpecsDir, subdir);
+  await mkdir(targetDir, { recursive: true });
+  await writeTaskSpec(targetDir, task);
+}
+
+async function claimNextRunnableTask(
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  runnerId: string,
+) {
+  const claims = await store.claimNextRunnableTasks(1, runnerId);
+  return claims[0] ?? null;
+}
+
 function candidate(overrides: Partial<BacklogCandidateRecord> & Pick<BacklogCandidateRecord, 'title' | 'touchPaths' | 'acceptanceCriteria' | 'source'>): BacklogCandidateRecord {
   return {
     title: overrides.title,
@@ -106,6 +120,17 @@ afterEach(async () => {
 });
 
 describe('task store', () => {
+  it('claims multiple runnable tasks atomically in priority order', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({ id: 'task-low', title: 'Task Low', priority: 'low', touchPaths: ['packages/core/src/low.ts'] }));
+    await seedTask(config, taskSpec({ id: 'task-high', title: 'Task High', priority: 'high', touchPaths: ['packages/core/src/high.ts'] }));
+    await seedTask(config, taskSpec({ id: 'task-normal', title: 'Task Normal', priority: 'normal', touchPaths: ['packages/core/src/normal.ts'] }));
+
+    const claims = await store.claimNextRunnableTasks(2, 'runner-a');
+
+    expect(claims.map(claim => claim.task.id)).toEqual(['task-high', 'task-normal']);
+  });
+
   it('claims different runnable tasks across runners without double-claiming', async () => {
     const { config } = await makeFixture();
     await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
@@ -113,8 +138,8 @@ describe('task store', () => {
 
     const storeA = createFileBackedTaskStore(config);
     const storeB = createFileBackedTaskStore(config);
-    const claimA = await storeA.claimNextRunnableTask('runner-a');
-    const claimB = await storeB.claimNextRunnableTask('runner-b');
+    const claimA = await claimNextRunnableTask(storeA, 'runner-a');
+    const claimB = await claimNextRunnableTask(storeB, 'runner-b');
 
     expect(claimA?.task.id).toBe('task-a');
     expect(claimB?.task.id).toBe('task-b');
@@ -140,8 +165,8 @@ describe('task store', () => {
 
     const storeA = createFileBackedTaskStore(config);
     const storeB = createFileBackedTaskStore(config);
-    const claimA = await storeA.claimNextRunnableTask('runner-a');
-    const claimB = await storeB.claimNextRunnableTask('runner-b');
+    const claimA = await claimNextRunnableTask(storeA, 'runner-a');
+    const claimB = await claimNextRunnableTask(storeB, 'runner-b');
 
     expect(claimA?.task.capabilities).toEqual([]);
     expect(claimB?.task.capabilities).toEqual([]);
@@ -160,8 +185,8 @@ describe('task store', () => {
 
     const storeA = createFileBackedTaskStore(config);
     const storeB = createFileBackedTaskStore(config);
-    const claimA = await storeA.claimNextRunnableTask('runner-a');
-    const blockedClaim = await storeB.claimNextRunnableTask('runner-b');
+    const claimA = await claimNextRunnableTask(storeA, 'runner-a');
+    const blockedClaim = await claimNextRunnableTask(storeB, 'runner-b');
     const runtimeReportWhileBlocked = await readFile(config.files.runtimeReport, 'utf8');
 
     expect(claimA?.task.id).toBe('task-a');
@@ -169,8 +194,29 @@ describe('task store', () => {
     expect(runtimeReportWhileBlocked).toContain('waiting on dependency: Task A');
 
     await storeA.completeClaim(claimA!, 'done');
-    const claimB = await storeB.claimNextRunnableTask('runner-b');
+    const claimB = await claimNextRunnableTask(storeB, 'runner-b');
     expect(claimB?.task.id).toBe('task-b');
+  });
+
+  it('treats archived done tasks as satisfied dependencies', async () => {
+    const { config } = await makeFixture();
+    await seedTaskInSubdir(config, 'done', taskSpec({
+      id: 'task-a',
+      title: 'Task A',
+      state: 'done',
+      touchPaths: ['packages/core/src/a.ts'],
+    }));
+    await seedTask(config, taskSpec({
+      id: 'task-b',
+      title: 'Task B',
+      dependsOn: ['task-a'],
+      touchPaths: ['packages/core/src/b.ts'],
+    }));
+
+    const store = createFileBackedTaskStore(config);
+    const claim = await claimNextRunnableTask(store, 'runner-a');
+
+    expect(claim?.task.id).toBe('task-b');
   });
 
   it('blocks overlapping touch_paths while another lease is active', async () => {
@@ -180,8 +226,8 @@ describe('task store', () => {
 
     const storeA = createFileBackedTaskStore(config);
     const storeB = createFileBackedTaskStore(config);
-    const claimA = await storeA.claimNextRunnableTask('runner-a');
-    const blockedClaim = await storeB.claimNextRunnableTask('runner-b');
+    const claimA = await claimNextRunnableTask(storeA, 'runner-a');
+    const blockedClaim = await claimNextRunnableTask(storeB, 'runner-b');
     const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
 
     expect(claimA?.task.id).toBe('task-a');
@@ -209,8 +255,8 @@ describe('task store', () => {
 
     const storeA = createFileBackedTaskStore(config);
     const storeB = createFileBackedTaskStore(config);
-    const claimA = await storeA.claimNextRunnableTask('runner-a');
-    const blockedClaim = await storeB.claimNextRunnableTask('runner-b');
+    const claimA = await claimNextRunnableTask(storeA, 'runner-a');
+    const blockedClaim = await claimNextRunnableTask(storeB, 'runner-b');
 
     expect(claimA?.task.capabilities).toContain('workspace-config');
     expect(blockedClaim).toBeNull();
@@ -225,7 +271,7 @@ describe('task store', () => {
       touchPaths: [],
     }));
 
-    const claim = await store.claimNextRunnableTask('runner-a');
+    const claim = await claimNextRunnableTask(store, 'runner-a');
     const counts = await store.getQueueCounts();
 
     expect(claim).toBeNull();
@@ -239,14 +285,14 @@ describe('task store', () => {
 
     const storeA = createFileBackedTaskStore(config);
     const storeB = createFileBackedTaskStore(config);
-    const claimA = await storeA.claimNextRunnableTask('runner-a');
+    const claimA = await claimNextRunnableTask(storeA, 'runner-a');
     expect(claimA?.task.id).toBe('task-a');
 
     const db = new Database(config.files.stateDb);
     db.prepare('UPDATE leases SET expires_at = ? WHERE task_id = ?').run('2000-01-01T00:00:00.000Z', 'task-a');
     db.close();
 
-    const reclaimed = await storeB.claimNextRunnableTask('runner-b');
+    const reclaimed = await claimNextRunnableTask(storeB, 'runner-b');
     expect(reclaimed?.task.id).toBe('task-a');
   });
 
@@ -255,14 +301,14 @@ describe('task store', () => {
     await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
 
     const store = createFileBackedTaskStore(config);
-    const claim = await store.claimNextRunnableTask('runner-a');
+    const claim = await claimNextRunnableTask(store, 'runner-a');
     expect(claim?.task.id).toBe('task-a');
 
     await store.deferClaim(claim!, 'dirty workspace preflight: staged user-staged.txt', 15 * 60 * 1000);
 
     const countsWhileDeferred = await store.getQueueCounts();
     const blockage = await store.getTaskBlockage('task-a');
-    const blockedClaim = await store.claimNextRunnableTask('runner-b');
+    const blockedClaim = await claimNextRunnableTask(store, 'runner-b');
     const taskYaml = await readFile(path.join(config.files.taskSpecsDir, 'task-a.yaml'), 'utf8');
     const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
 
@@ -279,7 +325,7 @@ describe('task store', () => {
     db.close();
 
     const countsAfterExpiry = await store.getQueueCounts();
-    const reclaimed = await store.claimNextRunnableTask('runner-b');
+    const reclaimed = await claimNextRunnableTask(store, 'runner-b');
 
     expect(countsAfterExpiry.blocked).toBe(0);
     expect(reclaimed?.task.id).toBe('task-a');
@@ -290,9 +336,9 @@ describe('task store', () => {
     await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
     await writeFile(config.files.backlog, 'sentinel backlog', 'utf8');
 
-    expect((await store.getQueueCounts()).ready).toBe(1);
-    expect(await store.countReady()).toBe(1);
-    expect(await store.countDone()).toBe(0);
+    const counts = await store.getQueueCounts();
+    expect(counts.ready).toBe(1);
+    expect(counts.done).toBe(0);
     expect(await readFile(config.files.backlog, 'utf8')).toBe('sentinel backlog');
     expect(await readFile(config.files.runtimeReport, 'utf8')).toContain('Queue: 1 ready');
   });
@@ -302,8 +348,8 @@ describe('task store', () => {
     await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
 
     const store = createFileBackedTaskStore(config);
-    await store.rewriteBacklogReport();
-    const claim = await store.claimNextRunnableTask('runner-a');
+    await store.ensureTaskSpecsReady();
+    const claim = await claimNextRunnableTask(store, 'runner-a');
     const backlogReport = await readFile(config.files.backlog, 'utf8');
     const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
 
@@ -551,7 +597,7 @@ describe('task store', () => {
     );
 
     const result = await store.drainCandidateQueue();
-    const claim = await store.claimNextRunnableTask('runner-a');
+    const claim = await claimNextRunnableTask(store, 'runner-a');
 
     expect(result).toMatchObject({ drained: true, createdTasks: 1, skippedDuplicates: 0, ignoredInvalidLines: 0 });
     expect(claim?.task.title).toBe('Implement structured planner');

@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
 import { summarizeCommandOutput } from './command-output.js';
@@ -17,8 +17,9 @@ import type {
   BacklogCandidateRecord,
   BacklogDrainResult,
   BacklogPassType,
+  BacklogWorkerResult,
   BacklogRunnerConfig,
-  BacklogRunnerLane,
+  OrchestratorRuntimeStatus,
   BacklogSyncResult,
   BacklogTaskClaim,
   CommandRunner,
@@ -35,40 +36,38 @@ import { GitWorktreeWorkspaceStrategy } from './workspace/git-worktree.js';
 import { InPlaceWorkspaceStrategy } from './workspace/in-place.js';
 
 const PLANNER_LANE_READY_TARGET = 2;
-const EXECUTOR_FALLBACK_READY_TARGET = 1;
-const RUNNER_POLL_INTERVAL_MS = 15_000;
+const ORCHESTRATOR_POLL_INTERVAL_MS = 3_000;
 const EMPTY_QUEUE_POLL_INTERVAL_MS = 30_000;
 const RECONCILIATION_MAX_TURNS = 60;
 const PREFLIGHT_DEFERRAL_MS = 15 * 60 * 1000;
-const BACKGROUND_PLANNER_INTERVAL_MS = 15 * 60 * 1000;
-const BACKGROUND_PLANNER_PLANNED_THRESHOLD = 10;
+const PLANNER_NO_PROGRESS_COOLDOWN_MS = 15_000;
+const RATE_LIMIT_BACKOFF_MS = 60_000;
 const REPO_PATH_PATTERN =
   /\b(packages\/[^:\s|)]+|scripts\/[^:\s|)]+|backlog\/[^:\s|)]+|README\.md|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|backlog\.config\.mjs)\b/g;
 const PACKAGE_RELATIVE_SRC_PATH_PATTERN = /\bsrc\/[^:\s|)]+/g;
-const WORKSPACE_VALIDATION_ERROR_PATTERNS = [
+const MODULE_RESOLUTION_ERROR_PATTERNS = [
   /Failed to load url\b/i,
   /\bCannot find module\b/i,
   /\bERR_MODULE_NOT_FOUND\b/i,
   /\bMODULE_NOT_FOUND\b/i,
-  /\bvirtualStoreDir\b/i,
   /\bDoes the file exist\?\b/i,
+];
+const WORKTREE_LOCATION_PATTERNS = [
+  /(?:^|[^\w])\/tmp\//i,
+  /\/private\/var\//i,
+  /\/var\/folders\//i,
+  /\bworktree\b/i,
+];
+const BOOTSTRAP_MARKER_PATTERNS = [
+  /\bvirtualStoreDir\b/i,
+  /\b\.pnpm\b/i,
+  /\bbootstrap\b/i,
+  /\bhoist(?:ed|ing)?\b/i,
 ];
 
 type ValidationFailureClassification =
   | { blocking: true; reason: string }
   | { blocking: false; reason: string; followup: BacklogCandidateRecord };
-
-type RunnerRegistryRecord = {
-  runnerId: string;
-  pid: number;
-  startedAt: number;
-  lane?: BacklogRunnerLane;
-};
-
-type ActiveRunnerCounts = {
-  executor: number;
-  planner: number;
-};
 
 function formatDuration(seconds?: number): string {
   if (!seconds) return '';
@@ -214,15 +213,6 @@ async function diffForPaths(
   return result.code === 0 ? result.stdout.trim() : '';
 }
 
-
-function normalizeRunnerLane(value: unknown): BacklogRunnerLane {
-  return value === 'planner' ? 'planner' : 'executor';
-}
-
-function formatRunnerCounts(counts: ActiveRunnerCounts): string {
-  return `${counts.executor} executor · ${counts.planner} planner`;
-}
-
 function normalizeValidationReason(reason: string): string {
   return reason
     .replace(/^reconciliation\s+validation\s+failed:\s*/i, '')
@@ -266,6 +256,17 @@ function extractValidationPaths(reason: string): string[] {
   }
 
   return [...paths];
+}
+
+function isExplicitWorkspaceValidationIssue(reason: string): boolean {
+  const hasModuleResolutionSignal = MODULE_RESOLUTION_ERROR_PATTERNS.some(pattern => pattern.test(reason));
+  if (!hasModuleResolutionSignal) {
+    return false;
+  }
+
+  const hasWorktreeLocation = WORKTREE_LOCATION_PATTERNS.some(pattern => pattern.test(reason));
+  const hasBootstrapMarker = BOOTSTRAP_MARKER_PATTERNS.some(pattern => pattern.test(reason));
+  return hasWorktreeLocation || hasBootstrapMarker;
 }
 
 function buildWorkspaceValidationFollowup(
@@ -317,7 +318,7 @@ function classifyValidationFailure(
     return { blocking: true, reason };
   }
 
-  if (WORKSPACE_VALIDATION_ERROR_PATTERNS.some(pattern => pattern.test(normalizedReason))) {
+  if (isExplicitWorkspaceValidationIssue(normalizedReason)) {
     return {
       blocking: false,
       reason,
@@ -349,26 +350,11 @@ async function queueNonBlockingValidationFollowup(
   logger.line(`  ⚠ Non-blocking validation issue queued as follow-up: ${failure.followup.title}`);
 }
 
-function totalRunnerCount(counts: ActiveRunnerCounts): number {
-  return counts.executor + counts.planner;
-}
-
-function plannerLaneActive(counts: ActiveRunnerCounts): boolean {
-  return counts.planner > 0;
-}
-
-function backgroundPlannerDue(now: number, lastRunAt: number, plannedCount: number): boolean {
-  return plannedCount >= BACKGROUND_PLANNER_PLANNED_THRESHOLD && now - lastRunAt >= BACKGROUND_PLANNER_INTERVAL_MS;
-}
-
 function shouldAttemptPlannerBatch(
   batchKey: string,
   waitingPlannerBatchKey: string | null,
-  reason: 'recover-failed' | 'fill-buffer' | 'background-backlog',
+  reason: 'recover-failed' | 'fill-buffer',
 ): boolean {
-  if (reason === 'background-backlog') {
-    return true;
-  }
   return batchKey !== waitingPlannerBatchKey;
 }
 
@@ -707,51 +693,6 @@ async function attemptTaskReconciliation(
   }
 }
 
-async function registerRunner(
-  config: BacklogRunnerConfig,
-  lane: BacklogRunnerLane,
-): Promise<{ runnerId: string; registryFile: string }> {
-  const runnerId = `${process.pid}-${Date.now()}`;
-  const runnersDir = path.join(config.files.runtimeDir, 'runners');
-  await mkdir(runnersDir, { recursive: true });
-  const filePath = path.join(runnersDir, `${runnerId}.json`);
-  await writeFile(filePath, JSON.stringify({ runnerId, pid: process.pid, startedAt: Date.now(), lane }), 'utf8');
-  return { runnerId, registryFile: filePath };
-}
-
-async function activeRunnerCounts(config: BacklogRunnerConfig, ownRunnerId: string): Promise<ActiveRunnerCounts> {
-  const runnersDir = path.join(config.files.runtimeDir, 'runners');
-  const counts: ActiveRunnerCounts = { executor: 0, planner: 0 };
-  try {
-    const entries = await readdir(runnersDir);
-    for (const entry of entries) {
-      const filePath = path.join(runnersDir, entry);
-      const fallbackRunnerId = entry.replace(/\.json$/, '');
-      let parsed: RunnerRegistryRecord | null = null;
-      try {
-        parsed = JSON.parse(await readFile(filePath, 'utf8')) as RunnerRegistryRecord;
-      } catch {
-        parsed = null;
-      }
-
-      const runnerId = parsed?.runnerId ?? fallbackRunnerId;
-      if (runnerId === ownRunnerId) continue;
-
-      const pid = parsed?.pid ?? Number.parseInt(fallbackRunnerId.split('-')[0] ?? '', 10);
-      if (!Number.isFinite(pid)) continue;
-      try {
-        process.kill(pid, 0);
-        counts[normalizeRunnerLane(parsed?.lane)] += 1;
-      } catch {
-        await rm(filePath, { force: true });
-      }
-    }
-    return counts;
-  } catch {
-    return counts;
-  }
-}
-
 async function pruneGitWorktrees(
   commandRunner: CommandRunner,
   config: BacklogRunnerConfig,
@@ -766,7 +707,128 @@ async function pruneGitWorktrees(
   }
 }
 
-async function runPass(
+async function currentPlannerBatchKey(
+  store: ReturnType<typeof createFileBackedTaskStore>,
+): Promise<string> {
+  const plannerCandidates = await store.listPlannerCandidates(plannerBatchSize());
+  return plannerCandidates.map(task => task.id).join(',');
+}
+
+function workerDurationSeconds(startedAt: number): number {
+  return Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+}
+
+function taskWorkerResult(
+  kind: BacklogWorkerResult['kind'],
+  claim: BacklogTaskClaim,
+  startedAt: number,
+  options: Partial<Omit<BacklogWorkerResult, 'kind' | 'taskId' | 'durationSeconds' | 'queuedFollowups'>> & {
+    queuedFollowups?: number;
+  } = {},
+): BacklogWorkerResult {
+  return {
+    kind,
+    taskId: claim.task.id,
+    durationSeconds: workerDurationSeconds(startedAt),
+    queuedFollowups: options.queuedFollowups ?? 0,
+    note: options.note,
+    validationSummary: options.validationSummary,
+    retryAt: options.retryAt,
+  };
+}
+
+function genericWorkerResult(
+  kind: BacklogWorkerResult['kind'],
+  startedAt: number,
+  options: Partial<Omit<BacklogWorkerResult, 'kind' | 'durationSeconds' | 'queuedFollowups'>> & {
+    queuedFollowups?: number;
+  } = {},
+): BacklogWorkerResult {
+  return {
+    kind,
+    durationSeconds: workerDurationSeconds(startedAt),
+    queuedFollowups: options.queuedFollowups ?? 0,
+    note: options.note,
+    taskId: options.taskId,
+    validationSummary: options.validationSummary,
+    retryAt: options.retryAt,
+  };
+}
+
+type ActiveControlWorker = {
+  kind: 'planner' | 'discovery';
+  promise: Promise<BacklogWorkerResult>;
+  batchKey?: string;
+};
+
+function describeActiveControlWorker(worker: ActiveControlWorker | null): string {
+  return worker ? worker.kind : 'idle';
+}
+
+function collectActiveControlPromises(worker: ActiveControlWorker | null): Promise<BacklogWorkerResult>[] {
+  return worker ? [worker.promise] : [];
+}
+
+async function writeOrchestratorStatus(config: BacklogRunnerConfig, status: OrchestratorRuntimeStatus): Promise<void> {
+  await writeFile(
+    path.join(config.files.runtimeDir, 'orchestrator-status.json'),
+    `${JSON.stringify(status, null, 2)}\n`,
+    'utf8',
+  );
+}
+
+async function clearOrchestratorStatus(config: BacklogRunnerConfig): Promise<void> {
+  await rm(path.join(config.files.runtimeDir, 'orchestrator-status.json'), { force: true });
+}
+
+function renderOrchestratorStatusLines(status: OrchestratorRuntimeStatus): string[] {
+  return [
+    `Orchestrator: ${status.orchestratorId}`,
+    `Workers: ${status.effectiveWorkers}/${status.requestedWorkers}`,
+    `Shutdown requested: ${status.shutdownRequested ? 'yes' : 'no'}`,
+    `Poll interval: ${Math.floor(status.pollIntervalMs / 1000)}s`,
+    `Active task workers: ${status.activeTaskWorkers.length === 0 ? 'none' : status.activeTaskWorkers.map(worker => `${worker.title} (${worker.taskId})`).join(' · ')}`,
+    `Active control worker: ${status.activeControlWorker ? status.activeControlWorker.kind === 'discovery' ? `discovery${status.activeControlWorker.passType ? `:${status.activeControlWorker.passType}` : ''}` : 'planner' : 'none'}`,
+  ];
+}
+
+async function stampRuntimeReport(config: BacklogRunnerConfig, status: OrchestratorRuntimeStatus): Promise<void> {
+  const report = await readFile(config.files.runtimeReport, 'utf8').catch(() => '');
+  if (!report) {
+    return;
+  }
+  const lines = report.split('\n');
+  const generatedIndex = lines.findIndex(line => line.startsWith('Generated:'));
+  const queueIndex = lines.findIndex(line => line.startsWith('Queue: '));
+  if (generatedIndex === -1 || queueIndex === -1 || queueIndex <= generatedIndex) {
+    return;
+  }
+
+  const stamped = [
+    ...lines.slice(0, generatedIndex + 1),
+    '',
+    ...renderOrchestratorStatusLines(status),
+    '',
+    ...lines.slice(queueIndex),
+  ];
+  await writeFile(config.files.runtimeReport, stamped.join('\n'), 'utf8');
+}
+
+export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<BacklogSyncResult> {
+  await ensureConfigReady(config);
+  const store = createFileBackedTaskStore(config);
+  try {
+    await store.ensureProgressFile();
+    await store.ensureTaskSpecsReady();
+    const candidates = await store.drainCandidateQueue();
+    const counts = await store.getQueueCounts();
+    return { candidates, counts };
+  } finally {
+    await store.close();
+  }
+}
+
+async function runSingleDiscoveryPass(
   config: BacklogRunnerConfig,
   store: ReturnType<typeof createFileBackedTaskStore>,
   workspaceStrategy: WorkspaceStrategy,
@@ -775,7 +837,8 @@ async function runPass(
   options: ResolvedRunOptions,
   passType: BacklogPassType,
   sleep?: (ms: number) => Promise<void>,
-): Promise<void> {
+): Promise<BacklogWorkerResult> {
+  const startedAt = Date.now();
   logger.line('');
   logger.line('================================================================');
   logger.line(`  ★ Maintenance Pass: ${passType}`);
@@ -794,6 +857,12 @@ async function runPass(
       schema: JSON_SCHEMA,
     });
 
+    if (result.status === 'failed') {
+      logger.line(`  ✗ ${passType} pass failed: ${result.item}`);
+      if (result.note) logger.line(`    ${result.note}`);
+      return genericWorkerResult('no_progress', startedAt, { note: result.note || 'agent reported failure' });
+    }
+
     logger.line(`  ✓ ${passType} pass: ${result.item}`);
     if (result.note) logger.line(`    ${result.note}`);
 
@@ -809,7 +878,7 @@ async function runPass(
     );
     if (!workspaceCheck.ok) {
       logger.line(`  WARNING: ${workspaceCheck.reason}`);
-      return;
+      return genericWorkerResult('no_progress', startedAt, { note: workspaceCheck.reason });
     }
 
     const commitMessage = `chore(backlog): ${passType} pass – ${result.item || 'maintenance'}`;
@@ -826,30 +895,63 @@ async function runPass(
         logger.line(`  WARNING: ${finalizeResult.reason ?? 'pass finalize failed'}`);
       }
     });
+    return genericWorkerResult('completed', startedAt);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    if (isAuthFailure(message)) {
+      throw new Error('Authentication/permission error — check your API key and tool setup');
+    }
     if (isRateLimited(message)) {
       logger.line(`  ⚠ Rate limit hit during ${passType} pass — skipping`);
-      return;
+      return genericWorkerResult('rate_limited', startedAt, { note: message });
     }
     logger.line(`  · ${passType} pass skipped — ${message}`);
+    return genericWorkerResult('no_progress', startedAt, { note: message });
   } finally {
     await session.teardown();
   }
 }
 
-async function runPlannerRefinementPass(
+async function runDiscoveryWorker(
   config: BacklogRunnerConfig,
   store: ReturnType<typeof createFileBackedTaskStore>,
   workspaceStrategy: WorkspaceStrategy,
   commandRunner: CommandRunner,
   logger: RunnerLogger,
   options: ResolvedRunOptions,
-): Promise<boolean> {
+  sleep?: (ms: number) => Promise<void>,
+): Promise<BacklogWorkerResult> {
+  const startedAt = Date.now();
+  const before = await store.getQueueCounts();
+  for (const passType of ['product', 'code', 'ux'] as const) {
+    const result = await runSingleDiscoveryPass(config, store, workspaceStrategy, commandRunner, logger, options, passType, sleep);
+    if (result.kind === 'rate_limited') {
+      return genericWorkerResult('rate_limited', startedAt, { note: result.note });
+    }
+  }
+  const after = await store.getQueueCounts();
+  const changed = before.ready !== after.ready
+    || before.planned !== after.planned
+    || before.failed !== after.failed
+    || before.blocked !== after.blocked
+    || before.inProgress !== after.inProgress
+    || before.done !== after.done;
+  return genericWorkerResult(changed ? 'completed' : 'no_progress', startedAt);
+}
+
+async function runPlannerWorker(
+  config: BacklogRunnerConfig,
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  workspaceStrategy: WorkspaceStrategy,
+  commandRunner: CommandRunner,
+  logger: RunnerLogger,
+  options: ResolvedRunOptions,
+): Promise<BacklogWorkerResult> {
+  const startedAt = Date.now();
   return withLock(lockPath(config, 'planner'), 30, async () => {
     const plannerCandidates = await store.listPlannerCandidates(plannerBatchSize());
     if (plannerCandidates.length === 0) {
-      return false;
+      return genericWorkerResult('no_progress', startedAt, { note: 'no planner candidates' });
     }
 
     logger.line('');
@@ -872,7 +974,7 @@ async function runPlannerRefinementPass(
 
       if (result.status !== 'done') {
         logger.line(`  · planner refinement skipped — ${result.note || 'planner reported failure'}`);
-        return false;
+        return genericWorkerResult('no_progress', startedAt, { note: result.note || 'planner reported failure' });
       }
 
       const workspaceCheck = await validateWorkspaceScope(
@@ -883,13 +985,13 @@ async function runPlannerRefinementPass(
       );
       if (!workspaceCheck.ok) {
         logger.line(`  WARNING: ${workspaceCheck.reason}`);
-        return false;
+        return genericWorkerResult('no_progress', startedAt, { note: workspaceCheck.reason });
       }
 
       const action = parsePlannerSupersedeAction(result.rawOutput, config);
       if (!action) {
         logger.line('  WARNING: planner pass returned invalid structured action payload');
-        return false;
+        return genericWorkerResult('no_progress', startedAt, { note: 'planner pass returned invalid structured action payload' });
       }
 
       const applied = await store.applyPlannerSupersede(action, {
@@ -898,39 +1000,430 @@ async function runPlannerRefinementPass(
       logger.line(`  ✓ planner pass: ${result.item}`);
       if (result.note) logger.line(`    ${result.note}`);
       logger.line(`  ✓ superseded ${applied.parentTaskIds.length} planner candidate${applied.parentTaskIds.length === 1 ? '' : 's'} with ${applied.childTaskIds.length} child task${applied.childTaskIds.length === 1 ? '' : 's'}`);
-      return true;
+      return genericWorkerResult('completed', startedAt, { note: result.note });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (isAuthFailure(message)) {
+        throw new Error('Authentication/permission error — check your API key and tool setup');
+      }
       if (isRateLimited(message)) {
         logger.line('  ⚠ Rate limit hit during planner refinement — skipping');
-        return false;
+        return genericWorkerResult('rate_limited', startedAt, { note: message });
       }
       logger.line(`  · planner refinement skipped — ${message}`);
-      return false;
+      return genericWorkerResult('no_progress', startedAt, { note: message });
     } finally {
       await session.teardown();
     }
   });
 }
 
-async function currentPlannerBatchKey(
+async function runTaskWorker(
+  config: BacklogRunnerConfig,
   store: ReturnType<typeof createFileBackedTaskStore>,
-): Promise<string> {
-  const plannerCandidates = await store.listPlannerCandidates(plannerBatchSize());
-  return plannerCandidates.map(task => task.id).join(',');
-}
+  workspaceStrategy: WorkspaceStrategy,
+  commandRunner: CommandRunner,
+  logger: RunnerLogger,
+  options: ResolvedRunOptions,
+  claim: BacklogTaskClaim,
+  sleep?: (ms: number) => Promise<void>,
+): Promise<BacklogWorkerResult> {
+  const startedAt = Date.now();
+  logger.line(`  → ${claim.task.title} (${claim.task.id})`);
 
-export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<BacklogSyncResult> {
-  await ensureConfigReady(config);
-  const store = createFileBackedTaskStore(config);
+  let session: WorkspaceSession;
   try {
-    await store.ensureProgressFile();
-    await store.ensureTaskSpecsReady();
-    const candidates = await store.drainCandidateQueue();
-    const counts = await store.getQueueCounts();
-    return { candidates, counts };
+    session = await workspaceStrategy.setup();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await store.deferClaim(claim, `workspace setup failed: ${message}`, PREFLIGHT_DEFERRAL_MS, { category: 'preflight' });
+    logger.line(`  ⚠ workspace setup failed: ${message} — deferred for retry`);
+    return taskWorkerResult('deferred', claim, startedAt, { note: message });
+  }
+
+  if (options.worktrees) {
+    logger.line(`  Worktree: ${session.cwd}`);
+  }
+
+  const heartbeat = setInterval(() => {
+    void store.heartbeatClaim(claim).catch(() => undefined);
+  }, 30_000);
+  heartbeat.unref?.();
+
+  try {
+    const allowedPaths = taskExecutionPaths(config, claim.task.touchPaths);
+    const stagedPreflight = await validateStagedWorkspace(
+      commandRunner,
+      session.cwd,
+      allowedPaths,
+      'dirty workspace preflight',
+    );
+    if (!stagedPreflight.ok) {
+      logger.line(`  WARNING: ${stagedPreflight.reason}`);
+      const repaired = await attemptWorkspaceRemediation(
+        config,
+        store,
+        commandRunner,
+        logger,
+        options,
+        claim,
+        {
+          mode: 'preflight',
+          cwd: session.cwd,
+          allowedPaths,
+          failureReason: stagedPreflight.reason ?? 'dirty workspace preflight',
+          verify: async () => validateStagedWorkspace(
+            commandRunner,
+            session.cwd,
+            allowedPaths,
+            'dirty workspace preflight',
+          ),
+        },
+      );
+      if (!repaired.recovered) {
+        await applyClaimRepairOutcome(store, logger, claim, repaired, stagedPreflight.reason ?? 'dirty workspace preflight');
+        return taskWorkerResult(repaired.deferred ? 'deferred' : 'failed', claim, startedAt, {
+          note: repaired.failureReason ?? stagedPreflight.reason,
+          queuedFollowups: repaired.queuedFollowups,
+        });
+      }
+    }
+    if (session.cwd !== config.projectRoot) {
+      const mainRepoStagedPreflight = await validateStagedWorkspace(
+        commandRunner,
+        config.projectRoot,
+        allowedPaths,
+        'main repo staged preflight',
+      );
+      if (!mainRepoStagedPreflight.ok) {
+        logger.line(`  WARNING: main checkout has unexpected staged files — deferring task`);
+        logger.line(`  (reason: ${mainRepoStagedPreflight.reason})`);
+        await store.deferClaim(claim, mainRepoStagedPreflight.reason ?? 'main checkout not clean', 60_000, { category: 'preflight' });
+        return taskWorkerResult('deferred', claim, startedAt, {
+          note: `main checkout not clean: ${mainRepoStagedPreflight.reason}`,
+        });
+      }
+    }
+
+    logger.line(`  Running agent… (started ${new Date().toTimeString().slice(0, 8)})`);
+    const context = await buildExecutionContext(
+      config,
+      session.cwd,
+      claim,
+      await store.getTaskDependencies(claim.task.id),
+      await store.getActiveReservations(claim.task.id),
+    );
+    const result = await runProvider(commandRunner, {
+      tool: options.tool,
+      model: options.model,
+      context,
+      prompt: await readPrompt(config.prompts.agent),
+      cwd: session.cwd,
+      maxTurns: 40,
+      schema: JSON_SCHEMA,
+    });
+
+    logger.line('');
+    logger.line(`  ${result.status === 'done' ? '✓' : '✗'} ${result.status}: ${result.item}`);
+    if (result.note) logger.line(`    ${result.note}`);
+    const meta = [
+      result.turns ? `${result.turns} turns` : '',
+      result.durationSeconds ? formatDuration(result.durationSeconds) : '',
+      result.costUsd ? `$${result.costUsd.toFixed(2)}` : '',
+    ].filter(Boolean);
+    if (meta.length > 0) {
+      logger.line(`    ${meta.join(' · ')}`);
+    }
+
+    if (result.status !== 'done') {
+      await store.failClaim(claim, result.note || 'agent reported failure');
+      return taskWorkerResult('failed', claim, startedAt, { note: result.note || 'agent reported failure' });
+    }
+
+    const initialScopeCheck = await validateWorkspaceScope(
+      commandRunner,
+      session.cwd,
+      allowedPaths,
+      'write scope violation',
+    );
+    if (!initialScopeCheck.ok) {
+      const repaired = await attemptWorkspaceRemediation(
+        config,
+        store,
+        commandRunner,
+        logger,
+        options,
+        claim,
+        {
+          mode: 'scope',
+          cwd: session.cwd,
+          allowedPaths,
+          failureReason: initialScopeCheck.reason ?? 'write scope violation',
+          verify: async () => validateWorkspaceScope(
+            commandRunner,
+            session.cwd,
+            allowedPaths,
+            'write scope violation',
+          ),
+        },
+      );
+      if (!repaired.recovered) {
+        await applyClaimRepairOutcome(store, logger, claim, repaired, initialScopeCheck.reason ?? 'write scope violation');
+        return taskWorkerResult(repaired.deferred ? 'deferred' : 'failed', claim, startedAt, {
+          note: repaired.failureReason ?? initialScopeCheck.reason,
+          queuedFollowups: repaired.queuedFollowups,
+        });
+      }
+      logger.line('  ✓ write scope repaired');
+    }
+
+    const validationCommand = config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand;
+    logger.line('');
+    logger.line(`  Running validation profile "${claim.task.validationProfile}": ${validationCommand}`);
+    let validationSummary: string | undefined;
+    const validation = await runValidationCommand(commandRunner, validationCommand, session.cwd);
+    if (!validation.ok) {
+      validationSummary = validation.summary;
+      const repaired = await attemptWorkspaceRemediation(
+        config,
+        store,
+        commandRunner,
+        logger,
+        options,
+        claim,
+        {
+          mode: 'validation',
+          cwd: session.cwd,
+          allowedPaths,
+          failureReason: `validation failed: ${validation.summary}`,
+          validationSummary: validation.summary,
+          verify: async () => {
+            const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
+            if (!rerun.ok) {
+              return { ok: false, reason: `validation failed: ${rerun.summary}` };
+            }
+            const postRepairScope = await validateWorkspaceScope(
+              commandRunner,
+              session.cwd,
+              allowedPaths,
+              'post-validation scope violation',
+            );
+            return postRepairScope.ok
+              ? { ok: true }
+              : { ok: false, reason: postRepairScope.reason ?? 'post-validation scope violation' };
+          },
+        },
+      );
+      if (!repaired.recovered) {
+        const failureReason = repaired.failureReason ?? `validation failed: ${validation.summary}`;
+        const classification = classifyValidationFailure(claim, failureReason);
+        if (classification.blocking) {
+          await applyClaimRepairOutcome(store, logger, claim, repaired, `validation failed: ${validation.summary}`);
+          return taskWorkerResult(repaired.deferred ? 'deferred' : 'failed', claim, startedAt, {
+            note: failureReason,
+            queuedFollowups: repaired.queuedFollowups,
+            validationSummary,
+          });
+        }
+        await queueNonBlockingValidationFollowup(store, logger, claim, classification);
+      } else {
+        logger.line('  ✓ validation recovered by remediation');
+      }
+    } else {
+      logger.line(
+        `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
+      );
+    }
+
+    const postValidationScopeCheck = await validateWorkspaceScope(
+      commandRunner,
+      session.cwd,
+      allowedPaths,
+      'post-validation scope violation',
+    );
+    if (!postValidationScopeCheck.ok) {
+      const repaired = await attemptWorkspaceRemediation(
+        config,
+        store,
+        commandRunner,
+        logger,
+        options,
+        claim,
+        {
+          mode: 'scope',
+          cwd: session.cwd,
+          allowedPaths,
+          failureReason: postValidationScopeCheck.reason ?? 'post-validation scope violation',
+          verify: async () => {
+            const scopeResult = await validateWorkspaceScope(
+              commandRunner,
+              session.cwd,
+              allowedPaths,
+              'post-validation scope violation',
+            );
+            if (!scopeResult.ok) {
+              return scopeResult;
+            }
+            const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
+            return rerun.ok
+              ? { ok: true }
+              : { ok: false, reason: `validation failed: ${rerun.summary}` };
+          },
+        },
+      );
+      if (!repaired.recovered) {
+        await applyClaimRepairOutcome(store, logger, claim, repaired, postValidationScopeCheck.reason ?? 'post-validation scope violation');
+        return taskWorkerResult(repaired.deferred ? 'deferred' : 'failed', claim, startedAt, {
+          note: repaired.failureReason ?? postValidationScopeCheck.reason,
+          queuedFollowups: repaired.queuedFollowups,
+          validationSummary,
+        });
+      }
+      logger.line('  ✓ post-validation scope repaired');
+    }
+
+    const message = `chore(backlog): done – ${result.item || claim.task.title}`;
+    if (options.worktrees) {
+      const finalizationResult = await withLock(lockPath(config, 'git'), 30, async (): Promise<BacklogWorkerResult | undefined> => {
+        logger.line('');
+        logger.line(`  Merging to main: ${claim.task.title}`);
+        const originalDiff = await diffForPaths(commandRunner, session.cwd, allowedPaths);
+        const mergeResult = await session.merge();
+        if (!mergeResult.ok) {
+          const recovered = await attemptTaskReconciliation(
+            config,
+            store,
+            workspaceStrategy,
+            commandRunner,
+            logger,
+            options,
+            claim,
+            mergeResult.reason ?? 'merge failed',
+            originalDiff,
+            false,
+            message,
+            mergeResult,
+            sleep,
+          );
+          if (!recovered.recovered) {
+            await applyClaimRepairOutcome(store, logger, claim, recovered, mergeResult.reason ?? 'merge failed');
+            return taskWorkerResult(recovered.deferred ? 'deferred' : 'failed', claim, startedAt, {
+              note: recovered.failureReason ?? mergeResult.reason ?? 'merge failed',
+              queuedFollowups: recovered.queuedFollowups,
+              validationSummary,
+            });
+          }
+          return undefined;
+        }
+
+        logger.line('  ✓ Merged code changes to main');
+        logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
+        await store.completeClaim(claim, result.note || 'completed');
+
+        const finalizeResult = await workspaceStrategy.commitAndPush(
+          message,
+          taskCommitPaths(config, claim.task.touchPaths),
+          { sleep },
+        );
+        if (!finalizeResult.ok) {
+          const recovered = await attemptTaskReconciliation(
+            config,
+            store,
+            workspaceStrategy,
+            commandRunner,
+            logger,
+            options,
+            claim,
+            finalizeResult.reason ?? 'finalize failed after merge',
+            await diffForPaths(commandRunner, config.projectRoot, allowedPaths),
+            true,
+            message,
+            finalizeResult,
+            sleep,
+          );
+          if (!recovered.recovered) {
+            await applyTaskRepairOutcome(store, logger, claim.task.id, recovered, finalizeResult.reason ?? 'finalize failed after merge');
+            return taskWorkerResult(recovered.deferred ? 'deferred' : 'failed', claim, startedAt, {
+              note: recovered.failureReason ?? finalizeResult.reason ?? 'finalize failed after merge',
+              queuedFollowups: recovered.queuedFollowups,
+              validationSummary,
+            });
+          }
+          return undefined;
+        }
+
+        logger.line('  ✓ Marked done after merge');
+      });
+      if (finalizationResult) {
+        return finalizationResult;
+      }
+    } else {
+      const finalizationResult = await withLock(lockPath(config, 'git'), 30, async (): Promise<BacklogWorkerResult | undefined> => {
+        logger.line('');
+        logger.line(`  Finalizing code changes: ${claim.task.title}`);
+        logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
+        await store.completeClaim(claim, result.note || 'completed');
+
+        const finalizeResult = await workspaceStrategy.commitAndPush(
+          message,
+          taskCommitPaths(config, claim.task.touchPaths),
+          { sleep },
+        );
+        if (!finalizeResult.ok) {
+          const recovered = await attemptTaskReconciliation(
+            config,
+            store,
+            workspaceStrategy,
+            commandRunner,
+            logger,
+            options,
+            claim,
+            finalizeResult.reason ?? 'commit/push failed',
+            await diffForPaths(commandRunner, config.projectRoot, allowedPaths),
+            true,
+            message,
+            finalizeResult,
+            sleep,
+          );
+          if (!recovered.recovered) {
+            await applyTaskRepairOutcome(store, logger, claim.task.id, recovered, finalizeResult.reason ?? 'commit/push failed');
+            return taskWorkerResult(recovered.deferred ? 'deferred' : 'failed', claim, startedAt, {
+              note: recovered.failureReason ?? finalizeResult.reason ?? 'commit/push failed',
+              queuedFollowups: recovered.queuedFollowups,
+              validationSummary,
+            });
+          }
+          return undefined;
+        }
+
+        logger.line('  ✓ Marked done after finalize');
+      });
+      if (finalizationResult) {
+        return finalizationResult;
+      }
+    }
+    return taskWorkerResult('completed', claim, startedAt, {
+      note: result.note || 'completed',
+      validationSummary,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (isAuthFailure(message)) {
+      await store.releaseClaim(claim);
+      throw new Error('Authentication/permission error — check your API key and tool setup');
+    }
+    if (isRateLimited(message)) {
+      logger.line('');
+      logger.line(`  ⚠ Rate limit hit — unclaiming task, retry at ${retryTime()}`);
+      await store.releaseClaim(claim);
+      return taskWorkerResult('rate_limited', claim, startedAt, { note: message });
+    }
+    logger.line(`  ⚠ ${message} — unclaiming task`);
+    await store.releaseClaim(claim);
+    return taskWorkerResult('released', claim, startedAt, { note: message });
   } finally {
-    await store.close();
+    clearInterval(heartbeat);
+    await session.teardown();
   }
 }
 
@@ -946,21 +1439,168 @@ export async function runBacklogRunner(
   const commandRunner = dependencies.commandRunner ?? createCommandRunner();
   const store = createFileBackedTaskStore(config);
   const options = await resolveRunOptions(config, overrides);
+  const effectiveWorkers = options.worktrees ? options.workers : 1;
   const workspaceStrategy: WorkspaceStrategy = options.worktrees
     ? new GitWorktreeWorkspaceStrategy(commandRunner, config)
     : new InPlaceWorkspaceStrategy(commandRunner, config);
+  const orchestratorId = `${process.pid}-${Date.now()}`;
 
   if (options.worktrees) {
     await pruneGitWorktrees(commandRunner, config, logger);
   }
 
-  const { runnerId, registryFile } = await registerRunner(config, options.lane);
-
   let stopRequested = false;
+  let fatalError: Error | null = null;
+  let rateLimitUntil = 0;
+  let discoveryCooldownUntil = 0;
+  let plannerCooldownBatchKey: string | null = null;
+  let plannerCooldownUntil = 0;
+  let iteration = 0;
+  let previousCompletedTaskDuration = 0;
+
+  const taskWorkers = new Map<string, { title: string; promise: Promise<BacklogWorkerResult> }>();
+  let controlWorker: ActiveControlWorker | null = null;
+
+  const updateStatus = async (): Promise<void> => {
+    const status: OrchestratorRuntimeStatus = {
+      orchestratorId,
+      requestedWorkers: options.workers,
+      effectiveWorkers,
+      activeTaskWorkers: [...taskWorkers.entries()].map(([taskId, worker]) => ({ taskId, title: worker.title })),
+      activeControlWorker: controlWorker
+        ? controlWorker.kind === 'planner'
+          ? { kind: 'planner' }
+          : { kind: 'discovery' }
+        : undefined,
+      shutdownRequested: stopRequested || fatalError !== null,
+      pollIntervalMs: ORCHESTRATOR_POLL_INTERVAL_MS,
+    };
+    await writeOrchestratorStatus(config, status);
+    await store.getQueueCounts();
+    await stampRuntimeReport(config, status);
+  };
+
+  const handleTaskWorkerResult = (result: BacklogWorkerResult): void => {
+    if (result.durationSeconds > 0) {
+      previousCompletedTaskDuration = result.durationSeconds;
+    }
+    if (result.kind === 'rate_limited') {
+      rateLimitUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
+    }
+  };
+
+  const handleControlWorkerResult = (kind: 'planner' | 'discovery', batchKey: string | undefined, result: BacklogWorkerResult): void => {
+    if (result.kind === 'rate_limited') {
+      rateLimitUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
+      return;
+    }
+    if (kind === 'planner') {
+      if (result.kind === 'completed') {
+        plannerCooldownBatchKey = null;
+        plannerCooldownUntil = 0;
+        return;
+      }
+      plannerCooldownBatchKey = batchKey ?? null;
+      plannerCooldownUntil = Date.now() + PLANNER_NO_PROGRESS_COOLDOWN_MS;
+      return;
+    }
+    if (kind === 'discovery') {
+      discoveryCooldownUntil = result.kind === 'completed' ? 0 : Date.now() + EMPTY_QUEUE_POLL_INTERVAL_MS;
+    }
+  };
+
+  const launchTaskWorker = (claim: BacklogTaskClaim): void => {
+    const promise = runTaskWorker(
+      config,
+      store,
+      workspaceStrategy,
+      commandRunner,
+      logger,
+      options,
+      claim,
+      sleep,
+    )
+      .then(result => {
+        handleTaskWorkerResult(result);
+        return result;
+      })
+      .catch(error => {
+        fatalError = error instanceof Error ? error : new Error(String(error));
+        logger.line(`  ✗ ${fatalError.message}`);
+        return genericWorkerResult('failed', Date.now(), { note: fatalError.message });
+      })
+      .finally(async () => {
+        try {
+          await updateStatus();
+        } finally {
+          taskWorkers.delete(claim.task.id);
+        }
+      });
+    taskWorkers.set(claim.task.id, { title: claim.task.title, promise });
+  };
+
+  const launchPlannerWorker = (batchKey: string): void => {
+    const promise = runPlannerWorker(
+      config,
+      store,
+      workspaceStrategy,
+      commandRunner,
+      logger,
+      options,
+    )
+      .then(result => {
+        handleControlWorkerResult('planner', batchKey, result);
+        return result;
+      })
+      .catch(error => {
+        fatalError = error instanceof Error ? error : new Error(String(error));
+        logger.line(`  ✗ ${fatalError.message}`);
+        return genericWorkerResult('failed', Date.now(), { note: fatalError.message });
+      })
+      .finally(async () => {
+        try {
+          await updateStatus();
+        } finally {
+          controlWorker = null;
+        }
+      });
+    controlWorker = { kind: 'planner', promise, batchKey };
+  };
+
+  const launchDiscoveryWorker = (): void => {
+    const promise = runDiscoveryWorker(
+      config,
+      store,
+      workspaceStrategy,
+      commandRunner,
+      logger,
+      options,
+      sleep,
+    )
+      .then(result => {
+        handleControlWorkerResult('discovery', undefined, result);
+        return result;
+      })
+      .catch(error => {
+        fatalError = error instanceof Error ? error : new Error(String(error));
+        logger.line(`  ✗ ${fatalError.message}`);
+        return genericWorkerResult('failed', Date.now(), { note: fatalError.message });
+      })
+      .finally(async () => {
+        try {
+          await updateStatus();
+        } finally {
+          controlWorker = null;
+        }
+      });
+    controlWorker = { kind: 'discovery', promise };
+  };
+
   const onSignal = () => {
     stopRequested = true;
     logger.line('');
-    logger.line('  → Stop requested — will exit after current task completes.');
+    logger.line('  → Stop requested — stopping new dispatch and waiting for in-flight workers.');
+    void updateStatus();
   };
   process.once('SIGINT', onSignal);
   process.once('SIGTERM', onSignal);
@@ -974,588 +1614,121 @@ export async function runBacklogRunner(
     logger.line('╔═══════════════════════════════════════════════════════════════╗');
     logger.line('║  TypeScript Backlog Runner                                  ║');
     logger.line('╚═══════════════════════════════════════════════════════════════╝');
-    logger.line(`  Runner: ${runnerId}`);
-    logger.line(`  Tool:   ${options.tool}`);
-    logger.line(`  Lane:   ${options.lane}`);
-    logger.line(`  Model:  ${options.model}`);
-    logger.line(`  Pass model: ${options.passModel}`);
-    logger.line(`  Mode:   ${options.worktrees ? 'parallel (worktrees)' : 'single (no worktrees)'}`);
-    logger.line(`  Passes: ${options.passes ? 'enabled (queue-empty only)' : 'disabled'}`);
-    const queue = await store.getQueueCounts();
-    logger.line(
-      `  Queue:  ${queue.ready} ready · ${queue.blocked} blocked · ${queue.planned} planned · ${queue.inProgress} in-progress · ${queue.failed} failed · ${queue.done} done`,
-    );
-    const otherRunners = await activeRunnerCounts(config, runnerId);
-    logger.line(`  Other runners: ${formatRunnerCounts(otherRunners)}`);
-    logger.line(`  Another planner lane: ${plannerLaneActive(otherRunners) ? 'yes' : 'no'}`);
-    logger.line(`  Stop:  Ctrl+C  (or: touch ${config.files.stop})`);
+    logger.line(`  Orchestrator: ${orchestratorId}`);
+    logger.line(`  Tool:         ${options.tool}`);
+    logger.line(`  Workers:      ${effectiveWorkers}${effectiveWorkers !== options.workers ? ` (requested ${options.workers})` : ''}`);
+    logger.line(`  Model:        ${options.model}`);
+    logger.line(`  Pass model:   ${options.passModel}`);
+    logger.line(`  Mode:         ${options.worktrees ? 'parallel (worktrees)' : 'single (shared workspace)'}`);
+    logger.line(`  Passes:       ${options.passes ? 'enabled' : 'disabled'}`);
+    logger.line(`  Stop:         Ctrl+C  (or: touch ${config.files.stop})`);
+    await updateStatus();
 
-    let iteration = 0;
-    let previousDurationSeconds = 0;
-    let waitingPlannerBatchKey: string | null = null;
-    let lastBackgroundPlannerPassAt = 0;
-
-    const attemptPlannerPass = () =>
-      runPlannerRefinementPass(config, store, workspaceStrategy, commandRunner, logger, options);
-
-    while (true) {
-      if (stopRequested || (await fileExists(config.files.stop))) {
-        break;
-      }
-
+    while (!stopRequested && !fatalError && !(await fileExists(config.files.stop))) {
       iteration += 1;
       logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
-
       const counts = await store.getQueueCounts();
-      const otherRunnerCounts = await activeRunnerCounts(config, runnerId);
-      const hasPlannerPeer = plannerLaneActive(otherRunnerCounts);
+
       logger.line('');
       logger.line('═══════════════════════════════════════════════════════════════');
+      const activeControlKind = describeActiveControlWorker(controlWorker);
       logger.line(
         `  #${iteration} · ${counts.ready} ready · ${counts.blocked} blocked · ${counts.planned} planned · ${counts.inProgress} in-progress` +
-          (previousDurationSeconds ? ` · last took ${formatDuration(previousDurationSeconds)}` : ''),
+        (previousCompletedTaskDuration ? ` · last task ${formatDuration(previousCompletedTaskDuration)}` : ''),
       );
+      logger.line(`  Active workers: ${taskWorkers.size}/${effectiveWorkers} task · ${activeControlKind} control`);
       logger.line('═══════════════════════════════════════════════════════════════');
+      await updateStatus();
 
-      if (options.lane === 'planner') {
-        const now = Date.now();
-        const plannerReason: 'recover-failed' | 'fill-buffer' | 'background-backlog' | null =
-          counts.failed > 0
-            ? 'recover-failed'
-            : counts.planned > 0 && counts.ready < PLANNER_LANE_READY_TARGET
-              ? 'fill-buffer'
-              : backgroundPlannerDue(now, lastBackgroundPlannerPassAt, counts.planned)
-                ? 'background-backlog'
-                : null;
-
-        if (plannerReason) {
-          const batchKey = await currentPlannerBatchKey(store);
-          if (batchKey && shouldAttemptPlannerBatch(batchKey, waitingPlannerBatchKey, plannerReason)) {
-            waitingPlannerBatchKey = batchKey;
-            if (plannerReason === 'background-backlog') {
-              lastBackgroundPlannerPassAt = now;
-            }
-            const refined = await attemptPlannerPass();
-            if (refined) {
-              waitingPlannerBatchKey = null;
-              continue;
-            }
-          }
-
-          if (plannerReason === 'recover-failed') {
-            logger.line('  Planner lane made no progress on failed-task recovery — polling in 15s…');
-          } else if (plannerReason === 'background-backlog') {
-            logger.line('  Planner lane made no progress on background backlog refinement — polling in 15s…');
-          } else {
-            logger.line('  Planner lane made no progress on the current batch — polling in 15s…');
-          }
-          await sleep(RUNNER_POLL_INTERVAL_MS);
-          continue;
-        }
-
-        waitingPlannerBatchKey = null;
-        if (counts.ready >= PLANNER_LANE_READY_TARGET) {
-          logger.line(`  Planner buffer satisfied (${counts.ready}/${PLANNER_LANE_READY_TARGET} ready) — polling in 15s…`);
-        } else if (counts.planned === 0 && counts.failed === 0) {
-          logger.line('  No planner candidates to refine — polling in 15s…');
-        } else {
-          logger.line('  Planner lane is idle — polling in 15s…');
-        }
-        await sleep(RUNNER_POLL_INTERVAL_MS);
+      const now = Date.now();
+      if (now < rateLimitUntil) {
+        logger.line(`  Rate limit backoff active until ${new Date(rateLimitUntil).toTimeString().slice(0, 8)}.`);
+        await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
         continue;
       }
 
-      if (!hasPlannerPeer) {
-        const now = Date.now();
-        const plannerReason: 'recover-failed' | 'background-backlog' | null =
-          counts.failed > 0
-            ? 'recover-failed'
-            : backgroundPlannerDue(now, lastBackgroundPlannerPassAt, counts.planned)
-              ? 'background-backlog'
-              : null;
-
-        if (plannerReason) {
-          const batchKey = await currentPlannerBatchKey(store);
-          if (batchKey && shouldAttemptPlannerBatch(batchKey, waitingPlannerBatchKey, plannerReason)) {
-            waitingPlannerBatchKey = batchKey;
-            if (plannerReason === 'background-backlog') {
-              lastBackgroundPlannerPassAt = now;
-            }
-            const refined = await attemptPlannerPass();
-            if (refined) {
-              waitingPlannerBatchKey = null;
-              continue;
-            }
-          }
+      if (!controlWorker && (counts.failed > 0 || (counts.planned > 0 && counts.ready < PLANNER_LANE_READY_TARGET))) {
+        const plannerReason: 'recover-failed' | 'fill-buffer' = counts.failed > 0 ? 'recover-failed' : 'fill-buffer';
+        const batchKey = await currentPlannerBatchKey(store);
+        const plannerCooldownActive = plannerCooldownBatchKey === batchKey && now < plannerCooldownUntil;
+        if (batchKey && shouldAttemptPlannerBatch(batchKey, plannerCooldownActive ? plannerCooldownBatchKey : null, plannerReason)) {
+          launchPlannerWorker(batchKey);
+          await updateStatus();
         }
       }
 
-      if (counts.ready === 0) {
-        if (counts.inProgress > 0) {
-          if ((counts.planned > 0 || counts.failed > 0) && counts.ready < EXECUTOR_FALLBACK_READY_TARGET && !hasPlannerPeer) {
-            const batchKey = await currentPlannerBatchKey(store);
-            if (batchKey && batchKey !== waitingPlannerBatchKey) {
-              waitingPlannerBatchKey = batchKey;
-              const refined = await attemptPlannerPass();
-              if (refined) {
-                waitingPlannerBatchKey = null;
-                continue;
-              }
-            }
-          }
-          if ((counts.planned > 0 || counts.failed > 0) && hasPlannerPeer) {
-            logger.line('  No runnable task available locally — planner lane active, waiting for refined work…');
-          } else {
-            logger.line('  No runnable task available locally — waiting 15s for other runner activity…');
-          }
-          await sleep(RUNNER_POLL_INTERVAL_MS);
+      if (taskWorkers.size < effectiveWorkers) {
+        const claims = await store.claimNextRunnableTasks(effectiveWorkers - taskWorkers.size, orchestratorId);
+        for (const claim of claims) {
+          launchTaskWorker(claim);
+        }
+        if (claims.length > 0) {
+          await updateStatus();
+          await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
           continue;
         }
+      }
 
-        if (counts.planned > 0 || counts.failed > 0) {
-          if (hasPlannerPeer) {
-            logger.line('  No runnable task available locally — planner lane active, waiting for refined work…');
-            await sleep(RUNNER_POLL_INTERVAL_MS);
-            continue;
-          }
-          waitingPlannerBatchKey = null;
-          const refined = await attemptPlannerPass();
-          if (refined) {
-            continue;
-          }
-          logger.line('  No runnable tasks remain and planner refinement made no progress — stopping.');
-          break;
-        }
+      if (
+        !controlWorker
+        && taskWorkers.size === 0
+        && counts.ready === 0
+        && counts.planned === 0
+        && counts.failed === 0
+        && counts.inProgress === 0
+        && options.passes
+        && now >= discoveryCooldownUntil
+      ) {
+        logger.line('  No tasks found — running discovery passes to replenish backlog…');
+        launchDiscoveryWorker();
+        await updateStatus();
+        await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
+        continue;
+      }
 
+      if (!controlWorker && taskWorkers.size === 0 && counts.ready === 0 && counts.planned === 0 && counts.failed === 0) {
         if (counts.blocked > 0) {
           logger.line('  No runnable tasks remain. Remaining tasks are blocked; stopping instead of spending tokens on new discovery.');
           break;
         }
-
         if (!options.passes) {
           logger.line('  Task queue empty and discovery passes are disabled — stopping.');
           break;
         }
-
-        logger.line('  No tasks found — running discovery passes to replenish backlog…');
-        for (const passType of ['product', 'code', 'ux'] as const) {
-          await runPass(config, store, workspaceStrategy, commandRunner, logger, options, passType, sleep);
-        }
-
-        const refreshed = await store.getQueueCounts();
-        if (refreshed.ready === 0 && refreshed.planned === 0 && refreshed.inProgress === 0) {
-          logger.line('  Still no tasks available. Polling inbox every 30s…');
-          await sleep(EMPTY_QUEUE_POLL_INTERVAL_MS);
-        }
-        continue;
       }
 
-      waitingPlannerBatchKey = null;
-      const claim = await store.claimNextRunnableTask(runnerId);
-      if (!claim) {
-        const refreshed = await store.getQueueCounts();
-        const refreshedOtherRunnerCounts = await activeRunnerCounts(config, runnerId);
-        const refreshedHasPlannerPeer = plannerLaneActive(refreshedOtherRunnerCounts);
-        if ((refreshed.planned > 0 || refreshed.failed > 0) && refreshed.ready < EXECUTOR_FALLBACK_READY_TARGET && !refreshedHasPlannerPeer) {
-          const batchKey = await currentPlannerBatchKey(store);
-          if (batchKey && batchKey !== waitingPlannerBatchKey) {
-            waitingPlannerBatchKey = batchKey;
-            const refined = await attemptPlannerPass();
-            if (refined) {
-              waitingPlannerBatchKey = null;
-              continue;
-            }
-          }
+      if (!controlWorker && taskWorkers.size === 0 && counts.ready === 0 && (counts.planned > 0 || counts.failed > 0)) {
+        const batchKey = await currentPlannerBatchKey(store);
+        const plannerStalled = batchKey && plannerCooldownBatchKey === batchKey && Date.now() < plannerCooldownUntil;
+        if (plannerStalled) {
+          logger.line('  No runnable tasks remain and planner refinement made no progress — stopping.');
+          break;
         }
-        if ((refreshed.planned > 0 || refreshed.failed > 0) && refreshedHasPlannerPeer) {
-          logger.line('  Ready tasks were claimed elsewhere and planner lane is active — waiting for refined work…');
-        } else {
-          logger.line('  Ready tasks were claimed elsewhere — waiting 15s…');
-        }
-        await sleep(RUNNER_POLL_INTERVAL_MS);
-        continue;
       }
 
-      logger.line(`  → ${claim.task.title} (${claim.task.id})`);
-      let session: WorkspaceSession;
-      try {
-        session = await workspaceStrategy.setup();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        await store.deferClaim(claim, `workspace setup failed: ${message}`, PREFLIGHT_DEFERRAL_MS, { category: 'preflight' });
-        logger.line(`  ⚠ workspace setup failed: ${message} — deferred for retry`);
-        continue;
-      }
-      if (options.worktrees) {
-        logger.line(`  Worktree: ${session.cwd}`);
-      }
+      await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
+    }
 
-      const heartbeat = setInterval(() => {
-        void store.heartbeatClaim(claim).catch(() => undefined);
-      }, 30_000);
-      heartbeat.unref?.();
+    if (fatalError || stopRequested || await fileExists(config.files.stop)) {
+      await updateStatus();
+    }
 
-      const startedAt = Date.now();
-      try {
-        const allowedPaths = taskExecutionPaths(config, claim.task.touchPaths);
-        const stagedPreflight = await validateStagedWorkspace(
-          commandRunner,
-          session.cwd,
-          allowedPaths,
-          'dirty workspace preflight',
-        );
-        if (!stagedPreflight.ok) {
-          logger.line(`  WARNING: ${stagedPreflight.reason}`);
-          const repaired = await attemptWorkspaceRemediation(
-            config,
-            store,
-            commandRunner,
-            logger,
-            options,
-            claim,
-            {
-              mode: 'preflight',
-              cwd: session.cwd,
-              allowedPaths,
-              failureReason: stagedPreflight.reason ?? 'dirty workspace preflight',
-              verify: async () => validateStagedWorkspace(
-                commandRunner,
-                session.cwd,
-                allowedPaths,
-                'dirty workspace preflight',
-              ),
-            },
-          );
-          if (!repaired.recovered) {
-            await applyClaimRepairOutcome(store, logger, claim, repaired, stagedPreflight.reason ?? 'dirty workspace preflight');
-            continue;
-          }
-        }
-        if (session.cwd !== config.projectRoot) {
-          const mainRepoStagedPreflight = await validateStagedWorkspace(
-            commandRunner,
-            config.projectRoot,
-            allowedPaths,
-            'main repo staged preflight',
-          );
-          if (!mainRepoStagedPreflight.ok) {
-            logger.line(`  WARNING: ${mainRepoStagedPreflight.reason}`);
-            const repaired = await attemptWorkspaceRemediation(
-              config,
-              store,
-              commandRunner,
-              logger,
-              options,
-              claim,
-              {
-                mode: 'preflight',
-                cwd: config.projectRoot,
-                allowedPaths,
-                failureReason: mainRepoStagedPreflight.reason ?? 'main repo staged preflight',
-                verify: async () => validateStagedWorkspace(
-                  commandRunner,
-                  config.projectRoot,
-                  allowedPaths,
-                  'main repo staged preflight',
-                ),
-              },
-            );
-            if (!repaired.recovered) {
-              await applyClaimRepairOutcome(store, logger, claim, repaired, mainRepoStagedPreflight.reason ?? 'main repo staged preflight');
-              continue;
-            }
-          }
-        }
+    if (controlWorker || taskWorkers.size > 0) {
+      logger.line('');
+      logger.line('  Waiting for in-flight workers to settle…');
+      await Promise.allSettled([
+        ...[...taskWorkers.values()].map(worker => worker.promise),
+        ...collectActiveControlPromises(controlWorker),
+      ]);
+    }
 
-        logger.line(`  Running agent… (started ${new Date().toTimeString().slice(0, 8)})`);
-        const context = await buildExecutionContext(
-          config,
-          session.cwd,
-          claim,
-          await store.getTaskDependencies(claim.task.id),
-          await store.getActiveReservations(claim.task.id),
-        );
-        const result = await runProvider(commandRunner, {
-          tool: options.tool,
-          model: options.model,
-          context,
-          prompt: await readPrompt(config.prompts.agent),
-          cwd: session.cwd,
-          maxTurns: 40,
-          schema: JSON_SCHEMA,
-        });
-
-        logger.line('');
-        logger.line(`  ${result.status === 'done' ? '✓' : '✗'} ${result.status}: ${result.item}`);
-        if (result.note) logger.line(`    ${result.note}`);
-        const meta = [
-          result.turns ? `${result.turns} turns` : '',
-          result.durationSeconds ? formatDuration(result.durationSeconds) : '',
-          result.costUsd ? `$${result.costUsd.toFixed(2)}` : '',
-        ].filter(Boolean);
-        if (meta.length > 0) {
-          logger.line(`    ${meta.join(' · ')}`);
-        }
-
-        if (result.status !== 'done') {
-          await store.failClaim(claim, result.note || 'agent reported failure');
-          continue;
-        }
-
-        const initialScopeCheck = await validateWorkspaceScope(
-          commandRunner,
-          session.cwd,
-          allowedPaths,
-          'write scope violation',
-        );
-        if (!initialScopeCheck.ok) {
-          const repaired = await attemptWorkspaceRemediation(
-            config,
-            store,
-            commandRunner,
-            logger,
-            options,
-            claim,
-            {
-              mode: 'scope',
-              cwd: session.cwd,
-              allowedPaths,
-              failureReason: initialScopeCheck.reason ?? 'write scope violation',
-              verify: async () => validateWorkspaceScope(
-                commandRunner,
-                session.cwd,
-                allowedPaths,
-                'write scope violation',
-              ),
-            },
-          );
-          if (!repaired.recovered) {
-            await applyClaimRepairOutcome(store, logger, claim, repaired, initialScopeCheck.reason ?? 'write scope violation');
-            continue;
-          }
-          logger.line('  ✓ write scope repaired');
-        }
-
-        const validationCommand = config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand;
-        logger.line('');
-        logger.line(`  Running validation profile "${claim.task.validationProfile}": ${validationCommand}`);
-        const validation = await runValidationCommand(commandRunner, validationCommand, session.cwd);
-        if (!validation.ok) {
-          const repaired = await attemptWorkspaceRemediation(
-            config,
-            store,
-            commandRunner,
-            logger,
-            options,
-            claim,
-            {
-              mode: 'validation',
-              cwd: session.cwd,
-              allowedPaths,
-              failureReason: `validation failed: ${validation.summary}`,
-              validationSummary: validation.summary,
-              verify: async () => {
-                const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
-                if (!rerun.ok) {
-                  return { ok: false, reason: `validation failed: ${rerun.summary}` };
-                }
-                const postRepairScope = await validateWorkspaceScope(
-                  commandRunner,
-                  session.cwd,
-                  allowedPaths,
-                  'post-validation scope violation',
-                );
-                return postRepairScope.ok
-                  ? { ok: true }
-                  : { ok: false, reason: postRepairScope.reason ?? 'post-validation scope violation' };
-              },
-            },
-          );
-          if (!repaired.recovered) {
-            const failureReason = repaired.failureReason ?? `validation failed: ${validation.summary}`;
-            const classification = classifyValidationFailure(claim, failureReason);
-            if (classification.blocking) {
-              await applyClaimRepairOutcome(store, logger, claim, repaired, `validation failed: ${validation.summary}`);
-              continue;
-            }
-            await queueNonBlockingValidationFollowup(store, logger, claim, classification);
-          } else {
-            logger.line('  ✓ validation recovered by remediation');
-          }
-        } else {
-          logger.line(
-            `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
-          );
-        }
-
-        const postValidationScopeCheck = await validateWorkspaceScope(
-          commandRunner,
-          session.cwd,
-          allowedPaths,
-          'post-validation scope violation',
-        );
-        if (!postValidationScopeCheck.ok) {
-          const repaired = await attemptWorkspaceRemediation(
-            config,
-            store,
-            commandRunner,
-            logger,
-            options,
-            claim,
-            {
-              mode: 'scope',
-              cwd: session.cwd,
-              allowedPaths,
-              failureReason: postValidationScopeCheck.reason ?? 'post-validation scope violation',
-              verify: async () => {
-                const scopeResult = await validateWorkspaceScope(
-                  commandRunner,
-                  session.cwd,
-                  allowedPaths,
-                  'post-validation scope violation',
-                );
-                if (!scopeResult.ok) {
-                  return scopeResult;
-                }
-                const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
-                return rerun.ok
-                  ? { ok: true }
-                  : { ok: false, reason: `validation failed: ${rerun.summary}` };
-              },
-            },
-          );
-          if (!repaired.recovered) {
-            await applyClaimRepairOutcome(store, logger, claim, repaired, postValidationScopeCheck.reason ?? 'post-validation scope violation');
-            continue;
-          }
-          logger.line('  ✓ post-validation scope repaired');
-        }
-
-        const message = `chore(backlog): done – ${result.item || claim.task.title}`;
-        if (options.worktrees) {
-          await withLock(lockPath(config, 'git'), 30, async () => {
-            logger.line('');
-            logger.line(`  Merging to main: ${claim.task.title}`);
-            const originalDiff = await diffForPaths(commandRunner, session.cwd, allowedPaths);
-            const mergeResult = await session.merge();
-            if (!mergeResult.ok) {
-              const recovered = await attemptTaskReconciliation(
-                config,
-                store,
-                workspaceStrategy,
-                commandRunner,
-                logger,
-                options,
-                claim,
-                mergeResult.reason ?? 'merge failed',
-                originalDiff,
-                false,
-                message,
-                mergeResult,
-                sleep,
-              );
-              if (!recovered.recovered) {
-                await applyClaimRepairOutcome(store, logger, claim, recovered, mergeResult.reason ?? 'merge failed');
-              }
-              return;
-            }
-
-            logger.line('  ✓ Merged code changes to main');
-            logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
-            await store.completeClaim(claim, result.note || 'completed');
-
-            const finalizeResult = await workspaceStrategy.commitAndPush(
-              message,
-              taskCommitPaths(config, claim.task.touchPaths),
-              { sleep },
-            );
-            if (!finalizeResult.ok) {
-              const recovered = await attemptTaskReconciliation(
-                config,
-                store,
-                workspaceStrategy,
-                commandRunner,
-                logger,
-                options,
-                claim,
-                finalizeResult.reason ?? 'finalize failed after merge',
-                await diffForPaths(commandRunner, config.projectRoot, allowedPaths),
-                true,
-                message,
-                finalizeResult,
-                sleep,
-              );
-              if (!recovered.recovered) {
-                await applyTaskRepairOutcome(store, logger, claim.task.id, recovered, finalizeResult.reason ?? 'finalize failed after merge');
-              }
-              return;
-            }
-
-            logger.line('  ✓ Marked done after merge');
-          });
-        } else {
-          await withLock(lockPath(config, 'git'), 30, async () => {
-            logger.line('');
-            logger.line(`  Finalizing code changes: ${claim.task.title}`);
-            logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
-            await store.completeClaim(claim, result.note || 'completed');
-
-            const finalizeResult = await workspaceStrategy.commitAndPush(
-              message,
-              taskCommitPaths(config, claim.task.touchPaths),
-              { sleep },
-            );
-            if (!finalizeResult.ok) {
-              const recovered = await attemptTaskReconciliation(
-                config,
-                store,
-                workspaceStrategy,
-                commandRunner,
-                logger,
-                options,
-                claim,
-                finalizeResult.reason ?? 'commit/push failed',
-                await diffForPaths(commandRunner, config.projectRoot, allowedPaths),
-                true,
-                message,
-                finalizeResult,
-                sleep,
-              );
-              if (!recovered.recovered) {
-                await applyTaskRepairOutcome(store, logger, claim.task.id, recovered, finalizeResult.reason ?? 'commit/push failed');
-              }
-              return;
-            }
-
-            logger.line('  ✓ Marked done after finalize');
-          });
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (isAuthFailure(message)) {
-          await store.releaseClaim(claim);
-          throw new Error('Authentication/permission error — check your API key and tool setup');
-        }
-        if (isRateLimited(message)) {
-          logger.line('');
-          logger.line(`  ⚠ Rate limit hit — unclaiming task, retry at ${retryTime()}`);
-          await store.releaseClaim(claim);
-          await sleep(60_000);
-        } else {
-          logger.line(`  ⚠ ${message} — unclaiming task`);
-          await store.releaseClaim(claim);
-        }
-      } finally {
-        clearInterval(heartbeat);
-        previousDurationSeconds = Math.floor((Date.now() - startedAt) / 1000);
-        await session.teardown();
-      }
-
+    if (fatalError) {
+      throw fatalError;
     }
   } finally {
     process.removeListener('SIGINT', onSignal);
     process.removeListener('SIGTERM', onSignal);
-    await rm(registryFile, { force: true });
+    await clearOrchestratorStatus(config);
     try {
       await store.close();
     } finally {

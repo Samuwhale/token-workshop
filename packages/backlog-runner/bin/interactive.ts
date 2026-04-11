@@ -1,10 +1,10 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { resolveModelAlias } from '../src/config.js';
-import type { BacklogRunnerConfig, BacklogRunnerLane, BacklogTool, RunOverrides } from '../src/types.js';
+import type { BacklogRunnerConfig, BacklogTool, RunOverrides } from '../src/types.js';
 
 const TOOLS: BacklogTool[] = ['claude', 'codex'];
-const LANES: BacklogRunnerLane[] = ['executor', 'planner'];
+const MAX_INTERACTIVE_WORKERS = 8;
 const SUMMARY_DIVIDER = '----------------------------------------';
 
 function parseBooleanAnswer(value: string, fallback: boolean): boolean {
@@ -27,22 +27,24 @@ export function resolveToolChoice(value: string, fallback: BacklogTool): Backlog
   return TOOLS.includes(normalized as BacklogTool) ? (normalized as BacklogTool) : fallback;
 }
 
-export function resolveLaneChoice(value: string, fallback: BacklogRunnerLane): BacklogRunnerLane {
-  const normalized = value.trim().toLowerCase();
+export function resolveWorkerChoice(value: string, fallback: number, maxWorkers = MAX_INTERACTIVE_WORKERS): number {
+  const normalized = value.trim();
   if (!normalized) return fallback;
 
-  const numeric = Number.parseInt(normalized, 10);
-  if (Number.isFinite(numeric) && numeric >= 1 && numeric <= LANES.length) {
-    return LANES[numeric - 1]!;
+  const parsed = Number.parseInt(normalized, 10);
+  if (!Number.isInteger(parsed)) {
+    return fallback;
   }
-
-  return LANES.includes(normalized as BacklogRunnerLane) ? (normalized as BacklogRunnerLane) : fallback;
+  if (parsed < 1 || parsed > maxWorkers) {
+    return fallback;
+  }
+  return parsed;
 }
 
 export function summarizeRunOverrides(
   overrides: {
     tool: BacklogTool;
-    lane: BacklogRunnerLane;
+    workers: number;
     model: string;
     passModel: string;
     passes: boolean;
@@ -55,7 +57,7 @@ export function summarizeRunOverrides(
     'Selected options',
     SUMMARY_DIVIDER,
     `Tool:           ${overrides.tool}`,
-    `Lane:           ${overrides.lane}`,
+    `Workers:        ${overrides.workers}`,
     `Model:          ${model}`,
     `Pass model:     ${passModel}`,
     `Passes:         ${overrides.passes ? 'enabled' : 'disabled'}`,
@@ -96,12 +98,12 @@ async function describeModelSettings(
 
 function hasExplicitOverrides(overrides: RunOverrides): boolean {
   return Boolean(
-      overrides.tool !== undefined ||
-      overrides.lane !== undefined ||
-      overrides.model !== undefined ||
-      overrides.passModel !== undefined ||
-      overrides.passes !== undefined ||
-      overrides.worktrees !== undefined,
+    overrides.tool !== undefined ||
+    overrides.workers !== undefined ||
+    overrides.model !== undefined ||
+    overrides.passModel !== undefined ||
+    overrides.passes !== undefined ||
+    overrides.worktrees !== undefined,
   );
 }
 
@@ -134,14 +136,9 @@ export async function promptForRunOverrides(
       const toolAnswer = await rl.question(`Tool [1-${TOOLS.length} or name] (${defaultTool}): `);
       const nextTool = resolveToolChoice(toolAnswer, defaultTool);
 
-      const defaultLane = previous.lane ?? config.defaults.lane;
-      output.write('Lane options:\n');
-      LANES.forEach((lane, index) => {
-        const marker = lane === defaultLane ? ' (default)' : '';
-        output.write(`  ${index + 1}. ${lane}${marker}\n`);
-      });
-      const laneAnswer = await rl.question(`Lane [1-${LANES.length} or name] (${defaultLane}): `);
-      const nextLane = resolveLaneChoice(laneAnswer, defaultLane);
+      const defaultWorkers = previous.workers ?? config.defaults.workers;
+      const workersAnswer = await rl.question(`Workers [1-${MAX_INTERACTIVE_WORKERS}] (${defaultWorkers}): `);
+      const nextWorkers = resolveWorkerChoice(workersAnswer, defaultWorkers);
 
       const defaultModel = previous.model ?? config.defaults.model;
       const defaultPassModel = previous.passModel ?? config.defaults.passModel;
@@ -166,7 +163,7 @@ export async function promptForRunOverrides(
       const nextOverrides: RunOverrides = {
         ...previous,
         tool: nextTool,
-        lane: nextLane,
+        workers: nextWorkers,
         model: nextModel,
         passModel: nextPassModel,
         passes: nextPasses,
@@ -178,7 +175,7 @@ export async function promptForRunOverrides(
 
       output.write(`\n${summarizeRunOverrides({
         tool: nextTool,
-        lane: nextLane,
+        workers: nextWorkers,
         model: describedSelections.model,
         passModel: describedSelections.passModel,
         passes: nextPasses,

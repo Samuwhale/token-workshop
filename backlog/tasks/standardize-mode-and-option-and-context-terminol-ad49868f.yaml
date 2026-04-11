@@ -1,0 +1,25 @@
+id: standardize-mode-and-option-and-context-terminol-ad49868f
+title: Standardize mode and option and context terminology to use option everywhere
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/panels/ResolverPanel.tsx
+  - packages/figma-plugin/src/ui/panels/ThemeManager.tsx
+  - packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx
+  - packages/figma-plugin/src/ui/components/CompareView.tsx
+capabilities:
+  - react
+  - typescript
+validation_profile: plugin
+status_notes:
+  - "Context: Three terms are used for the same concept across the plugin — 'options' in Themes (Light/Dark are options), 'contexts' in Resolver (Light/Dark are contexts), and 'modes' in documentation/conversation. 'Mode' conflicts with Figma's own Mode concept. 'Context' is DTCG jargon. 'Option' is neutral and intuitive."
+state: ready
+acceptance_criteria:
+  - All user-facing labels, headers, tooltips, and guidance text use 'option' consistently when referring to theme variants (Light, Dark, Brand A, etc.).
+  - Resolver UI replaces 'context' with 'option' in all user-facing text.
+  - Documentation and guidance strings replace 'mode' with 'option' except when referring specifically to Figma Modes (the Figma platform concept).
+  - Internal code variable names may retain current naming if renaming would be purely cosmetic.
+source: ux-pass
+created_at: 2026-04-11T12:00:00.000Z
+updated_at: 2026-04-11T12:00:00.000Z

@@ -38,9 +38,12 @@ async function collectStagedFiles(commandRunner: CommandRunner, cwd: string): Pr
     : [];
 }
 
-async function remoteExists(commandRunner: CommandRunner, cwd: string): Promise<boolean> {
-  const remotes = await commandRunner.run('git', ['remote'], { cwd, ignoreFailure: true });
-  return Boolean(remotes.stdout.trim());
+export async function hasUpstream(commandRunner: CommandRunner, cwd: string): Promise<boolean> {
+  const result = await commandRunner.run(
+    'git', ['rev-parse', '--abbrev-ref', '@{upstream}'],
+    { cwd, ignoreFailure: true },
+  );
+  return result.code === 0;
 }
 
 async function pushWithRetries(
@@ -79,7 +82,7 @@ export async function gitCommitAndPush(
     const sleep = options.sleep ?? defaultSleep;
     const changedFiles = await collectChangedFiles(commandRunner, cwd);
     if (changedFiles.length === 0) {
-      if (!options.retryPendingPush || !await remoteExists(commandRunner, cwd)) {
+      if (!options.retryPendingPush || !await hasUpstream(commandRunner, cwd)) {
         return { ok: true };
       }
       return pushWithRetries(commandRunner, cwd, sleep);
@@ -111,7 +114,7 @@ export async function gitCommitAndPush(
       return { ok: false, reason: `git commit failed: ${summarizeGitFailure(commit.stdout, commit.stderr)}` };
     }
 
-    if (!await remoteExists(commandRunner, cwd)) {
+    if (!await hasUpstream(commandRunner, cwd)) {
       return { ok: true, createdCommit: true };
     }
 

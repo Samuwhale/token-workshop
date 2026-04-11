@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { resolveLaneChoice, resolveToolChoice, shouldPromptInteractively, summarizeRunOverrides } from '../interactive.js';
+import { resolveToolChoice, resolveWorkerChoice, shouldPromptInteractively, summarizeRunOverrides } from '../interactive.js';
 
 const originalStdinTty = process.stdin.isTTY;
 const originalStdoutTty = process.stdout.isTTY;
@@ -22,17 +22,17 @@ describe('interactive helpers', () => {
     expect(resolveToolChoice('unknown', 'codex')).toBe('codex');
   });
 
-  it('resolves lanes from number or name', () => {
-    expect(resolveLaneChoice('2', 'executor')).toBe('planner');
-    expect(resolveLaneChoice('planner', 'executor')).toBe('planner');
-    expect(resolveLaneChoice('', 'planner')).toBe('planner');
-    expect(resolveLaneChoice('unknown', 'planner')).toBe('planner');
+  it('resolves worker counts within the allowed range', () => {
+    expect(resolveWorkerChoice('3', 1)).toBe(3);
+    expect(resolveWorkerChoice('', 2)).toBe(2);
+    expect(resolveWorkerChoice('0', 2)).toBe(2);
+    expect(resolveWorkerChoice('99', 2, 8)).toBe(2);
   });
 
   it('renders a readable summary of selected options', () => {
     const summary = summarizeRunOverrides({
       tool: 'codex',
-      lane: 'planner',
+      workers: 3,
       model: '',
       passModel: '',
       passes: true,
@@ -40,7 +40,7 @@ describe('interactive helpers', () => {
     });
 
     expect(summary).toContain('Tool:           codex');
-    expect(summary).toContain('Lane:           planner');
+    expect(summary).toContain('Workers:        3');
     expect(summary).toContain('Model:          CLI default');
     expect(summary).toContain('Pass model:     same as main model / CLI default');
     expect(summary).toContain('Worktrees:      disabled');
@@ -51,7 +51,7 @@ describe('interactive helpers', () => {
 
     expect(shouldPromptInteractively('run', {})).toBe(true);
     expect(shouldPromptInteractively('validate', {})).toBe(false);
-    expect(shouldPromptInteractively('run', { lane: 'planner' })).toBe(false);
+    expect(shouldPromptInteractively('run', { workers: 3 })).toBe(false);
   });
 
   it('honors explicit interactive overrides and non-tty sessions', () => {
@@ -60,6 +60,6 @@ describe('interactive helpers', () => {
 
     setTtyState(true, true);
     expect(shouldPromptInteractively('run', { interactive: false })).toBe(false);
-    expect(shouldPromptInteractively('run', { interactive: true, lane: 'planner' })).toBe(true);
+    expect(shouldPromptInteractively('run', { interactive: true, workers: 2 })).toBe(true);
   });
 });

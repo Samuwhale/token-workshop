@@ -198,7 +198,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
       },
       defaults: {
         tool: 'claude',
-        lane: 'executor',
+        workers: 1,
         model: 'default',
         passModel: 'sonnet',
         passes: false,
@@ -387,6 +387,92 @@ describe('runner e2e', () => {
     expect(taskYaml).toContain('Deferred after remediation: validation failed: src/routes/sets.ts(605,13): error TS2322');
   });
 
+  it('keeps ambiguous task-local missing-module failures blocking without workspace evidence', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      touchPaths: ['packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts'],
+    })]);
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          statusResponses: [
+            ['packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts'],
+            ['packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts'],
+            ['packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts'],
+            ['packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts'],
+          ],
+          validationResults: [
+            {
+              code: 1,
+              stdout: "src/ui/hooks/useTokenEditorLoad.ts(120,3): error TS2307: Cannot find module '../shared/utils' or its corresponding type declarations.",
+              stderr: '',
+            },
+            {
+              code: 1,
+              stdout: "src/ui/hooks/useTokenEditorLoad.ts(120,3): error TS2307: Cannot find module '../shared/utils' or its corresponding type declarations.",
+              stderr: '',
+            },
+          ],
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain("Deferred after remediation: validation failed: src/ui/hooks/useTokenEditorLoad.ts(120,3): error TS2307: Cannot find module '../shared/utils'");
+  });
+
+  it('completes the task and queues a follow-up for explicit out-of-scope repo validation failures', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      touchPaths: ['packages/server/src/routes/sets.ts'],
+    })]);
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          statusResponses: [
+            ['packages/server/src/routes/sets.ts'],
+            ['packages/server/src/routes/sets.ts'],
+            ['packages/server/src/routes/sets.ts'],
+            ['packages/server/src/routes/sets.ts'],
+          ],
+          validationResults: [
+            {
+              code: 1,
+              stdout: "packages/core/src/index.ts(10,2): error TS2307: Cannot find module 'fastify' or its corresponding type declarations.",
+              stderr: '',
+            },
+            {
+              code: 1,
+              stdout: "packages/core/src/index.ts(10,2): error TS2307: Cannot find module 'fastify' or its corresponding type declarations.",
+              stderr: '',
+            },
+          ],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    expect(taskYaml).toContain('state: done');
+    expect(taskYaml).toContain('Non-blocking validation issue deferred to follow-up');
+
+    const taskFiles = (await readDirTaskFiles(path.join(root, 'backlog/tasks'))).sort();
+    expect(taskFiles.length).toBe(2);
+    const followupYaml = await readFollowupTask(root, taskFiles);
+    expect(followupYaml).toContain('title: Resolve unrelated validation failure after test item');
+    expect(followupYaml).toContain('packages/core/src/index.ts');
+    expect(logSink.lines.join('')).toContain('Non-blocking validation issue queued as follow-up');
+  });
+
   it('defers the task when preflight remediation cannot clear unrelated staged files', async () => {
     const { root, config } = await makeFixture([baseTask({ touchPaths: ['feature.txt'] })]);
     const logSink = new MemoryLogSink();
@@ -455,9 +541,12 @@ describe('runner e2e', () => {
             ['feature.txt'],
             ['feature.txt'],
             ['feature.txt'],
-            [],
-            [],
-            [],
+            ['feature.txt'],
+            ['feature.txt'],
+            ['feature.txt'],
+            ['feature.txt'],
+            ['feature.txt'],
+            ['feature.txt'],
           ],
         }),
         createLogSink: async () => logSink,
@@ -573,10 +662,10 @@ describe('runner e2e', () => {
 
     expect(calls).toContain('input:planner prompt');
     expect(logSink.lines.join('')).toContain('planner refinement skipped');
-    expect(logSink.lines.join('')).toContain('No runnable tasks remain and planner refinement made no progress');
+    expect(logSink.lines.join('')).toContain('No runnable tasks remain and planner refinement made no progress — stopping.');
   });
 
-  it('planner lane refines planned work without executing ready tasks', async () => {
+  it('orchestrator proactively refines planned work when the ready buffer is low', async () => {
     const { root, config } = await makeFixture([
       baseTask({ id: 'task-ready', title: 'Ready task', touchPaths: ['feature.txt'] }),
       baseTask({
@@ -593,7 +682,7 @@ describe('runner e2e', () => {
 
     await runBacklogRunner(
       config,
-      { lane: 'planner' },
+      {},
       {
         commandRunner: createFakeCommandRunner(root, {
           calls,
@@ -625,9 +714,8 @@ describe('runner e2e', () => {
     );
 
     expect(calls).toContain('input:planner prompt');
-    expect(calls).not.toContain('input:agent prompt');
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-planned.yaml'), 'utf8')).toContain('state: superseded');
-    expect(logSink.lines.join('')).toContain('Planner buffer satisfied (2/2 ready)');
+    expect(logSink.lines.join('')).toContain('superseded 1 planner candidate');
   });
 
   it('executor refines failed work even when other ready tasks are available', async () => {
@@ -681,91 +769,26 @@ describe('runner e2e', () => {
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-failed.yaml'), 'utf8')).toContain('state: superseded');
   });
 
-  it('planner lane performs background refinement when planned backlog stays large', async () => {
-    const plannedTasks = Array.from({ length: 10 }, (_, index) => baseTask({
-      id: `task-planned-${index}`,
-      title: `Planned task ${index}`,
-      state: 'planned',
-      touchPaths: [],
-      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
-    }));
-    const { root, config } = await makeFixture([
-      baseTask({ id: 'task-ready-a', title: 'Ready task A', touchPaths: ['feature-a.txt'] }),
-      baseTask({ id: 'task-ready-b', title: 'Ready task B', touchPaths: ['feature-b.txt'] }),
-      ...plannedTasks,
-    ]);
-    const logSink = new MemoryLogSink();
-    const calls: string[] = [];
-    let sleepCalls = 0;
+  it('reports orchestrator worker state in the runtime report', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
 
     await runBacklogRunner(
       config,
-      { lane: 'planner' },
+      { workers: 2 },
       {
         commandRunner: createFakeCommandRunner(root, {
-          calls,
-          statusResponses: [[]],
-          plannerOutput: {
-            status: 'done',
-            item: 'planner-pass',
-            note: 'refined large planned backlog',
-            action: 'supersede',
-            parent_task_ids: ['task-planned-0'],
-            children: [{
-              title: 'Research planned task 0 implementation plan',
-              task_kind: 'research',
-              priority: 'normal',
-              touch_paths: ['backlog/inbox.jsonl', 'scripts/backlog/progress.txt'],
-              acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
-              context: 'Inspect the planned task surface and emit concrete implementation follow-ups.',
-            }],
+          onGitCommit: async () => {
+            await stopAfterFirstSleep(config.files.stop);
           },
         }),
-        createLogSink: async () => logSink,
-        sleep: async () => {
-          sleepCalls += 1;
-          if (sleepCalls === 1) {
-            await stopAfterFirstSleep(config.files.stop);
-          }
-        },
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
       },
     );
 
-    expect(calls).toContain('input:planner prompt');
-    expect(calls).not.toContain('input:agent prompt');
-    expect(await readFile(path.join(root, 'backlog/tasks', 'task-planned-0.yaml'), 'utf8')).toContain('state: superseded');
-  });
-
-  it('executor waits when another planner lane is already active', async () => {
-    const { root, config } = await makeFixture([baseTask({
-      state: 'planned',
-      touchPaths: [],
-      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
-    })]);
-    const logSink = new MemoryLogSink();
-    const calls: string[] = [];
-    const runnersDir = path.join(config.files.runtimeDir, 'runners');
-    await mkdir(runnersDir, { recursive: true });
-    await writeFile(
-      path.join(runnersDir, 'other-runner.json'),
-      JSON.stringify({ runnerId: 'other-runner', pid: process.pid, startedAt: Date.now(), lane: 'planner' }),
-      'utf8',
-    );
-
-    await runBacklogRunner(
-      config,
-      { lane: 'executor' },
-      {
-        commandRunner: createFakeCommandRunner(root, { calls }),
-        createLogSink: async () => logSink,
-        sleep: async () => {
-          await stopAfterFirstSleep(config.files.stop);
-        },
-      },
-    );
-
-    expect(calls).not.toContain('input:planner prompt');
-    expect(logSink.lines.join('')).toContain('planner lane active, waiting for refined work');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+    expect(runtimeReport).toContain('Orchestrator:');
+    expect(runtimeReport).toContain('Workers: 1/2');
   });
 
   it.each([
@@ -786,29 +809,5 @@ describe('runner e2e', () => {
     );
 
     expect(calls.filter(call => call === 'run:git worktree prune --expire now')).toHaveLength(expected);
-  });
-
-  it('prunes dead runner registrations when checking lane presence', async () => {
-    const { root, config } = await makeFixture([baseTask()]);
-    const runnersDir = path.join(config.files.runtimeDir, 'runners');
-    const deadRunnerFile = path.join(runnersDir, 'dead-runner.json');
-    await mkdir(runnersDir, { recursive: true });
-    await writeFile(
-      deadRunnerFile,
-      JSON.stringify({ runnerId: 'dead-runner', pid: 999999, startedAt: Date.now(), lane: 'planner' }),
-      'utf8',
-    );
-
-    await runBacklogRunner(
-      config,
-      {},
-      {
-        commandRunner: createFakeCommandRunner(root),
-        createLogSink: async () => new MemoryLogSink(),
-        sleep: async () => undefined,
-      },
-    );
-
-    await expect(readFile(deadRunnerFile, 'utf8')).rejects.toThrow();
   });
 });

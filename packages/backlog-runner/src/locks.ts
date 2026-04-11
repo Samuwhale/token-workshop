@@ -1,8 +1,16 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import type { BacklogRunnerConfig } from './types.js';
 
-const localLockCounts = new Map<string, number>();
+type LocalLockState = {
+  ownerId: string;
+  count: number;
+};
+
+const localLocks = new Map<string, LocalLockState>();
+const lockOwnerStorage = new AsyncLocalStorage<string>();
 
 async function pidFromLock(lockDir: string): Promise<number | null> {
   try {
@@ -25,33 +33,44 @@ function isPidAlive(pid: number | null): boolean {
 }
 
 export class LockHandle {
-  constructor(readonly lockDir: string, readonly pid: number, readonly reentrant = false) {}
+  constructor(
+    readonly lockDir: string,
+    readonly pid: number,
+    readonly ownerId: string,
+    readonly reentrant = false,
+  ) {}
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export async function acquireLock(lockDir: string, timeoutSeconds = 30): Promise<LockHandle> {
   const startedAt = Date.now();
   const ownPid = process.pid;
+  const ownerId = lockOwnerStorage.getStore() ?? `lock-owner-${randomUUID()}`;
   await mkdir(path.dirname(lockDir), { recursive: true });
 
-  const localCount = localLockCounts.get(lockDir) ?? 0;
-  if (localCount > 0) {
-    localLockCounts.set(lockDir, localCount + 1);
-    return new LockHandle(lockDir, ownPid, true);
+  const localState = localLocks.get(lockDir);
+  if (localState && localState.ownerId === ownerId) {
+    localState.count += 1;
+    return new LockHandle(lockDir, ownPid, ownerId, true);
   }
 
   while (true) {
     try {
       await mkdir(lockDir);
       await writeFile(`${lockDir}/pid`, `${ownPid}\n`, 'utf8');
-      localLockCounts.set(lockDir, 1);
-      return new LockHandle(lockDir, ownPid);
+      localLocks.set(lockDir, { ownerId, count: 1 });
+      return new LockHandle(lockDir, ownPid, ownerId);
     } catch {
-      const existingPid = await pidFromLock(lockDir);
-      if (existingPid === ownPid) {
-        localLockCounts.set(lockDir, localCount + 1 || 1);
-        return new LockHandle(lockDir, ownPid, true);
+      const currentLocalState = localLocks.get(lockDir);
+      if (currentLocalState && currentLocalState.ownerId === ownerId) {
+        currentLocalState.count += 1;
+        return new LockHandle(lockDir, ownPid, ownerId, true);
       }
 
+      const existingPid = await pidFromLock(lockDir);
       if (!isPidAlive(existingPid)) {
         await rm(lockDir, { recursive: true, force: true });
         continue;
@@ -61,30 +80,42 @@ export async function acquireLock(lockDir: string, timeoutSeconds = 30): Promise
         throw new Error(`Could not acquire lock ${lockDir} after ${timeoutSeconds}s`);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await sleep(200);
     }
   }
 }
 
 export async function releaseLock(lock: LockHandle): Promise<void> {
-  const count = localLockCounts.get(lock.lockDir) ?? 0;
-  if (count > 1) {
-    localLockCounts.set(lock.lockDir, count - 1);
+  const localState = localLocks.get(lock.lockDir);
+  if (!localState || localState.ownerId !== lock.ownerId) {
     return;
   }
-  localLockCounts.delete(lock.lockDir);
+  if (localState.count > 1) {
+    localState.count -= 1;
+    return;
+  }
+  localLocks.delete(lock.lockDir);
   await rm(lock.lockDir, { recursive: true, force: true });
 }
 
 export async function withLock<T>(lockDir: string, timeoutSeconds: number, fn: () => Promise<T>): Promise<T> {
-  const lock = await acquireLock(lockDir, timeoutSeconds);
-  try {
-    return await fn();
-  } finally {
-    await releaseLock(lock);
+  const currentOwnerId = lockOwnerStorage.getStore();
+  const execute = async (): Promise<T> => {
+    const lock = await acquireLock(lockDir, timeoutSeconds);
+    try {
+      return await fn();
+    } finally {
+      await releaseLock(lock);
+    }
+  };
+
+  if (currentOwnerId) {
+    return execute();
   }
+
+  return lockOwnerStorage.run(`lock-owner-${randomUUID()}`, execute);
 }
 
-export function lockPath(config: BacklogRunnerConfig, name: 'backlog' | 'git' | 'pass' | 'planner'): string {
+export function lockPath(config: BacklogRunnerConfig, name: 'backlog' | 'git' | 'pass' | 'planner' | 'worktree'): string {
   return `${config.files.locksDir}/${name}.lock`;
 }

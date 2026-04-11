@@ -2,7 +2,7 @@ import { access, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } fro
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { lockPath, withLock } from '../locks.js';
-import { gitCommitAndPush } from './in-place.js';
+import { gitCommitAndPush, hasUpstream } from './in-place.js';
 import type {
   BacklogRunnerConfig,
   CommandRunner,
@@ -216,11 +216,7 @@ class GitWorktreeSession implements WorkspaceSession {
     }
 
     return withLock(lockPath(this.config, 'git'), 30, async () => {
-      const remotes = await this.commandRunner.run('git', ['remote'], {
-        cwd: this.config.projectRoot,
-        ignoreFailure: true,
-      });
-      if (remotes.stdout.trim()) {
+      if (await hasUpstream(this.commandRunner, this.config.projectRoot)) {
         const pull = await this.commandRunner.run('git', ['pull', '--rebase', '--autostash'], {
           cwd: this.config.projectRoot,
           ignoreFailure: true,
@@ -261,15 +257,17 @@ class GitWorktreeSession implements WorkspaceSession {
   }
 
   async teardown(): Promise<void> {
-    await removeBootstrapWorkspaceNodeModules(this.cwd);
-    await this.commandRunner.run('git', ['worktree', 'remove', this.cwd, '--force'], {
-      cwd: this.config.projectRoot,
-      ignoreFailure: true,
-    });
-    await rm(this.cwd, { recursive: true, force: true });
-    await this.commandRunner.run('git', ['worktree', 'prune'], {
-      cwd: this.config.projectRoot,
-      ignoreFailure: true,
+    await withLock(lockPath(this.config, 'worktree'), 30, async () => {
+      await removeBootstrapWorkspaceNodeModules(this.cwd);
+      await this.commandRunner.run('git', ['worktree', 'remove', this.cwd, '--force'], {
+        cwd: this.config.projectRoot,
+        ignoreFailure: true,
+      });
+      await rm(this.cwd, { recursive: true, force: true });
+      await this.commandRunner.run('git', ['worktree', 'prune'], {
+        cwd: this.config.projectRoot,
+        ignoreFailure: true,
+      });
     });
   }
 }
@@ -285,10 +283,12 @@ export class GitWorktreeWorkspaceStrategy implements WorkspaceStrategy {
       cwd: this.config.projectRoot,
     })).stdout.trim();
     const worktreeDir = await mkdtemp(path.join(tmpdir(), `backlog-${process.pid}-`));
-    await this.commandRunner.run('git', ['worktree', 'add', '--detach', worktreeDir, 'HEAD', '--quiet'], {
-      cwd: this.config.projectRoot,
+    await withLock(lockPath(this.config, 'worktree'), 30, async () => {
+      await this.commandRunner.run('git', ['worktree', 'add', '--detach', worktreeDir, 'HEAD', '--quiet'], {
+        cwd: this.config.projectRoot,
+      });
+      await bootstrapWorkspaceNodeModules(this.config.projectRoot, worktreeDir);
     });
-    await bootstrapWorkspaceNodeModules(this.config.projectRoot, worktreeDir);
 
     const progressRelative = path.relative(this.config.projectRoot, this.config.files.progress);
     const patternsRelative = path.relative(this.config.projectRoot, this.config.files.patterns);

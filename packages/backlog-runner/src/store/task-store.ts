@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { access, appendFile, readFile, rename, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { lockPath, withLock } from '../locks.js';
 import { RuntimeStateStore } from '../runtime-state.js';
 import {
@@ -28,6 +29,7 @@ import type {
   TaskBlockage,
   TaskDeferralOptions,
   TaskDependencySnapshot,
+  OrchestratorRuntimeStatus,
   TaskLeaseSnapshot,
   TaskReservationSnapshot,
 } from '../types.js';
@@ -51,7 +53,7 @@ function splitLines(value: string): string[] {
 }
 
 async function atomicWrite(filePath: string, content: string): Promise<void> {
-  const tempFile = `${filePath}.${process.pid}.tmp`;
+  const tempFile = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
   await writeFile(tempFile, content, 'utf8');
   await rename(tempFile, filePath);
 }
@@ -83,6 +85,15 @@ function highestPriority(tasks: BacklogTaskSpec[]): BacklogTaskPriority | null {
   return tasks.reduce<BacklogTaskPriority>((current, task) => (
     taskPriorityRank(task.priority) < taskPriorityRank(current) ? task.priority : current
   ), tasks[0]!.priority);
+}
+
+async function readOrchestratorStatus(runtimeDir: string): Promise<OrchestratorRuntimeStatus | null> {
+  try {
+    const content = await readFile(path.join(runtimeDir, 'orchestrator-status.json'), 'utf8');
+    return JSON.parse(content) as OrchestratorRuntimeStatus;
+  } catch {
+    return null;
+  }
 }
 
 export class FileBackedTaskStore implements BacklogStore {
@@ -232,6 +243,7 @@ export class FileBackedTaskStore implements BacklogStore {
   }
 
   private async writeRuntimeReport(snapshot: RuntimeSnapshot): Promise<void> {
+    const orchestratorStatus = await readOrchestratorStatus(this.config.files.runtimeDir);
     const plannerCandidates = snapshot.tasks
       .filter(task => task.state === 'planned' || task.state === 'failed')
       .sort(plannerCandidateSort);
@@ -240,6 +252,17 @@ export class FileBackedTaskStore implements BacklogStore {
       '# Backlog Runner Runtime Status',
       '',
       `Generated: ${new Date().toISOString()}`,
+      ...(orchestratorStatus
+        ? [
+            '',
+            `Orchestrator: ${orchestratorStatus.orchestratorId}`,
+            `Workers: ${orchestratorStatus.effectiveWorkers}/${orchestratorStatus.requestedWorkers}`,
+            `Shutdown requested: ${orchestratorStatus.shutdownRequested ? 'yes' : 'no'}`,
+            `Poll interval: ${Math.floor(orchestratorStatus.pollIntervalMs / 1000)}s`,
+            `Active task workers: ${orchestratorStatus.activeTaskWorkers.length === 0 ? 'none' : orchestratorStatus.activeTaskWorkers.map(worker => `${worker.title} (${worker.taskId})`).join(' · ')}`,
+            `Active control worker: ${orchestratorStatus.activeControlWorker ? orchestratorStatus.activeControlWorker.kind === 'discovery' ? `discovery${orchestratorStatus.activeControlWorker.passType ? `:${orchestratorStatus.activeControlWorker.passType}` : ''}` : 'planner' : 'none'}`,
+          ]
+        : []),
       '',
       `Queue: ${snapshot.counts.ready} ready · ${snapshot.counts.blocked} blocked · ${snapshot.counts.planned} planned · ${snapshot.counts.inProgress} in-progress · ${snapshot.counts.failed} failed · ${snapshot.counts.done} done`,
       '',
@@ -286,46 +309,39 @@ export class FileBackedTaskStore implements BacklogStore {
     return snapshot;
   }
 
-  async countReady(): Promise<number> {
-    return (await this.getQueueCounts()).ready;
-  }
-
-  async countInProgress(): Promise<number> {
-    return (await this.getQueueCounts()).inProgress;
-  }
-
-  async countFailed(): Promise<number> {
-    return (await this.getQueueCounts()).failed;
-  }
-
-  async countDone(): Promise<number> {
-    return (await this.getQueueCounts()).done;
-  }
-
   async getQueueCounts(): Promise<BacklogQueueCounts> {
     return withLock(this.backlogLock, 30, async () => (await this.refreshRuntimeAndWriteLiveReport()).counts);
   }
 
-  async claimNextRunnableTask(runnerId: string): Promise<BacklogTaskClaim | null> {
+  async claimNextRunnableTasks(limit: number, runnerId: string): Promise<BacklogTaskClaim[]> {
     return withLock(this.backlogLock, 30, async () => {
+      if (limit <= 0) {
+        return [];
+      }
       const runtime = await this.getRuntime();
       const tasks = await this.loadTasks();
       const snapshot = await this.refreshRuntimeAndWriteLiveReport(tasks);
       const blockages = new Set(snapshot.blockages.map(blockage => blockage.taskId));
-      const candidate = tasks
+      const candidates = tasks
         .filter(task => task.state === 'ready' && !snapshot.activeTaskIds.has(task.id) && !blockages.has(task.id))
-        .sort(taskSort)[0] ?? null;
-      if (!candidate) {
-        return null;
+        .sort(taskSort);
+      if (candidates.length === 0) {
+        return [];
       }
 
-      const lease = runtime.claimTask(candidate, runnerId, randomUUID());
-      if (!lease) {
-        await this.refreshRuntimeAndWriteLiveReport(tasks);
-        return null;
+      const claimed: BacklogTaskClaim[] = [];
+      for (const candidate of candidates) {
+        if (claimed.length >= limit) {
+          break;
+        }
+        const lease = runtime.claimTask(candidate, runnerId, randomUUID());
+        if (!lease) {
+          continue;
+        }
+        claimed.push({ task: candidate, lease });
       }
       await this.refreshRuntimeAndWriteLiveReport(tasks);
-      return { task: candidate, lease };
+      return claimed;
     });
   }
 
@@ -437,12 +453,6 @@ export class FileBackedTaskStore implements BacklogStore {
         statusNotes: [...task.statusNotes, `Failed: ${normalizeWhitespace(note)}`],
       }));
       runtime.clearTaskDeferral(taskId);
-      await this.refreshEverything();
-    });
-  }
-
-  async rewriteBacklogReport(): Promise<void> {
-    await withLock(this.backlogLock, 30, async () => {
       await this.refreshEverything();
     });
   }
@@ -616,13 +626,6 @@ export class FileBackedTaskStore implements BacklogStore {
     return tasks.find(task => task.id === taskId) ?? null;
   }
 
-  async appendProgress(section: string): Promise<void> {
-    await appendFile(this.config.files.progress, section, 'utf8');
-  }
-
-  async appendPatterns(section: string): Promise<void> {
-    await appendFile(this.config.files.patterns, section, 'utf8');
-  }
 }
 
 export function createFileBackedTaskStore(config: BacklogRunnerConfig): BacklogStore {
