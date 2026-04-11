@@ -8,6 +8,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { swatchBgColor } from '../shared/colorUtils';
 import { SyncSubPanel } from './publish/SyncSubPanel';
 import { SyncPreflightStep } from './publish/SyncPreflightStep';
+import { NoticeBanner } from '../shared/noticeSystem';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
 import { useReadinessChecks } from '../hooks/useReadinessChecks';
@@ -738,9 +739,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 </div>
               )}
               {publishAllError && (
-                <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">
-                  Sync failed: {publishAllError}
-                </div>
+                <NoticeBanner severity="error">Sync failed: {publishAllError}</NoticeBanner>
               )}
             </div>
           ) : hasComparedAnything ? (

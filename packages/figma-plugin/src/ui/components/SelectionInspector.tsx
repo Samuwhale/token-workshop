@@ -32,6 +32,7 @@ import { DeepInspectSection } from './DeepInspectSection';
 import { RemapBindingsPanel } from './RemapBindingsPanel';
 import { ExtractTokensPanel } from './ExtractTokensPanel';
 import { ConfirmModal } from './ConfirmModal';
+import { NoticePill, NoticeFieldMessage } from '../shared/noticeSystem';
 
 type InspectorPropFilterMode = 'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions';
 
@@ -255,9 +256,6 @@ export function SelectionInspector({
     resolvedValue: any;
     targetProps: BindableProperty[];
   } | null>(null);
-
-  // Summary bar expand/collapse
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
 
   // Feedback for select-next-sibling (no more siblings)
   const [noMoreSiblings, setNoMoreSiblings] = useState(false);
@@ -968,46 +966,36 @@ export function SelectionInspector({
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="flex flex-col gap-3">
-          <section ref={summarySectionRef} className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setSummaryExpanded(prev => !prev)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 text-[var(--color-figma-text-tertiary)] transition-transform ${summaryExpanded ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3V1z" /></svg>
-              <span className="min-w-0 flex-1 truncate text-[10px] font-medium text-[var(--color-figma-text)]">
-                {headerLabel}
-                <span className="text-[var(--color-figma-text-secondary)]">
-                  {' — '}{visiblePropertyStats.bound}/{visiblePropertyStats.visible} bound{suggestions.length > 0 ? `, ${suggestions.length} suggestion${suggestions.length === 1 ? '' : 's'}` : ''}
-                </span>
-              </span>
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-medium ${syncStatusToneClass}`}>
+          <section ref={summarySectionRef} className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">Step 1</p>
+                <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">Selected layer summary</p>
+                <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                  {summaryGuidance}
+                  <span className="block truncate">{headerLabel}</span>
+                </p>
+              </div>
+              <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${syncStatusToneClass}`}>
                 {syncStatusLabel}
               </span>
-            </button>
-            {summaryExpanded && (
-              <div className="px-3 pb-3 border-t border-[var(--color-figma-border)]">
-                <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                  {summaryGuidance}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className="rounded-full bg-[var(--color-figma-accent)]/15 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-accent)]">
-                    {visiblePropertyStats.bound} bound
-                  </span>
-                  <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
-                    {visiblePropertyStats.unbound} unbound
-                  </span>
-                  {visiblePropertyStats.mixed > 0 && (
-                    <span className="rounded-full bg-[var(--color-figma-warning,#f5a623)]/15 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-warning,#f5a623)]">
-                      {visiblePropertyStats.mixed} mixed
-                    </span>
-                  )}
-                  <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
-                    {visiblePropertyStats.visible} visible properties
-                  </span>
-                </div>
-              </div>
-            )}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-[var(--color-figma-accent)]/15 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-accent)]">
+                {visiblePropertyStats.bound} bound
+              </span>
+              <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                {visiblePropertyStats.unbound} unbound
+              </span>
+              {visiblePropertyStats.mixed > 0 && (
+                <NoticePill severity="warning">
+                  {visiblePropertyStats.mixed} mixed
+                </NoticePill>
+              )}
+              <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                {visiblePropertyStats.visible} visible properties
+              </span>
+            </div>
           </section>
 
           <section ref={suggestionsSectionRef} className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
@@ -1220,32 +1208,35 @@ export function SelectionInspector({
                         {syncProgress.processed}/{syncProgress.total}
                       </div>
                     ) : syncError ? (
-                      <span role="alert" className="text-[10px] text-[var(--color-figma-error)]" title={syncError}>
-                        Sync failed — {syncError}
-                      </span>
+                      <NoticeFieldMessage severity="error">
+                        <span title={syncError}>Sync failed — {syncError}</span>
+                      </NoticeFieldMessage>
                     ) : syncResult ? (
-                      <span
-                        className={`text-[10px] ${syncResult.errors > 0 ? 'text-[var(--color-figma-error)]' : syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}
-                        title={
-                          syncResult.errors > 0
-                            ? `${syncResult.errors} binding(s) could not be applied — the token type may not be compatible with the layer property`
-                            : syncResult.missingTokens.length > 0
-                            ? `Missing tokens (not in token server):\n${syncResult.missingTokens.join('\n')}`
-                            : undefined
-                        }
+                      <NoticeFieldMessage
+                        severity={syncResult.errors > 0 ? 'error' : syncResult.missingTokens.length > 0 ? 'warning' : 'success'}
                       >
-                        {syncResult.errors > 0
-                          ? `${syncResult.errors} binding${syncResult.errors !== 1 ? 's' : ''} failed — check token types`
-                          : syncResult.updated === 0 && syncResult.missingTokens.length === 0
-                          ? 'Up to date'
-                          : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` · ${syncResult.missingTokens.length} missing` : ''}`}
-                      </span>
+                        <span
+                          title={
+                            syncResult.errors > 0
+                              ? `${syncResult.errors} binding(s) could not be applied — the token type may not be compatible with the layer property`
+                              : syncResult.missingTokens.length > 0
+                              ? `Missing tokens (not in token server):\n${syncResult.missingTokens.join('\n')}`
+                              : undefined
+                          }
+                        >
+                          {syncResult.errors > 0
+                            ? `${syncResult.errors} binding${syncResult.errors !== 1 ? 's' : ''} failed — check token types`
+                            : syncResult.updated === 0 && syncResult.missingTokens.length === 0
+                            ? 'Up to date'
+                            : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` · ${syncResult.missingTokens.length} missing` : ''}`}
+                        </span>
+                      </NoticeFieldMessage>
                     ) : freshSyncResult && freshSyncResult.missingTokens.length === 0 ? (
-                      <span className="text-[10px] text-[var(--color-figma-success)]">Latest selection sync completed successfully.</span>
+                      <NoticeFieldMessage severity="success">Latest selection sync completed successfully.</NoticeFieldMessage>
                     ) : (
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      <NoticeFieldMessage severity="info">
                         {totalBindings > 0 ? 'Run selection sync after token edits, or sync the full page when you need a broader refresh.' : 'Sync becomes useful once the selection has token bindings.'}
-                      </span>
+                      </NoticeFieldMessage>
                     )}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">

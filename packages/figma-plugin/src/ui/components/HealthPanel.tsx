@@ -4,6 +4,8 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { HeatmapResult } from './HeatmapPanel';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ValidationIssue, ValidationSummary } from '../hooks/useValidationCache';
+import { NoticeBanner, NoticePill, severityStyles } from '../shared/noticeSystem';
+import type { NoticeSeverity } from '../shared/noticeSystem';
 import { apiFetch } from '../shared/apiFetch';
 import { tokenPathToUrlSegment } from '../shared/utils';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
@@ -17,6 +19,19 @@ import { ContrastMatrixPanel } from './ContrastMatrixPanel';
 import { LightnessInspectorPanel } from './LightnessInspectorPanel';
 
 type HealthStatus = 'healthy' | 'warning' | 'critical';
+
+/** Map the legacy HealthStatus to the shared NoticeSeverity vocabulary. */
+function healthToSeverity(status: HealthStatus | null): NoticeSeverity {
+  if (status === 'critical') return 'error';
+  if (status === 'warning') return 'warning';
+  return 'success';
+}
+
+/** Map a validation issue severity string to the shared NoticeSeverity vocabulary. */
+function issueToSeverity(severity: 'critical' | 'warning' | 'info' | 'error'): NoticeSeverity {
+  if (severity === 'critical') return 'error';
+  return severity;
+}
 
 interface PriorityIssue {
   severity: 'critical' | 'warning' | 'info';
@@ -125,20 +140,7 @@ function HealthSection({ title, status, count, detail, children, ctaLabel, onCta
   );
 }
 
-function priorityCategoryClass(severity: PriorityIssue['severity']): string {
-  if (severity === 'critical') return 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] border-[var(--color-figma-error)]/30';
-  if (severity === 'warning') return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
-  return 'bg-sky-500/10 text-sky-500 border-sky-500/30';
-}
-
-function InfoIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M12 16v-4M12 8h.01"/>
-    </svg>
-  );
-}
+/** No longer needed — InfoIcon was used for priority rows, now covered by NoticePill. */
 
 /** Human-friendly labels for validation rules */
 const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
@@ -734,23 +736,23 @@ export function HealthPanel({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className={`shrink-0 flex items-center gap-3 px-4 py-3 border-b border-[var(--color-figma-border)] ${validationIssuesProp !== null ? statusBg(overallStatus) : 'bg-[var(--color-figma-bg-secondary)]'}`}>
-        {validationIssuesProp !== null && (
-          <span className={statusColor(overallStatus)}>
-            <StatusIcon status={overallStatus} />
-          </span>
-        )}
+      <div className={`shrink-0 flex items-center gap-3 px-4 py-3 border-b border-[var(--color-figma-border)] ${validationIssuesProp !== null ? `border-l-2 ${severityStyles(healthToSeverity(overallStatus)).banner}` : 'bg-[var(--color-figma-bg-secondary)]'}`}>
         <div className="flex-1 min-w-0">
-          <p className={`text-[12px] font-bold ${validationIssuesProp !== null ? statusColor(overallStatus) : 'text-[var(--color-figma-text)]'}`}>
-            {validationIssuesProp === null
-              ? 'Audit Overview'
-              : overallStatus === 'healthy'
-                ? 'Audit checks passed'
-                : totalIssues > 0
-                  ? `Audit found ${totalIssues} issue${totalIssues !== 1 ? 's' : ''}`
-                  : 'Audit Overview'
-            }
-          </p>
+          <div className="flex items-center gap-2">
+            <p className={`text-[12px] font-bold ${validationIssuesProp !== null ? severityStyles(healthToSeverity(overallStatus)).icon : 'text-[var(--color-figma-text)]'}`}>
+              {validationIssuesProp === null
+                ? 'Audit Overview'
+                : overallStatus === 'healthy'
+                  ? 'Audit checks passed'
+                  : totalIssues > 0
+                    ? `Audit found ${totalIssues} issue${totalIssues !== 1 ? 's' : ''}`
+                    : 'Audit Overview'
+              }
+            </p>
+            {validationIsStale && (
+              <NoticePill severity="stale">Stale</NoticePill>
+            )}
+          </div>
           {lastRefreshed && (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
               {formatValidatedAt(lastRefreshed)}
@@ -778,6 +780,24 @@ export function HealthPanel({
         </div>
       </div>
 
+      {/* Stale results banner — prominent rerun action */}
+      {validationIsStale && connected && (
+        <NoticeBanner
+          severity="stale"
+          className="mx-3 mt-2"
+          action={{ label: 'Re-run audit', onClick: runValidation }}
+        >
+          Audit results are outdated. Token data has changed since the last check.
+        </NoticeBanner>
+      )}
+
+      {/* Audit request failure banner */}
+      {_validationError && connected && (
+        <NoticeBanner severity="error" className="mx-3 mt-2">
+          {_validationError}
+        </NoticeBanner>
+      )}
+
       {/* Priority Issues — always visible when connected and validation has run */}
       {connected && validationIssuesProp !== null && priorityIssues.length > 0 && (
         <div className="shrink-0 border-b border-[var(--color-figma-border)]">
@@ -788,19 +808,19 @@ export function HealthPanel({
             </span>
             <span className="flex-1" />
             {priorityIssues.filter(i => i.severity === 'critical').length > 0 && (
-              <span className="text-[10px] font-bold tabular-nums text-[var(--color-figma-error)]">
+              <NoticePill severity="error">
                 {priorityIssues.filter(i => i.severity === 'critical').reduce((s, i) => s + i.count, 0)} critical
-              </span>
+              </NoticePill>
             )}
             {priorityIssues.filter(i => i.severity === 'warning').length > 0 && (
-              <span className="text-[10px] font-bold tabular-nums text-amber-500">
+              <NoticePill severity="warning">
                 {priorityIssues.filter(i => i.severity === 'warning').reduce((s, i) => s + i.count, 0)} warning
-              </span>
+              </NoticePill>
             )}
             {priorityIssues.filter(i => i.severity === 'info').length > 0 && (
-              <span className="text-[10px] tabular-nums text-sky-500">
+              <NoticePill severity="info">
                 {priorityIssues.filter(i => i.severity === 'info').reduce((s, i) => s + i.count, 0)} info
-              </span>
+              </NoticePill>
             )}
           </div>
           {/* Issue rows — up to 8 visible */}
@@ -809,12 +829,9 @@ export function HealthPanel({
               key={idx}
               className="flex items-center gap-2 px-3 py-1.5 border-t border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              <span className={`shrink-0 ${issue.severity === 'critical' ? 'text-[var(--color-figma-error)]' : issue.severity === 'warning' ? 'text-amber-500' : 'text-sky-500'}`}>
-                {issue.severity === 'info' ? <InfoIcon /> : <StatusIcon status={issue.severity} />}
-              </span>
-              <span className={`shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded border ${priorityCategoryClass(issue.severity)}`}>
+              <NoticePill severity={issueToSeverity(issue.severity)}>
                 {issue.category}
-              </span>
+              </NoticePill>
               <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)] truncate min-w-0">
                 {issue.message}
               </span>
@@ -833,9 +850,8 @@ export function HealthPanel({
           )}
           {/* All-clear row for non-info issues when only info issues remain */}
           {totalAllIssues === 0 && priorityIssues.length > 0 && (
-            <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex items-center gap-1.5 text-[var(--color-figma-success,#18a058)]">
-              <StatusIcon status="healthy" />
-              <span className="text-[10px]">No critical or warning issues</span>
+            <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
+              <NoticePill severity="success">No critical or warning issues</NoticePill>
             </div>
           )}
         </div>
@@ -1018,20 +1034,20 @@ export function HealthPanel({
                   <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
                     Audit Report
                     {validationIsStale && (
-                      <span className="text-[var(--color-figma-warning)] normal-case font-normal tracking-normal">stale</span>
+                      <NoticePill severity="stale">stale</NoticePill>
                     )}
                     {lastRefreshed && !validationIsStale && (
                       <span className="normal-case font-normal tracking-normal text-[var(--color-figma-text-tertiary)]">{formatValidatedAt(lastRefreshed)}</span>
                     )}
                     {severityCounts && (activeIssues?.length ?? 0) > 0 && (
                       <span className="flex items-center gap-1 normal-case font-normal tracking-normal">
-                        {severityCounts.error > 0 && <span className="text-[var(--color-figma-error)]">{severityCounts.error} error{severityCounts.error !== 1 ? 's' : ''}</span>}
-                        {severityCounts.warning > 0 && <span className="text-[var(--color-figma-warning)]">{severityCounts.warning} warning{severityCounts.warning !== 1 ? 's' : ''}</span>}
-                        {severityCounts.info > 0 && <span className="text-[var(--color-figma-accent)]">{severityCounts.info} info</span>}
+                        {severityCounts.error > 0 && <NoticePill severity="error">{severityCounts.error} error{severityCounts.error !== 1 ? 's' : ''}</NoticePill>}
+                        {severityCounts.warning > 0 && <NoticePill severity="warning">{severityCounts.warning} warning{severityCounts.warning !== 1 ? 's' : ''}</NoticePill>}
+                        {severityCounts.info > 0 && <NoticePill severity="info">{severityCounts.info} info</NoticePill>}
                       </span>
                     )}
                     {(activeIssues?.length ?? 0) === 0 && (
-                      <span className="normal-case font-normal tracking-normal text-[var(--color-figma-success)]">All clear</span>
+                      <NoticePill severity="success">All clear</NoticePill>
                     )}
                   </span>
                   <div className="flex items-center gap-1">
@@ -1090,21 +1106,24 @@ export function HealthPanel({
                       {validationExported === 'csv' ? 'Saved!' : 'CSV'}
                     </button>
                     <span className="w-px h-3 bg-[var(--color-figma-border)]" aria-hidden="true" />
-                    {(['all', 'error', 'warning', 'info'] as const).map(f => (
-                      <button
-                        key={f}
-                        onClick={() => setSeverityFilter(f)}
-                        className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
-                          severityFilter === f
-                            ? f === 'error' ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10'
-                            : f === 'warning' ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10'
-                            : 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10'
-                          : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
-                        }`}
-                      >
-                        {severityCounts && f !== 'all' ? `${f} (${severityCounts[f]})` : f}
-                      </button>
-                    ))}
+                    {(['all', 'error', 'warning', 'info'] as const).map(f => {
+                      const filterSeverity: NoticeSeverity = f === 'all' ? 'info' : f;
+                      const isActive = severityFilter === f;
+                      const label = severityCounts && f !== 'all' ? `${f} (${severityCounts[f]})` : f;
+                      return (
+                        <button
+                          key={f}
+                          onClick={() => setSeverityFilter(f)}
+                          className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                            isActive
+                              ? severityStyles(filterSeverity).pill + ' border-current/20'
+                              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 {filteredIssues && filteredIssues.length === 0 ? (
@@ -1129,9 +1148,9 @@ export function HealthPanel({
                               className="flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors min-w-0"
                             >
                               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                              <span className={`text-[10px] px-1 py-0.5 rounded border shrink-0 font-medium ${group.severity === 'error' ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5' : group.severity === 'warning' ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10' : 'border-[var(--color-figma-accent)]/50 text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'}`}>
+                              <NoticePill severity={group.severity as NoticeSeverity}>
                                 {group.severity === 'error' ? 'Error' : group.severity === 'warning' ? 'Warn' : 'Info'}
-                              </span>
+                              </NoticePill>
                               <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 text-left">{group.label}</span>
                               <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{group.issues.length}</span>
                             </button>

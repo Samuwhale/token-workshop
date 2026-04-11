@@ -12,8 +12,9 @@ capabilities:
   - react
   - typescript
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Added ReturnBreadcrumb interface to NavigationContext. WorkspaceSummaryHeader renders persistent back-arrow breadcrumb when set. PanelRouter sets breadcrumb on audit onNavigateToToken. App.tsx handles breadcrumb return navigation and clears on manual workspace tab switch. Skipped issue-count tab badge per CLAUDE.md UI guidance. Build passes."
+state: done
 acceptance_criteria:
   - When a user clicks a jump-to-token action from any Audit surface (HealthPanel, DuplicateDetectionPanel, UnusedTokensPanel, ContrastMatrixPanel), the destination workspace (Tokens, Apply) shows a persistent breadcrumb in WorkspaceSummaryHeader linking back to Audit.
   - Clicking the breadcrumb returns to the Audit workspace with scroll position and active filter state preserved.

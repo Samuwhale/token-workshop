@@ -1,5 +1,6 @@
 import { useState, useRef, useLayoutEffect, type ReactNode } from 'react';
 import { dispatchToast } from '../shared/toastBus';
+import { NoticeInlineAlert } from '../shared/noticeSystem';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
@@ -23,9 +24,6 @@ import {
   collectSiblingBindings,
   collectBoundPrefixes,
   getMixedBindingValues,
-  classifyBindScore,
-  CONFIDENCE_LABELS,
-  type SuggestionConfidence,
 } from './selectionInspectorUtils';
 
 interface PropertyRowProps {
@@ -183,7 +181,6 @@ export function PropertyRow({
   const siblingBindings = bindingFromProp === prop ? collectSiblingBindings(rootNodes, prop) : new Set<string>();
   const nodeBoundPrefixes = bindingFromProp === prop ? collectBoundPrefixes(rootNodes) : new Set<string>();
 
-  const currentBindingValue = bindingFromProp === prop ? getBindingForProperty(rootNodes, prop) : null;
   const bindCandidatesAll = bindingFromProp === prop
     ? Object.entries(tokenMap)
         .filter(([, entry]) => compatibleTypesForBind.includes(entry.$type))
@@ -192,44 +189,32 @@ export function PropertyRow({
         .map(([path, entry]) => {
           const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
           const score = scoreBindCandidate(path, entry, prop, currentPropValue, r.value, siblingBindings, nodeBoundPrefixes);
-          const { confidence, reason } = classifyBindScore(score, path, siblingBindings, currentBindingValue);
-          return { path, entry, score, confidence, reason } as { path: string; entry: TokenMapEntry; score: number; confidence: SuggestionConfidence; reason: string };
+          return [path, entry, score] as [string, TokenMapEntry, number];
         })
-        .sort((a, b) => b.score - a.score)
+        .sort((a, b) => b[2] - a[2])
     : [];
   const BIND_PAGE_SIZE = 12;
   const bindTotalCount = bindCandidatesAll.length;
+  const bindHasMore = !bindShowAll && bindTotalCount > BIND_PAGE_SIZE;
+  const bindCandidates = bindShowAll ? bindCandidatesAll : bindCandidatesAll.slice(0, BIND_PAGE_SIZE);
   // Recently-used section: filter global recents to compatible tokens visible in the bind panel
   const recentBindCandidates = (bindingFromProp === prop && !bindQuery)
     ? (() => {
         const recentPaths = getRecentTokens();
-        const allPaths = new Set(bindCandidatesAll.map(c => c.path));
-        const allByPath = new Map(bindCandidatesAll.map(c => [c.path, c]));
+        const allPaths = new Set(bindCandidatesAll.map(([p]) => p));
+        const allByPath = new Map(bindCandidatesAll.map(([p, e, s]) => [p, [p, e, s] as [string, TokenMapEntry, number]]));
         return recentPaths
           .filter(p => allPaths.has(p))
           .slice(0, 5)
           .map(p => allByPath.get(p)!);
       })()
     : [];
-  const recentBindPathSet = new Set(recentBindCandidates.map(c => c.path));
-  const allMainCandidates = bindCandidatesAll.filter(c => !recentBindPathSet.has(c.path));
-  // Split into credible (strong + moderate) and weak groups
-  const credibleCandidates = allMainCandidates.filter(c => c.confidence !== 'weak');
-  const weakCandidates = allMainCandidates.filter(c => c.confidence === 'weak');
-  const hasWeakCandidates = weakCandidates.length > 0 && !bindQuery;
-  // When searching, show all; otherwise show credible + optionally weak
-  const mainBindCandidates = bindQuery
-    ? allMainCandidates.slice(0, bindShowAll ? undefined : BIND_PAGE_SIZE)
-    : bindShowAll
-      ? allMainCandidates
-      : credibleCandidates.length > 0
-        ? credibleCandidates
-        : allMainCandidates.slice(0, BIND_PAGE_SIZE);
-  const bindHasMore = !bindShowAll && (
-    bindQuery
-      ? allMainCandidates.length > BIND_PAGE_SIZE
-      : hasWeakCandidates
-  );
+  const recentBindPathSet = new Set(recentBindCandidates.map(([p]) => p));
+  const mainBindCandidates = bindCandidates.filter(([p]) => !recentBindPathSet.has(p));
+
+  // Determine if we should show a "Suggested" divider — top candidates scored > 0
+  const suggestedCount = mainBindCandidates.filter(([, , s]) => s > 0).length;
+  const showSuggestedDivider = suggestedCount > 0 && suggestedCount < mainBindCandidates.length && !bindQuery;
 
   const handleBindToken = (p: string) => {
     addRecentToken(p);
@@ -520,22 +505,9 @@ export function PropertyRow({
 
       {/* Binding error feedback */}
       {bindingError && (
-        <div className="mx-2 mb-1 flex items-start gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-error,#f56565)]/10 border border-[var(--color-figma-error,#f56565)]/20" role="alert">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px text-[var(--color-figma-error,#f56565)]" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
-          </svg>
-          <span className="text-[10px] text-[var(--color-figma-error,#f56565)] flex-1 leading-snug">{bindingError}</span>
-          <button
-            onClick={() => onDismissBindingError(prop)}
-            className="p-0.5 rounded text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-error,#f56565)]/20 transition-colors shrink-0"
-            title="Dismiss"
-            aria-label="Dismiss error"
-          >
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        <NoticeInlineAlert severity="error" onDismiss={() => onDismissBindingError(prop)} className="mx-2 mb-1">
+          {bindingError}
+        </NoticeInlineAlert>
       )}
 
       {/* Inline: bind existing token */}
@@ -584,17 +556,17 @@ export function PropertyRow({
                 if (e.key === 'ArrowUp') { e.preventDefault(); setBindSelectedIndex(i => Math.max(i - 1, 0)); return; }
                 if (e.key === 'Enter' && allVisible.length > 0) {
                   const target = bindSelectedIndex >= 0 ? allVisible[bindSelectedIndex] : allVisible[0];
-                  if (target) handleBindToken(target.path);
+                  if (target) handleBindToken(target[0]);
                 }
               }}
               placeholder={`Search ${compatibleTypesForBind.join(' / ')} tokens…`}
               aria-autocomplete="list"
               aria-controls="bind-candidates-listbox"
-              aria-activedescendant={bindSelectedIndex >= 0 ? `bind-option-${[...recentBindCandidates, ...mainBindCandidates][bindSelectedIndex]?.path}` : undefined}
+              aria-activedescendant={bindSelectedIndex >= 0 ? `bind-option-${[...recentBindCandidates, ...mainBindCandidates][bindSelectedIndex]?.[0]}` : undefined}
               aria-label="Search token candidates"
               className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
-            {mainBindCandidates.length === 0 && recentBindCandidates.length === 0 ? (
+            {bindCandidates.length === 0 && recentBindCandidates.length === 0 ? (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1 text-center">
                 {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in set`}
               </div>
@@ -609,24 +581,24 @@ export function PropertyRow({
                       </svg>
                       Recently used
                     </div>
-                    {recentBindCandidates.map((c, idx) => {
-                      const r = resolveTokenValue(c.entry.$value, c.entry.$type, tokenMap);
+                    {recentBindCandidates.map(([path, entry], idx) => {
+                      const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
                       let resolvedColorSwatch: string | null = null;
                       let resolvedValueDisplay: string | null = null;
-                      if (c.entry.$type === 'color') {
+                      if (entry.$type === 'color') {
                         if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
-                      } else if ((c.entry.$type === 'dimension' || c.entry.$type === 'number') && r.value != null) {
+                      } else if ((entry.$type === 'dimension' || entry.$type === 'number') && r.value != null) {
                         resolvedValueDisplay = isDimensionLike(r.value) ? `${r.value.value}${r.value.unit}` : String(r.value);
                       }
                       const isSelected = idx === bindSelectedIndex;
-                      const isCurrent = isBound && c.path === binding;
+                      const isCurrent = isBound && path === binding;
                       return (
                         <button
-                          key={c.path}
-                          id={`bind-option-${c.path}`}
+                          key={path}
+                          id={`bind-option-${path}`}
                           role="option"
                           aria-selected={isSelected}
-                          onClick={() => handleBindToken(c.path)}
+                          onClick={() => handleBindToken(path)}
                           className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
                         >
                           {resolvedColorSwatch ? (
@@ -636,86 +608,86 @@ export function PropertyRow({
                               <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
                             </div>
                           )}
-                          <span className={`text-[10px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>{c.path}</span>
+                          <span className={`text-[10px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>{path}</span>
                           {isCurrent && <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>}
                           {resolvedValueDisplay && !isCurrent && <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">{resolvedValueDisplay}</span>}
-                          <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">{c.entry.$type}</span>
+                          <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
                         </button>
                       );
                     })}
+                    {mainBindCandidates.length > 0 && (
+                      <div className="text-[8px] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
+                        {showSuggestedDivider ? 'Suggested' : 'All tokens'}
+                      </div>
+                    )}
                   </>
                 )}
 
-                {/* Main candidates — grouped by confidence */}
-                {(() => {
-                  let lastConfidence: SuggestionConfidence | null = null;
-                  return mainBindCandidates.map((c, idx) => {
-                    const globalIdx = recentBindCandidates.length + idx;
-                    let resolvedColorSwatch: string | null = null;
-                    let resolvedValueDisplay: string | null = null;
-                    const r = resolveTokenValue(c.entry.$value, c.entry.$type, tokenMap);
-                    if (c.entry.$type === 'color') {
-                      if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
-                    } else if ((c.entry.$type === 'dimension' || c.entry.$type === 'number') && r.value != null) {
-                      resolvedValueDisplay = isDimensionLike(r.value) ? `${r.value.value}${r.value.unit}` : String(r.value);
-                    }
-                    const isSelected = globalIdx === bindSelectedIndex;
-                    const isCurrent = isBound && c.path === binding;
-                    const showGroupHeader = !bindQuery && c.confidence !== lastConfidence;
-                    const isFirstGroup = lastConfidence === null && recentBindCandidates.length === 0;
-                    if (c.confidence !== lastConfidence) lastConfidence = c.confidence;
-                    return (
-                      <div key={c.path}>
-                        {showGroupHeader && (
-                          <div className={`text-[8px] font-medium px-1.5 pt-0.5 pb-0.5 ${
-                            !isFirstGroup ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5 pt-1' : ''
-                          } ${
-                            c.confidence === 'strong' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
-                          }`}>
-                            {CONFIDENCE_LABELS[c.confidence]}
+                {/* Main candidates */}
+                {mainBindCandidates.map(([path, entry, score], idx) => {
+                  const globalIdx = recentBindCandidates.length + idx;
+                  let resolvedColorSwatch: string | null = null;
+                  let resolvedValueDisplay: string | null = null;
+                  const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+                  if (entry.$type === 'color') {
+                    if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
+                  } else if ((entry.$type === 'dimension' || entry.$type === 'number') && r.value != null) {
+                    resolvedValueDisplay = isDimensionLike(r.value) ? `${r.value.value}${r.value.unit}` : String(r.value);
+                  }
+                  const isSelected = globalIdx === bindSelectedIndex;
+                  const isCurrent = isBound && path === binding;
+                  const showSuggestedHeader = showSuggestedDivider && idx === 0 && recentBindCandidates.length === 0;
+                  const showOthersHeader = showSuggestedDivider && score === 0 && (idx === 0 || mainBindCandidates[idx - 1][2] > 0);
+                  return (
+                    <div key={path}>
+                      {showSuggestedHeader && (
+                        <div className="text-[8px] text-[var(--color-figma-accent)] font-medium px-1.5 pt-0.5 pb-0.5 flex items-center gap-1">
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z" />
+                          </svg>
+                          Suggested
+                        </div>
+                      )}
+                      {showOthersHeader && (
+                        <div className="text-[8px] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
+                          All tokens
+                        </div>
+                      )}
+                      <button
+                        id={`bind-option-${path}`}
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => handleBindToken(path)}
+                        className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
+                      >
+                        {resolvedColorSwatch ? (
+                          <div
+                            className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                            style={{ backgroundColor: resolvedColorSwatch }}
+                          />
+                        ) : (
+                          <div className="w-3 h-3 shrink-0 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
                           </div>
                         )}
-                        <button
-                          id={`bind-option-${c.path}`}
-                          role="option"
-                          aria-selected={isSelected}
-                          onClick={() => handleBindToken(c.path)}
-                          className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
-                        >
-                          {resolvedColorSwatch ? (
-                            <div
-                              className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                              style={{ backgroundColor: resolvedColorSwatch }}
-                            />
-                          ) : (
-                            <div className="w-3 h-3 shrink-0 flex items-center justify-center">
-                              <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
-                            </div>
-                          )}
-                          <span className={`text-[10px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
-                            {c.path}
+                        <span className={`text-[10px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
+                          {path}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
+                        )}
+                        {resolvedValueDisplay && !isCurrent && (
+                          <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
+                            {resolvedValueDisplay}
                           </span>
-                          {isCurrent && (
-                            <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
-                          )}
-                          {!isCurrent && !bindQuery && c.confidence !== 'weak' && (
-                            <span className="text-[7px] text-[var(--color-figma-text-secondary)] shrink-0">
-                              {c.reason}
-                            </span>
-                          )}
-                          {resolvedValueDisplay && !isCurrent && (
-                            <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
-                              {resolvedValueDisplay}
-                            </span>
-                          )}
-                          <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-                            {c.entry.$type}
-                          </span>
-                        </button>
-                      </div>
-                    );
-                  });
-                })()}
+                        )}
+                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+                          {entry.$type}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
                 {bindHasMore && (
                   <button
                     onClick={() => setBindShowAll(true)}

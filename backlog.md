@@ -21,9 +21,9 @@
 - [x] [HIGH] Research a shared plugin contract for zero-state, loading, progress, success, and error feedback across workspace and secondary surfaces
 - [x] [HIGH] Research Tokens workspace edit-surface ownership across inline row edits, contextual editors, preview surfaces, and modal flows
 - [x] [HIGH] Create shared plugin notice primitives and severity contract
-- [ ] [HIGH] Adopt the notice model in shell connection and workspace summary surfaces
-- [ ] [HIGH] Normalize authoring notices across Tokens, Themes, and Apply
-- [ ] [HIGH] Normalize sync and audit notices around blocking, stale, and validation states
+- [x] [HIGH] Adopt the notice model in shell connection and workspace summary surfaces
+- [x] [HIGH] Normalize authoring notices across Tokens, Themes, and Apply
+- [x] [HIGH] Normalize sync and audit notices around blocking, stale, and validation states
 - [x] [HIGH] Research Apply maintenance-tools surface ownership across SelectionInspector advanced controls, shell routing, and status summaries
 - [x] [HIGH] Research Audit issue explanations and remediation handoffs across validation, lint, duplicate, unused, and contrast panels
 - [x] [HIGH] Research generator ownership, save-impact messaging, and return-to-generated-token flows across Tokens and Generators surfaces
@@ -42,7 +42,7 @@
 - [ ] [HIGH] Consolidate generator escalation paths through contextual surface contract
 - [x] [HIGH] Add aggregate summary bar above PublishPanel variable and style diff sections
 - [x] [HIGH] Add grouping and progressive loading to HealthPanel issue lists
-- [ ] [HIGH] Add return-to-Audit breadcrumb when navigating from audit issue to source workspace
+- [x] [HIGH] Add return-to-Audit breadcrumb when navigating from audit issue to source workspace
 - [x] [HIGH] Collapse SelectionInspector summary step into a single-line status bar
 - [x] [HIGH] Collapse token editor to three default sections with grouped details and info tab
 - [x] [HIGH] Group and reduce TokenList select-mode toolbar from eleven flat buttons to grouped actions
@@ -99,7 +99,7 @@
 - [x] Add explicit preflight, compare, and apply stage navigation to the Figma Sync publish panel
 - [x] Centralize server connection editing in Settings and reduce shell/onboarding affordances to passive recovery entry points
 - [x] Introduce confidence-based suggestion groups and shared reason copy across Apply suggestion lists
-- [ ] Restructure variable and style diff review into apply-ready review groups inside each sync target
+- [x] Restructure variable and style diff review into apply-ready review groups inside each sync target
 - [ ] Add next-step recommendation rules based on import result
 - [ ] Replace hardcoded post-import routing with recommendation-driven navigation
 - [ ] Surface a transient post-import banner on the destination workspace

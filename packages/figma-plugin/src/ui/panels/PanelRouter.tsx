@@ -230,7 +230,7 @@ export interface PanelRouterProps {
 
 export function PanelRouter(p: PanelRouterProps): ReactNode {
   // Navigation and editor state from contexts (previously passed as props)
-  const { activeTopTab, activeSubTab, activeSecondarySurface, navigateTo, openSecondarySurface, closeSecondarySurface } = useNavigationContext();
+  const { activeTopTab, activeSubTab, activeSecondarySurface, navigateTo, closeSecondarySurface, setReturnBreadcrumb } = useNavigationContext();
   const {
     editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken,
     highlightedToken, setHighlightedToken, createFromEmpty, setCreateFromEmpty,
@@ -786,18 +786,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
         {!connected && (
           <div className="flex w-full max-w-[310px] items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left">
-            <span
-              className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${checking ? "bg-[var(--color-figma-text-secondary)] animate-pulse" : "bg-[var(--color-figma-error)]"}`}
-            />
-            <span className={`flex-1 text-[10px] font-medium ${checking ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}>
-              {checking ? 'Checking connection…' : 'Server offline'}
-            </span>
-            <button
-              onClick={() => openSecondarySurface('settings')}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              Settings
-            </button>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              Start here still works offline. Guided setup can walk you through reconnecting before you import, generate, or create tokens.
+            </p>
           </div>
         )}
 
@@ -1159,6 +1155,7 @@ function renderApplyDependencies(): ReactNode {
           heatmapResult={heatmapResult}
           onNavigateTo={(topTab, subTab) => navigateTo(topTab as TopTab, subTab as SubTab | undefined)}
           onNavigateToToken={(path, set) => {
+            setReturnBreadcrumb({ label: 'Audit', topTab: 'ship', subTab: 'health' });
             setActiveSet(set);
             navigateTo('define', 'tokens');
             setPendingHighlight(path);

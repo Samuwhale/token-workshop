@@ -49,7 +49,8 @@ import { useTokenVirtualScroll } from '../hooks/useTokenVirtualScroll';
 import { useTokenSearch } from '../hooks/useTokenSearch';
 import { useTokenSelection } from '../hooks/useTokenSelection';
 import { dispatchToast } from '../shared/toastBus';
-import { TokenSearchFilterChips } from './TokenSearchFilterBuilder';
+import { NoticeBanner, NoticeFieldMessage } from '../shared/noticeSystem';
+import { TokenSearchFilterBuilder } from './TokenSearchFilterBuilder';
 import type { FilterBuilderSection } from './TokenSearchFilterBuilder';
 import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES } from './WelcomePrompt';
 
@@ -375,9 +376,9 @@ function RelocateTokenReviewPanel({
 
         {conflict ? (
           <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-warning,#f59e0b)]">
+            <NoticeFieldMessage severity="warning" className="font-medium">
               Conflict: a token already exists at this path in {targetSet}
-            </div>
+            </NoticeFieldMessage>
             <div className="grid grid-cols-2 gap-2 text-[10px]">
               <div>
                 <div className="text-[var(--color-figma-text-secondary)]">Existing</div>
@@ -469,6 +470,8 @@ export function TokenList({
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState('');
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
+  const [filterBuilderOpen, setFilterBuilderOpen] = useState(false);
+  const [activeFilterBuilderSection, setActiveFilterBuilderSection] = useState<FilterBuilderSection | null>(null);
   const [bulkWorkflowOpen, setBulkWorkflowOpen] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] = useState<BulkEditScope | null>(null);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] = useState<PendingBulkPresetLaunch | null>(null);
@@ -1278,7 +1281,41 @@ export function TokenList({
     };
   }, [activeFilterSummary, searchQuery, setName]);
 
+  const getPreferredFilterBuilderSection = useCallback((): FilterBuilderSection => {
+    if (parsedSearchQuery.types.length > 0) return 'type';
+    if (selectedHasQualifiers.length > 0) return 'has';
+    if (parsedSearchQuery.paths.length > 0) return 'path';
+    if (parsedSearchQuery.names.length > 0) return 'name';
+    if (parsedSearchQuery.values.length > 0) return 'value';
+    if (parsedSearchQuery.descs.length > 0) return 'desc';
+    if (parsedSearchQuery.generators.length > 0) return 'generator';
+    return 'type';
+  }, [parsedSearchQuery, selectedHasQualifiers.length]);
 
+  const openFilterBuilderSection = useCallback((section: FilterBuilderSection) => {
+    setFilterBuilderOpen(true);
+    setActiveFilterBuilderSection(section);
+  }, []);
+
+  const toggleFilterBuilder = useCallback(() => {
+    setFilterBuilderOpen(open => {
+      const next = !open;
+      if (next) {
+        setActiveFilterBuilderSection(current => current ?? getPreferredFilterBuilderSection());
+      }
+      return next;
+    });
+  }, [getPreferredFilterBuilderSection]);
+
+  useEffect(() => {
+    if (!filterBuilderOpen && !hasStructuredFilters) {
+      setActiveFilterBuilderSection(null);
+      return;
+    }
+    if (activeFilterBuilderSection === null) {
+      setActiveFilterBuilderSection(getPreferredFilterBuilderSection());
+    }
+  }, [activeFilterBuilderSection, filterBuilderOpen, getPreferredFilterBuilderSection, hasStructuredFilters]);
 
   // Sync displayedLeafNodesRef
   displayedLeafNodesRef.current = displayedLeafNodes;
@@ -2000,10 +2037,14 @@ export function TokenList({
     setCrossSetSearch(false);
     setInspectMode(false);
     setShowRecentlyTouched(false);
+    setFilterBuilderOpen(false);
+    setActiveFilterBuilderSection(null);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
   }, [
     onToggleIssuesOnly,
+    setActiveFilterBuilderSection,
     setCrossSetSearch,
+    setFilterBuilderOpen,
     setInspectMode,
     setRefFilter,
     setSearchQuery,
@@ -3078,17 +3119,9 @@ export function TokenList({
                     </div>
                   )}
                 </div>
-                <TokenSearchFilterChips
-                  parsedSearchQuery={parsedSearchQuery}
-                  selectedTypeQualifiers={selectedTypeQualifiers}
-                  selectedHasQualifiers={selectedHasQualifiers}
-                  qualifierTypeOptions={qualifierTypeOptions}
-                  generatorNames={generatorNames}
-                  onToggleQualifierValue={toggleQueryQualifierValue}
-                  onAddQualifierValue={addQueryQualifierValue}
-                  onRemoveQualifierValue={removeQueryQualifierValue}
-                  onClearQualifier={clearQueryQualifier}
-                />
+                <div className="mt-1 pl-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  Search text stays simple. Use <span className="font-medium text-[var(--color-figma-text-secondary)]">Add filter</span> for type, token-state, path, value, description, or generator filters.
+                </div>
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -3100,6 +3133,24 @@ export function TokenList({
                 >
                   <span className="text-[11px] leading-none">+</span>
                   <span>New token</span>
+                </button>
+
+                <button
+                  onClick={toggleFilterBuilder}
+                  aria-expanded={filterBuilderOpen || hasStructuredFilters}
+                  aria-haspopup="dialog"
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${(filterBuilderOpen || hasStructuredFilters) ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'}`}
+                  title="Build filters without typing query clauses"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+                  </svg>
+                  <span>{hasStructuredFilters ? 'Filters' : 'Add filter'}</span>
+                  {structuredFilterChips.length > 0 && (
+                    <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
+                      {structuredFilterChips.length}
+                    </span>
+                  )}
                 </button>
 
                 <div className="relative shrink-0" ref={bulkWorkflowRef}>
@@ -3507,6 +3558,25 @@ export function TokenList({
               </div>
             </div>
 
+            {(filterBuilderOpen || hasStructuredFilters) && (
+              <div className="px-2 pb-2">
+                <TokenSearchFilterBuilder
+                  isOpen={filterBuilderOpen}
+                  selectedSection={activeFilterBuilderSection}
+                  onSelectSection={openFilterBuilderSection}
+                  onToggleOpen={toggleFilterBuilder}
+                  parsedSearchQuery={parsedSearchQuery}
+                  selectedTypeQualifiers={selectedTypeQualifiers}
+                  selectedHasQualifiers={selectedHasQualifiers}
+                  qualifierTypeOptions={qualifierTypeOptions}
+                  generatorNames={generatorNames}
+                  onToggleQualifierValue={toggleQueryQualifierValue}
+                  onAddQualifierValue={addQueryQualifierValue}
+                  onRemoveQualifierValue={removeQueryQualifierValue}
+                  onClearQualifier={clearQueryQualifier}
+                />
+              </div>
+            )}
 
             {(activeFilterSummary.length > 0 || activeViewSummary.length > 0 || hasStructuredFilters) && (
               <div className="flex flex-wrap items-start gap-2 px-2 pb-2">
@@ -3581,50 +3651,25 @@ export function TokenList({
         )}
       </div>
       {showStaleGeneratorBanner && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex items-center gap-2 px-3 py-1.5 border-b border-amber-500/60 bg-amber-500/10 text-[11px] text-amber-700 shrink-0"
+        <NoticeBanner
+          severity="warning"
+          onDismiss={!runningStaleGenerators ? handleDismissStaleGeneratorBanner : undefined}
+          dismissLabel="Dismiss"
+          actions={
+            <button
+              type="button"
+              onClick={handleRegenerateAllStaleGenerators}
+              disabled={runningStaleGenerators}
+              className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-amber-500/15 text-amber-700 font-medium hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {runningStaleGenerators && <Spinner size="xs" />}
+              <span>{runningStaleGenerators ? 'Regenerating…' : 'Regenerate all'}</span>
+            </button>
+          }
         >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="shrink-0"
-            aria-hidden="true"
-          >
-            <path d="M12 9v4M12 17h.01" />
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-          </svg>
-          <span className="flex-1 min-w-0 text-[var(--color-figma-text)]">
-            {staleGeneratorsForSet.length === 1 ? '1 generator' : `${staleGeneratorsForSet.length} generators`} in{' '}
-            <strong>{setName}</strong> {staleGeneratorsForSet.length === 1 ? 'is' : 'are'} out of date
-          </span>
-          <button
-            type="button"
-            onClick={handleRegenerateAllStaleGenerators}
-            disabled={runningStaleGenerators}
-            className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-amber-500/15 text-amber-700 font-medium hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {runningStaleGenerators && <Spinner size="xs" />}
-            <span>{runningStaleGenerators ? 'Regenerating…' : 'Regenerate all'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleDismissStaleGeneratorBanner}
-            disabled={runningStaleGenerators}
-            className="shrink-0 px-2 py-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="Dismiss stale generator notice"
-            title="Dismiss"
-          >
-            Dismiss
-          </button>
-        </div>
+          {staleGeneratorsForSet.length === 1 ? '1 generator' : `${staleGeneratorsForSet.length} generators`} in{' '}
+          <strong>{setName}</strong> {staleGeneratorsForSet.length === 1 ? 'is' : 'are'} out of date
+        </NoticeBanner>
       )}
       {/* Token stats bar — opened from the command palette to avoid permanent toolbar clutter */}
       {statsBarOpen && statsTotalTokens > 0 && (
@@ -3721,10 +3766,9 @@ export function TokenList({
       )}
       {/* Delete error banner */}
       {deleteError && (
-        <div role="alert" className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)] text-white text-[11px]">
-          <span className="flex-1">Delete failed: {deleteError}</span>
-          <button onClick={() => setDeleteError(null)} aria-label="Dismiss error" className="opacity-70 hover:opacity-100 font-bold text-[13px] leading-none">&times;</button>
-        </div>
+        <NoticeBanner severity="error" onDismiss={() => setDeleteError(null)} dismissLabel="Dismiss">
+          Delete failed: {deleteError}
+        </NoticeBanner>
       )}
       {/* Scrollable token content with virtual scroll */}
       <div
@@ -3866,15 +3910,17 @@ export function TokenList({
             />
             <div className="shrink-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col gap-1">
               {jsonError && (
-                <p className="text-[10px] text-[var(--color-figma-error)] font-mono leading-tight">{jsonError}</p>
+                <NoticeFieldMessage severity="error" className="font-mono">{jsonError}</NoticeFieldMessage>
               )}
               {jsonBrokenRefs.length > 0 && !jsonError && (
-                <div className="text-[10px] text-[var(--color-figma-warning)] flex flex-wrap gap-1 items-center">
-                  <span className="font-medium shrink-0">Broken refs:</span>
-                  {jsonBrokenRefs.map(r => (
-                    <span key={r} className="font-mono bg-[var(--color-figma-warning)]/10 rounded px-1">{'{' + r + '}'}</span>
-                  ))}
-                </div>
+                <NoticeFieldMessage severity="warning">
+                  <span className="flex flex-wrap gap-1 items-center">
+                    <span className="font-medium shrink-0">Broken refs:</span>
+                    {jsonBrokenRefs.map(r => (
+                      <span key={r} className="font-mono bg-[var(--color-figma-warning)]/10 rounded px-1">{'{' + r + '}'}</span>
+                    ))}
+                  </span>
+                </NoticeFieldMessage>
               )}
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -4035,6 +4081,7 @@ export function TokenList({
                   icon: 'value',
                   action: () => {
                     addQueryQualifierValue('value', q);
+                    openFilterBuilderSection('value');
                   },
                 });
               }
@@ -4065,10 +4112,7 @@ export function TokenList({
                   suggestions.push({
                     label: `Open ${label} filter`,
                     icon: 'hint',
-                    action: () => {
-                      setSearchQuery(`${sectionKey}:`);
-                      searchRef.current?.focus();
-                    },
+                    action: () => openFilterBuilderSection(sectionKey),
                   });
                 }
               }
@@ -4375,7 +4419,7 @@ export function TokenList({
                     </button>
                   </div>
                   {rowErrors[row.id] && (
-                    <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)] pl-0.5" role="alert">{rowErrors[row.id]}</p>
+                    <NoticeFieldMessage severity="error" className="pl-0.5">{rowErrors[row.id]}</NoticeFieldMessage>
                   )}
                 </div>
               ))}
@@ -4388,7 +4432,7 @@ export function TokenList({
               </button>
             </div>
             {createAllError && (
-              <p className="text-[10px] text-[var(--color-figma-error)]" role="alert">{createAllError}</p>
+              <NoticeFieldMessage severity="error">{createAllError}</NoticeFieldMessage>
             )}
             <div className="flex gap-1.5">
               <button

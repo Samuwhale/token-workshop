@@ -1,44 +1,13 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { WorkspaceSection } from '../shared/navigationTypes';
+import type { ReturnBreadcrumb } from '../contexts/NavigationContext';
+import type { NoticeSeverity } from '../shared/noticeSystem';
+import { NoticePill } from '../shared/noticeSystem';
 import { shellControlClass } from '../shared/shellControlStyles';
-
-type WorkspacePillTone = 'neutral' | 'accent' | 'warning' | 'danger' | 'success';
 
 interface WorkspacePill {
   label: string;
-  tone: WorkspacePillTone;
-  /** Explicit priority (lower = more important). Defaults to tone-based ranking. */
-  priority?: number;
-}
-
-const MAX_VISIBLE_PILLS = 4;
-
-/** Default priority by tone: blocking/errors first, then actionable, then informational. */
-const tonePriority: Record<WorkspacePillTone, number> = {
-  danger: 0,
-  warning: 1,
-  accent: 2,
-  success: 3,
-  neutral: 4,
-};
-
-/** Pills that restate visually obvious state and should be deprioritized. */
-const deprioritizedLabels = new Set([
-  'Live preview open',
-  'Coverage review',
-  'Compare mode',
-  'Resolver mode',
-]);
-
-function rankPills(pills: WorkspacePill[]): WorkspacePill[] {
-  return [...pills].sort((a, b) => {
-    const aDepri = deprioritizedLabels.has(a.label) ? 1 : 0;
-    const bDepri = deprioritizedLabels.has(b.label) ? 1 : 0;
-    if (aDepri !== bDepri) return aDepri - bDepri;
-    const aPri = a.priority ?? tonePriority[a.tone];
-    const bPri = b.priority ?? tonePriority[b.tone];
-    return aPri - bPri;
-  });
+  tone: NoticeSeverity;
 }
 
 interface WorkspacePrimaryAction {
@@ -56,15 +25,9 @@ interface WorkspaceSummaryHeaderProps {
   statusPills: WorkspacePill[];
   primaryAction?: WorkspacePrimaryAction | null;
   contextualControls?: ReactNode;
+  returnBreadcrumb?: ReturnBreadcrumb | null;
+  onReturnBreadcrumb?: () => void;
 }
-
-const pillToneClasses: Record<WorkspacePillTone, string> = {
-  neutral: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]',
-  accent: 'border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]',
-  warning: 'border-amber-400/30 bg-amber-400/10 text-amber-700',
-  danger: 'border-red-500/25 bg-red-500/10 text-red-500',
-  success: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600',
-};
 
 export function WorkspaceSummaryHeader({
   title,
@@ -75,24 +38,23 @@ export function WorkspaceSummaryHeader({
   statusPills,
   primaryAction,
   contextualControls,
+  returnBreadcrumb,
+  onReturnBreadcrumb,
 }: WorkspaceSummaryHeaderProps) {
   const hasSections = Boolean(sections && sections.length > 1);
   const hasStatus = statusPills.length > 0;
 
-  const [overflowExpanded, setOverflowExpanded] = useState(false);
-
-  // Collapse overflow when pills change (e.g. workspace switch)
-  useEffect(() => {
-    setOverflowExpanded(false);
-  }, [statusPills]);
-
-  const ranked = hasStatus ? rankPills(statusPills) : [];
-  const needsOverflow = ranked.length > MAX_VISIBLE_PILLS && !overflowExpanded;
-  const visiblePills = needsOverflow ? ranked.slice(0, MAX_VISIBLE_PILLS) : ranked;
-  const overflowCount = ranked.length - MAX_VISIBLE_PILLS;
-
   return (
     <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+      {returnBreadcrumb && onReturnBreadcrumb && (
+        <button
+          onClick={onReturnBreadcrumb}
+          className="flex w-full items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
+        >
+          <span aria-hidden="true">&larr;</span>
+          {returnBreadcrumb.label}
+        </button>
+      )}
       <div className="flex flex-col gap-2 px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -151,22 +113,14 @@ export function WorkspaceSummaryHeader({
                 <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                   Status
                 </span>
-                {visiblePills.map((pill, index) => (
-                  <span
+                {statusPills.map((pill, index) => (
+                  <NoticePill
                     key={`${pill.label}-${index}`}
-                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium ${pillToneClasses[pill.tone]}`}
+                    severity={pill.tone}
                   >
                     {pill.label}
-                  </span>
+                  </NoticePill>
                 ))}
-                {needsOverflow && (
-                  <button
-                    onClick={() => setOverflowExpanded(true)}
-                    className="shrink-0 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors duration-100 hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
-                  >
-                    +{overflowCount} more
-                  </button>
-                )}
               </div>
             )}
           </div>

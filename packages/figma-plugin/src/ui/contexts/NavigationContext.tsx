@@ -26,6 +26,17 @@ export interface NavigationContextValue {
   closeSecondarySurface: () => void;
   /** Update only the sub-tab for the current top-tab (persists to localStorage). */
   setSubTab: (subTab: SubTab) => void;
+  /** When set, a breadcrumb linking back to this workspace is shown in the header. */
+  returnBreadcrumb: ReturnBreadcrumb | null;
+  setReturnBreadcrumb: (breadcrumb: ReturnBreadcrumb | null) => void;
+}
+
+export interface ReturnBreadcrumb {
+  /** Label shown in the breadcrumb (e.g. "Audit"). */
+  label: string;
+  /** Route to navigate back to. */
+  topTab: TopTab;
+  subTab: SubTab;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,6 +57,7 @@ export function useNavigationContext(): NavigationContextValue {
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const [activeSecondarySurface, setActiveSecondarySurface] = useState<SecondarySurfaceId | null>(null);
+  const [returnBreadcrumb, setReturnBreadcrumb] = useState<ReturnBreadcrumb | null>(null);
 
   const [activeTopTab, setActiveTopTabState] = useState<TopTab>(() => {
     const stored = lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB);
@@ -99,7 +111,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     openSecondarySurface,
     closeSecondarySurface,
     setSubTab,
-  }), [activeTopTab, activeSubTab, activeSecondarySurface, closeSecondarySurface, navigateTo, openSecondarySurface, setSubTab]);
+    returnBreadcrumb,
+    setReturnBreadcrumb,
+  }), [activeTopTab, activeSubTab, activeSecondarySurface, closeSecondarySurface, navigateTo, openSecondarySurface, setSubTab, returnBreadcrumb]);
 
   return (
     <NavigationContext.Provider value={value}>

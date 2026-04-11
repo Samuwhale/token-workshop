@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { NoticeBanner } from '../shared/noticeSystem';
 import { QuickStartDialog } from './QuickStartDialog';
 import { QuickStartWizard } from './QuickStartWizard';
 
@@ -335,33 +336,13 @@ export function WelcomePrompt({
             </button>
           </div>
           {!connected && (
-            <div className="mt-3 flex items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-              <span
-                className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${checking ? "bg-[var(--color-figma-text-secondary)] animate-pulse" : "bg-[var(--color-figma-error)]"}`}
-              />
-              <span className={`flex-1 text-[10px] font-medium ${checking ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}>
-                {checking ? 'Checking connection…' : 'Server offline'}
-              </span>
-              <div className="flex shrink-0 items-center gap-1.5">
-                {onRetryConnection && (
-                  <button
-                    onClick={onRetryConnection}
-                    disabled={checking}
-                    className="rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Retry
-                  </button>
-                )}
-                {onOpenSettings && (
-                  <button
-                    onClick={onOpenSettings}
-                    className="rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    Settings
-                  </button>
-                )}
-              </div>
-            </div>
+            <NoticeBanner
+              severity={checking ? 'info' : 'error'}
+              action={onRetryConnection ? { label: checking ? 'Checking…' : 'Retry', onClick: onRetryConnection } : undefined}
+              className="mt-3"
+            >
+              {checking ? 'Checking connection…' : 'Server offline'}
+            </NoticeBanner>
           )}
           {requiresServer && (
             <p className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">

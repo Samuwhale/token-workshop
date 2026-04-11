@@ -55,6 +55,8 @@ import {
   type PublishPreflightState,
   type SyncWorkflowStage,
 } from "./shared/syncWorkflow";
+import type { NoticeSeverity } from "./shared/noticeSystem";
+import { NoticeFieldMessage } from "./shared/noticeSystem";
 import { useConnectionContext } from "./contexts/ConnectionContext";
 import {
   useTokenSetsContext,
@@ -117,6 +119,8 @@ export function App() {
     navigateTo,
     openSecondarySurface,
     closeSecondarySurface,
+    returnBreadcrumb,
+    setReturnBreadcrumb,
   } = useNavigationContext();
   const {
     editingToken,
@@ -200,6 +204,13 @@ export function App() {
   const { triggerUsageScan } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } =
     useAvailableFonts();
+  // Utilities menu owns the connection editor so recovery stays available without
+  // pinning a disconnect banner across every workspace.
+  const [connectionUrlInput, setConnectionUrlInput] = useState(serverUrl);
+  const [connectionConnectResult, setConnectionConnectResult] = useState<
+    "ok" | "fail" | null
+  >(null);
+  const [showConnectionEditor, setShowConnectionEditor] = useState(false);
   const {
     showPasteModal,
     setShowPasteModal,
@@ -280,6 +291,12 @@ export function App() {
     window.addEventListener("publish-preflight-state", handler);
     return () => window.removeEventListener("publish-preflight-state", handler);
   }, []);
+  // Collapse the utilities connection editor once the server is reachable again.
+  useEffect(() => {
+    if (!connected) return;
+    setShowConnectionEditor(false);
+    setConnectionConnectResult(null);
+  }, [connected]);
   // Wire the alias-not-found toast into EditorContext (setErrorToast is stable)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -1681,34 +1698,34 @@ export function App() {
   const workspacePills = useMemo(() => {
     const pills: Array<{
       label: string;
-      tone: "neutral" | "accent" | "warning" | "danger" | "success";
+      tone: NoticeSeverity;
     }> = [];
     if (checking) {
-      pills.push({ label: "Server checking…", tone: "neutral" });
+      pills.push({ label: "Server checking…", tone: "info" });
     } else if (!connected) {
-      pills.push({ label: "Server offline", tone: "warning" });
+      pills.push({ label: "Server offline", tone: "error" });
     }
     switch (activeWorkspace.id) {
       case "tokens":
         pills.push({
           label: `${sets.length} set${sets.length === 1 ? "" : "s"}`,
-          tone: "neutral",
+          tone: "info",
         });
         if (lintViolations.length > 0)
           pills.push({
             label: `${lintViolations.length} issue${lintViolations.length === 1 ? "" : "s"}`,
-            tone: "danger",
+            tone: "warning",
           });
         if (staleGeneratorCount > 0)
           pills.push({
             label: `${staleGeneratorCount} stale generator${staleGeneratorCount === 1 ? "" : "s"}`,
-            tone: "warning",
+            tone: "stale",
           });
         break;
       case "themes":
         pills.push({
           label: `${dimensions.length} dimension${dimensions.length === 1 ? "" : "s"}`,
-          tone: "neutral",
+          tone: "info",
         });
         if (themeGapCount > 0)
           pills.push({
@@ -1716,23 +1733,23 @@ export function App() {
             tone: "warning",
           });
         if (themeShellState.showPreview)
-          pills.push({ label: "Live preview open", tone: "accent" });
+          pills.push({ label: "Live preview open", tone: "info" });
         if (themeShellState.activeView === "coverage")
-          pills.push({ label: "Coverage review", tone: "accent" });
+          pills.push({ label: "Coverage review", tone: "info" });
         if (themeShellState.activeView === "compare")
-          pills.push({ label: "Compare mode", tone: "accent" });
+          pills.push({ label: "Compare mode", tone: "info" });
         if (themeShellState.activeView === "advanced")
-          pills.push({ label: "Resolver mode", tone: "accent" });
+          pills.push({ label: "Resolver mode", tone: "info" });
         break;
       case "apply":
         pills.push({
           label: `${applyWorkflowSummary.selectionCount} layer${applyWorkflowSummary.selectionCount === 1 ? "" : "s"} selected`,
-          tone: applyWorkflowSummary.hasSelection ? "accent" : "neutral",
+          tone: applyWorkflowSummary.hasSelection ? "info" : "info",
         });
         if (applyWorkflowSummary.suggestionCount > 0) {
           pills.push({
             label: `${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? "" : "es"} ready`,
-            tone: "accent",
+            tone: "info",
           });
         } else if (
           !applyWorkflowSummary.hasAnyTokens &&
@@ -1758,16 +1775,16 @@ export function App() {
       case "sync":
         if (activeWorkspaceSection?.id === "publish") {
           if (publishPreflightState.stage === "running") {
-            pills.push({ label: "Preflight running", tone: "accent" });
+            pills.push({ label: "Preflight running", tone: "info" });
           } else if (
             publishPreflightState.isOutdated ||
             publishPreflightState.stage === "idle"
           ) {
-            pills.push({ label: "Run preflight", tone: "neutral" });
+            pills.push({ label: "Run preflight", tone: "info" });
           } else if (publishPreflightState.stage === "blocked") {
             pills.push({
               label: `${publishPreflightState.blockingCount} blocking cluster${publishPreflightState.blockingCount === 1 ? "" : "s"}`,
-              tone: "danger",
+              tone: "error",
             });
           } else if (publishPreflightState.stage === "advisory") {
             pills.push({
@@ -1781,30 +1798,30 @@ export function App() {
           if (publishPreflightState.canProceed && pendingPublishCount > 0) {
             pills.push({
               label: `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? "" : "s"} pending`,
-              tone: "accent",
+              tone: "info",
             });
           } else if (publishPreflightState.canProceed) {
             pills.push({ label: "No Figma changes pending", tone: "success" });
           }
         } else if (activeWorkspaceSection?.id === "export") {
-          pills.push({ label: "Repo / handoff tools", tone: "neutral" });
+          pills.push({ label: "Repo / handoff tools", tone: "info" });
         }
         break;
       case "audit":
         if (validationLoading) {
-          pills.push({ label: "Auditing…", tone: "accent" });
+          pills.push({ label: "Auditing…", tone: "info" });
         } else if (validationSummary === null) {
-          pills.push({ label: "Run audit", tone: "neutral" });
+          pills.push({ label: "Run audit", tone: "info" });
         } else if (healthIssueCount > 0) {
           pills.push({
             label: `${healthIssueCount} audit issue${healthIssueCount === 1 ? "" : "s"}`,
-            tone: "danger",
+            tone: "warning",
           });
         }
         if (undoDescriptions.length > 0)
           pills.push({
             label: `${undoDescriptions.length} undo step${undoDescriptions.length === 1 ? "" : "s"}`,
-            tone: "neutral",
+            tone: "info",
           });
         if (
           validationSummary !== null &&
@@ -2390,20 +2407,20 @@ export function App() {
           ? syncContextualControls
           : null;
 
-  const secondarySurfacePills = useMemo(() => {
+  const secondarySurfacePills = useMemo((): Array<{ label: string; tone: NoticeSeverity }> => {
     switch (activeSecondarySurface) {
       case "import":
         return [
           {
             label: connected ? "Server connected" : "Server required",
-            tone: connected ? "success" : "danger",
-          } as const,
+            tone: connected ? "success" : "error",
+          },
         ];
       case "sets":
         return [
           {
             label: `${sets.length} set${sets.length === 1 ? "" : "s"}`,
-            tone: "neutral" as const,
+            tone: "info",
           },
         ];
       case "notifications":
@@ -2415,22 +2432,22 @@ export function App() {
                 : `${notificationHistory.length} entr${notificationHistory.length === 1 ? "y" : "ies"}`,
             tone:
               notificationHistory.length === 0
-                ? ("neutral" as const)
-                : ("accent" as const),
+                ? "info"
+                : "info",
           },
         ];
       case "shortcuts":
         return [
           {
             label: adaptShortcut(SHORTCUT_KEYS.SHOW_SHORTCUTS),
-            tone: "neutral" as const,
+            tone: "info",
           },
         ];
       case "settings":
         return [
           {
             label: connected ? "Connected" : "Offline recovery visible",
-            tone: connected ? ("success" as const) : ("neutral" as const),
+            tone: connected ? "success" : "info",
           },
         ];
       default:
@@ -2523,9 +2540,10 @@ export function App() {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() =>
-                      guardEditorAction(() =>
-                        navigateTo(workspace.topTab, workspace.subTab),
-                      )
+                      guardEditorAction(() => {
+                        setReturnBreadcrumb(null);
+                        navigateTo(workspace.topTab, workspace.subTab);
+                      })
                     }
                     className={shellControlClass({
                       active: isActive,
@@ -2614,7 +2632,7 @@ export function App() {
               </svg>
               {utilitiesAttention && (
                 <span
-                  className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-text-secondary)] animate-pulse"}`}
+                  className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`}
                   aria-hidden="true"
                 />
               )}
@@ -2643,13 +2661,62 @@ export function App() {
                       </button>
                       <button
                         onClick={() => {
-                          setMenuOpen(false);
-                          openSecondaryPanel("settings");
+                          setShowConnectionEditor((v) => !v);
+                          setConnectionUrlInput(serverUrl);
+                          setConnectionConnectResult(null);
                         }}
                         className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                       >
-                        Open Settings
+                        {showConnectionEditor ? "Hide URL" : "Change URL"}
                       </button>
+                    </div>
+                  )}
+                  {showConnectionEditor && (
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        Server URL
+                      </label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={connectionUrlInput}
+                          onChange={(e) => {
+                            setConnectionUrlInput(e.target.value);
+                            setConnectionConnectResult(null);
+                          }}
+                          onKeyDown={async (e) => {
+                            if (e.key !== "Enter") return;
+                            const url = connectionUrlInput.trim();
+                            if (!url) return;
+                            setConnectionConnectResult(null);
+                            const ok = await updateServerUrlAndConnect(url);
+                            setConnectionConnectResult(ok ? "ok" : "fail");
+                            if (ok) setShowConnectionEditor(false);
+                          }}
+                          placeholder="http://localhost:9400"
+                          autoFocus
+                          className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
+                        />
+                        <button
+                          onClick={async () => {
+                            const url = connectionUrlInput.trim();
+                            if (!url) return;
+                            setConnectionConnectResult(null);
+                            const ok = await updateServerUrlAndConnect(url);
+                            setConnectionConnectResult(ok ? "ok" : "fail");
+                            if (ok) setShowConnectionEditor(false);
+                          }}
+                          disabled={checking || !connectionUrlInput.trim()}
+                          className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Connect
+                        </button>
+                      </div>
+                      {connectionConnectResult === "fail" && (
+                        <NoticeFieldMessage severity="error">
+                          Cannot reach server. Check the URL and try again.
+                        </NoticeFieldMessage>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2710,6 +2777,13 @@ export function App() {
           statusPills={secondarySurfacePills}
           primaryAction={shellPrimaryAction}
           contextualControls={shellContextualControls}
+          returnBreadcrumb={returnBreadcrumb}
+          onReturnBreadcrumb={() => {
+            if (returnBreadcrumb) {
+              navigateTo(returnBreadcrumb.topTab, returnBreadcrumb.subTab);
+              setReturnBreadcrumb(null);
+            }
+          }}
         />
       </div>
 
@@ -3801,7 +3875,6 @@ export function App() {
           isFirstRun={startHereState.firstRun}
           onClose={closeStartHere}
           onRetryConnection={retryConnection}
-          onOpenSettings={() => { closeStartHere(); openSecondaryPanel("settings"); }}
           onImportFigma={() => openSecondaryPanel("import")}
           onPasteJSON={() => setShowPasteModal(true)}
           onCreateToken={() =>

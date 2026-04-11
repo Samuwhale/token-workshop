@@ -1,4 +1,6 @@
 import type { PublishPreflightCluster, PublishPreflightStage } from '../../shared/syncWorkflow';
+import { NoticeBanner, NoticePill } from '../../shared/noticeSystem';
+import type { NoticeSeverity } from '../../shared/noticeSystem';
 import { Spinner } from '../Spinner';
 
 interface SyncPreflightStepProps {
@@ -24,12 +26,13 @@ export function SyncPreflightStep({
   actionHandlers,
   actionBusyId = null,
 }: SyncPreflightStepProps) {
-  const statusTone =
-    running ? 'bg-[var(--color-figma-text-secondary)] animate-pulse'
-      : stage === 'blocked' ? 'bg-[var(--color-figma-error)]'
-        : stage === 'advisory' ? 'bg-yellow-500'
-          : stage === 'ready' ? 'bg-[var(--color-figma-success)]'
-            : 'bg-[var(--color-figma-border)]';
+  const statusSeverity: NoticeSeverity =
+    running ? 'info'
+      : isOutdated ? 'stale'
+        : stage === 'blocked' ? 'error'
+          : stage === 'advisory' ? 'warning'
+            : stage === 'ready' ? 'success'
+              : 'info';
 
   const statusLabel =
     running ? 'Running preflight'
@@ -58,16 +61,13 @@ export function SyncPreflightStep({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full shrink-0 ${statusTone}`} />
               <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                 Step 1
               </span>
               <h2 id="sync-preflight-heading" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
                 Sync preflight
               </h2>
-              <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                {statusLabel}
-              </span>
+              <NoticePill severity={statusSeverity}>{statusLabel}</NoticePill>
             </div>
             <p className="mt-1.5 max-w-[560px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
               {summary}
@@ -84,9 +84,17 @@ export function SyncPreflightStep({
         </div>
 
         {error && (
-          <div role="alert" className="mt-2 rounded-lg border border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/8 px-3 py-2 text-[10px] text-[var(--color-figma-error)]">
-            {error}
-          </div>
+          <NoticeBanner severity="error" className="mt-2">{error}</NoticeBanner>
+        )}
+
+        {!running && isOutdated && !error && (
+          <NoticeBanner
+            severity="stale"
+            className="mt-2"
+            action={{ label: 'Re-run preflight', onClick: onRunChecks }}
+          >
+            Token data changed since the last check. Run preflight again before comparing differences.
+          </NoticeBanner>
         )}
 
         {!running && blockingClusters.length === 0 && advisoryClusters.length === 0 && stage === 'idle' && !error && (
@@ -142,13 +150,10 @@ function ClusterGroup({
   actionHandlers: Partial<Record<string, () => void>>;
   actionBusyId: string | null;
 }) {
+  const clusterSeverity: NoticeSeverity = tone === 'danger' ? 'error' : 'warning';
   const toneClasses = tone === 'danger'
     ? 'border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/5'
     : 'border-amber-400/25 bg-amber-400/8';
-
-  const badgeClasses = tone === 'danger'
-    ? 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'
-    : 'bg-amber-400/15 text-amber-700';
 
   return (
     <div className={`rounded-[16px] border p-3 ${toneClasses}`}>
@@ -156,9 +161,9 @@ function ClusterGroup({
         <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
           {title}
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badgeClasses}`}>
+        <NoticePill severity={clusterSeverity}>
           {clusters.length} cluster{clusters.length === 1 ? '' : 's'}
-        </span>
+        </NoticePill>
       </div>
 
       <div className="mt-2 grid gap-2">

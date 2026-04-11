@@ -7,6 +7,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import type { DeleteConfirm, PromoteRow, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
 import { useTokenListModals } from './TokenListModalsContext';
 import { FieldMessage } from '../shared/FieldMessage';
+import { NoticePill } from '../shared/noticeSystem';
 import { fieldBorderClass } from '../shared/editorClasses';
 
 export interface TokenListModalsProps {
@@ -464,25 +465,25 @@ function DeleteImpactDetails({
       {/* Summary line with colored badges */}
       <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--color-figma-text-secondary)]">
         {tokenCount > 0 && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]">
+          <NoticePill severity="error">
             {tokenCount} token{tokenCount !== 1 ? 's' : ''}
-          </span>
+          </NoticePill>
         )}
         {hasSideEffects && <span>will affect</span>}
         {refCount > 0 && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400">
+          <NoticePill severity="error">
             {refCount} broken reference{refCount !== 1 ? 's' : ''}
-          </span>
+          </NoticePill>
         )}
         {genCount > 0 && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          <NoticePill severity="warning">
             {genCount} generator{genCount !== 1 ? 's' : ''}
-          </span>
+          </NoticePill>
         )}
         {themeCount > 0 && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+          <NoticePill severity="info" className="border-blue-500/30 bg-blue-500/10 text-blue-600">
             {themeCount} theme option{themeCount !== 1 ? 's' : ''}
-          </span>
+          </NoticePill>
         )}
       </div>
 

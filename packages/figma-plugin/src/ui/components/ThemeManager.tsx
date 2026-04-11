@@ -38,6 +38,7 @@ import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 import { adaptShortcut } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { apiFetch } from "../shared/apiFetch";
+import { NoticeBanner, NoticePill, NoticeCountBadge, NoticeFieldMessage, NoticeInlineAlert } from '../shared/noticeSystem';
 import type {
   ThemeAuthoringStage,
   ThemeIssueSummary,
@@ -1202,12 +1203,12 @@ export function ThemeManager({
                 : `${tokenCount} token${tokenCount === 1 ? "" : "s"}`}
             </span>
             {isEmptyOverride && (
-              <span
+              <NoticePill
+                severity="warning"
                 title="This override set is empty — it contains no tokens and will not change any values when this theme option is active"
-                className="rounded-full border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]"
               >
                 empty
-              </span>
+              </NoticePill>
             )}
           </div>
         </div>
@@ -1307,7 +1308,7 @@ export function ThemeManager({
     [dimensions],
   );
   const focusedContextLabel = useMemo(() => {
-    if (!focusedDimension) return "current theme";
+    if (!focusedDimension) return "current theme context";
     if (focusedOptionName)
       return `${focusedDimension.name} -> ${focusedOptionName}`;
     return focusedDimension.name;
@@ -1406,18 +1407,14 @@ export function ThemeManager({
           : issue.kind === "stale-set" || issue.kind === "empty-override"
             ? "Edit set roles"
             : "Review issue";
+      const issueSeverity: "error" | "warning" =
+        issue.kind === "stale-set" ? "error" : "warning";
       const toneClass =
         issue.kind === "stale-set"
           ? "border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10"
           : issue.kind === "missing-override"
             ? "border-violet-500/25 bg-violet-500/8"
             : "border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/8";
-      const countToneClass =
-        issue.kind === "stale-set"
-          ? "bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]"
-          : issue.kind === "missing-override"
-            ? "bg-violet-500/15 text-violet-600"
-            : "bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]";
 
       const handleAction = () => {
         const target = {
@@ -1449,11 +1446,11 @@ export function ThemeManager({
                 <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
                   {issue.title}
                 </span>
-                <span
-                  className={`inline-flex min-w-[18px] items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${countToneClass}`}
-                >
-                  {issue.count}
-                </span>
+                <NoticeCountBadge
+                  severity={issue.kind === "missing-override" ? "info" : issueSeverity}
+                  count={issue.count}
+                  className="min-w-[18px] px-1.5 font-semibold"
+                />
               </div>
               <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                 {issue.summary}
@@ -1574,49 +1571,17 @@ export function ThemeManager({
     <ThemeManagerModalsProvider value={modalContextValue}>
       <div className="flex flex-col h-full">
         {error && (
-          <div
-            role="alert"
-            className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] flex items-center justify-between"
-          >
-            <span>{error}</span>
-            <button
-              onClick={() => setError(null)}
-              className="ml-2 text-[var(--color-figma-error)] hover:opacity-70 flex-shrink-0"
-            >
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
+          <div className="mx-3 mt-2">
+            <NoticeInlineAlert severity="error" onDismiss={() => setError(null)}>
+              {error}
+            </NoticeInlineAlert>
           </div>
         )}
         {fetchWarnings && (
-          <div
-            role="status"
-            className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)] text-[10px] flex items-center justify-between"
-          >
-            <span>{fetchWarnings}</span>
-            <button
-              onClick={clearFetchWarnings}
-              className="ml-2 text-[var(--color-figma-warning)] hover:opacity-70 flex-shrink-0"
-            >
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
+          <div className="mx-3 mt-2">
+            <NoticeInlineAlert severity="warning" onDismiss={clearFetchWarnings}>
+              {fetchWarnings}
+            </NoticeInlineAlert>
           </div>
         )}
 
@@ -1632,7 +1597,7 @@ export function ThemeManager({
                   </p>
                   <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                     {showAllCoverageAxes || !coverageFocusDimension
-                      ? "Started from the current theme and expanded to every axis. Focus any issue, then jump straight back into the matching role editor."
+                      ? "Started from the current theme context and expanded to every axis. Focus any issue, then jump straight back into the matching role editor."
                       : coveragePrimaryIssue
                         ? `${coveragePrimaryIssue.dimensionName} -> ${coveragePrimaryIssue.optionName}: ${coveragePrimaryIssue.recommendedNextAction}`
                         : coverageFocusOptionName
@@ -1704,11 +1669,11 @@ export function ThemeManager({
                 <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
                   {compareFocusDimension
                     ? `Compare from ${compareFocusDimension.name}`
-                    : "Compare in theme"}
+                    : "Compare in theme context"}
                 </p>
                 <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                   {compareFocusDimension && compareFocusOptionName
-                    ? `Theme option comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this focus.`
+                    ? `Theme option comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this context.`
                     : "Compare launches from the current axis or option so you can inspect alternatives without leaving theme authoring."}
                 </p>
               </div>
@@ -2364,94 +2329,66 @@ export function ThemeManager({
 
                     {/* Global auto-fill suggestion banner — visible without expanding any section */}
                     {totalFillableGaps > 0 && (
-                      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/8">
-                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-warning)]">
-                          <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                            <line x1="12" y1="9" x2="12" y2="13" />
-                            <line x1="12" y1="17" x2="12.01" y2="17" />
-                          </svg>
-                          <span>
-                            <strong>{totalFillableGaps}</strong> gap
-                            {totalFillableGaps !== 1 ? "s" : ""} can be
-                            auto-filled from source sets
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            onClick={() => {
-                              const dimWithGaps = dimensions.find((dim) => {
-                                const dimCov = coverage[dim.id] ?? {};
-                                return Object.values(dimCov).some((opt) =>
-                                  opt.uncovered.some(
-                                    (i) =>
-                                      i.missingRef && i.fillValue !== undefined,
-                                  ),
+                      <NoticeBanner
+                        severity="warning"
+                        actions={
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() => {
+                                const dimWithGaps = dimensions.find((dim) => {
+                                  const dimCov = coverage[dim.id] ?? {};
+                                  return Object.values(dimCov).some((opt) =>
+                                    opt.uncovered.some(
+                                      (i) =>
+                                        i.missingRef && i.fillValue !== undefined,
+                                    ),
+                                  );
+                                });
+                                openCoverageView(
+                                  {
+                                    dimId:
+                                      focusedDimension?.id ??
+                                      dimWithGaps?.id ??
+                                      null,
+                                    optionName: focusedOptionName ?? null,
+                                    preferredSetName:
+                                      focusedPrimaryIssue?.preferredSetName ??
+                                      null,
+                                  },
+                                  true,
                                 );
-                              });
-                              openCoverageView(
-                                {
-                                  dimId:
-                                    focusedDimension?.id ??
-                                    dimWithGaps?.id ??
-                                    null,
-                                  optionName: focusedOptionName ?? null,
-                                  preferredSetName:
-                                    focusedPrimaryIssue?.preferredSetName ??
-                                    null,
-                                },
-                                true,
-                              );
-                            }}
-                            className="flex items-center gap-1 px-2 py-0.5 rounded border border-[var(--color-figma-warning)]/35 text-[10px] font-medium text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/12 transition-colors"
-                            title="Review gap coverage"
-                          >
-                            Review gaps
-                          </button>
-                          <button
-                            onClick={() => {
-                              const dimWithGaps = dimensions.find((dim) => {
-                                const dimCov = coverage[dim.id] ?? {};
-                                return Object.values(dimCov).some((opt) =>
-                                  opt.uncovered.some(
-                                    (i) =>
-                                      i.missingRef && i.fillValue !== undefined,
-                                  ),
-                                );
-                              });
-                              if (dimWithGaps)
-                                handleAutoFillAllOptions(dimWithGaps.id);
-                            }}
-                            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-                            title={`Auto-fill ${totalFillableGaps} missing token${totalFillableGaps !== 1 ? "s" : ""} — opens confirmation dialog`}
-                          >
-                            <svg
-                              width="9"
-                              height="9"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
+                              }}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded border border-[var(--color-figma-warning)]/35 text-[10px] font-medium text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/12 transition-colors"
+                              title="Review gap coverage in context"
                             >
-                              <path d="M12 5v14M5 12h14" />
-                            </svg>
-                            Auto-fill gaps
-                          </button>
-                        </div>
-                      </div>
+                              Review gaps
+                            </button>
+                            <button
+                              onClick={() => {
+                                const dimWithGaps = dimensions.find((dim) => {
+                                  const dimCov = coverage[dim.id] ?? {};
+                                  return Object.values(dimCov).some((opt) =>
+                                    opt.uncovered.some(
+                                      (i) =>
+                                        i.missingRef && i.fillValue !== undefined,
+                                    ),
+                                  );
+                                });
+                                if (dimWithGaps)
+                                  handleAutoFillAllOptions(dimWithGaps.id);
+                              }}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+                              title={`Auto-fill ${totalFillableGaps} missing token${totalFillableGaps !== 1 ? "s" : ""} — opens confirmation dialog`}
+                            >
+                              Auto-fill gaps
+                            </button>
+                          </div>
+                        }
+                      >
+                        <strong>{totalFillableGaps}</strong> gap
+                        {totalFillableGaps !== 1 ? "s" : ""} can be
+                        auto-filled from source sets
+                      </NoticeBanner>
                     )}
 
                     {/* Dimension layer cards */}
@@ -2630,12 +2567,7 @@ export function ThemeManager({
                                     </button>
                                   </div>
                                   {renameError && (
-                                    <p
-                                      role="alert"
-                                      className="text-[10px] text-[var(--color-figma-error)]"
-                                    >
-                                      {renameError}
-                                    </p>
+                                    <NoticeFieldMessage severity="error">{renameError}</NoticeFieldMessage>
                                   )}
                                 </div>
                               ) : (
@@ -2648,12 +2580,12 @@ export function ThemeManager({
                                       {dim.name}
                                     </span>
                                     {totalDimGaps > 0 && (
-                                      <span
-                                        className="inline-flex items-center justify-center min-w-[16px] h-[14px] px-1 rounded-full text-[9px] font-bold leading-none bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] flex-shrink-0"
+                                      <NoticeCountBadge
+                                        severity="warning"
+                                        count={totalDimGaps}
                                         title={`${totalDimGaps} coverage gap${totalDimGaps !== 1 ? "s" : ""} across ${optionsWithGaps.length} option${optionsWithGaps.length !== 1 ? "s" : ""}`}
-                                      >
-                                        {totalDimGaps}
-                                      </span>
+                                        className="min-w-[16px] px-1 flex-shrink-0"
+                                      />
                                     )}
                                     <button
                                       onClick={() =>
@@ -2916,12 +2848,11 @@ export function ThemeManager({
                                           </span>
                                         )}
                                         {optMissingCount > 0 && (
-                                          <span
-                                            className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-bold leading-none bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]"
+                                          <NoticeCountBadge
+                                            severity="warning"
+                                            count={optMissingCount}
                                             title={`${optMissingCount} unresolved alias${optMissingCount !== 1 ? "es" : ""}`}
-                                          >
-                                            {optMissingCount}
-                                          </span>
+                                          />
                                         )}
                                         {optMissingOverrideCount > 0 && (
                                           <span
@@ -3084,127 +3015,68 @@ export function ThemeManager({
                                   </div>
                                 )}
                                 {addOptionErrors[dim.id] && (
-                                  <p
-                                    role="alert"
-                                    className="text-[10px] text-[var(--color-figma-error)] mt-1"
-                                  >
-                                    {addOptionErrors[dim.id]}
-                                  </p>
+                                  <NoticeFieldMessage severity="error" className="mt-1">{addOptionErrors[dim.id]}</NoticeFieldMessage>
                                 )}
                               </div>
                             )}
 
                             {/* Single-option fill banner — surfaced at dimension level so it's visible without expanding coverage */}
                             {!multiOptionGaps && totalDimFillable > 0 && (
-                              <div className="flex items-center justify-between px-3 py-1.5 border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/5">
-                                <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-warning)]">
-                                  <svg
-                                    width="9"
-                                    height="9"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true"
+                              <NoticeBanner
+                                severity="warning"
+                                className="border-t border-b-0"
+                                actions={
+                                  <button
+                                    onClick={() =>
+                                      optionsWithGaps[0] &&
+                                      handleAutoFillAll(
+                                        dim.id,
+                                        optionsWithGaps[0].name,
+                                      )
+                                    }
+                                    disabled={fillingKeys.has(
+                                      `${dim.id}:${optionsWithGaps[0]?.name}:__all__`,
+                                    )}
+                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                                    title={`Auto-fill ${totalDimFillable} token${totalDimFillable !== 1 ? "s" : ""} from source sets`}
                                   >
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                                    <line x1="12" y1="9" x2="12" y2="13" />
-                                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                                  </svg>
-                                  <span>
-                                    {totalDimFillable} gap
-                                    {totalDimFillable !== 1 ? "s" : ""} in "
-                                    {optionsWithGaps[0]?.name}"
-                                  </span>
-                                </div>
-                                <button
-                                  onClick={() =>
-                                    optionsWithGaps[0] &&
-                                    handleAutoFillAll(
-                                      dim.id,
-                                      optionsWithGaps[0].name,
+                                    {fillingKeys.has(
+                                      `${dim.id}:${optionsWithGaps[0]?.name}:__all__`,
                                     )
-                                  }
-                                  disabled={fillingKeys.has(
-                                    `${dim.id}:${optionsWithGaps[0]?.name}:__all__`,
-                                  )}
-                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                                  title={`Auto-fill ${totalDimFillable} token${totalDimFillable !== 1 ? "s" : ""} from source sets`}
-                                >
-                                  <svg
-                                    width="9"
-                                    height="9"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true"
-                                  >
-                                    <path d="M12 5v14M5 12h14" />
-                                  </svg>
-                                  {fillingKeys.has(
-                                    `${dim.id}:${optionsWithGaps[0]?.name}:__all__`,
-                                  )
-                                    ? "Filling…"
-                                    : `Fill from source (${totalDimFillable})`}
-                                </button>
-                              </div>
+                                      ? "Filling…"
+                                      : `Fill from source (${totalDimFillable})`}
+                                  </button>
+                                }
+                              >
+                                {totalDimFillable} gap
+                                {totalDimFillable !== 1 ? "s" : ""} in "
+                                {optionsWithGaps[0]?.name}"
+                              </NoticeBanner>
                             )}
 
                             {/* Cross-option fill banner */}
                             {multiOptionGaps && totalDimFillable > 0 && (
-                              <div className="flex items-center justify-between px-3 py-1.5 border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/5">
-                                <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-warning)]">
-                                  <svg
-                                    width="9"
-                                    height="9"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true"
+                              <NoticeBanner
+                                severity="warning"
+                                className="border-t border-b-0"
+                                actions={
+                                  <button
+                                    onClick={() =>
+                                      handleAutoFillAllOptions(dim.id)
+                                    }
+                                    disabled={isFillAllOptionsInProgress}
+                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
+                                    title={`Auto-fill ${totalDimFillable} missing token${totalDimFillable !== 1 ? "s" : ""} across all options`}
                                   >
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                                    <line x1="12" y1="9" x2="12" y2="13" />
-                                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                                  </svg>
-                                  <span>
-                                    {totalDimGaps} gaps across{" "}
-                                    {optionsWithGaps.length} options
-                                  </span>
-                                </div>
-                                <button
-                                  onClick={() =>
-                                    handleAutoFillAllOptions(dim.id)
-                                  }
-                                  disabled={isFillAllOptionsInProgress}
-                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
-                                  title={`Auto-fill ${totalDimFillable} missing token${totalDimFillable !== 1 ? "s" : ""} across all options`}
-                                >
-                                  <svg
-                                    width="9"
-                                    height="9"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true"
-                                  >
-                                    <path d="M12 5v14M5 12h14" />
-                                  </svg>
-                                  {isFillAllOptionsInProgress
-                                    ? "Filling…"
-                                    : `Fill all options (${totalDimFillable})`}
-                                </button>
-                              </div>
+                                    {isFillAllOptionsInProgress
+                                      ? "Filling…"
+                                      : `Fill all options (${totalDimFillable})`}
+                                  </button>
+                                }
+                              >
+                                {totalDimGaps} gaps across{" "}
+                                {optionsWithGaps.length} options
+                              </NoticeBanner>
                             )}
 
                             {/* Selected option content */}
@@ -3249,70 +3121,28 @@ export function ThemeManager({
                                         </button>
                                       </div>
                                       {renameOptionError && (
-                                        <p
-                                          role="alert"
-                                          className="text-[10px] text-[var(--color-figma-error)]"
-                                        >
-                                          {renameOptionError}
-                                        </p>
+                                        <NoticeFieldMessage severity="error">{renameOptionError}</NoticeFieldMessage>
                                       )}
                                     </div>
                                   ) : (
                                     <>
                                       <div className="flex flex-wrap items-center gap-1">
                                         {hasUncovered && (
-                                          <span
-                                            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/15 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]"
+                                          <NoticePill
+                                            severity="warning"
                                             title={`${optionSummary?.uncoveredCount ?? 0} tokens have no value in active sets`}
                                           >
-                                            <svg
-                                              width="9"
-                                              height="9"
-                                              viewBox="0 0 24 24"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              strokeWidth="2.5"
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              aria-hidden="true"
-                                            >
-                                              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                                              <line
-                                                x1="12"
-                                                y1="9"
-                                                x2="12"
-                                                y2="13"
-                                              />
-                                              <line
-                                                x1="12"
-                                                y1="17"
-                                                x2="12.01"
-                                                y2="17"
-                                              />
-                                            </svg>
                                             {optionSummary?.uncoveredCount ?? 0}{" "}
                                             gaps
-                                          </span>
+                                          </NoticePill>
                                         )}
                                         {(optionSummary?.missingOverrideCount ??
                                           0) > 0 && (
-                                          <span
-                                            className="inline-flex items-center gap-1 rounded-full border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-medium text-violet-600"
+                                          <NoticePill
+                                            severity="info"
                                             title={`${optionSummary?.missingOverrideCount ?? 0} tokens are missing from the override layer`}
+                                            className="border-violet-500/30 bg-violet-500/10 text-violet-600"
                                           >
-                                            <svg
-                                              width="9"
-                                              height="9"
-                                              viewBox="0 0 24 24"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              strokeWidth="2.5"
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              aria-hidden="true"
-                                            >
-                                              <path d="M12 5v14M5 12h14" />
-                                            </svg>
                                             {
                                               optionSummary?.missingOverrideCount
                                             }{" "}
@@ -3321,74 +3151,29 @@ export function ThemeManager({
                                             1
                                               ? ""
                                               : "s"}
-                                          </span>
+                                          </NoticePill>
                                         )}
                                         {(optionSummary?.emptyOverrideCount ??
                                           0) > 0 && (
-                                          <span
-                                            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]"
+                                          <NoticePill
+                                            severity="warning"
                                             title={`${optionSummary?.emptyOverrideCount ?? 0} override set${optionSummary?.emptyOverrideCount === 1 ? "" : "s"} contain no tokens`}
                                           >
-                                            <svg
-                                              width="9"
-                                              height="9"
-                                              viewBox="0 0 24 24"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              strokeWidth="2.5"
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              aria-hidden="true"
-                                            >
-                                              <circle cx="12" cy="12" r="9" />
-                                              <path d="M12 8v5" />
-                                              <circle
-                                                cx="12"
-                                                cy="16"
-                                                r="0.5"
-                                                fill="currentColor"
-                                              />
-                                            </svg>
                                             {optionSummary?.emptyOverrideCount}{" "}
                                             empty override
                                             {optionSummary?.emptyOverrideCount ===
                                             1
                                               ? ""
                                               : "s"}
-                                          </span>
+                                          </NoticePill>
                                         )}
                                         {staleSetNames.length > 0 && (
-                                          <span
-                                            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/15 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-error)]"
+                                          <NoticePill
+                                            severity="error"
                                             title={`${staleSetNames.length} set${staleSetNames.length !== 1 ? "s" : ""} referenced here no longer exist`}
                                           >
-                                            <svg
-                                              width="9"
-                                              height="9"
-                                              viewBox="0 0 24 24"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              strokeWidth="2.5"
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              aria-hidden="true"
-                                            >
-                                              <circle cx="12" cy="12" r="10" />
-                                              <line
-                                                x1="15"
-                                                y1="9"
-                                                x2="9"
-                                                y2="15"
-                                              />
-                                              <line
-                                                x1="9"
-                                                y1="9"
-                                                x2="15"
-                                                y2="15"
-                                              />
-                                            </svg>
                                             {staleSetNames.length} stale
-                                          </span>
+                                          </NoticePill>
                                         )}
                                       </div>
                                       <div className="flex items-center gap-0.5">
@@ -3608,7 +3393,7 @@ export function ThemeManager({
                                           )}
                                           {(optionSummary?.emptyOverrideCount ??
                                             0) > 0 && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]">
+                                            <NoticePill severity="warning">
                                               {
                                                 optionSummary?.emptyOverrideCount
                                               }{" "}
@@ -3617,19 +3402,19 @@ export function ThemeManager({
                                               1
                                                 ? ""
                                                 : "s"}
-                                            </span>
+                                            </NoticePill>
                                           )}
                                           {staleSetNames.length > 0 && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-error)]">
+                                            <NoticePill severity="error">
                                               {staleSetNames.length} stale set
                                               {staleSetNames.length === 1
                                                 ? ""
                                                 : "s"}
-                                            </span>
+                                            </NoticePill>
                                           )}
                                           {(optionSummary?.coverageIssueCount ??
                                             0) > 0 && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/12 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]">
+                                            <NoticePill severity="warning">
                                               {
                                                 optionSummary?.coverageIssueCount
                                               }{" "}
@@ -3638,7 +3423,7 @@ export function ThemeManager({
                                               1
                                                 ? ""
                                                 : "s"}
-                                            </span>
+                                            </NoticePill>
                                           )}
                                         </div>
                                       </div>
@@ -4281,12 +4066,7 @@ export function ThemeManager({
                   </p>
                 </div>
                 {createDimError && (
-                  <p
-                    role="alert"
-                    className="text-[10px] text-[var(--color-figma-error)]"
-                  >
-                    {createDimError}
-                  </p>
+                  <NoticeFieldMessage severity="error">{createDimError}</NoticeFieldMessage>
                 )}
                 <div className="flex gap-2">
                   <button
