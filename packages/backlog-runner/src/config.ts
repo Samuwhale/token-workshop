@@ -2,11 +2,14 @@ import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type {
+  BacklogRunnerRole,
   BacklogRunnerConfig,
   BacklogRunnerConfigInput,
+  BacklogTool,
   ResolvedRunOptions,
   RunOverrides,
 } from './types.js';
+import { BACKLOG_RUNNER_ROLES } from './types.js';
 
 const DEFAULT_MODEL_MAP = {
   default: { claude: 'claude-opus-4-6', codex: 'gpt-5.4' },
@@ -20,6 +23,17 @@ function resolvePath(baseDir: string, value: string): string {
 
 export function defineBacklogRunnerConfig(config: BacklogRunnerConfigInput): BacklogRunnerConfigInput {
   return config;
+}
+
+function normalizeRunnerConfig(
+  config: BacklogRunnerConfigInput,
+  role: BacklogRunnerRole,
+): { tool: BacklogTool; model?: string } {
+  const runner = config.runners[role];
+  return {
+    tool: runner.tool,
+    model: runner.model,
+  };
 }
 
 export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, configFilePath?: string): BacklogRunnerConfig {
@@ -61,11 +75,11 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
       repo: config.validationCommand,
       ...(config.validationProfiles ?? {}),
     },
+    runners: Object.fromEntries(
+      BACKLOG_RUNNER_ROLES.map(role => [role, normalizeRunnerConfig(config, role)]),
+    ) as BacklogRunnerConfig['runners'],
     defaults: {
-      tool: config.defaults?.tool ?? 'codex',
       workers: config.defaults?.workers ?? 1,
-      model: config.defaults?.model ?? 'default',
-      passModel: config.defaults?.passModel ?? 'default',
       passes: config.defaults?.passes ?? true,
       worktrees: config.defaults?.worktrees ?? true,
     },
@@ -136,18 +150,20 @@ export async function resolveRunOptions(
   config: BacklogRunnerConfig,
   overrides: RunOverrides = {},
 ): Promise<ResolvedRunOptions> {
-  const tool = overrides.tool ?? config.defaults.tool;
-  const model = await resolveModelAlias(config, overrides.model ?? config.defaults.model, tool);
-  const rawPassModel = overrides.passModel ?? config.defaults.passModel;
-  const passModel = rawPassModel
-    ? await resolveModelAlias(config, rawPassModel, tool)
-    : model;
+  const runners = Object.fromEntries(
+    await Promise.all(
+      BACKLOG_RUNNER_ROLES.map(async role => {
+        const tool = overrides.tool ?? config.runners[role].tool;
+        const rawModel = overrides.model ?? config.runners[role].model;
+        const model = await resolveModelAlias(config, rawModel, tool);
+        return [role, { tool, model }];
+      }),
+    ),
+  ) as ResolvedRunOptions['runners'];
 
   return {
-    tool,
+    runners,
     workers: overrides.workers ?? config.defaults.workers,
-    model,
-    passModel,
     passes: overrides.passes ?? config.defaults.passes,
     worktrees: overrides.worktrees ?? config.defaults.worktrees,
   };

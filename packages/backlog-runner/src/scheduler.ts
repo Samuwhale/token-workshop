@@ -17,6 +17,7 @@ import type {
   BacklogCandidateRecord,
   BacklogDrainResult,
   BacklogPassType,
+  BacklogRunnerRole,
   BacklogWorkerResult,
   BacklogRunnerConfig,
   OrchestratorRuntimeStatus,
@@ -34,6 +35,7 @@ import type {
 } from './types.js';
 import { GitWorktreeWorkspaceStrategy } from './workspace/git-worktree.js';
 import { InPlaceWorkspaceStrategy } from './workspace/in-place.js';
+import { BACKLOG_RUNNER_ROLES } from './types.js';
 
 const PLANNER_LANE_READY_TARGET = 2;
 const ORCHESTRATOR_POLL_INTERVAL_MS = 3_000;
@@ -79,6 +81,10 @@ function formatDuration(seconds?: number): string {
 
 function retryTime(): string {
   return new Date(Date.now() + 60_000).toTimeString().slice(0, 8);
+}
+
+function getRunnerConfig(options: ResolvedRunOptions, role: BacklogRunnerRole) {
+  return options.runners[role];
 }
 
 function logDrainResult(logger: RunnerLogger, label: string, result: BacklogDrainResult): void {
@@ -466,8 +472,8 @@ async function attemptWorkspaceRemediation(
     },
   );
   const result = await runProvider(commandRunner, {
-    tool: options.tool,
-    model: options.model,
+    tool: getRunnerConfig(options, 'task').tool,
+    model: getRunnerConfig(options, 'task').model,
     context,
     prompt: workspaceRepairPrompt(await readPrompt(config.prompts.agent)),
     cwd: remediation.cwd,
@@ -578,8 +584,8 @@ async function attemptTaskReconciliation(
       originalDiff,
     );
     const result = await runProvider(commandRunner, {
-      tool: options.tool,
-      model: options.model,
+      tool: getRunnerConfig(options, 'task').tool,
+      model: getRunnerConfig(options, 'task').model,
       context,
       prompt: reconciliationPrompt(await readPrompt(config.prompts.agent)),
       cwd: reconciliationCwd,
@@ -759,6 +765,7 @@ type ActiveControlWorker = {
   kind: 'planner' | 'discovery';
   promise: Promise<BacklogWorkerResult>;
   batchKey?: string;
+  passType?: BacklogPassType;
 };
 
 function describeActiveControlWorker(worker: ActiveControlWorker | null): string {
@@ -847,9 +854,10 @@ async function runSingleDiscoveryPass(
   const session = await workspaceStrategy.setup();
   try {
     const context = await buildDiscoveryContext(config);
+    const runner = getRunnerConfig(options, passType);
     const result = await runProvider(commandRunner, {
-      tool: options.tool,
-      model: options.passModel,
+      tool: runner.tool,
+      model: runner.model,
       context,
       prompt: await readPrompt(config.passes[passType].promptFile),
       cwd: session.cwd,
@@ -870,9 +878,9 @@ async function runSingleDiscoveryPass(
       commandRunner,
       session.cwd,
       [
-        normalizePathForGit(path.relative(session.cwd, config.files.candidateQueue)),
-        normalizePathForGit(path.relative(session.cwd, config.files.progress)),
-        normalizePathForGit(path.relative(session.cwd, config.files.patterns)),
+        normalizePathForGit(path.relative(config.projectRoot, config.files.candidateQueue)),
+        normalizePathForGit(path.relative(config.projectRoot, config.files.progress)),
+        normalizePathForGit(path.relative(config.projectRoot, config.files.patterns)),
       ],
       'discovery pass touched non-planner files',
     );
@@ -882,19 +890,25 @@ async function runSingleDiscoveryPass(
     }
 
     const commitMessage = `chore(backlog): ${passType} pass – ${result.item || 'maintenance'}`;
+    let persisted = false;
     await withLock(lockPath(config, 'git'), 30, async () => {
       const mergeResult = await session.merge();
       if (!mergeResult.ok) {
-        logger.line(`  WARNING: ${mergeResult.reason ?? 'pass merge failed'}`);
+        logger.line(`  ✗ ${passType} pass merge failed: ${mergeResult.reason ?? 'unknown'}`);
         return;
       }
 
       logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
       const finalizeResult = await workspaceStrategy.commitAndPush(commitMessage, bookkeepingPaths(config), { sleep });
       if (!finalizeResult.ok) {
-        logger.line(`  WARNING: ${finalizeResult.reason ?? 'pass finalize failed'}`);
+        logger.line(`  ✗ ${passType} pass finalize failed: ${finalizeResult.reason ?? 'unknown'}`);
+        return;
       }
+      persisted = true;
     });
+    if (!persisted) {
+      return genericWorkerResult('no_progress', startedAt, { note: `${passType} pass succeeded but persistence failed` });
+    }
     return genericWorkerResult('completed', startedAt);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -920,10 +934,12 @@ async function runDiscoveryWorker(
   logger: RunnerLogger,
   options: ResolvedRunOptions,
   sleep?: (ms: number) => Promise<void>,
+  onPassStart?: (passType: BacklogPassType) => void,
 ): Promise<BacklogWorkerResult> {
   const startedAt = Date.now();
   const before = await store.getQueueCounts();
   for (const passType of ['product', 'code', 'ux'] as const) {
+    onPassStart?.(passType);
     const result = await runSingleDiscoveryPass(config, store, workspaceStrategy, commandRunner, logger, options, passType, sleep);
     if (result.kind === 'rate_limited') {
       return genericWorkerResult('rate_limited', startedAt, { note: result.note });
@@ -962,9 +978,10 @@ async function runPlannerWorker(
     const session = await workspaceStrategy.setup();
     try {
       const context = await buildPlannerContext(config, plannerCandidates);
+      const runner = getRunnerConfig(options, 'planner');
       const result = await runProvider(commandRunner, {
-        tool: options.tool,
-        model: options.passModel,
+        tool: runner.tool,
+        model: runner.model,
         context,
         prompt: await readPrompt(config.prompts.planner),
         cwd: session.cwd,
@@ -1114,8 +1131,8 @@ async function runTaskWorker(
       await store.getActiveReservations(claim.task.id),
     );
     const result = await runProvider(commandRunner, {
-      tool: options.tool,
-      model: options.model,
+      tool: getRunnerConfig(options, 'task').tool,
+      model: getRunnerConfig(options, 'task').model,
       context,
       prompt: await readPrompt(config.prompts.agent),
       cwd: session.cwd,
@@ -1470,7 +1487,7 @@ export async function runBacklogRunner(
       activeControlWorker: controlWorker
         ? controlWorker.kind === 'planner'
           ? { kind: 'planner' }
-          : { kind: 'discovery' }
+          : { kind: 'discovery', passType: controlWorker.passType }
         : undefined,
       shutdownRequested: stopRequested || fatalError !== null,
       pollIntervalMs: ORCHESTRATOR_POLL_INTERVAL_MS,
@@ -1576,6 +1593,7 @@ export async function runBacklogRunner(
       logger,
       options,
       sleep,
+      (passType) => { if (controlWorker) controlWorker.passType = passType; },
     )
       .then(result => {
         handleControlWorkerResult('discovery', undefined, result);
@@ -1615,12 +1633,14 @@ export async function runBacklogRunner(
     logger.line('║  TypeScript Backlog Runner                                  ║');
     logger.line('╚═══════════════════════════════════════════════════════════════╝');
     logger.line(`  Orchestrator: ${orchestratorId}`);
-    logger.line(`  Tool:         ${options.tool}`);
     logger.line(`  Workers:      ${effectiveWorkers}${effectiveWorkers !== options.workers ? ` (requested ${options.workers})` : ''}`);
-    logger.line(`  Model:        ${options.model}`);
-    logger.line(`  Pass model:   ${options.passModel}`);
     logger.line(`  Mode:         ${options.worktrees ? 'parallel (worktrees)' : 'single (shared workspace)'}`);
     logger.line(`  Passes:       ${options.passes ? 'enabled' : 'disabled'}`);
+    logger.line('  Runners:');
+    for (const role of BACKLOG_RUNNER_ROLES) {
+      const runner = getRunnerConfig(options, role);
+      logger.line(`    ${role.padEnd(7, ' ')} ${runner.tool}${runner.model ? ` · ${runner.model}` : ''}`);
+    }
     logger.line(`  Stop:         Ctrl+C  (or: touch ${config.files.stop})`);
     await updateStatus();
 

@@ -8,7 +8,8 @@ import { PLANNER_RESULT_SCHEMA, PLANNER_SCHEMA_SMOKE_PROMPT } from './planner.js
 import { createCommandRunner } from './process.js';
 import { validateProvider } from './providers/index.js';
 import { lintBacklogQueue } from './queue-lint.js';
-import type { BacklogRunnerConfig, CommandRunner, RunOverrides, ToolValidationResult } from './types.js';
+import type { BacklogRunnerConfig, BacklogRunnerRole, CommandRunner, RunOverrides, ToolValidationResult } from './types.js';
+import { BACKLOG_RUNNER_ROLES } from './types.js';
 import { fileExists } from './utils.js';
 
 const VALIDATION_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
@@ -227,21 +228,47 @@ export async function validateBacklogRunner(
   await ensureConfigReady(config);
   const commandRunner = deps.commandRunner ?? createCommandRunner();
   const runOptions = await resolveRunOptions(config, overrides);
-  const providerValidation = await validateProvider(runOptions.tool, commandRunner, {
-    model: runOptions.model,
-    smokeTests: [
-      {
-        label: 'planner schema',
-        schema: PLANNER_RESULT_SCHEMA,
-        prompt: PLANNER_SCHEMA_SMOKE_PROMPT,
-        expectedItem: 'planner-smoke',
-      },
-    ],
-  });
+  const runnerRolesByKey = new Map<string, BacklogRunnerRole[]>();
+  for (const role of BACKLOG_RUNNER_ROLES) {
+    const runner = runOptions.runners[role];
+    const key = `${runner.tool}::${runner.model ?? ''}`;
+    const roles = runnerRolesByKey.get(key) ?? [];
+    roles.push(role);
+    runnerRolesByKey.set(key, roles);
+  }
 
-  const messages = [...providerValidation.messages];
-  messages.push(`  → Model: ${runOptions.model ?? 'CLI default'}`);
-  messages.push(`  → Pass model: ${runOptions.passModel ?? 'CLI default'}`);
+  const providerValidations = await Promise.all(
+    [...runnerRolesByKey.values()].map(async roles => {
+      const primaryRole = roles[0]!;
+      const runner = runOptions.runners[primaryRole];
+      return {
+        roles,
+        result: await validateProvider(runner.tool, commandRunner, {
+          model: runner.model,
+          smokeTests: roles.includes('planner')
+            ? [
+                {
+                  label: 'planner schema',
+                  schema: PLANNER_RESULT_SCHEMA,
+                  prompt: PLANNER_SCHEMA_SMOKE_PROMPT,
+                  expectedItem: 'planner-smoke',
+                },
+              ]
+            : [],
+        }),
+      };
+    }),
+  );
+
+  const messages: string[] = [];
+  for (const { roles, result } of providerValidations) {
+    messages.push(`  → Runners: ${roles.join(', ')}`);
+    messages.push(...result.messages);
+  }
+  for (const role of BACKLOG_RUNNER_ROLES) {
+    const runner = runOptions.runners[role];
+    messages.push(`  → ${role}: ${runner.tool}${runner.model ? ` · ${runner.model}` : ''}`);
+  }
   messages.push('  → Structured output: strict');
 
   const requiredFiles = [
@@ -256,7 +283,7 @@ export async function validateBacklogRunner(
     ['code pass prompt', config.prompts.code],
   ] as const;
 
-  let ok = providerValidation.ok;
+  let ok = providerValidations.every(validation => validation.result.ok);
   for (const [label, filePath] of requiredFiles) {
     if (await fileExists(filePath)) {
       messages.push(`  ✓ ${label} found`);

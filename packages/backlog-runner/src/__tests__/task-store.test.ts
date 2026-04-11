@@ -55,6 +55,13 @@ async function makeFixture() {
         repo: 'bash scripts/backlog/validate.sh',
         backlog: 'pnpm --filter @tokenmanager/backlog-runner exec vitest run',
       },
+      runners: {
+        task: { tool: 'codex', model: 'default' },
+        planner: { tool: 'codex', model: 'default' },
+        product: { tool: 'codex', model: 'default' },
+        ux: { tool: 'codex', model: 'default' },
+        code: { tool: 'codex', model: 'default' },
+      },
     },
     path.join(root, 'backlog.config.mjs'),
   );

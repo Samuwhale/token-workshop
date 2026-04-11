@@ -38,6 +38,13 @@ describe('config', () => {
           code: './scripts/backlog/code.md',
         },
         validationCommand: 'bash scripts/backlog/validate.sh',
+        runners: {
+          task: { tool: 'codex', model: 'default' },
+          planner: { tool: 'codex', model: 'default' },
+          product: { tool: 'codex', model: 'default' },
+          ux: { tool: 'codex', model: 'default' },
+          code: { tool: 'codex', model: 'default' },
+        },
       },
       path.join(root, 'backlog.config.mjs'),
     );
@@ -51,10 +58,11 @@ describe('config', () => {
     expect(config.prompts.agent).toBe(path.join(root, 'scripts/backlog/agent.md'));
     expect(config.prompts.planner).toBe(path.join(root, 'scripts/backlog/planner.md'));
     expect(config.defaults.workers).toBe(1);
+    expect(config.runners.task).toEqual({ tool: 'codex', model: 'default' });
     expect(config.validationProfiles.repo).toBe('bash scripts/backlog/validate.sh');
   });
 
-  it('resolves models from models.json and applies CLI overrides', async () => {
+  it('resolves per-runner models from models.json and applies global CLI overrides', async () => {
     const root = await makeTempDir();
     await mkdir(path.join(root, 'scripts/backlog'), { recursive: true });
     await writeFile(
@@ -62,6 +70,7 @@ describe('config', () => {
       JSON.stringify({
         aliases: {
           default: { codex: 'gpt-5.4' },
+          claudeDefault: { claude: 'claude-opus-4-6' },
           sonnet: { codex: 'gpt-5.5' },
         },
       }),
@@ -87,11 +96,15 @@ describe('config', () => {
           code: './scripts/backlog/code.md',
         },
         validationCommand: 'bash scripts/backlog/validate.sh',
+        runners: {
+          task: { tool: 'codex', model: 'default' },
+          planner: { tool: 'codex', model: 'sonnet' },
+          product: { tool: 'claude', model: 'claudeDefault' },
+          ux: { tool: 'codex', model: 'default' },
+          code: { tool: 'codex', model: 'default' },
+        },
         defaults: {
-          tool: 'codex',
           workers: 4,
-          model: 'default',
-          passModel: 'sonnet',
           passes: true,
           worktrees: true,
         },
@@ -102,16 +115,18 @@ describe('config', () => {
     const options = await resolveRunOptions(config, {
       workers: 2,
       model: 'sonnet',
+      tool: 'codex',
       worktrees: false,
     });
 
     expect(options.workers).toBe(2);
-    expect(options.model).toBe('gpt-5.5');
-    expect(options.passModel).toBe('gpt-5.5');
+    expect(options.runners.task).toEqual({ tool: 'codex', model: 'gpt-5.5' });
+    expect(options.runners.planner).toEqual({ tool: 'codex', model: 'gpt-5.5' });
+    expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.5' });
     expect(options.worktrees).toBe(false);
   });
 
-  it('pins explicit model aliases when no model is configured', async () => {
+  it('resolves per-runner aliases without global overrides', async () => {
     const root = await makeTempDir();
     const config = normalizeBacklogRunnerConfig(
       {
@@ -131,11 +146,15 @@ describe('config', () => {
           code: './scripts/backlog/code.md',
         },
         validationCommand: 'bash scripts/backlog/validate.sh',
+        runners: {
+          task: { tool: 'codex', model: 'default' },
+          planner: { tool: 'claude', model: 'default' },
+          product: { tool: 'codex', model: 'sonnet' },
+          ux: { tool: 'claude', model: 'opus' },
+          code: { tool: 'codex', model: 'default' },
+        },
         defaults: {
-          tool: 'codex',
           workers: 3,
-          model: 'default',
-          passModel: 'sonnet',
           passes: true,
           worktrees: true,
         },
@@ -146,7 +165,9 @@ describe('config', () => {
     const options = await resolveRunOptions(config);
 
     expect(options.workers).toBe(3);
-    expect(options.model).toBe('gpt-5.4');
-    expect(options.passModel).toBe('gpt-5.4');
+    expect(options.runners.task).toEqual({ tool: 'codex', model: 'gpt-5.4' });
+    expect(options.runners.planner).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
+    expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.4' });
+    expect(options.runners.ux).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
   });
 });

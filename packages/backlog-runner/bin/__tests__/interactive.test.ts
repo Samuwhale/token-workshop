@@ -31,18 +31,16 @@ describe('interactive helpers', () => {
 
   it('renders a readable summary of selected options', () => {
     const summary = summarizeRunOverrides({
-      tool: 'codex',
+      tool: undefined,
       workers: 3,
-      model: '',
-      passModel: '',
+      model: undefined,
       passes: true,
       worktrees: false,
     });
 
-    expect(summary).toContain('Tool:           codex');
+    expect(summary).toContain('Tool override:  per-runner config');
     expect(summary).toContain('Workers:        3');
-    expect(summary).toContain('Model:          CLI default');
-    expect(summary).toContain('Pass model:     same as main model / CLI default');
+    expect(summary).toContain('Model override: per-runner config');
     expect(summary).toContain('Worktrees:      disabled');
   });
 

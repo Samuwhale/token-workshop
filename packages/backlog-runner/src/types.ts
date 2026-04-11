@@ -1,5 +1,7 @@
 export type BacklogTool = 'claude' | 'codex';
 export type BacklogPassType = 'product' | 'ux' | 'code';
+export const BACKLOG_RUNNER_ROLES = ['task', 'planner', 'product', 'ux', 'code'] as const;
+export type BacklogRunnerRole = typeof BACKLOG_RUNNER_ROLES[number];
 export type BacklogTaskPriority = 'high' | 'normal' | 'low';
 export type BacklogTaskState = 'planned' | 'ready' | 'done' | 'failed' | 'superseded';
 export type BacklogTaskKind = 'implementation' | 'research';
@@ -36,11 +38,12 @@ export interface BacklogRunnerConfigInput {
   };
   validationCommand: string;
   validationProfiles?: Record<string, string>;
-  defaults?: {
-    tool?: BacklogTool;
-    workers?: number;
+  runners: Record<BacklogRunnerRole, {
+    tool: BacklogTool;
     model?: string;
-    passModel?: string;
+  }>;
+  defaults?: {
+    workers?: number;
     passes?: boolean;
     worktrees?: boolean;
   };
@@ -66,11 +69,12 @@ export interface BacklogRunnerConfig {
   prompts: Record<BacklogPassType | 'agent' | 'planner', string>;
   validationCommand: string;
   validationProfiles: Record<string, string>;
-  defaults: {
+  runners: Record<BacklogRunnerRole, {
     tool: BacklogTool;
-    workers: number;
     model?: string;
-    passModel?: string;
+  }>;
+  defaults: {
+    workers: number;
     passes: boolean;
     worktrees: boolean;
   };
@@ -78,20 +82,22 @@ export interface BacklogRunnerConfig {
 }
 
 export interface RunOverrides {
+  /** Global override — when set, every runner uses this tool instead of its configured one. */
   tool?: BacklogTool;
-  workers?: number;
+  /** Global override — when set, every runner uses this model instead of its configured one. */
   model?: string;
-  passModel?: string;
+  workers?: number;
   passes?: boolean;
   worktrees?: boolean;
   interactive?: boolean;
 }
 
 export interface ResolvedRunOptions {
-  tool: BacklogTool;
+  runners: Record<BacklogRunnerRole, {
+    tool: BacklogTool;
+    model?: string;
+  }>;
   workers: number;
-  model?: string;
-  passModel?: string;
   passes: boolean;
   worktrees: boolean;
 }

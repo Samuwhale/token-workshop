@@ -1,6 +1,5 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
-import { resolveModelAlias } from '../src/config.js';
 import type { BacklogRunnerConfig, BacklogTool, RunOverrides } from '../src/types.js';
 
 const TOOLS: BacklogTool[] = ['claude', 'codex'];
@@ -43,57 +42,25 @@ export function resolveWorkerChoice(value: string, fallback: number, maxWorkers 
 
 export function summarizeRunOverrides(
   overrides: {
-    tool: BacklogTool;
+    tool?: BacklogTool;
     workers: number;
-    model: string;
-    passModel: string;
+    model?: string;
     passes: boolean;
     worktrees: boolean;
   },
 ): string {
-  const model = overrides.model.trim() || 'CLI default';
-  const passModel = overrides.passModel.trim() || 'same as main model / CLI default';
+  const tool = overrides.tool ?? 'per-runner config';
+  const model = overrides.model?.trim() || 'per-runner config';
   return [
     'Selected options',
     SUMMARY_DIVIDER,
-    `Tool:           ${overrides.tool}`,
+    `Tool override:  ${tool}`,
     `Workers:        ${overrides.workers}`,
-    `Model:          ${model}`,
-    `Pass model:     ${passModel}`,
+    `Model override: ${model}`,
     `Passes:         ${overrides.passes ? 'enabled' : 'disabled'}`,
     `Worktrees:      ${overrides.worktrees ? 'enabled' : 'disabled'}`,
     SUMMARY_DIVIDER,
   ].join('\n');
-}
-
-function formatModelSetting(rawValue: string | undefined, resolvedValue: string | undefined, fallbackLabel: string): string {
-  const normalizedRaw = rawValue?.trim();
-  if (!normalizedRaw) {
-    return fallbackLabel;
-  }
-  if (resolvedValue && resolvedValue !== normalizedRaw) {
-    return `${normalizedRaw} -> ${resolvedValue}`;
-  }
-  return resolvedValue ?? normalizedRaw;
-}
-
-async function describeModelSettings(
-  config: BacklogRunnerConfig,
-  tool: BacklogTool,
-  model: string | undefined,
-  passModel: string | undefined,
-): Promise<{ model: string; passModel: string }> {
-  const resolvedModel = await resolveModelAlias(config, model, tool);
-  const resolvedPassModel = passModel
-    ? await resolveModelAlias(config, passModel, tool)
-    : resolvedModel;
-
-  return {
-    model: formatModelSetting(model, resolvedModel, 'CLI default'),
-    passModel: passModel
-      ? formatModelSetting(passModel, resolvedPassModel, 'same as main model / CLI default')
-      : `same as main model${resolvedModel ? ` -> ${resolvedModel}` : ' / CLI default'}`,
-  };
 }
 
 function hasExplicitOverrides(overrides: RunOverrides): boolean {
@@ -101,7 +68,6 @@ function hasExplicitOverrides(overrides: RunOverrides): boolean {
     overrides.tool !== undefined ||
     overrides.workers !== undefined ||
     overrides.model !== undefined ||
-    overrides.passModel !== undefined ||
     overrides.passes !== undefined ||
     overrides.worktrees !== undefined,
   );
@@ -127,30 +93,23 @@ export async function promptForRunOverrides(
     while (true) {
       output.write('\nBacklog Runner Options\n\n');
 
-      const defaultTool = previous.tool ?? config.defaults.tool;
-      output.write('Tool options:\n');
+      const defaultTool = previous.tool;
+      output.write('Global tool override options:\n');
       TOOLS.forEach((tool, index) => {
-        const marker = tool === defaultTool ? ' (default)' : '';
+        const marker = tool === defaultTool ? ' (selected)' : '';
         output.write(`  ${index + 1}. ${tool}${marker}\n`);
       });
-      const toolAnswer = await rl.question(`Tool [1-${TOOLS.length} or name] (${defaultTool}): `);
-      const nextTool = resolveToolChoice(toolAnswer, defaultTool);
+      const toolAnswer = await rl.question(`Tool [1-${TOOLS.length} or name, blank keeps per-runner config] (${defaultTool ?? 'per-runner config'}): `);
+      const trimmedToolAnswer = toolAnswer.trim();
+      const nextTool = trimmedToolAnswer ? resolveToolChoice(trimmedToolAnswer, defaultTool ?? TOOLS[0]) : undefined;
 
       const defaultWorkers = previous.workers ?? config.defaults.workers;
       const workersAnswer = await rl.question(`Workers [1-${MAX_INTERACTIVE_WORKERS}] (${defaultWorkers}): `);
       const nextWorkers = resolveWorkerChoice(workersAnswer, defaultWorkers);
 
-      const defaultModel = previous.model ?? config.defaults.model;
-      const defaultPassModel = previous.passModel ?? config.defaults.passModel;
-      const describedDefaults = await describeModelSettings(config, nextTool, defaultModel, defaultPassModel);
-      const modelLabel = describedDefaults.model;
-      const modelAnswer = await rl.question(`Model (${modelLabel}): `);
-      const nextModel = modelAnswer.trim() || defaultModel;
-
-      const describedPassDefaults = await describeModelSettings(config, nextTool, nextModel, defaultPassModel);
-      const passModelLabel = describedPassDefaults.passModel;
-      const passModelAnswer = await rl.question(`Pass model (${passModelLabel}): `);
-      const nextPassModel = passModelAnswer.trim() || defaultPassModel;
+      const defaultModel = previous.model;
+      const modelAnswer = await rl.question(`Model override (blank keeps per-runner config) (${defaultModel ?? 'per-runner config'}): `);
+      const nextModel = modelAnswer.trim() || undefined;
 
       const defaultPasses = previous.passes ?? config.defaults.passes;
       const passesAnswer = await rl.question(`Enable discovery passes? [Y/n] (${defaultPasses ? 'yes' : 'no'}): `);
@@ -165,19 +124,15 @@ export async function promptForRunOverrides(
         tool: nextTool,
         workers: nextWorkers,
         model: nextModel,
-        passModel: nextPassModel,
         passes: nextPasses,
         worktrees: nextWorktrees,
         interactive: true,
       };
 
-      const describedSelections = await describeModelSettings(config, nextTool, nextModel, nextPassModel);
-
       output.write(`\n${summarizeRunOverrides({
         tool: nextTool,
         workers: nextWorkers,
-        model: describedSelections.model,
-        passModel: describedSelections.passModel,
+        model: nextModel,
         passes: nextPasses,
         worktrees: nextWorktrees,
       })}\n`);

@@ -1,7 +1,7 @@
 # Backlog Agent Instructions
 
-You are an autonomous implementation agent. Your assigned task spec is provided in the
-system prompt — do NOT pick work yourself and do NOT widen scope beyond the declared task.
+You are an autonomous implementation agent. Your assigned task spec is provided in your
+context below — do NOT pick work yourself and do NOT widen scope beyond the declared task.
 
 You already received a compact digest of relevant patterns and recent history. Do not trawl
 large repo journals up front; open additional files only when they are directly needed for the
@@ -15,7 +15,7 @@ is simple for later agents to understand and maintain.
 
 ## Workflow
 
-1. **Read the assigned item** from the system prompt.
+1. **Read the assigned item** from your context.
 2. **Assess complexity:**
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
    - *Complex* (multi-file, behaviour change, or unclear scope): make a brief inline plan, then execute.
@@ -29,7 +29,7 @@ is simple for later agents to understand and maintain.
    - Do NOT use `npx pnpm …` or `npx turbo …` in worktrees.
    - If validation fails and the issue is unfixable within scope, revert your source changes or report failure instead of leaving unrelated breakage behind.
 5. **Append to `scripts/backlog/progress.txt`** (see format below).
-6. **Queue follow-up work when needed** — if the current item reveals another backlog-worthy task or context a later run will need, append a JSON line to the follow-up queue path provided in your system prompt/context. Use:
+6. **Queue follow-up work when needed** — if the current item reveals another backlog-worthy task or context a later run will need, append a JSON line to the follow-up queue path provided in your context. Use:
 
 ```
 {"title":"Standalone backlog item title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context for the future run","source":"task-followup"}

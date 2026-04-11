@@ -42,38 +42,49 @@ function createFakeCommandRunner(
   const validationResponses = [...(options.validationResponses ?? [true])];
   const validationResults = [...(options.validationResults ?? [])];
 
+  async function writeCodexOutput(args: string[], payload: Record<string, unknown>): Promise<void> {
+    const outputFlagIndex = args.indexOf('--output-last-message');
+    const outputFile = outputFlagIndex >= 0 ? args[outputFlagIndex + 1] : null;
+    if (outputFile) {
+      await writeFile(outputFile, JSON.stringify(payload), 'utf8');
+    }
+  }
+
+  function buildAgentPayload(input: string | undefined): Record<string, unknown> {
+    if (input?.includes('planner prompt')) {
+      return {
+        status: 'done',
+        item: 'planner-pass',
+        note: 'superseded one parent',
+        action: 'supersede',
+        parent_task_ids: ['task-a'],
+        children: [{
+          title: 'Research test item implementation plan',
+          task_kind: 'research',
+          priority: 'normal',
+          touch_paths: ['backlog/inbox.jsonl', 'scripts/backlog/progress.txt'],
+          acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
+          context: 'Inspect the test item surface and emit concrete implementation follow-ups.',
+        }],
+        ...(options.plannerOutput ?? {}),
+      };
+    }
+
+    if (input?.includes('Return exactly this JSON object and nothing else: {"status":"done","item":"smoke","note":"ok"}')) {
+      return { status: 'done', item: 'smoke', note: 'ok' };
+    }
+
+    return { status: 'done', item: 'test item', note: 'implemented' };
+  }
+
   return {
     async run(command: string, args: string[], runOptions?: { input?: string }): Promise<CommandResult> {
       options.calls?.push(`run:${command} ${args.join(' ')}`.trim());
-      if (command === 'claude') {
+      if (command === 'claude' || command === 'codex') {
         if (runOptions?.input) {
           options.calls?.push(`input:${runOptions.input}`);
         }
         const isRepairPrompt = runOptions?.input?.includes('## Workspace Repair Mode') || runOptions?.input?.includes('## Reconciliation Mode');
-        if (runOptions?.input === 'planner prompt') {
-          return {
-            code: 0,
-            stdout: JSON.stringify({
-              structured_output: options.plannerOutput ?? {
-                status: 'done',
-                item: 'planner-pass',
-                note: 'superseded one parent',
-                action: 'supersede',
-                parent_task_ids: ['task-a'],
-                children: [{
-                  title: 'Research test item implementation plan',
-                  task_kind: 'research',
-                  priority: 'normal',
-                  touch_paths: ['backlog/inbox.jsonl', 'scripts/backlog/progress.txt'],
-                  acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
-                  context: 'Inspect the test item surface and emit concrete implementation follow-ups.',
-                }],
-              },
-            }),
-            stderr: '',
-          };
-        }
-
         if (isRepairPrompt && options.clearStagedFilesOnRepair) {
           stagedFiles.clear();
         }
@@ -84,10 +95,20 @@ function createFakeCommandRunner(
           'utf8',
         );
 
+        const payload = buildAgentPayload(runOptions?.input);
+        if (command === 'codex') {
+          await writeCodexOutput(args, payload);
+          return {
+            code: 0,
+            stdout: '',
+            stderr: '',
+          };
+        }
+
         return {
           code: 0,
           stdout: JSON.stringify({
-            structured_output: { status: 'done', item: 'test item', note: 'implemented' },
+            structured_output: payload,
           }),
           stderr: '',
         };
@@ -196,11 +217,15 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
         repo: 'bash scripts/backlog/validate.sh',
         backlog: 'bash scripts/backlog/validate.sh',
       },
+      runners: {
+        task: { tool: 'claude', model: 'default' },
+        planner: { tool: 'claude', model: 'sonnet' },
+        product: { tool: 'claude', model: 'sonnet' },
+        ux: { tool: 'claude', model: 'sonnet' },
+        code: { tool: 'claude', model: 'sonnet' },
+      },
       defaults: {
-        tool: 'claude',
         workers: 1,
-        model: 'default',
-        passModel: 'sonnet',
         passes: false,
         worktrees: false,
       },
@@ -767,6 +792,72 @@ describe('runner e2e', () => {
 
     expect(calls).toContain('input:planner prompt');
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-failed.yaml'), 'utf8')).toContain('state: superseded');
+  });
+
+  it('uses the task runner for execution and the planner runner for refinement', async () => {
+    const { config, root } = await makeFixture([
+      baseTask({ id: 'task-ready', title: 'Ready task', touchPaths: ['feature.txt'] }),
+      baseTask({
+        id: 'task-planned',
+        title: 'Planned task',
+        state: 'planned',
+        touchPaths: [],
+        statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+      }),
+    ]);
+    config.runners.task = { tool: 'claude', model: 'default' };
+    config.runners.planner = { tool: 'codex', model: 'default' };
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          statusResponses: [['feature.txt']],
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(calls.some(call => call.includes('planner prompt'))).toBe(true);
+    expect(calls.some(call => call.startsWith('run:codex exec'))).toBe(true);
+    expect(calls.some(call => call.startsWith('run:claude --dangerously-skip-permissions'))).toBe(true);
+  });
+
+  it('uses each discovery pass runner configuration independently', async () => {
+    const { config, root } = await makeFixture([]);
+    config.runners.product = { tool: 'codex', model: 'default' };
+    config.runners.ux = { tool: 'claude', model: 'default' };
+    config.runners.code = { tool: 'codex', model: 'default' };
+    const calls: string[] = [];
+    let sleepCalls = 0;
+
+    await runBacklogRunner(
+      config,
+      { passes: true },
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          statusResponses: [[], [], []],
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 1) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
+      },
+    );
+
+    expect(calls.some(call => call.includes('product prompt'))).toBe(true);
+    expect(calls.some(call => call.includes('ux prompt'))).toBe(true);
+    expect(calls.some(call => call.includes('code prompt'))).toBe(true);
+    expect(calls.filter(call => call.startsWith('run:codex exec')).length).toBeGreaterThanOrEqual(2);
+    expect(calls.some(call => call.startsWith('run:claude --dangerously-skip-permissions'))).toBe(true);
   });
 
   it('reports orchestrator worker state in the runtime report', async () => {
