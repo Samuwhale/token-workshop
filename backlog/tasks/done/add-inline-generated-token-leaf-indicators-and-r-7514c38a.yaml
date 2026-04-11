@@ -8,8 +8,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/components/tokenListTypes.ts
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Added neutral generated-token leaf glyphs from derivedTokenPaths and collapsed stale-generator signaling down to the amber group badge plus the expanded generator summary row."
+state: done
 acceptance_criteria:
   - Leaf tokens that belong to a generator-produced group show a subtle visual indicator
   - The derivedTokenPaths map is used to determine which leaf tokens are generator-produced
@@ -17,4 +18,4 @@ acceptance_criteria:
   - Remove the separate groupSummary pill that duplicates the stale label
 source: task-followup
 created_at: 2026-04-11T10:39:50.220Z
-updated_at: 2026-04-11T10:39:50.220Z
+updated_at: 2026-04-11T22:42:25.970Z

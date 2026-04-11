@@ -1169,3 +1169,10 @@
   - When generator ownership is already indexed by `derivedTokenPaths`, leaf-row provenance affordances should read directly from that map instead of inferring ownership from parent groups.
   - If a status needs both collapsed and expanded visibility, keep the collapsed signal to a single compact badge and move the actionable explanation into the expanded summary surface.
 ---
+## 2026-04-12 - Rewrite remaining shell menu and match-copy strings to task language
+- Rewrote the shell menu helper copy to describe the user task directly and updated the Apply > Best matches status text so it no longer uses implementation terms like "surface" or "surfaced."
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/App.tsx` passed.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2255, `packages/figma-plugin/src/ui/App.tsx` ~L2952
+- **Learnings for future iterations:**
+  - When shell navigation metadata leaks into user copy, rewrite the string around the action a person can take rather than the internal navigation model behind it.
+---

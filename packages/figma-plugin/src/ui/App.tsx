@@ -2252,10 +2252,10 @@ export function App() {
         detail: !applyWorkflowSummary.hasSelection
           ? "Pick a layer first"
           : !applyWorkflowSummary.hasAnyTokens
-            ? "Create tokens before matches can surface"
+            ? "Create tokens before the app can suggest matches"
             : applyWorkflowSummary.suggestionCount > 0
               ? `${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? "" : "es"} ready`
-              : "No strong automatic matches surfaced",
+              : "No strong matches found for this selection",
         tone: !applyWorkflowSummary.hasSelection
           ? "blocked"
           : !applyWorkflowSummary.hasAnyTokens
@@ -2949,7 +2949,7 @@ export function App() {
                           Settings & shortcuts
                         </div>
                         <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          Reference surfaces that stay open in the shell.
+                          Open settings or review keyboard shortcuts.
                         </div>
                       </div>
                       {shellMenuSurfaces.map((surface) => (
