@@ -168,6 +168,7 @@ function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) 
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
+  selectionLoading: boolean;
   tokenMap: Record<string, TokenMapEntry>;
   onSync: (scope: 'page' | 'selection') => void;
   syncing: boolean;
@@ -193,6 +194,7 @@ export interface SelectionInspectorHandle {
 
 export function SelectionInspector({
   selectedNodes,
+  selectionLoading,
   tokenMap,
   onSync,
   syncing,
@@ -806,6 +808,19 @@ export function SelectionInspector({
       selectionInspectorHandle.current = null;
     };
   }, [focusStage, selectionInspectorHandle]);
+
+  if (selectionLoading) {
+    return (
+      <div className="flex-1 flex flex-col gap-3 px-4 pt-4">
+        <FeedbackPlaceholder
+          variant="empty"
+          size="section"
+          title="Loading selection"
+          description="Waiting for the current Figma selection to arrive."
+        />
+      </div>
+    );
+  }
 
   // No selection — full empty state
   if (!hasSelection) {

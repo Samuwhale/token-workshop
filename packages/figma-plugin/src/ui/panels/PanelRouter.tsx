@@ -267,7 +267,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     dimensions, setDimensions, activeThemes, setActiveThemes, themedAllTokensFlat,
   } = useThemeSwitcherContext();
   const resolverState = useResolverContext();
-  const { selectedNodes } = useSelectionContext();
+  const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
     heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
     heatmapScope: _heatmapScope, setHeatmapScope: _setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan: _cancelHeatmapScan,
@@ -1066,6 +1066,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       <ErrorBoundary panelName="Inspector" onReset={() => navigateTo('define', 'tokens')}>
         <SelectionInspector
           selectedNodes={selectedNodes}
+          selectionLoading={selectionLoading}
           tokenMap={allTokensFlat}
           onSync={sync}
           syncing={syncing}

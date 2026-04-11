@@ -979,3 +979,11 @@
   - Priority strips need both the count and the impact sentence inline; otherwise the row reads like a status ticker instead of a decision surface.
   - Aggregate health cards should derive their counts from the same live validation source as the detailed report, or the summary surface drifts out of trust quickly.
 ---
+## 2026-04-11 - Add selection-loading state to useSelection to prevent empty-state flash in SelectionInspector and QuickApplyPicker
+- Finished the selection bootstrap flow by wiring `selectionLoading` into the inspector route and showing a neutral loading placeholder until the first backend `selection` payload arrives, so the inspector no longer flashes its "No layer selected" empty state during startup.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "SelectionInspector\\.tsx|PanelRouter\\.tsx"` returned no diagnostics for the touched files; the broader typecheck still fails on unrelated pre-existing workspace issues such as `packages/core/dist` `TS6305` build-artifact errors and long-standing type errors elsewhere.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L169, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L812, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L270, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L1067
+- **Learnings for future iterations:**
+  - Once selection bootstrap state exists in `InspectContext`, every selection-driven surface should consume that shared loading flag instead of interpreting the hook's initial `[]` as a real empty selection.
+  - Neutral loading placeholders are preferable to search or empty-state affordances while the first Figma selection message is still in flight, because they avoid implying that the canvas has already reported "nothing selected."
+---

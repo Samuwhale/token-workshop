@@ -47,7 +47,7 @@
 - [x] [HIGH] Refresh audit panel explanatory-context task touch paths and implement header/context copy
 - [x] [HIGH] Update QuickApplyPicker mount guard to respect selection loading
 - [x] [HIGH] Add explanatory context to collapsed section headers for Unused, Duplicates, Contrast, and Lightness panels
-- [ ] [HIGH] Add inline explanations, specific CTAs, and live counts to HealthPanel priority issues strip
+- [x] [HIGH] Add inline explanations, specific CTAs, and live counts to HealthPanel priority issues strip
 - [ ] [HIGH] Add selection-loading state to useSelection to prevent empty-state flash in SelectionInspector and QuickApplyPicker
 - [ ] [HIGH] Collapse generator card action buttons into a context menu
 - [ ] [HIGH] Collapse workflow stage cards to minimal step indicators in Themes, Apply, and Sync
