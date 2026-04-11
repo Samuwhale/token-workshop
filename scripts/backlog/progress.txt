@@ -1122,3 +1122,11 @@
   - If a toast variant needs different inbox treatment, preserve the original variant in history instead of routing it through an existing success or error callback.
   - Toast bus listeners should expose one handler per supported variant so render timing and notification severity stay aligned.
 ---
+## 2026-04-12 - Add undo-slot capture to inline save paths
+- Inline token edits now pass the pre-edit token snapshot through every row-level, popover, alias, color, nudge, and multi-mode save path, and `useTokenSave` clones that snapshot before patching so undo restores the actual pre-inline-edit value instead of whatever the live token object becomes after refresh.
+- Validation: `git diff --check -- packages/figma-plugin/src/ui/components/TokenTreeNode.tsx packages/figma-plugin/src/ui/components/InlineValuePopover.tsx packages/figma-plugin/src/ui/components/tokenListTypes.ts packages/figma-plugin/src/ui/hooks/useTokenSave.ts` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "TokenTreeNode\\.tsx|useTokenSave\\.ts"` returned no matches. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "InlineValuePopover\\.tsx|tokenListTypes\\.ts|error TS6305"` still reports pre-existing `packages/core/dist` `TS6305` build-artifact failures on workspace imports.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L358, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1707, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2131, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2881, `packages/figma-plugin/src/ui/components/InlineValuePopover.tsx` ~L41, `packages/figma-plugin/src/ui/components/InlineValuePopover.tsx` ~L197, `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L404, `packages/figma-plugin/src/ui/hooks/useTokenSave.ts` ~L20, `packages/figma-plugin/src/ui/hooks/useTokenSave.ts` ~L43, `packages/figma-plugin/src/ui/hooks/useTokenSave.ts` ~L171
+- **Learnings for future iterations:**
+  - Inline save callbacks should carry an explicit pre-edit snapshot instead of re-reading mutable token entries after the async save finishes.
+  - Undo payloads for token value edits should deep-clone both the previous and next values so composite token restores do not inherit later object mutations.
+---

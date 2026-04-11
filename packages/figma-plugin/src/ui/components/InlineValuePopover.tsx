@@ -38,7 +38,10 @@ export interface InlineValuePopoverProps {
   pathToSet?: Record<string, string>;
   /** Bounding rect of the token row — used to position the popover */
   anchorRect: DOMRect;
-  onSave: (newValue: unknown) => void;
+  onSave: (
+    newValue: unknown,
+    previousState: { type?: string; value: unknown },
+  ) => void;
   onOpenFullEditor: () => void;
   onClose: () => void;
 }
@@ -192,12 +195,12 @@ export function InlineValuePopover({
   }, [onClose]);
 
   const handleSave = useCallback(() => {
-    onSave(draftValue);
-  }, [draftValue, onSave]);
+    onSave(draftValue, { type: tokenType, value: currentValue });
+  }, [currentValue, draftValue, onSave, tokenType]);
 
   const handleAliasSelect = useCallback((path: string) => {
-    onSave(`{${path}}`);
-  }, [onSave]);
+    onSave(`{${path}}`, { type: tokenType, value: currentValue });
+  }, [currentValue, onSave, tokenType]);
 
   // Compute popover position: prefer below the row, flip above if needed
   const POPOVER_WIDTH = 320;

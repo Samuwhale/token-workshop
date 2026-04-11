@@ -401,7 +401,12 @@ export interface TokenTreeContextType {
   onFilterByType?: (type: string) => void;
   onJumpToGroup?: (path: string) => void;
   onZoomIntoGroup?: (groupPath: string) => void;
-  onInlineSave?: (path: string, type: string, newValue: any) => void;
+  onInlineSave?: (
+    path: string,
+    type: string,
+    newValue: any,
+    previousState?: { type?: string; value: unknown },
+  ) => void;
   onRenameToken?: (oldPath: string, newPath: string) => void;
   onDetachFromGenerator?: (path: string) => void;
   onEditGenerator?: (generatorId: string) => void;
@@ -442,6 +447,7 @@ export interface TokenTreeContextType {
     type: string,
     newValue: any,
     targetSet: string,
+    previousState?: { type?: string; value: unknown },
   ) => void;
   onNavigateToGenerator?: (generatorId: string) => void;
   /** One-click regenerate a specific generator (by id) — runs POST /api/generators/:id/run */

@@ -17,6 +17,12 @@ export interface UseTokenSaveParams {
   onError?: (msg: string) => void;
 }
 
+function cloneUndoValue<T>(value: T): T {
+  if (value === undefined || value === null) return value;
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export function useTokenSave({
   connected,
   serverUrl,
@@ -34,7 +40,12 @@ export function useTokenSave({
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
-  const handleInlineSave = useCallback(async (path: string, type: string, newValue: unknown) => {
+  const handleInlineSave = useCallback(async (
+    path: string,
+    type: string,
+    newValue: unknown,
+    previousState?: { type?: string; value: unknown },
+  ) => {
     if (!connected) return;
     // Prefer the raw per-set entry (alias refs intact) over the resolved cross-set
     // entry from allTokensFlat. For composite tokens (shadow, typography, etc.) whose
@@ -43,6 +54,18 @@ export function useTokenSave({
     // per-set entry also ensures undo is captured when the token lives in a theme-
     // disabled set that's absent from allTokensFlat.
     const oldEntry = perSetFlat?.[setName]?.[path] ?? allTokensFlat[path];
+    const previousSnapshot = previousState
+      ? {
+          type: previousState.type ?? oldEntry?.$type ?? type,
+          value: cloneUndoValue(previousState.value),
+        }
+      : oldEntry
+        ? {
+            type: oldEntry.$type,
+            value: cloneUndoValue(oldEntry.$value),
+          }
+        : null;
+    const nextSnapshot = { type, value: cloneUndoValue(newValue) };
     const encodedPath = tokenPathToUrlSegment(path);
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
@@ -54,7 +77,7 @@ export function useTokenSave({
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
     }
-    if (onPushUndo && oldEntry) {
+    if (onPushUndo && previousSnapshot) {
       const capturedSet = setName;
       const capturedUrl = serverUrl;
       onPushUndo({
@@ -67,7 +90,10 @@ export function useTokenSave({
           await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
+            body: JSON.stringify({
+              $type: previousSnapshot.type,
+              $value: previousSnapshot.value,
+            }),
           });
           onRefresh();
         },
@@ -79,7 +105,10 @@ export function useTokenSave({
           await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: type, $value: newValue }),
+            body: JSON.stringify({
+              $type: nextSnapshot.type,
+              $value: nextSnapshot.value,
+            }),
           });
           onRefresh();
         },
@@ -139,9 +168,27 @@ export function useTokenSave({
     onRecordTouch(path);
   }, [connected, serverUrl, setName, allTokensFlat, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
-  const handleMultiModeInlineSave = useCallback(async (path: string, type: string, newValue: unknown, targetSet: string) => {
+  const handleMultiModeInlineSave = useCallback(async (
+    path: string,
+    type: string,
+    newValue: unknown,
+    targetSet: string,
+    previousState?: { type?: string; value: unknown },
+  ) => {
     if (!connected) return;
     const oldEntry = perSetFlat?.[targetSet]?.[path];
+    const previousSnapshot = previousState
+      ? {
+          type: previousState.type ?? oldEntry?.$type ?? type,
+          value: cloneUndoValue(previousState.value),
+        }
+      : oldEntry
+        ? {
+            type: oldEntry.$type,
+            value: cloneUndoValue(oldEntry.$value),
+          }
+        : null;
+    const nextSnapshot = { type, value: cloneUndoValue(newValue) };
     const encodedPath = tokenPathToUrlSegment(path);
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
@@ -153,24 +200,30 @@ export function useTokenSave({
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
     }
-    if (onPushUndo) {
+    if (onPushUndo && previousSnapshot) {
+      const capturedUrl = serverUrl;
+      const capturedSet = targetSet;
       onPushUndo({
         description: `Edit ${path} in ${targetSet}`,
         restore: async () => {
-          if (oldEntry) {
-            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
-            });
-          }
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              $type: previousSnapshot.type,
+              $value: previousSnapshot.value,
+            }),
+          });
           onRefresh();
         },
         redo: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: type, $value: newValue }),
+            body: JSON.stringify({
+              $type: nextSnapshot.type,
+              $value: nextSnapshot.value,
+            }),
           });
           onRefresh();
         },

@@ -355,7 +355,13 @@ function MultiModeCell({
   value: TokenMapEntry | undefined;
   targetSet: string | null;
   optionName: string;
-  onSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+  onSave?: (
+    path: string,
+    type: string,
+    newValue: any,
+    targetSet: string,
+    previousState?: { type?: string; value: unknown },
+  ) => void;
   isTabPending?: boolean;
   onTabActivated?: () => void;
   onTab?: (direction: 1 | -1) => void;
@@ -403,8 +409,11 @@ function MultiModeCell({
     const parsed = parseInlineValue(tokenType, raw);
     if (parsed === null) return;
     setEditing(false);
-    onSave(tokenPath, tokenType, parsed, targetSet);
-  }, [editing, editValue, tokenType, targetSet, tokenPath, onSave]);
+    onSave(tokenPath, tokenType, parsed, targetSet, {
+      type: value?.$type ?? tokenType,
+      value: value?.$value,
+    });
+  }, [editing, editValue, tokenType, targetSet, tokenPath, onSave, value]);
 
   const openAliasEditor = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -457,7 +466,10 @@ function MultiModeCell({
               onBlur={(e) => {
                 const newHex = e.target.value + colorAlphaSuffix;
                 if (newHex !== colorHex) {
-                  onSave!(tokenPath, 'color', newHex, targetSet!);
+                  onSave!(tokenPath, 'color', newHex, targetSet!, {
+                    type: value.$type,
+                    value: value.$value,
+                  });
                 }
               }}
             />
@@ -484,7 +496,12 @@ function MultiModeCell({
                 const raw = editValue.trim();
                 if (raw) {
                   const parsed = parseInlineValue(tokenType, raw);
-                  if (parsed !== null) onSave(tokenPath, tokenType, parsed, targetSet);
+                  if (parsed !== null) {
+                    onSave(tokenPath, tokenType, parsed, targetSet, {
+                      type: value?.$type ?? tokenType,
+                      value: value?.$value,
+                    });
+                  }
                 }
               }
               setEditing(false);
@@ -534,7 +551,13 @@ function MultiModeCell({
                   pathToSet={pathToSet}
                   filterType={tokenType}
                   onSelect={path => {
-                    onSave!(tokenPath, tokenType || value.$type || 'color', `{${path}}`, targetSet!);
+                    onSave!(
+                      tokenPath,
+                      tokenType || value.$type || 'color',
+                      `{${path}}`,
+                      targetSet!,
+                      { type: value.$type, value: value.$value },
+                    );
                     closeAliasEditor();
                   }}
                   onClose={closeAliasEditor}
@@ -1681,7 +1704,10 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     }
     setInlineEditError(null);
     setInlineEditActive(false);
-    onInlineSave?.(node.path, node.$type!, parsed);
+    onInlineSave?.(node.path, node.$type!, parsed, {
+      type: node.$type,
+      value: node.$value,
+    });
     // Show nudge after saving a raw value — matches will be computed by the hook
     setInlineNudgeVisible(true);
   }, [inlineEditActive, inlineEditValue, node, onInlineSave]);
@@ -1703,7 +1729,10 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           setInlineEditError(getInlineValueError(node.$type));
           return;
         }
-        onInlineSave?.(node.path, node.$type, parsed);
+        onInlineSave?.(node.path, node.$type, parsed, {
+          type: node.$type,
+          value: node.$value,
+        });
       }
     }
     setInlineEditError(null);
@@ -2099,7 +2128,12 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
                 onChange={setPendingColor}
                 onClose={() => {
                   setColorPickerOpen(false);
-                  if (pendingColor !== node.$value) onInlineSave?.(node.path, 'color', pendingColor);
+                  if (pendingColor !== node.$value) {
+                    onInlineSave?.(node.path, 'color', pendingColor, {
+                      type: node.$type,
+                      value: node.$value,
+                    });
+                  }
                 }}
               />
             )}
@@ -2769,7 +2803,10 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               pathToSet={pathToSet}
               filterType={node.$type}
               onSelect={path => {
-                onInlineSave?.(node.path, node.$type || 'color', `{${path}}`);
+                onInlineSave?.(node.path, node.$type || 'color', `{${path}}`, {
+                  type: node.$type,
+                  value: node.$value,
+                });
                 setAliasPickerOpen(false);
               }}
               onClose={() => setAliasPickerOpen(false)}
@@ -2841,8 +2878,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
           anchorRect={inlinePopoverAnchor}
-          onSave={(newVal) => {
-            onInlineSave?.(node.path, node.$type!, newVal);
+          onSave={(newVal, previousState) => {
+            onInlineSave?.(node.path, node.$type!, newVal, previousState);
             setInlinePopoverOpen(false);
           }}
           onOpenFullEditor={() => {
@@ -2871,7 +2908,10 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           tokenType={node.$type || ''}
           onAccept={(path) => {
             setInlineNudgeVisible(false);
-            onInlineSave?.(node.path, node.$type!, `{${path}}`);
+            onInlineSave?.(node.path, node.$type!, `{${path}}`, {
+              type: node.$type,
+              value: node.$value,
+            });
           }}
           onDismiss={() => setInlineNudgeVisible(false)}
         />
