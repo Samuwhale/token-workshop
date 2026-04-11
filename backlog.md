@@ -45,7 +45,7 @@
 - [x] [HIGH] Merge token search input and filter builder into one unified input with qualifier chips
 - [x] [HIGH] Rename resolver modifiers to resolver dimensions to fix dual-meaning modifier terminology
 - [x] [HIGH] Refresh audit panel explanatory-context task touch paths and implement header/context copy
-- [ ] [HIGH] Update QuickApplyPicker mount guard to respect selection loading
+- [x] [HIGH] Update QuickApplyPicker mount guard to respect selection loading
 - [ ] [HIGH] Add explanatory context to collapsed section headers for Unused, Duplicates, Contrast, and Lightness panels
 - [ ] [HIGH] Add inline explanations, specific CTAs, and live counts to HealthPanel priority issues strip
 - [ ] [HIGH] Add selection-loading state to useSelection to prevent empty-state flash in SelectionInspector and QuickApplyPicker

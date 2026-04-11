@@ -10,10 +10,11 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: The current backlog item for selection-loading is blocked because `App.tsx` contains the Quick Apply guard (`showQuickApply && selectedNodes.length > 0`) but was excluded from the allowed touch paths."
-state: ready
+  - "Completed: Added shared selectionLoading state to the inspect flow and gated QuickApplyPicker on first selection payload arrival before using selectedNodes.length."
+state: done
 acceptance_criteria:
   - QuickApplyPicker only renders after the first selection payload arrives
   - The guard uses the shared selection loading state instead of relying on an initially empty selection array
 source: task-followup
 created_at: 2026-04-11T19:56:20.795Z
-updated_at: 2026-04-11T19:56:20.795Z
+updated_at: 2026-04-11T20:46:53.216Z

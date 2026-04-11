@@ -19,6 +19,7 @@ export function ContrastMatrixPanel({
   allTokensFlat,
   pathToSet,
 }: ContrastMatrixPanelProps) {
+  const contrastRequirementSummary = 'AA needs 4.5:1 contrast for normal text; AAA needs 7:1.';
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
   const [contrastPage, setContrastPage] = useState(0);
   const [contrastFailuresOnly, setContrastFailuresOnly] = useState(false);
@@ -205,13 +206,20 @@ export function ContrastMatrixPanel({
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
       <button onClick={() => setShowContrastMatrix(v => !v)} className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-        <span>Color Contrast Matrix ({contrastGroupFilter === 'all' ? sourceTokens.length : displayTokens.length} tokens{isMultiMode ? ` · ${activeContrastThemeKeys.size} theme${activeContrastThemeKeys.size !== 1 ? 's' : ''}` : ''})</span>
+        <span className="flex flex-col items-start gap-0.5 text-left">
+          <span>
+            Color Contrast Matrix ({contrastGroupFilter === 'all' ? sourceTokens.length : displayTokens.length} tokens{isMultiMode ? ` · ${activeContrastThemeKeys.size} theme${activeContrastThemeKeys.size !== 1 ? 's' : ''}` : ''})
+          </span>
+          <span className="normal-case font-normal tracking-normal text-[9px] text-[var(--color-figma-text-secondary)]/80">
+            {contrastRequirementSummary}
+          </span>
+        </span>
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showContrastMatrix ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
       </button>
       {showContrastMatrix && (
         <div className="overflow-auto max-h-96 p-2">
           <p className="px-1 pb-2 text-[9px] text-[var(--color-figma-text-secondary)]">
-            WCAG AA requires at least 4.5:1 contrast for normal text, while AAA raises that requirement to 7:1.
+            {contrastRequirementSummary}
           </p>
           {/* Cross-theme toggle */}
           {hasMultiThemeOptions && (

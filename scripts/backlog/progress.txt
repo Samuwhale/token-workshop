@@ -954,3 +954,11 @@
   - Any UI gate that depends on Figma selection should distinguish “selection has not arrived yet” from “selection arrived and is empty”; the initial empty array is only a transport placeholder.
   - When multiple surfaces consume selection bootstrap state, carry it through `InspectContext` so mount guards stay consistent instead of each component inventing its own first-payload tracking.
 ---
+## 2026-04-11 - Add explanatory context to collapsed section headers for Unused, Duplicates, Contrast, and Lightness panels
+- Updated the Health sub-panel headers so Unused Tokens keeps its count tied to a concrete “not bound to any canvas node” qualifier, Duplicate Values shows its group and alias totals as explicit collapsed-header metadata, Contrast Matrix keeps the WCAG AA/AAA threshold sentence visible from the collapsed header, and Lightness Inspector anomaly warnings now render the exact token-path pairs that triggered each jump.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "UnusedTokensPanel|DuplicateDetectionPanel|ContrastMatrixPanel|LightnessInspectorPanel|TS[0-9]+"` still reports unrelated pre-existing workspace TypeScript failures (`packages/core/dist` `TS6305` build-artifact errors plus existing type issues elsewhere). No new task-specific diagnostics surfaced in the touched panel files.
+- Files changed: `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` ~L272, `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx` ~L194, `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L22, `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L208, `packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx` ~L39
+- **Learnings for future iterations:**
+  - Collapsed audit headers should carry the minimum explanation needed to interpret their counts without forcing a user to expand the section first.
+  - When anomaly warnings are actionable, render the exact token paths inline instead of summarizing them generically.
+---

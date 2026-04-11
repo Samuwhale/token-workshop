@@ -269,15 +269,15 @@ export function UnusedTokensPanel({
           onClick={() => setShowUnused(v => !v)}
           className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
         >
-          <span className="flex items-center gap-1.5">
+          <span className="flex flex-wrap items-center gap-1.5">
             {unusedTokens.length > 0 && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
             Unused Tokens
             {!hasUsageData ? (
-              <span className="normal-case font-normal opacity-60">(requires Figma usage scan)</span>
+              <span className="normal-case font-normal opacity-60">(scan required)</span>
             ) : (
               <>
                 <span className="ml-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">{unusedCount}</span>
-                <span className="normal-case font-normal opacity-60">(zero usage)</span>
+                <span className="normal-case font-normal opacity-60">not bound to any canvas node</span>
               </>
             )}
           </span>

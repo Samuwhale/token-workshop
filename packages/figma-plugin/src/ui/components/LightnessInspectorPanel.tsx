@@ -41,7 +41,7 @@ export function LightnessInspectorPanel({ colorScales }: LightnessInspectorPanel
               const currentValue = lValues[index + 1];
               const previousValue = lValues[index];
               if (Math.abs(currentValue.l - previousValue.l) <= avgGap * 2) return [];
-              return [`${previousStep.path} -> ${step.path}`];
+              return [{ fromPath: previousStep.path, toPath: step.path }];
             });
             const W = 200, H = 40;
             const pts = lValues.map((v, i) => {
@@ -63,9 +63,21 @@ export function LightnessInspectorPanel({ colorScales }: LightnessInspectorPanel
                   ))}
                 </svg>
                 {pts.some(p => p.isAnom) && (
-                  <div className="text-[10px] text-[var(--color-figma-warning)] mt-1 flex items-center gap-1">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                    <span>Uneven lightness steps detected at {anomalyPairs.join(', ')}</span>
+                  <div className="text-[10px] text-[var(--color-figma-warning)] mt-1 flex items-start gap-1">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                    <div className="flex flex-col gap-1">
+                      <span>Uneven lightness jumps between these tokens:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {anomalyPairs.map(({ fromPath, toPath }) => (
+                          <span
+                            key={`${fromPath}->${toPath}`}
+                            className="rounded border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 font-mono text-[9px] leading-none"
+                          >
+                            {fromPath} → {toPath}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
