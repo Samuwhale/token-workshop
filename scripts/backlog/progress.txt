@@ -1050,3 +1050,11 @@
   - Empty states read better when they answer only the immediate question of "what will show up here" instead of explaining inbox mechanics.
   - A follow-up backlog item was queued for remaining App shell copy that is still under another active reservation.
 ---
+## 2026-04-11 - Remove all-caps section labels from shell, workspace headers, and footer bands
+- Removed the shell's standalone `Workspaces` scaffolding label, dropped the workspace summary's `Current workspace`, `Sections`, and `Status` chrome, and restyled app-menu section headings so the shell no longer depends on 9px uppercase group labels. Verified the token-list `MORE CREATION` footer label and workflow-stage labels were already absent, so no product change was needed there.
+- Validation: `rg -n "WORKSPACES|SECONDARY SURFACES|CURRENT WORKSPACE|SECTIONS|STATUS|MORE CREATION|THEME WORKFLOW|APPLY WORKFLOW|SYNC WORKFLOW" packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx packages/figma-plugin/src/ui/components/TokenList.tsx` returned no matches. `rg -n "text-\\[9px\\].*uppercase.*tracking-(\\[0\\.08em\\]|wide|wider)|uppercase tracking-\\[0\\.08em\\]|uppercase tracking-wide|uppercase tracking-wider" packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` returned no matches. `pnpm exec prettier --check packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` passed.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2458, `packages/figma-plugin/src/ui/App.tsx` ~L2561, `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` ~L56
+- **Learnings for future iterations:**
+  - When the shell already makes the active area obvious through placement and pills, extra all-caps group labels usually add noise rather than orientation.
+  - Shared shell menus can keep sectioning without visual shouting by using the same sentence-case text scale as the rest of the menu chrome.
+---

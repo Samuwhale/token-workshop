@@ -56,10 +56,7 @@ export function WorkspaceSummaryHeader({
       <div className="flex flex-col gap-2 px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-              Current workspace
-            </div>
-            <div className="mt-1 truncate text-[13px] font-semibold text-[var(--color-figma-text)]">
+            <div className="truncate text-[13px] font-semibold text-[var(--color-figma-text)]">
               {title}
             </div>
           </div>
@@ -83,9 +80,6 @@ export function WorkspaceSummaryHeader({
                 role="tablist"
                 aria-label={`${title} sections`}
               >
-                <span className="pl-2 pr-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                  Sections
-                </span>
                 {sections.map((section) => {
                   const isActive = section.id === activeSectionId;
                   return (
@@ -108,10 +102,7 @@ export function WorkspaceSummaryHeader({
             )}
 
             {hasStatus && (
-              <div className="inline-flex min-w-0 items-center gap-1.5">
-                <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                  Status
-                </span>
+              <div className="inline-flex min-w-0 flex-wrap items-center gap-1.5">
                 {statusPills.map((pill, index) => (
                   <NoticePill
                     key={`${pill.label}-${index}`}

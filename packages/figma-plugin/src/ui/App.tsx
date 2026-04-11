@@ -2456,39 +2456,34 @@ export function App() {
       {/* Workspace shell */}
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
         <div className="flex items-start justify-between gap-3 px-3 py-2.5">
-          <div className="min-w-0 flex-1">
-            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-              Workspaces
-            </div>
-            <div
-              className="mt-1 flex min-w-0 items-center gap-1 overflow-x-auto rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-1"
-              role="tablist"
-              aria-label="Workspaces"
-            >
-              {APP_SHELL_NAVIGATION.workspaces.map((workspace) => {
-                const isActive = workspace.id === activeWorkspaceId;
-                return (
-                  <button
-                    key={workspace.id}
-                    role="tab"
-                    aria-selected={isActive}
-                    onClick={() =>
-                      guardEditorAction(() => {
-                        setReturnBreadcrumb(null);
-                        navigateTo(workspace.topTab, workspace.subTab);
-                      })
-                    }
-                    className={shellControlClass({
-                      active: isActive,
-                      size: "md",
-                      shape: "rounded",
-                    })}
-                  >
-                    {workspace.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div
+            className="min-w-0 flex flex-1 items-center gap-1 overflow-x-auto rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-1"
+            role="tablist"
+            aria-label="Workspaces"
+          >
+            {APP_SHELL_NAVIGATION.workspaces.map((workspace) => {
+              const isActive = workspace.id === activeWorkspaceId;
+              return (
+                <button
+                  key={workspace.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() =>
+                    guardEditorAction(() => {
+                      setReturnBreadcrumb(null);
+                      navigateTo(workspace.topTab, workspace.subTab);
+                    })
+                  }
+                  className={shellControlClass({
+                    active: isActive,
+                    size: "md",
+                    shape: "rounded",
+                  })}
+                >
+                  {workspace.label}
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
@@ -2564,7 +2559,7 @@ export function App() {
                   role="menu"
                 >
                   <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                    <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                       App menu
                     </div>
                     <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -2593,7 +2588,7 @@ export function App() {
                     )}
                     {showConnectionEditor && (
                       <div className="mt-2 flex flex-col gap-1.5">
-                        <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                           Server URL
                         </label>
                         <div className="flex gap-1.5">
@@ -2643,7 +2638,7 @@ export function App() {
                   {shellMenuSurfaces.length > 0 && (
                     <div>
                       <div className="px-3 py-1.5">
-                        <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                           Settings & shortcuts
                         </div>
                         <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -2676,7 +2671,7 @@ export function App() {
                     <div key={section.id}>
                       <div className="border-t border-[var(--color-figma-border)]" />
                       <div className="px-3 py-1.5">
-                        <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                           {section.label}
                         </div>
                         <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">

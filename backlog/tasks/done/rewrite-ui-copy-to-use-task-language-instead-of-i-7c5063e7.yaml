@@ -11,8 +11,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/components/KeyboardShortcutsPanel.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Rewrote task-facing copy in notifications, shortcuts, settings, and shared shell metadata; targeted prettier and focused typecheck checks passed, and a follow-up was queued for reserved App.tsx copy."
+state: done
 acceptance_criteria:
   - No remaining UI text uses terms like "takeover", "surface", "contextual surface", "stable parent surface", "mount", or "secondary surface"
   - Remaining labels and helper text use task-oriented language a designer would recognize
@@ -20,4 +21,4 @@ acceptance_criteria:
   - Notification inbox empty state is one short sentence, not a feature description
 source: manual
 created_at: 2026-04-11T22:00:00.000Z
-updated_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T21:35:05.965Z

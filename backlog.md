@@ -57,7 +57,7 @@
 - [ ] [HIGH] Remove all-caps section labels from shell, workspace headers, and footer bands
 - [x] [HIGH] Remove description paragraphs and implementation-language copy from all workspaces and surfaces
 - [x] [HIGH] Remove MORE CREATION footer and merge its actions into the existing toolbar
-- [ ] [HIGH] Rewrite UI copy to use task language instead of implementation language
+- [x] [HIGH] Rewrite UI copy to use task language instead of implementation language
 - [x] [HIGH] Simplify Settings to a flat scrollable list without search or tabs
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
