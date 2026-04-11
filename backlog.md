@@ -111,7 +111,7 @@
 - [x] Centralize server connection editing in Settings and reduce shell/onboarding affordances to passive recovery entry points
 - [x] Introduce confidence-based suggestion groups and shared reason copy across Apply suggestion lists
 - [x] Restructure variable and style diff review into apply-ready review groups inside each sync target
-- [ ] Add next-step recommendation rules based on import result
+- [x] Add next-step recommendation rules based on import result
 - [ ] Replace hardcoded post-import routing with recommendation-driven navigation
 - [ ] Surface a transient post-import banner on the destination workspace
 - [ ] Make contrast failure suggestions actionable with navigation CTAs

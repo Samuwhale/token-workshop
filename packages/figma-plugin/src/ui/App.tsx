@@ -809,7 +809,6 @@ export function App() {
         : CONTEXTUAL_PANEL_TRANSITIONS.bottomDrawer,
     [useSidePanel],
   );
-  const isNarrow = windowWidth <= 360;
 
   // Token drag state: set when a drag from the token tree is in progress
   const [tokenDragState, setTokenDragState] = useState<{
@@ -2397,6 +2396,10 @@ export function App() {
     activeSecondarySurface === null ? workspacePrimaryAction : null;
   const shellContextualControls =
     activeSecondarySurface === null ? workspaceContextualControls : null;
+  const isTokenWorkspacePrimarySurface =
+    activeTopTab === "define" &&
+    activeSubTab === "tokens" &&
+    activeSecondarySurface === null;
 
   const handleUtilityAction = useCallback(
     (actionId: UtilityActionId) => {
@@ -2450,6 +2453,37 @@ export function App() {
   const notificationCount = notificationHistory.length;
   const showNotificationButton =
     notificationCount > 0 || activeSecondarySurface === "notifications";
+  const tokenThemePreviewEntries = useMemo(
+    () =>
+      dimensions
+        .filter(
+          (dimension) =>
+            previewThemes[dimension.id] &&
+            previewThemes[dimension.id] !== activeThemes[dimension.id],
+        )
+        .map(
+          (dimension) => `${dimension.name}: ${previewThemes[dimension.id]}`,
+        ),
+    [activeThemes, dimensions, previewThemes],
+  );
+  const tokenThemeSelectionSummary = useMemo(() => {
+    const activeEntries = dimensions
+      .map((dimension) => activeThemes[dimension.id])
+      .filter(Boolean);
+    return activeEntries.join(" · ") || "No theme applied";
+  }, [activeThemes, dimensions]);
+  const showExpandedTokenThemeBar =
+    isTokenWorkspacePrimarySurface &&
+    (dimBarExpanded ||
+      themesError !== null ||
+      tokenThemePreviewEntries.length > 0);
+  const showCollapsedTokenThemeBar =
+    isTokenWorkspacePrimarySurface &&
+    dimensions.length > 0 &&
+    !showExpandedTokenThemeBar;
+  const workspaceHeaderStatusPills = isTokenWorkspacePrimarySurface
+    ? []
+    : secondarySurfacePills;
 
   return (
     <div className="relative flex flex-col h-screen">
@@ -2717,7 +2751,7 @@ export function App() {
               if (section.subTab === "canvas-analysis") triggerHeatmapScan();
             });
           }}
-          statusPills={secondarySurfacePills}
+          statusPills={workspaceHeaderStatusPills}
           primaryAction={shellPrimaryAction}
           contextualControls={shellContextualControls}
           returnBreadcrumb={returnBreadcrumb}
@@ -2734,7 +2768,7 @@ export function App() {
       {activeTopTab === "define" &&
         activeSubTab === "tokens" &&
         activeSecondarySurface === null &&
-        sets.length > 0 && (
+        sets.length > 1 && (
           <div
             className={`border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] ${tokenDragState ? "bg-[var(--color-figma-accent)]/[0.03]" : ""}`}
           >
@@ -2978,15 +3012,54 @@ export function App() {
               />
             ) : (
               <>
-                {/* Theme/Mode switcher — always visible on tokens tab */}
-                {activeTopTab === "define" &&
-                  activeSubTab === "tokens" &&
-                  activeSecondarySurface === null &&
-                  (isNarrow && dimensions.length > 0 && !dimBarExpanded ? (
-                    <button
-                      onClick={() => setDimBarExpanded(true)}
-                      className="flex shrink-0 items-center gap-1.5 px-2 py-1 w-full bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)] text-left"
+                {showCollapsedTokenThemeBar && (
+                  <button
+                    onClick={() => setDimBarExpanded(true)}
+                    className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-left"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                      aria-hidden="true"
                     >
+                      <circle cx="3.5" cy="5" r="2.5" />
+                      <circle cx="6.5" cy="5" r="2.5" />
+                    </svg>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      Themes
+                    </span>
+                    <span className="truncate text-[10px] text-[var(--color-figma-text)]">
+                      {tokenThemeSelectionSummary}
+                    </span>
+                    <svg
+                      width="8"
+                      height="8"
+                      viewBox="0 0 8 8"
+                      fill="none"
+                      className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+                    >
+                      <path
+                        d="M1 3l3 3 3-3"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                )}
+
+                {showExpandedTokenThemeBar && (
+                  <div
+                    ref={dimDropdownRef}
+                    className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1"
+                  >
+                    <span className="flex shrink-0 items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
                       <svg
                         width="10"
                         height="10"
@@ -3000,100 +3073,60 @@ export function App() {
                         <circle cx="3.5" cy="5" r="2.5" />
                         <circle cx="6.5" cy="5" r="2.5" />
                       </svg>
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate flex-1">
-                        {dimensions
-                          .map((d) => activeThemes[d.id])
-                          .filter(Boolean)
-                          .join(" · ") || "None"}
-                      </span>
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 8 8"
-                        fill="none"
-                        className="shrink-0 text-[var(--color-figma-text-tertiary)]"
-                      >
-                        <path
-                          d="M1 3l3 3 3-3"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  ) : (
-                    <div
-                      ref={dimDropdownRef}
-                      className="flex shrink-0 flex-wrap items-center gap-1.5 px-2 py-1 bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)]"
-                    >
-                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0 flex items-center gap-1">
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 10 10"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.2"
-                          strokeLinecap="round"
-                          aria-hidden="true"
+                      Themes
+                    </span>
+                    {themesError ? (
+                      <span className="flex items-center gap-1 text-[10px] text-[var(--color-figma-danger)]">
+                        Could not load themes
+                        <button
+                          onClick={retryThemes}
+                          className="underline transition-colors hover:text-[var(--color-figma-text)]"
                         >
-                          <circle cx="3.5" cy="5" r="2.5" />
-                          <circle cx="6.5" cy="5" r="2.5" />
-                        </svg>
-                        Themes
+                          Retry
+                        </button>
                       </span>
-                      {themesError ? (
-                        <span className="text-[10px] text-[var(--color-figma-danger)] flex items-center gap-1">
-                          Could not load themes
-                          <button
-                            onClick={retryThemes}
-                            className="underline hover:text-[var(--color-figma-text)] transition-colors"
-                          >
-                            Retry
-                          </button>
-                        </span>
-                      ) : dimensions.length > 0 ? (
-                        <>
-                          {dimensions.map((dim) => {
-                            const activeOption = activeThemes[dim.id];
-                            const previewOption = previewThemes[dim.id];
-                            const isOpen = openDimDropdown === dim.id;
-                            if (dim.options.length <= 5) {
-                              return (
-                                <div
-                                  key={dim.id}
-                                  className="flex items-center gap-1"
-                                  onMouseLeave={() => {
-                                    const next = { ...previewThemes };
-                                    delete next[dim.id];
-                                    setPreviewThemes(next);
-                                  }}
-                                >
-                                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">
-                                    {dim.name}:
-                                  </span>
-                                  <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)]">
-                                    <button
-                                      onClick={() => {
-                                        const next = { ...activeThemes };
-                                        delete next[dim.id];
-                                        setActiveThemes(next);
-                                      }}
-                                      onMouseEnter={() => {
-                                        const next = { ...previewThemes };
-                                        delete next[dim.id];
-                                        setPreviewThemes(next);
-                                      }}
-                                      className={`px-2 py-0.5 text-[10px] transition-colors border-r border-[var(--color-figma-border)] ${
-                                        !activeOption && !previewOption
-                                          ? "bg-[var(--color-figma-accent)] text-white font-medium"
-                                          : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                                      }`}
-                                    >
-                                      None
-                                    </button>
-                                    {dim.options.map((opt, i) => {
+                    ) : dimensions.length > 0 ? (
+                      <>
+                        {dimensions.map((dim) => {
+                          const activeOption = activeThemes[dim.id];
+                          const previewOption = previewThemes[dim.id];
+                          const isOpen = openDimDropdown === dim.id;
+                          if (dim.options.length <= 5) {
+                            return (
+                              <div
+                                key={dim.id}
+                                className="flex items-center gap-1"
+                                onMouseLeave={() => {
+                                  const next = { ...previewThemes };
+                                  delete next[dim.id];
+                                  setPreviewThemes(next);
+                                }}
+                              >
+                                <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                                  {dim.name}:
+                                </span>
+                                <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)]">
+                                  <button
+                                    onClick={() => {
+                                      const next = { ...activeThemes };
+                                      delete next[dim.id];
+                                      setActiveThemes(next);
+                                    }}
+                                    onMouseEnter={() => {
+                                      const next = { ...previewThemes };
+                                      delete next[dim.id];
+                                      setPreviewThemes(next);
+                                    }}
+                                    className={`border-r border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] transition-colors ${
+                                      !activeOption && !previewOption
+                                        ? "bg-[var(--color-figma-accent)] text-white font-medium"
+                                        : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                    }`}
+                                  >
+                                    None
+                                  </button>
+                                  {dim.options.map(
+                                    (opt: { name: string }, index: number) => {
                                       const isActive =
                                         activeOption === opt.name;
                                       const isPreviewing =
@@ -3122,7 +3155,11 @@ export function App() {
                                               ? `${opt.name} (active)`
                                               : `Preview ${opt.name} — click to apply`
                                           }
-                                          className={`px-2 py-0.5 text-[10px] transition-colors ${i < dim.options.length - 1 ? "border-r border-[var(--color-figma-border)]" : ""} ${
+                                          className={`px-2 py-0.5 text-[10px] transition-colors ${
+                                            index < dim.options.length - 1
+                                              ? "border-r border-[var(--color-figma-border)]"
+                                              : ""
+                                          } ${
                                             isActive
                                               ? "bg-[var(--color-figma-accent)] text-white font-medium"
                                               : isPreviewing
@@ -3133,145 +3170,143 @@ export function App() {
                                           {opt.name}
                                         </button>
                                       );
-                                    })}
-                                  </div>
+                                    },
+                                  )}
                                 </div>
-                              );
-                            }
-                            return (
-                              <div
-                                key={dim.id}
-                                className="relative flex items-center gap-1"
+                              </div>
+                            );
+                          }
+                          return (
+                            <div
+                              key={dim.id}
+                              className="relative flex items-center gap-1"
+                            >
+                              <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                                {dim.name}:
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setOpenDimDropdown(isOpen ? null : dim.id)
+                                }
+                                className={`flex items-center gap-1 rounded px-2 py-0.5 text-[10px] transition-colors ${
+                                  activeOption
+                                    ? "bg-[var(--color-figma-accent)] text-white font-medium"
+                                    : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                }`}
                               >
-                                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">
-                                  {dim.name}:
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    setOpenDimDropdown(isOpen ? null : dim.id)
-                                  }
-                                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] transition-colors ${
-                                    activeOption
-                                      ? "bg-[var(--color-figma-accent)] text-white font-medium"
-                                      : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)]"
-                                  }`}
+                                {activeOption || "None"}
+                                <svg
+                                  width="8"
+                                  height="8"
+                                  viewBox="0 0 8 8"
+                                  fill="none"
+                                  className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
                                 >
-                                  {activeOption || "None"}
-                                  <svg
-                                    width="8"
-                                    height="8"
-                                    viewBox="0 0 8 8"
-                                    fill="none"
-                                    className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
-                                  >
-                                    <path
-                                      d="M1 3l3 3 3-3"
-                                      stroke="currentColor"
-                                      strokeWidth="1.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                </button>
-                                {isOpen && (
-                                  <div
-                                    className="absolute top-full left-0 mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[120px]"
-                                    onMouseLeave={() => {
+                                  <path
+                                    d="M1 3l3 3 3-3"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                              {isOpen && (
+                                <div
+                                  className="absolute left-0 top-full z-50 mt-1 min-w-[120px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
+                                  onMouseLeave={() => {
+                                    const next = { ...previewThemes };
+                                    delete next[dim.id];
+                                    setPreviewThemes(next);
+                                  }}
+                                >
+                                  <button
+                                    onClick={() => {
+                                      const next = { ...activeThemes };
+                                      delete next[dim.id];
+                                      setActiveThemes(next);
+                                      setOpenDimDropdown(null);
+                                    }}
+                                    onMouseEnter={() => {
                                       const next = { ...previewThemes };
                                       delete next[dim.id];
                                       setPreviewThemes(next);
                                     }}
+                                    className={`w-full px-3 py-1.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
+                                      !activeOption
+                                        ? "text-[var(--color-figma-accent)] font-medium"
+                                        : "text-[var(--color-figma-text)]"
+                                    }`}
                                   >
+                                    None
+                                  </button>
+                                  {dim.options.map((opt: { name: string }) => (
                                     <button
+                                      key={opt.name}
                                       onClick={() => {
-                                        const next = { ...activeThemes };
-                                        delete next[dim.id];
-                                        setActiveThemes(next);
+                                        setActiveThemes({
+                                          ...activeThemes,
+                                          [dim.id]: opt.name,
+                                        });
                                         setOpenDimDropdown(null);
-                                      }}
-                                      onMouseEnter={() => {
                                         const next = { ...previewThemes };
                                         delete next[dim.id];
                                         setPreviewThemes(next);
                                       }}
-                                      className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
-                                        !activeOption
+                                      onMouseEnter={() =>
+                                        setPreviewThemes({
+                                          ...previewThemes,
+                                          [dim.id]: opt.name,
+                                        })
+                                      }
+                                      title={
+                                        activeOption === opt.name
+                                          ? `${opt.name} (active)`
+                                          : `Preview ${opt.name} — click to apply`
+                                      }
+                                      className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
+                                        activeOption === opt.name
                                           ? "text-[var(--color-figma-accent)] font-medium"
                                           : "text-[var(--color-figma-text)]"
                                       }`}
                                     >
-                                      None
+                                      {opt.name}
+                                      {previewThemes[dim.id] === opt.name &&
+                                        activeOption !== opt.name && (
+                                          <span className="ml-2 text-[8px] text-[var(--color-figma-text-tertiary)] opacity-70">
+                                            preview
+                                          </span>
+                                        )}
                                     </button>
-                                    {dim.options.map((opt) => (
-                                      <button
-                                        key={opt.name}
-                                        onClick={() => {
-                                          setActiveThemes({
-                                            ...activeThemes,
-                                            [dim.id]: opt.name,
-                                          });
-                                          setOpenDimDropdown(null);
-                                          const next = { ...previewThemes };
-                                          delete next[dim.id];
-                                          setPreviewThemes(next);
-                                        }}
-                                        onMouseEnter={() =>
-                                          setPreviewThemes({
-                                            ...previewThemes,
-                                            [dim.id]: opt.name,
-                                          })
-                                        }
-                                        title={
-                                          activeOption === opt.name
-                                            ? `${opt.name} (active)`
-                                            : `Preview ${opt.name} — click to apply`
-                                        }
-                                        className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center justify-between ${
-                                          activeOption === opt.name
-                                            ? "text-[var(--color-figma-accent)] font-medium"
-                                            : "text-[var(--color-figma-text)]"
-                                        }`}
-                                      >
-                                        {opt.name}
-                                        {previewThemes[dim.id] === opt.name &&
-                                          activeOption !== opt.name && (
-                                            <span className="text-[8px] text-[var(--color-figma-text-tertiary)] ml-2 opacity-70">
-                                              preview
-                                            </span>
-                                          )}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                          <button
-                            onClick={() => navigateTo("define", "themes")}
-                            className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors px-1"
-                            title="Manage theme axes"
-                            aria-label="Manage theme axes"
-                          >
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {tokenThemePreviewEntries.length > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-medium text-amber-700">
                             <svg
-                              width="10"
-                              height="10"
-                              viewBox="0 0 10 10"
+                              width="8"
+                              height="8"
+                              viewBox="0 0 8 8"
                               fill="none"
                               stroke="currentColor"
                               strokeWidth="1.2"
                               strokeLinecap="round"
                               aria-hidden="true"
                             >
-                              <circle cx="5" cy="2" r="1" />
-                              <circle cx="5" cy="5" r="1" />
-                              <circle cx="5" cy="8" r="1" />
+                              <circle cx="4" cy="4" r="3" />
+                              <path d="M4 2.5v2M4 5.5v.5" />
                             </svg>
-                          </button>
-                        </>
-                      ) : connected ? (
+                            Previewing {tokenThemePreviewEntries.join(" · ")}
+                          </span>
+                        )}
                         <button
                           onClick={() => navigateTo("define", "themes")}
-                          className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-dashed border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+                          className="ml-auto px-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)]"
+                          title="Manage theme axes"
+                          aria-label="Manage theme axes"
                         >
                           <svg
                             width="10"
@@ -3283,73 +3318,38 @@ export function App() {
                             strokeLinecap="round"
                             aria-hidden="true"
                           >
-                            <circle cx="3.5" cy="5" r="2.5" />
-                            <circle cx="6.5" cy="5" r="2.5" />
+                            <circle cx="5" cy="2" r="1" />
+                            <circle cx="5" cy="5" r="1" />
+                            <circle cx="5" cy="8" r="1" />
                           </svg>
-                          Set up themes to manage light/dark mode, brands, and
-                          more
                         </button>
-                      ) : null}
-                      {isNarrow && dimBarExpanded && (
-                        <button
-                          onClick={() => setDimBarExpanded(false)}
-                          className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors px-1"
-                          title="Collapse"
-                          aria-label="Collapse theme bar"
-                        >
-                          <svg
-                            width="8"
-                            height="8"
-                            viewBox="0 0 8 8"
-                            fill="none"
+                        {dimensions.length > 0 && (
+                          <button
+                            onClick={() => setDimBarExpanded(false)}
+                            className="px-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text)]"
+                            title="Collapse theme controls"
+                            aria-label="Collapse theme controls"
                           >
-                            <path
-                              d="M1 5l3-3 3 3"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                {/* Theme preview indicator — shown while hovering over an option that differs from active */}
-                {activeTopTab === "define" &&
-                  activeSubTab === "tokens" &&
-                  (() => {
-                    const previewEntries = dimensions
-                      .filter(
-                        (d) =>
-                          previewThemes[d.id] &&
-                          previewThemes[d.id] !== activeThemes[d.id],
-                      )
-                      .map((d) => `${d.name}: ${previewThemes[d.id]}`);
-                    if (previewEntries.length === 0) return null;
-                    return (
-                      <div className="flex shrink-0 items-center gap-1.5 px-2 py-0.5 bg-amber-50 border-b border-amber-200 text-[10px] text-amber-700 pointer-events-none select-none">
-                        <svg
-                          width="8"
-                          height="8"
-                          viewBox="0 0 8 8"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.2"
-                          strokeLinecap="round"
-                          aria-hidden="true"
-                        >
-                          <circle cx="4" cy="4" r="3" />
-                          <path d="M4 2.5v2M4 5.5v.5" />
-                        </svg>
-                        <span>Previewing</span>
-                        <span className="font-medium">
-                          {previewEntries.join(" · ")}
-                        </span>
-                        <span className="opacity-60">— click to apply</span>
-                      </div>
-                    );
-                  })()}
+                            <svg
+                              width="8"
+                              height="8"
+                              viewBox="0 0 8 8"
+                              fill="none"
+                            >
+                              <path
+                                d="M1 5l3-3 3 3"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                )}
                 <div className="flex-1 overflow-y-auto">
                   {/* Panels — routed by (activeTopTab, activeSubTab) and activeSecondarySurface */}
                   <PanelRouter

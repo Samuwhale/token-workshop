@@ -1066,3 +1066,12 @@
   - If a navigation recommendation depends on import-shape details that are lost after the import completes, add that metadata to the import completion summary instead of recreating heuristics in each caller.
   - Ordered recommendation helpers work best when they return route metadata plus rationale together, so the same logic can drive future UI messaging and immediate navigation behavior without duplicating rule code.
 ---
+## 2026-04-11 - Reduce Tokens workspace chrome bands by merging search, toolbar, and conditional bars
+- Collapsed Tokens-specific shell chrome by hiding the set switcher when only one set exists, removing workspace-header status pills on the primary Tokens surface, and replacing the always-open theme strip plus separate preview banner with a compact summary toggle that only expands while actively previewing or on demand.
+- Merged the token search and active-state chrome into one toolbar row by removing the extra search helper copy, surfacing compact filter/view chips inline with the main actions, and only opening the structured filter editor when the user explicitly expands it.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/components/TokenList.tsx packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "App\\.tsx|TokenList\\.tsx|error TS"` still reports pre-existing workspace issues, including long-standing `packages/core/dist` `TS6305` build-artifact failures and existing `App.tsx` workflow typing errors; no new task-specific diagnostics remained for the touched `TokenList.tsx` lines after the toolbar refactor.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2456, `packages/figma-plugin/src/ui/App.tsx` ~L2754, `packages/figma-plugin/src/ui/App.tsx` ~L2771, `packages/figma-plugin/src/ui/App.tsx` ~L3015, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1667, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4204, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L5132, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L5204
+- **Learnings for future iterations:**
+  - In dense plugin workspaces, keep hidden filter/view state in the main toolbar as compact chips and only reopen the full editor when the user asks for it.
+  - Theme previews should reuse the same band as theme controls; a separate hover-preview banner costs too much vertical space for a 400px-tall plugin viewport.
+---

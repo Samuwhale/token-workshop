@@ -1571,6 +1571,7 @@ export function TokenList({
     addQueryQualifierValue,
     removeQueryQualifierValue,
     clearQueryQualifier,
+    removeQueryToken,
     filtersActive,
     activeFilterCount,
     duplicateValuePaths,
@@ -1664,6 +1665,41 @@ export function TokenList({
   ]);
 
   const hasStructuredFilters = structuredFilterChips.length > 0;
+  const toolbarStateChips = useMemo(() => {
+    const chips: Array<{
+      key: string;
+      label: string;
+      tone: "filter" | "view";
+      removeToken?: string;
+    }> = [];
+
+    for (const chip of structuredFilterChips) {
+      chips.push({
+        key: `query:${chip.token}`,
+        label: chip.label,
+        tone: "filter",
+        removeToken: chip.token,
+      });
+    }
+
+    for (const label of activeFilterSummary) {
+      chips.push({
+        key: `filter:${label}`,
+        label,
+        tone: "filter",
+      });
+    }
+
+    for (const label of activeViewSummary) {
+      chips.push({
+        key: `view:${label}`,
+        label,
+        tone: "view",
+      });
+    }
+
+    return chips;
+  }, [activeFilterSummary, activeViewSummary, structuredFilterChips]);
 
   const currentBulkEditScope = useMemo<BulkEditScope>(() => {
     const trimmedQuery = searchQuery.trim();
@@ -4168,7 +4204,7 @@ export function TokenList({
         {/* Library toolbar keeps creation inline and hides secondary controls until there is content to work with */}
         {!selectMode && viewMode === "tree" && (
           <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <div className="flex flex-wrap items-start gap-2 px-2 py-2">
+            <div className="flex flex-wrap items-center gap-2 px-2 py-2">
               {tokens.length > 0 ? (
                 <div className="min-w-[180px] flex-[999_1_0%]">
                   <div className="relative">
@@ -4299,14 +4335,6 @@ export function TokenList({
                           ))}
                         </div>
                       )}
-                  </div>
-                  <div className="mt-1 pl-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                    Search text stays simple. Use{" "}
-                    <span className="font-medium text-[var(--color-figma-text-secondary)]">
-                      Add filter
-                    </span>{" "}
-                    for type, token-state, path, value, description, or
-                    generator filters.
                   </div>
                 </div>
               ) : (
@@ -5100,10 +5128,80 @@ export function TokenList({
                     )}
                   </div>
                 )}
+
+                {toolbarStateChips.length > 0 && (
+                  <div className="flex min-w-0 flex-wrap items-center gap-1">
+                    {toolbarStateChips.slice(0, 4).map((chip) => (
+                      <span
+                        key={chip.key}
+                        className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] leading-none ${
+                          chip.tone === "filter"
+                            ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                            : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]"
+                        }`}
+                      >
+                        <span className="truncate">{chip.label}</span>
+                        {chip.removeToken && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (chip.removeToken) {
+                                removeQueryToken(chip.removeToken);
+                              }
+                            }}
+                            className="rounded-full p-0.5 text-current/70 transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-current"
+                            title={`Remove ${chip.label}`}
+                            aria-label={`Remove ${chip.label}`}
+                          >
+                            <svg
+                              width="7"
+                              height="7"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                    {toolbarStateChips.length > 4 && (
+                      <button
+                        type="button"
+                        onClick={() => setViewOptionsOpen(true)}
+                        className="rounded-full bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] leading-none text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      >
+                        +{toolbarStateChips.length - 4} more
+                      </button>
+                    )}
+                    {(activeFilterSummary.length > 0 ||
+                      hasStructuredFilters) && (
+                      <button
+                        onClick={clearFilters}
+                        className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                    {activeViewSummary.length > 0 && (
+                      <button
+                        onClick={clearViewModes}
+                        className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      >
+                        Reset view
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
-            {(filterBuilderOpen || hasStructuredFilters) && (
+            {filterBuilderOpen && (
               <div className="px-2 pb-2">
                 <TokenSearchFilterChips
                   isOpen={filterBuilderOpen}
@@ -5125,82 +5223,6 @@ export function TokenList({
                   onRemoveQualifierValue={removeQueryQualifierValue}
                   onClearQualifier={clearQueryQualifier}
                 />
-              </div>
-            )}
-
-            {(activeFilterSummary.length > 0 ||
-              activeViewSummary.length > 0 ||
-              hasStructuredFilters) && (
-              <div className="flex flex-wrap items-start gap-2 px-2 pb-2">
-                {activeFilterSummary.length > 0 && (
-                  <button
-                    onClick={() => setViewOptionsOpen(true)}
-                    className="min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-left transition-colors hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                      Filters
-                    </div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {activeFilterSummary.slice(0, 3).map((label) => (
-                        <span
-                          key={label}
-                          className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)]"
-                        >
-                          {label}
-                        </span>
-                      ))}
-                      {activeFilterSummary.length > 3 && (
-                        <span className="rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          +{activeFilterSummary.length - 3} more
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                )}
-
-                {activeViewSummary.length > 0 && (
-                  <button
-                    onClick={() => setViewOptionsOpen(true)}
-                    className="min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-left transition-colors hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                      View
-                    </div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {activeViewSummary.slice(0, 2).map((label) => (
-                        <span
-                          key={label}
-                          className="rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]"
-                        >
-                          {label}
-                        </span>
-                      ))}
-                      {activeViewSummary.length > 2 && (
-                        <span className="rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          +{activeViewSummary.length - 2} more
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                )}
-
-                {(activeFilterSummary.length > 0 || hasStructuredFilters) && (
-                  <button
-                    onClick={clearFilters}
-                    className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Clear filters
-                  </button>
-                )}
-
-                {activeViewSummary.length > 0 && (
-                  <button
-                    onClick={clearViewModes}
-                    className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Reset view
-                  </button>
-                )}
               </div>
             )}
           </div>

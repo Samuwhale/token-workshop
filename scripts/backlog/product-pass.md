@@ -14,16 +14,17 @@ The primary users are UX/UI designers and design system maintainers working insi
 
 ## Goal
 
-Find **up to 3 concrete, actionable items** across the product and write them to `backlog/inbox.jsonl`. **0–1 items is fine if that is all that clears the bar.** Think like a power user who manages hundreds of design tokens daily — what's missing, what's painful, what would make this the best tool in its category?
+Find **up to 3 concrete, actionable items** across the product and write them to `backlog/inbox.jsonl`. **0–1 items is fine if that is all that clears the bar.** Think like a power user who manages hundreds of design tokens daily — what's missing, what's painful, what would make this the best tool in its category? User flows and workflow UX are in scope when they affect whether people can discover, understand, or complete important work smoothly.
 
 **Pick 1–2 target areas per session** from this list (in priority order):
 
 - **Simplification & consolidation** — features that overlap, panels that could be merged, concepts that could be unified. If two features do 80% the same thing, propose merging them. If a panel adds more complexity than value, propose removing or folding it. Nothing is sacred — but don't simplify just for the sake of it.
 - **Missing features** — things a power user would expect (batch operations, keyboard shortcuts, search, quick actions, drag-and-drop, undo, copy/paste tokens). Think: "what can Figma's native variable UI do that we can't?"
 - **Workflow friction** — things that take 5 clicks when they should take 1, flows that break focus, missing "fast paths" for common operations
+- **User flows & handoffs** — multi-step journeys where the product loses context, hides the next step, splits one job across too many surfaces, or leaves the user unsure where to go next
 - **Discoverability** — features that exist but are hard to find or use without prior knowledge
 
-UX issues are fair game if they surface during product exploration — but prefer writing them as workflow-level items rather than isolated interaction-quality fixes, which are the UX pass's strength.
+Workflow UX issues are fair game when they change whether an end-to-end task feels coherent, legible, or finishable. Prefer writing them as flow-level or surface-model items rather than isolated interaction-quality fixes, which are still the UX pass's strength.
 
 Items can range from atomic fixes to full overhauls — don't artificially limit scope. This project has no shipped users and no backwards-compatibility constraints, so structural rethinks are welcome:
 - Consolidation: `{"title":"Merge the Resolvers panel into the Theme Manager so theme scoped overrides live in one workflow","priority":"high","touch_paths":["packages/figma-plugin/src/ui","packages/core"],"acceptance_criteria":["Resolver editing moves into the Theme Manager flow and the standalone panel is removed"],"source":"product-pass"}`
@@ -42,6 +43,7 @@ Only write an item if it passes **all** of these checks:
 - **Consolidating** — if you found several related gaps, did you merge them into one broader item instead of writing each separately?
 - **Ownable** — can a single agent coherently own this item from start to finish?
 - **Specific** — could someone unfamiliar with your exploration understand exactly what to build and why? Vague items that sound impressive but lack concrete scope are worse than no items.
+- **Flow-sized** — if this is a UX concern, does it affect a whole user journey, handoff, or workflow model rather than a local copy/layout polish issue?
 
 If nothing clears this bar, write 0 items — that is a valid outcome and preferable to writing marginal items.
 
@@ -51,7 +53,7 @@ If nothing clears this bar, write 0 items — that is a valid outcome and prefer
 
 1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `product-pass:` entries to avoid retreading the same ground. Read the injected backlog digest to understand what themes are already active and where the queue is dense. Then roam the codebase — panels, flows, server routes, whatever catches your eye. Read full files, not just names. Look at both the frontend (`packages/figma-plugin/src/ui/`) and the server (`packages/server/`).
 
-2. **Verify before writing** — for every potential finding, confirm it by reading the actual code. Do not infer gaps from file names, component names, or assumed patterns. If you cannot point to specific code that confirms the gap, do not write the item.
+2. **Verify before writing** — for every potential finding, confirm it by reading the actual code. Do not infer gaps from file names, component names, or assumed patterns. Trace the user flow across the relevant surfaces when the issue is about workflow UX or handoff quality. If you cannot point to specific code that confirms the gap, do not write the item.
 
 3. **Decide what clears the bar** — after exploring, review all your potential findings against the quality bar. Discard anything marginal. Merge related items. It is better to write 0 strong items than 3 weak ones.
 
@@ -90,7 +92,8 @@ If nothing clears this bar, write 0 items — that is a valid outcome and prefer
 - Use the current backlog as input when generating ideas: extend clusters that already exist, identify missing prerequisite or follow-through work, and surface cross-cutting consolidation opportunities suggested by the queue.
 - Do not duplicate items already in `backlog.md` or merely rephrase them (check for similar wording and intent before writing).
 - Write at most 3 items. Only write issues that are real, durable, and clear the quality bar above.
-- Feature and workflow items should dominate, but UX issues are allowed when they surface naturally during product exploration.
+- Feature and workflow items should dominate, but user-flow and workflow-UX issues are explicitly allowed when they affect task completion, handoff clarity, or surface ownership.
+- Do not use this pass for local polish issues such as button styling, microcopy-only tweaks, spacing cleanup, or one-component interaction inconsistencies unless they clearly expose a broader workflow problem.
 
 ---
 
