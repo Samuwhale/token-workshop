@@ -7,6 +7,7 @@ import type {
   PlannerSupersedeAction,
   PlannerTaskChild,
 } from './types.js';
+import { normalizeWhitespace } from './utils.js';
 
 const PLANNER_BATCH_SIZE = 3;
 
@@ -59,8 +60,6 @@ export const PLANNER_RESULT_SCHEMA = JSON.stringify({
   required: ['status', 'item', 'note', 'action', 'parent_task_ids', 'children'],
   additionalProperties: false,
 });
-
-import { normalizeWhitespace } from './utils.js';
 
 function stringArray(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;

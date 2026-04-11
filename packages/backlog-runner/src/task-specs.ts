@@ -10,10 +10,9 @@ import type {
   BacklogTaskState,
   PlannerTaskChild,
 } from './types.js';
+import { normalizeWhitespace } from './utils.js';
 
 const TASK_FILE_PATTERN = /\.ya?ml$/i;
-
-import { normalizeWhitespace } from './utils.js';
 
 type TaskSpecFileRecord = {
   filePath: string;
@@ -329,6 +328,7 @@ export async function normalizeTaskSpecStore(taskSpecsDir: string): Promise<{
 export async function readTaskSpecs(taskSpecsDir: string): Promise<BacklogTaskSpec[]> {
   let store = await inspectTaskSpecStore(taskSpecsDir);
   if (store.duplicateTaskIds.length > 0) {
+    await normalizeTaskSpecStore(taskSpecsDir);
     store = await inspectTaskSpecStore(taskSpecsDir);
   }
   if (store.duplicateTaskIds.length > 0) {

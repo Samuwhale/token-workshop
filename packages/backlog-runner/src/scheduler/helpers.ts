@@ -3,6 +3,7 @@ import path from 'node:path';
 import { summarizeCommandOutput } from '../command-output.js';
 import { normalizePathForGit, unexpectedFiles } from '../git-scope.js';
 import type { RunnerLogger } from '../logger.js';
+import { isAuthFailure, isRateLimited } from '../providers/common.js';
 import { parseGitStatusPaths } from '../utils.js';
 import type {
   BacklogDrainResult,
@@ -206,4 +207,13 @@ export function genericWorkerResult(
     validationSummary: options.validationSummary,
     retryAt: options.retryAt,
   };
+}
+
+export type AgentErrorKind = 'auth' | 'rate_limited' | 'other';
+
+export function classifyAgentError(error: unknown): { kind: AgentErrorKind; message: string } {
+  const message = error instanceof Error ? error.message : String(error);
+  if (isAuthFailure(message)) return { kind: 'auth', message };
+  if (isRateLimited(message)) return { kind: 'rate_limited', message };
+  return { kind: 'other', message };
 }

@@ -5,11 +5,11 @@ import type { RunnerLogger } from '../logger.js';
 import { withLock, lockPath } from '../locks.js';
 import { PLANNER_RESULT_SCHEMA, parsePlannerSupersedeAction, plannerBatchSize } from '../planner.js';
 import { runProvider } from '../providers/index.js';
-import { JSON_SCHEMA, isAuthFailure, isRateLimited } from '../providers/common.js';
-import { createFileBackedTaskStore } from '../store/task-store.js';
+import { JSON_SCHEMA } from '../providers/common.js';
 import type {
   BacklogPassType,
   BacklogRunnerConfig,
+  BacklogStore,
   BacklogTaskClaim,
   BacklogWorkerResult,
   CommandRunner,
@@ -20,6 +20,7 @@ import type {
 import { PREFLIGHT_DEFERRAL_MS } from './constants.js';
 import {
   bookkeepingPaths,
+  classifyAgentError,
   diffForPaths,
   formatDuration,
   genericWorkerResult,
@@ -43,7 +44,7 @@ import { classifyValidationFailure, queueNonBlockingValidationFollowup } from '.
 
 async function runSingleDiscoveryPass(
   config: BacklogRunnerConfig,
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   workspaceStrategy: WorkspaceStrategy,
   commandRunner: CommandRunner,
   logger: RunnerLogger,
@@ -117,16 +118,16 @@ async function runSingleDiscoveryPass(
     }
     return genericWorkerResult('completed', startedAt);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (isAuthFailure(message)) {
+    const classified = classifyAgentError(error);
+    if (classified.kind === 'auth') {
       throw new Error('Authentication/permission error — check your API key and tool setup');
     }
-    if (isRateLimited(message)) {
+    if (classified.kind === 'rate_limited') {
       logger.line(`  ⚠ Rate limit hit during ${passType} pass — skipping`);
-      return genericWorkerResult('rate_limited', startedAt, { note: message });
+      return genericWorkerResult('rate_limited', startedAt, { note: classified.message });
     }
-    logger.line(`  · ${passType} pass skipped — ${message}`);
-    return genericWorkerResult('no_progress', startedAt, { note: message });
+    logger.line(`  · ${passType} pass skipped — ${classified.message}`);
+    return genericWorkerResult('no_progress', startedAt, { note: classified.message });
   } finally {
     await session.teardown();
   }
@@ -134,7 +135,7 @@ async function runSingleDiscoveryPass(
 
 export async function runDiscoveryWorker(
   config: BacklogRunnerConfig,
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   workspaceStrategy: WorkspaceStrategy,
   commandRunner: CommandRunner,
   logger: RunnerLogger,
@@ -163,7 +164,7 @@ export async function runDiscoveryWorker(
 
 export async function runPlannerWorker(
   config: BacklogRunnerConfig,
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   workspaceStrategy: WorkspaceStrategy,
   commandRunner: CommandRunner,
   logger: RunnerLogger,
@@ -225,16 +226,16 @@ export async function runPlannerWorker(
       logger.line(`  ✓ superseded ${applied.parentTaskIds.length} planner candidate${applied.parentTaskIds.length === 1 ? '' : 's'} with ${applied.childTaskIds.length} child task${applied.childTaskIds.length === 1 ? '' : 's'}`);
       return genericWorkerResult('completed', startedAt, { note: result.note });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (isAuthFailure(message)) {
+      const classified = classifyAgentError(error);
+      if (classified.kind === 'auth') {
         throw new Error('Authentication/permission error — check your API key and tool setup');
       }
-      if (isRateLimited(message)) {
+      if (classified.kind === 'rate_limited') {
         logger.line('  ⚠ Rate limit hit during planner refinement — skipping');
-        return genericWorkerResult('rate_limited', startedAt, { note: message });
+        return genericWorkerResult('rate_limited', startedAt, { note: classified.message });
       }
-      logger.line(`  · planner refinement skipped — ${message}`);
-      return genericWorkerResult('no_progress', startedAt, { note: message });
+      logger.line(`  · planner refinement skipped — ${classified.message}`);
+      return genericWorkerResult('no_progress', startedAt, { note: classified.message });
     } finally {
       await session.teardown();
     }
@@ -243,7 +244,7 @@ export async function runPlannerWorker(
 
 export async function runTaskWorker(
   config: BacklogRunnerConfig,
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   workspaceStrategy: WorkspaceStrategy,
   commandRunner: CommandRunner,
   logger: RunnerLogger,
@@ -489,20 +490,20 @@ export async function runTaskWorker(
       validationSummary,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (isAuthFailure(message)) {
+    const classified = classifyAgentError(error);
+    if (classified.kind === 'auth') {
       await store.releaseClaim(claim);
       throw new Error('Authentication/permission error — check your API key and tool setup');
     }
-    if (isRateLimited(message)) {
+    if (classified.kind === 'rate_limited') {
       logger.line('');
       logger.line(`  ⚠ Rate limit hit — unclaiming task, retry at ${retryTime()}`);
       await store.releaseClaim(claim);
-      return taskWorkerResult('rate_limited', claim, startedAt, { note: message });
+      return taskWorkerResult('rate_limited', claim, startedAt, { note: classified.message });
     }
-    logger.line(`  ⚠ ${message} — unclaiming task`);
+    logger.line(`  ⚠ ${classified.message} — unclaiming task`);
     await store.releaseClaim(claim);
-    return taskWorkerResult('released', claim, startedAt, { note: message });
+    return taskWorkerResult('released', claim, startedAt, { note: classified.message });
   } finally {
     clearInterval(heartbeat);
     await session.teardown();

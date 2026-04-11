@@ -1,7 +1,6 @@
 import type { RunnerLogger } from '../logger.js';
-import { createFileBackedTaskStore } from '../store/task-store.js';
 import { isPathWithinTouchPaths, normalizeRepoPath } from '../task-specs.js';
-import type { BacklogCandidateRecord, BacklogTaskClaim } from '../types.js';
+import type { BacklogCandidateRecord, BacklogStore, BacklogTaskClaim } from '../types.js';
 import {
   BOOTSTRAP_MARKER_PATTERNS,
   MODULE_RESOLUTION_ERROR_PATTERNS,
@@ -136,7 +135,7 @@ export function classifyValidationFailure(
 }
 
 export async function queueNonBlockingValidationFollowup(
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   logger: RunnerLogger,
   claim: BacklogTaskClaim,
   failure: Extract<ValidationFailureClassification, { blocking: false }>,

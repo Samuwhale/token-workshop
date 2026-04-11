@@ -10,6 +10,7 @@ import { fileExists } from '../utils.js';
 import type {
   BacklogPassType,
   BacklogRunnerConfig,
+  BacklogStore,
   BacklogSyncResult,
   BacklogTaskClaim,
   BacklogWorkerResult,
@@ -61,7 +62,6 @@ async function clearOrchestratorStatus(config: BacklogRunnerConfig): Promise<voi
 function shouldAttemptPlannerBatch(
   batchKey: string,
   waitingPlannerBatchKey: string | null,
-  _reason: 'recover-failed' | 'fill-buffer',
 ): boolean {
   return batchKey !== waitingPlannerBatchKey;
 }
@@ -81,7 +81,7 @@ async function pruneGitWorktrees(
 }
 
 async function currentPlannerBatchKey(
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
 ): Promise<string> {
   const plannerCandidates = await store.listPlannerCandidates(plannerBatchSize());
   return plannerCandidates.map(task => task.id).join(',');
@@ -324,10 +324,9 @@ export async function runBacklogRunner(
       }
 
       if (!controlWorker && (counts.failed > 0 || (counts.planned > 0 && counts.ready < PLANNER_LANE_READY_TARGET))) {
-        const plannerReason: 'recover-failed' | 'fill-buffer' = counts.failed > 0 ? 'recover-failed' : 'fill-buffer';
         const batchKey = await currentPlannerBatchKey(store);
         const plannerCooldownActive = plannerCooldownBatchKey === batchKey && now < plannerCooldownUntil;
-        if (batchKey && shouldAttemptPlannerBatch(batchKey, plannerCooldownActive ? plannerCooldownBatchKey : null, plannerReason)) {
+        if (batchKey && shouldAttemptPlannerBatch(batchKey, plannerCooldownActive ? plannerCooldownBatchKey : null)) {
           launchPlannerWorker(batchKey);
           await updateStatus();
         }

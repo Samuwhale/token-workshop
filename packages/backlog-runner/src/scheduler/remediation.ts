@@ -2,10 +2,10 @@ import { buildReconciliationContext, buildWorkspaceRepairContext } from '../cont
 import type { RunnerLogger } from '../logger.js';
 import { runProvider } from '../providers/index.js';
 import { JSON_SCHEMA } from '../providers/common.js';
-import { createFileBackedTaskStore } from '../store/task-store.js';
 import type {
   BacklogDrainResult,
   BacklogRunnerConfig,
+  BacklogStore,
   BacklogTaskClaim,
   BacklogWorkerResult,
   CommandRunner,
@@ -88,7 +88,7 @@ export async function collectWorkspaceSnapshot(
 }
 
 export async function appendRepairNotes(
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   taskId: string,
   note: string | undefined,
   drainResult: BacklogDrainResult,
@@ -105,7 +105,7 @@ export async function appendRepairNotes(
 
 export async function attemptWorkspaceRemediation(
   config: BacklogRunnerConfig,
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   commandRunner: CommandRunner,
   logger: RunnerLogger,
   options: ResolvedRunOptions,
@@ -186,7 +186,7 @@ export async function attemptWorkspaceRemediation(
 }
 
 export async function applyClaimRepairOutcome(
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   logger: RunnerLogger,
   claim: BacklogTaskClaim,
   outcome: WorkspaceRepairResult,
@@ -203,7 +203,7 @@ export async function applyClaimRepairOutcome(
 }
 
 export async function applyTaskRepairOutcome(
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   logger: RunnerLogger,
   taskId: string,
   outcome: WorkspaceRepairResult,
@@ -221,7 +221,7 @@ export async function applyTaskRepairOutcome(
 
 export async function tryWithRemediation(
   config: BacklogRunnerConfig,
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   commandRunner: CommandRunner,
   logger: RunnerLogger,
   options: ResolvedRunOptions,
@@ -255,7 +255,7 @@ export async function tryWithRemediation(
 
 export async function attemptTaskReconciliation(
   config: BacklogRunnerConfig,
-  store: ReturnType<typeof createFileBackedTaskStore>,
+  store: BacklogStore,
   workspaceStrategy: WorkspaceStrategy,
   commandRunner: CommandRunner,
   logger: RunnerLogger,

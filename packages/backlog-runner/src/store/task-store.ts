@@ -3,6 +3,7 @@ import { access, appendFile, readFile, rename, writeFile } from 'node:fs/promise
 import path from 'node:path';
 import { lockPath, withLock } from '../locks.js';
 import { RuntimeStateStore } from '../runtime-state.js';
+import { normalizeWhitespace } from '../utils.js';
 import {
   createTaskFromPlannerChild,
   createTaskFromCandidate,
@@ -58,9 +59,6 @@ async function atomicWrite(filePath: string, content: string): Promise<void> {
   await writeFile(tempFile, content, 'utf8');
   await rename(tempFile, filePath);
 }
-
-import { normalizeWhitespace } from '../utils.js';
-
 
 function reservationConflict(task: BacklogTaskSpec, reservation: TaskReservationSnapshot): boolean {
   const capabilityConflict = task.capabilities.some(capability => reservation.capabilities.includes(capability));

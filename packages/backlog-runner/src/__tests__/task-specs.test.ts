@@ -147,6 +147,33 @@ describe('task specs', () => {
     expect(tasks[0]!.statusNotes).toContain('Archived winner');
   });
 
+  it('readTaskSpecs auto-normalizes duplicate task ids instead of throwing', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'backlog-task-specs-test-'));
+    tempDirs.push(root);
+    const taskDir = path.join(root, 'backlog/tasks');
+    await mkdir(path.join(taskDir, 'done'), { recursive: true });
+    await writeFile(path.join(taskDir, 'task-a.yaml'), renderTaskYaml(taskSpec({
+      id: 'task-a',
+      title: 'Task A older',
+      state: 'ready',
+      updatedAt: '2026-04-08T00:00:00.000Z',
+    })), 'utf8');
+    await writeFile(path.join(taskDir, 'done', 'task-a.yaml'), renderTaskYaml(taskSpec({
+      id: 'task-a',
+      title: 'Task A newer',
+      state: 'done',
+      updatedAt: '2026-04-08T00:01:00.000Z',
+      statusNotes: ['Winner'],
+    })), 'utf8');
+
+    // readTaskSpecs should normalize the duplicates rather than throwing
+    const tasks = await readTaskSpecs(taskDir);
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.title).toBe('Task A newer');
+    expect(tasks[0]!.statusNotes).toContain('Winner');
+  });
+
   it('moves done tasks into done/ when rewriting canonical task specs', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'backlog-task-specs-test-'));
     tempDirs.push(root);
