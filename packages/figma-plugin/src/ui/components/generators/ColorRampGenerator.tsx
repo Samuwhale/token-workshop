@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { labToHex } from '@tokenmanager/core';
 import type { ColorRampConfig, GeneratedTokenResult } from '../../hooks/useGenerators';
 import type { TokenMapEntry } from '../../../shared/types';
@@ -40,6 +40,71 @@ export const COLOR_STEP_PRESETS = [
   { label: 'Material (10)', description: '10 steps (50–900) matching the Material Design color palette', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] },
   { label: 'Compact (5)', description: '5 steps (100, 300, 500, 700, 900) — minimal palette for simple use cases', steps: [100, 300, 500, 700, 900] },
 ];
+
+// ---------------------------------------------------------------------------
+// Parameter presets — named starting-point combinations
+// ---------------------------------------------------------------------------
+
+export interface ColorRampParameterPreset {
+  id: string;
+  label: string;
+  description: string;
+  config: Omit<ColorRampConfig, 'steps' | 'includeSource' | 'sourceStep' | '$tokenRefs'>;
+}
+
+export const COLOR_RAMP_PARAMETER_PRESETS: ColorRampParameterPreset[] = [
+  {
+    id: 'vibrant',
+    label: 'Vibrant',
+    description: 'High chroma, punchy colors with strong saturation across the ramp',
+    config: { lightEnd: 97, darkEnd: 8, chromaBoost: 1.6, lightnessCurve: [0.42, 0, 0.58, 1] },
+  },
+  {
+    id: 'neutral',
+    label: 'Neutral',
+    description: 'Low chroma, desaturated tones suited for UI surfaces and text',
+    config: { lightEnd: 97, darkEnd: 10, chromaBoost: 0.5, lightnessCurve: [0.42, 0, 0.58, 1] },
+  },
+  {
+    id: 'pastel',
+    label: 'Pastel',
+    description: 'Soft, muted colors with a lifted dark end and gentle curve',
+    config: { lightEnd: 98, darkEnd: 25, chromaBoost: 0.8, lightnessCurve: [0.25, 0, 0.75, 1] },
+  },
+];
+
+/** Generate a preview strip of hex colors for a given preset using a reference hue. */
+function presetPreviewColors(preset: ColorRampParameterPreset, sourceHex?: string): string[] {
+  const steps = [100, 300, 500, 700, 900];
+  const { lightEnd, darkEnd, chromaBoost } = preset.config;
+
+  // Extract hue from source hex or use a reference blue
+  let hueRad = (220 * Math.PI) / 180;
+  let baseChroma = 30;
+  if (sourceHex && /^#[0-9a-fA-F]{6}$/.test(sourceHex)) {
+    // Simple hex → approximate hue extraction
+    const r = parseInt(sourceHex.slice(1, 3), 16) / 255;
+    const g = parseInt(sourceHex.slice(3, 5), 16) / 255;
+    const b = parseInt(sourceHex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const delta = max - min;
+    if (delta > 0.01) {
+      let h = 0;
+      if (max === r) h = ((g - b) / delta + (g < b ? 6 : 0)) * 60;
+      else if (max === g) h = ((b - r) / delta + 2) * 60;
+      else h = ((r - g) / delta + 4) * 60;
+      hueRad = (h * Math.PI) / 180;
+      baseChroma = Math.sqrt((max - min) * 255) * 1.5;
+    }
+  }
+
+  return steps.map((_, i) => {
+    const t = i / (steps.length - 1);
+    const L = lightEnd + (darkEnd - lightEnd) * t;
+    const chroma = baseChroma * chromaBoost * (1 - Math.abs(t - 0.5) * 0.4);
+    return labToHex(L, chroma * Math.cos(hueRad), chroma * Math.sin(hueRad));
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Contrast preview
@@ -245,9 +310,30 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
 }) {
+  const [showFullEditor, setShowFullEditor] = useState(false);
   const activePresetIdx = COLOR_STEP_PRESETS.findIndex(
     p => p.steps.length === config.steps.length && p.steps.every((s, i) => s === config.steps[i])
   );
+
+  // Detect which parameter preset matches the current config (if any)
+  const activeParamPresetId = COLOR_RAMP_PARAMETER_PRESETS.find(p =>
+    p.config.lightEnd === config.lightEnd &&
+    p.config.darkEnd === config.darkEnd &&
+    Math.abs(p.config.chromaBoost - config.chromaBoost) < 0.01 &&
+    JSON.stringify(p.config.lightnessCurve) === JSON.stringify(config.lightnessCurve ?? [0.42, 0, 0.58, 1])
+  )?.id;
+
+  const handlePresetSelect = (preset: ColorRampParameterPreset) => {
+    onInteractionStart?.();
+    onChange({
+      ...config,
+      lightEnd: preset.config.lightEnd,
+      darkEnd: preset.config.darkEnd,
+      chromaBoost: preset.config.chromaBoost,
+      lightnessCurve: preset.config.lightnessCurve,
+    });
+    setShowFullEditor(false);
+  };
 
   const setTokenRef = (field: 'lightEnd' | 'darkEnd' | 'chromaBoost', tokenPath: string, resolvedValue: unknown) => {
     const numVal = typeof resolvedValue === 'number' ? resolvedValue : parseFloat(String(resolvedValue));
@@ -268,6 +354,47 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Parameter preset picker */}
+      <div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {COLOR_RAMP_PARAMETER_PRESETS.map(preset => {
+            const isActive = activeParamPresetId === preset.id;
+            const colors = presetPreviewColors(preset, sourceHex);
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handlePresetSelect(preset)}
+                title={preset.description}
+                className={`flex flex-col items-stretch rounded-md border p-1.5 transition-colors ${
+                  isActive
+                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8'
+                    : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                <div className="flex gap-px rounded overflow-hidden h-4 mb-1">
+                  {colors.map((hex, i) => (
+                    <div key={i} className="flex-1" style={{ background: hex }} />
+                  ))}
+                </div>
+                <span className={`text-[9px] font-medium text-center ${
+                  isActive ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
+                }`}>{preset.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowFullEditor(v => !v)}
+          className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
+        >
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showFullEditor ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
+          Customize
+        </button>
+      </div>
+
+      {showFullEditor && <>
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5 flex-wrap">
@@ -371,6 +498,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

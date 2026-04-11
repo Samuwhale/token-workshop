@@ -1,0 +1,20 @@
+id: add-inline-explanations-and-contextual-tips-to-p-f417582d
+title: Add inline explanations and contextual tips to priority issues strip
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/panels/HealthPanel.tsx
+  - packages/figma-plugin/src/ui/shared/lintRules.ts
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - Each priority issue row includes a one-line explanation of why the issue matters visible in the row or as a tooltip
+  - CTA button label is specific to the remediation action rather than generic Fix/View
+  - Alias dependencies HealthSection card reflects actual broken-alias and circular-reference counts from validationIssues instead of hardcoded healthy/0
+  - Suppressed issues list shows human-readable rule label via getRuleLabel() instead of raw rule ID
+source: task-followup
+created_at: 2026-04-11T10:39:50.196Z
+updated_at: 2026-04-11T10:39:50.196Z

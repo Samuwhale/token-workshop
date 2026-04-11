@@ -85,6 +85,78 @@ export const TYPE_STEP_PRESETS = [
 ];
 
 // ---------------------------------------------------------------------------
+// Parameter presets — named starting-point combinations
+// ---------------------------------------------------------------------------
+
+export interface TypeScaleParameterPreset {
+  id: string;
+  label: string;
+  description: string;
+  config: Pick<TypeScaleConfig, 'steps' | 'ratio' | 'unit' | 'baseStep' | 'roundTo'>;
+}
+
+export const TYPE_SCALE_PARAMETER_PRESETS: TypeScaleParameterPreset[] = [
+  {
+    id: 'tight',
+    label: 'Tight',
+    description: 'Subtle scale with small ratio differences, ideal for data-dense UIs',
+    config: {
+      steps: [
+        { name: 'xs', exponent: -2 },
+        { name: 'sm', exponent: -1 },
+        { name: 'base', exponent: 0 },
+        { name: 'lg', exponent: 1 },
+        { name: 'xl', exponent: 2 },
+      ],
+      ratio: 1.125,
+      unit: 'rem',
+      baseStep: 'base',
+      roundTo: 3,
+    },
+  },
+  {
+    id: 'balanced',
+    label: 'Balanced',
+    description: 'Standard scale with clear hierarchy, works for most applications',
+    config: {
+      steps: [
+        { name: 'xs', exponent: -2 },
+        { name: 'sm', exponent: -1 },
+        { name: 'base', exponent: 0 },
+        { name: 'lg', exponent: 1 },
+        { name: 'xl', exponent: 2 },
+        { name: '2xl', exponent: 3 },
+        { name: '3xl', exponent: 4 },
+      ],
+      ratio: 1.25,
+      unit: 'rem',
+      baseStep: 'base',
+      roundTo: 3,
+    },
+  },
+  {
+    id: 'expressive',
+    label: 'Expressive',
+    description: 'Dramatic scale with large jumps, suited for editorial and marketing pages',
+    config: {
+      steps: [
+        { name: 'sm', exponent: -1 },
+        { name: 'base', exponent: 0 },
+        { name: 'lg', exponent: 1 },
+        { name: 'xl', exponent: 2 },
+        { name: '2xl', exponent: 3 },
+        { name: '3xl', exponent: 4 },
+        { name: '4xl', exponent: 5 },
+      ],
+      ratio: 1.414,
+      unit: 'rem',
+      baseStep: 'base',
+      roundTo: 2,
+    },
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Preview
 // ---------------------------------------------------------------------------
 
@@ -183,6 +255,7 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
   const [customRatio, setCustomRatio] = useState('');
   const [isCustomRatio, setIsCustomRatio] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
+  const [showFullEditor, setShowFullEditor] = useState(false);
   const [compareMode, setCompareMode] = useState(false);
   const [compareRatio, setCompareRatio] = useState<number>(() => {
     // Default B to the next preset up from the current ratio
@@ -244,6 +317,30 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
   const effectiveSourceValue = sourceValue !== undefined && sourceValue > 0 ? sourceValue : 1;
   const compareConfig: TypeScaleConfig = { ...config, ratio: compareRatio };
 
+  // Detect which parameter preset matches the current config
+  const activeParamPresetId = TYPE_SCALE_PARAMETER_PRESETS.find(p =>
+    Math.abs(p.config.ratio - config.ratio) < 0.001 &&
+    p.config.steps.length === config.steps.length &&
+    p.config.steps.every((s, i) => s.name === config.steps[i]?.name) &&
+    p.config.unit === config.unit &&
+    p.config.roundTo === config.roundTo
+  )?.id;
+
+  const handleParamPresetSelect = (preset: TypeScaleParameterPreset) => {
+    onInteractionStart?.();
+    setIsCustomRatio(false);
+    onChange({
+      ...config,
+      steps: preset.config.steps.map(s => ({ ...s })),
+      ratio: preset.config.ratio,
+      unit: preset.config.unit,
+      baseStep: preset.config.baseStep,
+      roundTo: preset.config.roundTo,
+    });
+    setShowFullEditor(false);
+    setShowSteps(false);
+  };
+
   const setRatioTokenRef = (tokenPath: string, resolvedValue: unknown) => {
     const numVal = typeof resolvedValue === 'number' ? resolvedValue : parseFloat(String(resolvedValue));
     const safeVal = isFinite(numVal) && numVal > 1 ? numVal : config.ratio;
@@ -259,6 +356,55 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Parameter preset picker */}
+      <div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {TYPE_SCALE_PARAMETER_PRESETS.map(preset => {
+            const isActive = activeParamPresetId === preset.id;
+            const base = effectiveSourceValue > 0 ? effectiveSourceValue : 16;
+            const baseUnit = preset.config.unit === 'rem' ? base / 16 : base;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleParamPresetSelect(preset)}
+                title={preset.description}
+                className={`flex flex-col items-stretch rounded-md border p-1.5 transition-colors ${
+                  isActive
+                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8'
+                    : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                <div className="flex items-baseline gap-px h-5 mb-1 overflow-hidden">
+                  {preset.config.steps.slice(0, 5).map((step, i) => {
+                    const size = Math.max(6, Math.min(20, baseUnit * Math.pow(preset.config.ratio, step.exponent) * (preset.config.unit === 'rem' ? 16 : 1)));
+                    return (
+                      <span
+                        key={i}
+                        className={`font-medium leading-none ${isActive ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}
+                        style={{ fontSize: `${size}px` }}
+                      >A</span>
+                    );
+                  })}
+                </div>
+                <span className={`text-[9px] font-medium text-center ${
+                  isActive ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
+                }`}>{preset.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowFullEditor(v => !v)}
+          className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
+        >
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showFullEditor ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
+          Customize
+        </button>
+      </div>
+
+      {showFullEditor && <>
       <TokenRefInput
         label="Scale ratio"
         tokenRef={config.$tokenRefs?.ratio}
@@ -465,6 +611,7 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
           </div>
         </div>
       </div>
+      </>}
     </div>
   );
 }

@@ -14,7 +14,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: Generator quick-start templates and live previews already exist and work well. What's missing is named presets for parameter combinations within each generator type. Parameters like chromaBoost and lightnessCurve lack visual explanations and the connection between config adjustments and output is not obvious. This task adds a faster entry path, not a replacement for the full config editor."
-state: ready
+  - "Completed: Added 3 named presets to each generator type — ColorRamp (Vibrant, Neutral, Pastel), Spacing (Compact, Balanced, Generous), TypeScale (Tight, Balanced, Expressive). Each preset has visual preview strips (color swatches, bar charts, typography specimens). Selecting a preset pre-fills all config fields. Full parameter editor is available via Customize toggle. Active preset detection highlights matching preset. Build passes."
+state: done
 acceptance_criteria:
   - Each generator type offers 3-4 named parameter presets as a starting-point picker shown before the configuration form (e.g. ColorRamp offers Vibrant, Neutral, Pastel, Custom).
   - Each preset shows a visual preview strip of the output it would produce (e.g. a color ramp preview for ColorRamp presets).

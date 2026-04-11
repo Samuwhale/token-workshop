@@ -1286,9 +1286,30 @@ export function TokenEditor({
   );
 
   // Progressive disclosure: collapsible section state
-  const [metaOpen, setMetaOpen] = useState(false);
-  const [lifecycleOpen, setLifecycleOpen] = useState(false);
-  const [refsOpen, setRefsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(() => {
+    try { return localStorage.getItem('tm_editor_details') === '1'; } catch { return false; }
+  });
+  const toggleDetails = useCallback(() => {
+    setDetailsOpen((v) => {
+      const next = !v;
+      try { localStorage.setItem('tm_editor_details', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  }, []);
+  const [infoTab, setInfoTab] = useState<'dependencies' | 'usage' | 'history' | null>(() => {
+    try {
+      const saved = localStorage.getItem('tm_editor_info_tab');
+      if (saved === 'dependencies' || saved === 'usage' || saved === 'history') return saved;
+    } catch {}
+    return null;
+  });
+  const handleInfoTab = useCallback((tab: 'dependencies' | 'usage' | 'history') => {
+    setInfoTab((prev) => {
+      const next = prev === tab ? null : tab;
+      try { localStorage.setItem('tm_editor_info_tab', next ?? ''); } catch {}
+      return next;
+    });
+  }, []);
 
   if (loading) {
     return (
@@ -1725,81 +1746,6 @@ export function TokenEditor({
           refInputRef={refInputRef}
         />
 
-        {/* $extends — base token inheritance for composite types */}
-        {showAdvancedCreateFields && !aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
-              Extends
-            </label>
-            {extendsPath ? (
-              <div className="flex items-center gap-1.5">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  className="shrink-0 text-[var(--color-figma-accent)]"
-                >
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                </svg>
-                <span
-                  className="text-[11px] text-[var(--color-figma-text)] font-mono truncate flex-1"
-                  title={extendsPath}
-                >
-                  {extendsPath}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setExtendsPath("")}
-                  title="Remove base token"
-                  className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
-                >
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <ExtendsTokenPicker
-                tokenType={tokenType}
-                allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
-                currentPath={isCreateMode ? editPath.trim() : tokenPath}
-                onSelect={setExtendsPath}
-              />
-            )}
-            {extendsPath &&
-              (() => {
-                const base = allTokensFlat[extendsPath];
-                if (!base)
-                  return (
-                    <p className="text-[10px] text-[var(--color-figma-error)]">
-                      Base token not found
-                    </p>
-                  );
-                return (
-                  <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
-                    Inherited properties will be merged with overrides below.
-                  </p>
-                );
-              })()}
-          </div>
-        )}
-
         {/* Type-specific editor */}
         {!reference && (
           <div
@@ -2018,22 +1964,6 @@ export function TokenEditor({
           </div>
         )}
 
-        {/* Color modifiers — available for alias and direct color values */}
-        {tokenType === "color" &&
-          (aliasMode
-            ? isAlias(reference)
-            : typeof value === "string" && value.length > 0) && (
-            <ColorModifiersEditor
-              reference={aliasMode ? reference : undefined}
-              colorFlatMap={aliasMode ? colorFlatMap : undefined}
-              directColor={
-                !aliasMode && typeof value === "string" ? value : undefined
-              }
-              colorModifiers={colorModifiers}
-              onColorModifiersChange={setColorModifiers}
-            />
-          )}
-
         {/* Contrast checker (color tokens only) */}
         {tokenType === "color" && (
           <ContrastChecker
@@ -2045,65 +1975,132 @@ export function TokenEditor({
           />
         )}
 
-        {/* Lifecycle — collapsed by default */}
+        {/* Details — Modifiers, Extends, Metadata, Scopes, Lifecycle, Theme values */}
         {showAdvancedCreateFields && (
           <Collapsible
-            open={lifecycleOpen}
-            onToggle={() => setLifecycleOpen((v) => !v)}
-            label={
-              <>
-                Lifecycle{" "}
-                <span className="opacity-60 font-normal">{lifecycle}</span>
-              </>
-            }
+            open={detailsOpen}
+            onToggle={toggleDetails}
+            label="Details"
           >
-            <div className="flex gap-1 mt-1.5">
-              {(["draft", "published", "deprecated"] as const).map((lc) => (
-                <button
-                  key={lc}
-                  onClick={() => setLifecycle(lc)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                    lifecycle === lc
-                      ? lc === "draft"
-                        ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40"
-                        : lc === "deprecated"
-                          ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/40"
-                          : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
-                      : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                  }`}
-                >
-                  {lc}
-                </button>
-              ))}
-            </div>
-          </Collapsible>
-        )}
+            <div className="mt-2 flex flex-col gap-3">
+              {/* Color modifiers */}
+              {tokenType === "color" &&
+                (aliasMode
+                  ? isAlias(reference)
+                  : typeof value === "string" && value.length > 0) && (
+                  <ColorModifiersEditor
+                    reference={aliasMode ? reference : undefined}
+                    colorFlatMap={aliasMode ? colorFlatMap : undefined}
+                    directColor={
+                      !aliasMode && typeof value === "string" ? value : undefined
+                    }
+                    colorModifiers={colorModifiers}
+                    onColorModifiersChange={setColorModifiers}
+                  />
+                )}
 
-        {/* Inline theme values — per-set overrides for each theme option */}
-        {!isCreateMode &&
-          dimensions.length > 0 &&
-          perSetFlat &&
-          Object.keys(perSetFlat).length > 0 && (
-            <ThemeValuesSection
-              tokenPath={tokenPath}
-              tokenType={tokenType}
-              dimensions={dimensions}
-              perSetFlat={perSetFlat}
-              serverUrl={serverUrl}
-              onRefresh={onRefresh}
-            />
-          )}
+              {/* Extends — base token inheritance for composite types */}
+              {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+                    Extends
+                  </label>
+                  {extendsPath ? (
+                    <div className="flex items-center gap-1.5">
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        className="shrink-0 text-[var(--color-figma-accent)]"
+                      >
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                      <span
+                        className="text-[11px] text-[var(--color-figma-text)] font-mono truncate flex-1"
+                        title={extendsPath}
+                      >
+                        {extendsPath}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setExtendsPath("")}
+                        title="Remove base token"
+                        className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+                      >
+                        <svg
+                          width="8"
+                          height="8"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden="true"
+                        >
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <ExtendsTokenPicker
+                      tokenType={tokenType}
+                      allTokensFlat={allTokensFlat}
+                      pathToSet={pathToSet}
+                      currentPath={isCreateMode ? editPath.trim() : tokenPath}
+                      onSelect={setExtendsPath}
+                    />
+                  )}
+                  {extendsPath &&
+                    (() => {
+                      const base = allTokensFlat[extendsPath];
+                      if (!base)
+                        return (
+                          <p className="text-[10px] text-[var(--color-figma-error)]">
+                            Base token not found
+                          </p>
+                        );
+                      return (
+                        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+                          Inherited properties will be merged with overrides below.
+                        </p>
+                      );
+                    })()}
+                </div>
+              )}
 
-        {/* Description, Scopes, Mode Values, Extensions — collapsed by default */}
-        {showAdvancedCreateFields && (
-          <Collapsible
-            open={metaOpen}
-            onToggle={() => setMetaOpen((v) => !v)}
-            label={
-              description ? `Description & metadata` : "Description & metadata"
-            }
-          >
-            <div className="mt-2">
+              {/* Lifecycle */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+                  Lifecycle
+                </label>
+                <div className="flex gap-1">
+                  {(["draft", "published", "deprecated"] as const).map((lc) => (
+                    <button
+                      key={lc}
+                      onClick={() => setLifecycle(lc)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                        lifecycle === lc
+                          ? lc === "draft"
+                            ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40"
+                            : lc === "deprecated"
+                              ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/40"
+                              : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
+                          : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                      }`}
+                    >
+                      {lc}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Description, Scopes, Mode Values, Extensions */}
               <MetadataEditor
                 description={description}
                 onDescriptionChange={setDescription}
@@ -2124,22 +2121,184 @@ export function TokenEditor({
                 allTokensFlat={allTokensFlat}
                 pathToSet={pathToSet}
               />
+
+              {/* Inline theme values — per-set overrides for each theme option */}
+              {!isCreateMode &&
+                dimensions.length > 0 &&
+                perSetFlat &&
+                Object.keys(perSetFlat).length > 0 && (
+                  <ThemeValuesSection
+                    tokenPath={tokenPath}
+                    tokenType={tokenType}
+                    dimensions={dimensions}
+                    perSetFlat={perSetFlat}
+                    serverUrl={serverUrl}
+                    onRefresh={onRefresh}
+                  />
+                )}
             </div>
           </Collapsible>
         )}
 
-        {/* Dependency trace — inline references and dependent impact, with the graph kept as a deeper explorer */}
-        {!isCreateMode &&
-          (referenceTrace.length > 0 ||
-            dependentTrace.length > 0 ||
-            dependentsLoading ||
-            onShowReferences) && (
-            <Collapsible
-              open={refsOpen}
-              onToggle={() => setRefsOpen((v) => !v)}
-              label={`Dependency trace${referenceTrace.length + dependentTrace.length > 0 ? ` (${referenceTrace.length + dependentTrace.length})` : ""}`}
+        {/* Generator groups */}
+        {canBeGeneratorSource && !aliasMode && (
+          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+            <button
+              onClick={() => {
+                setEditingGeneratorInDialog(undefined);
+                setDuplicateTemplate(undefined);
+                setShowGeneratorDialog(true);
+              }}
+              className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              <div className="flex flex-col gap-1.5 mt-1.5">
+              <span className="flex items-center gap-1.5">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="5" cy="2" r="1.5" />
+                  <circle cx="2" cy="8" r="1.5" />
+                  <circle cx="8" cy="8" r="1.5" />
+                  <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
+                </svg>
+                {existingGeneratorsForToken.length > 0
+                  ? `Derived groups (${existingGeneratorsForToken.length})`
+                  : "Derived groups"}
+              </span>
+              {existingGeneratorsForToken.length === 0 ? (
+                <span className="text-[10px] text-[var(--color-figma-accent)]">
+                  + Create
+                </span>
+              ) : (
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M7 2L3 5l4 3" />
+                </svg>
+              )}
+            </button>
+            {existingGeneratorsForToken.length > 0 && (
+              <div className="px-3 py-2 flex flex-col gap-1.5 border-t border-[var(--color-figma-border)]">
+                {existingGeneratorsForToken.map((gen) => (
+                  <div
+                    key={gen.id}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
+                          gen.type === "colorRamp"
+                            ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
+                            : gen.type === "typeScale"
+                              ? "bg-purple-500/15 text-purple-600"
+                              : gen.type === "spacingScale"
+                                ? "bg-green-500/15 text-green-600"
+                                : "bg-orange-500/15 text-orange-600"
+                        }`}
+                      >
+                        {gen.type === "colorRamp"
+                          ? "Ramp"
+                          : gen.type === "typeScale"
+                            ? "Scale"
+                            : gen.type === "spacingScale"
+                              ? "Spacing"
+                              : "Opacity"}
+                      </span>
+                      <span className="text-[10px] text-[var(--color-figma-text)] truncate">
+                        {gen.targetGroup}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingGeneratorInDialog(gen);
+                          setDuplicateTemplate(undefined);
+                          setShowGeneratorDialog(true);
+                        }}
+                        className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDuplicateTemplate({
+                            id: `dup-${gen.id}`,
+                            label: `${gen.name} (copy)`,
+                            description: "",
+                            defaultPrefix: gen.targetGroup,
+                            generatorType: gen.type,
+                            config: gen.config,
+                            requiresSource: false,
+                          });
+                          setEditingGeneratorInDialog(undefined);
+                          setShowGeneratorDialog(true);
+                        }}
+                        title="Duplicate generator"
+                        className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                      >
+                        Duplicate
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    setEditingGeneratorInDialog(undefined);
+                    setDuplicateTemplate(undefined);
+                    setShowGeneratorDialog(true);
+                  }}
+                  className="mt-0.5 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors text-left"
+                >
+                  + Add another group
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Info section — Dependencies, Usage, History (read-only reference data) */}
+        {!isCreateMode && (
+          <div className="mt-1 border-t border-[var(--color-figma-border)] pt-2">
+            <div className="flex gap-0.5">
+              {[
+                { key: 'dependencies' as const, label: 'Dependencies', count: referenceTrace.length + dependentTrace.length },
+                { key: 'usage' as const, label: 'Usage' },
+                { key: 'history' as const, label: 'History' },
+              ].map(({ key, label, count }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleInfoTab(key)}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                    infoTab === key
+                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                      : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  {label}{count ? ` (${count})` : ''}
+                </button>
+              ))}
+            </div>
+
+            {infoTab === 'dependencies' && (
+              <div className="flex flex-col gap-1.5 mt-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1 flex-wrap">
                     {referenceTrace.length > 0 && (
@@ -2181,7 +2340,7 @@ export function TokenEditor({
                         <circle cx="12" cy="12" r="3" />
                         <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
                       </svg>
-                      Open advanced graph
+                      Open graph
                     </button>
                   )}
                 </div>
@@ -2405,174 +2564,44 @@ export function TokenEditor({
                   </div>
                 )}
               </div>
-            </Collapsible>
-          )}
-      </div>
-
-      {/* Generator groups */}
-      {canBeGeneratorSource && !aliasMode && (
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <button
-            onClick={() => {
-              setEditingGeneratorInDialog(undefined);
-              setDuplicateTemplate(undefined);
-              setShowGeneratorDialog(true);
-            }}
-            className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            <span className="flex items-center gap-1.5">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 10 10"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="5" cy="2" r="1.5" />
-                <circle cx="2" cy="8" r="1.5" />
-                <circle cx="8" cy="8" r="1.5" />
-                <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
-              </svg>
-              {existingGeneratorsForToken.length > 0
-                ? `Derived groups (${existingGeneratorsForToken.length})`
-                : "Derived groups"}
-            </span>
-            {existingGeneratorsForToken.length === 0 ? (
-              <span className="text-[10px] text-[var(--color-figma-accent)]">
-                + Create
-              </span>
-            ) : (
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 10 10"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M7 2L3 5l4 3" />
-              </svg>
             )}
-          </button>
-          {existingGeneratorsForToken.length > 0 && (
-            <div className="px-3 py-2 flex flex-col gap-1.5 border-t border-[var(--color-figma-border)]">
-              {existingGeneratorsForToken.map((gen) => (
-                <div
-                  key={gen.id}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                        gen.type === "colorRamp"
-                          ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                          : gen.type === "typeScale"
-                            ? "bg-purple-500/15 text-purple-600"
-                            : gen.type === "spacingScale"
-                              ? "bg-green-500/15 text-green-600"
-                              : "bg-orange-500/15 text-orange-600"
-                      }`}
-                    >
-                      {gen.type === "colorRamp"
-                        ? "Ramp"
-                        : gen.type === "typeScale"
-                          ? "Scale"
-                          : gen.type === "spacingScale"
-                            ? "Spacing"
-                            : "Opacity"}
-                    </span>
-                    <span className="text-[10px] text-[var(--color-figma-text)] truncate">
-                      {gen.targetGroup}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingGeneratorInDialog(gen);
-                        setDuplicateTemplate(undefined);
-                        setShowGeneratorDialog(true);
-                      }}
-                      className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDuplicateTemplate({
-                          id: `dup-${gen.id}`,
-                          label: `${gen.name} (copy)`,
-                          description: "",
-                          defaultPrefix: gen.targetGroup,
-                          generatorType: gen.type,
-                          config: gen.config,
-                          requiresSource: false,
-                        });
-                        setEditingGeneratorInDialog(undefined);
-                        setShowGeneratorDialog(true);
-                      }}
-                      title="Duplicate generator"
-                      className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
-                    >
-                      Duplicate
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <button
-                onClick={() => {
-                  setEditingGeneratorInDialog(undefined);
-                  setDuplicateTemplate(undefined);
-                  setShowGeneratorDialog(true);
-                }}
-                className="mt-0.5 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors text-left"
-              >
-                + Add another group
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Token references: incoming aliases, variable bindings, generators, layers */}
-      {!isCreateMode && (
-        <TokenUsages
-          dependents={dependents}
-          dependentsLoading={dependentsLoading}
-          setName={setName}
-          tokenPath={tokenPath}
-          tokenType={tokenType}
-          value={value}
-          isDirty={isDirty}
-          aliasMode={aliasMode}
-          allTokensFlat={allTokensFlat}
-          colorFlatMap={colorFlatMap}
-          pathToSet={pathToSet}
-          initialValue={initialRef.current?.value}
-          producingGenerator={derivedTokenPaths?.get(tokenPath) ?? null}
-          sourceGenerators={existingGeneratorsForToken}
-          onNavigateToToken={onNavigateToToken}
-          onShowReferences={onShowReferences}
-          onNavigateToGenerator={onNavigateToGenerator}
-        />
-      )}
+            {infoTab === 'usage' && (
+              <div className="mt-2">
+                <TokenUsages
+                  dependents={dependents}
+                  dependentsLoading={dependentsLoading}
+                  setName={setName}
+                  tokenPath={tokenPath}
+                  tokenType={tokenType}
+                  value={value}
+                  isDirty={isDirty}
+                  aliasMode={aliasMode}
+                  allTokensFlat={allTokensFlat}
+                  colorFlatMap={colorFlatMap}
+                  pathToSet={pathToSet}
+                  initialValue={initialRef.current?.value}
+                  producingGenerator={derivedTokenPaths?.get(tokenPath) ?? null}
+                  sourceGenerators={existingGeneratorsForToken}
+                  onNavigateToToken={onNavigateToToken}
+                  onShowReferences={onShowReferences}
+                  onNavigateToGenerator={onNavigateToGenerator}
+                />
+              </div>
+            )}
 
-      {/* Per-token value history */}
-      {!isCreateMode && (
-        <TokenHistorySection
-          tokenPath={tokenPath}
-          serverUrl={serverUrl}
-          tokenType={tokenType}
-        />
-      )}
+            {infoTab === 'history' && (
+              <div className="mt-2">
+                <TokenHistorySection
+                  tokenPath={tokenPath}
+                  serverUrl={serverUrl}
+                  tokenType={tokenType}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Save changes confirmation */}
       {showDiscardConfirm && (

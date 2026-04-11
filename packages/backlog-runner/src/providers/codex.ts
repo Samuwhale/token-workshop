@@ -15,6 +15,8 @@ import {
 const PROVIDER_SMOKE_TIMEOUT_MS = 2 * 60 * 1000;
 const PROVIDER_RUN_TIMEOUT_MS = 30 * 60 * 1000;
 
+// Context is concatenated with the prompt into a single user message via stdin.
+// Codex does not support separate system prompt files like Claude does.
 export const codexProvider: ProviderAdapter = {
   tool: 'codex',
   async validate(commandRunner: CommandRunner, options: ProviderValidationOptions = {}): Promise<ToolValidationResult> {

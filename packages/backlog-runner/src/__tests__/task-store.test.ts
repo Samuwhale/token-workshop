@@ -242,6 +242,27 @@ describe('task store', () => {
     expect(runtimeReport).toContain('waiting on active reservation: Task A');
   });
 
+  it('skips conflicting tasks within the same batch claim', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', priority: 'high', touchPaths: ['packages/server/src/routes'] }));
+    await seedTask(config, taskSpec({ id: 'task-b', title: 'Task B', priority: 'normal', touchPaths: ['packages/server/src/routes/tokens.ts'] }));
+    await seedTask(config, taskSpec({ id: 'task-c', title: 'Task C', priority: 'low', touchPaths: ['packages/core/src/other.ts'] }));
+
+    const claims = await store.claimNextRunnableTasks(3, 'runner-a');
+
+    expect(claims.map(claim => claim.task.id)).toEqual(['task-a', 'task-c']);
+  });
+
+  it('skips conflicting capabilities within the same batch claim', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', priority: 'high', touchPaths: ['package.json'], capabilities: ['workspace-config'] }));
+    await seedTask(config, taskSpec({ id: 'task-b', title: 'Task B', priority: 'normal', touchPaths: ['.github/workflows/ci.yml'], capabilities: ['workspace-config'] }));
+
+    const claims = await store.claimNextRunnableTasks(2, 'runner-a');
+
+    expect(claims.map(claim => claim.task.id)).toEqual(['task-a']);
+  });
+
   it('blocks shared workspace config surfaces via inferred capabilities', async () => {
     const { config } = await makeFixture();
     const taskA = createTaskFromCandidate(candidate({

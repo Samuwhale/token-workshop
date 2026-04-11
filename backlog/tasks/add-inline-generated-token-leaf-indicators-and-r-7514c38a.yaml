@@ -1,0 +1,20 @@
+id: add-inline-generated-token-leaf-indicators-and-r-7514c38a
+title: Add inline generated-token leaf indicators and rationalize stale-generator status
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenTreeNode.tsx
+  - packages/figma-plugin/src/ui/components/tokenListTypes.ts
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - Leaf tokens that belong to a generator-produced group show a subtle visual indicator
+  - The derivedTokenPaths map is used to determine which leaf tokens are generator-produced
+  - "Stale-generator status is shown in exactly two places: group row badge amber treatment and expanded GeneratorSummaryRow with Re-run action"
+  - Remove the separate groupSummary pill that duplicates the stale label
+source: task-followup
+created_at: 2026-04-11T10:39:50.220Z
+updated_at: 2026-04-11T10:39:50.220Z

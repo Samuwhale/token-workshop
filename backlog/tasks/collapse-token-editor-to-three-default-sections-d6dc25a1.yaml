@@ -11,7 +11,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: The token editor currently renders 8-10 collapsible sections stacked vertically — Path, Value/Alias, Type, Modifiers, Extends, Metadata, Scopes, History, Dependents, Usage. For 90% of edits users only need Path, Value, and Type. The remaining sections add visual weight even when collapsed (8-10 section headers with expand toggles)."
-state: ready
+  - "Completed: Collapsed 8-10 sections into 3 always-visible (Path, Value/Alias, Type) + 1 collapsible Details section (Color modifiers, Extends, Lifecycle, MetadataEditor, Theme values) + 3 Info tabs at bottom (Dependencies, Usage, History). localStorage persistence for detailsOpen and infoTab. Build passes."
+state: done
 acceptance_criteria:
   - Default view shows only three sections — Path, Value (with alias toggle inline), and Type.
   - Modifiers, Extends, Metadata, and Scopes are grouped under a single collapsible 'Details' section.

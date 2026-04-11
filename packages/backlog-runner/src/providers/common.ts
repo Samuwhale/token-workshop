@@ -1,7 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { AgentResult, AgentRunRequest, BacklogTool, CommandResult, CommandRunner, ToolValidationResult } from '../types.js';
+import { readFileIfExists } from '../utils.js';
 
 export const JSON_SCHEMA = JSON.stringify({
   type: 'object',
@@ -206,13 +207,7 @@ export async function writeTempFile(dir: string, name: string, content: string):
   return filePath;
 }
 
-export async function readIfExists(filePath: string): Promise<string> {
-  try {
-    return await readFile(filePath, 'utf8');
-  } catch {
-    return '';
-  }
-}
+export { readFileIfExists as readIfExists } from '../utils.js';
 
 export function assertAgentSuccess(
   result: AgentResult | null,

@@ -13,11 +13,12 @@ validation_profile: backlog
 status_notes:
   - "Context: Inspect `packages/figma-plugin/src/ui/components/EmptyState.tsx`, `WelcomePrompt`, `TokenList.tsx`, `ImportPanel.tsx`, `ImportSuccessView.tsx`, `SettingsPanel.tsx`, `HistoryPanel.tsx`, `NotificationsPanel.tsx`, `ToastStack.tsx`, `useToastStack.ts`, and the sync/progress overlays in `packages/figma-plugin/src/ui/App.tsx`. Use the completed Tokens Start Here consolidation as baseline context, but cover non-Tokens surfaces too so the resulting contract spans first-run, no selection, disconnected, no results, loading, success, and error states consistently."
   - "Deferred: workspace setup failed: worktree dependency bootstrap missing dependencies: root:@eslint/js, root:eslint, root:eslint-plugin-react-hooks, root:playwright-core, root:turbo, root:typescript, root:typescript-eslint, packages/backlog-runner:better-sqlite3, packages/backlog-runner:yaml, packages/backlog-runner:@types/better-sqlite3, packages/backlog-runner:@types/node, packages/backlog-runner:tsx, packages/backlog-runner:vitest, packages/core:vitest, packages/figma-plugin:react, packages/figma-plugin:react-dom, packages/figma-plugin:@figma/plugin-typings, packages/figma-plugin:@tailwindcss/vite, packages/figma-plugin:@types/react, packages/figma-plugin:@types/react-dom, packages/figma-plugin:esbuild, packages/figma-plugin:tailwindcss, packages/figma-plugin:vite, packages/figma-plugin:vite-plugin-singlefile, packages/figma-plugin:vitest, packages/server:@fastify/cors, packages/server:chokidar, packages/server:fastify, packages/server:simple-git, packages/server:style-dictionary, packages/server:@types/node, packages/server:tsx, packages/server:vitest until 2026-04-10T23:57:41.131Z"
-state: ready
+  - "Completed: Inventoried 18 distinct feedback primitives across the plugin. Audited 10 surfaces for 6 state categories. Proposed 4 shared primitives (FeedbackPlaceholder, InlineBanner, ProgressOverlay, toast warning variant). Created 4 follow-up tasks."
+state: done
 acceptance_criteria:
   - Inventory the current feedback primitives and bespoke cases across full-surface empty states, section empty states, no-results states, inline validation banners, blocking progress overlays, toasts, and notification history.
   - Separate zero-data/empty-state patterns from mutation-feedback patterns, and define where each state should appear for Tokens, Import, Settings, History, Sync/Publish, and other secondary surfaces.
   - Write implementation-ready follow-up backlog tasks with concrete repo touch paths for shared primitives and workspace migrations, including explicit tasks for empty-state standardization and mutation feedback/progress standardization.
 source: planner-pass
 created_at: 2026-04-10T23:07:09.240Z
-updated_at: 2026-04-10T23:42:41.145Z
+updated_at: 2026-04-11T12:00:00.000Z

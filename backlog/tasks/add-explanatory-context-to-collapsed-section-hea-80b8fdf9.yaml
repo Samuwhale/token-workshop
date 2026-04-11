@@ -1,0 +1,22 @@
+id: add-explanatory-context-to-collapsed-section-hea-80b8fdf9
+title: Add explanatory context to collapsed section headers for Unused, Duplicates, and Contrast panels
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/audit/UnusedTokensPanel.tsx
+  - packages/figma-plugin/src/ui/components/audit/DuplicateDetectionPanel.tsx
+  - packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx
+  - packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - Unused Tokens collapsed header includes a brief qualifier alongside the count
+  - Duplicate Values collapsed header shows total alias count alongside group count
+  - Contrast Matrix includes a one-sentence explanation of WCAG AA/AAA requirements
+  - Lightness Inspector anomaly warning identifies the specific token paths that triggered it
+source: task-followup
+created_at: 2026-04-11T10:39:50.198Z
+updated_at: 2026-04-11T10:39:50.198Z

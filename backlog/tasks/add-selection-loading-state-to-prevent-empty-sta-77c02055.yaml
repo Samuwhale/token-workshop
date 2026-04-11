@@ -1,0 +1,20 @@
+id: add-selection-loading-state-to-prevent-empty-sta-77c02055
+title: Add selection-loading state to prevent empty-state flash
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/hooks/useSelection.ts
+  - packages/figma-plugin/src/ui/contexts/InspectContext.tsx
+  - packages/figma-plugin/src/ui/components/SelectionInspector.tsx
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - useSelection exposes a loading boolean that is true until the first selection message is received
+  - SelectionInspector checks selectionLoading before rendering the empty state
+  - QuickApplyPicker guard in App.tsx also respects the loading state
+source: task-followup
+created_at: 2026-04-11T10:39:50.205Z
+updated_at: 2026-04-11T10:39:50.205Z

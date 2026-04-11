@@ -820,3 +820,55 @@
 - **Learnings for future iterations:**
   - Temp backlog workspaces can inherit package symlinks that still target an older temp directory. If a build reports `ERR_MODULE_NOT_FOUND` for an installed package, inspect the symlink target before assuming the manifest is wrong.
 ---
+---
+## 2026-04-11 - Research Apply workspace selection-state contract across compare, review, and binding feedback surfaces
+- Inventoried 18 distinct Apply workspace states across SelectionInspector (800+ lines of state handling), QuickApplyPicker, and CanvasAnalysisPanel.
+- Mapped full state transition flow from Figma postMessage through useSelection to UI rendering, including selection change cleanup and binding auto-advance.
+- Found 7 issues: no selection-loading state causing empty-state flash, orphaned ApplyWorkflowControls component, inconsistent mixed-selection handling across surfaces, duplicated sync-status rendering, no canvas-analysis selection continuity, inconsistent `connected` guard, stackable sticky footers with no priority system.
+- Files inspected: `SelectionInspector.tsx`, `QuickApplyPicker.tsx`, `ApplyWorkflowControls.tsx`, `applyWorkflow.ts`, `selectionInspectorUtils.ts`, `PropertyRow.tsx`, `PanelRouter.tsx`, `App.tsx`, `navigationTypes.ts`
+- Created 4 follow-up implementation tasks: unify sync-status rendering, add selection-loading state, remove/integrate dead ApplyWorkflowControls, implement sticky-footer priority system.
+---
+## 2026-04-11 - Research shared plugin contract for zero-state, loading, progress, success, and error feedback
+- Inventoried 18 distinct feedback primitives across the plugin: EmptyState, SectionEmptyState, inline empty states, toast system (success/error only), notification inbox, skeleton loaders, spinner, blocking progress overlays (duplicated in App.tsx), confirm modal, inline error/loading banners (6+ bespoke implementations), import success view, error boundary.
+- Audited 10 surfaces (Tokens, Import, Settings, History, Generators, Publish, Export, Health, Notifications, Selection Inspector) for 6 state categories (zero-data, loading, error, success, no-results, disconnected).
+- Key gap: No shared empty-state component, no shared inline error banner, no warning toast variant, duplicated blocking progress overlays, inconsistent disconnected-state treatment.
+- Created 4 follow-up tasks: FeedbackPlaceholder component, InlineBanner component, ProgressOverlay component, toast warning variant.
+---
+## 2026-04-11 - Research Tokens workspace edit-surface ownership
+- Inventoried 9 token editing surfaces: inline row edit (TokenTreeNode), InlineValuePopover, TokenEditor (contextual panel), TokenDetailPreview, TokenGeneratorDialog, UnifiedComparePanel, TokenListModals, unsaved changes guard (guardEditorAction), ThemeValuesSection.
+- Mapped state/navigation flow through EditorContext with mutual exclusion of contextual surfaces.
+- Found 6 issues: preview-to-edit bypasses guardEditorAction, inline edits lack undo-slot capture, InlineValuePopover has no discard confirmation, scattered mutual-exclusion logic across PanelRouter/EditorContext/App, compare-to-edit lacks guard, TokenListModals not coordinated with EditorContext.
+- Created 4 follow-up tasks: centralize mutual-exclusion, add undo-slot capture to inline saves, guard compare/preview-to-edit transitions, document surface-ownership contract.
+---
+## 2026-04-11 - Research Apply maintenance-tools surface ownership
+- Inventoried all Apply workspace controls: 17 controls across 4 steps in SelectionInspector, standalone panels (RemapBindingsPanel 150 lines, ExtractTokensPanel 491 lines, DeepInspectSection 283 lines), shell-level ApplyWorkflowControls (73 lines, 4 stage cards).
+- Mapped routing from App shell workspace tabs through PanelRouter to each tool, including the `focusStage()` mechanism connecting shell cards to inspector sections.
+- Proposed: Steps 1-3 (summary, suggestions, bindings) stay in default flow. Step 4 maintenance tools (sync, search, deep inspect, extract, remap, clear, filters) extract into a dedicated sub-surface with independent collapsible cards and active-state indicators.
+- Created 4 follow-up tasks: surface advanced-tool states to shell pills, extract MaintenanceToolsSection, lift deep-inspect/filter persistence to InspectContext, add sync-status to workflow summary.
+---
+## 2026-04-11 - Research Audit issue explanations and remediation handoffs
+- Inventoried all audit issue types: 12 validation/lint rules, duplicate values (DuplicateDetectionPanel), unused tokens (UnusedTokensPanel), contrast matrix (ContrastMatrixPanel), lightness inspector (LightnessInspectorPanel), priority issues strip, 4 HealthSection cards (lint, generators, canvas, alias dependencies).
+- Found 10 explanation gaps: priority issues strip lacks context, lint violations card uses raw counts, unused/duplicate headers missing qualifiers, contrast matrix missing WCAG explanations, lightness inspector lacks token paths, alias dependencies card hardcoded to healthy/0, suppressed issues show raw rule IDs, canvas labels use casual colors, generator health uses unexplained jargon.
+- Defined per-issue remediation contract for 16 issue types specifying why-it-matters, source, and resolution CTA.
+- Created 4 follow-up tasks: priority issue explanations, section header context, contrast fix CTAs, alias dependencies wiring.
+---
+## 2026-04-11 - Research generator ownership, save-impact messaging, and return-to-generated-token flows
+- Mapped 11 generator entry points: GraphPanel, QuickStart, TokenEditor derived groups, token leaf badges, group context menus, group header stale indicator, TokenDetailPreview (static), TokenUsages (clickable), command palette, contextual panel, QuickGeneratorPopover.
+- Found 4 ownership gaps: TokenDetailPreview shows static non-clickable text, derived badge lacks visible label text, group headers lack persistent generator indicator when not stale, command palette results lack visual generator differentiation.
+- Found 5 save-impact issues: no regeneration count on edit Save button, hidden review section, no total impact scope message, QuickStart lacks impact summary, inline edit save closes silently.
+- Found 5 return-flow gaps: onSaved does not navigate to generated group, GraphPanel stays on Generators tab, preview Derived from is not navigable, pipeline card lacks View tokens action, inline edit does not scroll to group.
+- Created 4 follow-up tasks.
+---
+## 2026-04-11 - Research post-import handoff routing and next-step recommendations
+- Mapped import completion flow: ImportPanelContext executeCollectionImport/executeImport → onImportCompleteRef → PanelRouter onImportComplete callback → navigateTo('define', 'tokens') + setActiveSet + closeSecondarySurface.
+- Found all import result state (lastImportReviewSummary, source type, undo data, failed paths) is destroyed on ImportPanelProvider unmount when takeover closes.
+- Identified 6 gaps: no surviving result summary, lost source type, hardcoded Tokens routing, no next-step guidance, impossible undo after close, multi-set destination reduced to single set.
+- Reconciled with completed import conflict-review and validation work — those operate before import apply and are fully contained within the takeover.
+- Created 4 follow-up tasks: hoist import result to app-level, add recommendation rules, replace hardcoded routing, surface transient post-import banner.
+---
+## 2026-04-11 - Research Tokens authoring contract for token-editor consistency, generator escalation, and inline generated-group status
+- Inventoried TokenEditor layout (2763 lines): header with path/type/actions, draft recovery banner, launcher guidance, scrollable body with 10+ sections (alias, extends, value editor, contrast checker, color modifiers, token nudge, lifecycle, theme values, metadata, dependency trace), generator groups section, TokenUsages, TokenHistorySection, footer, overlays.
+- Mapped 11 generator escalation paths across Tokens and Generators surfaces with distinct trigger mechanisms and destination surface types.
+- Catalogued 6 inline generated-group status affordances and identified gaps: no leaf-level indicator for generated tokens, stale status shown redundantly in 3 places.
+- Proposed 3 ordered implementation slices: shared editor shell extraction, generator escalation consolidation through contextual surface contract, inline generated-token leaf indicators.
+- Created 4 follow-up tasks reconciled against plugin-ia-blueprint and completed generator draft-flow work.

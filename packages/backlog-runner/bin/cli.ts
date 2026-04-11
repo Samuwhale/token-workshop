@@ -2,7 +2,7 @@
 import { parseArgs } from 'node:util';
 import { promptForRunOverrides, shouldPromptInteractively } from './interactive.js';
 import { loadBacklogRunnerConfig } from '../src/config.js';
-import { runBacklogRunner, syncBacklogRunner } from '../src/scheduler.js';
+import { runBacklogRunner, syncBacklogRunner } from '../src/scheduler/index.js';
 import { validateBacklogRunner } from '../src/validate.js';
 import type { BacklogTool, RunOverrides } from '../src/types.js';
 

@@ -15,7 +15,7 @@ state: ready
 acceptance_criteria:
   - Buttons are grouped with visual dividers by intent — Selection (Select all), Edit (Bulk edit, Compare), Organize (Move to group, Move to set, Copy to set), Copy (dropdown containing JSON, CSS var, {ref}), and Danger (Delete, visually distinct).
   - The three Copy actions collapse into a single 'Copy as...' dropdown menu, reducing visible buttons from 11 to approximately 7-8.
-  - 'Link to tokens' moves to a context menu or overflow since it is rarely used.
+  - "'Link to tokens' moves to a context menu or overflow since it is rarely used."
   - Delete button has distinct danger styling separated from other actions.
 source: ux-pass
 created_at: 2026-04-11T12:00:00.000Z

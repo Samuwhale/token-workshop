@@ -1,0 +1,22 @@
+id: consolidate-generator-escalation-paths-through-c-475c16fd
+title: Consolidate generator escalation paths through contextual surface contract
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenEditor.tsx
+  - packages/figma-plugin/src/ui/components/TokenTreeNode.tsx
+  - packages/figma-plugin/src/ui/panels/PanelRouter.tsx
+  - packages/figma-plugin/src/ui/shared/navigationTypes.ts
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - TokenEditor Derived groups section no longer opens TokenGeneratorDialog as a modal overlay but requests the generator-editor contextual surface
+  - QuickGeneratorPopover escalation routes to the generator-editor contextual panel
+  - All generator editing from Tokens > Library section goes through TOKENS_LIBRARY_SURFACE_CONTRACT
+  - Generators section tab retains its own generator dialog
+source: task-followup
+created_at: 2026-04-11T10:39:50.219Z
+updated_at: 2026-04-11T10:39:50.219Z

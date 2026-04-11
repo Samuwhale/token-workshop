@@ -1,4 +1,4 @@
-import { access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 
 export function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
@@ -10,6 +10,14 @@ export async function fileExists(filePath: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function readFileIfExists(filePath: string, fallback = ''): Promise<string> {
+  try {
+    return await readFile(filePath, 'utf8');
+  } catch {
+    return fallback;
   }
 }
 

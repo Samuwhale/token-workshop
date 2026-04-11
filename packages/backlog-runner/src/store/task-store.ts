@@ -330,15 +330,27 @@ export class FileBackedTaskStore implements BacklogStore {
       }
 
       const claimed: BacklogTaskClaim[] = [];
+      const claimedReservations: TaskReservationSnapshot[] = [];
       for (const candidate of candidates) {
         if (claimed.length >= limit) {
           break;
+        }
+        if (claimedReservations.some(reservation => reservationConflict(candidate, reservation))) {
+          continue;
         }
         const lease = runtime.claimTask(candidate, runnerId, randomUUID());
         if (!lease) {
           continue;
         }
         claimed.push({ task: candidate, lease });
+        claimedReservations.push({
+          taskId: candidate.id,
+          title: candidate.title,
+          touchPaths: candidate.touchPaths,
+          capabilities: candidate.capabilities,
+          runnerId,
+          expiresAt: lease.expiresAt,
+        });
       }
       await this.refreshRuntimeAndWriteLiveReport(tasks);
       return claimed;

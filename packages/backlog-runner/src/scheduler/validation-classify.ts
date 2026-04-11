@@ -1,0 +1,149 @@
+import type { RunnerLogger } from '../logger.js';
+import { createFileBackedTaskStore } from '../store/task-store.js';
+import { isPathWithinTouchPaths, normalizeRepoPath } from '../task-specs.js';
+import type { BacklogCandidateRecord, BacklogTaskClaim } from '../types.js';
+import {
+  BOOTSTRAP_MARKER_PATTERNS,
+  MODULE_RESOLUTION_ERROR_PATTERNS,
+  PACKAGE_RELATIVE_SRC_PATH_PATTERN,
+  REPO_PATH_PATTERN,
+  WORKTREE_LOCATION_PATTERNS,
+} from './constants.js';
+import { logDrainResult, normalizeInlineNote } from './helpers.js';
+
+export type ValidationFailureClassification =
+  | { blocking: true; reason: string }
+  | { blocking: false; reason: string; followup: BacklogCandidateRecord };
+
+function normalizeValidationReason(reason: string): string {
+  return reason
+    .replace(/^reconciliation\s+validation\s+failed:\s*/i, '')
+    .replace(/^validation\s+failed:\s*/i, '')
+    .trim();
+}
+
+function detectValidationPackageContexts(reason: string): string[] {
+  const contexts = new Set<string>();
+  if (/packages\/server|\/packages\/server\/|server build|server tests/i.test(reason)) {
+    contexts.add('packages/server');
+  }
+  if (/packages\/core|\/packages\/core\/|core build|core tests|core bootstrap/i.test(reason)) {
+    contexts.add('packages/core');
+  }
+  if (/packages\/figma-plugin|\/packages\/figma-plugin\/|plugin build|plugin tests/i.test(reason)) {
+    contexts.add('packages/figma-plugin');
+  }
+  return [...contexts];
+}
+
+function sanitizeValidationPath(filePath: string): string {
+  return normalizeRepoPath(filePath.replace(/[(:].*$/, '').replace(/[),.;]+$/, ''));
+}
+
+function extractValidationPaths(reason: string): string[] {
+  const paths = new Set<string>();
+  for (const match of reason.matchAll(REPO_PATH_PATTERN)) {
+    paths.add(sanitizeValidationPath(match[1]));
+  }
+
+  const contexts = detectValidationPackageContexts(reason);
+  if (contexts.length === 1) {
+    for (const match of reason.matchAll(PACKAGE_RELATIVE_SRC_PATH_PATTERN)) {
+      paths.add(sanitizeValidationPath(`${contexts[0]}/${match[0]}`));
+    }
+  }
+
+  return [...paths];
+}
+
+function isExplicitWorkspaceValidationIssue(reason: string): boolean {
+  const hasModuleResolutionSignal = MODULE_RESOLUTION_ERROR_PATTERNS.some(pattern => pattern.test(reason));
+  if (!hasModuleResolutionSignal) {
+    return false;
+  }
+
+  const hasWorktreeLocation = WORKTREE_LOCATION_PATTERNS.some(pattern => pattern.test(reason));
+  const hasBootstrapMarker = BOOTSTRAP_MARKER_PATTERNS.some(pattern => pattern.test(reason));
+  return hasWorktreeLocation || hasBootstrapMarker;
+}
+
+function buildWorkspaceValidationFollowup(
+  claim: BacklogTaskClaim,
+  reason: string,
+): BacklogCandidateRecord {
+  return {
+    title: 'Repair worktree validation environment',
+    priority: 'high',
+    touchPaths: [
+      'packages/backlog-runner/src/workspace/git-worktree.ts',
+      'scripts/backlog/validate.sh',
+    ],
+    acceptanceCriteria: [
+      'Fresh worktrees bootstrap dependency resolution reliably before validation reruns.',
+      'Repo validation reruns no longer fail with missing-module workspace errors unrelated to completed task code.',
+    ],
+    validationProfile: 'backlog',
+    context: `Task "${claim.task.title}" completed its scoped work, but validation surfaced a worktree/bootstrap issue instead of a task-local defect: ${reason}`,
+    source: 'task-followup',
+  };
+}
+
+function buildUnrelatedValidationFollowup(
+  claim: BacklogTaskClaim,
+  reason: string,
+  touchPaths: string[],
+): BacklogCandidateRecord {
+  return {
+    title: `Resolve unrelated validation failure after ${claim.task.title}`,
+    priority: 'normal',
+    touchPaths,
+    acceptanceCriteria: [
+      `Validation errors in ${touchPaths.join(', ')} are resolved.`,
+      'The unrelated validation failure no longer blocks repo validation.',
+    ],
+    context: `Task "${claim.task.title}" completed its scoped work, but validation surfaced an unrelated failure outside its touch_paths: ${reason}`,
+    source: 'task-followup',
+  };
+}
+
+export function classifyValidationFailure(
+  claim: BacklogTaskClaim,
+  reason: string,
+): ValidationFailureClassification {
+  const normalizedReason = normalizeValidationReason(reason);
+  const implicatedPaths = extractValidationPaths(normalizedReason);
+  if (implicatedPaths.some(filePath => isPathWithinTouchPaths(filePath, claim.task.touchPaths))) {
+    return { blocking: true, reason };
+  }
+
+  if (isExplicitWorkspaceValidationIssue(normalizedReason)) {
+    return {
+      blocking: false,
+      reason,
+      followup: buildWorkspaceValidationFollowup(claim, normalizedReason),
+    };
+  }
+
+  if (implicatedPaths.length > 0) {
+    return {
+      blocking: false,
+      reason,
+      followup: buildUnrelatedValidationFollowup(claim, normalizedReason, implicatedPaths),
+    };
+  }
+
+  return { blocking: true, reason };
+}
+
+export async function queueNonBlockingValidationFollowup(
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  logger: RunnerLogger,
+  claim: BacklogTaskClaim,
+  failure: Extract<ValidationFailureClassification, { blocking: false }>,
+): Promise<void> {
+  await store.enqueueCandidate(failure.followup);
+  const drained = await store.drainCandidateQueue();
+  await store.appendTaskNote(claim.task.id, `Non-blocking validation issue deferred to follow-up: ${normalizeInlineNote(failure.reason)}`);
+  logDrainResult(logger, 'Candidate planner', drained);
+  logger.line(`  ⚠ Non-blocking validation issue queued as follow-up: ${failure.followup.title}`);
+}

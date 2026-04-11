@@ -12,7 +12,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: The term 'modifier' is used for two unrelated concepts — color transform operations (lighten, darken, saturate, mix, alpha) and DTCG resolver dimension entries. Color modifiers are industry-standard and should keep the name. Resolver modifiers should be renamed to avoid confusion."
-state: ready
+  - "Completed: Renamed 12 user-facing strings in ResolverPanel.tsx from modifier to dimension (doc comment, template step label, preset description, badge, section heading, placeholder, heading, empty state, status text, help text, 2 code comments). SyncPreflightStep.tsx had no modifier terminology. Color modifier terminology left unchanged. Internal variable names preserved."
+state: done
 acceptance_criteria:
   - All user-facing labels, headers, tooltips, and guidance text referring to resolver modifiers use the term 'resolver dimensions' or 'resolver variables' instead of 'modifiers'.
   - Color modifier terminology (lighten, darken, saturate, mix, alpha) remains unchanged.

@@ -2,7 +2,7 @@
  * ResolverPanel — UI for managing DTCG v2025.10 resolver configs.
  *
  * Shows a list of resolvers, lets users create/delete them, migrate
- * from themes, select modifier contexts, and preview resolved tokens.
+ * from themes, select dimension contexts, and preview resolved tokens.
  *
  * `ResolverContent` is the embeddable version (no outer header) used
  * inside ThemeManager's advanced mode. `ResolverPanel` adds a standalone
@@ -394,7 +394,7 @@ function ResolverInner({
             </svg>
             <span className="font-medium text-[var(--color-figma-text)]">Light / Dark preset</span>
             <span className="ml-auto text-[var(--color-figma-text-tertiary)]">
-              {templateStep === 'name' ? 'foundation + mode modifier' : 'confirm set assignments'}
+              {templateStep === 'name' ? 'foundation + mode dimension' : 'confirm set assignments'}
             </span>
           </div>
 
@@ -560,7 +560,7 @@ function ResolverInner({
                   <span className="text-[11px] font-medium">Light / Dark preset</span>
                 </div>
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-                  Pre-built resolver with a <code className="font-mono">mode</code> modifier (light / dark)
+                  Pre-built resolver with a <code className="font-mono">mode</code> dimension (light / dark)
                 </p>
               </button>
             </div>
@@ -634,7 +634,7 @@ function ResolverInner({
                 <div className="flex items-center gap-1">
                   {modNames.length > 0 && (
                     <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]">
-                      {modNames.length} modifier{modNames.length !== 1 ? 's' : ''}
+                      {modNames.length} dimension{modNames.length !== 1 ? 's' : ''}
                     </span>
                   )}
                   {getResolverFile && updateResolver && (
@@ -682,10 +682,10 @@ function ResolverInner({
                         />
                       </div>
 
-                      {/* Modifiers */}
+                      {/* Dimensions */}
                       {Object.keys(editForm.modifiers).length > 0 && (
                         <div className="flex flex-col gap-1.5">
-                          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wider">Modifiers</div>
+                          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wider">Dimensions</div>
                           {Object.entries(editForm.modifiers).map(([modName, modEdit]) => {
                             const resolverMeta = resolvers.find(r => r.name === resolver.name);
                             const contexts = resolverMeta?.modifiers[modName]?.contexts ?? [];
@@ -701,7 +701,7 @@ function ResolverInner({
                                       ...editForm,
                                       modifiers: { ...editForm.modifiers, [modName]: { ...modEdit, description: e.target.value } },
                                     })}
-                                    placeholder="Optional modifier description…"
+                                    placeholder="Optional dimension description…"
                                     className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                                   />
                                 </div>
@@ -759,14 +759,14 @@ function ResolverInner({
                 </div>
               )}
 
-              {/* Expanded: modifier controls + preview */}
+              {/* Expanded: dimension controls + preview */}
               {isActive && editingResolver !== resolver.name && (
                 <div className="px-3 pb-2">
-                  {/* Modifier selectors */}
+                  {/* Dimension selectors */}
                   {modNames.length > 0 ? (
                     <div className="flex flex-col gap-1.5 mb-2">
                       <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wider">
-                        Modifier Inputs
+                        Dimension Inputs
                       </div>
                       {modNames.map(modName => {
                         const mod = resolver.modifiers[modName];
@@ -797,7 +797,7 @@ function ResolverInner({
                     </div>
                   ) : (
                     <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-2">
-                      No modifiers defined — only base sets will be merged.
+                      No dimensions defined — only base sets will be merged.
                     </div>
                   )}
 
@@ -824,7 +824,7 @@ function ResolverInner({
                       </div>
                     ) : (
                       <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                        Select modifier contexts to resolve tokens
+                        Select dimension contexts to resolve tokens
                       </div>
                     )}
                   </div>
@@ -884,7 +884,7 @@ function ResolverInner({
                   {/* Sets info */}
                   {resolver.modifiers && Object.keys(resolver.modifiers).length > 0 && (
                     <div className="mt-2 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                      Resolution order merges sets and applies modifier overrides in sequence.
+                      Resolution order merges sets and applies dimension overrides in sequence.
                       Tokens from later entries override earlier ones.
                     </div>
                   )}

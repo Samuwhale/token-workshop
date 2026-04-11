@@ -221,6 +221,12 @@ export async function readTaskSpecs(taskSpecsDir: string): Promise<BacklogTaskSp
   return specs.sort(taskSort);
 }
 
+async function findExistingTaskSpecPath(taskSpecsDir: string, taskId: string): Promise<string | null> {
+  const files = await listTaskSpecFiles(taskSpecsDir);
+  const expectedName = `${taskId}.yaml`;
+  return files.find(f => path.basename(f) === expectedName) ?? null;
+}
+
 export async function writeTaskSpec(taskSpecsDir: string, task: BacklogTaskSpec): Promise<void> {
   const content = YAML.stringify({
     id: task.id,
@@ -238,7 +244,8 @@ export async function writeTaskSpec(taskSpecsDir: string, task: BacklogTaskSpec)
     created_at: task.createdAt,
     updated_at: task.updatedAt,
   }, { indent: 2, lineWidth: 0 });
-  await writeFile(taskFilename(taskSpecsDir, task.id), content, 'utf8');
+  const existingPath = await findExistingTaskSpecPath(taskSpecsDir, task.id);
+  await writeFile(existingPath ?? taskFilename(taskSpecsDir, task.id), content, 'utf8');
 }
 
 function normalizeStringArray(value: unknown): string[] | null {

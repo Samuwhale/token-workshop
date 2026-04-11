@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { normalizeBacklogRunnerConfig } from '../config.js';
-import { runBacklogRunner } from '../scheduler.js';
+import { runBacklogRunner } from '../scheduler/index.js';
 import { writeTaskSpec } from '../task-specs.js';
 import type { BacklogTaskSpec, CommandResult, CommandRunner, LogSink } from '../types.js';
 
@@ -279,7 +279,7 @@ afterEach(async () => {
 });
 
 describe('runner e2e', () => {
-  it('finalizes successfully only after validation and includes the done state in the final commit', async () => {
+  it('marks task done only after git finalization succeeds', async () => {
     const { root, config } = await makeFixture([baseTask()]);
     const logSink = new MemoryLogSink();
     const calls: string[] = [];
@@ -294,7 +294,7 @@ describe('runner e2e', () => {
           onGitCommit: async message => {
             if (message !== 'chore(backlog): done – test item') return;
             const taskState = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
-            events.push(taskState.includes('state: done') ? 'done-at-finalize' : 'not-done-at-finalize');
+            events.push(taskState.includes('state: done') ? 'done-at-commit' : 'not-done-at-commit');
           },
         }),
         createLogSink: async () => logSink,
@@ -304,7 +304,8 @@ describe('runner e2e', () => {
 
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: done');
     expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [x] test item');
-    expect(events).toEqual(['done-at-finalize']);
+    // Task must NOT be marked done until after commit succeeds — prevents orphaned "done" state on crash
+    expect(events).toEqual(['not-done-at-commit']);
     expect(calls.indexOf('run:git commit -m chore(backlog): done – test item')).toBeGreaterThan(calls.indexOf('shell:pass'));
     expect(logSink.lines.join('')).toContain('Marked done after finalize');
   });

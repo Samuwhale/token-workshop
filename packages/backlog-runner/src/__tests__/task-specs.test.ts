@@ -1,8 +1,8 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { readTaskSpecs, renderGeneratedBacklog } from '../task-specs.js';
+import { readTaskSpecs, renderGeneratedBacklog, writeTaskSpec } from '../task-specs.js';
 import type { BacklogTaskSpec } from '../types.js';
 
 const tempDirs: string[] = [];
@@ -84,5 +84,35 @@ describe('task specs', () => {
 
     expect(backlog).toContain('backlog/tasks/**/*.yaml');
     expect(backlog).toContain('backlog/tasks/done/');
+  });
+
+  it('updates a nested task spec in place without creating a top-level duplicate', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'backlog-task-specs-test-'));
+    tempDirs.push(root);
+    const taskDir = path.join(root, 'backlog/tasks');
+    await mkdir(path.join(taskDir, 'done'), { recursive: true });
+    await writeFile(path.join(taskDir, 'done', 'task-a.yaml'), renderTaskYaml(taskSpec({
+      id: 'task-a',
+      title: 'Task A',
+      state: 'done',
+    })), 'utf8');
+
+    const updated = taskSpec({
+      id: 'task-a',
+      title: 'Task A',
+      state: 'done',
+      statusNotes: ['Seeded by test.', 'Updated note'],
+    });
+    await writeTaskSpec(taskDir, updated);
+
+    const topLevelFiles = (await readdir(taskDir)).filter(name => name.endsWith('.yaml'));
+    expect(topLevelFiles).toEqual([]);
+
+    const nestedFiles = (await readdir(path.join(taskDir, 'done'))).filter(name => name.endsWith('.yaml'));
+    expect(nestedFiles).toEqual(['task-a.yaml']);
+
+    const tasks = await readTaskSpecs(taskDir);
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.statusNotes).toContain('Updated note');
   });
 });
