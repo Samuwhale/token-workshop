@@ -22,7 +22,7 @@ import {
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
-import type { TokenListProps, MultiModeValue, Density, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
+import type { TokenListProps, MultiModeValue, Density, AffectedRef, GeneratorImpact, ThemeImpact, PromoteRow } from './tokenListTypes';
 import { VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
 import { validateJsonRefs, inferTypeFromValue, highlightMatch } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
@@ -55,6 +55,7 @@ import type { FilterBuilderSection } from './TokenSearchFilterBuilder';
 import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES } from './WelcomePrompt';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 import { InlineBanner } from './InlineBanner';
+import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
@@ -474,6 +475,7 @@ export function TokenList({
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
   const [filterBuilderOpen, setFilterBuilderOpen] = useState(false);
   const [activeFilterBuilderSection, setActiveFilterBuilderSection] = useState<FilterBuilderSection | null>(null);
+  const [createToolsMenuOpen, setCreateToolsMenuOpen] = useState(false);
   const [bulkWorkflowOpen, setBulkWorkflowOpen] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] = useState<BulkEditScope | null>(null);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] = useState<PendingBulkPresetLaunch | null>(null);
@@ -537,6 +539,9 @@ export function TokenList({
 
   // Expand/collapse state managed by useTokenExpansion (called below)
   const [viewOptionsOpen, setViewOptionsOpen] = useState(false);
+  const createToolsMenuContainerRef = useRef<HTMLDivElement>(null);
+  const createToolsMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const createToolsMenuRef = useRef<HTMLDivElement>(null);
   const viewOptionsRef = useRef<HTMLDivElement>(null);
   const bulkWorkflowRef = useRef<HTMLDivElement>(null);
   const batchEditorPanelRef = useRef<HTMLDivElement>(null);
@@ -577,6 +582,34 @@ export function TokenList({
   }, []);
 
   // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
+
+  useEffect(() => {
+    if (!createToolsMenuOpen) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (createToolsMenuContainerRef.current?.contains(event.target as Node)) return;
+      setCreateToolsMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setCreateToolsMenuOpen(false);
+        createToolsMenuButtonRef.current?.focus();
+        return;
+      }
+      if (createToolsMenuRef.current) {
+        handleMenuArrowKeys(event, createToolsMenuRef.current);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    window.requestAnimationFrame(() => {
+      if (createToolsMenuRef.current) getMenuItems(createToolsMenuRef.current)[0]?.focus();
+    });
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [createToolsMenuOpen]);
 
   useEffect(() => {
     if (!viewOptionsOpen) return;
@@ -850,7 +883,7 @@ export function TokenList({
     if (!multiModeData || !perSetFlat) return undefined;
     const { dim, results } = multiModeData;
     return results.map(({ optionName, dimId, resolved }) => {
-      const option = dim.options.find(o => o.name === optionName)!;
+      const option = dim.options.find((option: { name: string; sets: Record<string, string> }) => option.name === optionName)!;
       // Find the best target set for edits: first enabled set that already has the token, or first enabled set
       let targetSet: string | null = null;
       const enabledSets = Object.entries(option.sets).filter(([_, s]) => s === 'enabled').map(([sn]) => sn);
@@ -1399,8 +1432,6 @@ export function TokenList({
     handleSelectAll,
     handleSelectGroupChildren,
   } = tokenSelection;
-
-  const primaryCreateInToolbar = tokens.length > 0 && !selectMode && viewMode === 'tree';
 
   // Wire up the clearSelection ref now that useTokenSelection has been called
   clearSelectionRef.current = () => { setSelectMode(false); setSelectedPaths(new Set()); };
@@ -2065,6 +2096,17 @@ export function TokenList({
   const handleOpenPrimaryCreate = useCallback(() => {
     onCreateNew?.();
   }, [onCreateNew]);
+
+  const handleOpenNewGroupDialog = useCallback(() => {
+    setNewGroupDialogParent('');
+    setNewGroupName('');
+    setNewGroupError('');
+  }, [setNewGroupDialogParent, setNewGroupName, setNewGroupError]);
+
+  const runCreateToolsAction = useCallback((action: () => void) => {
+    setCreateToolsMenuOpen(false);
+    action();
+  }, []);
 
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities = useMemo<NodeCapabilities | null>(() => selectedNodes.length > 0
@@ -3047,10 +3089,11 @@ export function TokenList({
           </div>
         )}
 
-        {/* Search-first library toolbar with advanced controls collapsed behind one entry */}
-        {tokens.length > 0 && !selectMode && viewMode === 'tree' && (
+        {/* Library toolbar keeps creation inline and hides secondary controls until there is content to work with */}
+        {!selectMode && viewMode === 'tree' && (
           <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             <div className="flex flex-wrap items-start gap-2 px-2 py-2">
+              {tokens.length > 0 ? (
               <div className="min-w-[180px] flex-[999_1_0%]">
                 <div className="relative">
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
@@ -3126,6 +3169,9 @@ export function TokenList({
                   Search text stays simple. Use <span className="font-medium text-[var(--color-figma-text-secondary)]">Add filter</span> for type, token-state, path, value, description, or generator filters.
                 </div>
               </div>
+              ) : (
+                <div className="flex-[999_1_0%]" />
+              )}
 
               <div className="flex items-center gap-1.5">
                 <button
@@ -3138,6 +3184,69 @@ export function TokenList({
                   <span>New token</span>
                 </button>
 
+                <div className="relative shrink-0" ref={createToolsMenuContainerRef}>
+                  <button
+                    ref={createToolsMenuButtonRef}
+                    onClick={() => setCreateToolsMenuOpen(open => !open)}
+                    disabled={!connected}
+                    aria-expanded={createToolsMenuOpen}
+                    aria-haspopup="menu"
+                    className={`inline-flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${createToolsMenuOpen ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'} disabled:cursor-not-allowed disabled:opacity-40`}
+                    title="Open create tools"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14" />
+                      <path d="M19 8l2 2-2 2" />
+                    </svg>
+                    <span>Create tools</span>
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" className={`transition-transform ${createToolsMenuOpen ? 'rotate-180' : ''}`}>
+                      <path d="M1 2l3 4 3-4H1z" />
+                    </svg>
+                  </button>
+
+                  {createToolsMenuOpen && (
+                    <div ref={createToolsMenuRef} className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg" role="menu">
+                      <button
+                        role="menuitem"
+                        onClick={() => runCreateToolsAction(openTableCreate)}
+                        disabled={!connected}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        title="Create multiple tokens at once in a spreadsheet-like table"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M9 11H3" />
+                          <path d="M21 11h-6" />
+                          <path d="M12 8v6" />
+                          <path d="M4 6h4v10H4z" />
+                          <path d="M16 4h4v14h-4z" />
+                        </svg>
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">Bulk create</div>
+                          <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">Table editor for multiple tokens</div>
+                        </div>
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)}
+                        disabled={!connected}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        title="Create an empty group to organize tokens"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 7h18" />
+                          <path d="M3 12h10" />
+                          <path d="M3 17h18" />
+                        </svg>
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">New group</div>
+                          <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">Add an empty group at the current set root</div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {tokens.length > 0 && (
                 <button
                   onClick={toggleFilterBuilder}
                   aria-expanded={filterBuilderOpen || hasStructuredFilters}
@@ -3155,7 +3264,9 @@ export function TokenList({
                     </span>
                   )}
                 </button>
+                )}
 
+                {tokens.length > 0 && (
                 <div className="relative shrink-0" ref={bulkWorkflowRef}>
                   <button
                     onClick={() => setBulkWorkflowOpen(open => !open)}
@@ -3249,7 +3360,9 @@ export function TokenList({
                     </div>
                   )}
                 </div>
+                )}
 
+                {tokens.length > 0 && (
                 <div className="relative shrink-0" ref={viewOptionsRef}>
                   <button
                     onClick={() => setViewOptionsOpen(v => !v)}
@@ -3316,7 +3429,7 @@ export function TokenList({
                             Density: {density === 'compact' ? 'Compact' : 'Comfortable'}
                           </button>
                           <button
-                            onClick={() => setCondensedView(v => !v)}
+                            onClick={() => setCondensedView(!condensedView)}
                             className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${condensedView ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
                           >
                             {condensedView ? 'Condensed on' : 'Condense deep groups'}
@@ -3558,6 +3671,7 @@ export function TokenList({
                     </div>
                   )}
                 </div>
+                )}
               </div>
             </div>
 
@@ -3776,6 +3890,11 @@ export function TokenList({
         <NoticeBanner severity="error" onDismiss={() => setDeleteError(null)} dismissLabel="Dismiss">
           Delete failed: {deleteError}
         </NoticeBanner>
+      )}
+      {applyResult && (
+        <InlineBanner variant="info" layout="strip" size="md">
+          <span>Applied {applyResult.count} {applyResult.type === 'variables' ? 'variables' : 'styles'}</span>
+        </InlineBanner>
       )}
       {/* Scrollable token content with virtual scroll */}
       <div
@@ -4465,52 +4584,6 @@ export function TokenList({
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Bottom actions — streamlined primary actions only */}
-      {!showTableCreate && (
-        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            {!primaryCreateInToolbar && (
-              <button
-                onClick={handleOpenPrimaryCreate}
-                disabled={!connected}
-                title="Create a new token (N)"
-                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-              >
-                + New Token
-              </button>
-            )}
-            <div className={`min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 ${primaryCreateInToolbar ? 'flex-1' : 'shrink-0'}`}>
-              <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                {primaryCreateInToolbar ? 'More creation' : 'Create tools'}
-              </div>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                <button
-                  onClick={openTableCreate}
-                  disabled={!connected}
-                  title="Create multiple tokens at once in a spreadsheet-like table (Tab between cells)"
-                  className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                >
-                  Bulk
-                </button>
-                <button
-                  onClick={() => { setNewGroupDialogParent(''); setNewGroupName(''); setNewGroupError(''); }}
-                  disabled={!connected}
-                  title="Create an empty group to organize tokens"
-                  className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                >
-                  New Group
-                </button>
-              </div>
-            </div>
-          </div>
-          {applyResult && (
-            <span role="status" aria-live="polite" className="mt-1 block text-[10px] text-[var(--color-figma-accent)]">
-              Applied {applyResult.count} {applyResult.type === 'variables' ? 'variables' : 'styles'}
-            </span>
-          )}
         </div>
       )}
 

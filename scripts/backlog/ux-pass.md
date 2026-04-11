@@ -14,7 +14,7 @@ The primary users are UX/UI designers and design system maintainers working insi
 
 ## Goal
 
-Find **4–10 concrete usability issues** by walking through the UI code as a user would. Apply established usability heuristics and cognitive walkthrough methodology — but adapted for code-level evaluation (you cannot see the live UI, only read the code that produces it).
+Find **up to 3 concrete usability issues** by walking through the UI code as a user would. **0–1 items is fine if that is all that clears the bar.** Apply established usability heuristics and cognitive walkthrough methodology — but adapted for code-level evaluation (you cannot see the live UI, only read the code that produces it).
 
 **You are NOT the product-pass.** The product-pass asks "what's missing?" — you ask "what's confusing, inconsistent, or hard to use in what already exists?" Do NOT propose new features. Focus on how existing features feel to use.
 
@@ -41,6 +41,20 @@ This project has no shipped users and no backwards-compatibility constraints, so
 - Focused: `{"title":"Add explicit success feedback after token editor submissions","priority":"normal","touch_paths":["packages/figma-plugin/src/ui/components"],"acceptance_criteria":["Submitting the token editor shows a clear success state in the UI"],"context":"violates system status visibility","source":"ux-pass"}`
 - Broader: `{"title":"Standardize destructive action patterns across token, theme, and resolver workflows","priority":"high","touch_paths":["packages/figma-plugin/src/ui"],"acceptance_criteria":["Equivalent destructive actions use the same confirmation and recovery pattern across panels"],"context":"violates consistency","source":"ux-pass"}`
 - Overhaul: `{"title":"Expose token path context inline during editing instead of making users memorize it from the tree","priority":"high","touch_paths":["packages/figma-plugin/src/ui/components"],"acceptance_criteria":["Token editing surfaces the active token path and related context inside the form"],"context":"violates recognition over recall","source":"ux-pass"}`
+
+---
+
+## Quality Bar
+
+Only write an item if it passes **all** of these checks:
+
+- **Durable** — would this still look worth doing next week, or is it a transient observation?
+- **Root-level** — does this address a systemic pattern or interaction model problem, not a one-off cosmetic issue?
+- **Non-redundant** — does this add meaningfully new work, or does it overlap with something already on the backlog?
+- **Consolidating** — if you found several related usability issues in the same area, did you merge them into one broader item instead of writing each separately?
+- **Ownable** — can a single agent coherently own this item from start to finish?
+
+Prefer broader interaction-pattern or consistency items over isolated fixes. Prefer consolidation over fragmentation. If nothing clears this bar, write 0 items — that is a valid outcome.
 
 ---
 
@@ -105,7 +119,7 @@ For each major UI area you explore, perform a **code-level cognitive walkthrough
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
 - Use the current backlog as input when generating ideas: extend existing workflow clusters, identify missing usability follow-through around already-queued work, and surface inconsistencies that become obvious when similar areas are considered together.
 - Do not duplicate items already in `backlog.md` or merely restate them with different wording (check for similar wording and intent before writing).
-- Aim for 4–10 items. Prefer fewer, larger items. Only write issues that are real — confirmed by reading the code, not hypothetical.
+- Write at most 3 items. Prefer fewer, larger items. Only write issues that are real, durable, and clear the quality bar above.
 - Do NOT propose new features — that is the product-pass's job. If an issue is primarily about a missing capability, leave it for the product-pass. If it is about how an existing capability is presented or interacted with, it belongs here.
 - Every finding must be grounded in actual code you read, not inferred from file names or assumed from patterns.
 

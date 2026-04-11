@@ -1010,3 +1010,11 @@
   - Secondary surfaces should declare how they are reached (`workspace`, `attention`, `menu`, `set switcher`) so the shell can stay compact without hard-coding per-surface placement rules in `App.tsx`.
   - Reference and maintenance surfaces do not need persistent top-level buttons if the shell still preserves one compact access point plus clear workspace-local entry points for task-specific takeovers.
 ---
+---
+- Finished the selection bootstrap flow by wiring `selectionLoading` into the inspector route and showing a neutral loading placeholder until the first backend `selection` payload arrives, so the inspector no longer flashes its "No layer selected" empty state during startup.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "SelectionInspector\\.tsx|PanelRouter\\.tsx"` returned no diagnostics for the touched files; the broader typecheck still fails on unrelated pre-existing workspace issues such as `packages/core/dist` `TS6305` build-artifact errors and long-standing type errors elsewhere.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L169, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L812, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L270, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L1067
+- **Learnings for future iterations:**
+  - Once selection bootstrap state exists in `InspectContext`, every selection-driven surface should consume that shared loading flag instead of interpreting the hook's initial `[]` as a real empty selection.
+  - Neutral loading placeholders are preferable to search or empty-state affordances while the first Figma selection message is still in flight, because they avoid implying that the canvas has already reported "nothing selected."
+---

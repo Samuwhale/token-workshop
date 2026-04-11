@@ -8,8 +8,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/shared/navigationTypes.ts
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Collapsed secondary shell navigation into a conditional notifications bell plus gear menu, moved import into Tokens workspace controls, kept set management behind the set switcher, and recorded the pattern/progress updates."
+state: done
 acceptance_criteria:
   - The SECONDARY_SURFACES array in navigationTypes.ts no longer drives a always-visible button row in App.tsx
   - Settings and Shortcuts collapse into a single gear/settings icon or menu in the App shell header
@@ -19,4 +20,4 @@ acceptance_criteria:
   - Total top-level navigation targets drop from 13 to 7 or fewer
 source: manual
 created_at: 2026-04-11T22:00:00.000Z
-updated_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T21:10:39.447Z

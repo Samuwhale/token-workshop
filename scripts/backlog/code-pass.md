@@ -8,7 +8,7 @@ Codebase patterns and backlog state are injected as compact digests. Start there
 
 ## Goal
 
-Find **3–8 concrete, actionable items** across the codebase and write them to `backlog/inbox.jsonl`. Look for things that are wrong, wasteful, or risky in the code. Explore as many areas as you need.
+Find **up to 3 concrete, actionable items** across the codebase and write them to `backlog/inbox.jsonl`. **0–1 items is fine if that is all that clears the bar.** Look for things that are wrong, wasteful, or risky in the code. Explore as many areas as you need.
 
 **Prefer fewer, larger items over many small ones.** Each item should represent a meaningful chunk of work — not a one-line fix. If you spot several related small issues (e.g. 4 similar error-handling gaps in the same module), combine them into a single item that addresses the pattern. Only write a small standalone item if it's truly isolated and high-priority (e.g. a crash or data-loss bug).
 
@@ -30,6 +30,20 @@ This project has no shipped users and no backwards-compatibility constraints, so
 - Overhaul: `{"title":"Split TokenList state management into domain-specific hooks instead of one monolithic component state graph","priority":"high","touch_paths":["packages/figma-plugin/src/ui"],"acceptance_criteria":["TokenList state is organized by domain concern with fewer cross-cutting state dependencies"],"source":"code-pass"}`
 
 **Strongly prefer overhaul items** when the root cause of multiple issues is structural. If you see 5 bugs that all stem from the same tangled architecture, write one overhaul item instead of 5 band-aid items. One well-scoped overhaul is worth more than five small fixes.
+
+---
+
+## Quality Bar
+
+Only write an item if it passes **all** of these checks:
+
+- **Durable** — would this still look worth doing next week, or is it a transient observation?
+- **Root-level** — does this address a structural root cause, not a surface symptom?
+- **Non-redundant** — does this add meaningfully new work, or does it overlap with something already on the backlog?
+- **Consolidating** — if you found several related issues in the same module, did you merge them into one broader item instead of writing each separately?
+- **Ownable** — can a single agent coherently own this item from start to finish?
+
+Prefer broader structural or architectural tasks over isolated fixes. Prefer consolidation over fragmentation. If nothing clears this bar, write 0 items — that is a valid outcome.
 
 ---
 
@@ -69,7 +83,7 @@ This project has no shipped users and no backwards-compatibility constraints, so
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
 - Use the current backlog as input when generating ideas: extend existing architectural themes, identify missing root-cause or follow-through work, and look for deeper structural items suggested by clusters already on the queue.
 - Do not duplicate items already in `backlog.md` or merely rephrase them (check for similar wording and intent before writing).
-- Aim for 3–8 items. Prefer fewer, larger items. Only write issues that are real — confirmed by reading the code, not hypothetical.
+- Write at most 3 items. Prefer fewer, larger items. Only write issues that are real, durable, and clear the quality bar above.
 
 ---
 

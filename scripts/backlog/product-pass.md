@@ -90,7 +90,7 @@ Prefer broader workflow or architectural tasks over micro-fixes. Prefer consolid
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
 - Use the current backlog as input when generating ideas: extend clusters that already exist, identify missing prerequisite or follow-through work, and surface cross-cutting consolidation opportunities suggested by the queue.
 - Do not duplicate items already in `backlog.md` or merely rephrase them (check for similar wording and intent before writing).
-- Aim for 5–15 items. Only write issues that are real and worth acting on.
+- Write at most 3 items. Only write issues that are real, durable, and clear the quality bar above.
 - Feature and UX items should outnumber bug items. If you found mostly bugs, step back and think about the user's workflow.
 
 ---
