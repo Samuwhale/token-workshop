@@ -12,7 +12,8 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: All four sub-panels are flat files under packages/figma-plugin/src/ui/components/. UnusedTokensPanel is mounted inside HealthPanel at line 1289 in div#health-unused-section. DuplicateDetectionPanel at line 1302 in div#health-duplicates-section. ContrastMatrixPanel at line 1314. LightnessInspectorPanel is also a sibling component rendered by HealthPanel. Each panel renders as a collapsible section with a header that currently shows only the section name and a count."
-state: ready
+  - "Completed: Updated the four health sub-panels so collapsed headers carry clearer context and Lightness anomalies now name the exact token-path transitions; focused TypeScript validation showed only pre-existing workspace errors."
+state: done
 acceptance_criteria:
   - Unused Tokens collapsed header includes a brief qualifier alongside the count (e.g. 'not bound to any canvas node')
   - Duplicate Values collapsed header shows total alias count alongside group count
@@ -20,4 +21,4 @@ acceptance_criteria:
   - Lightness Inspector anomaly warning identifies the specific token paths that triggered it instead of a generic warning
 source: planner-pass
 created_at: 2026-04-11T20:20:09.663Z
-updated_at: 2026-04-11T20:20:09.663Z
+updated_at: 2026-04-11T20:50:02.728Z

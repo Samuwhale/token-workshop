@@ -5,6 +5,7 @@ import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
+import type { TokensLibraryGeneratorEditorTarget } from '../shared/navigationTypes';
 import type { StartHereBranch } from './WelcomePrompt';
 import type { ThemeDimension } from '@tokenmanager/core';
 
@@ -133,6 +134,7 @@ export interface TokenListActions {
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
   onEditGenerator?: (generatorId: string) => void;
+  onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
   onNavigateToGenerator?: (generatorId: string) => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
@@ -321,6 +323,7 @@ export interface TokenTreeContextType {
   onRenameToken?: (oldPath: string, newPath: string) => void;
   onDetachFromGenerator?: (path: string) => void;
   onEditGenerator?: (generatorId: string) => void;
+  onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
   onToggleChain?: (path: string) => void;
   onTogglePin?: (path: string) => void;
   /** Toggle starred (cross-set favorites) for the current token */

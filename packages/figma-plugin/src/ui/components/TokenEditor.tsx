@@ -11,7 +11,6 @@ import type { ThemeDimension } from "@tokenmanager/core";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
-import { TokenGeneratorDialog } from "./TokenGeneratorDialog";
 import { ValueDiff, OriginalValuePreview } from "./ValueDiff";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
@@ -70,6 +69,7 @@ import {
 } from "../hooks/useTokenEditorUtils";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
+import type { TokensLibraryGeneratorEditorTarget } from "../shared/navigationTypes";
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
@@ -707,8 +707,6 @@ interface TokenEditorProps {
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
   generators?: TokenGenerator[];
-  allSets?: string[];
-  onRefreshGenerators?: () => void;
   /** When true, the editor creates a new token instead of editing an existing one. */
   isCreateMode?: boolean;
   /** Initial token type for create mode. */
@@ -743,6 +741,8 @@ interface TokenEditorProps {
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   /** Navigate to a generator in GraphPanel */
   onNavigateToGenerator?: (generatorId: string) => void;
+  /** Open the shared Tokens > Library generator editor contextual surface. */
+  onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
   /** Push an undo slot after a successful token save or create */
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
@@ -835,8 +835,6 @@ export function TokenEditor({
   allTokensFlat = {},
   pathToSet = {},
   generators = [],
-  allSets = [],
-  onRefreshGenerators,
   isCreateMode = false,
   initialType,
   initialValue,
@@ -854,6 +852,7 @@ export function TokenEditor({
   onShowReferences,
   onNavigateToToken,
   onNavigateToGenerator,
+  onOpenGeneratorEditor,
   pushUndo,
 }: TokenEditorProps) {
   // 1. Fields hook — all editable state
@@ -1158,15 +1157,13 @@ export function TokenEditor({
     generators,
   });
   const {
-    showGeneratorDialog,
-    setShowGeneratorDialog,
-    editingGeneratorInDialog,
-    setEditingGeneratorInDialog,
-    duplicateTemplate,
-    setDuplicateTemplate,
     existingGeneratorsForToken,
     canBeGeneratorSource,
   } = generators$;
+
+  const openGeneratorEditor = useCallback((target: TokensLibraryGeneratorEditorTarget) => {
+    onOpenGeneratorEditor?.(target);
+  }, [onOpenGeneratorEditor]);
 
   // Cross-cutting: re-compute type parsing with actual editPath
   const duplicatePath = useMemo(() => {
@@ -2266,9 +2263,13 @@ export function TokenEditor({
           <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
             <button
               onClick={() => {
-                setEditingGeneratorInDialog(undefined);
-                setDuplicateTemplate(undefined);
-                setShowGeneratorDialog(true);
+                openGeneratorEditor({
+                  mode: 'create',
+                  sourceTokenPath: tokenPath,
+                  sourceTokenName: tokenName,
+                  sourceTokenType: tokenType,
+                  sourceTokenValue: value,
+                });
               }}
               className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
@@ -2348,9 +2349,10 @@ export function TokenEditor({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditingGeneratorInDialog(gen);
-                          setDuplicateTemplate(undefined);
-                          setShowGeneratorDialog(true);
+                          openGeneratorEditor({
+                            mode: 'edit',
+                            id: gen.id,
+                          });
                         }}
                         className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
                       >
@@ -2359,17 +2361,22 @@ export function TokenEditor({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDuplicateTemplate({
-                            id: `dup-${gen.id}`,
-                            label: `${gen.name} (copy)`,
-                            description: "",
-                            defaultPrefix: gen.targetGroup,
-                            generatorType: gen.type,
-                            config: gen.config,
-                            requiresSource: false,
+                          openGeneratorEditor({
+                            mode: 'create',
+                            sourceTokenPath: tokenPath,
+                            sourceTokenName: tokenName,
+                            sourceTokenType: tokenType,
+                            sourceTokenValue: value,
+                            template: {
+                              id: `dup-${gen.id}`,
+                              label: `${gen.name} (copy)`,
+                              description: "",
+                              defaultPrefix: gen.targetGroup,
+                              generatorType: gen.type,
+                              config: gen.config,
+                              requiresSource: false,
+                            },
                           });
-                          setEditingGeneratorInDialog(undefined);
-                          setShowGeneratorDialog(true);
                         }}
                         title="Duplicate generator"
                         className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
@@ -2381,9 +2388,13 @@ export function TokenEditor({
                 ))}
                 <button
                   onClick={() => {
-                    setEditingGeneratorInDialog(undefined);
-                    setDuplicateTemplate(undefined);
-                    setShowGeneratorDialog(true);
+                    openGeneratorEditor({
+                      mode: 'create',
+                      sourceTokenPath: tokenPath,
+                      sourceTokenName: tokenName,
+                      sourceTokenType: tokenType,
+                      sourceTokenValue: value,
+                    });
                   }}
                   className="mt-0.5 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors text-left"
                 >
@@ -2769,32 +2780,6 @@ export function TokenEditor({
             handleSave(true);
           }}
           onCancel={() => setShowConflictConfirm(false)}
-        />
-      )}
-
-      {/* Token Generator Dialog */}
-      {showGeneratorDialog && (
-        <TokenGeneratorDialog
-          serverUrl={serverUrl}
-          sourceTokenPath={tokenPath}
-          sourceTokenName={tokenName}
-          sourceTokenType={tokenType}
-          sourceTokenValue={aliasMode ? null : value}
-          allSets={allSets}
-          activeSet={setName}
-          allTokensFlat={allTokensFlat}
-          existingGenerator={editingGeneratorInDialog}
-          template={duplicateTemplate}
-          pathToSet={pathToSet}
-          onClose={() => {
-            setShowGeneratorDialog(false);
-            setDuplicateTemplate(undefined);
-          }}
-          onSaved={() => {
-            setShowGeneratorDialog(false);
-            setDuplicateTemplate(undefined);
-            onRefreshGenerators?.();
-          }}
         />
       )}
     </div>

@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import type { TokenGenerator, GeneratorTemplate } from './useGenerators';
+import type { TokenGenerator } from './useGenerators';
 
 interface UseTokenEditorGeneratorsParams {
   tokenPath: string;
@@ -12,20 +11,10 @@ export function useTokenEditorGenerators({
   tokenType,
   generators,
 }: UseTokenEditorGeneratorsParams) {
-  const [showGeneratorDialog, setShowGeneratorDialog] = useState(false);
-  const [editingGeneratorInDialog, setEditingGeneratorInDialog] = useState<TokenGenerator | undefined>(undefined);
-  const [duplicateTemplate, setDuplicateTemplate] = useState<GeneratorTemplate | undefined>(undefined);
-
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
 
   return {
-    showGeneratorDialog,
-    setShowGeneratorDialog,
-    editingGeneratorInDialog,
-    setEditingGeneratorInDialog,
-    duplicateTemplate,
-    setDuplicateTemplate,
     existingGeneratorsForToken,
     canBeGeneratorSource,
   };

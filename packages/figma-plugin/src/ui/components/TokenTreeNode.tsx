@@ -27,7 +27,6 @@ import type { GeneratorDialogInitialDraft } from '../hooks/useGeneratorDialog';
 import { getGeneratorTypeLabel } from './GeneratorPipelineCard';
 import { detectGeneratorType } from './generators/generatorUtils';
 import { QuickGeneratorPopover } from './QuickGeneratorPopover';
-import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 
 // ---------------------------------------------------------------------------
 // Reverse-reference helpers (used by "Find references" popover)
@@ -1391,6 +1390,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     pathToSet, dimensions, activeThemes,
     pendingRenameToken, clearPendingRename,
     pendingTabEdit, clearPendingTabEdit, onTabToNext,
+    onOpenGeneratorEditor,
     onNavigateToGenerator: _onNavigateToGenerator,
     rovingFocusPath, onRovingFocus,
   } = ctx;
@@ -1410,7 +1410,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const [contextMenuPos, setContextMenuPos] = useState<MenuPosition | null>(null);
   const [tokenMoreMenuPos, setTokenMoreMenuPos] = useState<MenuPosition | null>(null);
   const [quickGeneratorPopover, setQuickGeneratorPopover] = useState<{ position: MenuPosition; type: GeneratorType } | null>(null);
-  const [advancedGeneratorDraft, setAdvancedGeneratorDraft] = useState<GeneratorDialogInitialDraft | null>(null);
   const [refsPopover, setRefsPopover] = useState<{ pos: { x: number; y: number }; refs: string[] } | null>(null);
   const refsPopoverRef = useRef<HTMLDivElement>(null);
   const chainExpanded = chainExpandedProp;
@@ -1518,8 +1517,15 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
   const handleOpenAdvancedGenerator = useCallback((draft: GeneratorDialogInitialDraft) => {
     setQuickGeneratorPopover(null);
-    setAdvancedGeneratorDraft(draft);
-  }, []);
+    onOpenGeneratorEditor?.({
+      mode: 'create',
+      sourceTokenPath: node.path,
+      sourceTokenName: node.name,
+      sourceTokenType: node.$type,
+      sourceTokenValue: node.$value,
+      initialDraft: draft,
+    });
+  }, [node.$type, node.$value, node.name, node.path, onOpenGeneratorEditor]);
 
   // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
   useEffect(() => {
@@ -2735,27 +2741,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
         />
       )}
 
-      {advancedGeneratorDraft && (
-        <TokenGeneratorDialog
-          serverUrl={serverUrl}
-          sourceTokenPath={node.path}
-          sourceTokenName={node.name}
-          sourceTokenType={node.$type}
-          sourceTokenValue={node.$value}
-          allSets={sets}
-          activeSet={setName}
-          allTokensFlat={allTokensFlat}
-          initialDraft={advancedGeneratorDraft}
-          pathToSet={pathToSet}
-          onClose={() => setAdvancedGeneratorDraft(null)}
-          onSaved={() => {
-            setAdvancedGeneratorDraft(null);
-            onRefresh();
-          }}
-          onPushUndo={onPushUndo}
-        />
-      )}
-
       {/* Inline alias picker popover — opened via "Link to token…" context menu item */}
       {aliasPickerOpen && (
         <div
@@ -2835,7 +2820,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
                     }}
                   >
                     <span className="text-[11px] text-[var(--color-figma-text)] truncate flex-1 min-w-0">{refPath}</span>
-                    {setLabel && setLabel !== _setName && (
+                    {setLabel && setLabel !== setName && (
                       <span className={`shrink-0 ${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] px-1 py-px bg-[var(--color-figma-bg-secondary)] rounded`}>{setLabel}</span>
                     )}
                   </button>

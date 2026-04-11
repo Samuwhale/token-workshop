@@ -5,6 +5,8 @@
  */
 
 import { STORAGE_KEYS } from './storage';
+import type { GeneratorDialogInitialDraft } from '../hooks/useGeneratorDialog';
+import type { GeneratorTemplate } from '../hooks/useGenerators';
 
 export type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators';
@@ -33,6 +35,20 @@ export type TokensLibraryContextualSurface =
   | 'generator-editor'
   | 'token-preview';
 export type TokensLibrarySurfaceSlot = 'library-body' | 'contextual-panel' | 'split-preview';
+export type TokensLibraryGeneratorEditorTarget =
+  | {
+    mode: 'edit';
+    id: string;
+  }
+  | {
+    mode: 'create';
+    sourceTokenPath?: string;
+    sourceTokenName?: string;
+    sourceTokenType?: string;
+    sourceTokenValue?: unknown;
+    initialDraft?: GeneratorDialogInitialDraft;
+    template?: GeneratorTemplate;
+  };
 
 export interface SurfaceTransition {
   kind: SurfaceKind;

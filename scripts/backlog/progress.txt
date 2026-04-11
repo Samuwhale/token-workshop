@@ -962,3 +962,12 @@
   - Collapsed audit headers should carry the minimum explanation needed to interpret their counts without forcing a user to expand the section first.
   - When anomaly warnings are actionable, render the exact token paths inline instead of summarizing them generically.
 ---
+## 2026-04-11 - Consolidate generator escalation paths through contextual surface contract
+- Routed Tokens > Library generator escalation through the shared generator-editor contextual surface by replacing TokenEditor derived-group modal launches and QuickGeneratorPopover advanced launches with contextual-surface targets, and taught PanelRouter/EditorContext to handle both edit and create generator requests.
+- Removed the now-dead TokenEditor generator-modal state and reused the same contextual request shape through TokenList and TokenTreeNode so library generator create/edit/duplicate flows all land in `TOKENS_LIBRARY_SURFACE_CONTRACT`.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "TokenEditor\\.tsx|TokenTreeNode\\.tsx|PanelRouter\\.tsx|EditorContext\\.tsx|navigationTypes\\.ts|tokenListTypes\\.ts"` reports only the pre-existing `packages/core/dist` `TS6305` build-artifact errors in `TokenEditor.tsx` and `tokenListTypes.ts`; no new task-specific diagnostics remained in the touched routing files.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L38, `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L37, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L353, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1164, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1520, `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L137, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2612, `packages/figma-plugin/src/ui/hooks/useTokenEditorGenerators.ts` ~L1, `packages/figma-plugin/src/ui/App.tsx` ~L723
+- **Learnings for future iterations:**
+  - When a library-only workflow can open the generator editor from multiple entry points, encode one shared target shape for edit-vs-create requests instead of threading separate modal booleans and draft state through each surface.
+  - Quick-generator flows can stay lightweight if the popover owns only the fast path and hands advanced editing off as an initial draft for the shared contextual generator surface.
+---

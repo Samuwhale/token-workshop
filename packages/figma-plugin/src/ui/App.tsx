@@ -720,12 +720,19 @@ export function App() {
   const editorCloseRef = useRef<() => void>(() => {
     if (!editorIsDirtyRef.current) handleEditorClose();
   });
-  const editingGeneratorData = editingGenerator
-    ? (generators.find((generator) => generator.id === editingGenerator.id) ??
-      null)
-    : null;
+  const editingGeneratorData =
+    editingGenerator?.mode === "edit"
+      ? (generators.find((generator) => generator.id === editingGenerator.id) ??
+        null)
+      : null;
   useEffect(() => {
-    if (!editingGenerator || editingGeneratorData) return;
+    if (
+      !editingGenerator ||
+      editingGenerator.mode !== "edit" ||
+      editingGeneratorData
+    ) {
+      return;
+    }
     setEditingGenerator(null);
   }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange

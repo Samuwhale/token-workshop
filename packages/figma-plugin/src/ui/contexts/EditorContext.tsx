@@ -14,7 +14,10 @@ import type { CompareMode } from '../components/UnifiedComparePanel';
 import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
 import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
-import type { TokensLibraryContextualSurface } from '../shared/navigationTypes';
+import type {
+  TokensLibraryContextualSurface,
+  TokensLibraryGeneratorEditorTarget,
+} from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -31,7 +34,7 @@ export type EditingToken = {
 };
 
 export type PreviewingToken = { path: string; name?: string; set: string };
-export type EditingGenerator = { id: string };
+export type EditingGenerator = TokensLibraryGeneratorEditorTarget;
 export type EditorContextualSurfaceTarget =
   | { surface: null }
   | { surface: 'token-editor'; token: EditingToken }

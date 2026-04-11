@@ -64,6 +64,7 @@ import type {
   SecondarySurfaceId,
   SurfaceTransition,
   TokensLibraryContextualSurface,
+  TokensLibraryGeneratorEditorTarget,
 } from '../shared/navigationTypes';
 import { TOKENS_LIBRARY_SURFACE_CONTRACT } from '../shared/navigationTypes';
 import type { ThemeWorkspaceShellState } from '../shared/themeWorkflow';
@@ -274,12 +275,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   const { tokenUsageCounts } = useUsageContext();
 
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
-  const editingGeneratorData = editingGenerator
+  const editingGeneratorData = editingGenerator?.mode === 'edit'
     ? (generators.find(generator => generator.id === editingGenerator.id) ?? null)
     : null;
 
   useEffect(() => {
-    if (!editingGenerator || editingGeneratorData) return;
+    if (!editingGenerator || editingGenerator.mode !== 'edit' || editingGeneratorData) return;
     setEditingGenerator(null);
   }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
 
@@ -348,6 +349,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     setPreviewingToken,
     switchContextualSurface,
   ]);
+
+  const openGeneratorEditor = useCallback((target: TokensLibraryGeneratorEditorTarget) => {
+    p.setShowPreviewSplit(false);
+    switchContextualSurface({
+      surface: 'generator-editor',
+      generator: target,
+    });
+  }, [p.setShowPreviewSplit, switchContextualSurface]);
 
   const handleTokenEditorBack = useCallback(() => {
     if (editingToken?.isCreate) {
@@ -446,11 +455,13 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       navigateTo('ship', 'history');
     },
     onEditGenerator: (generatorId: string) => p.guardEditorAction(() => {
-      p.setShowPreviewSplit(false);
-      switchContextualSurface({
-        surface: 'generator-editor',
-        generator: { id: generatorId },
+      openGeneratorEditor({
+        mode: 'edit',
+        id: generatorId,
       });
+    }),
+    onOpenGeneratorEditor: (target: TokensLibraryGeneratorEditorTarget) => p.guardEditorAction(() => {
+      openGeneratorEditor(target);
     }),
     onNavigateToGenerator: p.handleNavigateToGenerator,
     onShowReferences: (path: string) => {
@@ -497,8 +508,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     allTokensFlat,
     pathToSet,
     generators,
-    allSets: sets,
-    onRefreshGenerators: p.refreshAll,
     isCreateMode: editingToken.isCreate,
     initialType: editingToken.initialType,
     initialValue: editingToken.initialValue,
@@ -516,6 +525,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onShowReferences: (path: string) => { p.setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); },
     onNavigateToToken: handleNavigateToAlias,
     onNavigateToGenerator: p.handleNavigateToGenerator,
+    onOpenGeneratorEditor: openGeneratorEditor,
   } : null;
 
   const renderTokensComparePanel = () => (
@@ -551,12 +561,18 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     />
   );
 
-  const generatorEditorProps = editingGeneratorData ? {
+  const generatorEditorProps = editingGenerator && (editingGenerator.mode !== 'edit' || editingGeneratorData) ? {
     serverUrl,
     allSets: sets,
     activeSet,
     allTokensFlat,
-    existingGenerator: editingGeneratorData,
+    sourceTokenPath: editingGenerator.mode === 'create' ? editingGenerator.sourceTokenPath : undefined,
+    sourceTokenName: editingGenerator.mode === 'create' ? editingGenerator.sourceTokenName : undefined,
+    sourceTokenType: editingGenerator.mode === 'create' ? editingGenerator.sourceTokenType : undefined,
+    sourceTokenValue: editingGenerator.mode === 'create' ? editingGenerator.sourceTokenValue : undefined,
+    existingGenerator: editingGenerator.mode === 'edit' ? editingGeneratorData ?? undefined : undefined,
+    initialDraft: editingGenerator.mode === 'create' ? editingGenerator.initialDraft : undefined,
+    template: editingGenerator.mode === 'create' ? editingGenerator.template : undefined,
     pathToSet,
     onClose: () => { setEditingGenerator(null); p.refreshAll(); },
     onSaved: () => { setEditingGenerator(null); p.refreshAll(); },
@@ -583,7 +599,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       };
     }
 
-    if (activeTokensContextualSurface === 'generator-editor' && editingGeneratorData && generatorEditorProps) {
+    if (activeTokensContextualSurface === 'generator-editor' && editingGenerator && generatorEditorProps) {
       return {
         surface: 'generator-editor',
         content: <TokenGeneratorDialog {...generatorEditorProps} />,
