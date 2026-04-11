@@ -1,6 +1,7 @@
 import { lockPath, withLock } from '../locks.js';
 import { sleep as defaultSleep } from '../process.js';
 import { scopedFiles, unexpectedFiles } from '../git-scope.js';
+import { parseGitStatusPaths } from '../utils.js';
 import type {
   BacklogRunnerConfig,
   CommandRunner,
@@ -19,28 +20,12 @@ function summarizeGitFailure(stdout: string, stderr: string): string {
   return lines.slice(-6).join(' | ') || 'git command failed';
 }
 
-function parseGitPaths(stdout: string): string[] {
-  const files = new Set<string>();
-  for (const rawLine of stdout.split('\n').map(line => line.trimEnd()).filter(Boolean)) {
-    const payload = rawLine.slice(3).trim();
-    if (!payload) continue;
-    const parts = payload.includes(' -> ') ? payload.split(' -> ') : [payload];
-    for (const part of parts) {
-      const normalized = part.replace(/^"+|"+$/g, '');
-      if (normalized) {
-        files.add(normalized);
-      }
-    }
-  }
-  return [...files];
-}
-
 async function collectChangedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {
   const status = await commandRunner.run('git', ['status', '--porcelain', '--untracked-files=all'], {
     cwd,
     ignoreFailure: true,
   });
-  return status.code === 0 ? parseGitPaths(status.stdout) : [];
+  return status.code === 0 ? parseGitStatusPaths(status.stdout) : [];
 }
 
 async function collectStagedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {

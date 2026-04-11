@@ -13,9 +13,8 @@ import type {
 
 const TASK_FILE_PATTERN = /\.ya?ml$/i;
 
-function normalizeWhitespace(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
-}
+import { normalizeWhitespace } from './utils.js';
+
 
 export function normalizeRepoPath(value: string): string {
   return value.replace(/\\/g, '/').replace(/^\.\/+/, '').replace(/\/+/g, '/').replace(/\/$/, '');

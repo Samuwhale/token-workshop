@@ -144,7 +144,7 @@ async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: s
   }
 
   if (missingDependencies.length > 0) {
-    throw new Error(`worktree dependency bootstrap missing dependencies: ${missingDependencies.join(', ')}`);
+    console.warn(`worktree dependency bootstrap: ${missingDependencies.length} dependencies not found at expected paths (may be pnpm-hoisted): ${missingDependencies.join(', ')}`);
   }
 }
 

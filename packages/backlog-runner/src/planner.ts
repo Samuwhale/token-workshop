@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { extractStructuredOutput } from './providers/common.js';
-import { createTaskFromPlannerChild } from './task-specs.js';
+import { createTaskFromPlannerChild, normalizeRepoPath } from './task-specs.js';
 import type {
   BacklogRunnerConfig,
   BacklogTaskSpec,
@@ -60,13 +60,7 @@ export const PLANNER_RESULT_SCHEMA = JSON.stringify({
   additionalProperties: false,
 });
 
-function normalizeWhitespace(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
-}
-
-function normalizePath(value: string): string {
-  return value.replace(/\\/g, '/').replace(/^\.\/+/, '').replace(/\/+/g, '/').replace(/\/$/, '');
-}
+import { normalizeWhitespace } from './utils.js';
 
 function stringArray(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
@@ -86,7 +80,7 @@ function parsePlannerChild(value: unknown): PlannerTaskChild | null {
   const title = normalizeWhitespace(String(record.title ?? ''));
   const taskKind = normalizeWhitespace(String(record.task_kind ?? '')).toLowerCase();
   const priority = normalizeWhitespace(String(record.priority ?? '')).toLowerCase();
-  const touchPaths = stringArray(record.touch_paths)?.map(normalizePath) ?? null;
+  const touchPaths = stringArray(record.touch_paths)?.map(normalizeRepoPath) ?? null;
   const acceptanceCriteria = stringArray(record.acceptance_criteria);
   if (!title || !touchPaths || !acceptanceCriteria) return null;
   if (taskKind !== 'implementation' && taskKind !== 'research') return null;
@@ -113,7 +107,7 @@ export function plannerResearchTouchPaths(config: BacklogRunnerConfig): string[]
     path.relative(config.projectRoot, config.files.candidateQueue),
     path.relative(config.projectRoot, config.files.progress),
     path.relative(config.projectRoot, config.files.patterns),
-  ].map(normalizePath);
+  ].map(normalizeRepoPath);
 }
 
 export function parsePlannerSupersedeAction(rawOutput: string, config: BacklogRunnerConfig): PlannerSupersedeAction | null {

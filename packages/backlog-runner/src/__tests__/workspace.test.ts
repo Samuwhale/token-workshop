@@ -1,7 +1,7 @@
 import { lstat, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { normalizeBacklogRunnerConfig } from '../config.js';
 import { createCommandRunner } from '../process.js';
 import type { CommandResult, CommandRunner } from '../types.js';
@@ -18,6 +18,11 @@ async function makeRepo() {
   await mkdir(path.join(root, 'packages/core/src'), { recursive: true });
   await mkdir(path.join(root, 'packages/core/node_modules/.bin'), { recursive: true });
   await mkdir(path.join(root, 'node_modules'), { recursive: true });
+  await writeFile(path.join(root, 'package.json'), JSON.stringify({
+    name: 'workspace-test',
+    private: true,
+    devDependencies: {},
+  }, null, 2), 'utf8');
   await writeFile(path.join(root, 'backlog.md'), '- [ ] item\n', 'utf8');
   await writeFile(path.join(root, 'backlog/inbox.jsonl'), '', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/patterns.md'), '# Patterns\n', 'utf8');
@@ -28,6 +33,12 @@ async function makeRepo() {
   await writeFile(path.join(root, 'scripts/backlog/product.md'), 'product', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/ux.md'), 'ux', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/code.md'), 'code', 'utf8');
+  await writeFile(path.join(root, 'packages/core/package.json'), JSON.stringify({
+    name: '@workspace-test/core',
+    private: true,
+    type: 'module',
+    devDependencies: {},
+  }, null, 2), 'utf8');
   await writeFile(path.join(root, 'packages/core/src/index.ts'), 'export const example = true;\n', 'utf8');
   await writeFile(path.join(root, 'feature.txt'), 'before\n', 'utf8');
 
@@ -74,7 +85,9 @@ describe('git worktree strategy', () => {
     const strategy = new GitWorktreeWorkspaceStrategy(runner, config);
     const session = await strategy.setup();
 
+    const rootNodeModules = path.join(session.cwd, 'node_modules');
     const packageNodeModules = path.join(session.cwd, 'packages/core/node_modules');
+    expect((await lstat(rootNodeModules)).isSymbolicLink()).toBe(true);
     expect((await lstat(packageNodeModules)).isSymbolicLink()).toBe(true);
 
     await writeFile(path.join(session.cwd, 'feature.txt'), 'after\n', 'utf8');
@@ -111,6 +124,31 @@ describe('git worktree strategy', () => {
     expect(merge.reason).toBe('Cherry-pick conflict');
     expect(await readFile(path.join(root, 'feature.txt'), 'utf8')).toBe('main change\n');
   }, 15000);
+
+  it('warns but does not throw when a declared dependency is missing from the bootstrapped worktree', async () => {
+    const { root, config, runner } = await makeRepo();
+    await writeFile(path.join(root, 'packages/core/package.json'), JSON.stringify({
+      name: '@workspace-test/core',
+      private: true,
+      type: 'module',
+      dependencies: {
+        'missing-dependency': '^1.0.0',
+      },
+    }, null, 2), 'utf8');
+    await runner.run('git', ['add', 'packages/core/package.json'], { cwd: root });
+    await runner.run('git', ['commit', '-m', 'declare missing dependency'], { cwd: root });
+
+    const strategy = new GitWorktreeWorkspaceStrategy(runner, config);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const session = await strategy.setup();
+    await session.teardown();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('packages/core:missing-dependency'),
+    );
+    warnSpy.mockRestore();
+  });
 
   it('does not push on a clean tree unless the runner explicitly retries a pending push', async () => {
     const { root, config } = await makeRepo();

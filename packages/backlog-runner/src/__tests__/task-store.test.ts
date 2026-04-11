@@ -429,6 +429,39 @@ describe('task store', () => {
     expect(counts.ready).toBe(1);
   });
 
+  it('elevates recovery child priority to preserve failed-parent urgency', async () => {
+    const { config, store } = await makeFixture();
+    await seedTask(config, taskSpec({
+      id: 'failed-high',
+      title: 'Failed High',
+      state: 'failed',
+      priority: 'high',
+      touchPaths: ['packages/figma-plugin/src/ui/App.tsx'],
+      statusNotes: ['Failed: validation failed'],
+    }));
+
+    const applied = await store.applyPlannerSupersede({
+      action: 'supersede',
+      parentTaskIds: ['failed-high'],
+      children: [{
+        title: 'Recover failed high-priority parent',
+        taskKind: 'implementation',
+        priority: 'low',
+        touchPaths: ['packages/figma-plugin/src/ui/App.tsx'],
+        acceptanceCriteria: ['Recovery task is runnable'],
+        validationProfile: 'repo',
+        context: 'Retry the failed work with the same urgency.',
+      }],
+    }, {
+      allowedParentTaskIds: ['failed-high'],
+    });
+
+    const child = await store.getTaskSpec(applied.childTaskIds[0]!);
+
+    expect(child?.priority).toBe('high');
+    expect(child?.statusNotes).toContain('Priority elevated to high to preserve failed-parent urgency.');
+  });
+
   it('rejects planner children that collide with each other', async () => {
     const { config, store } = await makeFixture();
     await seedTask(config, taskSpec({

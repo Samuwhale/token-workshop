@@ -286,6 +286,7 @@ export interface BacklogStore {
   failClaim(claim: BacklogTaskClaim, note: string): Promise<void>;
   failTaskById(taskId: string, note: string): Promise<void>;
   rewriteBacklogReport(): Promise<void>;
+  enqueueCandidate(candidate: BacklogCandidateRecord): Promise<void>;
   drainCandidateQueue(): Promise<BacklogDrainResult>;
   listPlannerCandidates(limit?: number): Promise<BacklogTaskSpec[]>;
   applyPlannerSupersede(

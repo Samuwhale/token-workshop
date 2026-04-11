@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from './config.js';
 import { summarizeCommandOutput } from './command-output.js';
@@ -11,7 +11,10 @@ import { runProvider } from './providers/index.js';
 import { JSON_SCHEMA, isAuthFailure, isRateLimited } from './providers/common.js';
 import { createFileBackedTaskStore } from './store/task-store.js';
 import { normalizePathForGit, unexpectedFiles } from './git-scope.js';
+import { fileExists, parseGitStatusPaths } from './utils.js';
+import { isPathWithinTouchPaths, normalizeRepoPath } from './task-specs.js';
 import type {
+  BacklogCandidateRecord,
   BacklogDrainResult,
   BacklogPassType,
   BacklogRunnerConfig,
@@ -25,6 +28,7 @@ import type {
   ValidationCommandResult,
   WorkspaceApplyResult,
   WorkspaceRepairResult,
+  WorkspaceSession,
   WorkspaceStrategy,
 } from './types.js';
 import { GitWorktreeWorkspaceStrategy } from './workspace/git-worktree.js';
@@ -36,6 +40,23 @@ const RUNNER_POLL_INTERVAL_MS = 15_000;
 const EMPTY_QUEUE_POLL_INTERVAL_MS = 30_000;
 const RECONCILIATION_MAX_TURNS = 60;
 const PREFLIGHT_DEFERRAL_MS = 15 * 60 * 1000;
+const BACKGROUND_PLANNER_INTERVAL_MS = 15 * 60 * 1000;
+const BACKGROUND_PLANNER_PLANNED_THRESHOLD = 10;
+const REPO_PATH_PATTERN =
+  /\b(packages\/[^:\s|)]+|scripts\/[^:\s|)]+|backlog\/[^:\s|)]+|README\.md|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|backlog\.config\.mjs)\b/g;
+const PACKAGE_RELATIVE_SRC_PATH_PATTERN = /\bsrc\/[^:\s|)]+/g;
+const WORKSPACE_VALIDATION_ERROR_PATTERNS = [
+  /Failed to load url\b/i,
+  /\bCannot find module\b/i,
+  /\bERR_MODULE_NOT_FOUND\b/i,
+  /\bMODULE_NOT_FOUND\b/i,
+  /\bvirtualStoreDir\b/i,
+  /\bDoes the file exist\?\b/i,
+];
+
+type ValidationFailureClassification =
+  | { blocking: true; reason: string }
+  | { blocking: false; reason: string; followup: BacklogCandidateRecord };
 
 type RunnerRegistryRecord = {
   runnerId: string;
@@ -83,22 +104,7 @@ async function changedFiles(commandRunner: CommandRunner, cwd: string): Promise<
     cwd,
     ignoreFailure: true,
   });
-  if (status.code !== 0) {
-    return [];
-  }
-
-  const files = new Set<string>();
-  for (const rawLine of status.stdout.split('\n').map(line => line.trimEnd()).filter(Boolean)) {
-    const payload = rawLine.slice(3).trim();
-    if (!payload) continue;
-    const parts = payload.includes(' -> ') ? payload.split(' -> ') : [payload];
-    for (const part of parts) {
-      const normalized = part.replace(/^"+|"+$/g, '');
-      if (normalized) files.add(normalized);
-    }
-  }
-
-  return [...files];
+  return status.code === 0 ? parseGitStatusPaths(status.stdout) : [];
 }
 
 function scopeViolations(changed: string[], allowed: string[]): string[] {
@@ -208,14 +214,6 @@ async function diffForPaths(
   return result.code === 0 ? result.stdout.trim() : '';
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function normalizeRunnerLane(value: unknown): BacklogRunnerLane {
   return value === 'planner' ? 'planner' : 'executor';
@@ -225,12 +223,153 @@ function formatRunnerCounts(counts: ActiveRunnerCounts): string {
   return `${counts.executor} executor · ${counts.planner} planner`;
 }
 
+function normalizeValidationReason(reason: string): string {
+  return reason
+    .replace(/^reconciliation\s+validation\s+failed:\s*/i, '')
+    .replace(/^validation\s+failed:\s*/i, '')
+    .trim();
+}
+
+function normalizeInlineNote(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function detectValidationPackageContexts(reason: string): string[] {
+  const contexts = new Set<string>();
+  if (/packages\/server|\/packages\/server\/|server build|server tests/i.test(reason)) {
+    contexts.add('packages/server');
+  }
+  if (/packages\/core|\/packages\/core\/|core build|core tests|core bootstrap/i.test(reason)) {
+    contexts.add('packages/core');
+  }
+  if (/packages\/figma-plugin|\/packages\/figma-plugin\/|plugin build|plugin tests/i.test(reason)) {
+    contexts.add('packages/figma-plugin');
+  }
+  return [...contexts];
+}
+
+function sanitizeValidationPath(filePath: string): string {
+  return normalizeRepoPath(filePath.replace(/[(:].*$/, '').replace(/[),.;]+$/, ''));
+}
+
+function extractValidationPaths(reason: string): string[] {
+  const paths = new Set<string>();
+  for (const match of reason.matchAll(REPO_PATH_PATTERN)) {
+    paths.add(sanitizeValidationPath(match[1]));
+  }
+
+  const contexts = detectValidationPackageContexts(reason);
+  if (contexts.length === 1) {
+    for (const match of reason.matchAll(PACKAGE_RELATIVE_SRC_PATH_PATTERN)) {
+      paths.add(sanitizeValidationPath(`${contexts[0]}/${match[0]}`));
+    }
+  }
+
+  return [...paths];
+}
+
+function buildWorkspaceValidationFollowup(
+  claim: BacklogTaskClaim,
+  reason: string,
+): BacklogCandidateRecord {
+  return {
+    title: 'Repair worktree validation environment',
+    priority: 'high',
+    touchPaths: [
+      'packages/backlog-runner/src/workspace/git-worktree.ts',
+      'scripts/backlog/validate.sh',
+    ],
+    acceptanceCriteria: [
+      'Fresh worktrees bootstrap dependency resolution reliably before validation reruns.',
+      'Repo validation reruns no longer fail with missing-module workspace errors unrelated to completed task code.',
+    ],
+    validationProfile: 'backlog',
+    context: `Task "${claim.task.title}" completed its scoped work, but validation surfaced a worktree/bootstrap issue instead of a task-local defect: ${reason}`,
+    source: 'task-followup',
+  };
+}
+
+function buildUnrelatedValidationFollowup(
+  claim: BacklogTaskClaim,
+  reason: string,
+  touchPaths: string[],
+): BacklogCandidateRecord {
+  return {
+    title: `Resolve unrelated validation failure after ${claim.task.title}`,
+    priority: 'normal',
+    touchPaths,
+    acceptanceCriteria: [
+      `Validation errors in ${touchPaths.join(', ')} are resolved.`,
+      'The unrelated validation failure no longer blocks repo validation.',
+    ],
+    context: `Task "${claim.task.title}" completed its scoped work, but validation surfaced an unrelated failure outside its touch_paths: ${reason}`,
+    source: 'task-followup',
+  };
+}
+
+function classifyValidationFailure(
+  claim: BacklogTaskClaim,
+  reason: string,
+): ValidationFailureClassification {
+  const normalizedReason = normalizeValidationReason(reason);
+  const implicatedPaths = extractValidationPaths(normalizedReason);
+  if (implicatedPaths.some(filePath => isPathWithinTouchPaths(filePath, claim.task.touchPaths))) {
+    return { blocking: true, reason };
+  }
+
+  if (WORKSPACE_VALIDATION_ERROR_PATTERNS.some(pattern => pattern.test(normalizedReason))) {
+    return {
+      blocking: false,
+      reason,
+      followup: buildWorkspaceValidationFollowup(claim, normalizedReason),
+    };
+  }
+
+  if (implicatedPaths.length > 0) {
+    return {
+      blocking: false,
+      reason,
+      followup: buildUnrelatedValidationFollowup(claim, normalizedReason, implicatedPaths),
+    };
+  }
+
+  return { blocking: true, reason };
+}
+
+async function queueNonBlockingValidationFollowup(
+  store: ReturnType<typeof createFileBackedTaskStore>,
+  logger: RunnerLogger,
+  claim: BacklogTaskClaim,
+  failure: Extract<ValidationFailureClassification, { blocking: false }>,
+): Promise<void> {
+  await store.enqueueCandidate(failure.followup);
+  const drained = await store.drainCandidateQueue();
+  await store.appendTaskNote(claim.task.id, `Non-blocking validation issue deferred to follow-up: ${normalizeInlineNote(failure.reason)}`);
+  logDrainResult(logger, 'Candidate planner', drained);
+  logger.line(`  ⚠ Non-blocking validation issue queued as follow-up: ${failure.followup.title}`);
+}
+
 function totalRunnerCount(counts: ActiveRunnerCounts): number {
   return counts.executor + counts.planner;
 }
 
 function plannerLaneActive(counts: ActiveRunnerCounts): boolean {
   return counts.planner > 0;
+}
+
+function backgroundPlannerDue(now: number, lastRunAt: number, plannedCount: number): boolean {
+  return plannedCount >= BACKGROUND_PLANNER_PLANNED_THRESHOLD && now - lastRunAt >= BACKGROUND_PLANNER_INTERVAL_MS;
+}
+
+function shouldAttemptPlannerBatch(
+  batchKey: string,
+  waitingPlannerBatchKey: string | null,
+  reason: 'recover-failed' | 'fill-buffer' | 'background-backlog',
+): boolean {
+  if (reason === 'background-backlog') {
+    return true;
+  }
+  return batchKey !== waitingPlannerBatchKey;
 }
 
 function reconciliationPrompt(basePrompt: string): string {
@@ -488,13 +627,18 @@ async function attemptTaskReconciliation(
     logger.line(`  Reconciliation validation: ${validationCommand}`);
     const validation = await runValidationCommand(commandRunner, validationCommand, reconciliationCwd);
     if (!validation.ok) {
-      logger.line(`  ✗ reconciliation validation failed: ${validation.summary}`);
-      return {
-        recovered: false,
-        deferred: true,
-        failureReason: `reconciliation validation failed: ${validation.summary}`,
-        queuedFollowups: 0,
-      };
+      const failureReason = `reconciliation validation failed: ${validation.summary}`;
+      const classification = classifyValidationFailure(claim, failureReason);
+      if (classification.blocking) {
+        logger.line(`  ✗ reconciliation validation failed: ${validation.summary}`);
+        return {
+          recovered: false,
+          deferred: true,
+          failureReason,
+          queuedFollowups: 0,
+        };
+      }
+      await queueNonBlockingValidationFollowup(store, logger, claim, classification);
     }
 
     const postValidationScopeCheck = await validateWorkspaceScope(
@@ -849,6 +993,10 @@ export async function runBacklogRunner(
     let iteration = 0;
     let previousDurationSeconds = 0;
     let waitingPlannerBatchKey: string | null = null;
+    let lastBackgroundPlannerPassAt = 0;
+
+    const attemptPlannerPass = () =>
+      runPlannerRefinementPass(config, store, workspaceStrategy, commandRunner, logger, options);
 
     while (true) {
       if (stopRequested || (await fileExists(config.files.stop))) {
@@ -870,25 +1018,37 @@ export async function runBacklogRunner(
       logger.line('═══════════════════════════════════════════════════════════════');
 
       if (options.lane === 'planner') {
-        if ((counts.planned > 0 || counts.failed > 0) && counts.ready < PLANNER_LANE_READY_TARGET) {
+        const now = Date.now();
+        const plannerReason: 'recover-failed' | 'fill-buffer' | 'background-backlog' | null =
+          counts.failed > 0
+            ? 'recover-failed'
+            : counts.planned > 0 && counts.ready < PLANNER_LANE_READY_TARGET
+              ? 'fill-buffer'
+              : backgroundPlannerDue(now, lastBackgroundPlannerPassAt, counts.planned)
+                ? 'background-backlog'
+                : null;
+
+        if (plannerReason) {
           const batchKey = await currentPlannerBatchKey(store);
-          if (batchKey && batchKey !== waitingPlannerBatchKey) {
+          if (batchKey && shouldAttemptPlannerBatch(batchKey, waitingPlannerBatchKey, plannerReason)) {
             waitingPlannerBatchKey = batchKey;
-            const refined = await runPlannerRefinementPass(
-              config,
-              store,
-              workspaceStrategy,
-              commandRunner,
-              logger,
-              options,
-            );
+            if (plannerReason === 'background-backlog') {
+              lastBackgroundPlannerPassAt = now;
+            }
+            const refined = await attemptPlannerPass();
             if (refined) {
               waitingPlannerBatchKey = null;
               continue;
             }
           }
 
-          logger.line('  Planner lane made no progress on the current batch — polling in 15s…');
+          if (plannerReason === 'recover-failed') {
+            logger.line('  Planner lane made no progress on failed-task recovery — polling in 15s…');
+          } else if (plannerReason === 'background-backlog') {
+            logger.line('  Planner lane made no progress on background backlog refinement — polling in 15s…');
+          } else {
+            logger.line('  Planner lane made no progress on the current batch — polling in 15s…');
+          }
           await sleep(RUNNER_POLL_INTERVAL_MS);
           continue;
         }
@@ -905,20 +1065,38 @@ export async function runBacklogRunner(
         continue;
       }
 
+      if (!hasPlannerPeer) {
+        const now = Date.now();
+        const plannerReason: 'recover-failed' | 'background-backlog' | null =
+          counts.failed > 0
+            ? 'recover-failed'
+            : backgroundPlannerDue(now, lastBackgroundPlannerPassAt, counts.planned)
+              ? 'background-backlog'
+              : null;
+
+        if (plannerReason) {
+          const batchKey = await currentPlannerBatchKey(store);
+          if (batchKey && shouldAttemptPlannerBatch(batchKey, waitingPlannerBatchKey, plannerReason)) {
+            waitingPlannerBatchKey = batchKey;
+            if (plannerReason === 'background-backlog') {
+              lastBackgroundPlannerPassAt = now;
+            }
+            const refined = await attemptPlannerPass();
+            if (refined) {
+              waitingPlannerBatchKey = null;
+              continue;
+            }
+          }
+        }
+      }
+
       if (counts.ready === 0) {
         if (counts.inProgress > 0) {
           if ((counts.planned > 0 || counts.failed > 0) && counts.ready < EXECUTOR_FALLBACK_READY_TARGET && !hasPlannerPeer) {
             const batchKey = await currentPlannerBatchKey(store);
             if (batchKey && batchKey !== waitingPlannerBatchKey) {
               waitingPlannerBatchKey = batchKey;
-              const refined = await runPlannerRefinementPass(
-                config,
-                store,
-                workspaceStrategy,
-                commandRunner,
-                logger,
-                options,
-              );
+              const refined = await attemptPlannerPass();
               if (refined) {
                 waitingPlannerBatchKey = null;
                 continue;
@@ -941,14 +1119,7 @@ export async function runBacklogRunner(
             continue;
           }
           waitingPlannerBatchKey = null;
-          const refined = await runPlannerRefinementPass(
-            config,
-            store,
-            workspaceStrategy,
-            commandRunner,
-            logger,
-            options,
-          );
+          const refined = await attemptPlannerPass();
           if (refined) {
             continue;
           }
@@ -989,14 +1160,7 @@ export async function runBacklogRunner(
           const batchKey = await currentPlannerBatchKey(store);
           if (batchKey && batchKey !== waitingPlannerBatchKey) {
             waitingPlannerBatchKey = batchKey;
-            const refined = await runPlannerRefinementPass(
-              config,
-              store,
-              workspaceStrategy,
-              commandRunner,
-              logger,
-              options,
-            );
+            const refined = await attemptPlannerPass();
             if (refined) {
               waitingPlannerBatchKey = null;
               continue;
@@ -1013,7 +1177,15 @@ export async function runBacklogRunner(
       }
 
       logger.line(`  → ${claim.task.title} (${claim.task.id})`);
-      const session = await workspaceStrategy.setup();
+      let session: WorkspaceSession;
+      try {
+        session = await workspaceStrategy.setup();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await store.deferClaim(claim, `workspace setup failed: ${message}`, PREFLIGHT_DEFERRAL_MS, { category: 'preflight' });
+        logger.line(`  ⚠ workspace setup failed: ${message} — deferred for retry`);
+        continue;
+      }
       if (options.worktrees) {
         logger.line(`  Worktree: ${session.cwd}`);
       }
@@ -1200,10 +1372,16 @@ export async function runBacklogRunner(
             },
           );
           if (!repaired.recovered) {
-            await applyClaimRepairOutcome(store, logger, claim, repaired, `validation failed: ${validation.summary}`);
-            continue;
+            const failureReason = repaired.failureReason ?? `validation failed: ${validation.summary}`;
+            const classification = classifyValidationFailure(claim, failureReason);
+            if (classification.blocking) {
+              await applyClaimRepairOutcome(store, logger, claim, repaired, `validation failed: ${validation.summary}`);
+              continue;
+            }
+            await queueNonBlockingValidationFollowup(store, logger, claim, classification);
+          } else {
+            logger.line('  ✓ validation recovered by remediation');
           }
-          logger.line('  ✓ validation recovered by remediation');
         } else {
           logger.line(
             `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,

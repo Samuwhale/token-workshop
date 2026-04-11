@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { summarizeCommandOutput } from './command-output.js';
@@ -9,18 +9,11 @@ import { createCommandRunner } from './process.js';
 import { validateProvider } from './providers/index.js';
 import { lintBacklogQueue } from './queue-lint.js';
 import type { BacklogRunnerConfig, CommandRunner, RunOverrides, ToolValidationResult } from './types.js';
+import { fileExists } from './utils.js';
 
 const VALIDATION_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
 const GIT_READINESS_TIMEOUT_MS = 2 * 60 * 1000;
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function shellEscape(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;

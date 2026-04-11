@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -25,6 +25,7 @@ function createFakeCommandRunner(
   root: string,
   options: {
     validationResponses?: boolean[];
+    validationResults?: CommandResult[];
     changedFiles?: string[];
     statusResponses?: string[][];
     initialStagedFiles?: string[];
@@ -39,6 +40,7 @@ function createFakeCommandRunner(
   const stagedFiles = new Set(options.initialStagedFiles ?? []);
   let remainingPushFailures = options.failPushCount ?? 0;
   const validationResponses = [...(options.validationResponses ?? [true])];
+  const validationResults = [...(options.validationResults ?? [])];
 
   return {
     async run(command: string, args: string[], runOptions?: { input?: string }): Promise<CommandResult> {
@@ -133,6 +135,11 @@ function createFakeCommandRunner(
       return { code: 0, stdout: '', stderr: '' };
     },
     async runShell(): Promise<CommandResult> {
+      if (validationResults.length > 0) {
+        const next = validationResults.shift()!;
+        options.calls?.push(`shell:${next.code === 0 ? 'pass' : 'fail'}`);
+        return next;
+      }
       const nextValidation = validationResponses.length > 0 ? validationResponses.shift() : true;
       options.calls?.push(`shell:${nextValidation === false ? 'fail' : 'pass'}`);
       return nextValidation === false
@@ -230,6 +237,18 @@ async function stopAfterFirstSleep(filePath: string): Promise<void> {
   await writeFile(filePath, 'stop\n', 'utf8');
 }
 
+async function readDirTaskFiles(taskDir: string): Promise<string[]> {
+  return (await readdir(taskDir)).filter(name => name.endsWith('.yaml'));
+}
+
+async function readFollowupTask(root: string, taskFiles: string[]): Promise<string> {
+  const followupFile = taskFiles.find(name => name !== 'task-a.yaml');
+  if (!followupFile) {
+    throw new Error('Expected follow-up task file');
+  }
+  return readFile(path.join(root, 'backlog/tasks', followupFile), 'utf8');
+}
+
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map(dir => rm(dir, { recursive: true, force: true })));
 });
@@ -283,6 +302,89 @@ describe('runner e2e', () => {
     const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
     expect(taskYaml).toContain('state: done');
     expect(taskYaml).toContain('Recovered by remediation');
+  });
+
+  it('completes the task and queues a follow-up when validation only reports a worktree dependency issue', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    const logSink = new MemoryLogSink();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          statusResponses: [
+            ['feature.txt'],
+            ['feature.txt'],
+            ['feature.txt'],
+            ['feature.txt'],
+          ],
+          validationResults: [
+            {
+              code: 1,
+              stdout: '',
+              stderr: 'FAIL  src/__tests__/api.test.ts | Error: Failed to load url fastify (resolved id: fastify) in /tmp/worktree/packages/server/src/index.ts. Does the file exist?',
+            },
+            {
+              code: 1,
+              stdout: '',
+              stderr: 'FAIL  src/__tests__/api.test.ts | Error: Failed to load url fastify (resolved id: fastify) in /tmp/worktree/packages/server/src/index.ts. Does the file exist?',
+            },
+          ],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    expect(taskYaml).toContain('state: done');
+    expect(taskYaml).toContain('Non-blocking validation issue deferred to follow-up');
+
+    const taskFiles = (await readDirTaskFiles(path.join(root, 'backlog/tasks'))).sort();
+    expect(taskFiles.length).toBe(2);
+    const followupYaml = await readFollowupTask(root, taskFiles);
+    expect(followupYaml).toContain('title: Repair worktree validation environment');
+    expect(logSink.lines.join('')).toContain('Non-blocking validation issue queued as follow-up');
+  });
+
+  it('keeps in-scope validation failures blocking when remediation does not fix them', async () => {
+    const { root, config } = await makeFixture([baseTask({
+      touchPaths: ['packages/server/src/routes/sets.ts'],
+    })]);
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          statusResponses: [
+            ['packages/server/src/routes/sets.ts'],
+            ['packages/server/src/routes/sets.ts'],
+            ['packages/server/src/routes/sets.ts'],
+            ['packages/server/src/routes/sets.ts'],
+          ],
+          validationResults: [
+            {
+              code: 1,
+              stdout: 'src/routes/sets.ts(605,13): error TS2322: Type \'Record<string, { token: unknown; setName: string; }>\' is not assignable to type \'Record<string, SnapshotEntry>\'.\nFAIL server build',
+              stderr: '',
+            },
+            {
+              code: 1,
+              stdout: 'src/routes/sets.ts(605,13): error TS2322: Type \'Record<string, { token: unknown; setName: string; }>\' is not assignable to type \'Record<string, SnapshotEntry>\'.\nFAIL server build',
+              stderr: '',
+            },
+          ],
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('Deferred after remediation: validation failed: src/routes/sets.ts(605,13): error TS2322');
   });
 
   it('defers the task when preflight remediation cannot clear unrelated staged files', async () => {
@@ -526,6 +628,112 @@ describe('runner e2e', () => {
     expect(calls).not.toContain('input:agent prompt');
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-planned.yaml'), 'utf8')).toContain('state: superseded');
     expect(logSink.lines.join('')).toContain('Planner buffer satisfied (2/2 ready)');
+  });
+
+  it('executor refines failed work even when other ready tasks are available', async () => {
+    const { root, config } = await makeFixture([
+      baseTask({ id: 'task-ready', title: 'Ready task', touchPaths: ['feature.txt'] }),
+      baseTask({
+        id: 'task-failed',
+        title: 'Failed task',
+        state: 'failed',
+        priority: 'high',
+        touchPaths: ['feature-failed.txt'],
+        statusNotes: ['Failed: validation failed: missing dependency'],
+      }),
+    ]);
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          statusResponses: [[]],
+          plannerOutput: {
+            status: 'done',
+            item: 'planner-pass',
+            note: 'recovered failed work',
+            action: 'supersede',
+            parent_task_ids: ['task-failed'],
+            children: [{
+              title: 'Recover failed task',
+              task_kind: 'implementation',
+              priority: 'normal',
+              touch_paths: ['feature-failed.txt'],
+              acceptance_criteria: ['Recover the failed task'],
+              validation_profile: 'repo',
+              capabilities: null,
+              context: 'Retry the failed task without losing urgency.',
+            }],
+          },
+          onGitCommit: async () => {
+            await stopAfterFirstSleep(config.files.stop);
+          },
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(calls).toContain('input:planner prompt');
+    expect(await readFile(path.join(root, 'backlog/tasks', 'task-failed.yaml'), 'utf8')).toContain('state: superseded');
+  });
+
+  it('planner lane performs background refinement when planned backlog stays large', async () => {
+    const plannedTasks = Array.from({ length: 10 }, (_, index) => baseTask({
+      id: `task-planned-${index}`,
+      title: `Planned task ${index}`,
+      state: 'planned',
+      touchPaths: [],
+      statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
+    }));
+    const { root, config } = await makeFixture([
+      baseTask({ id: 'task-ready-a', title: 'Ready task A', touchPaths: ['feature-a.txt'] }),
+      baseTask({ id: 'task-ready-b', title: 'Ready task B', touchPaths: ['feature-b.txt'] }),
+      ...plannedTasks,
+    ]);
+    const logSink = new MemoryLogSink();
+    const calls: string[] = [];
+    let sleepCalls = 0;
+
+    await runBacklogRunner(
+      config,
+      { lane: 'planner' },
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          statusResponses: [[]],
+          plannerOutput: {
+            status: 'done',
+            item: 'planner-pass',
+            note: 'refined large planned backlog',
+            action: 'supersede',
+            parent_task_ids: ['task-planned-0'],
+            children: [{
+              title: 'Research planned task 0 implementation plan',
+              task_kind: 'research',
+              priority: 'normal',
+              touch_paths: ['backlog/inbox.jsonl', 'scripts/backlog/progress.txt'],
+              acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
+              context: 'Inspect the planned task surface and emit concrete implementation follow-ups.',
+            }],
+          },
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 1) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
+      },
+    );
+
+    expect(calls).toContain('input:planner prompt');
+    expect(calls).not.toContain('input:agent prompt');
+    expect(await readFile(path.join(root, 'backlog/tasks', 'task-planned-0.yaml'), 'utf8')).toContain('state: superseded');
   });
 
   it('executor waits when another planner lane is already active', async () => {

@@ -9,17 +9,20 @@ import {
   parseCandidateRecord,
   readTaskSpecs,
   renderGeneratedBacklog,
+  taskPriorityRank,
   taskSort,
   touchPathsOverlap,
   updateTask,
   writeTaskSpec,
 } from '../task-specs.js';
 import type {
+  BacklogCandidateRecord,
   BacklogDrainResult,
   BacklogQueueCounts,
   BacklogRunnerConfig,
   BacklogStore,
   BacklogTaskClaim,
+  BacklogTaskPriority,
   BacklogTaskSpec,
   PlannerSupersedeAction,
   TaskBlockage,
@@ -53,9 +56,8 @@ async function atomicWrite(filePath: string, content: string): Promise<void> {
   await rename(tempFile, filePath);
 }
 
-function normalizeWhitespace(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
-}
+import { normalizeWhitespace } from '../utils.js';
+
 
 function reservationConflict(task: BacklogTaskSpec, reservation: TaskReservationSnapshot): boolean {
   const capabilityConflict = task.capabilities.some(capability => reservation.capabilities.includes(capability));
@@ -74,6 +76,13 @@ function renderDeferralStatusNote(note: string, retryAt: string, options: TaskDe
     return `Deferred after remediation: ${note} until ${retryAt}`;
   }
   return `Deferred: ${note} until ${retryAt}`;
+}
+
+function highestPriority(tasks: BacklogTaskSpec[]): BacklogTaskPriority | null {
+  if (tasks.length === 0) return null;
+  return tasks.reduce<BacklogTaskPriority>((current, task) => (
+    taskPriorityRank(task.priority) < taskPriorityRank(current) ? task.priority : current
+  ), tasks[0]!.priority);
 }
 
 export class FileBackedTaskStore implements BacklogStore {
@@ -438,6 +447,21 @@ export class FileBackedTaskStore implements BacklogStore {
     });
   }
 
+  async enqueueCandidate(candidate: BacklogCandidateRecord): Promise<void> {
+    await withLock(this.backlogLock, 30, async () => {
+      await appendFile(this.config.files.candidateQueue, `${JSON.stringify({
+        title: candidate.title,
+        priority: candidate.priority,
+        touch_paths: candidate.touchPaths,
+        acceptance_criteria: candidate.acceptanceCriteria,
+        validation_profile: candidate.validationProfile,
+        capabilities: candidate.capabilities,
+        context: candidate.context,
+        source: candidate.source,
+      })}\n`, 'utf8');
+    });
+  }
+
   private taskExists(tasks: BacklogTaskSpec[], candidate: BacklogTaskSpec): boolean {
     return tasks.some(task => task.id === candidate.id);
   }
@@ -525,7 +549,20 @@ export class FileBackedTaskStore implements BacklogStore {
         throw new Error('Planner action produced invalid child task');
       }
 
-      const materializedChildren = childTasks as BacklogTaskSpec[];
+      const failedParents = parents.filter(task => task.state === 'failed');
+      const failedPriorityFloor = highestPriority(failedParents);
+      const materializedChildren = (childTasks as BacklogTaskSpec[]).map(task => {
+        if (!failedPriorityFloor || taskPriorityRank(task.priority) <= taskPriorityRank(failedPriorityFloor)) {
+          return task;
+        }
+        return updateTask(task, {
+          priority: failedPriorityFloor,
+          statusNotes: [
+            ...task.statusNotes,
+            `Priority elevated to ${failedPriorityFloor} to preserve failed-parent urgency.`,
+          ],
+        }, nowIso);
+      });
       const childIds = materializedChildren.map(task => task.id);
       const duplicateChildIds = childIds.filter((taskId, index) => childIds.indexOf(taskId) !== index);
       if (duplicateChildIds.length > 0) {
