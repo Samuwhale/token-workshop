@@ -1106,3 +1106,11 @@
   - When a health summary card mirrors a validation rule family, derive both its badge count and its preview rows from the same filtered issue list so the summary cannot drift from the audit report.
   - Small inline remediation CTAs work well for visual audits when the chart already knows the underlying token path for each anomalous point.
 ---
+## 2026-04-12 - Consolidate blocking progress overlays into shared ProgressOverlay component
+- Added a shared `ProgressOverlay` component that renders the blocking fullscreen backdrop, centered card, shared `Spinner`, and optional `current / total` progress counter, then replaced both App sync overlays with it.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/components/ProgressOverlay.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "ProgressOverlay\\.tsx|App\\.tsx|error TS6305"` still reports pre-existing workspace issues: `packages/core/dist` `TS6305` build-artifact failures plus long-standing `App.tsx` workflow typing errors; no `ProgressOverlay.tsx` diagnostics appeared.
+- Files changed: `packages/figma-plugin/src/ui/components/ProgressOverlay.tsx` ~L1, `packages/figma-plugin/src/ui/App.tsx` ~L3791
+- **Learnings for future iterations:**
+  - Blocking apply states should reuse one overlay primitive and pass only the message plus optional progress counts from the owning flow.
+  - Keeping the numeric `current / total` counter separate from the status copy makes it easy to reuse the same overlay for flows that do or do not report incremental progress.
+---

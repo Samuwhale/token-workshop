@@ -115,7 +115,7 @@
 - [x] Replace hardcoded post-import routing with recommendation-driven navigation
 - [x] Surface a transient post-import banner on the destination workspace
 - [x] Make contrast failure suggestions actionable with navigation CTAs
-- [ ] Wire Alias dependencies card to real validation data and add lightness fix CTAs
+- [x] Wire Alias dependencies card to real validation data and add lightness fix CTAs
 - [ ] Extract maintenance tools into a dedicated collapsible sub-surface inside SelectionInspector
 - [ ] Lift deep-inspect and property-filter persistence into InspectContext
 - [ ] Unify sync-status rendering into a shared component

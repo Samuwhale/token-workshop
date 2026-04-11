@@ -13,6 +13,7 @@ import { useToastBusListener } from "./shared/toastBus";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { InlineBanner } from "./components/InlineBanner";
 import { PasteTokensModal } from "./components/PasteTokensModal";
+import { ProgressOverlay } from "./components/ProgressOverlay";
 import type { ImportCompletionResult } from "./components/ImportPanelContext";
 import {
   WelcomePrompt,
@@ -3787,60 +3788,20 @@ export function App() {
 
       {/* Variable sync progress overlay */}
       {syncGroupApplying && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-[240px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl px-4 py-4 flex flex-col items-center gap-3">
-            <svg
-              className="animate-spin text-[var(--color-figma-accent)]"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M21 12a9 9 0 11-6.219-8.56" />
-            </svg>
-            <div className="text-center">
-              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                {syncGroupProgress && syncGroupProgress.total > 0
-                  ? `Syncing variables… ${syncGroupProgress.current} / ${syncGroupProgress.total}`
-                  : "Syncing variables…"}
-              </p>
-            </div>
-          </div>
-        </div>
+        <ProgressOverlay
+          message="Syncing variables…"
+          current={syncGroupProgress?.current}
+          total={syncGroupProgress?.total}
+        />
       )}
 
       {/* Style sync progress overlay */}
       {syncGroupStylesApplying && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-[240px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl px-4 py-4 flex flex-col items-center gap-3">
-            <svg
-              className="animate-spin text-[var(--color-figma-accent)]"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M21 12a9 9 0 11-6.219-8.56" />
-            </svg>
-            <div className="text-center">
-              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                {syncGroupStylesProgress && syncGroupStylesProgress.total > 0
-                  ? `Creating styles… ${syncGroupStylesProgress.current} / ${syncGroupStylesProgress.total}`
-                  : "Creating styles…"}
-              </p>
-            </div>
-          </div>
-        </div>
+        <ProgressOverlay
+          message="Creating styles…"
+          current={syncGroupStylesProgress?.current}
+          total={syncGroupStylesProgress?.total}
+        />
       )}
 
       {/* Group Scope Editor */}
