@@ -121,7 +121,7 @@
 - [ ] Unify sync-status rendering into a shared component
 - [x] Consolidate blocking progress overlays into shared ProgressOverlay component
 - [x] Add warning variant to toast system and unify disconnected-state feedback
-- [ ] Add undo-slot capture to inline save paths
+- [x] Add undo-slot capture to inline save paths
 - [ ] Add return-to-generated-tokens navigation after generator save
 - [ ] Add inline generated-token leaf indicators and rationalize stale-generator status
 - [x] Add named parameter presets as entry path for generator configuration
