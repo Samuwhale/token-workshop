@@ -22,9 +22,8 @@ import { resolveTokenValue } from "../../shared/resolveAlias";
 import type { UndoSlot } from "../hooks/useUndo";
 import { getErrorMessage, tokenPathToUrlSegment } from "../shared/utils";
 import { apiFetch } from "../shared/apiFetch";
-import { matchesShortcut } from "../shared/shortcutRegistry";
-import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import type { ApplyWorkflowStage } from "../shared/applyWorkflow";
+import { useInspectPreferencesContext } from "../contexts/InspectContext";
 import {
   summarizeApplyWorkflow,
   shouldShowGroup,
@@ -49,14 +48,6 @@ import {
 } from "./SelectionInspectorStates";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { NoticePill } from "../shared/noticeSystem";
-
-type InspectorPropFilterMode =
-  | "all"
-  | "bound"
-  | "unbound"
-  | "mixed"
-  | "colors"
-  | "dimensions";
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -104,6 +95,15 @@ export function SelectionInspector({
   triggerCreateToken,
   selectionInspectorHandle,
 }: SelectionInspectorProps) {
+  const {
+    deepInspect,
+    toggleDeepInspect,
+    propFilter,
+    setPropFilter,
+    propFilterMode,
+    setPropFilterMode,
+    clearPropFilters,
+  } = useInspectPreferencesContext();
   const [creatingFromProp, setCreatingFromProp] =
     useState<BindableProperty | null>(null);
   const [newTokenName, setNewTokenName] = useState("");
@@ -116,9 +116,6 @@ export function SelectionInspector({
     useState<BindableProperty | null>(null);
   const [lastBoundProp, setLastBoundProp] = useState<BindableProperty | null>(
     null,
-  );
-  const [deepInspect, setDeepInspect] = useState(
-    () => lsGet(STORAGE_KEYS.DEEP_INSPECT) === "true",
   );
 
   // Binding error feedback from the plugin sandbox
@@ -135,26 +132,6 @@ export function SelectionInspector({
   const [extractUnboundError, setExtractUnboundError] = useState<string | null>(
     null,
   );
-
-  // Property filter state — persisted across selection changes
-  const [propFilter, setPropFilterState] = useState(
-    () => lsGet(STORAGE_KEYS.INSPECT_PROP_FILTER) ?? "",
-  );
-  const [propFilterMode, setPropFilterModeState] =
-    useState<InspectorPropFilterMode>(
-      () =>
-        (lsGet(
-          STORAGE_KEYS.INSPECT_PROP_FILTER_MODE,
-        ) as InspectorPropFilterMode) ?? "all",
-    );
-  const setPropFilter = (v: string) => {
-    lsSet(STORAGE_KEYS.INSPECT_PROP_FILTER, v);
-    setPropFilterState(v);
-  };
-  const setPropFilterMode = (v: InspectorPropFilterMode) => {
-    lsSet(STORAGE_KEYS.INSPECT_PROP_FILTER_MODE, v);
-    setPropFilterModeState(v);
-  };
 
   // Persistent peer suggestion — survives until dismissed or selection changes
   const [peerSuggestion, setPeerSuggestion] = useState<{
@@ -193,16 +170,8 @@ export function SelectionInspector({
   const advancedSectionRef = useRef<HTMLElement | null>(null);
 
   const handleToggleDeepInspect = useCallback(() => {
-    setDeepInspect((prev) => {
-      const next = !prev;
-      lsSet(STORAGE_KEYS.DEEP_INSPECT, String(next));
-      parent.postMessage(
-        { pluginMessage: { type: "set-deep-inspect", enabled: next } },
-        "*",
-      );
-      return next;
-    });
-  }, []);
+    toggleDeepInspect();
+  }, [toggleDeepInspect]);
 
   // Listen for binding results from the plugin sandbox
   useEffect(() => {
@@ -244,28 +213,6 @@ export function SelectionInspector({
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, []);
-
-  // Keyboard shortcut: Cmd+Shift+D to toggle deep inspect
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (matchesShortcut(e, "TOGGLE_DEEP_INSPECT")) {
-        e.preventDefault();
-        handleToggleDeepInspect();
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [handleToggleDeepInspect]);
-
-  // Sync controller with persisted deep inspect state on mount
-  useEffect(() => {
-    if (deepInspect) {
-      parent.postMessage(
-        { pluginMessage: { type: "set-deep-inspect", enabled: true } },
-        "*",
-      );
-    }
-  }, [deepInspect]);
 
   // Cmd+T: open create-from-first-unbound-property
   useEffect(() => {
@@ -1179,10 +1126,7 @@ export function SelectionInspector({
                         description="Try a broader property query or reset the active filter mode."
                         secondaryAction={{
                           label: "Clear filter",
-                          onClick: () => {
-                            setPropFilter("");
-                            setPropFilterMode("all");
-                          },
+                          onClick: clearPropFilters,
                         }}
                       />
                     )}
@@ -1222,10 +1166,7 @@ export function SelectionInspector({
             onPropFilterModeChange={setPropFilterMode}
             mixedBindings={mixedBindings}
             isFilterActive={isFilterActive}
-            onClearFilters={() => {
-              setPropFilter("");
-              setPropFilterMode("all");
-            }}
+            onClearFilters={clearPropFilters}
             unboundWithValueCount={unboundWithValueCount}
             onExtractAllUnbound={handleExtractAllUnbound}
             extractingUnbound={extractingUnbound}

@@ -10,8 +10,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/components/DeepInspectSection.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Moved maintenance UI into a dedicated collapsible section with per-card indicators, localized tool-panel state, and reduced SelectionInspector from 1675 to 1296 lines."
+state: done
 acceptance_criteria:
   - Create MaintenanceToolsSection component that owns the five tool cards (sync, search, deep inspect, extract/remap/clear, filters)
   - Each tool card is independently collapsible and shows its own active indicator in its header
@@ -19,4 +20,4 @@ acceptance_criteria:
   - Total line count of SelectionInspector decreases by at least 300 lines
 source: task-followup
 created_at: 2026-04-11T10:39:50.202Z
-updated_at: 2026-04-11T10:39:50.202Z
+updated_at: 2026-04-11T22:21:13.296Z

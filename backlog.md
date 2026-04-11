@@ -116,7 +116,7 @@
 - [x] Surface a transient post-import banner on the destination workspace
 - [x] Make contrast failure suggestions actionable with navigation CTAs
 - [x] Wire Alias dependencies card to real validation data and add lightness fix CTAs
-- [ ] Extract maintenance tools into a dedicated collapsible sub-surface inside SelectionInspector
+- [x] Extract maintenance tools into a dedicated collapsible sub-surface inside SelectionInspector
 - [ ] Lift deep-inspect and property-filter persistence into InspectContext
 - [ ] Unify sync-status rendering into a shared component
 - [x] Consolidate blocking progress overlays into shared ProgressOverlay component

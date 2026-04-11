@@ -79,6 +79,7 @@ import {
   useSelectionContext,
   useHeatmapContext,
   useUsageContext,
+  useInspectPreferencesContext,
 } from "./contexts/InspectContext";
 import { useNavigationContext } from "./contexts/NavigationContext";
 import { useEditorContext } from "./contexts/EditorContext";
@@ -384,6 +385,8 @@ export function App() {
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const { triggerHeatmapScan } = useHeatmapContext();
   const { triggerUsageScan } = useUsageContext();
+  const { deepInspect, propFilter, propFilterMode } =
+    useInspectPreferencesContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } =
     useAvailableFonts();
   // Utilities menu owns the connection editor so recovery stays available without
@@ -1942,6 +1945,20 @@ export function App() {
           label: `${applyWorkflowSummary.selectionCount} layer${applyWorkflowSummary.selectionCount === 1 ? "" : "s"} selected`,
           tone: applyWorkflowSummary.hasSelection ? "info" : "info",
         });
+        if (deepInspect) {
+          pills.push({ label: "Deep inspect on", tone: "info" });
+        }
+        if (propFilter !== "" || propFilterMode !== "all") {
+          const activeFilterCount =
+            Number(propFilter !== "") + Number(propFilterMode !== "all");
+          pills.push({
+            label:
+              activeFilterCount === 1
+                ? "1 filter active"
+                : `${activeFilterCount} filters active`,
+            tone: "info",
+          });
+        }
         if (applyWorkflowSummary.suggestionCount > 0) {
           pills.push({
             label: `${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? "" : "es"} ready`,
@@ -2040,9 +2057,12 @@ export function App() {
     applyWorkflowSummary.unboundPropertyCount,
     checking,
     connected,
+    deepInspect,
     dimensions.length,
     healthIssueCount,
     lintViolations.length,
+    propFilter,
+    propFilterMode,
     pendingPublishCount,
     publishPreflightState.advisoryCount,
     publishPreflightState.blockingCount,
