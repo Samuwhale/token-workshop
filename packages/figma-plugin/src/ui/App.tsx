@@ -12,6 +12,7 @@ import { useToastStack } from "./hooks/useToastStack";
 import { useToastBusListener } from "./shared/toastBus";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { PasteTokensModal } from "./components/PasteTokensModal";
+import type { ImportCompletionResult } from "./components/ImportPanelContext";
 import {
   WelcomePrompt,
   type StartHereBranch,
@@ -109,6 +110,8 @@ import {
 } from "./shared/shellControlStyles";
 import { findLeafByPath } from "./components/tokenListUtils";
 import { summarizeApplyWorkflow } from "./components/selectionInspectorUtils";
+
+const LAST_IMPORT_RESULT_DISMISS_MS = 30_000;
 
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
@@ -223,6 +226,8 @@ export function App() {
     showSetSwitcher,
     setShowSetSwitcher,
   } = useModalVisibility();
+  const [lastImportResult, setLastImportResult] =
+    useState<ImportCompletionResult | null>(null);
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] =
     useState("");
   const recentlyTouched = useRecentlyTouched();
@@ -264,6 +269,20 @@ export function App() {
   const closeStartHere = useCallback(() => {
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
     setStartHereState({ open: false, initialBranch: "root", firstRun: false });
+  }, []);
+  useEffect(() => {
+    if (lastImportResult === null || LAST_IMPORT_RESULT_DISMISS_MS <= 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setLastImportResult(null);
+    }, LAST_IMPORT_RESULT_DISMISS_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [lastImportResult]);
+  const handleImportComplete = useCallback((result: ImportCompletionResult) => {
+    setLastImportResult(result);
   }, []);
   const {
     toasts: toastStack,
@@ -1291,6 +1310,9 @@ export function App() {
   const openSecondaryPanel = useCallback(
     (panel: SecondarySurfaceId) => {
       dismissEphemeralOverlays();
+      if (panel === "import") {
+        setLastImportResult(null);
+      }
       openSecondarySurface(panel);
     },
     [dismissEphemeralOverlays, openSecondarySurface],
@@ -3504,6 +3526,7 @@ export function App() {
                     triggerCreateToken={triggerCreateToken}
                     recentlyTouched={recentlyTouched}
                     starredTokens={starredTokens}
+                    onImportComplete={handleImportComplete}
                     onShowPasteModal={() => setShowPasteModal(true)}
                     onShowColorScaleGen={() => setShowColorScaleGen(true)}
                     onOpenStartHere={(branch) => openStartHere(branch)}

@@ -1,0 +1,19 @@
+id: simplify-settings-to-a-flat-scrollable-list-witho-51652c8a
+title: Simplify Settings to a flat scrollable list without search or tabs
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/SettingsPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - SettingsPanel.tsx search bar and SECTION_SEARCH_META filtering logic are removed
+  - SettingsPanel.tsx Preferences/Advanced tab split is removed; all settings render in one scrollable list
+  - Dangerous/destructive actions remain visually separated at the bottom of SettingsPanel
+  - The panel reads as a simple preferences list, not a desktop app settings window
+source: manual
+created_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T22:00:00.000Z

@@ -29,6 +29,7 @@ import type { ThemeManagerHandle } from '../components/ThemeManager';
 import { PublishPanel } from '../components/PublishPanel';
 import type { PublishPanelHandle } from '../components/PublishPanel';
 import { ImportPanel } from '../components/ImportPanel';
+import type { ImportCompletionResult } from '../components/ImportPanelContext';
 import { SelectionInspector } from '../components/SelectionInspector';
 import type { SelectionInspectorHandle } from '../components/SelectionInspector';
 import { CanvasAnalysisPanel } from '../components/CanvasAnalysisPanel';
@@ -212,6 +213,7 @@ export interface PanelRouterProps {
   triggerCreateToken: number;
   recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
+  onImportComplete: (result: ImportCompletionResult) => void;
   // Modal openers (for EmptyState + other panels that trigger global modals)
   onShowPasteModal: () => void;
   onShowColorScaleGen: () => void;
@@ -699,9 +701,13 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             serverUrl={serverUrl}
             connected={connected}
             onImported={refreshTokens}
-            onImportComplete={(importedSet) => {
+            onImportComplete={(result) => {
+              p.onImportComplete(result);
               navigateTo('define', 'tokens');
-              setActiveSet(importedSet);
+              const primaryDestinationSet = result.destinationSets[0];
+              if (primaryDestinationSet) {
+                setActiveSet(primaryDestinationSet);
+              }
               closeSecondarySurface();
             }}
             onPushUndo={p.pushUndo}

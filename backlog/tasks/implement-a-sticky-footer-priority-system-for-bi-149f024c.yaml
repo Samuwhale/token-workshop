@@ -7,8 +7,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/components/SelectionInspector.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Superseded by ux-audit: reduce-tokens-workspace-chrome-bands-by-merging-s-898b6d80 targets reducing UI bands; adding a new sticky band conflicts"
+state: superseded
 acceptance_criteria:
   - "Define a priority order for sticky footer banners: apply-progress > peer-suggestion > prop-type-suggestion > all-properties-bound > created-token"
   - Only render the highest-priority active banner at any given time

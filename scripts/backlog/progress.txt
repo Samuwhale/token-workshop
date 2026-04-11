@@ -872,3 +872,11 @@
 - Catalogued 6 inline generated-group status affordances and identified gaps: no leaf-level indicator for generated tokens, stale status shown redundantly in 3 places.
 - Proposed 3 ordered implementation slices: shared editor shell extraction, generator escalation consolidation through contextual surface contract, inline generated-token leaf indicators.
 - Created 4 follow-up tasks reconciled against plugin-ia-blueprint and completed generator draft-flow work.
+---
+## 2026-04-11 - Hoist import result summary to app-level state
+- Added a shared `ImportCompletionResult` payload, emitted it from both collection and single-set import completion paths, and stored the latest import result in `App` so it survives the import takeover unmount. The app now clears that stored result when the import surface opens again and auto-dismisses it after the configured timeout.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx` ~L21, `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx` ~L629, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L216, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L700, `packages/figma-plugin/src/ui/App.tsx` ~L114, `packages/figma-plugin/src/ui/App.tsx` ~L229, `packages/figma-plugin/src/ui/App.tsx` ~L1310, `packages/figma-plugin/src/ui/App.tsx` ~L3529
+- **Learnings for future iterations:**
+  - Import completion already has the conflict-preview counts needed for a post-import banner; future UI work can read the hoisted app state instead of relying on `ImportPanelProvider` state that disappears on close.
+  - Multi-set imports should derive their post-import destination from `destinationSets[0]` rather than a single string callback so later routing logic can make smarter next-step decisions.
+---

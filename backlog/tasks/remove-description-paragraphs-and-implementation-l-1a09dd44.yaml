@@ -1,0 +1,21 @@
+id: remove-description-paragraphs-and-implementation-l-1a09dd44
+title: Remove description paragraphs and implementation-language copy from all workspaces and surfaces
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/shared/navigationTypes.ts
+  - packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx
+  - packages/figma-plugin/src/ui/App.tsx
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - Every workspace tab description paragraph is removed from the rendered UI
+  - Every secondary surface summaryGuidance and description paragraph is removed from the rendered UI
+  - WorkspaceSummaryHeader no longer renders a description block below the workspace title
+  - No UI text references implementation concepts like "takeover", "stable parent surface", "contextual surface", or "mount"
+source: manual
+created_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T22:00:00.000Z

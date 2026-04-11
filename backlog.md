@@ -30,7 +30,6 @@
 - [ ] [HIGH] Hoist import result summary to app-level state
 - [ ] [HIGH] Add inline explanations and contextual tips to priority issues strip
 - [ ] [HIGH] Add explanatory context to collapsed section headers for Unused, Duplicates, and Contrast panels
-- [ ] [HIGH] Surface advanced-tool active states to the Apply shell pills and workflow cards
 - [ ] [HIGH] Add selection-loading state to prevent empty-state flash
 - [ ] [HIGH] Extract shared FeedbackPlaceholder component from existing bespoke empty/error/no-results states
 - [ ] [HIGH] Extract shared InlineBanner component and migrate all bespoke inline feedback strips
@@ -48,6 +47,16 @@
 - [x] [HIGH] Group and reduce TokenList select-mode toolbar from eleven flat buttons to grouped actions
 - [x] [HIGH] Merge token search input and filter builder into one unified input with qualifier chips
 - [x] [HIGH] Rename resolver modifiers to resolver dimensions to fix dual-meaning modifier terminology
+- [ ] [HIGH] Collapse generator card action buttons into a context menu
+- [ ] [HIGH] Collapse workflow stage cards to minimal step indicators in Themes, Apply, and Sync
+- [ ] [HIGH] Consolidate token creation entry points into a single launcher menu
+- [ ] [HIGH] Merge secondary surfaces into compact navigation targets instead of 5 always-visible buttons
+- [ ] [HIGH] Reduce Tokens workspace chrome bands by merging search, toolbar, and conditional bars
+- [ ] [HIGH] Remove all-caps section labels from shell, workspace headers, and footer bands
+- [ ] [HIGH] Remove description paragraphs and implementation-language copy from all workspaces and surfaces
+- [ ] [HIGH] Remove MORE CREATION footer and merge its actions into the existing toolbar
+- [ ] [HIGH] Rewrite UI copy to use task language instead of implementation language
+- [ ] [HIGH] Simplify Settings to a flat scrollable list without search or tabs
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -108,7 +117,6 @@
 - [ ] Extract maintenance tools into a dedicated collapsible sub-surface inside SelectionInspector
 - [ ] Lift deep-inspect and property-filter persistence into InspectContext
 - [ ] Unify sync-status rendering into a shared component
-- [ ] Implement a sticky-footer priority system for binding feedback banners
 - [ ] Consolidate blocking progress overlays into shared ProgressOverlay component
 - [ ] Add warning variant to toast system and unify disconnected-state feedback
 - [ ] Add undo-slot capture to inline save paths

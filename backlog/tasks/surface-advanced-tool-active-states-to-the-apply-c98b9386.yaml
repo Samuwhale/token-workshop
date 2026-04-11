@@ -10,8 +10,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/App.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Superseded by ux-audit: collapse-workflow-stage-cards-to-minimal-step-ind-fedfd887 removes the workflow cards this task enriches"
+state: superseded
 acceptance_criteria:
   - Extend ApplyWorkflowSummary with deepInspectActive, filterActive, and syncStatusLabel fields
   - Render active-state pills in the shell status bar when deep inspect or filters are on

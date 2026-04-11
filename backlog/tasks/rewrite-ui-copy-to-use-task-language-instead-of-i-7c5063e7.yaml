@@ -1,0 +1,23 @@
+id: rewrite-ui-copy-to-use-task-language-instead-of-i-7c5063e7
+title: Rewrite UI copy to use task language instead of implementation language
+priority: high
+task_kind: implementation
+depends_on:
+  - remove-description-paragraphs-and-implementation-l-1a09dd44
+touch_paths:
+  - packages/figma-plugin/src/ui/shared/navigationTypes.ts
+  - packages/figma-plugin/src/ui/components/NotificationsPanel.tsx
+  - packages/figma-plugin/src/ui/components/SettingsPanel.tsx
+  - packages/figma-plugin/src/ui/components/KeyboardShortcutsPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - No remaining UI text uses terms like "takeover", "surface", "contextual surface", "stable parent surface", "mount", or "secondary surface"
+  - Remaining labels and helper text use task-oriented language a designer would recognize
+  - Empty states use short, actionable copy rather than feature-spec paragraphs
+  - Notification inbox empty state is one short sentence, not a feature description
+source: manual
+created_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T22:00:00.000Z

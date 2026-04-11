@@ -1,0 +1,21 @@
+id: consolidate-token-creation-entry-points-into-a-si-9f854d46
+title: Consolidate token creation entry points into a single launcher menu
+priority: high
+task_kind: implementation
+depends_on:
+  - remove-more-creation-footer-and-merge-its-actions-94839255
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenList.tsx
+  - packages/figma-plugin/src/ui/App.tsx
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - One primary "+" or "Create" button serves as the single entry point for all token creation
+  - That button opens a menu with options for single token, bulk, group, paste, and import
+  - The separate "Create token" CTA, "+ New token" toolbar button, per-group "+" button, and footer buttons are removed or consolidated
+  - Total visible creation entry points on the Tokens workspace drop from 7+ to 2 or fewer (primary button + per-group inline add)
+source: manual
+created_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T22:00:00.000Z

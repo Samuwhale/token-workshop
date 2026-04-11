@@ -1,0 +1,21 @@
+id: remove-all-caps-section-labels-from-shell-workspa-82480c96
+title: Remove all-caps section labels from shell, workspace headers, and footer bands
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/App.tsx
+  - packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx
+  - packages/figma-plugin/src/ui/components/TokenList.tsx
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - The labels WORKSPACES, SECONDARY SURFACES, CURRENT WORKSPACE, SECTIONS, STATUS are removed from the shell
+  - The MORE CREATION label is removed from the token list footer
+  - Workflow stage labels (THEME WORKFLOW, APPLY WORKFLOW, SYNC WORKFLOW) are removed if present
+  - No 9px uppercase tracking-wide label elements remain as scaffolding above navigation groups
+source: manual
+created_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T22:00:00.000Z

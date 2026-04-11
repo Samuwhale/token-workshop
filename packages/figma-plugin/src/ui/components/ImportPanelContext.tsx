@@ -3,6 +3,7 @@ import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 import {
   type ImportToken,
   type CollectionData,
+  type ImportSource as ImportSourceKind,
   type SourceFamily,
   type ImportWorkflowStage,
   defaultSetName,
@@ -21,7 +22,7 @@ export interface ImportPanelProps {
   serverUrl: string;
   connected: boolean;
   onImported: () => void;
-  onImportComplete: (targetSet: string) => void;
+  onImportComplete: (result: ImportCompletionResult) => void;
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
@@ -45,6 +46,18 @@ export interface LastImportReviewSummary {
   overwriteCount: number;
   mergeCount: number;
   keepExistingCount: number;
+}
+
+export interface ImportCompletionResult {
+  sourceType: ImportSourceKind;
+  sourceFamily: SourceFamily;
+  destinationSets: string[];
+  newCount: number;
+  overwriteCount: number;
+  mergeCount: number;
+  keepExistingCount: number;
+  totalImportedCount: number;
+  hadFailures: boolean;
 }
 
 export interface ImportPanelContextValue {
@@ -613,6 +626,22 @@ export function ImportPanelProvider({
     [clearFailedState, deleteImportedEntries, resetExistingPathsCache],
   );
 
+  const publishImportCompletion = useCallback(
+    (result: Omit<ImportCompletionResult, 'sourceType' | 'sourceFamily'>) => {
+      if (!src.source || !src.sourceFamily) {
+        console.warn('[ImportPanel] import completion metadata missing');
+        return;
+      }
+
+      onImportCompleteRef.current({
+        sourceType: src.source,
+        sourceFamily: src.sourceFamily,
+        ...result,
+      });
+    },
+    [src.source, src.sourceFamily],
+  );
+
   const handleImportVariables = useCallback(
     async (strategy: ImportStrategy = 'overwrite') => {
       src.setError(null);
@@ -665,8 +694,15 @@ export function ImportPanelProvider({
 
         dispatchToast(toastMessage, failedCount > 0 ? 'error' : 'success');
         onImportedRef.current();
-        const firstSet = collectionImportEntries[0]?.setName;
-        if (firstSet) onImportCompleteRef.current(firstSet);
+        publishImportCompletion({
+          destinationSets: collectionImportEntries.map(entry => entry.setName),
+          newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
+          overwriteCount: strategy === 'overwrite' ? varConflictPreview?.overwriteCount ?? 0 : 0,
+          mergeCount: strategy === 'merge' ? varConflictPreview?.overwriteCount ?? 0 : 0,
+          keepExistingCount: strategy === 'skip' ? varConflictPreview?.overwriteCount ?? 0 : 0,
+          totalImportedCount: importedTokens,
+          hadFailures: failedCount > 0,
+        });
         resetExistingPathsCache();
         src.resetAfterImport();
 
@@ -701,6 +737,7 @@ export function ImportPanelProvider({
       clearFailedState,
       ensureSetExists,
       importTokenBatch,
+      publishImportCompletion,
       resetExistingPathsCache,
       setLastImportWithUndo,
       totalEnabledTokens,
@@ -742,16 +779,26 @@ export function ImportPanelProvider({
         setImportProgress({ done: tokensToImport.length, total: tokensToImport.length });
         dispatchToast(`Imported ${imported} tokens to "${setsHook.targetSet}"`, 'success');
         onImportedRef.current();
-        onImportCompleteRef.current(setsHook.targetSet);
         resetExistingPathsCache();
         src.resetAfterImport();
         const mergeCount = mergePaths?.size ?? 0;
         const keepExistingCount = excludePaths?.size ?? 0;
         const reviewedConflictCount = conflictPaths?.length ?? previewOverwriteCount ?? 0;
+        const newCount = previewNewCount ?? Math.max(0, selectedImportTokens.length - reviewedConflictCount);
+        const overwriteCount = Math.max(0, reviewedConflictCount - mergeCount - keepExistingCount);
+        publishImportCompletion({
+          destinationSets: [setsHook.targetSet],
+          newCount,
+          overwriteCount,
+          mergeCount,
+          keepExistingCount,
+          totalImportedCount: imported,
+          hadFailures: false,
+        });
         setLastImportReviewSummary({
           destinationLabel: `"${setsHook.targetSet}"`,
-          newCount: previewNewCount ?? Math.max(0, selectedImportTokens.length - reviewedConflictCount),
-          overwriteCount: Math.max(0, reviewedConflictCount - mergeCount - keepExistingCount),
+          newCount,
+          overwriteCount,
           mergeCount,
           keepExistingCount,
         });
@@ -777,6 +824,7 @@ export function ImportPanelProvider({
       ensureSetExists,
       setsHook.targetSet,
       importTokenBatch,
+      publishImportCompletion,
       resetExistingPathsCache,
       setLastImportWithUndo,
       conflictPaths,

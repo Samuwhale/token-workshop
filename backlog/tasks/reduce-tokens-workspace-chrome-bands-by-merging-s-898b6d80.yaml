@@ -1,0 +1,23 @@
+id: reduce-tokens-workspace-chrome-bands-by-merging-s-898b6d80
+title: Reduce Tokens workspace chrome bands by merging search, toolbar, and conditional bars
+priority: high
+task_kind: implementation
+depends_on:
+  - remove-all-caps-section-labels-from-shell-workspa-82480c96
+  - remove-more-creation-footer-and-merge-its-actions-94839255
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenList.tsx
+capabilities: []
+validation_profile: plugin
+status_notes: []
+state: ready
+acceptance_criteria:
+  - Search input and action buttons share a single toolbar row instead of separate bands
+  - Theme preview bar is hidden behind a toggle or collapsed when not actively relevant
+  - Status pills are removed from section tabs or moved to a less prominent position
+  - Set switcher is hidden or collapsed when there is only one set
+  - Total distinct UI bands above the first token row drops from 10+ to 5 or fewer
+  - Token list shows at least 6-8 rows in a standard 400px plugin viewport
+source: manual
+created_at: 2026-04-11T22:00:00.000Z
+updated_at: 2026-04-11T22:00:00.000Z
