@@ -31,6 +31,12 @@ Good targets (in priority order):
 7. **Accessibility gaps** — icon-only buttons without `aria-label`, keyboard navigation gaps, focus management issues after modal close, color-only state differentiation. Code signals: `<button>` with only an SVG child and no `aria-label`, missing `tabIndex`, no `onKeyDown` alongside `onClick`.
 8. **Discoverability issues** — features that exist but are hidden behind non-obvious interactions, missing tooltips on icon-only buttons, no contextual help for complex features. Code signals: functionality reachable only via right-click or keyboard shortcut with no visible affordance.
 
+**UI composition guardrails:**
+- Never recommend eyebrow text, overlines, or pre-heading label treatments.
+- Be extremely wary of chrome and UI clutter, especially in the plugin interface where dense framing compounds quickly.
+- Treat extra wrappers, pills, badges, helper copy, dividers, nested cards, and secondary controls as suspect until they prove clear workflow value.
+- Prefer simplifying the surface area and sharpening hierarchy over adding more explanatory UI.
+
 This project has no shipped users and no backwards-compatibility constraints, so structural rethinks of interaction patterns are welcome:
 - Focused: `{"title":"Add explicit success feedback after token editor submissions","priority":"normal","touch_paths":["packages/figma-plugin/src/ui/components"],"acceptance_criteria":["Submitting the token editor shows a clear success state in the UI"],"context":"violates system status visibility","source":"ux-pass"}`
 - Broader: `{"title":"Standardize destructive action patterns across token, theme, and resolver workflows","priority":"high","touch_paths":["packages/figma-plugin/src/ui"],"acceptance_criteria":["Equivalent destructive actions use the same confirmation and recovery pattern across panels"],"context":"violates consistency","source":"ux-pass"}`

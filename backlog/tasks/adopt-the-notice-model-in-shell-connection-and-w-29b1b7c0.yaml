@@ -13,6 +13,7 @@ capabilities:
 validation_profile: backlog
 status_notes:
   - "Context: The IA blueprint still mentions a global status banner, but App now routes connection recovery through the utilities menu and WorkspaceSummaryHeader pills. This slice should make the shell contract explicit and remove mixed banner/pill semantics."
+  - "Deferred: workspace setup failed: worktree dependency bootstrap missing dependencies: root:@eslint/js, root:eslint, root:eslint-plugin-react-hooks, root:playwright-core, root:turbo, root:typescript, root:typescript-eslint, packages/backlog-runner:better-sqlite3, packages/backlog-runner:yaml, packages/backlog-runner:@types/better-sqlite3, packages/backlog-runner:@types/node, packages/backlog-runner:tsx, packages/backlog-runner:vitest, packages/core:vitest, packages/figma-plugin:react, packages/figma-plugin:react-dom, packages/figma-plugin:@figma/plugin-typings, packages/figma-plugin:@tailwindcss/vite, packages/figma-plugin:@types/react, packages/figma-plugin:@types/react-dom, packages/figma-plugin:esbuild, packages/figma-plugin:tailwindcss, packages/figma-plugin:vite, packages/figma-plugin:vite-plugin-singlefile, packages/figma-plugin:vitest, packages/server:@fastify/cors, packages/server:chokidar, packages/server:fastify, packages/server:simple-git, packages/server:style-dictionary, packages/server:@types/node, packages/server:tsx, packages/server:vitest until 2026-04-10T23:57:41.927Z"
 state: ready
 acceptance_criteria:
   - Keep shell-owned notices limited to aggregate workspace/server state, with no detailed remediation copy outside the owning surface.
@@ -20,4 +21,4 @@ acceptance_criteria:
   - "Ensure startup and disconnected states use one consistent owner: the utilities connection affordance for passive recovery and owner-surface empty states when the route cannot function offline."
 source: task-followup
 created_at: 2026-04-10T23:20:40.125Z
-updated_at: 2026-04-10T23:20:40.125Z
+updated_at: 2026-04-10T23:42:41.940Z

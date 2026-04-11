@@ -16,6 +16,9 @@ This project is in **rapid, active development** and has not shipped to any user
 
 ## UI Guidance
 
-- Avoid eyebrow text, overlines, and similar pre-heading label treatments unless they are explicitly required by the design brief
+- Never use eyebrow text, overlines, or similar pre-heading label treatments
+- Be extremely wary of chrome and UI clutter, especially in the plugin interface
+- Remove or avoid any decorative controls, wrappers, labels, or helper surfaces that do not materially improve comprehension or task flow
+- Prefer fewer visible elements, clearer hierarchy, and more whitespace over dense control-heavy layouts
 - Do not add informational pills, chips, or badges just to restate nearby content
 - Only use pills or badges when they carry meaningful status, filtering, or interaction value that would otherwise be unclear

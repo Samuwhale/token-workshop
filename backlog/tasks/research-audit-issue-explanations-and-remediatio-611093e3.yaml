@@ -12,6 +12,7 @@ capabilities:
 validation_profile: backlog
 status_notes:
   - "Context: Inspect `packages/figma-plugin/src/ui/components/HealthPanel.tsx`, `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx`, `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx`, `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx`, `packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx`, `packages/figma-plugin/src/ui/hooks/useValidationCache.ts`, `packages/figma-plugin/src/ui/hooks/useLint.ts`, `packages/figma-plugin/src/ui/shared/lintRules.ts`, `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx`, and the Audit workspace routing in `packages/figma-plugin/src/ui/shared/navigationTypes.ts` plus `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`. Focus on turning current issue summaries into actionable product feedback tied to the relevant workflow."
+  - "Deferred: workspace setup failed: worktree dependency bootstrap missing dependencies: root:@eslint/js, root:eslint, root:eslint-plugin-react-hooks, root:playwright-core, root:turbo, root:typescript, root:typescript-eslint, packages/backlog-runner:better-sqlite3, packages/backlog-runner:yaml, packages/backlog-runner:@types/better-sqlite3, packages/backlog-runner:@types/node, packages/backlog-runner:tsx, packages/backlog-runner:vitest, packages/core:vitest, packages/figma-plugin:react, packages/figma-plugin:react-dom, packages/figma-plugin:@figma/plugin-typings, packages/figma-plugin:@tailwindcss/vite, packages/figma-plugin:@types/react, packages/figma-plugin:@types/react-dom, packages/figma-plugin:esbuild, packages/figma-plugin:tailwindcss, packages/figma-plugin:vite, packages/figma-plugin:vite-plugin-singlefile, packages/figma-plugin:vitest, packages/server:@fastify/cors, packages/server:chokidar, packages/server:fastify, packages/server:simple-git, packages/server:style-dictionary, packages/server:@types/node, packages/server:tsx, packages/server:vitest until 2026-04-10T23:57:42.880Z"
 state: ready
 acceptance_criteria:
   - Inspect the current Audit workspace issue surfaces and enumerate which issue types still present as raw counts, terse badges, or unexplained technical labels, with concrete file references.
@@ -19,4 +20,4 @@ acceptance_criteria:
   - Write implementation-ready follow-up backlog tasks with exact repo touch paths for HealthPanel-level summary changes and issue-panel-specific remediation UI changes.
 source: planner-pass
 created_at: 2026-04-10T23:25:03.289Z
-updated_at: 2026-04-10T23:25:03.289Z
+updated_at: 2026-04-10T23:42:42.893Z

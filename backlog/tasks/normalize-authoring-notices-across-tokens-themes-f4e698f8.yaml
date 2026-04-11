@@ -14,6 +14,7 @@ capabilities:
 validation_profile: backlog
 status_notes:
   - "Context: Research found four competing patterns in authoring flows: top-of-panel banners in TokenList, issue cards and badges in ThemeManager, inline status text plus persistent suggestion rails in SelectionInspector, and row-local alert boxes in PropertyRow. Adoption should preserve the existing workflows but align severity and placement."
+  - "Deferred: workspace setup failed: worktree dependency bootstrap missing dependencies: root:@eslint/js, root:eslint, root:eslint-plugin-react-hooks, root:playwright-core, root:turbo, root:typescript, root:typescript-eslint, packages/backlog-runner:better-sqlite3, packages/backlog-runner:yaml, packages/backlog-runner:@types/better-sqlite3, packages/backlog-runner:@types/node, packages/backlog-runner:tsx, packages/backlog-runner:vitest, packages/core:vitest, packages/figma-plugin:react, packages/figma-plugin:react-dom, packages/figma-plugin:@figma/plugin-typings, packages/figma-plugin:@tailwindcss/vite, packages/figma-plugin:@types/react, packages/figma-plugin:@types/react-dom, packages/figma-plugin:esbuild, packages/figma-plugin:tailwindcss, packages/figma-plugin:vite, packages/figma-plugin:vite-plugin-singlefile, packages/figma-plugin:vitest, packages/server:@fastify/cors, packages/server:chokidar, packages/server:fastify, packages/server:simple-git, packages/server:style-dictionary, packages/server:@types/node, packages/server:tsx, packages/server:vitest until 2026-04-10T23:57:42.166Z"
 state: ready
 acceptance_criteria:
   - Convert authoring-surface warnings and stale cues to the shared notice primitives, including stale generators, theme issue handoff cards, apply maintenance results, and property binding failures.
@@ -21,4 +22,4 @@ acceptance_criteria:
   - Keep remediation CTAs attached to the owning notice so theme/apply/token authoring problems can be resolved without depending on shell pills or toast-only feedback.
 source: task-followup
 created_at: 2026-04-10T23:20:40.126Z
-updated_at: 2026-04-10T23:20:40.126Z
+updated_at: 2026-04-10T23:42:42.180Z

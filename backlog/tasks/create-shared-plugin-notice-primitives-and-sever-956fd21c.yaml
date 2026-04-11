@@ -16,6 +16,7 @@ capabilities:
 validation_profile: backlog
 status_notes:
   - "Context: Research found the same severities implemented with different ad hoc classes across WorkspaceSummaryHeader, PanelHelpBanner, ThemeManager, TokenList, SelectionInspector, PublishPanel, and HealthPanel. The first slice should centralize severity names, tone classes, and placement rules before panel-by-panel adoption."
+  - "Deferred: workspace setup failed: worktree dependency bootstrap missing dependencies: root:@eslint/js, root:eslint, root:eslint-plugin-react-hooks, root:playwright-core, root:turbo, root:typescript, root:typescript-eslint, packages/backlog-runner:better-sqlite3, packages/backlog-runner:yaml, packages/backlog-runner:@types/better-sqlite3, packages/backlog-runner:@types/node, packages/backlog-runner:tsx, packages/backlog-runner:vitest, packages/core:vitest, packages/figma-plugin:react, packages/figma-plugin:react-dom, packages/figma-plugin:@figma/plugin-typings, packages/figma-plugin:@tailwindcss/vite, packages/figma-plugin:@types/react, packages/figma-plugin:@types/react-dom, packages/figma-plugin:esbuild, packages/figma-plugin:tailwindcss, packages/figma-plugin:vite, packages/figma-plugin:vite-plugin-singlefile, packages/figma-plugin:vitest, packages/server:@fastify/cors, packages/server:chokidar, packages/server:fastify, packages/server:simple-git, packages/server:style-dictionary, packages/server:@types/node, packages/server:tsx, packages/server:vitest until 2026-04-10T23:57:41.662Z"
 state: ready
 acceptance_criteria:
   - Introduce one shared notice severity model that covers `info`, `success`, `warning`, `stale`, `error`, and validation-specific inline feedback.
@@ -23,4 +24,4 @@ acceptance_criteria:
   - Document when to use shell pills vs banners vs inline messages vs toasts in the IA/design guidance consumed by later backlog items.
 source: task-followup
 created_at: 2026-04-10T23:20:40.124Z
-updated_at: 2026-04-10T23:20:40.124Z
+updated_at: 2026-04-10T23:42:41.677Z

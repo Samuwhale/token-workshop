@@ -12,6 +12,7 @@ capabilities:
 validation_profile: backlog
 status_notes:
   - "Context: Inspect `packages/figma-plugin/src/ui/components/GraphPanel.tsx`, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`, `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx`, `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts`, `packages/figma-plugin/src/ui/hooks/useGenerators.ts`, `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts`, `packages/figma-plugin/src/ui/App.tsx`, and `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`. Focus on ownership visibility, naming clarity, save consequences, and post-save return paths to generated tokens without relying on graph-only or command-palette-only recovery."
+  - "Deferred: workspace setup failed: worktree dependency bootstrap missing dependencies: root:@eslint/js, root:eslint, root:eslint-plugin-react-hooks, root:playwright-core, root:turbo, root:typescript, root:typescript-eslint, packages/backlog-runner:better-sqlite3, packages/backlog-runner:yaml, packages/backlog-runner:@types/better-sqlite3, packages/backlog-runner:@types/node, packages/backlog-runner:tsx, packages/backlog-runner:vitest, packages/core:vitest, packages/figma-plugin:react, packages/figma-plugin:react-dom, packages/figma-plugin:@figma/plugin-typings, packages/figma-plugin:@tailwindcss/vite, packages/figma-plugin:@types/react, packages/figma-plugin:@types/react-dom, packages/figma-plugin:esbuild, packages/figma-plugin:tailwindcss, packages/figma-plugin:vite, packages/figma-plugin:vite-plugin-singlefile, packages/figma-plugin:vitest, packages/server:@fastify/cors, packages/server:chokidar, packages/server:fastify, packages/server:simple-git, packages/server:style-dictionary, packages/server:@types/node, packages/server:tsx, packages/server:vitest until 2026-04-10T23:57:43.136Z"
 state: ready
 acceptance_criteria:
   - Map the current generator discovery and editing entry points across Tokens, Generators, quick-start templates, graph/list views, inline token editing, and command-palette navigation with concrete file references.
@@ -19,4 +20,4 @@ acceptance_criteria:
   - Write implementation-ready follow-up backlog tasks with exact repo touch paths for discovery/naming changes, save-impact review changes, and generated-token handoff/navigation changes.
 source: planner-pass
 created_at: 2026-04-10T23:25:03.289Z
-updated_at: 2026-04-10T23:25:03.289Z
+updated_at: 2026-04-10T23:42:43.149Z
