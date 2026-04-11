@@ -251,7 +251,10 @@ export interface PanelRouterProps {
   triggerCreateToken: number;
   recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
-  onImportComplete: (result: ImportCompletionResult) => void;
+  onImportComplete: (
+    result: ImportCompletionResult,
+    destinationRecommendation: ImportNextStepRecommendation | null,
+  ) => void;
   // Modal openers (for EmptyState + other panels that trigger global modals)
   onShowPasteModal: () => void;
   onShowImportPanel: () => void;
@@ -1032,12 +1035,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             connected={connected}
             onImported={refreshTokens}
             onImportComplete={(result) => {
-              p.onImportComplete(result);
               const nextWorkspaceStep = getImportResultNextStepRecommendations(
                 result,
               ).find(
                 (recommendation) => recommendation.target.kind === "workspace",
               );
+              p.onImportComplete(result, nextWorkspaceStep ?? null);
               if (nextWorkspaceStep) {
                 openImportNextStep(result, nextWorkspaceStep, {
                   preserveSecondarySurface: true,

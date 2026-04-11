@@ -1090,3 +1090,11 @@
 - **Learnings for future iterations:**
   - When a health-report table already knows each token path plus `pathToSet`, add navigation CTAs locally instead of forcing users to manually search for remediation targets elsewhere in the workspace.
 ---
+## 2026-04-11 - Surface a transient post-import banner on the destination workspace
+- Added a pending post-import banner model in `App.tsx`, reveal it only after the import takeover closes, summarize the imported result in a single strip banner, and wire a follow-up workspace CTA that reuses the imported destination set when the user jumps again. Updated `PanelRouter.tsx` so App receives the actual destination recommendation chosen for the preserved-underlay navigation.
+- Validation: `pnpm exec prettier --write packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/panels/PanelRouter.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "App\\.tsx|PanelRouter\\.tsx|error TS"` still reports pre-existing workspace issues, including `packages/core/dist` `TS6305` build-artifact failures and long-standing `App.tsx` workflow typing errors; no new `PanelRouter.tsx` diagnostics appeared, and the remaining `App.tsx` matches are the existing unrelated typing errors.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L122, `packages/figma-plugin/src/ui/App.tsx` ~L451, `packages/figma-plugin/src/ui/App.tsx` ~L3013, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L254, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L1037
+- **Learnings for future iterations:**
+  - When a secondary takeover preserves an updated underlay route, keep post-action UI in a hidden pending state and reveal it only when the takeover actually dismisses.
+  - If a banner needs to offer a follow-up jump after a recommended route change, pass the chosen recommendation through the routing callback instead of recomputing which destination won.
+---

@@ -114,7 +114,7 @@
 - [x] Add next-step recommendation rules based on import result
 - [x] Replace hardcoded post-import routing with recommendation-driven navigation
 - [ ] Surface a transient post-import banner on the destination workspace
-- [ ] Make contrast failure suggestions actionable with navigation CTAs
+- [x] Make contrast failure suggestions actionable with navigation CTAs
 - [ ] Wire Alias dependencies card to real validation data and add lightness fix CTAs
 - [ ] Extract maintenance tools into a dedicated collapsible sub-surface inside SelectionInspector
 - [ ] Lift deep-inspect and property-filter persistence into InspectContext

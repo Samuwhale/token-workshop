@@ -11,6 +11,7 @@ import type { SelectionInspectorHandle } from "./components/SelectionInspector";
 import { useToastStack } from "./hooks/useToastStack";
 import { useToastBusListener } from "./shared/toastBus";
 import { ConfirmModal } from "./components/ConfirmModal";
+import { InlineBanner } from "./components/InlineBanner";
 import { PasteTokensModal } from "./components/PasteTokensModal";
 import type { ImportCompletionResult } from "./components/ImportPanelContext";
 import {
@@ -34,13 +35,18 @@ import { useAvailableFonts } from "./hooks/useAvailableFonts";
 import { useWindowExpand } from "./hooks/useWindowExpand";
 import { useWindowResize } from "./hooks/useWindowResize";
 import type {
+  ImportNextStepRecommendation,
   SecondarySurfaceId,
+  SubTab,
+  TopTab,
   UtilityActionId,
 } from "./shared/navigationTypes";
 import {
   APP_SHELL_NAVIGATION,
   CONTEXTUAL_PANEL_MIN_WIDTH,
   CONTEXTUAL_PANEL_TRANSITIONS,
+  getImportResultNextStepRecommendations,
+  getMostRelevantImportDestinationSet,
   resolveWorkspace,
   resolveWorkspaceSection,
   resolveSecondarySurface,
@@ -112,6 +118,177 @@ import { findLeafByPath } from "./components/tokenListUtils";
 import { summarizeApplyWorkflow } from "./components/selectionInspectorUtils";
 
 const LAST_IMPORT_RESULT_DISMISS_MS = 30_000;
+
+type WorkspaceRouteTarget = {
+  topTab: TopTab;
+  subTab: SubTab;
+};
+
+type PostImportBannerState = {
+  result: ImportCompletionResult;
+  destination: WorkspaceRouteTarget;
+  nextRecommendation: ImportNextStepRecommendation | null;
+  visible: boolean;
+};
+
+function formatCount(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatImportSource(
+  sourceType: ImportCompletionResult["sourceType"],
+): string {
+  switch (sourceType) {
+    case "variables":
+      return "Figma variables";
+    case "styles":
+      return "styles";
+    case "tokens-studio":
+      return "Tokens Studio";
+    case "tailwind":
+      return "Tailwind tokens";
+    case "json":
+      return "JSON";
+    case "css":
+      return "CSS";
+    default:
+      return "import source";
+  }
+}
+
+function getWorkspaceRouteLabel(topTab: TopTab, subTab: SubTab): string {
+  const workspace = resolveWorkspace(topTab, subTab);
+  const section = resolveWorkspaceSection(workspace, topTab, subTab);
+  return section?.label ?? workspace.label;
+}
+
+function matchesWorkspaceRoute(
+  route: WorkspaceRouteTarget,
+  target: WorkspaceRouteTarget,
+): boolean {
+  return route.topTab === target.topTab && route.subTab === target.subTab;
+}
+
+function createFallbackWorkspaceRecommendation(
+  topTab: TopTab,
+  subTab: SubTab,
+  rationale: string,
+): ImportNextStepRecommendation {
+  return {
+    label: getWorkspaceRouteLabel(topTab, subTab),
+    rationale,
+    target: {
+      kind: "workspace",
+      workspaceId: toWorkspaceId(topTab, subTab),
+      topTab,
+      subTab,
+    },
+  };
+}
+
+function getPostImportDestination(
+  result: ImportCompletionResult,
+  destinationRecommendation: ImportNextStepRecommendation | null,
+): WorkspaceRouteTarget {
+  if (destinationRecommendation?.target.kind === "workspace") {
+    return {
+      topTab: destinationRecommendation.target.topTab,
+      subTab: destinationRecommendation.target.subTab,
+    };
+  }
+
+  const firstWorkspaceRecommendation = getImportResultNextStepRecommendations(
+    result,
+  ).find((recommendation) => recommendation.target.kind === "workspace");
+
+  if (firstWorkspaceRecommendation?.target.kind === "workspace") {
+    return {
+      topTab: firstWorkspaceRecommendation.target.topTab,
+      subTab: firstWorkspaceRecommendation.target.subTab,
+    };
+  }
+
+  return { topTab: "define", subTab: "tokens" };
+}
+
+function getFallbackPostImportRecommendation(
+  result: ImportCompletionResult,
+  destination: WorkspaceRouteTarget,
+): ImportNextStepRecommendation | null {
+  if (destination.topTab !== "define" || destination.subTab !== "tokens") {
+    return createFallbackWorkspaceRecommendation(
+      "define",
+      "tokens",
+      "Review the imported tokens in the library before moving on to the next workflow.",
+    );
+  }
+
+  if (
+    result.sourceType === "variables" &&
+    (result.sourceCollectionCount ?? 0) > 1
+  ) {
+    return createFallbackWorkspaceRecommendation(
+      "define",
+      "themes",
+      "Imported variable collections usually need a quick theme-structure pass before you fine-tune individual tokens.",
+    );
+  }
+
+  return createFallbackWorkspaceRecommendation(
+    "ship",
+    "publish",
+    "Confirm sync mapping for the imported changes before more edits pile on.",
+  );
+}
+
+function getPostImportNextRecommendation(
+  result: ImportCompletionResult,
+  destination: WorkspaceRouteTarget,
+): ImportNextStepRecommendation | null {
+  const nextWorkspaceRecommendation = getImportResultNextStepRecommendations(
+    result,
+  ).find(
+    (recommendation) =>
+      recommendation.target.kind === "workspace" &&
+      !matchesWorkspaceRoute(destination, {
+        topTab: recommendation.target.topTab,
+        subTab: recommendation.target.subTab,
+      }),
+  );
+
+  return (
+    nextWorkspaceRecommendation ??
+    getFallbackPostImportRecommendation(result, destination)
+  );
+}
+
+function buildPostImportBannerMessage(result: ImportCompletionResult): string {
+  const summaryParts = [];
+  if (result.newCount > 0) summaryParts.push(`${result.newCount} new`);
+  if (result.overwriteCount > 0)
+    summaryParts.push(`${result.overwriteCount} overwritten`);
+  if (result.mergeCount > 0) summaryParts.push(`${result.mergeCount} merged`);
+  if (result.keepExistingCount > 0)
+    summaryParts.push(`${result.keepExistingCount} kept`);
+
+  const breakdown =
+    summaryParts.length > 0 ? ` ${summaryParts.join(", ")}.` : "";
+  const failureNote = result.hadFailures
+    ? " Some items still need follow-up."
+    : "";
+
+  return `Imported ${formatCount(
+    result.totalImportedCount,
+    "token",
+  )} from ${formatImportSource(result.sourceType)} into ${formatCount(
+    result.destinationSets.length,
+    "set",
+  )}.${breakdown}${failureNote}`;
+}
 
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
@@ -227,8 +404,8 @@ export function App() {
     showSetSwitcher,
     setShowSetSwitcher,
   } = useModalVisibility();
-  const [lastImportResult, setLastImportResult] =
-    useState<ImportCompletionResult | null>(null);
+  const [postImportBanner, setPostImportBanner] =
+    useState<PostImportBannerState | null>(null);
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] =
     useState("");
   const recentlyTouched = useRecentlyTouched();
@@ -272,19 +449,88 @@ export function App() {
     setStartHereState({ open: false, initialBranch: "root", firstRun: false });
   }, []);
   useEffect(() => {
-    if (lastImportResult === null || LAST_IMPORT_RESULT_DISMISS_MS <= 0) {
+    if (!postImportBanner?.visible || LAST_IMPORT_RESULT_DISMISS_MS <= 0) {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
-      setLastImportResult(null);
+      setPostImportBanner(null);
     }, LAST_IMPORT_RESULT_DISMISS_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [lastImportResult]);
-  const handleImportComplete = useCallback((result: ImportCompletionResult) => {
-    setLastImportResult(result);
+  }, [postImportBanner]);
+  const previousSecondarySurfaceRef = useRef<SecondarySurfaceId | null>(
+    activeSecondarySurface,
+  );
+  useEffect(() => {
+    const previousSecondarySurface = previousSecondarySurfaceRef.current;
+    if (
+      previousSecondarySurface === "import" &&
+      activeSecondarySurface !== "import"
+    ) {
+      setPostImportBanner((current) =>
+        current === null || current.visible
+          ? current
+          : { ...current, visible: true },
+      );
+    }
+    previousSecondarySurfaceRef.current = activeSecondarySurface;
+  }, [activeSecondarySurface]);
+  useEffect(() => {
+    if (
+      !postImportBanner?.visible ||
+      matchesWorkspaceRoute(postImportBanner.destination, {
+        topTab: activeTopTab,
+        subTab: activeSubTab,
+      })
+    ) {
+      return;
+    }
+
+    setPostImportBanner(null);
+  }, [activeSubTab, activeTopTab, postImportBanner]);
+  const handleImportComplete = useCallback(
+    (
+      result: ImportCompletionResult,
+      destinationRecommendation: ImportNextStepRecommendation | null,
+    ) => {
+      const destination = getPostImportDestination(
+        result,
+        destinationRecommendation,
+      );
+      setPostImportBanner({
+        result,
+        destination,
+        nextRecommendation: getPostImportNextRecommendation(
+          result,
+          destination,
+        ),
+        visible: false,
+      });
+    },
+    [],
+  );
+  const dismissPostImportBanner = useCallback(() => {
+    setPostImportBanner(null);
   }, []);
+  const handlePostImportBannerAction = useCallback(() => {
+    if (postImportBanner?.nextRecommendation?.target.kind !== "workspace") {
+      return;
+    }
+
+    const targetSet = getMostRelevantImportDestinationSet(
+      postImportBanner.result,
+    );
+    if (targetSet) {
+      setActiveSet(targetSet);
+    }
+
+    setPostImportBanner(null);
+    navigateTo(
+      postImportBanner.nextRecommendation.target.topTab,
+      postImportBanner.nextRecommendation.target.subTab,
+    );
+  }, [navigateTo, postImportBanner, setActiveSet]);
   const {
     toasts: toastStack,
     dismiss: dismissStackToast,
@@ -1220,7 +1466,7 @@ export function App() {
     (panel: SecondarySurfaceId) => {
       dismissEphemeralOverlays();
       if (panel === "import") {
-        setLastImportResult(null);
+        setPostImportBanner(null);
       }
       openSecondarySurface(panel);
     },
@@ -2763,6 +3009,28 @@ export function App() {
           }}
         />
       </div>
+
+      {activeSecondarySurface === null && postImportBanner?.visible && (
+        <InlineBanner
+          variant={postImportBanner.result.hadFailures ? "warning" : "success"}
+          layout="strip"
+          size="sm"
+          action={
+            postImportBanner.nextRecommendation?.target.kind === "workspace"
+              ? {
+                  label: `Open ${postImportBanner.nextRecommendation.label}`,
+                  onClick: handlePostImportBannerAction,
+                  title: postImportBanner.nextRecommendation.rationale,
+                }
+              : undefined
+          }
+          onDismiss={dismissPostImportBanner}
+        >
+          <span className="block truncate text-[var(--color-figma-text)]">
+            {buildPostImportBannerMessage(postImportBanner.result)}
+          </span>
+        </InlineBanner>
+      )}
 
       {/* Set switching surface */}
       {activeTopTab === "define" &&
