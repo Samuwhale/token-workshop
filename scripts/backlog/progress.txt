@@ -1161,3 +1161,11 @@
 - **Learnings for future iterations:**
   - When the same status pill appears in multiple workflow surfaces with slightly different visibility rules, keep the label and tone derivation in one shared hook and let the component accept a simple visibility mode instead of threading precomputed strings through parents.
 ---
+## 2026-04-12 - Add inline generated-token leaf indicators and rationalize stale-generator status
+- Added a neutral inline generator glyph on leaf rows using `derivedTokenPaths`, and removed duplicated stale-generator affordances so stale status now lives on the amber group badge plus the expanded generator summary row with the existing Re-run action.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` passed. `git diff --check -- packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "TokenTreeNode\\.tsx|tokenListTypes\\.ts"` still reports the pre-existing `packages/core/dist` `TS6305` workspace bootstrap failure through `tokenListTypes.ts`; no task-specific `TokenTreeNode.tsx` diagnostics surfaced.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L200, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L954, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1716, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1813, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2198
+- **Learnings for future iterations:**
+  - When generator ownership is already indexed by `derivedTokenPaths`, leaf-row provenance affordances should read directly from that map instead of inferring ownership from parent groups.
+  - If a status needs both collapsed and expanded visibility, keep the collapsed signal to a single compact badge and move the actionable explanation into the expanded summary surface.
+---

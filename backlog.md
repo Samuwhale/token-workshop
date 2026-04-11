@@ -118,7 +118,7 @@
 - [x] Wire Alias dependencies card to real validation data and add lightness fix CTAs
 - [x] Extract maintenance tools into a dedicated collapsible sub-surface inside SelectionInspector
 - [x] Lift deep-inspect and property-filter persistence into InspectContext
-- [ ] Unify sync-status rendering into a shared component
+- [x] Unify sync-status rendering into a shared component
 - [x] Consolidate blocking progress overlays into shared ProgressOverlay component
 - [x] Add warning variant to toast system and unify disconnected-state feedback
 - [x] Add undo-slot capture to inline save paths
