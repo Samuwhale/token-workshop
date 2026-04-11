@@ -946,3 +946,11 @@
   - Keep extracted editor shells structural: header actions, optional under-header content, the scroll body, and footer framing are stable; field logic and banners should stay with the owning editor surface.
   - If an existing editor has non-scrolling banners between the header and form body, give the shell a narrow `afterHeader` slot instead of forcing those banners into the scroll region.
 ---
+## 2026-04-11 - Update QuickApplyPicker mount guard to respect selection loading
+- Added a real selection bootstrap flag to `useSelection`, exposed it through `InspectContext`, and changed the Quick Apply mount guard to wait for the first `selection` payload before trusting `selectedNodes.length`.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "useSelection|InspectContext|App.tsx|selectionLoading|TS[0-9]+"` still reports unrelated pre-existing workspace TypeScript failures (`packages/core/dist` bootstrap `TS6305`, existing `NoticeSeverity` mismatches, and other long-standing type errors). The touched selection-loading files did not add new diagnostics in that run.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSelection.ts` ~L4, `packages/figma-plugin/src/ui/contexts/InspectContext.tsx` ~L37, `packages/figma-plugin/src/ui/contexts/InspectContext.tsx` ~L102, `packages/figma-plugin/src/ui/App.tsx` ~L206, `packages/figma-plugin/src/ui/App.tsx` ~L3853
+- **Learnings for future iterations:**
+  - Any UI gate that depends on Figma selection should distinguish “selection has not arrived yet” from “selection arrived and is empty”; the initial empty array is only a transport placeholder.
+  - When multiple surfaces consume selection bootstrap state, carry it through `InspectContext` so mount guards stay consistent instead of each component inventing its own first-payload tracking.
+---

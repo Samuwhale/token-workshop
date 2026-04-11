@@ -203,7 +203,7 @@ export function App() {
     setThemeStatusMap,
   } = useThemeSwitcherContext();
   const resolverState = useResolverContext();
-  const { selectedNodes } = useSelectionContext();
+  const { selectedNodes, selectionLoading } = useSelectionContext();
   const { triggerHeatmapScan } = useHeatmapContext();
   const { triggerUsageScan } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } =
@@ -3850,7 +3850,7 @@ export function App() {
       )}
 
       {/* Quick Apply Picker */}
-      {showQuickApply && selectedNodes.length > 0 && (
+      {showQuickApply && !selectionLoading && selectedNodes.length > 0 && (
         <QuickApplyPicker
           selectedNodes={selectedNodes}
           tokenMap={allTokensFlat}

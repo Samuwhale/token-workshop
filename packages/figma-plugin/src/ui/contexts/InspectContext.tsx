@@ -36,6 +36,7 @@ const CONSISTENCY_SCAN_TIMEOUT_MS = 60_000;
 
 export interface SelectionContextValue {
   selectedNodes: SelectionNodeInfo[];
+  selectionLoading: boolean;
 }
 
 export interface HeatmapContextValue {
@@ -99,8 +100,11 @@ export function useUsageContext(): UsageContextValue {
 // ---------------------------------------------------------------------------
 
 function SelectionProvider({ children }: { children: ReactNode }) {
-  const { selectedNodes } = useSelection();
-  const value = useMemo<SelectionContextValue>(() => ({ selectedNodes }), [selectedNodes]);
+  const { selectedNodes, selectionLoading } = useSelection();
+  const value = useMemo<SelectionContextValue>(
+    () => ({ selectedNodes, selectionLoading }),
+    [selectedNodes, selectionLoading],
+  );
   return (
     <SelectionContext.Provider value={value}>
       {children}

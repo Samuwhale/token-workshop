@@ -3,12 +3,14 @@ import type { SelectionNodeInfo } from '../../shared/types';
 
 export function useSelection() {
   const [selectedNodes, setSelectedNodes] = useState<SelectionNodeInfo[]>([]);
+  const [selectionLoading, setSelectionLoading] = useState(true);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     const msg = event.data?.pluginMessage;
     if (!msg) return;
     if (msg.type === 'selection') {
       setSelectedNodes(msg.nodes || []);
+      setSelectionLoading(false);
     }
   }, []);
 
@@ -19,5 +21,5 @@ export function useSelection() {
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
 
-  return { selectedNodes };
+  return { selectedNodes, selectionLoading };
 }

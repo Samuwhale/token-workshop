@@ -34,7 +34,7 @@
 - [x] [HIGH] Guard compare-to-edit and preview-to-edit transitions through dirty-state check
 - [x] [HIGH] Add generator ownership indicators to TokenDetailPreview and group headers
 - [x] [HIGH] Surface save-impact summary before confirmation in TokenGeneratorDialog
-- [ ] [HIGH] Extract shared editor shell layout from TokenEditor
+- [x] [HIGH] Extract shared editor shell layout from TokenEditor
 - [ ] [HIGH] Consolidate generator escalation paths through contextual surface contract
 - [x] [HIGH] Add aggregate summary bar above PublishPanel variable and style diff sections
 - [x] [HIGH] Add grouping and progressive loading to HealthPanel issue lists
