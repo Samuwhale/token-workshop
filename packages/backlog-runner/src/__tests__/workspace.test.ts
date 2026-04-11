@@ -284,4 +284,33 @@ describe('git worktree strategy', () => {
     });
     expect(sleeps).toEqual([2000, 4000, 6000]);
   });
+
+  it('can commit the full tracked diff while excluding backlog runtime noise', async () => {
+    const { root, config, runner } = await makeRepo();
+    await mkdir(path.join(root, '.backlog-runner'), { recursive: true });
+
+    await writeFile(path.join(root, 'feature.txt'), 'after\n', 'utf8');
+    await writeFile(path.join(root, 'packages/core/src/renamed.ts'), 'export const renamed = true;\n', 'utf8');
+    await rm(path.join(root, 'packages/core/src/index.ts'));
+    await writeFile(path.join(root, '.backlog-runner/runtime-report.md'), 'runtime noise\n', 'utf8');
+
+    const result = await gitCommitAndPush(
+      runner,
+      config,
+      root,
+      'chore(backlog): done – full diff',
+      ['.backlog-runner', 'backlog-stop'],
+      { scopeMode: 'all-except' },
+    );
+
+    const committed = await runner.run('git', ['show', '--name-only', '--format=', 'HEAD'], { cwd: root });
+    const status = await runner.run('git', ['status', '--porcelain'], { cwd: root });
+
+    expect(result).toMatchObject({ ok: true, createdCommit: true });
+    expect(committed.stdout).toContain('feature.txt');
+    expect(committed.stdout).toContain('packages/core/src/index.ts');
+    expect(committed.stdout).toContain('packages/core/src/renamed.ts');
+    expect(committed.stdout).not.toContain('.backlog-runner/runtime-report.md');
+    expect(status.stdout).toContain('.backlog-runner/');
+  });
 });

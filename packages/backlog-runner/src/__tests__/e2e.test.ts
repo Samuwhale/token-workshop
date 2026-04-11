@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { normalizeBacklogRunnerConfig } from '../config.js';
 import { runBacklogRunner } from '../scheduler/index.js';
 import { writeTaskSpec } from '../task-specs.js';
-import type { BacklogTaskSpec, CommandResult, CommandRunner, LogSink } from '../types.js';
+import type { BacklogTaskSpec, CommandResult, CommandRunOptions, CommandRunner, LogSink } from '../types.js';
 
 const tempDirs: string[] = [];
 
@@ -78,7 +78,7 @@ function createFakeCommandRunner(
   }
 
   return {
-    async run(command: string, args: string[], runOptions?: { input?: string }): Promise<CommandResult> {
+    async run(command: string, args: string[], runOptions?: CommandRunOptions): Promise<CommandResult> {
       options.calls?.push(`run:${command} ${args.join(' ')}`.trim());
       if (command === 'claude' || command === 'codex') {
         if (runOptions?.input) {
@@ -97,6 +97,24 @@ function createFakeCommandRunner(
 
         const payload = buildAgentPayload(runOptions?.input);
         if (command === 'codex') {
+          if (runOptions?.onStdoutLine) {
+            await runOptions?.onStdoutLine?.(JSON.stringify({
+              type: 'item.completed',
+              item: {
+                id: 'item_1',
+                type: 'agent_message',
+                text: 'Inspecting repo state.',
+              },
+            }));
+            await runOptions?.onStdoutLine?.(JSON.stringify({
+              type: 'item.completed',
+              item: {
+                id: 'item_2',
+                type: 'agent_message',
+                text: 'Applying clean scoped change.',
+              },
+            }));
+          }
           await writeCodexOutput(args, payload);
           return {
             code: 0,
@@ -127,7 +145,7 @@ function createFakeCommandRunner(
           return { code: 0, stdout: [...stagedFiles].join('\n'), stderr: '' };
         }
         if (args[0] === 'add') {
-          for (const file of args.slice(2)) {
+          for (const file of args.slice(1).filter(value => value !== '-A' && value !== '--')) {
             stagedFiles.add(file);
           }
           return { code: 0, stdout: '', stderr: '' };
@@ -324,6 +342,43 @@ describe('runner e2e', () => {
     expect(events).toEqual(['not-done-at-commit']);
     expect(calls.indexOf('run:git commit -m chore(backlog): done – test item')).toBeGreaterThan(calls.indexOf('shell:pass'));
     expect(logSink.lines.join('')).toContain('Marked done after finalize');
+  });
+
+  it('writes Codex transcripts and surfaces live task progress before final completion', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    config.runners.task = { tool: 'codex', model: 'default' };
+    let runtimeReportAtCommit = '';
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          onGitCommit: async message => {
+            if (message !== 'chore(backlog): done – test item') return;
+            runtimeReportAtCommit = await readFile(config.files.runtimeReport, 'utf8');
+          },
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    const transcriptDir = path.join(config.files.runnerLogDir, 'agent-transcripts');
+    const transcriptFiles = (await readdir(transcriptDir)).filter(name => name.endsWith('.jsonl'));
+    expect(transcriptFiles).toHaveLength(1);
+    const transcriptContent = await readFile(path.join(transcriptDir, transcriptFiles[0]!), 'utf8');
+    expect(transcriptContent).toContain('"type":"jsonl-event"');
+    expect(transcriptContent).toContain('Inspecting repo state.');
+    expect(transcriptContent).toContain('Applying clean scoped change.');
+
+    expect(runtimeReportAtCommit).toContain('## Active Task Progress');
+    expect(runtimeReportAtCommit).toContain('Inspecting repo state.');
+    expect(runtimeReportAtCommit).toContain('Applying clean scoped change.');
+
+    const finalRuntimeReport = await readFile(config.files.runtimeReport, 'utf8');
+    expect(finalRuntimeReport).toContain('## Active Task Progress');
+    expect(finalRuntimeReport).toContain('- None');
   });
 
   it('continues when remediation repairs validation failure', async () => {
@@ -541,7 +596,7 @@ describe('runner e2e', () => {
     expect(logSink.lines.join('')).toContain('dirty workspace preflight');
   });
 
-  it('defers the task when validation introduces files outside the declared touch paths', async () => {
+  it('completes the task when validation introduces additional files outside the declared touch paths', async () => {
     const { root, config } = await makeFixture([baseTask({ touchPaths: ['feature.txt'] })]);
 
     await runBacklogRunner(
@@ -562,8 +617,8 @@ describe('runner e2e', () => {
     );
 
     const taskYaml = await readCurrentTaskYaml(root, 'task-a');
-    expect(taskYaml).toContain('state: ready');
-    expect(taskYaml).toContain('Deferred after remediation: post-validation scope violation: touched packages/server/generated.ts');
+    expect(taskYaml).toContain('state: done');
+    expect(taskYaml).not.toContain('post-validation scope violation');
   });
 
   it('reconciles and finalizes autonomously after a transient finalize failure', async () => {

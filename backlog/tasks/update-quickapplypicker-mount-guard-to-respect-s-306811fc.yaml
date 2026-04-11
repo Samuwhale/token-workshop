@@ -1,0 +1,19 @@
+id: update-quickapplypicker-mount-guard-to-respect-s-306811fc
+title: Update QuickApplyPicker mount guard to respect selection loading
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/App.tsx
+  - packages/figma-plugin/src/ui/contexts/InspectContext.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: The current backlog item for selection-loading is blocked because `App.tsx` contains the Quick Apply guard (`showQuickApply && selectedNodes.length > 0`) but was excluded from the allowed touch paths."
+state: ready
+acceptance_criteria:
+  - QuickApplyPicker only renders after the first selection payload arrives
+  - The guard uses the shared selection loading state instead of relying on an initially empty selection array
+source: task-followup
+created_at: 2026-04-11T19:56:20.795Z
+updated_at: 2026-04-11T19:56:20.795Z

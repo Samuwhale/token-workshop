@@ -1,19 +1,56 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { EOL } from 'node:os';
-import type { CommandResult, CommandRunner } from './types.js';
+import { StringDecoder } from 'node:string_decoder';
+import type { CommandResult, CommandRunOptions, CommandRunner } from './types.js';
 
 const DEFAULT_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
 
-function collect(stream: NodeJS.ReadableStream | null): Promise<string> {
+function collect(
+  stream: NodeJS.ReadableStream | null,
+  onLine?: (line: string) => void | Promise<void>,
+): Promise<string> {
   if (!stream) return Promise.resolve('');
 
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
+    const decoder = new StringDecoder('utf8');
+    let pending = Promise.resolve();
+    let lineBuffer = '';
+
+    const emitLine = (line: string): void => {
+      if (!onLine) return;
+      pending = pending.then(() => onLine(line));
+      pending.catch(reject);
+    };
+
+    const drainText = (text: string): void => {
+      lineBuffer += text;
+      while (true) {
+        const newlineIndex = lineBuffer.indexOf('\n');
+        if (newlineIndex === -1) break;
+        const line = lineBuffer.slice(0, newlineIndex).replace(/\r$/, '');
+        lineBuffer = lineBuffer.slice(newlineIndex + 1);
+        emitLine(line);
+      }
+    };
+
     stream.on('data', chunk => {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+      chunks.push(buffer);
+      drainText(decoder.write(buffer));
     });
-    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    stream.on('end', () => {
+      const remainder = decoder.end();
+      if (remainder) {
+        drainText(remainder);
+      }
+      if (lineBuffer.length > 0) {
+        emitLine(lineBuffer.replace(/\r$/, ''));
+        lineBuffer = '';
+      }
+      pending.then(() => resolve(Buffer.concat(chunks).toString('utf8')), reject);
+    });
     stream.on('error', reject);
   });
 }
@@ -21,14 +58,7 @@ function collect(stream: NodeJS.ReadableStream | null): Promise<string> {
 async function spawnAndCollect(
   command: string,
   args: string[],
-  options: {
-    cwd?: string;
-    input?: string;
-    env?: NodeJS.ProcessEnv;
-    shell?: boolean;
-    timeoutMs?: number;
-    ignoreFailure?: boolean;
-  } = {},
+  options: CommandRunOptions & { shell?: boolean } = {},
 ): Promise<CommandResult> {
   const child = spawn(command, args, {
     cwd: options.cwd,
@@ -51,8 +81,8 @@ async function spawnAndCollect(
   }, timeoutMs);
   timeout.unref();
 
-  const stdoutPromise = collect(child.stdout);
-  const stderrPromise = collect(child.stderr);
+  const stdoutPromise = collect(child.stdout, options.onStdoutLine);
+  const stderrPromise = collect(child.stderr, options.onStderrLine);
   const [code] = (await once(child, 'close')) as [number | null];
   clearTimeout(timeout);
   const stdout = await stdoutPromise;

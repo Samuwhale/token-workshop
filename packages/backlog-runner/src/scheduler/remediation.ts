@@ -24,9 +24,7 @@ import {
   runValidationCommand,
   scopeViolations,
   stagedFiles,
-  taskCommitPaths,
-  taskExecutionPaths,
-  validateWorkspaceScope,
+  taskCommitExclusionPaths,
 } from './helpers.js';
 import { classifyValidationFailure, queueNonBlockingValidationFollowup } from './validation-classify.js';
 
@@ -39,7 +37,7 @@ You are reconciling an already-implemented task after a git merge/finalization f
 - Inspect current local code before deciding how to adapt the change.
 - Resolve conflicts autonomously when you can do so coherently and safely.
 - Do not drop the task or narrow scope unless the current repo state makes the acceptance criteria impossible.
-- Keep the final edits inside the declared touch_paths plus allowed backlog bookkeeping files.
+- Use the declared touch_paths as the intended starting surface, but trust the current workspace diff when adjacent fixes are required to complete the task coherently.
 - End with the same strict JSON success/failure object as normal execution.`;
 }
 
@@ -55,7 +53,7 @@ ${ownershipGuidance}
 - Inspect local code and git state before deciding; do not guess when the repo can answer the question.
 - Leave an audit trail in progress notes when you discard or split work.
 - If the task is stale or impossible, return failed with a note starting exactly "stale —" or "impossible —".
-- Otherwise, repair the workspace so scheduler preflight, scope, validation, and finalization can proceed.
+- Otherwise, repair the workspace so scheduler preflight, validation, and finalization can proceed.
 - End with the same strict JSON success/failure object as normal execution.`;
 }
 
@@ -70,20 +68,20 @@ export async function collectWorkspaceSnapshot(
 ): Promise<{
   changedFiles: string[];
   stagedFiles: string[];
-  inScopeFiles: string[];
-  outOfScopeFiles: string[];
+  declaredTouchPathFiles: string[];
+  additionalFiles: string[];
 }> {
   const [currentChangedFiles, currentStagedFiles] = await Promise.all([
     changedFiles(commandRunner, cwd),
     stagedFiles(commandRunner, cwd),
   ]);
-  const outOfScopeFiles = scopeViolations(currentChangedFiles, allowedPaths);
-  const outOfScope = new Set(outOfScopeFiles);
+  const additionalFiles = scopeViolations(currentChangedFiles, allowedPaths);
+  const extraFiles = new Set(additionalFiles);
   return {
     changedFiles: currentChangedFiles,
     stagedFiles: currentStagedFiles,
-    inScopeFiles: currentChangedFiles.filter(file => !outOfScope.has(file)),
-    outOfScopeFiles,
+    declaredTouchPathFiles: currentChangedFiles.filter(file => !extraFiles.has(file)),
+    additionalFiles,
   };
 }
 
@@ -111,7 +109,7 @@ export async function attemptWorkspaceRemediation(
   options: ResolvedRunOptions,
   claim: BacklogTaskClaim,
   remediation: {
-    mode: 'preflight' | 'scope' | 'validation';
+    mode: 'preflight' | 'validation';
     cwd: string;
     allowedPaths: string[];
     failureReason: string;
@@ -134,10 +132,10 @@ export async function attemptWorkspaceRemediation(
       mode: remediation.mode,
       changedFiles: snapshot.changedFiles,
       stagedFiles: snapshot.stagedFiles,
-      inScopeFiles: snapshot.inScopeFiles,
-      outOfScopeFiles: snapshot.outOfScopeFiles,
+      declaredTouchPathFiles: snapshot.declaredTouchPathFiles,
+      additionalFiles: snapshot.additionalFiles,
       validationSummary: remediation.validationSummary,
-      originalDiff: await diffForPaths(commandRunner, remediation.cwd, remediation.allowedPaths),
+      originalDiff: await diffForPaths(commandRunner, remediation.cwd),
     },
   );
   const result = await runProvider(commandRunner, {
@@ -228,7 +226,7 @@ export async function tryWithRemediation(
   claim: BacklogTaskClaim,
   startedAt: number,
   remediation: {
-    mode: 'preflight' | 'scope' | 'validation';
+    mode: 'preflight' | 'validation';
     cwd: string;
     allowedPaths: string[];
     failureReason: string;
@@ -271,7 +269,6 @@ export async function attemptTaskReconciliation(
   logger.line('');
   logger.line(`  Attempting autonomous reconciliation: ${failureReason}`);
 
-  const allowedPaths = taskExecutionPaths(config, claim.task.touchPaths);
   const reconcileInPlace = taskAlreadyCompleted;
   const reconciliationSession = reconcileInPlace ? null : await workspaceStrategy.setup();
   const reconciliationCwd = reconciliationSession?.cwd ?? config.projectRoot;
@@ -307,23 +304,16 @@ export async function attemptTaskReconciliation(
       };
     }
 
-    const scopeCheck = await validateWorkspaceScope(commandRunner, reconciliationCwd, allowedPaths, 'reconciliation scope violation');
-    if (!scopeCheck.ok) {
-      logger.line(`  ✗ ${scopeCheck.reason ?? 'reconciliation scope violation'}`);
-      return {
-        recovered: false,
-        deferred: true,
-        failureReason: scopeCheck.reason ?? 'reconciliation scope violation',
-        queuedFollowups: 0,
-      };
-    }
-
     const validationCommand = config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand;
     logger.line(`  Reconciliation validation: ${validationCommand}`);
     const validation = await runValidationCommand(commandRunner, validationCommand, reconciliationCwd);
     if (!validation.ok) {
       const failureReason = `reconciliation validation failed: ${validation.summary}`;
-      const classification = classifyValidationFailure(claim, failureReason);
+      const classification = classifyValidationFailure(
+        claim,
+        failureReason,
+        await changedFiles(commandRunner, reconciliationCwd),
+      );
       if (classification.blocking) {
         logger.line(`  ✗ reconciliation validation failed: ${validation.summary}`);
         return {
@@ -334,22 +324,6 @@ export async function attemptTaskReconciliation(
         };
       }
       await queueNonBlockingValidationFollowup(store, logger, claim, classification);
-    }
-
-    const postValidationScopeCheck = await validateWorkspaceScope(
-      commandRunner,
-      reconciliationCwd,
-      allowedPaths,
-      'post-reconciliation scope violation',
-    );
-    if (!postValidationScopeCheck.ok) {
-      logger.line(`  ✗ ${postValidationScopeCheck.reason ?? 'post-reconciliation scope violation'}`);
-      return {
-        recovered: false,
-        deferred: true,
-        failureReason: postValidationScopeCheck.reason ?? 'post-reconciliation scope violation',
-        queuedFollowups: 0,
-      };
     }
 
     if (reconciliationSession) {
@@ -371,8 +345,8 @@ export async function attemptTaskReconciliation(
 
     const finalizeResult = await workspaceStrategy.commitAndPush(
       commitMessage,
-      taskCommitPaths(config, claim.task.touchPaths),
-      { retryPendingPush: priorFinalizeResult?.pendingPush === true, sleep },
+      taskCommitExclusionPaths(config),
+      { retryPendingPush: priorFinalizeResult?.pendingPush === true, sleep, scopeMode: 'all-except' },
     );
     if (!finalizeResult.ok) {
       logger.line(`  ✗ reconciliation finalize failed: ${finalizeResult.reason ?? 'commit/push failed'}`);

@@ -57,6 +57,17 @@ export async function changedFiles(commandRunner: CommandRunner, cwd: string): P
   return status.code === 0 ? parseGitStatusPaths(status.stdout) : [];
 }
 
+export async function stagedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {
+  const staged = await commandRunner.run('git', ['diff', '--cached', '--name-only'], {
+    cwd,
+    ignoreFailure: true,
+  });
+  if (staged.code !== 0) {
+    return [];
+  }
+  return staged.stdout.split('\n').map(line => line.trim()).filter(Boolean);
+}
+
 export function scopeViolations(changed: string[], allowed: string[]): string[] {
   return unexpectedFiles(changed, allowed);
 }
@@ -76,17 +87,6 @@ export async function validateWorkspaceScope(
     };
   }
   return { ok: true };
-}
-
-export async function stagedFiles(commandRunner: CommandRunner, cwd: string): Promise<string[]> {
-  const staged = await commandRunner.run('git', ['diff', '--cached', '--name-only'], {
-    cwd,
-    ignoreFailure: true,
-  });
-  if (staged.code !== 0) {
-    return [];
-  }
-  return staged.stdout.split('\n').map(line => line.trim()).filter(Boolean);
 }
 
 export async function validateStagedWorkspace(
@@ -116,12 +116,15 @@ export function bookkeepingPaths(config: BacklogRunnerConfig): string[] {
   ];
 }
 
-export function taskCommitPaths(config: BacklogRunnerConfig, touchPaths: string[]): string[] {
+export function taskExecutionPaths(config: BacklogRunnerConfig, touchPaths: string[]): string[] {
   return [...new Set([...touchPaths.map(normalizePathForGit), ...bookkeepingPaths(config)])];
 }
 
-export function taskExecutionPaths(config: BacklogRunnerConfig, touchPaths: string[]): string[] {
-  return taskCommitPaths(config, touchPaths);
+export function taskCommitExclusionPaths(config: BacklogRunnerConfig): string[] {
+  return [
+    normalizePathForGit(path.relative(config.projectRoot, config.files.runtimeDir)),
+    normalizePathForGit(path.relative(config.projectRoot, config.files.stop)),
+  ].filter(Boolean);
 }
 
 export async function runValidationCommand(
@@ -152,10 +155,14 @@ export async function readPrompt(filePath: string): Promise<string> {
 export async function diffForPaths(
   commandRunner: CommandRunner,
   cwd: string,
-  allowedPaths: string[],
+  allowedPaths?: string[],
 ): Promise<string> {
-  if (allowedPaths.length === 0) {
-    return '';
+  if (!allowedPaths || allowedPaths.length === 0) {
+    const result = await commandRunner.run('git', ['diff', '--no-ext-diff'], {
+      cwd,
+      ignoreFailure: true,
+    });
+    return result.code === 0 ? result.stdout.trim() : '';
   }
   const result = await commandRunner.run('git', ['diff', '--no-ext-diff', '--', ...allowedPaths], {
     cwd,

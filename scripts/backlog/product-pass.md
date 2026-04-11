@@ -50,7 +50,7 @@ Overhaul, consolidation, and removal items are encouraged when a whole area of t
 ```
 
    Rules:
-   - `touch_paths` must contain the concrete repo paths an implementation agent should be allowed to edit.
+   - `touch_paths` must contain the concrete repo paths that best describe the intended implementation surface.
    - `acceptance_criteria` must contain at least one concrete completion check.
    - Omit `validation_profile` when it can be inferred from the touched paths.
    - Omit `capabilities` unless a shared reservation surface is clearly needed.

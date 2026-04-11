@@ -141,6 +141,7 @@ export function App() {
     setTokensCompareMode,
     setTokensComparePath,
     setTokensCompareThemeKey,
+    switchContextualSurface,
   } = useEditorContext();
   const {
     showPreviewSplit,
@@ -686,32 +687,9 @@ export function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const handleEditorClose = useCallback(() => {
-    setEditingToken(null);
-    setEditingGenerator(null);
-    refreshAll();
-  }, [refreshAll, setEditingGenerator, setEditingToken]);
-  const handlePreviewEdit = useCallback(() => {
-    if (previewingToken) {
-      setEditingToken({
-        path: previewingToken.path,
-        name: previewingToken.name,
-        set: previewingToken.set,
-      });
-      setPreviewingToken(null);
-    }
-  }, [previewingToken, setEditingToken, setPreviewingToken]);
-  const handlePreviewClose = useCallback(() => {
-    setPreviewingToken(null);
-  }, [setPreviewingToken]);
   const editorIsDirtyRef = useRef(false);
-  const editorCloseRef = useRef<() => void>(() => {
-    if (!editorIsDirtyRef.current) handleEditorClose();
-  });
   // Pending navigation action — set when user tries to navigate away from a dirty editor
-  const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(
-    null,
-  );
+  const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(null);
   const guardEditorAction = useCallback((fn: () => void) => {
     if (editorIsDirtyRef.current) {
       setPendingNavAction(() => fn);
@@ -719,6 +697,29 @@ export function App() {
       fn();
     }
   }, []);
+  const handleEditorClose = useCallback(() => {
+    switchContextualSurface({ surface: null });
+    refreshAll();
+  }, [refreshAll, switchContextualSurface]);
+  const handlePreviewEdit = useCallback(() => {
+    guardEditorAction(() => {
+      if (!previewingToken) return;
+      switchContextualSurface({
+        surface: 'token-editor',
+        token: {
+          path: previewingToken.path,
+          name: previewingToken.name,
+          set: previewingToken.set,
+        },
+      });
+    });
+  }, [guardEditorAction, previewingToken, switchContextualSurface]);
+  const handlePreviewClose = useCallback(() => {
+    setPreviewingToken(null);
+  }, [setPreviewingToken]);
+  const editorCloseRef = useRef<() => void>(() => {
+    if (!editorIsDirtyRef.current) handleEditorClose();
+  });
   const editingGeneratorData = editingGenerator
     ? (generators.find((generator) => generator.id === editingGenerator.id) ??
       null)

@@ -1,0 +1,23 @@
+id: refresh-audit-panel-explanatory-context-task-tou-07e91eba
+title: Refresh audit panel explanatory-context task touch paths and implement header/context copy
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx
+  - packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx
+  - packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx
+  - packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Current backlog item points at removed `components/audit/*` paths for UnusedTokensPanel and DuplicateDetectionPanel. The live implementations now sit directly under `components/` and need the requested copy updates there."
+state: ready
+acceptance_criteria:
+  - Unused Tokens collapsed header includes a brief qualifier alongside the count
+  - Duplicate Values collapsed header shows total alias count alongside group count
+  - Contrast Matrix includes a one-sentence explanation of WCAG AA/AAA requirements
+  - Lightness Inspector anomaly warning identifies the specific token paths that triggered it
+source: task-followup
+created_at: 2026-04-11T19:52:00.882Z
+updated_at: 2026-04-11T19:52:00.882Z

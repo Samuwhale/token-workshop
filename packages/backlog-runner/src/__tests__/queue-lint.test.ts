@@ -68,7 +68,7 @@ function makeTask(overrides: Partial<BacklogTaskSpec> = {}): BacklogTaskSpec {
 describe('queue lint', () => {
   const config = makeConfig();
 
-  it('flags validation profile drift for ready implementation tasks', () => {
+  it('allows explicit validation profiles that do not match inferred touch path ownership', () => {
     const issues = lintReadyTask(makeTask({
       title: 'Unify manual token creation entry points behind one Tokens create launcher',
       validationProfile: 'backlog',
@@ -77,10 +77,10 @@ describe('queue lint', () => {
       ],
     }), config);
 
-    expect(issues.map(issue => issue.reason)).toContain('expected validation profile "plugin" for the declared touch_paths, found "backlog"');
+    expect(issues).toEqual([]);
   });
 
-  it('flags planner-shaped ready implementation tasks with broad titles and non-concrete acceptance criteria', () => {
+  it('allows planner-like implementation wording when task metadata is otherwise valid', () => {
     const issues = lintReadyTask(makeTask({
       title: 'Unify manual token creation entry points behind one Tokens create launcher',
       acceptanceCriteria: [
@@ -89,7 +89,7 @@ describe('queue lint', () => {
       ],
     }), config);
 
-    expect(issues.map(issue => issue.reason)).toContain('ready implementation task is still planner-shaped; keep it planned or failed until the planner supersedes it into a narrower child task');
+    expect(issues).toEqual([]);
   });
 
   it('accepts backlog-only ready research tasks that require follow-up output', () => {
@@ -114,5 +114,21 @@ describe('queue lint', () => {
     }), config);
 
     expect(issues).toEqual([]);
+  });
+
+  it('still flags missing touch_paths for ready tasks', () => {
+    const issues = lintReadyTask(makeTask({
+      touchPaths: [],
+    }), config);
+
+    expect(issues.map(issue => issue.reason)).toContain('ready task has no touch_paths');
+  });
+
+  it('still flags unknown validation profiles', () => {
+    const issues = lintReadyTask(makeTask({
+      validationProfile: 'unknown-profile',
+    }), config);
+
+    expect(issues.map(issue => issue.reason)).toContain('ready task references unknown validation profile "unknown-profile"');
   });
 });

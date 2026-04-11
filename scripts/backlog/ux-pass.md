@@ -79,7 +79,7 @@ For each major UI area you explore, perform a **code-level cognitive walkthrough
 ```
 
    Rules:
-   - `touch_paths` must contain the concrete repo paths an implementation agent should be allowed to edit.
+   - `touch_paths` must contain the concrete repo paths that best describe the intended implementation surface.
    - `acceptance_criteria` must contain at least one concrete completion check.
    - Put the violated usability principle in `context` so the finding stays clearly UX-scoped.
    - Omit `validation_profile` when it can be inferred from the touched paths.

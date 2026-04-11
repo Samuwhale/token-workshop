@@ -27,10 +27,7 @@
 - [x] [HIGH] Research Apply maintenance-tools surface ownership across SelectionInspector advanced controls, shell routing, and status summaries
 - [x] [HIGH] Research Audit issue explanations and remediation handoffs across validation, lint, duplicate, unused, and contrast panels
 - [x] [HIGH] Research generator ownership, save-impact messaging, and return-to-generated-token flows across Tokens and Generators surfaces
-- [ ] [HIGH] Hoist import result summary to app-level state
-- [ ] [HIGH] Add inline explanations and contextual tips to priority issues strip
-- [ ] [HIGH] Add explanatory context to collapsed section headers for Unused, Duplicates, and Contrast panels
-- [ ] [HIGH] Add selection-loading state to prevent empty-state flash
+- [x] [HIGH] Hoist import result summary to app-level state
 - [ ] [HIGH] Extract shared FeedbackPlaceholder component from existing bespoke empty/error/no-results states
 - [ ] [HIGH] Extract shared InlineBanner component and migrate all bespoke inline feedback strips
 - [ ] [HIGH] Centralize contextual surface mutual-exclusion into EditorContext
@@ -47,6 +44,11 @@
 - [x] [HIGH] Group and reduce TokenList select-mode toolbar from eleven flat buttons to grouped actions
 - [x] [HIGH] Merge token search input and filter builder into one unified input with qualifier chips
 - [x] [HIGH] Rename resolver modifiers to resolver dimensions to fix dual-meaning modifier terminology
+- [ ] [HIGH] Refresh audit panel explanatory-context task touch paths and implement header/context copy
+- [ ] [HIGH] Update QuickApplyPicker mount guard to respect selection loading
+- [ ] [HIGH] Add explanatory context to collapsed section headers for Unused, Duplicates, Contrast, and Lightness panels
+- [ ] [HIGH] Add inline explanations, specific CTAs, and live counts to HealthPanel priority issues strip
+- [ ] [HIGH] Add selection-loading state to useSelection to prevent empty-state flash in SelectionInspector and QuickApplyPicker
 - [ ] [HIGH] Collapse generator card action buttons into a context menu
 - [ ] [HIGH] Collapse workflow stage cards to minimal step indicators in Themes, Apply, and Sync
 - [ ] [HIGH] Consolidate token creation entry points into a single launcher menu

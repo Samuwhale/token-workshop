@@ -436,6 +436,37 @@ describe('task store', () => {
     expect(runtimeReport).toContain('Task A (task-a) — runner runner-a');
   });
 
+  it('records active task progress in runtime-report.md and keeps only the latest three distinct milestones', async () => {
+    const { config } = await makeFixture();
+    await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
+
+    const store = createFileBackedTaskStore(config);
+    await store.ensureTaskSpecsReady();
+    const claim = await claimNextRunnableTask(store, 'runner-a');
+    expect(claim?.task.id).toBe('task-a');
+
+    await store.recordTaskActivity('task-a', { transcriptPath: '/tmp/task-a.jsonl' });
+    await store.recordTaskActivity('task-a', { transcriptPath: '/tmp/task-a.jsonl', milestone: 'First milestone' });
+    await store.recordTaskActivity('task-a', { transcriptPath: '/tmp/task-a.jsonl', milestone: 'Second milestone' });
+    await store.recordTaskActivity('task-a', { transcriptPath: '/tmp/task-a.jsonl', milestone: 'Second milestone' });
+    await store.recordTaskActivity('task-a', { transcriptPath: '/tmp/task-a.jsonl', milestone: 'Third milestone' });
+    await store.recordTaskActivity('task-a', { transcriptPath: '/tmp/task-a.jsonl', milestone: 'Fourth milestone' });
+
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+    expect(runtimeReport).toContain('## Active Task Progress');
+    expect(runtimeReport).toContain('Task A (task-a) — transcript: /tmp/task-a.jsonl');
+    expect(runtimeReport).not.toContain('First milestone');
+    expect(runtimeReport).toContain('Second milestone');
+    expect(runtimeReport).toContain('Third milestone');
+    expect(runtimeReport).toContain('Fourth milestone');
+
+    await store.completeClaim(claim!, 'done');
+    const clearedRuntimeReport = await readFile(config.files.runtimeReport, 'utf8');
+    expect(clearedRuntimeReport).toContain('## Active Task Progress');
+    expect(clearedRuntimeReport).toContain('- None');
+    expect(clearedRuntimeReport).not.toContain('/tmp/task-a.jsonl');
+  });
+
   it('supersedes planned parents into runnable planner children', async () => {
     const { config, store } = await makeFixture();
     await seedTask(config, taskSpec({

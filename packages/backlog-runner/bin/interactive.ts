@@ -1,12 +1,34 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
-import type { BacklogRunnerConfig, BacklogTool, RunOverrides } from '../src/types.js';
+import type { BacklogRunnerConfig, BacklogRunnerRole, BacklogTool, RunOverrides } from '../src/types.js';
 
 const TOOLS: BacklogTool[] = ['claude', 'codex'];
+const RUNNER_ROLES: BacklogRunnerRole[] = ['task', 'planner', 'product', 'ux', 'code'];
 const MAX_INTERACTIVE_WORKERS = 8;
 const SUMMARY_DIVIDER = '----------------------------------------';
 
-function parseBooleanAnswer(value: string, fallback: boolean): boolean {
+export interface InteractivePrompter {
+  question(prompt: string): Promise<string>;
+  write(message: string): void;
+  close(): void | Promise<void>;
+}
+
+function createReadlinePrompter(): InteractivePrompter {
+  const rl = createInterface({ input, output });
+  return {
+    question(prompt: string): Promise<string> {
+      return rl.question(prompt);
+    },
+    write(message: string): void {
+      output.write(message);
+    },
+    close(): void {
+      rl.close();
+    },
+  };
+}
+
+function parseYesNoAnswer(value: string, fallback: boolean): boolean {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return fallback;
   if (['y', 'yes', 'true', '1'].includes(normalized)) return true;
@@ -14,15 +36,21 @@ function parseBooleanAnswer(value: string, fallback: boolean): boolean {
   return fallback;
 }
 
-export function resolveToolChoice(value: string, fallback: BacklogTool): BacklogTool {
+function resolveWorkspaceChoice(value: string, fallback: boolean): boolean {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return fallback;
+  if (['1', 'isolated', 'worktrees', 'git worktrees', 'git-worktrees'].includes(normalized)) return true;
+  if (['2', 'shared', 'shared workspace', 'workspace'].includes(normalized)) return false;
+  return fallback;
+}
 
-  const numeric = Number.parseInt(normalized, 10);
-  if (Number.isFinite(numeric) && numeric >= 1 && numeric <= TOOLS.length) {
-    return TOOLS[numeric - 1]!;
+export function resolveToolChoice(value: string, fallback?: BacklogTool): BacklogTool | undefined {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === 'repo' || normalized === 'defaults' || normalized === 'none' || normalized === '1') {
+    return undefined;
   }
-
+  if (normalized === '2') return 'claude';
+  if (normalized === '3') return 'codex';
   return TOOLS.includes(normalized as BacklogTool) ? (normalized as BacklogTool) : fallback;
 }
 
@@ -40,25 +68,70 @@ export function resolveWorkerChoice(value: string, fallback: number, maxWorkers 
   return parsed;
 }
 
-export function summarizeRunOverrides(
-  overrides: {
-    tool?: BacklogTool;
-    workers: number;
-    model?: string;
-    passes: boolean;
-    worktrees: boolean;
-  },
-): string {
-  const tool = overrides.tool ?? 'per-runner config';
-  const model = overrides.model?.trim() || 'per-runner config';
+type StartSummaryInput = {
+  tool?: BacklogTool;
+  runners?: RunOverrides['runners'];
+  workers: number;
+  model?: string;
+  passes: boolean;
+  worktrees: boolean;
+};
+
+function workspaceModeLabel(worktrees: boolean): string {
+  return worktrees ? 'isolated git worktrees' : 'shared workspace';
+}
+
+function roleLabel(role: BacklogRunnerRole): string {
+  switch (role) {
+    case 'task':
+      return 'Task runner';
+    case 'planner':
+      return 'Planner runner';
+    case 'product':
+      return 'Product pass runner';
+    case 'ux':
+      return 'UX pass runner';
+    case 'code':
+      return 'Code pass runner';
+  }
+}
+
+function modelLabel(model?: string): string {
+  return model?.trim() || 'repo default';
+}
+
+function renderRunnerSummaryLines(overrides: StartSummaryInput): string[] {
+  if (overrides.runners && Object.keys(overrides.runners).length > 0) {
+    return [
+      'Runner setup:              mixed per role',
+      ...RUNNER_ROLES.map(role => {
+        const runner = overrides.runners?.[role];
+        return `  ${roleLabel(role)}: ${runner?.tool ?? 'repo default'} · ${modelLabel(runner?.model)}`;
+      }),
+    ];
+  }
+
   return [
-    'Selected options',
+    'Runner setup:              one setting for all runners',
+    `All-runner tool override:  ${overrides.tool ?? 'repo defaults'}`,
+    `All-runner model override: ${overrides.model?.trim() || 'repo defaults'}`,
+  ];
+}
+
+export function summarizeStartOverrides(overrides: StartSummaryInput): string {
+  const requestedWorkers = overrides.workers;
+  const effectiveWorkers = overrides.worktrees ? requestedWorkers : 1;
+  const workerSummary = overrides.worktrees
+    ? `${requestedWorkers}`
+    : `${requestedWorkers} requested, ${effectiveWorkers} effective in shared workspace`;
+
+  return [
+    'Launch settings',
     SUMMARY_DIVIDER,
-    `Tool override:  ${tool}`,
-    `Workers:        ${overrides.workers}`,
-    `Model override: ${model}`,
-    `Passes:         ${overrides.passes ? 'enabled' : 'disabled'}`,
-    `Worktrees:      ${overrides.worktrees ? 'enabled' : 'disabled'}`,
+    `Workspace mode:            ${workspaceModeLabel(overrides.worktrees)}`,
+    `Requested task workers:    ${workerSummary}`,
+    `Discovery when queue is empty: ${overrides.passes ? 'enabled' : 'disabled'}`,
+    ...renderRunnerSummaryLines(overrides),
     SUMMARY_DIVIDER,
   ].join('\n');
 }
@@ -66,62 +139,175 @@ export function summarizeRunOverrides(
 function hasExplicitOverrides(overrides: RunOverrides): boolean {
   return Boolean(
     overrides.tool !== undefined ||
+    overrides.runners !== undefined ||
     overrides.workers !== undefined ||
     overrides.model !== undefined ||
     overrides.passes !== undefined ||
-    overrides.worktrees !== undefined,
+    overrides.worktrees !== undefined
   );
 }
 
-export function shouldPromptInteractively(command: 'run' | 'validate' | 'sync', overrides: RunOverrides): boolean {
+function resolveRunnerSetupChoice(value: string): 'global' | 'mixed' {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === '1' || normalized === 'global' || normalized === 'all') return 'global';
+  if (normalized === '2' || normalized === 'mixed' || normalized === 'per-role' || normalized === 'per role') return 'mixed';
+  return 'global';
+}
+
+function cloneRunnerOverrides(runners?: RunOverrides['runners']): RunOverrides['runners'] | undefined {
+  if (!runners) return undefined;
+  return Object.fromEntries(
+    Object.entries(runners).map(([role, runner]) => [role, runner ? { ...runner } : runner]),
+  ) as RunOverrides['runners'];
+}
+
+export function shouldPromptInteractively(
+  command: 'start' | 'doctor' | 'sync' | 'status',
+  overrides: RunOverrides,
+  options: { yes?: boolean } = {},
+): boolean {
   if (!input.isTTY || !output.isTTY) return false;
+  if (options.yes) return false;
   if (overrides.interactive === false) return false;
   if (overrides.interactive === true) return true;
-  if (command !== 'run') return false;
+  if (command !== 'start') return false;
   return !hasExplicitOverrides(overrides);
 }
 
-export async function promptForRunOverrides(
+export async function promptForStartOverrides(
   config: BacklogRunnerConfig,
   currentOverrides: RunOverrides,
+  prompter: InteractivePrompter = createReadlinePrompter(),
 ): Promise<RunOverrides> {
-  const rl = createInterface({ input, output });
-
   try {
-    let previous = { ...currentOverrides };
+    let previous: RunOverrides = {
+      tool: currentOverrides.tool,
+      runners: cloneRunnerOverrides(currentOverrides.runners),
+      workers: currentOverrides.workers ?? config.defaults.workers,
+      model: currentOverrides.model,
+      passes: currentOverrides.passes ?? config.defaults.passes,
+      worktrees: currentOverrides.worktrees ?? config.defaults.worktrees,
+      interactive: true,
+    };
 
     while (true) {
-      output.write('\nBacklog Runner Options\n\n');
+      prompter.write('\nBacklog Runner Start\n\n');
+      prompter.write(`Repo defaults\n${SUMMARY_DIVIDER}\n`);
+      prompter.write(`Workspace mode: ${workspaceModeLabel(config.defaults.worktrees)}\n`);
+      prompter.write(`Requested task workers: ${config.defaults.workers}\n`);
+      prompter.write(`Discovery when queue is empty: ${config.defaults.passes ? 'enabled' : 'disabled'}\n`);
+      prompter.write('Runner setup: one setting for all runners\n');
+      prompter.write('All-runner tool override: repo defaults\n');
+      prompter.write('All-runner model override: repo defaults\n');
+      prompter.write(`${SUMMARY_DIVIDER}\n`);
 
-      const defaultTool = previous.tool;
-      output.write('Global tool override options:\n');
-      TOOLS.forEach((tool, index) => {
-        const marker = tool === defaultTool ? ' (selected)' : '';
-        output.write(`  ${index + 1}. ${tool}${marker}\n`);
-      });
-      const toolAnswer = await rl.question(`Tool [1-${TOOLS.length} or name, blank keeps per-runner config] (${defaultTool ?? 'per-runner config'}): `);
-      const trimmedToolAnswer = toolAnswer.trim();
-      const nextTool = trimmedToolAnswer ? resolveToolChoice(trimmedToolAnswer, defaultTool ?? TOOLS[0]) : undefined;
+      const startChoice = (await prompter.question(
+        'Press Enter to start with repo defaults, type "customize" to change launch settings, or "cancel" to abort: ',
+      ))
+        .trim()
+        .toLowerCase();
 
-      const defaultWorkers = previous.workers ?? config.defaults.workers;
-      const workersAnswer = await rl.question(`Workers [1-${MAX_INTERACTIVE_WORKERS}] (${defaultWorkers}): `);
-      const nextWorkers = resolveWorkerChoice(workersAnswer, defaultWorkers);
+      if (startChoice === 'cancel' || startChoice === 'c') {
+        throw new Error('Cancelled.');
+      }
 
-      const defaultModel = previous.model;
-      const modelAnswer = await rl.question(`Model override (blank keeps per-runner config) (${defaultModel ?? 'per-runner config'}): `);
-      const nextModel = modelAnswer.trim() || undefined;
-
-      const defaultPasses = previous.passes ?? config.defaults.passes;
-      const passesAnswer = await rl.question(`Enable discovery passes? [Y/n] (${defaultPasses ? 'yes' : 'no'}): `);
-      const nextPasses = parseBooleanAnswer(passesAnswer, defaultPasses);
+      if (!startChoice) {
+        prompter.write(`\n${summarizeStartOverrides({
+          tool: undefined,
+          runners: undefined,
+          workers: config.defaults.workers,
+          model: undefined,
+          passes: config.defaults.passes,
+          worktrees: config.defaults.worktrees,
+        })}\n`);
+        return {
+          tool: undefined,
+          workers: config.defaults.workers,
+          model: undefined,
+          passes: config.defaults.passes,
+          worktrees: config.defaults.worktrees,
+          interactive: true,
+        };
+      }
 
       const defaultWorktrees = previous.worktrees ?? config.defaults.worktrees;
-      const worktreesAnswer = await rl.question(`Use git worktrees? [Y/n] (${defaultWorktrees ? 'yes' : 'no'}): `);
-      const nextWorktrees = parseBooleanAnswer(worktreesAnswer, defaultWorktrees);
+      prompter.write('\nWorkspace mode options:\n');
+      prompter.write(`  1. isolated git worktrees${defaultWorktrees ? ' (selected)' : ''}\n`);
+      prompter.write(`  2. shared workspace${defaultWorktrees ? '' : ' (selected)'}\n`);
+      const workspaceAnswer = await prompter.question(`Workspace mode [1-2] (${defaultWorktrees ? '1' : '2'}): `);
+      const nextWorktrees = resolveWorkspaceChoice(workspaceAnswer, defaultWorktrees);
+
+      const defaultWorkers = previous.workers ?? config.defaults.workers;
+      const workersPrompt = nextWorktrees
+        ? `Requested task workers [1-${MAX_INTERACTIVE_WORKERS}] (${defaultWorkers}): `
+        : `Requested task workers [1-${MAX_INTERACTIVE_WORKERS}] (${defaultWorkers}, shared workspace still runs 1 at a time): `;
+      const workersAnswer = await prompter.question(workersPrompt);
+      const nextWorkers = resolveWorkerChoice(workersAnswer, defaultWorkers);
+
+      const defaultPasses = previous.passes ?? config.defaults.passes;
+      const passesAnswer = await prompter.question(
+        `Enable discovery when the queue is empty? [Y/n] (${defaultPasses ? 'yes' : 'no'}): `,
+      );
+      const nextPasses = parseYesNoAnswer(passesAnswer, defaultPasses);
+      const currentSetup = previous.runners && Object.keys(previous.runners).length > 0 ? 'mixed' : 'global';
+      prompter.write('\nRunner setup options:\n');
+      prompter.write(`  1. one setting for all runners${currentSetup === 'global' ? ' (selected)' : ''}\n`);
+      prompter.write(`  2. mixed per role${currentSetup === 'mixed' ? ' (selected)' : ''}\n`);
+      const runnerSetupAnswer = await prompter.question(`Runner setup [1-2] (${currentSetup === 'global' ? '1' : '2'}): `);
+      const runnerSetup = resolveRunnerSetupChoice(runnerSetupAnswer);
+
+      let nextTool: BacklogTool | undefined;
+      let nextModel: string | undefined;
+      let nextRunners: RunOverrides['runners'];
+
+      if (runnerSetup === 'mixed') {
+        nextRunners = cloneRunnerOverrides(previous.runners) ?? {};
+        nextTool = undefined;
+        nextModel = undefined;
+        prompter.write('\nPer-role runner setup\n');
+
+        for (const role of RUNNER_ROLES) {
+          const repoRunner = config.runners[role];
+          const existingRunner = nextRunners[role];
+          const currentTool = existingRunner?.tool ?? repoRunner.tool;
+          const currentModel = existingRunner?.model ?? repoRunner.model;
+
+          prompter.write(`\n${roleLabel(role)}\n`);
+          prompter.write(`  Repo default: ${repoRunner.tool} · ${modelLabel(repoRunner.model)}\n`);
+          prompter.write('  Tool options:\n');
+          prompter.write(`    1. repo default${existingRunner?.tool === undefined ? ' (selected)' : ''}\n`);
+          prompter.write(`    2. claude${existingRunner?.tool === 'claude' ? ' (selected)' : ''}\n`);
+          prompter.write(`    3. codex${existingRunner?.tool === 'codex' ? ' (selected)' : ''}\n`);
+          const roleToolAnswer = await prompter.question(`  Tool [1-3 or name] (${currentTool}): `);
+          const roleTool = resolveToolChoice(roleToolAnswer, existingRunner?.tool);
+          const roleModelAnswer = await prompter.question(`  Model (blank keeps repo default) (${currentModel ?? 'repo default'}): `);
+          const roleModel = roleModelAnswer.trim() || undefined;
+
+          nextRunners[role] = {
+            tool: roleTool,
+            model: roleModel,
+          };
+        }
+      } else {
+        nextRunners = undefined;
+        const defaultTool = previous.tool;
+        prompter.write('\nAll-runner tool override options:\n');
+        prompter.write(`  1. repo defaults${defaultTool === undefined ? ' (selected)' : ''}\n`);
+        prompter.write(`  2. claude${defaultTool === 'claude' ? ' (selected)' : ''}\n`);
+        prompter.write(`  3. codex${defaultTool === 'codex' ? ' (selected)' : ''}\n`);
+        const toolAnswer = await prompter.question(`Tool override [1-3 or name] (${defaultTool ?? 'repo defaults'}): `);
+        nextTool = resolveToolChoice(toolAnswer, defaultTool);
+
+        const defaultModel = previous.model;
+        const modelAnswer = await prompter.question(
+          `Model override (blank keeps repo defaults) (${defaultModel ?? 'repo defaults'}): `,
+        );
+        nextModel = modelAnswer.trim() || undefined;
+      }
 
       const nextOverrides: RunOverrides = {
-        ...previous,
         tool: nextTool,
+        runners: nextRunners,
         workers: nextWorkers,
         model: nextModel,
         passes: nextPasses,
@@ -129,20 +315,21 @@ export async function promptForRunOverrides(
         interactive: true,
       };
 
-      output.write(`\n${summarizeRunOverrides({
+      prompter.write(`\n${summarizeStartOverrides({
         tool: nextTool,
+        runners: nextRunners,
         workers: nextWorkers,
         model: nextModel,
         passes: nextPasses,
         worktrees: nextWorktrees,
       })}\n`);
 
-      const confirm = (await rl.question('Press Enter to start, type "edit" to revise, or "cancel" to abort: '))
+      const confirm = (await prompter.question('Press Enter to launch, type "edit" to revise, or "cancel" to abort: '))
         .trim()
         .toLowerCase();
 
       if (!confirm) {
-        output.write('\n');
+        prompter.write('\n');
         return nextOverrides;
       }
 
@@ -151,9 +338,9 @@ export async function promptForRunOverrides(
       }
 
       previous = nextOverrides;
-      output.write('\n');
+      prompter.write('\n');
     }
   } finally {
-    rl.close();
+    await prompter.close();
   }
 }

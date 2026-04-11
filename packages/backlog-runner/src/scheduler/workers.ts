@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { createAgentTranscriptRecorder } from '../agent-progress.js';
 import { buildDiscoveryContext, buildExecutionContext, buildPlannerContext } from '../context.js';
 import { normalizePathForGit } from '../git-scope.js';
 import type { RunnerLogger } from '../logger.js';
@@ -6,6 +7,7 @@ import { withLock, lockPath } from '../locks.js';
 import { PLANNER_RESULT_SCHEMA, parsePlannerSupersedeAction, plannerBatchSize } from '../planner.js';
 import { runProvider } from '../providers/index.js';
 import { JSON_SCHEMA } from '../providers/common.js';
+import { normalizeWhitespace } from '../utils.js';
 import type {
   BacklogPassType,
   BacklogRunnerConfig,
@@ -20,6 +22,7 @@ import type {
 import { PREFLIGHT_DEFERRAL_MS } from './constants.js';
 import {
   bookkeepingPaths,
+  changedFiles,
   classifyAgentError,
   diffForPaths,
   formatDuration,
@@ -29,7 +32,7 @@ import {
   readPrompt,
   retryTime,
   runValidationCommand,
-  taskCommitPaths,
+  taskCommitExclusionPaths,
   taskExecutionPaths,
   taskWorkerResult,
   validateStagedWorkspace,
@@ -254,6 +257,7 @@ export async function runTaskWorker(
 ): Promise<BacklogWorkerResult> {
   const startedAt = Date.now();
   logger.line(`  → ${claim.task.title} (${claim.task.id})`);
+  let transcriptRecorder: Awaited<ReturnType<typeof createAgentTranscriptRecorder>> | null = null;
 
   let session: WorkspaceSession;
   try {
@@ -275,6 +279,11 @@ export async function runTaskWorker(
   heartbeat.unref?.();
 
   try {
+    transcriptRecorder = await createAgentTranscriptRecorder(config, claim);
+    await store.recordTaskActivity(claim.task.id, {
+      transcriptPath: transcriptRecorder.transcriptPath,
+    });
+
     const allowedPaths = taskExecutionPaths(config, claim.task.touchPaths);
     const stagedPreflight = await validateStagedWorkspace(
       commandRunner,
@@ -326,6 +335,20 @@ export async function runTaskWorker(
       cwd: session.cwd,
       maxTurns: 40,
       schema: JSON_SCHEMA,
+      onProgress: async event => {
+        if (transcriptRecorder) {
+          await transcriptRecorder.record(event);
+        }
+        if (event.type === 'assistant-message') {
+          const milestone = normalizeWhitespace(event.message);
+          if (milestone) {
+            await store.recordTaskActivity(claim.task.id, {
+              transcriptPath: transcriptRecorder?.transcriptPath ?? '',
+              milestone,
+            });
+          }
+        }
+      },
     });
 
     logger.line('');
@@ -345,24 +368,6 @@ export async function runTaskWorker(
       return taskWorkerResult('failed', claim, startedAt, { note: result.note || 'agent reported failure' });
     }
 
-    const initialScopeCheck = await validateWorkspaceScope(
-      commandRunner,
-      session.cwd,
-      allowedPaths,
-      'write scope violation',
-    );
-    if (!initialScopeCheck.ok) {
-      const outcome = await tryWithRemediation(config, store, commandRunner, logger, options, claim, startedAt, {
-        mode: 'scope',
-        cwd: session.cwd,
-        allowedPaths,
-        failureReason: initialScopeCheck.reason ?? 'write scope violation',
-        verify: async () => validateWorkspaceScope(commandRunner, session.cwd, allowedPaths, 'write scope violation'),
-      });
-      if (!('ok' in outcome)) return outcome;
-      logger.line('  ✓ write scope repaired');
-    }
-
     const validationCommand = config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand;
     logger.line('');
     logger.line(`  Running validation profile "${claim.task.validationProfile}": ${validationCommand}`);
@@ -378,19 +383,19 @@ export async function runTaskWorker(
         validationSummary: validation.summary,
         verify: async () => {
           const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
-          if (!rerun.ok) {
-            return { ok: false, reason: `validation failed: ${rerun.summary}` };
-          }
-          const postRepairScope = await validateWorkspaceScope(commandRunner, session.cwd, allowedPaths, 'post-validation scope violation');
-          return postRepairScope.ok
+          return rerun.ok
             ? { ok: true }
-            : { ok: false, reason: postRepairScope.reason ?? 'post-validation scope violation' };
+            : { ok: false, reason: `validation failed: ${rerun.summary}` };
         },
       });
       if ('ok' in outcome) {
         logger.line('  ✓ validation recovered by remediation');
       } else {
-        const classification = classifyValidationFailure(claim, outcome.note ?? `validation failed: ${validation.summary}`);
+        const classification = classifyValidationFailure(
+          claim,
+          outcome.note ?? `validation failed: ${validation.summary}`,
+          await changedFiles(commandRunner, session.cwd),
+        );
         if (classification.blocking) {
           return outcome;
         }
@@ -400,29 +405,6 @@ export async function runTaskWorker(
       logger.line(
         `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
       );
-    }
-
-    const postValidationScopeCheck = await validateWorkspaceScope(
-      commandRunner,
-      session.cwd,
-      allowedPaths,
-      'post-validation scope violation',
-    );
-    if (!postValidationScopeCheck.ok) {
-      const outcome = await tryWithRemediation(config, store, commandRunner, logger, options, claim, startedAt, {
-        mode: 'scope',
-        cwd: session.cwd,
-        allowedPaths,
-        failureReason: postValidationScopeCheck.reason ?? 'post-validation scope violation',
-        verify: async () => {
-          const scopeResult = await validateWorkspaceScope(commandRunner, session.cwd, allowedPaths, 'post-validation scope violation');
-          if (!scopeResult.ok) return scopeResult;
-          const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
-          return rerun.ok ? { ok: true } : { ok: false, reason: `validation failed: ${rerun.summary}` };
-        },
-      });
-      if (!('ok' in outcome)) return outcome;
-      logger.line('  ✓ post-validation scope repaired');
     }
 
     const message = `chore(backlog): done – ${result.item || claim.task.title}`;
@@ -457,15 +439,15 @@ export async function runTaskWorker(
 
       const finalizeResult = await workspaceStrategy.commitAndPush(
         message,
-        taskCommitPaths(config, claim.task.touchPaths),
-        { sleep },
+        taskCommitExclusionPaths(config),
+        { sleep, scopeMode: 'all-except' },
       );
       if (!finalizeResult.ok) {
         const failReason = options.worktrees ? 'finalize failed after merge' : 'commit/push failed';
         const recovered = await attemptTaskReconciliation(
           config, store, workspaceStrategy, commandRunner, logger, options, claim,
           finalizeResult.reason ?? failReason,
-          await diffForPaths(commandRunner, config.projectRoot, allowedPaths),
+          await diffForPaths(commandRunner, config.projectRoot),
           false, message, finalizeResult, sleep,
         );
         if (!recovered.recovered) {
@@ -506,6 +488,7 @@ export async function runTaskWorker(
     return taskWorkerResult('released', claim, startedAt, { note: classified.message });
   } finally {
     clearInterval(heartbeat);
+    await transcriptRecorder?.close();
     await session.teardown();
   }
 }

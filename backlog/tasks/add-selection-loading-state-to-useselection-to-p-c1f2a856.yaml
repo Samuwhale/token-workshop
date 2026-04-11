@@ -1,0 +1,23 @@
+id: add-selection-loading-state-to-useselection-to-p-c1f2a856
+title: Add selection-loading state to useSelection to prevent empty-state flash in SelectionInspector and QuickApplyPicker
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/hooks/useSelection.ts
+  - packages/figma-plugin/src/ui/contexts/InspectContext.tsx
+  - packages/figma-plugin/src/ui/components/SelectionInspector.tsx
+  - packages/figma-plugin/src/ui/App.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: useSelection.ts listens for plugin 'selection' messages and posts 'get-selection' on mount. There is currently no loading/pending flag — selectedNodes starts as empty array, causing a flash of empty state before the first message arrives. The hook's return flows through SelectionProvider in InspectContext.tsx into SelectionContextValue (currently only has selectedNodes field). App.tsx consumes useSelectionContext() at line 205 and guards QuickApplyPicker at line 3852."
+state: ready
+acceptance_criteria:
+  - useSelection exposes a loading boolean that is true until the first selection message is received from the plugin backend
+  - SelectionContextValue in InspectContext.tsx surfaces the loading boolean from useSelection
+  - SelectionInspector checks selectionLoading before rendering the empty state, showing a neutral placeholder or nothing while loading
+  - QuickApplyPicker guard in App.tsx (currently `showQuickApply && selectedNodes.length > 0` around line 3852) also respects the loading state so it does not flash closed before the first selection message arrives
+source: planner-pass
+created_at: 2026-04-11T20:20:09.663Z
+updated_at: 2026-04-11T20:20:09.663Z

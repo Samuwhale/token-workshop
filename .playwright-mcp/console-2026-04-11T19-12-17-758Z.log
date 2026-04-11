@@ -1,0 +1,25 @@
+[     555ms] [ERROR] Failed to fetch token set "primitives": AbortError: signal is aborted without reason
+    at http://localhost:3201/dist/ui.html:9239:33
+    at Mj (http://localhost:3201/dist/ui.html:4884:9)
+    at Pj (http://localhost:3201/dist/ui.html:4987:29)
+    at Hk (http://localhost:3201/dist/ui.html:6213:21)
+    at http://localhost:3201/dist/ui.html:6106:9
+    at J (http://localhost:3201/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3201/dist/ui.html:448:17) @ http://localhost:3201/dist/ui.html:8863
+[   79757ms] [ERROR] SecurityError: Failed to read the 'localStorage' property from 'Window': The document is sandboxed and lacks the 'allow-same-origin' flag.
+    at Qj (http://localhost:3201/dist/ui.html:5001:25)
+    at Hk (http://localhost:3201/dist/ui.html:6236:23)
+    at Wk (http://localhost:3201/dist/ui.html:6137:40)
+    at Pk (http://localhost:3201/dist/ui.html:6083:38)
+    at Ek (http://localhost:3201/dist/ui.html:5812:7)
+    at jg (http://localhost:3201/dist/ui.html:2714:19)
+    at http://localhost:3201/dist/ui.html:5634:28 @ http://localhost:3201/dist/ui.html:3925
+[   79757ms] [ERROR] [ErrorBoundary:Figma Sync] SecurityError: Failed to read the 'localStorage' property from 'Window': The document is sandboxed and lacks the 'allow-same-origin' flag.
+    at Qj (http://localhost:3201/dist/ui.html:5001:25)
+    at Hk (http://localhost:3201/dist/ui.html:6236:23)
+    at Wk (http://localhost:3201/dist/ui.html:6137:40)
+    at Pk (http://localhost:3201/dist/ui.html:6083:38)
+    at Ek (http://localhost:3201/dist/ui.html:5812:7)
+    at jg (http://localhost:3201/dist/ui.html:2714:19)
+    at http://localhost:3201/dist/ui.html:5634:28 {componentStack: 
+    at PublishPanel (http://localhost:3201/dist/u…ider (http://localhost:3201/dist/ui.html:9135:33)} @ http://localhost:3201/dist/ui.html:34706

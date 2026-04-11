@@ -240,6 +240,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     showTokensCompare, setShowTokensCompare, tokensCompareMode, setTokensCompareMode,
     tokensComparePaths, setTokensComparePaths, tokensComparePath, setTokensComparePath,
     tokensCompareThemeKey, setTokensCompareThemeKey, tokensCompareDefaultA, tokensCompareDefaultB, tokensContextualSurfaceState,
+    switchContextualSurface,
   } = useEditorContext();
   const activeTokensContextualSurface = tokensContextualSurfaceState.activeSurface;
 
@@ -307,15 +308,18 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     set?: string;
   }) => {
     const targetSet = options?.set ?? activeSet;
-    setEditingToken({
-      path: resolveCreateLauncherPath(options?.initialPath),
-      set: targetSet,
-      isCreate: true,
-      initialType: options?.initialType ?? readLastCreateType(),
-      initialValue: options?.initialValue,
-      createPresentation: 'launcher',
+    switchContextualSurface({
+      surface: 'token-editor',
+      token: {
+        path: resolveCreateLauncherPath(options?.initialPath),
+        set: targetSet,
+        isCreate: true,
+        initialType: options?.initialType ?? readLastCreateType(),
+        initialValue: options?.initialValue,
+        createPresentation: 'launcher',
+      },
     });
-  }, [activeSet, setEditingToken]);
+  }, [activeSet, switchContextualSurface]);
 
   const handleTokenEditorBack = useCallback(() => {
     if (editingToken?.isCreate) {
@@ -369,23 +373,22 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   const tokenListActions = {
     onEdit: (path: string, name?: string) => p.guardEditorAction(() => {
       p.setShowPreviewSplit(false);
-      setShowTokensCompare(false);
-      setEditingGenerator(null);
-      setEditingToken({ path, name, set: activeSet });
-      setPreviewingToken(null);
+      switchContextualSurface({
+        surface: 'token-editor',
+        token: { path, name, set: activeSet },
+      });
       setHighlightedToken(path);
     }),
     onPreview: (path: string, name?: string) => {
-      setShowTokensCompare(false);
-      setEditingGenerator(null);
-      setPreviewingToken({ path, name, set: activeSet });
+      switchContextualSurface({
+        surface: 'token-preview',
+        token: { path, name, set: activeSet },
+      });
       setHighlightedToken(path);
     },
     onCreateNew: (initialPath: string | undefined, initialType: string | undefined, initialValue: string | undefined) =>
       {
         p.setShowPreviewSplit(false);
-        setShowTokensCompare(false);
-        setEditingGenerator(null);
         openCreateLauncher({ initialPath, initialType, initialValue });
       },
     onRefresh: p.refreshAll,
@@ -416,10 +419,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     },
     onEditGenerator: (generatorId: string) => p.guardEditorAction(() => {
       p.setShowPreviewSplit(false);
-      setShowTokensCompare(false);
-      setPreviewingToken(null);
-      setEditingToken(null);
-      setEditingGenerator({ id: generatorId });
+      switchContextualSurface({
+        surface: 'generator-editor',
+        generator: { id: generatorId },
+      });
     }),
     onNavigateToGenerator: p.handleNavigateToGenerator,
     onShowReferences: (path: string) => {
@@ -435,23 +438,19 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onError: p.setErrorToast,
     onOpenCompare: (paths: Set<string>) => {
       p.setShowPreviewSplit(false);
-      setEditingToken(null);
-      setEditingGenerator(null);
-      setPreviewingToken(null);
-      setTokensCompareMode('tokens');
-      setTokensComparePaths(paths);
-      setTokensCompareThemeKey(key => key + 1);
-      setShowTokensCompare(true);
+      switchContextualSurface({
+        surface: 'compare',
+        mode: 'tokens',
+        paths,
+      });
     },
     onOpenCrossThemeCompare: (path: string) => {
       p.setShowPreviewSplit(false);
-      setEditingToken(null);
-      setEditingGenerator(null);
-      setPreviewingToken(null);
-      setTokensCompareMode('cross-theme');
-      setTokensComparePath(path);
-      setTokensCompareThemeKey(key => key + 1);
-      setShowTokensCompare(true);
+      switchContextualSurface({
+        surface: 'compare',
+        mode: 'cross-theme',
+        path,
+      });
     },
     onOpenCommandPaletteWithQuery: p.openCommandPaletteWithQuery,
     onOpenStartHere: p.onOpenStartHere,

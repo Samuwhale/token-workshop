@@ -30,6 +30,7 @@ import type {
   PlannerSupersedeAction,
   TaskBlockage,
   TaskDeferralOptions,
+  TaskActivitySnapshot,
   TaskDependencySnapshot,
   OrchestratorRuntimeStatus,
   TaskLeaseSnapshot,
@@ -41,6 +42,7 @@ type RuntimeSnapshot = {
   activeTaskIds: Set<string>;
   activeLeases: TaskLeaseSnapshot[];
   activeReservations: TaskReservationSnapshot[];
+  activeTaskProgress: TaskActivitySnapshot[];
   blockages: TaskBlockage[];
   counts: BacklogQueueCounts;
 };
@@ -52,6 +54,10 @@ function plannerCandidateSort(a: BacklogTaskSpec, b: BacklogTaskSpec): number {
 
 function splitLines(value: string): string[] {
   return value.replace(/\r\n/g, '\n').split('\n');
+}
+
+function truncateInline(value: string, maxLength = 120): string {
+  return value.length <= maxLength ? value : `${value.slice(0, maxLength - 3)}...`;
 }
 
 async function atomicWrite(filePath: string, content: string): Promise<void> {
@@ -213,6 +219,7 @@ export class FileBackedTaskStore implements BacklogStore {
     const activeTaskIds = runtime.listActiveTaskIds();
     const activeLeases = runtime.listActiveLeases(taskIndex);
     const activeReservations = runtime.listActiveReservations(taskIndex);
+    const activeTaskProgress = runtime.listActiveTaskActivity(taskIndex);
     const activeDeferrals = runtime.listActiveDeferrals();
     const blockages = this.computeBlockages(loadedTasks, activeReservations, activeTaskIds, activeDeferrals);
     runtime.syncBlockers(blockages);
@@ -232,6 +239,7 @@ export class FileBackedTaskStore implements BacklogStore {
       activeTaskIds,
       activeLeases,
       activeReservations,
+      activeTaskProgress,
       blockages,
       counts,
     };
@@ -279,6 +287,16 @@ export class FileBackedTaskStore implements BacklogStore {
             const capabilities = reservation.capabilities.length > 0 ? reservation.capabilities.join(', ') : '(none)';
             return `- ${reservation.title} (${reservation.taskId}) — touch_paths: ${touchPaths}; capabilities: ${capabilities}`;
           })),
+      '',
+      '## Active Task Progress',
+      ...(snapshot.activeTaskProgress.length === 0
+        ? ['- None']
+        : snapshot.activeTaskProgress.flatMap(activity => [
+            `- ${activity.title} (${activity.taskId}) — transcript: ${activity.transcriptPath}`,
+            ...(activity.milestones.length === 0
+              ? ['  - No milestones yet']
+              : activity.milestones.map(milestone => `  - ${truncateInline(milestone)}`)),
+          ])),
       '',
       '## Planner Candidates Awaiting Refinement',
       ...(plannerCandidates.length === 0
@@ -626,6 +644,14 @@ export class FileBackedTaskStore implements BacklogStore {
     const runtime = await this.getRuntime();
     const tasks = await this.loadTasks();
     return runtime.listActiveReservations(this.taskIndex(tasks), excludeTaskId);
+  }
+
+  async recordTaskActivity(taskId: string, activity: { transcriptPath: string; milestone?: string }): Promise<void> {
+    const runtime = await this.getRuntime();
+    runtime.recordTaskActivity(taskId, activity.transcriptPath, activity.milestone);
+    await withLock(this.backlogLock, 30, async () => {
+      await this.refreshRuntimeAndWriteLiveReport();
+    });
   }
 
   async getTaskBlockage(taskId: string): Promise<TaskBlockage | null> {

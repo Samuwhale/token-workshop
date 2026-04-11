@@ -1,6 +1,7 @@
 import type { AgentRunRequest, CommandRunner, ToolValidationResult } from '../types.js';
 import {
   assertAgentSuccess,
+  extractStructuredOutput,
   JSON_SCHEMA,
   normalizeAgentResult,
   type ProviderValidationOptions,
@@ -14,6 +15,56 @@ import {
 
 const PROVIDER_SMOKE_TIMEOUT_MS = 2 * 60 * 1000;
 const PROVIDER_RUN_TIMEOUT_MS = 30 * 60 * 1000;
+
+function parseJsonLine(line: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(line);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+async function emitRawLine(
+  request: AgentRunRequest,
+  stream: 'stdout' | 'stderr',
+  line: string,
+): Promise<void> {
+  await request.onProgress?.({
+    type: 'raw-line',
+    stream,
+    line,
+  });
+}
+
+async function handleStdoutLine(request: AgentRunRequest, line: string): Promise<void> {
+  await emitRawLine(request, 'stdout', line);
+
+  const event = parseJsonLine(line);
+  if (!event || event.type !== 'item.completed') {
+    return;
+  }
+
+  const item = event.item;
+  if (!item || typeof item !== 'object') {
+    return;
+  }
+
+  const itemRecord = item as Record<string, unknown>;
+  if (itemRecord.type !== 'agent_message' || typeof itemRecord.text !== 'string') {
+    return;
+  }
+
+  if (extractStructuredOutput(itemRecord.text)) {
+    return;
+  }
+
+  await request.onProgress?.({
+    type: 'assistant-message',
+    message: itemRecord.text,
+    rawLine: line,
+  });
+}
 
 // Context is concatenated with the prompt into a single user message via stdin.
 // Codex does not support separate system prompt files like Claude does.
@@ -87,6 +138,7 @@ export const codexProvider: ProviderAdapter = {
           '--dangerously-bypass-approvals-and-sandbox',
           '--skip-git-repo-check',
           '--ephemeral',
+          '--json',
           '--output-schema',
           schemaFile,
           '--output-last-message',
@@ -100,6 +152,8 @@ export const codexProvider: ProviderAdapter = {
           input: mergedPrompt,
           timeoutMs: PROVIDER_RUN_TIMEOUT_MS,
           ignoreFailure: true,
+          onStdoutLine: line => handleStdoutLine(request, line),
+          onStderrLine: line => emitRawLine(request, 'stderr', line),
         },
       );
 

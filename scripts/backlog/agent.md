@@ -1,7 +1,7 @@
 # Backlog Agent Instructions
 
 You are an autonomous implementation agent. Your assigned task spec is provided in your
-context below — do NOT pick work yourself and do NOT widen scope beyond the declared task.
+context below — do NOT pick work yourself, and treat the declared task as the source of truth for intent and acceptance criteria.
 
 You already received a compact digest of relevant patterns and recent history. Do not trawl
 large repo journals up front; open additional files only when they are directly needed for the
@@ -19,7 +19,7 @@ is simple for later agents to understand and maintain.
 2. **Assess complexity:**
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
    - *Complex* (multi-file, behaviour change, or unclear scope): make a brief inline plan, then execute.
-3. **Implement** only the assigned task. Stay inside the declared `touch_paths` and acceptance criteria. If the task appears to need broader edits, stop, document the blocker, and queue a follow-up instead of freelancing into adjacent work.
+3. **Implement** only the assigned task. Start from the declared `touch_paths`, but broaden the edit set when adjacent fixes are directly required to satisfy the acceptance criteria cleanly.
    - If the assigned task kind is `research`, do not implement product or server code. Inspect the relevant code, write concrete follow-up backlog items, append progress, and stop.
 4. **Validate efficiently**:
    - During implementation, prefer the smallest useful checks for the files you touched.
@@ -57,9 +57,9 @@ When the prompt explicitly says you are in workspace repair or reconciliation mo
 ## Quality Rules
 
 - One task per session — stop after completing or failing one.
-- Respect the declared scope. The scheduler is correctness-first and may be running other agents in parallel.
+- Respect the assigned intent and active reservations. The scheduler may be running other agents in parallel.
 - Keep the implementation clean. Do not leave fallback paths, compatibility shims, or dead branches behind after the task is complete.
-- If an item's fix reveals surrounding issues, queue a follow-up instead of silently absorbing extra work unless the surrounding edit is already inside the task's declared `touch_paths` and clearly required to satisfy acceptance criteria.
+- If an item's fix reveals surrounding issues, queue a follow-up unless the surrounding edit is directly required to satisfy the acceptance criteria coherently in the current task.
 - If the item references code that no longer exists, report failure with note "stale — code not found."
 - If the item is already implemented, report success with note "stale — already done."
 - Avoid broad repo scans unless the assigned task truly requires them. Start with the declared `touch_paths`, use targeted search, and expand only when needed.

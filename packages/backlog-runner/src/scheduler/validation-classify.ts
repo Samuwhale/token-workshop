@@ -1,5 +1,5 @@
 import type { RunnerLogger } from '../logger.js';
-import { isPathWithinTouchPaths, normalizeRepoPath } from '../task-specs.js';
+import { normalizeRepoPath } from '../task-specs.js';
 import type { BacklogCandidateRecord, BacklogStore, BacklogTaskClaim } from '../types.js';
 import {
   BOOTSTRAP_MARKER_PATTERNS,
@@ -37,6 +37,15 @@ function detectValidationPackageContexts(reason: string): string[] {
 
 function sanitizeValidationPath(filePath: string): string {
   return normalizeRepoPath(filePath.replace(/[(:].*$/, '').replace(/[),.;]+$/, ''));
+}
+
+function packageContextForPath(filePath: string): string {
+  const normalized = sanitizeValidationPath(filePath);
+  const parts = normalized.split('/');
+  if (parts[0] === 'packages' && parts[1]) {
+    return `packages/${parts[1]}`;
+  }
+  return 'repo-root';
 }
 
 function extractValidationPaths(reason: string): string[] {
@@ -108,12 +117,13 @@ function buildUnrelatedValidationFollowup(
 export function classifyValidationFailure(
   claim: BacklogTaskClaim,
   reason: string,
+  changedFiles: string[] = [],
 ): ValidationFailureClassification {
   const normalizedReason = normalizeValidationReason(reason);
   const implicatedPaths = extractValidationPaths(normalizedReason);
-  if (implicatedPaths.some(filePath => isPathWithinTouchPaths(filePath, claim.task.touchPaths))) {
-    return { blocking: true, reason };
-  }
+  const normalizedChangedFiles = changedFiles.map(filePath => normalizeRepoPath(filePath));
+  const changedFileSet = new Set(normalizedChangedFiles);
+  const changedContexts = new Set(normalizedChangedFiles.map(packageContextForPath));
 
   if (isExplicitWorkspaceValidationIssue(normalizedReason)) {
     return {
@@ -124,6 +134,13 @@ export function classifyValidationFailure(
   }
 
   if (implicatedPaths.length > 0) {
+    const implicatedContexts = new Set(implicatedPaths.map(packageContextForPath));
+    const matchesChangedFile = implicatedPaths.some(filePath => changedFileSet.has(filePath));
+    const sharesChangedContext = [...implicatedContexts].some(context => changedContexts.has(context));
+    if (matchesChangedFile || sharesChangedContext) {
+      return { blocking: true, reason };
+    }
+
     return {
       blocking: false,
       reason,

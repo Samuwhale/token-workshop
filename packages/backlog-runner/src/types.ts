@@ -86,6 +86,11 @@ export interface RunOverrides {
   tool?: BacklogTool;
   /** Global override — when set, every runner uses this model instead of its configured one. */
   model?: string;
+  /** Per-role overrides used by guided setup for mixed runner configurations. */
+  runners?: Partial<Record<BacklogRunnerRole, {
+    tool?: BacklogTool;
+    model?: string;
+  }>>;
   workers?: number;
   passes?: boolean;
   worktrees?: boolean;
@@ -113,6 +118,18 @@ export interface AgentResult {
   rawError: string;
 }
 
+export type AgentProgressEvent =
+  | {
+      type: 'raw-line';
+      stream: 'stdout' | 'stderr';
+      line: string;
+    }
+  | {
+      type: 'assistant-message';
+      message: string;
+      rawLine: string;
+    };
+
 export interface AgentRunRequest {
   tool: BacklogTool;
   model?: string;
@@ -121,6 +138,7 @@ export interface AgentRunRequest {
   cwd: string;
   maxTurns?: number;
   schema: string;
+  onProgress?: (event: AgentProgressEvent) => void | Promise<void>;
 }
 
 export interface ToolValidationResult {
@@ -143,14 +161,18 @@ export interface CommandResult {
   stderr: string;
 }
 
+export interface CommandRunOptions {
+  cwd?: string;
+  input?: string;
+  env?: NodeJS.ProcessEnv;
+  timeoutMs?: number;
+  ignoreFailure?: boolean;
+  onStdoutLine?: (line: string) => void | Promise<void>;
+  onStderrLine?: (line: string) => void | Promise<void>;
+}
+
 export interface CommandRunner {
-  run(command: string, args: string[], options?: {
-    cwd?: string;
-    input?: string;
-    env?: NodeJS.ProcessEnv;
-    timeoutMs?: number;
-    ignoreFailure?: boolean;
-  }): Promise<CommandResult>;
+  run(command: string, args: string[], options?: CommandRunOptions): Promise<CommandResult>;
   runShell(command: string, options?: {
     cwd?: string;
     env?: NodeJS.ProcessEnv;
@@ -275,6 +297,13 @@ export interface TaskBlockage {
   retryAt?: string;
 }
 
+export interface TaskActivitySnapshot {
+  taskId: string;
+  title: string;
+  transcriptPath: string;
+  milestones: string[];
+}
+
 export interface TaskDeferralOptions {
   category?: 'generic' | 'preflight' | 'remediation';
 }
@@ -302,6 +331,7 @@ export interface BacklogStore {
   ): Promise<{ parentTaskIds: string[]; childTaskIds: string[] }>;
   getTaskDependencies(taskId: string): Promise<TaskDependencySnapshot[]>;
   getActiveReservations(excludeTaskId?: string): Promise<TaskReservationSnapshot[]>;
+  recordTaskActivity(taskId: string, activity: { transcriptPath: string; milestone?: string }): Promise<void>;
   getTaskBlockage(taskId: string): Promise<TaskBlockage | null>;
   getTaskSpec(taskId: string): Promise<BacklogTaskSpec | null>;
 }
@@ -320,6 +350,7 @@ export interface WorkspaceStrategy {
 export interface WorkspaceCommitOptions {
   retryPendingPush?: boolean;
   sleep?: (ms: number) => Promise<void>;
+  scopeMode?: 'only' | 'all-except';
 }
 
 export interface WorkspaceApplyResult {

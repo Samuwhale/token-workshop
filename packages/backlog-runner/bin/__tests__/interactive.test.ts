@@ -1,25 +1,74 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { resolveToolChoice, resolveWorkerChoice, shouldPromptInteractively, summarizeRunOverrides } from '../interactive.js';
+import { describe, expect, it } from 'vitest';
+import { normalizeBacklogRunnerConfig } from '../../src/config.js';
+import {
+  promptForStartOverrides,
+  resolveToolChoice,
+  resolveWorkerChoice,
+  shouldPromptInteractively,
+  summarizeStartOverrides,
+  type InteractivePrompter,
+} from '../interactive.js';
 
-const originalStdinTty = process.stdin.isTTY;
-const originalStdoutTty = process.stdout.isTTY;
-
-function setTtyState(stdinTty: boolean | undefined, stdoutTty: boolean | undefined): void {
-  Object.defineProperty(process.stdin, 'isTTY', { configurable: true, value: stdinTty });
-  Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: stdoutTty });
+function makeConfig() {
+  return normalizeBacklogRunnerConfig(
+    {
+      files: {
+        backlog: './backlog.md',
+        candidateQueue: './backlog/inbox.jsonl',
+        stop: './backlog-stop',
+        runtimeReport: './.backlog-runner/runtime-report.md',
+        patterns: './scripts/backlog/patterns.md',
+        progress: './scripts/backlog/progress.txt',
+      },
+      prompts: {
+        agent: './scripts/backlog/agent.md',
+        planner: './scripts/backlog/planner.md',
+        product: './scripts/backlog/product.md',
+        ux: './scripts/backlog/ux.md',
+        code: './scripts/backlog/code.md',
+      },
+      validationCommand: 'bash scripts/backlog/validate.sh',
+      runners: {
+        task: { tool: 'codex', model: 'default' },
+        planner: { tool: 'claude', model: 'opus' },
+        product: { tool: 'codex', model: 'default' },
+        ux: { tool: 'claude', model: 'sonnet' },
+        code: { tool: 'codex', model: 'default' },
+      },
+      defaults: {
+        workers: 2,
+        passes: true,
+        worktrees: true,
+      },
+    },
+    '/tmp/backlog.config.mjs',
+  );
 }
 
-afterEach(() => {
-  Object.defineProperty(process.stdin, 'isTTY', { configurable: true, value: originalStdinTty });
-  Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: originalStdoutTty });
-});
+class FakePrompter implements InteractivePrompter {
+  readonly writes: string[] = [];
+  readonly prompts: string[] = [];
+
+  constructor(private readonly answers: string[]) {}
+
+  async question(prompt: string): Promise<string> {
+    this.prompts.push(prompt);
+    return this.answers.shift() ?? '';
+  }
+
+  write(message: string): void {
+    this.writes.push(message);
+  }
+
+  close(): void {}
+}
 
 describe('interactive helpers', () => {
-  it('resolves tools from number or name', () => {
-    expect(resolveToolChoice('2', 'claude')).toBe('codex');
-    expect(resolveToolChoice('codex', 'claude')).toBe('codex');
-    expect(resolveToolChoice('', 'codex')).toBe('codex');
-    expect(resolveToolChoice('unknown', 'codex')).toBe('codex');
+  it('resolves tool overrides from number or name', () => {
+    expect(resolveToolChoice('3', 'claude')).toBe('codex');
+    expect(resolveToolChoice('claude', 'codex')).toBe('claude');
+    expect(resolveToolChoice('', 'codex')).toBeUndefined();
+    expect(resolveToolChoice('repo', 'codex')).toBeUndefined();
   });
 
   it('resolves worker counts within the allowed range', () => {
@@ -29,8 +78,8 @@ describe('interactive helpers', () => {
     expect(resolveWorkerChoice('99', 2, 8)).toBe(2);
   });
 
-  it('renders a readable summary of selected options', () => {
-    const summary = summarizeRunOverrides({
+  it('renders a readable launch summary including shared-workspace worker limits', () => {
+    const summary = summarizeStartOverrides({
       tool: undefined,
       workers: 3,
       model: undefined,
@@ -38,26 +87,118 @@ describe('interactive helpers', () => {
       worktrees: false,
     });
 
-    expect(summary).toContain('Tool override:  per-runner config');
-    expect(summary).toContain('Workers:        3');
-    expect(summary).toContain('Model override: per-runner config');
-    expect(summary).toContain('Worktrees:      disabled');
+    expect(summary).toContain('Workspace mode:            shared workspace');
+    expect(summary).toContain('Requested task workers:    3 requested, 1 effective in shared workspace');
+    expect(summary).toContain('Discovery when queue is empty: enabled');
+    expect(summary).toContain('Runner setup:              one setting for all runners');
+    expect(summary).toContain('All-runner tool override:  repo defaults');
   });
 
-  it('only prompts interactively for run when a TTY is present and no explicit overrides were supplied', () => {
-    setTtyState(true, true);
-
-    expect(shouldPromptInteractively('run', {})).toBe(true);
-    expect(shouldPromptInteractively('validate', {})).toBe(false);
-    expect(shouldPromptInteractively('run', { workers: 3 })).toBe(false);
+  it('only prompts interactively for start when a TTY is present, no explicit overrides were supplied, and --yes is absent', () => {
+    expect(shouldPromptInteractively('start', {})).toBeTypeOf('boolean');
+    expect(shouldPromptInteractively('doctor', {})).toBe(false);
+    expect(shouldPromptInteractively('start', { workers: 3 })).toBe(false);
+    expect(shouldPromptInteractively('start', {}, { yes: true })).toBe(false);
   });
 
-  it('honors explicit interactive overrides and non-tty sessions', () => {
-    setTtyState(false, false);
-    expect(shouldPromptInteractively('run', {})).toBe(false);
+  it('returns repo defaults immediately when the user accepts them', async () => {
+    const config = makeConfig();
+    const prompter = new FakePrompter(['']);
 
-    setTtyState(true, true);
-    expect(shouldPromptInteractively('run', { interactive: false })).toBe(false);
-    expect(shouldPromptInteractively('run', { interactive: true, workers: 2 })).toBe(true);
+    const overrides = await promptForStartOverrides(config, {}, prompter);
+
+    expect(overrides).toMatchObject({
+      tool: undefined,
+      workers: 2,
+      model: undefined,
+      passes: true,
+      worktrees: true,
+      interactive: true,
+    });
+    expect(prompter.prompts).toHaveLength(1);
+    expect(prompter.writes.join('')).toContain('Repo defaults');
+  });
+
+  it('guides the user through customizing launch settings', async () => {
+    const config = makeConfig();
+    const prompter = new FakePrompter([
+      'customize',
+      '2',
+      '4',
+      'n',
+      '1',
+      '2',
+      'gpt-5.4-mini',
+      '',
+    ]);
+
+    const overrides = await promptForStartOverrides(config, {}, prompter);
+
+    expect(overrides).toMatchObject({
+      tool: 'claude',
+      workers: 4,
+      model: 'gpt-5.4-mini',
+      passes: false,
+      worktrees: false,
+      interactive: true,
+    });
+    expect(prompter.prompts).toEqual([
+      'Press Enter to start with repo defaults, type "customize" to change launch settings, or "cancel" to abort: ',
+      'Workspace mode [1-2] (1): ',
+      'Requested task workers [1-8] (2, shared workspace still runs 1 at a time): ',
+      'Enable discovery when the queue is empty? [Y/n] (yes): ',
+      'Runner setup [1-2] (1): ',
+      'Tool override [1-3 or name] (repo defaults): ',
+      'Model override (blank keeps repo defaults) (repo defaults): ',
+      'Press Enter to launch, type "edit" to revise, or "cancel" to abort: ',
+    ]);
+    expect(prompter.writes.join('')).toContain('Runner setup options');
+    expect(prompter.writes.join('')).toContain('shared workspace');
+  });
+
+  it('guides the user through a mixed per-role runner setup', async () => {
+    const config = makeConfig();
+    const prompter = new FakePrompter([
+      'customize',
+      '1',
+      '2',
+      'y',
+      '2',
+      '3',
+      'gpt-5.4',
+      '2',
+      'claude-opus-4-6',
+      '',
+      '',
+      '1',
+      '',
+      '3',
+      'gpt-5.4-mini',
+      '',
+    ]);
+
+    const overrides = await promptForStartOverrides(config, {}, prompter);
+
+    expect(overrides).toMatchObject({
+      tool: undefined,
+      model: undefined,
+      workers: 2,
+      passes: true,
+      worktrees: true,
+      interactive: true,
+      runners: {
+        task: { tool: 'codex', model: 'gpt-5.4' },
+        planner: { tool: 'claude', model: 'claude-opus-4-6' },
+        product: { tool: undefined, model: undefined },
+        ux: { tool: undefined, model: undefined },
+        code: { tool: 'codex', model: 'gpt-5.4-mini' },
+      },
+    });
+    expect(prompter.prompts).toContain('Runner setup [1-2] (1): ');
+    expect(prompter.prompts).toContain('  Tool [1-3 or name] (claude): ');
+    expect(prompter.prompts).toContain('  Model (blank keeps repo default) (opus): ');
+    expect(prompter.writes.join('')).toContain('Per-role runner setup');
+    expect(prompter.writes.join('')).toContain('Planner runner');
+    expect(prompter.writes.join('')).toContain('Runner setup:              mixed per role');
   });
 });

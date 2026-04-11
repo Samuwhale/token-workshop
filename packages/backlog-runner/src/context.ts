@@ -240,7 +240,7 @@ Priority: ${claim.task.priority}
 Task kind: ${claim.task.taskKind}
 Validation profile: ${claim.task.validationProfile}
 
-Allowed touch_paths:
+Declared touch_paths (intended starting surface):
 ${claim.task.touchPaths.map(item => `- ${item}`).join('\n') || '- None'}
 
 Capabilities:
@@ -273,7 +273,7 @@ Schema:
 
 ## Stop Rules
 - Do not modify backlog.md directly; it is generated from backlog/tasks.
-- Stay inside the declared touch_paths. If the task needs broader scope, stop and queue a follow-up instead of freelancing.
+- Start from the declared touch_paths, but broaden the edit set when adjacent changes are required to satisfy the task coherently.
 - Do not start adjacent cleanup just because it is nearby; adjacent discoveries become follow-up tasks.
 - Do not change another active task's reserved files or subsystem surface.
 - If task kind is research, inspect code and write concrete follow-up backlog items only. Do not implement product or server code during the research task.`;
@@ -291,11 +291,11 @@ export async function buildWorkspaceRepairContext(
   reservations: TaskReservationSnapshot[],
   options: {
     failureReason: string;
-    mode: 'preflight' | 'scope' | 'validation' | 'finalize';
+    mode: 'preflight' | 'validation' | 'finalize';
     changedFiles: string[];
     stagedFiles: string[];
-    inScopeFiles: string[];
-    outOfScopeFiles: string[];
+    declaredTouchPathFiles: string[];
+    additionalFiles: string[];
     validationSummary?: string;
     originalDiff?: string;
   },
@@ -322,11 +322,11 @@ ${renderPathList(options.changedFiles)}
 Staged files:
 ${renderPathList(options.stagedFiles)}
 
-In-scope changed files:
-${renderPathList(options.inScopeFiles)}
+Changed files that match declared touch_paths:
+${renderPathList(options.declaredTouchPathFiles)}
 
-Out-of-scope changed files:
-${renderPathList(options.outOfScopeFiles)}
+Additional changed files beyond declared touch_paths:
+${renderPathList(options.additionalFiles)}
 ${trimmedDiff ? `
 
 ## Relevant Diff
@@ -340,7 +340,7 @@ ${trimmedDiff}
 - If you discard or split work, leave an audit trail in progress notes so a later agent can understand the decision.
 - If the task is stale or impossible, return failed with a note starting exactly \`stale —\` or \`impossible —\`.
 - If the workspace can be repaired so scheduler checks pass, return done.
-- Keep the final result coherent with the assigned acceptance criteria and inside the declared touch_paths plus allowed backlog bookkeeping files whenever possible.`;
+- Keep the final result coherent with the assigned acceptance criteria. Use declared touch_paths as a guide, not as a hard boundary, while still respecting active reservations and backlog bookkeeping rules.`;
 }
 
 export async function buildReconciliationContext(
@@ -357,8 +357,8 @@ export async function buildReconciliationContext(
     mode: 'finalize',
     changedFiles: [],
     stagedFiles: [],
-    inScopeFiles: [],
-    outOfScopeFiles: [],
+    declaredTouchPathFiles: [],
+    additionalFiles: [],
     originalDiff,
   });
 }

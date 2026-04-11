@@ -1,6 +1,6 @@
 import { lockPath, withLock } from '../locks.js';
 import { sleep as defaultSleep } from '../process.js';
-import { scopedFiles, unexpectedFiles } from '../git-scope.js';
+import { isWorktreeBootstrapArtifact, normalizePathForGit } from '../git-scope.js';
 import { parseGitStatusPaths } from '../utils.js';
 import type {
   BacklogRunnerConfig,
@@ -36,6 +36,17 @@ async function collectStagedFiles(commandRunner: CommandRunner, cwd: string): Pr
   return result.code === 0
     ? result.stdout.split('\n').map(line => line.trim()).filter(Boolean)
     : [];
+}
+
+function pathMatchesPrefix(file: string, prefixes: string[]): boolean {
+  return prefixes.some(prefix => file === prefix || file.startsWith(`${prefix}/`));
+}
+
+function excludedCommitFiles(files: string[], excludedPaths: string[]): string[] {
+  return files.filter(file => {
+    const normalized = normalizePathForGit(file);
+    return isWorktreeBootstrapArtifact(normalized) || pathMatchesPrefix(normalized, excludedPaths);
+  });
 }
 
 export async function hasUpstream(commandRunner: CommandRunner, cwd: string): Promise<boolean> {
@@ -75,11 +86,12 @@ export async function gitCommitAndPush(
   config: BacklogRunnerConfig,
   cwd: string,
   message: string,
-  allowedPaths: string[],
+  scopePaths: string[],
   options: WorkspaceCommitOptions = {},
 ): Promise<WorkspaceApplyResult> {
   return withLock(lockPath(config, 'git'), 30, async () => {
     const sleep = options.sleep ?? defaultSleep;
+    const scopeMode = options.scopeMode ?? 'only';
     const changedFiles = await collectChangedFiles(commandRunner, cwd);
     if (changedFiles.length === 0) {
       if (!options.retryPendingPush || !await hasUpstream(commandRunner, cwd)) {
@@ -89,23 +101,28 @@ export async function gitCommitAndPush(
     }
 
     const stagedBefore = await collectStagedFiles(commandRunner, cwd);
-    const unexpectedStaged = unexpectedFiles(stagedBefore, allowedPaths);
-    if (unexpectedStaged.length > 0) {
-      return { ok: false, reason: `refusing to commit unrelated staged files: ${unexpectedStaged.slice(0, 8).join(', ')}` };
+    const excludedStagedBefore = excludedCommitFiles(stagedBefore, scopeMode === 'all-except' ? scopePaths : []);
+    if (excludedStagedBefore.length > 0) {
+      return { ok: false, reason: `refusing to commit excluded staged files: ${excludedStagedBefore.slice(0, 8).join(', ')}` };
     }
 
-    const scopedChanged = scopedFiles(changedFiles, allowedPaths);
-    if (scopedChanged.length > 0) {
-      await commandRunner.run('git', ['add', '--', ...scopedChanged], { cwd });
+    const commitCandidates = scopeMode === 'all-except'
+      ? changedFiles.filter(file => !excludedCommitFiles([file], scopePaths).length)
+      : changedFiles.filter(file => pathMatchesPrefix(normalizePathForGit(file), scopePaths));
+    if (commitCandidates.length > 0) {
+      await commandRunner.run('git', ['add', '-A', '--', ...commitCandidates], { cwd });
     }
 
     const stagedAfter = await collectStagedFiles(commandRunner, cwd);
-    const unexpectedAfter = unexpectedFiles(stagedAfter, allowedPaths);
-    if (unexpectedAfter.length > 0) {
-      return { ok: false, reason: `refusing to commit unrelated staged files: ${unexpectedAfter.slice(0, 8).join(', ')}` };
+    const excludedStagedAfter = excludedCommitFiles(stagedAfter, scopeMode === 'all-except' ? scopePaths : []);
+    if (excludedStagedAfter.length > 0) {
+      return { ok: false, reason: `refusing to commit excluded staged files: ${excludedStagedAfter.slice(0, 8).join(', ')}` };
     }
 
-    if (scopedFiles(stagedAfter, allowedPaths).length === 0) {
+    const stagedCommitCandidates = scopeMode === 'all-except'
+      ? stagedAfter.filter(file => !excludedCommitFiles([file], scopePaths).length)
+      : stagedAfter.filter(file => pathMatchesPrefix(normalizePathForGit(file), scopePaths));
+    if (stagedCommitCandidates.length === 0) {
       return { ok: true };
     }
 

@@ -170,4 +170,50 @@ describe('config', () => {
     expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.4' });
     expect(options.runners.ux).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
   });
+
+  it('applies per-role overrides ahead of global overrides', async () => {
+    const root = await makeTempDir();
+    const config = normalizeBacklogRunnerConfig(
+      {
+        files: {
+          backlog: './backlog.md',
+          candidateQueue: './backlog/inbox.jsonl',
+          stop: './backlog-stop',
+          runtimeReport: './.backlog-runner/runtime-report.md',
+          patterns: './scripts/backlog/patterns.md',
+          progress: './scripts/backlog/progress.txt',
+        },
+        prompts: {
+          agent: './scripts/backlog/agent.md',
+          planner: './scripts/backlog/planner.md',
+          product: './scripts/backlog/product.md',
+          ux: './scripts/backlog/ux.md',
+          code: './scripts/backlog/code.md',
+        },
+        validationCommand: 'bash scripts/backlog/validate.sh',
+        runners: {
+          task: { tool: 'codex', model: 'default' },
+          planner: { tool: 'claude', model: 'opus' },
+          product: { tool: 'codex', model: 'default' },
+          ux: { tool: 'claude', model: 'sonnet' },
+          code: { tool: 'codex', model: 'default' },
+        },
+      },
+      path.join(root, 'backlog.config.mjs'),
+    );
+
+    const options = await resolveRunOptions(config, {
+      tool: 'codex',
+      model: 'default',
+      runners: {
+        planner: { tool: 'claude', model: 'opus' },
+        task: { tool: 'codex', model: 'gpt-5.4-mini' },
+      },
+    });
+
+    expect(options.runners.task).toEqual({ tool: 'codex', model: 'gpt-5.4-mini' });
+    expect(options.runners.planner).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
+    expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.4' });
+    expect(options.runners.ux).toEqual({ tool: 'codex', model: 'gpt-5.4' });
+  });
 });

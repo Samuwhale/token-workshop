@@ -22,7 +22,7 @@ Prefer:
 - Every child must be a complete standalone task.
 - Child titles should be specific and implementation-ready.
 - Research children should focus on inspecting code and emitting concrete follow-up tasks, not writing product code.
-- Implementation children must name concrete `touch_paths`.
+- Implementation children must name concrete `touch_paths` that describe the intended starting surface.
 - Use the smallest reasonable child set that makes the parent work executable.
 - Treat failed-task notes as recovery evidence, not passive history.
 - For a failed parent, choose one of these recovery patterns:
@@ -58,5 +58,5 @@ Return exactly one JSON object matching the requested schema.
 
 - For `implementation` children:
   - keep the task narrow enough for one execution agent
-  - use concrete repo paths in `touch_paths`
+  - use concrete repo paths in `touch_paths` to describe the expected implementation surface
   - write acceptance criteria that can be validated directly

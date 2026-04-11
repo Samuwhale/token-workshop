@@ -34,16 +34,16 @@ export default {
       model: 'default',
     },
     planner: {
-      tool: 'codex',
-      model: 'default',
+      tool: 'claude',
+      model: 'opus',
     },
     product: {
-      tool: 'codex',
-      model: 'default',
+      tool: 'claude',
+      model: 'sonnet',
     },
     ux: {
-      tool: 'codex',
-      model: 'default',
+      tool: 'claude',
+      model: 'opus',
     },
     code: {
       tool: 'codex',

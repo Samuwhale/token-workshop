@@ -153,8 +153,9 @@ export async function resolveRunOptions(
   const runners = Object.fromEntries(
     await Promise.all(
       BACKLOG_RUNNER_ROLES.map(async role => {
-        const tool = overrides.tool ?? config.runners[role].tool;
-        const rawModel = overrides.model ?? config.runners[role].model;
+        const roleOverride = overrides.runners?.[role];
+        const tool = roleOverride?.tool ?? overrides.tool ?? config.runners[role].tool;
+        const rawModel = roleOverride?.model ?? overrides.model ?? config.runners[role].model;
         const model = await resolveModelAlias(config, rawModel, tool);
         return [role, { tool, model }];
       }),

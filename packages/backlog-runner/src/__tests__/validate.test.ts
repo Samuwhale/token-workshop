@@ -10,7 +10,7 @@ import {
   validateGitReadiness,
   validatePromptContracts,
 } from '../validate.js';
-import type { BacklogRunnerConfig, CommandResult, CommandRunner } from '../types.js';
+import type { BacklogRunnerConfig, CommandResult, CommandRunOptions, CommandRunner } from '../types.js';
 
 const tempDirs: string[] = [];
 
@@ -20,7 +20,7 @@ function createCommandRunner(overrides: {
   which?: (command: string) => Promise<string | null>;
 } = {}): CommandRunner {
   return {
-    async run(command: string, args: string[], options?: { input?: string }): Promise<CommandResult> {
+    async run(command: string, args: string[], options?: CommandRunOptions): Promise<CommandResult> {
       if (overrides.run) {
         return overrides.run(command, args, options);
       }

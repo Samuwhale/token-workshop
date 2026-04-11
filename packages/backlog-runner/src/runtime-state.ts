@@ -6,6 +6,7 @@ import type {
   BacklogTaskLease,
   BacklogTaskSpec,
   TaskBlockage,
+  TaskActivitySnapshot,
   TaskLeaseSnapshot,
   TaskReservationSnapshot,
 } from './types.js';
@@ -74,6 +75,13 @@ export class RuntimeStateStore {
         retry_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS task_activity (
+        task_id TEXT PRIMARY KEY,
+        transcript_path TEXT NOT NULL,
+        milestones_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
     `);
   }
 
@@ -92,8 +100,10 @@ export class RuntimeStateStore {
     if (expiredIds.length === 0) return;
     const deleteReservations = this.db.prepare('DELETE FROM reservations WHERE task_id = ?');
     const deleteLease = this.db.prepare('DELETE FROM leases WHERE task_id = ?');
+    const deleteActivity = this.db.prepare('DELETE FROM task_activity WHERE task_id = ?');
     for (const row of expiredIds) {
       deleteReservations.run(row.task_id);
+      deleteActivity.run(row.task_id);
       deleteLease.run(row.task_id);
     }
   }
@@ -231,6 +241,78 @@ export class RuntimeStateStore {
       });
   }
 
+  listActiveTaskActivity(taskIndex: Map<string, BacklogTaskSpec>, excludeTaskId?: string): TaskActivitySnapshot[] {
+    this.pruneExpiredLeases();
+    this.pruneExpiredDeferrals();
+    const rows = this.db.prepare('SELECT task_id, transcript_path, milestones_json FROM task_activity').all() as {
+      task_id: string;
+      transcript_path: string;
+      milestones_json: string;
+    }[];
+
+    return rows
+      .filter(row => row.task_id !== excludeTaskId)
+      .flatMap(row => {
+        const task = taskIndex.get(row.task_id);
+        if (!task) return [];
+
+        let milestones: string[] = [];
+        try {
+          const parsed = JSON.parse(row.milestones_json);
+          milestones = Array.isArray(parsed) ? parsed.filter(value => typeof value === 'string') : [];
+        } catch {
+          milestones = [];
+        }
+
+        return [{
+          taskId: row.task_id,
+          title: task.title,
+          transcriptPath: row.transcript_path,
+          milestones,
+        }];
+      });
+  }
+
+  recordTaskActivity(taskId: string, transcriptPath: string, milestone?: string): void {
+    this.transaction(() => {
+      this.pruneExpiredLeases();
+      this.pruneExpiredDeferrals();
+
+      const existing = this.db.prepare(
+        'SELECT milestones_json FROM task_activity WHERE task_id = ?',
+      ).get(taskId) as { milestones_json: string } | undefined;
+
+      let milestones: string[] = [];
+      if (existing) {
+        try {
+          const parsed = JSON.parse(existing.milestones_json);
+          milestones = Array.isArray(parsed) ? parsed.filter(value => typeof value === 'string') : [];
+        } catch {
+          milestones = [];
+        }
+      }
+
+      if (milestone) {
+        milestones = milestones.filter(value => value !== milestone);
+        milestones.push(milestone);
+        milestones = milestones.slice(-3);
+      }
+
+      this.db.prepare(`
+        INSERT INTO task_activity (task_id, transcript_path, milestones_json, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(task_id) DO UPDATE SET
+          transcript_path = excluded.transcript_path,
+          milestones_json = excluded.milestones_json,
+          updated_at = excluded.updated_at
+      `).run(taskId, transcriptPath, JSON.stringify(milestones), isoNow());
+    });
+  }
+
+  clearTaskActivity(taskId: string): void {
+    this.db.prepare('DELETE FROM task_activity WHERE task_id = ?').run(taskId);
+  }
+
   claimTask(task: BacklogTaskSpec, runnerId: string, claimToken: string): BacklogTaskLease | null {
     return this.transaction(() => {
       this.pruneExpiredLeases();
@@ -281,6 +363,7 @@ export class RuntimeStateStore {
 
   releaseClaim(claim: BacklogTaskClaim): void {
     this.transaction(() => {
+      this.clearTaskActivity(claim.task.id);
       this.db.prepare('DELETE FROM reservations WHERE task_id = ?').run(claim.task.id);
       this.db.prepare('DELETE FROM leases WHERE task_id = ? AND runner_id = ? AND claim_token = ?').run(
         claim.task.id,
@@ -293,6 +376,7 @@ export class RuntimeStateStore {
   deferTask(taskId: string, reason: string, retryAt: string): void {
     this.transaction(() => {
       this.pruneExpiredDeferrals();
+      this.clearTaskActivity(taskId);
       this.db.prepare(`
         INSERT INTO deferrals (task_id, reason, retry_at, updated_at)
         VALUES (?, ?, ?, ?)

@@ -32,6 +32,13 @@ export type EditingToken = {
 
 export type PreviewingToken = { path: string; name?: string; set: string };
 export type EditingGenerator = { id: string };
+export type EditorContextualSurfaceTarget =
+  | { surface: null }
+  | { surface: 'token-editor'; token: EditingToken }
+  | { surface: 'generator-editor'; generator: EditingGenerator }
+  | { surface: 'token-preview'; token: PreviewingToken }
+  | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshThemeOptions?: boolean }
+  | { surface: 'compare'; mode: 'cross-theme'; path: string; refreshThemeOptions?: boolean };
 
 export interface TokensContextualSurfaceState {
   activeSurface: TokensLibraryContextualSurface | null;
@@ -67,6 +74,7 @@ export interface EditorContextValue {
   tokensCompareDefaultA: string;
   tokensCompareDefaultB: string;
   tokensContextualSurfaceState: TokensContextualSurfaceState;
+  switchContextualSurface: (target: EditorContextualSurfaceTarget) => void;
   /**
    * Wire in the alias-not-found toast handler after the provider mounts.
    * App.tsx calls this once inside a useEffect after useToastStack is ready.
@@ -140,6 +148,55 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }
   }, [showTokensCompare, editingToken, editingGenerator, previewingToken]);
 
+  const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
+    setEditingToken(null);
+    setEditingGenerator(null);
+    setPreviewingToken(null);
+    setShowTokensCompare(false);
+
+    if (target.surface === null) return;
+
+    if (target.surface === 'token-editor') {
+      setEditingToken(target.token);
+      return;
+    }
+
+    if (target.surface === 'generator-editor') {
+      setEditingGenerator(target.generator);
+      return;
+    }
+
+    if (target.surface === 'token-preview') {
+      setPreviewingToken(target.token);
+      return;
+    }
+
+    if (target.mode === 'tokens') {
+      setTokensCompareMode('tokens');
+      setTokensComparePaths(target.paths);
+      setTokensComparePath('');
+    } else {
+      setTokensCompareMode('cross-theme');
+      setTokensComparePath(target.path);
+      setTokensComparePaths(new Set());
+    }
+
+    if (target.refreshThemeOptions ?? true) {
+      setTokensCompareThemeKey((themeKey) => themeKey + 1);
+    }
+
+    setShowTokensCompare(true);
+  }, [
+    setEditingGenerator,
+    setEditingToken,
+    setPreviewingToken,
+    setShowTokensCompare,
+    setTokensCompareMode,
+    setTokensComparePath,
+    setTokensComparePaths,
+    setTokensCompareThemeKey,
+  ]);
+
   const activeSurface = useMemo<TokensLibraryContextualSurface | null>(() => {
     if (editingToken) return 'token-editor';
     if (editingGenerator) return 'generator-editor';
@@ -182,6 +239,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     tokensCompareDefaultA,
     tokensCompareDefaultB,
     tokensContextualSurfaceState,
+    switchContextualSurface,
     setAliasNotFoundHandler,
   }), [
     editingToken,
@@ -209,6 +267,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     tokensCompareDefaultA,
     tokensCompareDefaultB,
     tokensContextualSurfaceState,
+    switchContextualSurface,
     setAliasNotFoundHandler,
   ]);
 

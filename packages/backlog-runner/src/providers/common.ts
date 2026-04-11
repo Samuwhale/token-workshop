@@ -85,6 +85,55 @@ function summarizeFailure(commandResult: CommandResult): string {
   return combined.slice(-6).join(' | ') || 'no output';
 }
 
+function firstString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function extractProviderErrorMessage(commandResult: CommandResult): string | null {
+  const root =
+    asObject(maybeParseJson(commandResult.stdout))
+    ?? asObject(maybeParseJson(commandResult.stderr));
+  if (!root) {
+    return null;
+  }
+
+  const reportedErrors = Array.isArray(root.errors)
+    ? root.errors.map(firstString).filter((value): value is string => Boolean(value))
+    : [];
+  const explicitMessage = firstString(root.message);
+  const subtype = firstString(root.subtype);
+  const terminalReason = firstString(root.terminal_reason);
+  const stopReason = firstString(root.stop_reason);
+  const turnCount = typeof root.num_turns === 'number' && root.num_turns > 0 ? root.num_turns : undefined;
+
+  const maxTurnsMessage = reportedErrors.find(message => /maximum number of turns|max[_ -]?turns/i.test(message));
+  if (subtype === 'error_max_turns' || terminalReason === 'max_turns' || stopReason === 'max_turns' || maxTurnsMessage) {
+    if (maxTurnsMessage) {
+      return maxTurnsMessage;
+    }
+    return turnCount
+      ? `Agent reached maximum number of turns (${turnCount})`
+      : 'Agent reached maximum number of turns';
+  }
+
+  if (reportedErrors.length > 0) {
+    return reportedErrors[0];
+  }
+  if (explicitMessage) {
+    return explicitMessage;
+  }
+  if (subtype) {
+    return subtype.replace(/^error_/, '').replaceAll('_', ' ');
+  }
+  if (terminalReason) {
+    return `Agent terminated: ${terminalReason.replaceAll('_', ' ')}`;
+  }
+  if (stopReason) {
+    return `Agent stopped: ${stopReason.replaceAll('_', ' ')}`;
+  }
+  return null;
+}
+
 export function normalizeAgentResult(
   stdout: string,
   stderr: string,
@@ -220,6 +269,10 @@ export function assertAgentSuccess(
   }
   if (isRateLimited(combined)) {
     throw new Error('Rate limit hit');
+  }
+  const providerMessage = extractProviderErrorMessage(commandResult);
+  if (providerMessage) {
+    throw new Error(providerMessage);
   }
   throw new Error(`Agent did not return valid strict structured output: ${summarizeFailure(commandResult)}`);
 }

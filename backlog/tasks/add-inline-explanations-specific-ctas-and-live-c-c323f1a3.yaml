@@ -1,0 +1,20 @@
+id: add-inline-explanations-specific-ctas-and-live-c-c323f1a3
+title: Add inline explanations, specific CTAs, and live counts to HealthPanel priority issues strip
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/HealthPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: HealthPanel.tsx (~1300 lines) is the audit orchestration component. Priority issues strip is built around line 587 (PriorityIssue[] array) and rendered at lines 801-858. Suppressed issues are rendered inline at lines 1239-1285 using suppressedKeys Set<string> where each key is 'rule:setName:path'. HealthSection cards for lint, generators, validation, duplicates, unused, and canvas are rendered in a dashboard area starting around line 860."
+state: ready
+acceptance_criteria:
+  - Each priority issue row includes a one-line explanation of why the issue matters, visible in the row or as a tooltip
+  - CTA button label is specific to the remediation action (e.g. 'Resolve alias', 'Fix contrast') rather than generic 'Fix' or 'View'
+  - Alias dependencies HealthSection card reflects actual broken-alias and circular-reference counts from validationIssues instead of hardcoded healthy/0
+  - Suppressed issues list shows human-readable rule label via getRuleLabel() instead of raw rule ID string
+source: planner-pass
+created_at: 2026-04-11T20:20:09.663Z
+updated_at: 2026-04-11T20:20:09.663Z

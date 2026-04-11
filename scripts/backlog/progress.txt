@@ -880,3 +880,11 @@
   - Import completion already has the conflict-preview counts needed for a post-import banner; future UI work can read the hoisted app state instead of relying on `ImportPanelProvider` state that disappears on close.
   - Multi-set imports should derive their post-import destination from `destinationSets[0]` rather than a single string callback so later routing logic can make smarter next-step decisions.
 ---
+## 2026-04-11 - Centralize contextual surface mutual-exclusion into EditorContext
+- Added `switchContextualSurface(target)` to `EditorContext` so token editor, generator editor, preview, and compare activation now clear competing surfaces in one place; updated token-list actions to use that switcher instead of open-coded clearing sequences.
+- Routed preview-to-edit through `guardEditorAction` and moved preview-to-edit/editor-close transitions onto the shared contextual-surface switch so dirty editor state blocks those jumps consistently.
+- Files changed: `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L35, `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L151, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L236, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L304, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L373, `packages/figma-plugin/src/ui/App.tsx` ~L128, `packages/figma-plugin/src/ui/App.tsx` ~L690
+- **Learnings for future iterations:**
+  - Contextual-surface transitions are easier to reason about when payload selection and mutual-exclusion live in the same context API; callers should only manage adjacent UI state like preview-split layout.
+  - Dirty-state guards belong at the navigation boundary, not inside individual preview widgets, so all entry points to editor transitions can reuse the same confirmation flow.
+---
