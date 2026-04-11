@@ -48,6 +48,7 @@ import {
 } from "./SelectionInspectorStates";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { NoticePill } from "../shared/noticeSystem";
+import { SelectionSyncStatusPill } from "./SelectionSyncStatusPill";
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -861,39 +862,6 @@ export function SelectionInspector({
           ? "Everything visible is already tokenized. Replace a binding below or use advanced tools for maintenance work."
           : "Review the visible properties below and bind or create tokens where needed.";
 
-  const syncStatusToneClass = syncing
-    ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-    : syncError
-      ? "bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]"
-      : syncResult
-        ? syncResult.errors > 0
-          ? "bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]"
-          : syncResult.missingTokens.length > 0
-            ? "bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]"
-            : "bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]"
-        : freshSyncResult && freshSyncResult.missingTokens.length === 0
-          ? "bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]"
-          : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]";
-
-  const syncStatusLabel =
-    syncing && syncProgress
-      ? `Syncing ${syncProgress.processed}/${syncProgress.total}`
-      : syncError
-        ? "Sync failed"
-        : syncResult
-          ? syncResult.errors > 0
-            ? `${syncResult.errors} failed`
-            : syncResult.updated === 0 && syncResult.missingTokens.length === 0
-              ? "Up to date"
-              : `Updated ${syncResult.updated}`
-          : freshSyncResult && freshSyncResult.missingTokens.length === 0
-            ? "Selection in sync"
-            : totalBindings > 0 && connected
-              ? "Ready to sync"
-              : connected
-                ? "No sync pending"
-                : "Disconnected";
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto px-3 py-3">
@@ -915,11 +883,15 @@ export function SelectionInspector({
                   <span className="block truncate">{headerLabel}</span>
                 </p>
               </div>
-              <span
-                className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${syncStatusToneClass}`}
-              >
-                {syncStatusLabel}
-              </span>
+              <SelectionSyncStatusPill
+                syncing={syncing}
+                syncProgress={syncProgress}
+                syncResult={syncResult}
+                syncError={syncError}
+                freshSyncResult={freshSyncResult}
+                connected={connected}
+                totalBindings={totalBindings}
+              />
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
               <span className="rounded-full bg-[var(--color-figma-accent)]/15 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-accent)]">
@@ -1149,8 +1121,6 @@ export function SelectionInspector({
             syncResult={syncResult}
             syncError={syncError}
             freshSyncResult={freshSyncResult}
-            syncStatusToneClass={syncStatusToneClass}
-            syncStatusLabel={syncStatusLabel}
             totalBindings={totalBindings}
             deepInspect={deepInspect}
             onToggleDeepInspect={handleToggleDeepInspect}

@@ -23,6 +23,7 @@ import { InlineBanner } from "./InlineBanner";
 import { NoticeFieldMessage } from "../shared/noticeSystem";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { adaptShortcut } from "../shared/utils";
+import { SelectionSyncStatusPill } from "./SelectionSyncStatusPill";
 
 type InspectorPropFilterMode =
   | "all"
@@ -46,8 +47,6 @@ interface MaintenanceToolsSectionProps {
   syncResult: SyncCompleteMessage | null;
   syncError?: string | null;
   freshSyncResult: SyncCompleteMessage | null;
-  syncStatusToneClass: string;
-  syncStatusLabel: string;
   totalBindings: number;
   deepInspect: boolean;
   onToggleDeepInspect: () => void;
@@ -83,9 +82,20 @@ interface MaintenanceToolCardProps {
   title: string;
   description: string;
   expanded: boolean;
-  indicator?: ToolIndicator | null;
+  indicator?: ReactNode;
   onToggle: () => void;
   children: ReactNode;
+}
+
+function renderToolIndicator(indicator: ToolIndicator | null): ReactNode {
+  if (!indicator) return null;
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${indicator.className}`}
+    >
+      {indicator.label}
+    </span>
+  );
 }
 
 export function LayerSearchPanel({
@@ -290,13 +300,7 @@ function MaintenanceToolCard({
             {description}
           </p>
         </div>
-        {indicator && (
-          <span
-            className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${indicator.className}`}
-          >
-            {indicator.label}
-          </span>
-        )}
+        {indicator}
       </button>
       {expanded && (
         <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
@@ -324,8 +328,6 @@ export const MaintenanceToolsSection = forwardRef<
     syncResult,
     syncError,
     freshSyncResult,
-    syncStatusToneClass,
-    syncStatusLabel,
     totalBindings,
     deepInspect,
     onToggleDeepInspect,
@@ -494,65 +496,79 @@ export const MaintenanceToolsSection = forwardRef<
     isFilterActive,
   ].filter(Boolean).length;
 
-  const syncIndicator: ToolIndicator | null =
-    syncing ||
-    syncError ||
-    syncResult ||
-    freshSyncResult ||
-    (connected && totalBindings > 0)
-      ? { label: syncStatusLabel, className: syncStatusToneClass }
-      : null;
+  const syncIndicator = (
+    <SelectionSyncStatusPill
+      syncing={syncing}
+      syncProgress={syncProgress}
+      syncResult={syncResult}
+      syncError={syncError}
+      freshSyncResult={freshSyncResult}
+      connected={connected}
+      totalBindings={totalBindings}
+      visibility="active"
+    />
+  );
 
-  const searchIndicator = expandedCards.search
-    ? {
-        label: "Open",
-        className:
-          "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
-      }
-    : null;
-
-  const inspectIndicator = deepInspect
-    ? {
-        label:
-          deepChildNodes.length > 0 ? `${deepChildNodes.length} nested` : "On",
-        className:
-          "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
-      }
-    : null;
-
-  const actionsIndicator = showExtractPanel
-    ? {
-        label: "Extract",
-        className:
-          "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
-      }
-    : showRemapPanel
+  const searchIndicator = renderToolIndicator(
+    expandedCards.search
       ? {
-          label: "Remap",
+          label: "Open",
           className:
             "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
         }
-      : extractUnboundError
-        ? {
-            label: "Error",
-            className:
-              "bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]",
-          }
-        : extractUnboundResult
-          ? {
-              label: "Done",
-              className:
-                "bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]",
-            }
-          : null;
+      : null,
+  );
 
-  const filtersIndicator = isFilterActive
-    ? {
-        label: `${activeFilterCount} active`,
-        className:
-          "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
-      }
-    : null;
+  const inspectIndicator = renderToolIndicator(
+    deepInspect
+      ? {
+          label:
+            deepChildNodes.length > 0
+              ? `${deepChildNodes.length} nested`
+              : "On",
+          className:
+            "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
+        }
+      : null,
+  );
+
+  const actionsIndicator = renderToolIndicator(
+    showExtractPanel
+      ? {
+          label: "Extract",
+          className:
+            "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
+        }
+      : showRemapPanel
+        ? {
+            label: "Remap",
+            className:
+              "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
+          }
+        : extractUnboundError
+          ? {
+              label: "Error",
+              className:
+                "bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]",
+            }
+          : extractUnboundResult
+            ? {
+                label: "Done",
+                className:
+                  "bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]",
+              }
+            : null,
+  );
+
+  const filtersIndicator = renderToolIndicator(
+    isFilterActive
+      ? {
+          label: `${activeFilterCount} active`,
+          className:
+            "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]",
+        }
+      : null,
+  );
 
   return (
     <section
