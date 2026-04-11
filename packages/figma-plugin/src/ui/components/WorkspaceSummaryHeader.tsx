@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import type { WorkspaceSection } from '../shared/navigationTypes';
 import { shellControlClass } from '../shared/shellControlStyles';
 
@@ -7,6 +7,38 @@ type WorkspacePillTone = 'neutral' | 'accent' | 'warning' | 'danger' | 'success'
 interface WorkspacePill {
   label: string;
   tone: WorkspacePillTone;
+  /** Explicit priority (lower = more important). Defaults to tone-based ranking. */
+  priority?: number;
+}
+
+const MAX_VISIBLE_PILLS = 4;
+
+/** Default priority by tone: blocking/errors first, then actionable, then informational. */
+const tonePriority: Record<WorkspacePillTone, number> = {
+  danger: 0,
+  warning: 1,
+  accent: 2,
+  success: 3,
+  neutral: 4,
+};
+
+/** Pills that restate visually obvious state and should be deprioritized. */
+const deprioritizedLabels = new Set([
+  'Live preview open',
+  'Coverage review',
+  'Compare mode',
+  'Resolver mode',
+]);
+
+function rankPills(pills: WorkspacePill[]): WorkspacePill[] {
+  return [...pills].sort((a, b) => {
+    const aDepri = deprioritizedLabels.has(a.label) ? 1 : 0;
+    const bDepri = deprioritizedLabels.has(b.label) ? 1 : 0;
+    if (aDepri !== bDepri) return aDepri - bDepri;
+    const aPri = a.priority ?? tonePriority[a.tone];
+    const bPri = b.priority ?? tonePriority[b.tone];
+    return aPri - bPri;
+  });
 }
 
 interface WorkspacePrimaryAction {
@@ -46,6 +78,18 @@ export function WorkspaceSummaryHeader({
 }: WorkspaceSummaryHeaderProps) {
   const hasSections = Boolean(sections && sections.length > 1);
   const hasStatus = statusPills.length > 0;
+
+  const [overflowExpanded, setOverflowExpanded] = useState(false);
+
+  // Collapse overflow when pills change (e.g. workspace switch)
+  useEffect(() => {
+    setOverflowExpanded(false);
+  }, [statusPills]);
+
+  const ranked = hasStatus ? rankPills(statusPills) : [];
+  const needsOverflow = ranked.length > MAX_VISIBLE_PILLS && !overflowExpanded;
+  const visiblePills = needsOverflow ? ranked.slice(0, MAX_VISIBLE_PILLS) : ranked;
+  const overflowCount = ranked.length - MAX_VISIBLE_PILLS;
 
   return (
     <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -107,7 +151,7 @@ export function WorkspaceSummaryHeader({
                 <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                   Status
                 </span>
-                {statusPills.map((pill, index) => (
+                {visiblePills.map((pill, index) => (
                   <span
                     key={`${pill.label}-${index}`}
                     className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium ${pillToneClasses[pill.tone]}`}
@@ -115,6 +159,14 @@ export function WorkspaceSummaryHeader({
                     {pill.label}
                   </span>
                 ))}
+                {needsOverflow && (
+                  <button
+                    onClick={() => setOverflowExpanded(true)}
+                    className="shrink-0 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors duration-100 hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
+                  >
+                    +{overflowCount} more
+                  </button>
+                )}
               </div>
             )}
           </div>

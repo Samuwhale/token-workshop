@@ -89,6 +89,9 @@ export function UnusedTokensPanel({
   const [confirmApplyStaged, setConfirmApplyStaged] = useState(false);
   const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set());
   const [deprecatingUnused, setDeprecatingUnused] = useState<Set<string>>(new Set());
+  const [collapsedSets, setCollapsedSets] = useState<Set<string>>(new Set());
+  const [expandedCounts, setExpandedCounts] = useState<Record<string, number>>({});
+  const ITEMS_PER_PAGE = 20;
 
   const queueTokens = useMemo<QueueToken[]>(() => (
     [...unusedTokens]
@@ -153,12 +156,15 @@ export function UnusedTokensPanel({
       existing.push(token);
       lifecycleGroups.set(token.lifecycle, existing);
     }
-    return [...grouped.entries()].map(([setName, lifecycleGroups]) => ({
-      setName,
-      lifecycleGroups: (['draft', 'published', 'deprecated'] as LifecycleValue[])
-        .map(lifecycle => ({ lifecycle, tokens: lifecycleGroups.get(lifecycle) ?? [] }))
-        .filter(group => group.tokens.length > 0),
-    }));
+    return [...grouped.entries()]
+      .map(([setName, lifecycleGroups]) => {
+        const lg = (['draft', 'published', 'deprecated'] as LifecycleValue[])
+          .map(lifecycle => ({ lifecycle, tokens: lifecycleGroups.get(lifecycle) ?? [] }))
+          .filter(group => group.tokens.length > 0);
+        const totalCount = lg.reduce((sum, g) => sum + g.tokens.length, 0);
+        return { setName, lifecycleGroups: lg, totalCount };
+      })
+      .sort((a, b) => b.totalCount - a.totalCount);
   }, [filteredTokens]);
 
   const stagedQueue = useMemo(() => (
@@ -405,75 +411,55 @@ export function UnusedTokensPanel({
                     {groupedQueue.map(group => {
                       const groupTokens = group.lifecycleGroups.flatMap(lifecycleGroup => lifecycleGroup.tokens);
                       const groupStagedCount = groupTokens.filter(token => stagedActions[token.key]).length;
+                      const isSetCollapsed = collapsedSets.has(group.setName);
+                      const visibleLimit = expandedCounts[group.setName] ?? ITEMS_PER_PAGE;
+                      const allGroupTokens = groupTokens;
+                      const visibleTokens = allGroupTokens.slice(0, visibleLimit);
+                      const remainingCount = allGroupTokens.length - visibleLimit;
                       return (
                         <section key={group.setName} className="bg-[var(--color-figma-bg)]">
-                          <div className="px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-wrap items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <h4 className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">{group.setName}</h4>
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{groupTokens.length} token{groupTokens.length === 1 ? '' : 's'}</span>
-                                {groupStagedCount > 0 && (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{groupStagedCount} staged</span>
-                                )}
+                          <button
+                            onClick={() => setCollapsedSets(prev => {
+                              const next = new Set(prev);
+                              if (next.has(group.setName)) next.delete(group.setName); else next.add(group.setName);
+                              return next;
+                            })}
+                            className="w-full px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isSetCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                            <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">{group.setName}</span>
+                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] tabular-nums shrink-0">{groupTokens.length}</span>
+                            {groupStagedCount > 0 && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] shrink-0">{groupStagedCount} staged</span>
+                            )}
+                          </button>
+
+                          {!isSetCollapsed && (
+                            <>
+                              <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 flex flex-wrap items-center justify-end gap-1">
+                                <button
+                                  onClick={() => stageTokens(groupTokens, 'deprecate')}
+                                  className="text-[9px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                                >
+                                  Stage set to deprecate
+                                </button>
+                                <button
+                                  onClick={() => stageTokens(groupTokens, 'delete')}
+                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
+                                >
+                                  Stage set to delete
+                                </button>
+                                <button
+                                  onClick={() => clearStagedTokens(groupTokens.filter(token => stagedActions[token.key]))}
+                                  disabled={groupStagedCount === 0}
+                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Clear set
+                                </button>
                               </div>
-                              <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">Group cleanup by lifecycle so draft work and production tokens can be reviewed separately.</p>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-1">
-                              <button
-                                onClick={() => stageTokens(groupTokens, 'deprecate')}
-                                className="text-[9px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                              >
-                                Stage set to deprecate
-                              </button>
-                              <button
-                                onClick={() => stageTokens(groupTokens, 'delete')}
-                                className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
-                              >
-                                Stage set to delete
-                              </button>
-                              <button
-                                onClick={() => clearStagedTokens(groupTokens.filter(token => stagedActions[token.key]))}
-                                disabled={groupStagedCount === 0}
-                                className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                              >
-                                Clear set
-                              </button>
-                            </div>
-                          </div>
 
-                          <div className="divide-y divide-[var(--color-figma-border)]">
-                            {group.lifecycleGroups.map(lifecycleGroup => {
-                              const lifecycleStagedCount = lifecycleGroup.tokens.filter(token => stagedActions[token.key]).length;
-                              return (
-                                <div key={`${group.setName}:${lifecycleGroup.lifecycle}`}>
-                                  <div className="px-3 py-2 flex flex-wrap items-center justify-between gap-2 bg-[var(--color-figma-bg-secondary)]/60">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className={`text-[9px] px-1.5 py-0.5 rounded border ${getLifecycleBadgeClass(lifecycleGroup.lifecycle)}`}>
-                                        {formatLifecycle(lifecycleGroup.lifecycle)}
-                                      </span>
-                                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{lifecycleGroup.tokens.length} token{lifecycleGroup.tokens.length === 1 ? '' : 's'}</span>
-                                      {lifecycleStagedCount > 0 && (
-                                        <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{lifecycleStagedCount} staged</span>
-                                      )}
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-1">
-                                      <button
-                                        onClick={() => stageTokens(lifecycleGroup.tokens, 'deprecate')}
-                                        className="text-[9px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                                      >
-                                        Stage lifecycle to deprecate
-                                      </button>
-                                      <button
-                                        onClick={() => stageTokens(lifecycleGroup.tokens, 'delete')}
-                                        className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
-                                      >
-                                        Stage lifecycle to delete
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  <div className="divide-y divide-[var(--color-figma-border)]">
-                                    {lifecycleGroup.tokens.map(token => {
+                              <div className="divide-y divide-[var(--color-figma-border)]">
+                                {visibleTokens.map(token => {
                                       const stagedAction = stagedActions[token.key];
                                       const isDeleting = deletingUnused.has(token.key);
                                       const isDeprecating = deprecatingUnused.has(token.key);
@@ -539,11 +525,20 @@ export function UnusedTokensPanel({
                                         </div>
                                       );
                                     })}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                {remainingCount > 0 && (
+                                  <button
+                                    onClick={() => setExpandedCounts(prev => ({
+                                      ...prev,
+                                      [group.setName]: visibleLimit + Math.min(remainingCount, ITEMS_PER_PAGE),
+                                    }))}
+                                    className="w-full px-3 py-2 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center"
+                                  >
+                                    Show {Math.min(remainingCount, ITEMS_PER_PAGE)} more{remainingCount > ITEMS_PER_PAGE ? ` of ${remainingCount} remaining` : ''}
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </section>
                       );
                     })}

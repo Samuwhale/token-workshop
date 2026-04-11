@@ -12,7 +12,8 @@ validation_profile: plugin
 status_notes:
   - "Context: The Apply workspace shows Summary, Suggestions, and Bindings as three stacked cards. Summary currently takes 80-100px to display 4 status pills and a layer name. The Suggestions and Bindings sections below are the actionable content. Collapsing Summary recovers 60-80px of vertical space for actionable content."
   - "Context: The rest of the Apply workspace density is justified — inline pickers expand from 28px to ~200px only when active, smart auto-advance after binding works well, and suggestion scoring is genuinely useful. Do NOT restructure Suggestions or Bindings."
-state: ready
+  - "Completed: Replaced multi-line summary card with a single-line collapsible status bar showing chevron, layer name, bound/total count, and suggestion count. Expanded state reveals full detail panel with guidance text and status pills. Removed Step 1 eyebrow text. No changes to Suggestions or Bindings. Build passes."
+state: done
 acceptance_criteria:
   - Summary step collapses to a single-line status bar showing layer name, bound/total count, and suggestion count (e.g. 'Button/Primary — 3/8 bound, 2 suggestions').
   - The status bar is tappable/expandable to show the full summary card with all status pills when the user wants detail.

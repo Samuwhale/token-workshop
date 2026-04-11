@@ -41,11 +41,11 @@
 - [ ] [HIGH] Extract shared editor shell layout from TokenEditor
 - [ ] [HIGH] Consolidate generator escalation paths through contextual surface contract
 - [ ] [HIGH] Add aggregate summary bar above PublishPanel variable and style diff sections
-- [ ] [HIGH] Add grouping and progressive loading to HealthPanel issue lists
+- [x] [HIGH] Add grouping and progressive loading to HealthPanel issue lists
 - [ ] [HIGH] Add return-to-Audit breadcrumb when navigating from audit issue to source workspace
-- [ ] [HIGH] Collapse SelectionInspector summary step into a single-line status bar
+- [x] [HIGH] Collapse SelectionInspector summary step into a single-line status bar
 - [x] [HIGH] Collapse token editor to three default sections with grouped details and info tab
-- [ ] [HIGH] Group and reduce TokenList select-mode toolbar from eleven flat buttons to grouped actions
+- [x] [HIGH] Group and reduce TokenList select-mode toolbar from eleven flat buttons to grouped actions
 - [ ] [HIGH] Merge token search input and filter builder into one unified input with qualifier chips
 - [x] [HIGH] Rename resolver modifiers to resolver dimensions to fix dual-meaning modifier terminology
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
@@ -97,7 +97,7 @@
 - [x] Research post-import handoff routing and next-step recommendations across import success and workspace navigation
 - [x] Research the Tokens authoring contract for token-editor consistency, generator escalation, and inline generated-group status
 - [x] Add explicit preflight, compare, and apply stage navigation to the Figma Sync publish panel
-- [ ] Centralize server connection editing in Settings and reduce shell/onboarding affordances to passive recovery entry points
+- [x] Centralize server connection editing in Settings and reduce shell/onboarding affordances to passive recovery entry points
 - [ ] Introduce confidence-based suggestion groups and shared reason copy across Apply suggestion lists
 - [ ] Restructure variable and style diff review into apply-ready review groups inside each sync target
 - [ ] Add next-step recommendation rules based on import result
@@ -115,7 +115,7 @@
 - [ ] Add return-to-generated-tokens navigation after generator save
 - [ ] Add inline generated-token leaf indicators and rationalize stale-generator status
 - [x] Add named parameter presets as entry path for generator configuration
-- [ ] Cap visible status pills at four with expandable overflow
-- [ ] Standardize mode and option and context terminology to use option everywhere
+- [x] Cap visible status pills at four with expandable overflow
+- [x] Standardize mode and option and context terminology to use option everywhere
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

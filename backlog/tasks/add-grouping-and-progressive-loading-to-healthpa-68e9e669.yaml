@@ -13,7 +13,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: HealthPanel can show 1000+ unused tokens in a single scrollable list and 100+ lint violations with wrapped text. No grouping or pagination exists. Designers scanning for actionable issues must scroll through massive flat lists."
-state: ready
+  - "Completed: Added set-grouped collapsible headers with per-set counts to UnusedTokensPanel, sorted by count descending. Added progressive loading (20 items per page with Show N more). Added progressive loading to HealthPanel validation issue groups sorted by count within severity tier. DuplicateDetectionPanel already groups correctly, no changes needed. Build passes."
+state: done
 acceptance_criteria:
   - Unused tokens are grouped by token set with collapsible set headers showing per-set counts.
   - Lint violations are grouped by rule with collapsible rule headers showing per-rule counts.

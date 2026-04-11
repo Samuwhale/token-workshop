@@ -1307,7 +1307,7 @@ export function ThemeManager({
     [dimensions],
   );
   const focusedContextLabel = useMemo(() => {
-    if (!focusedDimension) return "current theme context";
+    if (!focusedDimension) return "current theme";
     if (focusedOptionName)
       return `${focusedDimension.name} -> ${focusedOptionName}`;
     return focusedDimension.name;
@@ -1632,7 +1632,7 @@ export function ThemeManager({
                   </p>
                   <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                     {showAllCoverageAxes || !coverageFocusDimension
-                      ? "Started from the current theme context and expanded to every axis. Focus any issue, then jump straight back into the matching role editor."
+                      ? "Started from the current theme and expanded to every axis. Focus any issue, then jump straight back into the matching role editor."
                       : coveragePrimaryIssue
                         ? `${coveragePrimaryIssue.dimensionName} -> ${coveragePrimaryIssue.optionName}: ${coveragePrimaryIssue.recommendedNextAction}`
                         : coverageFocusOptionName
@@ -1704,11 +1704,11 @@ export function ThemeManager({
                 <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
                   {compareFocusDimension
                     ? `Compare from ${compareFocusDimension.name}`
-                    : "Compare in theme context"}
+                    : "Compare in theme"}
                 </p>
                 <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                   {compareFocusDimension && compareFocusOptionName
-                    ? `Theme option comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this context.`
+                    ? `Theme option comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this focus.`
                     : "Compare launches from the current axis or option so you can inspect alternatives without leaving theme authoring."}
                 </p>
               </div>
@@ -2414,7 +2414,7 @@ export function ThemeManager({
                               );
                             }}
                             className="flex items-center gap-1 px-2 py-0.5 rounded border border-[var(--color-figma-warning)]/35 text-[10px] font-medium text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/12 transition-colors"
-                            title="Review gap coverage in context"
+                            title="Review gap coverage"
                           >
                             Review gaps
                           </button>

@@ -11,7 +11,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: When entering select mode, 11 buttons appear in a flat row with no visual grouping or dividers: Select all, Bulk edit, Compare, Link to tokens, Move to group, Move to set, Copy to set, Copy JSON, Copy CSS var, Copy {ref}, Delete. No separation of concerns — destructive and informational actions have equal visual weight."
-state: ready
+  - "Completed: Grouped buttons with vertical dividers into Selection (Select all), Edit (Bulk edit, Compare), Organize (Move to group, Move to set, Copy to set), Copy as... dropdown (JSON, CSS var, {ref}), overflow menu (Link to tokens), and Delete with danger styling. Reduced visible buttons from 11 to ~7-8. Added click-outside handling for dropdown menus. Build passes."
+state: done
 acceptance_criteria:
   - Buttons are grouped with visual dividers by intent — Selection (Select all), Edit (Bulk edit, Compare), Organize (Move to group, Move to set, Copy to set), Copy (dropdown containing JSON, CSS var, {ref}), and Danger (Delete, visually distinct).
   - The three Copy actions collapse into a single 'Copy as...' dropdown menu, reducing visible buttons from 11 to approximately 7-8.

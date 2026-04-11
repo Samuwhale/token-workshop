@@ -49,6 +49,7 @@ interface WelcomePromptProps {
   initialBranch?: StartHereBranch;
   isFirstRun?: boolean;
   onRetryConnection?: () => void;
+  onOpenSettings?: () => void;
   onClose: () => void;
   onImportFigma?: () => void;
   onPasteJSON: () => void;
@@ -117,6 +118,7 @@ export function WelcomePrompt({
   initialBranch = 'root',
   isFirstRun = false,
   onRetryConnection,
+  onOpenSettings,
   onClose,
   onImportFigma,
   onPasteJSON,
@@ -333,29 +335,31 @@ export function WelcomePrompt({
             </button>
           </div>
           {!connected && (
-            <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-              <div className="flex items-start gap-2">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-px shrink-0" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                    {checking ? 'Checking server connection…' : 'Server connection needed for most actions'}
-                  </p>
-                  <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                    Guided setup can help you connect. Current server: <span className="font-mono text-[var(--color-figma-text)]">{serverUrl}</span>
-                  </p>
-                  {onRetryConnection && (
-                    <button
-                      onClick={onRetryConnection}
-                      className="mt-2 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                    >
-                      {checking ? 'Checking…' : 'Retry connection'}
-                    </button>
-                  )}
-                </div>
+            <div className="mt-3 flex items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+              <span
+                className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${checking ? "bg-[var(--color-figma-text-secondary)] animate-pulse" : "bg-[var(--color-figma-error)]"}`}
+              />
+              <span className={`flex-1 text-[10px] font-medium ${checking ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}>
+                {checking ? 'Checking connection…' : 'Server offline'}
+              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {onRetryConnection && (
+                  <button
+                    onClick={onRetryConnection}
+                    disabled={checking}
+                    className="rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Retry
+                  </button>
+                )}
+                {onOpenSettings && (
+                  <button
+                    onClick={onOpenSettings}
+                    className="rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  >
+                    Settings
+                  </button>
+                )}
               </div>
             </div>
           )}

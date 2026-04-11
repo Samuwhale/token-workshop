@@ -14,7 +14,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: Three terms are used for the same concept across the plugin — 'options' in Themes (Light/Dark are options), 'contexts' in Resolver (Light/Dark are contexts), and 'modes' in documentation/conversation. 'Mode' conflicts with Figma's own Mode concept. 'Context' is DTCG jargon. 'Option' is neutral and intuitive."
-state: ready
+  - "Completed: Renamed 4 user-facing strings in ResolverPanel (select modifier contexts → select dimension options, Default context → Default option, based on contextual dimensions → based on dimensions, etc.) and 5 strings in ThemeManager (current theme context → current theme, Compare in theme context → Compare in theme, etc.). SyncSubPanel and CompareView had no theme-variant terminology to change. Internal variable names preserved. Build passes."
+state: done
 acceptance_criteria:
   - All user-facing labels, headers, tooltips, and guidance text use 'option' consistently when referring to theme variants (Light, Dark, Brand A, etc.).
   - Resolver UI replaces 'context' with 'option' in all user-facing text.

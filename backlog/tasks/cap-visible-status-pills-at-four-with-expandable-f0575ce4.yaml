@@ -11,7 +11,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: WorkspaceSummaryHeader renders dynamic status pills per workspace. In complex states (e.g. Sync workspace with git, preflight, coverage review active) these can reach 12+ pills. Each pill has a color, icon, and label. Scanning 12 pills in a ~300px-wide header requires significant cognitive effort. Some pills restate what the user can already see (e.g. 'Live preview open' when the preview panel is visually open)."
-state: ready
+  - "Completed: Added tonePriority ranking (danger > warning > accent > success > neutral), deprioritized visually-obvious pills (Live preview open, Coverage review, Compare mode, Resolver mode), capped visible pills at 4, added +N more expandable overflow button that auto-resets on statusPills change. Build passes."
+state: done
 acceptance_criteria:
   - Maximum 4 status pills are visible at once in the WorkspaceSummaryHeader.
   - Blocking and actionable states (errors, required actions) are prioritized for the visible slots.

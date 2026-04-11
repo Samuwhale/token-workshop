@@ -285,6 +285,8 @@ export function HealthPanel({
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
   const [validationCopied, setValidationCopied] = useState(false);
   const [validationExported, setValidationExported] = useState<'json' | 'csv' | null>(null);
+  const [issueGroupVisibleCounts, setIssueGroupVisibleCounts] = useState<Record<string, number>>({});
+  const ISSUES_PER_PAGE = 20;
 
   // reloadKey forces re-computation of allTokensUnified after mutations
   const [reloadKey, setReloadKey] = useState(0);
@@ -486,7 +488,7 @@ export function HealthPanel({
         const worst = issues.reduce((a, b) => severityOrder[a.severity] <= severityOrder[b.severity] ? a : b);
         return { rule, label: meta.label, tip: meta.tip, severity: worst.severity, issues };
       })
-      .sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+      .sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity] || b.issues.length - a.issues.length);
   })();
 
   // ── Fix / mutate handlers ───────────────────────────────────────────────────
@@ -1140,7 +1142,13 @@ export function HealthPanel({
                               {group.tip}
                             </div>
                           )}
-                          {!isCollapsed && group.issues.map((issue, i) => (
+                          {!isCollapsed && (() => {
+                            const visibleLimit = issueGroupVisibleCounts[group.rule] ?? ISSUES_PER_PAGE;
+                            const visibleIssues = group.issues.slice(0, visibleLimit);
+                            const remainingCount = group.issues.length - visibleLimit;
+                            return (
+                              <>
+                                {visibleIssues.map((issue, i) => (
                             <div key={i} className="group px-3 py-1.5 flex items-center gap-2 border-b border-[var(--color-figma-border)] last:border-b-0">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-baseline gap-1.5 flex-wrap">
@@ -1187,6 +1195,20 @@ export function HealthPanel({
                               )}
                             </div>
                           ))}
+                                {remainingCount > 0 && (
+                                  <button
+                                    onClick={() => setIssueGroupVisibleCounts(prev => ({
+                                      ...prev,
+                                      [group.rule]: visibleLimit + Math.min(remainingCount, ISSUES_PER_PAGE),
+                                    }))}
+                                    className="w-full px-3 py-1.5 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center border-b border-[var(--color-figma-border)]"
+                                  >
+                                    Show {Math.min(remainingCount, ISSUES_PER_PAGE)} more{remainingCount > ISSUES_PER_PAGE ? ` of ${remainingCount} remaining` : ''}
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       );
                     })}
