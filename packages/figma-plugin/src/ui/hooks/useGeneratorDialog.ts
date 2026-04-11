@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo } from "react";
 import type {
   TokenGenerator,
   GeneratorType,
@@ -6,7 +6,7 @@ import type {
   GeneratedTokenResult,
   GeneratorTemplate,
   InputTable,
-} from './useGenerators';
+} from "./useGenerators";
 import {
   detectGeneratorType,
   suggestTargetGroup,
@@ -14,13 +14,17 @@ import {
   defaultConfigForType,
   ALL_TYPES,
   VALUE_REQUIRED_TYPES,
-} from '../components/generators/generatorUtils';
-import { useGeneratorPreview } from './useGeneratorPreview';
-import { useGeneratorSave } from './useGeneratorSave';
-import type { UndoSlot } from './useUndo';
+} from "../components/generators/generatorUtils";
+import { useGeneratorPreview } from "./useGeneratorPreview";
+import {
+  useGeneratorSave,
+  type GeneratorSaveSuccessInfo,
+} from "./useGeneratorSave";
+import type { UndoSlot } from "./useUndo";
+import type { ToastAction } from "../shared/toastBus";
 
-import type { OverwrittenEntry } from './useGeneratorPreview';
-export type { OverwrittenEntry } from './useGeneratorPreview';
+import type { OverwrittenEntry } from "./useGeneratorPreview";
+export type { OverwrittenEntry } from "./useGeneratorPreview";
 
 interface UseGeneratorDialogParams {
   serverUrl: string;
@@ -32,9 +36,17 @@ interface UseGeneratorDialogParams {
   existingGenerator?: TokenGenerator;
   template?: GeneratorTemplate;
   initialDraft?: GeneratorDialogInitialDraft;
-  onSaved: (info?: { targetGroup: string }) => void;
+  onSaved: (info?: GeneratorSaveSuccessInfo) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog internally */
-  onInterceptSemanticMapping?: (data: { tokens: GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: GeneratorType }) => void;
+  onInterceptSemanticMapping?: (data: {
+    tokens: GeneratedTokenResult[];
+    targetGroup: string;
+    targetSet: string;
+    generatorType: GeneratorType;
+  }) => void;
+  getSuccessToastAction?: (
+    info: GeneratorSaveSuccessInfo,
+  ) => ToastAction | undefined;
   pushUndo?: (slot: UndoSlot) => void;
 }
 
@@ -88,9 +100,9 @@ function mergeGeneratorDrafts(
     },
     pendingOverrides: overrideDraft?.pendingOverrides
       ? cloneGeneratorDraftValue(overrideDraft.pendingOverrides)
-      : (baseDraft?.pendingOverrides
-          ? cloneGeneratorDraftValue(baseDraft.pendingOverrides)
-          : undefined),
+      : baseDraft?.pendingOverrides
+        ? cloneGeneratorDraftValue(baseDraft.pendingOverrides)
+        : undefined,
   };
 }
 
@@ -154,7 +166,11 @@ interface UseGeneratorDialogReturn {
   handleConfigChange: (type: GeneratorType, cfg: GeneratorConfig) => void;
   handleToggleMultiBrand: () => void;
   setInputTable: (table: InputTable | undefined) => void;
-  handleOverrideChange: (stepName: string, value: string, locked: boolean) => void;
+  handleOverrideChange: (
+    stepName: string,
+    value: string,
+    locked: boolean,
+  ) => void;
   handleOverrideClear: (stepName: string) => void;
   clearAllOverrides: () => void;
   handleQuickSave: () => Promise<void>;
@@ -171,7 +187,7 @@ export function useGeneratorDialog({
   serverUrl,
   sourceTokenPath,
   sourceTokenName,
-  sourceTokenType = '',
+  sourceTokenType = "",
   sourceTokenValue,
   activeSet,
   existingGenerator,
@@ -179,18 +195,22 @@ export function useGeneratorDialog({
   initialDraft,
   onSaved,
   onInterceptSemanticMapping,
+  getSuccessToastAction,
   pushUndo,
 }: UseGeneratorDialogParams): UseGeneratorDialogReturn {
   const isEditing = Boolean(existingGenerator);
   const initialTemplateDraft = template
     ? createGeneratorDraftFromTemplate(template, activeSet)
     : undefined;
-  const resolvedInitialDraft = mergeGeneratorDrafts(initialTemplateDraft, initialDraft);
+  const resolvedInitialDraft = mergeGeneratorDrafts(
+    initialTemplateDraft,
+    initialDraft,
+  );
 
   // Editable source token path — initialized from existingGenerator.sourceToken when editing,
   // or from the sourceTokenPath prop (clicked token) when creating.
   const [editableSourcePath, setEditableSourcePathRaw] = useState(
-    existingGenerator?.sourceToken ?? sourceTokenPath ?? ''
+    existingGenerator?.sourceToken ?? sourceTokenPath ?? "",
   );
 
   const recommendedType = useMemo(() => {
@@ -199,31 +219,46 @@ export function useGeneratorDialog({
       return detectGeneratorType(sourceTokenType, sourceTokenValue);
     }
     return undefined;
-  }, [existingGenerator?.sourceToken, sourceTokenPath, sourceTokenType, sourceTokenValue]);
+  }, [
+    existingGenerator?.sourceToken,
+    sourceTokenPath,
+    sourceTokenType,
+    sourceTokenValue,
+  ]);
 
   const initialType: GeneratorType =
     existingGenerator?.type ??
     resolvedInitialDraft?.selectedType ??
     recommendedType ??
-    'colorRamp';
+    "colorRamp";
 
   const [selectedType, setSelectedType] = useState<GeneratorType>(initialType);
   const [name, setName] = useState(
     existingGenerator?.name ??
-    resolvedInitialDraft?.name ??
-    autoName(sourceTokenPath, initialType)
+      resolvedInitialDraft?.name ??
+      autoName(sourceTokenPath, initialType),
   );
-  const [targetSet, setTargetSet] = useState(existingGenerator?.targetSet ?? resolvedInitialDraft?.targetSet ?? activeSet);
+  const [targetSet, setTargetSet] = useState(
+    existingGenerator?.targetSet ??
+      resolvedInitialDraft?.targetSet ??
+      activeSet,
+  );
   const [targetGroup, setTargetGroup] = useState(
     existingGenerator?.targetGroup ??
-    resolvedInitialDraft?.targetGroup ??
-    (sourceTokenPath ? suggestTargetGroup(sourceTokenPath, sourceTokenName) : '')
+      resolvedInitialDraft?.targetGroup ??
+      (sourceTokenPath
+        ? suggestTargetGroup(sourceTokenPath, sourceTokenName)
+        : ""),
   );
   const [inlineValue, setInlineValueRaw] = useState<unknown>(
-    existingGenerator?.inlineValue ?? resolvedInitialDraft?.inlineValue ?? undefined
+    existingGenerator?.inlineValue ??
+      resolvedInitialDraft?.inlineValue ??
+      undefined,
   );
 
-  const [configs, setConfigs] = useState<Partial<Record<GeneratorType, GeneratorConfig>>>(() => {
+  const [configs, setConfigs] = useState<
+    Partial<Record<GeneratorType, GeneratorConfig>>
+  >(() => {
     const base: Partial<Record<GeneratorType, GeneratorConfig>> = {};
     for (const t of ALL_TYPES) {
       if (existingGenerator?.type === t) {
@@ -237,37 +272,51 @@ export function useGeneratorDialog({
     return base;
   });
 
-  const [pendingOverrides, setPendingOverrides] = useState<Record<string, { value: unknown; locked: boolean }>>(
-    existingGenerator?.overrides ?? resolvedInitialDraft?.pendingOverrides ?? {}
+  const [pendingOverrides, setPendingOverrides] = useState<
+    Record<string, { value: unknown; locked: boolean }>
+  >(
+    existingGenerator?.overrides ??
+      resolvedInitialDraft?.pendingOverrides ??
+      {},
   );
 
   const [inputTable, setInputTable] = useState<InputTable | undefined>(
-    existingGenerator?.inputTable ?? undefined
+    existingGenerator?.inputTable ?? undefined,
   );
   const [targetSetTemplate, setTargetSetTemplate] = useState<string>(
-    existingGenerator?.targetSetTemplate ?? 'brands/{brand}'
+    existingGenerator?.targetSetTemplate ?? "brands/{brand}",
   );
 
   const nameWasAutoRef = useRef(
-    resolvedInitialDraft?.nameIsAuto ?? (!existingGenerator && !resolvedInitialDraft?.name)
+    resolvedInitialDraft?.nameIsAuto ??
+      (!existingGenerator && !resolvedInitialDraft?.name),
   );
   const isDirtyRef = useRef(false);
-  const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
+  const markDirty = useCallback(() => {
+    isDirtyRef.current = true;
+  }, []);
 
   // --- Config undo/redo stack ---
   // Snapshots are debounced: rapid edits (keystrokes) are coalesced into one snapshot.
   // Type changes and preset selections push immediately.
   const MAX_UNDO = 20;
-  const [configUndoStack, setConfigUndoStack] = useState<Array<{ type: GeneratorType; config: GeneratorConfig }>>([]);
-  const [configRedoStack, setConfigRedoStack] = useState<Array<{ type: GeneratorType; config: GeneratorConfig }>>([]);
+  const [configUndoStack, setConfigUndoStack] = useState<
+    Array<{ type: GeneratorType; config: GeneratorConfig }>
+  >([]);
+  const [configRedoStack, setConfigRedoStack] = useState<
+    Array<{ type: GeneratorType; config: GeneratorConfig }>
+  >([]);
   const undoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingSnapshotRef = useRef<{ type: GeneratorType; config: GeneratorConfig } | null>(null);
+  const pendingSnapshotRef = useRef<{
+    type: GeneratorType;
+    config: GeneratorConfig;
+  } | null>(null);
 
   const flushSnapshot = useCallback(() => {
     if (pendingSnapshotRef.current) {
       const snap = pendingSnapshotRef.current;
       pendingSnapshotRef.current = null;
-      setConfigUndoStack(prev => [...prev.slice(-MAX_UNDO + 1), snap]);
+      setConfigUndoStack((prev) => [...prev.slice(-MAX_UNDO + 1), snap]);
       setConfigRedoStack([]);
     }
   }, []);
@@ -275,11 +324,17 @@ export function useGeneratorDialog({
   /** Push snapshot immediately (for discrete changes like type switch or preset). */
   const pushConfigSnapshot = useCallback(() => {
     // Flush any pending debounced snapshot first
-    if (undoDebounceRef.current) { clearTimeout(undoDebounceRef.current); undoDebounceRef.current = null; }
+    if (undoDebounceRef.current) {
+      clearTimeout(undoDebounceRef.current);
+      undoDebounceRef.current = null;
+    }
     flushSnapshot();
     const currentCfg = configs[selectedType];
     if (!currentCfg) return;
-    setConfigUndoStack(prev => [...prev.slice(-MAX_UNDO + 1), { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) }]);
+    setConfigUndoStack((prev) => [
+      ...prev.slice(-MAX_UNDO + 1),
+      { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) },
+    ]);
     setConfigRedoStack([]);
   }, [configs, selectedType, flushSnapshot]);
 
@@ -289,7 +344,10 @@ export function useGeneratorDialog({
     if (!currentCfg) return;
     // Only capture the snapshot if we don't already have a pending one
     if (!pendingSnapshotRef.current) {
-      pendingSnapshotRef.current = { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) };
+      pendingSnapshotRef.current = {
+        type: selectedType,
+        config: JSON.parse(JSON.stringify(currentCfg)),
+      };
     }
     if (undoDebounceRef.current) clearTimeout(undoDebounceRef.current);
     undoDebounceRef.current = setTimeout(flushSnapshot, 500);
@@ -302,7 +360,10 @@ export function useGeneratorDialog({
    *  This ensures each distinct user action lands in its own undo slot rather than
    *  being coalesced with the previous one by the debounce. */
   const handleConfigInteractionStart = useCallback(() => {
-    if (undoDebounceRef.current) { clearTimeout(undoDebounceRef.current); undoDebounceRef.current = null; }
+    if (undoDebounceRef.current) {
+      clearTimeout(undoDebounceRef.current);
+      undoDebounceRef.current = null;
+    }
     flushSnapshot();
     // pendingSnapshotRef is now null — the first onChange from the new interaction
     // will capture the pre-interaction state via pushConfigSnapshotDebounced.
@@ -312,36 +373,44 @@ export function useGeneratorDialog({
     if (configUndoStack.length === 0) return;
     const currentCfg = configs[selectedType];
     if (currentCfg) {
-      setConfigRedoStack(prev => [...prev, { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) }]);
+      setConfigRedoStack((prev) => [
+        ...prev,
+        { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) },
+      ]);
     }
     const snapshot = configUndoStack[configUndoStack.length - 1];
-    setConfigUndoStack(prev => prev.slice(0, -1));
+    setConfigUndoStack((prev) => prev.slice(0, -1));
     setSelectedType(snapshot.type);
-    setConfigs(prev => ({ ...prev, [snapshot.type]: snapshot.config }));
+    setConfigs((prev) => ({ ...prev, [snapshot.type]: snapshot.config }));
   }, [configUndoStack, configs, selectedType]);
 
   const handleRedo = useCallback(() => {
     if (configRedoStack.length === 0) return;
     const currentCfg = configs[selectedType];
     if (currentCfg) {
-      setConfigUndoStack(prev => [...prev, { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) }]);
+      setConfigUndoStack((prev) => [
+        ...prev,
+        { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) },
+      ]);
     }
     const snapshot = configRedoStack[configRedoStack.length - 1];
-    setConfigRedoStack(prev => prev.slice(0, -1));
+    setConfigRedoStack((prev) => prev.slice(0, -1));
     setSelectedType(snapshot.type);
-    setConfigs(prev => ({ ...prev, [snapshot.type]: snapshot.config }));
+    setConfigs((prev) => ({ ...prev, [snapshot.type]: snapshot.config }));
   }, [configRedoStack, configs, selectedType]);
 
   // Derived values
   const isMultiBrand = Boolean(inputTable);
   const typeNeedsValue = VALUE_REQUIRED_TYPES.includes(selectedType);
   const hasSource = Boolean(editableSourcePath.trim());
-  const hasInlineValue = inlineValue !== undefined && inlineValue !== '';
+  const hasInlineValue = inlineValue !== undefined && inlineValue !== "";
   const hasValue = hasSource || hasInlineValue;
   // All types available — inline values unlock source-requiring types
   const availableTypes = ALL_TYPES;
   const currentConfig = configs[selectedType]!;
-  const lockedCount = Object.values(pendingOverrides).filter(o => o.locked).length;
+  const lockedCount = Object.values(pendingOverrides).filter(
+    (o) => o.locked,
+  ).length;
 
   // --- Sub-hooks ---
 
@@ -408,6 +477,7 @@ export function useGeneratorDialog({
     previewTokens,
     onSaved,
     onInterceptSemanticMapping,
+    getSuccessToastAction,
     pushUndo,
   });
 
@@ -420,11 +490,15 @@ export function useGeneratorDialog({
     if (nameWasAutoRef.current) setName(autoName(effectiveSourcePath, type));
   };
 
-  const setEditableSourcePath = useCallback((v: string) => {
-    markDirty();
-    setEditableSourcePathRaw(v);
-    if (nameWasAutoRef.current) setName(autoName(v.trim() || undefined, selectedType));
-  }, [markDirty, selectedType]);
+  const setEditableSourcePath = useCallback(
+    (v: string) => {
+      markDirty();
+      setEditableSourcePathRaw(v);
+      if (nameWasAutoRef.current)
+        setName(autoName(v.trim() || undefined, selectedType));
+    },
+    [markDirty, selectedType],
+  );
 
   const handleNameChange = (value: string) => {
     markDirty();
@@ -435,34 +509,73 @@ export function useGeneratorDialog({
   const handleConfigChange = (type: GeneratorType, cfg: GeneratorConfig) => {
     pushConfigSnapshotDebounced();
     markDirty();
-    setConfigs(prev => ({ ...prev, [type]: cfg }));
+    setConfigs((prev) => ({ ...prev, [type]: cfg }));
   };
 
   const handleToggleMultiBrand = () => {
     markDirty();
-    setInputTable(inputTable ? undefined : { inputKey: 'brandColor', rows: [] });
+    setInputTable(
+      inputTable ? undefined : { inputKey: "brandColor", rows: [] },
+    );
   };
 
-  const handleOverrideChange = (stepName: string, value: string, locked: boolean) => {
+  const handleOverrideChange = (
+    stepName: string,
+    value: string,
+    locked: boolean,
+  ) => {
     markDirty();
-    setPendingOverrides(prev => ({ ...prev, [stepName]: { value, locked } }));
+    setPendingOverrides((prev) => ({ ...prev, [stepName]: { value, locked } }));
   };
 
   const handleOverrideClear = (stepName: string) => {
-    setPendingOverrides(prev => {
+    setPendingOverrides((prev) => {
       const next = { ...prev };
       delete next[stepName];
       return next;
     });
   };
 
-  const clearAllOverrides = () => { markDirty(); setPendingOverrides({}); };
+  const clearAllOverrides = () => {
+    markDirty();
+    setPendingOverrides({});
+  };
 
-  const setTargetSetDirty = useCallback((v: string) => { markDirty(); setTargetSet(v); }, [markDirty]);
-  const setTargetGroupDirty = useCallback((v: string) => { markDirty(); setTargetGroup(v); }, [markDirty]);
-  const setTargetSetTemplateDirty = useCallback((v: string) => { markDirty(); setTargetSetTemplate(v); }, [markDirty]);
-  const setInputTableDirty = useCallback((t: InputTable | undefined) => { markDirty(); setInputTable(t); }, [markDirty]);
-  const setInlineValue = useCallback((v: unknown) => { markDirty(); setInlineValueRaw(v); }, [markDirty]);
+  const setTargetSetDirty = useCallback(
+    (v: string) => {
+      markDirty();
+      setTargetSet(v);
+    },
+    [markDirty],
+  );
+  const setTargetGroupDirty = useCallback(
+    (v: string) => {
+      markDirty();
+      setTargetGroup(v);
+    },
+    [markDirty],
+  );
+  const setTargetSetTemplateDirty = useCallback(
+    (v: string) => {
+      markDirty();
+      setTargetSetTemplate(v);
+    },
+    [markDirty],
+  );
+  const setInputTableDirty = useCallback(
+    (t: InputTable | undefined) => {
+      markDirty();
+      setInputTable(t);
+    },
+    [markDirty],
+  );
+  const setInlineValue = useCallback(
+    (v: unknown) => {
+      markDirty();
+      setInlineValueRaw(v);
+    },
+    [markDirty],
+  );
 
   return {
     // Derived

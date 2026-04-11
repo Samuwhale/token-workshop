@@ -9,8 +9,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/App.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Shared deep-inspect and property-filter state now lives in InspectContext, SelectionInspector consumes it, App renders apply-shell pills from it, and the global deep-inspect shortcut moved into the provider."
+state: done
 acceptance_criteria:
   - Move deepInspect boolean and propFilter/propFilterMode state from SelectionInspector local state into InspectContext
   - InspectContext initializes from localStorage and persists on change
@@ -18,4 +19,4 @@ acceptance_criteria:
   - Keyboard shortcut for deep inspect (Cmd+Shift+D) handler moves to InspectContext provider
 source: task-followup
 created_at: 2026-04-11T10:39:50.203Z
-updated_at: 2026-04-11T10:39:50.203Z
+updated_at: 2026-04-11T22:25:57.402Z

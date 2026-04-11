@@ -79,6 +79,7 @@ import type { OperationEntry } from "../hooks/useRecentOperations";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { StarredTokensState } from "../hooks/useStarredTokens";
 import type { NotificationEntry } from "../hooks/useToastStack";
+import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
 import type {
   ImportNextStepRecommendation,
   TopTab,
@@ -93,6 +94,7 @@ import {
   getMostRelevantImportDestinationSet,
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
+import type { ToastAction } from "../shared/toastBus";
 import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
 import { useEditorWidth } from "../hooks/useEditorWidth";
 
@@ -294,6 +296,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     createFromEmpty,
     setCreateFromEmpty,
     setPendingHighlight,
+    setPendingHighlightForSet,
     handleNavigateToAlias,
     handleNavigateBack,
     navHistoryLength,
@@ -473,6 +476,34 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       });
     },
     [p.setShowPreviewSplit, switchContextualSurface],
+  );
+
+  const openGeneratedTokens = useCallback(
+    (targetGroup: string, targetSet: string) => {
+      p.setShowPreviewSplit(false);
+      switchContextualSurface({ surface: null });
+      setPendingHighlightForSet(targetGroup, targetSet);
+      if (targetSet !== activeSet) {
+        setActiveSet(targetSet);
+      }
+      navigateTo("define", "tokens");
+    },
+    [
+      activeSet,
+      navigateTo,
+      p.setShowPreviewSplit,
+      setActiveSet,
+      setPendingHighlightForSet,
+      switchContextualSurface,
+    ],
+  );
+
+  const getViewTokensToastAction = useCallback(
+    (info: GeneratorSaveSuccessInfo): ToastAction => ({
+      label: "View tokens",
+      onClick: () => openGeneratedTokens(info.targetGroup, info.targetSet),
+    }),
+    [openGeneratedTokens],
   );
 
   const handleTokenEditorBack = useCallback(() => {
@@ -773,10 +804,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             setEditingGenerator(null);
             p.refreshAll();
           },
-          onSaved: () => {
+          onSaved: (info?: GeneratorSaveSuccessInfo) => {
             setEditingGenerator(null);
             p.refreshAll();
+            if (info) {
+              openGeneratedTokens(info.targetGroup, info.targetSet);
+            }
           },
+          getSuccessToastAction: getViewTokensToastAction,
           onPushUndo: p.pushUndo,
           presentation: "panel" as const,
           onDirtyChange: (dirty: boolean) => {
@@ -1366,6 +1401,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           }}
           focusGeneratorId={p.focusGeneratorId}
           onClearFocusGenerator={() => p.setFocusGeneratorId(null)}
+          onViewTokens={openGeneratedTokens}
           openTemplatePicker={p.pendingOpenPicker}
         />
       </ErrorBoundary>

@@ -178,6 +178,8 @@ export interface TokenListActions {
 export interface TokenListImperativeHandle {
   /** Enter multi-select mode (no navigation — user selects tokens then clicks Compare) */
   openCompareMode: () => void;
+  /** Expand the parent chain for a token/group and scroll it into view */
+  revealPath: (path: string) => void;
   /** Enable the recently touched filter inside the token list */
   showRecentlyTouched: () => void;
   /** Toggle between tree and JSON views */

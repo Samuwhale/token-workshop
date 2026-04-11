@@ -1,10 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import type { ToastVariant } from "../shared/toastBus";
-
-export interface ToastAction {
-  label: string;
-  onClick: () => void;
-}
+import type { ToastAction, ToastVariant } from "../shared/toastBus";
 
 export interface ToastItem {
   id: number;
@@ -72,13 +67,14 @@ export function useToastStack() {
   );
 
   const pushAction = useCallback(
-    (message: string, action: ToastAction) => {
+    (
+      message: string,
+      action: ToastAction,
+      variant: ToastVariant = "success",
+    ) => {
       const id = nextId.current++;
-      setToasts((prev) => [
-        ...prev,
-        { id, message, variant: "success", action },
-      ]);
-      addToHistory(message, "success");
+      setToasts((prev) => [...prev, { id, message, variant, action }]);
+      addToHistory(message, variant);
       return id;
     },
     [addToHistory],

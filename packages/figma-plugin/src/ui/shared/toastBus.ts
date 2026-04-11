@@ -10,9 +10,15 @@ export type ToastVariant = Extract<
   "info" | "success" | "warning" | "error"
 >;
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface ToastBusDetail {
   message: string;
   variant: ToastVariant;
+  action?: ToastAction;
 }
 
 /**
@@ -23,10 +29,14 @@ interface ToastBusDetail {
  * which routes through the plugin sandbox and shows a Figma-native notification
  * outside the plugin window (invisible in standalone UI harness, no history).
  */
-export function dispatchToast(message: string, variant: ToastVariant): void {
+export function dispatchToast(
+  message: string,
+  variant: ToastVariant,
+  action?: ToastAction,
+): void {
   window.dispatchEvent(
     new CustomEvent<ToastBusDetail>(EVENT_NAME, {
-      detail: { message, variant },
+      detail: { message, variant, action },
     }),
   );
 }
@@ -39,10 +49,20 @@ export function useToastBusListener(
   pushSuccess: (message: string) => void,
   pushWarning: (message: string) => void,
   pushError: (message: string) => void,
+  pushAction?: (
+    message: string,
+    action: ToastAction,
+    variant?: ToastVariant,
+  ) => void,
 ): void {
   useEffect(() => {
     const handler = (e: Event) => {
-      const { message, variant } = (e as CustomEvent<ToastBusDetail>).detail;
+      const { message, variant, action } = (e as CustomEvent<ToastBusDetail>)
+        .detail;
+      if (action && pushAction) {
+        pushAction(message, action, variant);
+        return;
+      }
       if (variant === "error") {
         pushError(message);
         return;

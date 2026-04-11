@@ -3275,6 +3275,33 @@ export function TokenList({
 
   // handleJumpToGroup is managed by useTokenVirtualScroll (destructured above)
 
+  const handleRevealPath = useCallback(
+    (path: string) => {
+      const isGroupPath = tokens.some(
+        (node) => node.isGroup && node.path === path,
+      );
+      setViewMode("tree");
+      setZoomRootPath(null);
+      setExpandedPaths((prev) => {
+        const next = new Set(prev);
+        const segments = path.split(".");
+        for (let i = 1; i < segments.length; i += 1) {
+          next.add(segments.slice(0, i).join("."));
+        }
+        if (isGroupPath) {
+          next.add(path);
+        }
+        return next;
+      });
+    },
+    [setExpandedPaths, setViewMode, setZoomRootPath, tokens],
+  );
+
+  useLayoutEffect(() => {
+    if (!highlightedToken) return;
+    handleRevealPath(highlightedToken);
+  }, [handleRevealPath, highlightedToken]);
+
   // Collapse all groups that are descendants of the given group path,
   // keeping the ancestor chain expanded so the group header stays visible
   const handleCollapseBelow = useCallback(
@@ -3429,6 +3456,9 @@ export function TokenList({
         setSelectMode(true);
         setShowBatchEditor(false);
       },
+      revealPath: (path: string) => {
+        handleRevealPath(path);
+      },
       showRecentlyTouched: () => {
         setShowRecentlyTouched(true);
       },
@@ -3463,6 +3493,7 @@ export function TokenList({
     compareHandle,
     setSelectMode,
     setShowBatchEditor,
+    handleRevealPath,
     setShowRecentlyTouched,
     viewMode,
     setViewMode,

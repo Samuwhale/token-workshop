@@ -17,10 +17,12 @@ import type {
 import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { TokenGeneratorDialog } from "./TokenGeneratorDialog";
+import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
 import { VALUE_REQUIRED_TYPES } from "./generators/generatorUtils";
 import { OverrideRow, formatValue } from "./generators/generatorShared";
 import { swatchBgColor } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
+import type { ToastAction } from "../shared/toastBus";
 import { ConfirmModal } from "./ConfirmModal";
 import {
   useGeneratorPreview,
@@ -744,12 +746,16 @@ function QuickEditPanel({
   allSets,
   onSaved,
   onOpenFullDialog,
+  getViewTokensToastAction,
 }: {
   generator: TokenGenerator;
   serverUrl: string;
   allSets: string[];
   onSaved: () => void;
   onOpenFullDialog: () => void;
+  getViewTokensToastAction?: (
+    info: GeneratorSaveSuccessInfo,
+  ) => ToastAction | undefined;
 }) {
   const [config, setConfig] = useState<GeneratorConfig>(() =>
     JSON.parse(JSON.stringify(generator.config)),
@@ -795,7 +801,14 @@ function QuickEditPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      dispatchToast(`Generator "${name.trim()}" updated`, "success");
+      dispatchToast(
+        `Generator "${name.trim()}" updated`,
+        "success",
+        getViewTokensToastAction?.({
+          targetGroup,
+          targetSet,
+        }),
+      );
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -934,6 +947,7 @@ export interface GeneratorPipelineCardProps {
   onRefresh: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   onPushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
+  onViewTokens?: (targetGroup: string, targetSet: string) => void;
 }
 
 export function GeneratorPipelineCard({
@@ -946,6 +960,7 @@ export function GeneratorPipelineCard({
   onRefresh,
   allTokensFlat,
   onPushUndo,
+  onViewTokens,
 }: GeneratorPipelineCardProps) {
   const [running, setRunning] = useState(false);
   const [, setDeleting] = useState(false);
@@ -982,6 +997,19 @@ export function GeneratorPipelineCard({
   const overrideCount = Object.keys(generator.overrides ?? {}).length;
   const hasSecondaryActionOpen =
     !!previewDiff || showStepOverrides || showQuickEdit || showClonePanel;
+  const getViewTokensToastAction = React.useCallback(
+    (info: GeneratorSaveSuccessInfo) =>
+      onViewTokens
+        ? {
+            label: "View tokens",
+            onClick: () => onViewTokens(info.targetGroup, info.targetSet),
+          }
+        : undefined,
+    [onViewTokens],
+  );
+  const handleViewTokens = () => {
+    onViewTokens?.(generator.targetGroup, generator.targetSet);
+  };
 
   useEffect(() => {
     if (!actionsMenuOpen) return;
@@ -1440,17 +1468,56 @@ export function GeneratorPipelineCard({
         </span>
       </div>
       <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)] flex items-center justify-between gap-2">
-        <button
-          onClick={handleRerun}
-          disabled={running || previewLoading}
-          className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-            isStale
-              ? "border-yellow-400/60 bg-yellow-400/10 text-yellow-700 hover:bg-yellow-400/15"
-              : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/30 hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/6"
-          }`}
-          title="Run generator now"
-        >
-          {running ? (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRerun}
+            disabled={running || previewLoading}
+            className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              isStale
+                ? "border-yellow-400/60 bg-yellow-400/10 text-yellow-700 hover:bg-yellow-400/15"
+                : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/30 hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/6"
+            }`}
+            title="Run generator now"
+          >
+            {running ? (
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="animate-spin"
+                aria-hidden="true"
+              >
+                <path d="M21 12a9 9 0 11-6.219-8.56" />
+              </svg>
+            ) : (
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 12a9 9 0 1015.5-6.36L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            )}
+            {running ? "Running…" : "Re-run"}
+          </button>
+          <button
+            onClick={handleViewTokens}
+            disabled={!onViewTokens}
+            className="inline-flex items-center gap-1 rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/30 hover:bg-[var(--color-figma-accent)]/6 hover:text-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+            title="Open the generated token group in Tokens"
+          >
             <svg
               width="10"
               height="10"
@@ -1460,29 +1527,15 @@ export function GeneratorPipelineCard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="animate-spin"
               aria-hidden="true"
             >
-              <path d="M21 12a9 9 0 11-6.219-8.56" />
+              <path d="M3 7.5 12 3l9 4.5-9 4.5-9-4.5Z" />
+              <path d="M3 12.5 12 17l9-4.5" />
+              <path d="M3 17.5 12 22l9-4.5" />
             </svg>
-          ) : (
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 12a9 9 0 1015.5-6.36L21 8" />
-              <path d="M21 3v5h-5" />
-            </svg>
-          )}
-          {running ? "Running…" : "Re-run"}
-        </button>
+            View tokens
+          </button>
+        </div>
         <div className="relative shrink-0" ref={actionsMenuContainerRef}>
           <button
             ref={actionsMenuButtonRef}
@@ -1779,6 +1832,7 @@ export function GeneratorPipelineCard({
             onRefresh();
           }}
           onOpenFullDialog={handleOpenEditDialog}
+          getViewTokensToastAction={getViewTokensToastAction}
         />
       )}
 
@@ -1860,6 +1914,7 @@ export function GeneratorPipelineCard({
             setShowEditDialog(false);
             onRefresh();
           }}
+          getSuccessToastAction={getViewTokensToastAction}
           onPushUndo={onPushUndo}
         />
       )}
