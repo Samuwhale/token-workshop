@@ -1,11 +1,11 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { Token } from '@tokenmanager/core';
-import type { TokenStore } from './token-store.js';
-import type { SetMetadataState } from './token-store.js';
-import { NotFoundError, ConflictError } from '../errors.js';
-import { PromiseChainLock } from '../utils/promise-chain-lock.js';
+import fs from "node:fs/promises";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import type { Token } from "@tokenmanager/core";
+import type { TokenStore } from "./token-store.js";
+import type { SetMetadataState } from "./token-store.js";
+import { NotFoundError, ConflictError } from "../errors.js";
+import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
 /** A snapshot of a single token path — null means the token did not exist. */
 export interface SnapshotEntry {
@@ -13,21 +13,35 @@ export interface SnapshotEntry {
   setName: string;
 }
 
-const MULTI_SET_SNAPSHOT_SEPARATOR = '::';
+const MULTI_SET_SNAPSHOT_SEPARATOR = "::";
 
-export function buildMultiSetSnapshotPath(setName: string, tokenPath: string): string {
+export function buildMultiSetSnapshotPath(
+  setName: string,
+  tokenPath: string,
+): string {
   return `${setName}${MULTI_SET_SNAPSHOT_SEPARATOR}${tokenPath}`;
 }
 
-export function getSnapshotTokenPath(snapshotKey: string, setName: string): string {
+export function getSnapshotTokenPath(
+  snapshotKey: string,
+  setName: string,
+): string {
   const prefix = `${setName}${MULTI_SET_SNAPSHOT_SEPARATOR}`;
-  return snapshotKey.startsWith(prefix) ? snapshotKey.slice(prefix.length) : snapshotKey;
+  return snapshotKey.startsWith(prefix)
+    ? snapshotKey.slice(prefix.length)
+    : snapshotKey;
 }
 
-export function listSnapshotTokenPaths(snapshot: Record<string, SnapshotEntry>): string[] {
-  return [...new Set(
-    Object.entries(snapshot).map(([snapshotKey, entry]) => getSnapshotTokenPath(snapshotKey, entry.setName)),
-  )];
+export function listSnapshotTokenPaths(
+  snapshot: Record<string, SnapshotEntry>,
+): string[] {
+  return [
+    ...new Set(
+      Object.entries(snapshot).map(([snapshotKey, entry]) =>
+        getSnapshotTokenPath(snapshotKey, entry.setName),
+      ),
+    ),
+  ];
 }
 
 function findSnapshotEntryForTokenPath(
@@ -55,13 +69,13 @@ function snapshotContainsTokenPath(
 
 export interface SetMetadataChange {
   field: keyof SetMetadataState;
-  label: 'Description' | 'Collection' | 'Mode';
+  label: "Description" | "Collection" | "Mode";
   before?: string;
   after?: string;
 }
 
 export interface SetMetadataOperationMetadata {
-  kind: 'set-metadata';
+  kind: "set-metadata";
   name: string;
   before: SetMetadataState;
   after: SetMetadataState;
@@ -70,23 +84,29 @@ export interface SetMetadataOperationMetadata {
 
 /** Structural rollback step — executed before token restoration during rollback. */
 export type RollbackStep =
-  | { action: 'create-set'; name: string }
-  | { action: 'delete-set'; name: string }
-  | { action: 'rename-set'; from: string; to: string }
-  | { action: 'reorder-sets'; order: string[] }
-  | { action: 'write-set-metadata'; name: string; metadata: Partial<SetMetadataState> }
-  | { action: 'write-themes'; dimensions: unknown }
-  | { action: 'write-resolver'; name: string; file: unknown }
-  | { action: 'delete-resolver'; name: string }
-  | { action: 'create-generator'; generator: unknown }
-  | { action: 'delete-generator'; id: string };
+  | { action: "create-set"; name: string }
+  | { action: "delete-set"; name: string }
+  | { action: "rename-set"; from: string; to: string }
+  | { action: "reorder-sets"; order: string[] }
+  | {
+      action: "write-set-metadata";
+      name: string;
+      metadata: Partial<SetMetadataState>;
+    }
+  | { action: "write-themes"; dimensions: unknown }
+  | { action: "write-resolver"; name: string; file: unknown }
+  | { action: "delete-resolver"; name: string }
+  | { action: "create-generator"; generator: unknown }
+  | { action: "delete-generator"; id: string };
 
 /**
  * Minimal interface for serialized access to the $themes.json file.
  * Structurally compatible with DimensionsStore from routes/themes.ts.
  */
 export interface ThemesWriteLock {
-  withLock<T>(fn: (dims: any[]) => Promise<{ dims: any[]; result: T }>): Promise<T>;
+  withLock<T>(
+    fn: (dims: any[]) => Promise<{ dims: any[]; result: T }>,
+  ): Promise<T>;
 }
 
 /** Context required for rollback — provides access to all services that may need restoration. */
@@ -98,11 +118,15 @@ export interface RollbackContext {
    * which would race with concurrent theme mutations and corrupt the file.
    */
   themesStore?: ThemesWriteLock;
+  resolverLock?: {
+    withLock<T>(fn: () => Promise<T>): Promise<T>;
+  };
   resolverStore?: {
     get(name: string): unknown;
     create(name: string, file: any): Promise<void>;
     update(name: string, file: any): Promise<void>;
     delete(name: string): Promise<boolean>;
+    updateSetReferences?(oldName: string, newName: string): Promise<string[]>;
   };
   generatorService?: {
     updateSetName(oldName: string, newName: string): Promise<number | void>;
@@ -143,7 +167,7 @@ export interface OperationSummary {
   setName: string;
   affectedPaths: string[];
   rolledBack: boolean;
-  metadata?: OperationEntry['metadata'];
+  metadata?: OperationEntry["metadata"];
 }
 
 /** A single entry in a per-token value timeline. */
@@ -154,8 +178,8 @@ export interface TokenHistoryEntry {
   description: string;
   setName: string;
   rolledBack: boolean;
-  before: import('@tokenmanager/core').Token | null;
-  after: import('@tokenmanager/core').Token | null;
+  before: import("@tokenmanager/core").Token | null;
+  after: import("@tokenmanager/core").Token | null;
 }
 
 interface PathRenameEntry {
@@ -175,12 +199,14 @@ export class OperationLog {
 
   constructor(tokenDir: string) {
     this.tokenDir = path.resolve(tokenDir);
-    const tmDir = path.join(this.tokenDir, '.tokenmanager');
-    this.filePath = path.join(tmDir, 'operations.json');
-    this.pathRenameFilePath = path.join(tmDir, 'path-renames.json');
+    const tmDir = path.join(this.tokenDir, ".tokenmanager");
+    this.filePath = path.join(tmDir, "operations.json");
+    this.pathRenameFilePath = path.join(tmDir, "path-renames.json");
   }
 
-  private clonePathRenames(pathRenames: Array<{ oldPath: string; newPath: string }>) {
+  private clonePathRenames(
+    pathRenames: Array<{ oldPath: string; newPath: string }>,
+  ) {
     return pathRenames.map(({ oldPath, newPath }) => ({ oldPath, newPath }));
   }
 
@@ -198,17 +224,21 @@ export class OperationLog {
   private ensureLoaded(): Promise<void> {
     if (!this.loadPromise) {
       this.loadPromise = Promise.all([
-        fs.readFile(this.filePath, 'utf-8')
-          .then(raw => JSON.parse(raw) as OperationEntry[])
+        fs
+          .readFile(this.filePath, "utf-8")
+          .then((raw) => JSON.parse(raw) as OperationEntry[])
           .catch(() => []),
-        fs.readFile(this.pathRenameFilePath, 'utf-8')
-          .then(raw => JSON.parse(raw) as PathRenameEntry[])
+        fs
+          .readFile(this.pathRenameFilePath, "utf-8")
+          .then((raw) => JSON.parse(raw) as PathRenameEntry[])
           .catch(() => null),
       ]).then(([entries, pathRenameEntries]) => {
         this.entries = entries;
-        this.pathRenameEntries = pathRenameEntries ?? this.entries
-          .map(entry => this.toPathRenameEntry(entry))
-          .filter((entry): entry is PathRenameEntry => entry !== null);
+        this.pathRenameEntries =
+          pathRenameEntries ??
+          this.entries
+            .map((entry) => this.toPathRenameEntry(entry))
+            .filter((entry): entry is PathRenameEntry => entry !== null);
       });
     }
     return this.loadPromise;
@@ -217,14 +247,18 @@ export class OperationLog {
   private async persistEntries(): Promise<void> {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     const tmp = `${this.filePath}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(this.entries, null, 2), 'utf-8');
+    await fs.writeFile(tmp, JSON.stringify(this.entries, null, 2), "utf-8");
     await fs.rename(tmp, this.filePath);
   }
 
   private async persistPathRenameEntries(): Promise<void> {
     await fs.mkdir(path.dirname(this.pathRenameFilePath), { recursive: true });
     const tmp = `${this.pathRenameFilePath}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(this.pathRenameEntries, null, 2), 'utf-8');
+    await fs.writeFile(
+      tmp,
+      JSON.stringify(this.pathRenameEntries, null, 2),
+      "utf-8",
+    );
     await fs.rename(tmp, this.pathRenameFilePath);
   }
 
@@ -233,7 +267,9 @@ export class OperationLog {
   }
 
   /** Push a new entry and persist — must be called while holding the lock. */
-  private async pushAndPersist(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
+  private async pushAndPersist(
+    entry: Omit<OperationEntry, "id" | "timestamp" | "rolledBack">,
+  ): Promise<OperationEntry> {
     const full: OperationEntry = {
       ...entry,
       id: randomUUID(),
@@ -255,7 +291,9 @@ export class OperationLog {
   }
 
   /** Record a new operation entry. */
-  async record(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
+  async record(
+    entry: Omit<OperationEntry, "id" | "timestamp" | "rolledBack">,
+  ): Promise<OperationEntry> {
     await this.ensureLoaded();
     return this.lock.withLock(() => this.pushAndPersist(entry));
   }
@@ -272,7 +310,10 @@ export class OperationLog {
   }
 
   /** Get recent entries (newest first) as lightweight summaries, with total count. */
-  async getRecent(limit = 5, offset = 0): Promise<{ entries: OperationSummary[]; total: number }> {
+  async getRecent(
+    limit = 5,
+    offset = 0,
+  ): Promise<{ entries: OperationSummary[]; total: number }> {
     await this.ensureLoaded();
     const total = this.entries.length;
     // entries stored oldest-first; slice from the newest end using offset
@@ -281,16 +322,34 @@ export class OperationLog {
     const entries = this.entries
       .slice(start, end)
       .reverse()
-      .map(({ id, timestamp, type, description, setName, affectedPaths, rolledBack, metadata }) => ({
-        id, timestamp, type, description, setName, affectedPaths, rolledBack, metadata,
-      }));
+      .map(
+        ({
+          id,
+          timestamp,
+          type,
+          description,
+          setName,
+          affectedPaths,
+          rolledBack,
+          metadata,
+        }) => ({
+          id,
+          timestamp,
+          type,
+          description,
+          setName,
+          affectedPaths,
+          rolledBack,
+          metadata,
+        }),
+      );
     return { entries, total };
   }
 
   /** Get a full entry by ID. */
   async getById(id: string): Promise<OperationEntry | undefined> {
     await this.ensureLoaded();
-    return this.entries.find(e => e.id === id);
+    return this.entries.find((e) => e.id === id);
   }
 
   /** Get the value-change history for a specific token path (newest first). */
@@ -302,23 +361,28 @@ export class OperationLog {
     await this.ensureLoaded();
     // Filter to operations that affected this path and had a value change
     const matching = this.entries
-      .filter((entry) => (
-        entry.affectedPaths.includes(tokenPath) ||
-        snapshotContainsTokenPath(entry.beforeSnapshot, tokenPath) ||
-        snapshotContainsTokenPath(entry.afterSnapshot, tokenPath)
-      ))
+      .filter(
+        (entry) =>
+          entry.affectedPaths.includes(tokenPath) ||
+          snapshotContainsTokenPath(entry.beforeSnapshot, tokenPath) ||
+          snapshotContainsTokenPath(entry.afterSnapshot, tokenPath),
+      )
       .reverse(); // newest first
     const total = matching.length;
     const page = matching.slice(offset, offset + limit);
-    const entries: TokenHistoryEntry[] = page.map(e => ({
+    const entries: TokenHistoryEntry[] = page.map((e) => ({
       id: e.id,
       timestamp: e.timestamp,
       type: e.type,
       description: e.description,
       setName: e.setName,
       rolledBack: e.rolledBack,
-      before: findSnapshotEntryForTokenPath(e.beforeSnapshot, tokenPath)?.token ?? null,
-      after: findSnapshotEntryForTokenPath(e.afterSnapshot, tokenPath)?.token ?? null,
+      before:
+        findSnapshotEntryForTokenPath(e.beforeSnapshot, tokenPath)?.token ??
+        null,
+      after:
+        findSnapshotEntryForTokenPath(e.afterSnapshot, tokenPath)?.token ??
+        null,
     }));
     return { entries, total };
   }
@@ -345,7 +409,10 @@ export class OperationLog {
 
   private async readThemesFile(): Promise<unknown> {
     try {
-      const content = await fs.readFile(path.join(this.tokenDir, '$themes.json'), 'utf-8');
+      const content = await fs.readFile(
+        path.join(this.tokenDir, "$themes.json"),
+        "utf-8",
+      );
       const data = JSON.parse(content);
       return data.$themes || [];
     } catch {
@@ -355,7 +422,7 @@ export class OperationLog {
 
   private async writeThemesFile(dimensions: unknown): Promise<void> {
     const data = { $themes: dimensions };
-    const dest = path.join(this.tokenDir, '$themes.json');
+    const dest = path.join(this.tokenDir, "$themes.json");
     const tmp = `${dest}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2));
     await fs.rename(tmp, dest);
@@ -365,34 +432,43 @@ export class OperationLog {
   // Structural rollback step execution
   // ---------------------------------------------------------------------------
 
-  private async computeInverseSteps(steps: RollbackStep[], ctx: RollbackContext): Promise<RollbackStep[]> {
+  private async computeInverseSteps(
+    steps: RollbackStep[],
+    ctx: RollbackContext,
+  ): Promise<RollbackStep[]> {
     const inverse: RollbackStep[] = [];
     for (const step of steps) {
       switch (step.action) {
-        case 'create-set':
-          inverse.push({ action: 'delete-set', name: step.name });
+        case "create-set":
+          inverse.push({ action: "delete-set", name: step.name });
           break;
-        case 'delete-set':
-          inverse.push({ action: 'create-set', name: step.name });
+        case "delete-set":
+          inverse.push({ action: "create-set", name: step.name });
           break;
-        case 'rename-set':
-          inverse.push({ action: 'rename-set', from: step.to, to: step.from });
+        case "rename-set":
+          inverse.push({ action: "rename-set", from: step.to, to: step.from });
           break;
-        case 'reorder-sets': {
+        case "reorder-sets": {
           const currentOrder = await ctx.tokenStore.getSets();
-          inverse.push({ action: 'reorder-sets', order: currentOrder });
+          inverse.push({ action: "reorder-sets", order: currentOrder });
           break;
         }
-        case 'write-set-metadata': {
+        case "write-set-metadata": {
           const current = ctx.tokenStore.getSetMetadata(step.name);
           const metadata: Partial<SetMetadataState> = {};
-          for (const field of Object.keys(step.metadata) as Array<keyof SetMetadataState>) {
+          for (const field of Object.keys(step.metadata) as Array<
+            keyof SetMetadataState
+          >) {
             metadata[field] = current[field];
           }
-          inverse.push({ action: 'write-set-metadata', name: step.name, metadata });
+          inverse.push({
+            action: "write-set-metadata",
+            name: step.name,
+            metadata,
+          });
           break;
         }
-        case 'write-themes': {
+        case "write-themes": {
           // Read current themes state while holding the DimensionsStore lock so that
           // an in-flight theme mutation cannot complete its save between our read and
           // the inverse-step computation, which would produce a stale snapshot.
@@ -405,39 +481,53 @@ export class OperationLog {
           } else {
             currentDims = await this.readThemesFile();
           }
-          inverse.push({ action: 'write-themes', dimensions: currentDims });
+          inverse.push({ action: "write-themes", dimensions: currentDims });
           break;
         }
-        case 'write-resolver': {
+        case "write-resolver": {
           if (ctx.resolverStore) {
             const current = ctx.resolverStore.get(step.name);
             if (current) {
-              inverse.push({ action: 'write-resolver', name: step.name, file: structuredClone(current) });
+              inverse.push({
+                action: "write-resolver",
+                name: step.name,
+                file: structuredClone(current),
+              });
             } else {
-              inverse.push({ action: 'delete-resolver', name: step.name });
+              inverse.push({ action: "delete-resolver", name: step.name });
             }
           }
           break;
         }
-        case 'delete-resolver': {
+        case "delete-resolver": {
           if (ctx.resolverStore) {
             const current = ctx.resolverStore.get(step.name);
             if (current) {
-              inverse.push({ action: 'write-resolver', name: step.name, file: structuredClone(current) });
+              inverse.push({
+                action: "write-resolver",
+                name: step.name,
+                file: structuredClone(current),
+              });
             }
           }
           break;
         }
-        case 'create-generator':
+        case "create-generator":
           // inverse: delete the generator that was just created
-          inverse.push({ action: 'delete-generator', id: (step.generator as { id: string }).id });
+          inverse.push({
+            action: "delete-generator",
+            id: (step.generator as { id: string }).id,
+          });
           break;
-        case 'delete-generator': {
+        case "delete-generator": {
           // inverse: re-create the generator — look up current state before it's deleted
           if (ctx.generatorService) {
             const current = await ctx.generatorService.getById(step.id);
             if (current) {
-              inverse.push({ action: 'create-generator', generator: structuredClone(current) });
+              inverse.push({
+                action: "create-generator",
+                generator: structuredClone(current),
+              });
             }
           }
           break;
@@ -447,64 +537,92 @@ export class OperationLog {
     return inverse;
   }
 
-  private async executeSteps(steps: RollbackStep[], ctx: RollbackContext): Promise<void> {
+  private async executeSteps(
+    steps: RollbackStep[],
+    ctx: RollbackContext,
+  ): Promise<void> {
     for (const step of steps) {
       switch (step.action) {
-        case 'create-set':
+        case "create-set":
           await ctx.tokenStore.createSet(step.name);
           break;
-        case 'delete-set':
+        case "delete-set":
           await ctx.tokenStore.deleteSet(step.name);
           break;
-        case 'rename-set':
+        case "rename-set":
           await ctx.tokenStore.renameSet(step.from, step.to);
+          if (ctx.resolverStore?.updateSetReferences) {
+            const rewriteResolverRefs = () =>
+              ctx.resolverStore!.updateSetReferences!(step.from, step.to);
+            if (ctx.resolverLock) {
+              await ctx.resolverLock.withLock(rewriteResolverRefs);
+            } else {
+              await rewriteResolverRefs();
+            }
+          }
           if (ctx.generatorService) {
             await ctx.generatorService.updateSetName(step.from, step.to);
           }
           break;
-        case 'reorder-sets':
+        case "reorder-sets":
           await ctx.tokenStore.reorderSets(step.order as string[]);
           break;
-        case 'write-set-metadata':
+        case "write-set-metadata":
           await ctx.tokenStore.updateSetMetadata(step.name, step.metadata);
           break;
-        case 'write-themes':
+        case "write-themes":
           // Write through the DimensionsStore lock so that concurrent theme mutations
           // serialise behind this rollback write and don't overwrite it.
           if (ctx.themesStore) {
             await ctx.themesStore.withLock(async () => ({
-              dims: step.dimensions as any[],  
+              dims: step.dimensions as any[],
               result: undefined,
             }));
           } else {
             await this.writeThemesFile(step.dimensions);
           }
           break;
-        case 'write-resolver': {
+        case "write-resolver": {
           if (ctx.resolverStore) {
-            const existing = ctx.resolverStore.get(step.name);
-            if (existing) {
-              await ctx.resolverStore.update(step.name, step.file);
+            const writeResolver = async () => {
+              const existing = ctx.resolverStore!.get(step.name);
+              if (existing) {
+                await ctx.resolverStore!.update(step.name, step.file);
+              } else {
+                await ctx.resolverStore!.create(step.name, step.file);
+              }
+            };
+            if (ctx.resolverLock) {
+              await ctx.resolverLock.withLock(writeResolver);
             } else {
-              await ctx.resolverStore.create(step.name, step.file);
+              await writeResolver();
             }
           }
           break;
         }
-        case 'delete-resolver':
+        case "delete-resolver":
           if (ctx.resolverStore) {
-            await ctx.resolverStore.delete(step.name);
+            const deleteResolver = () => ctx.resolverStore!.delete(step.name);
+            if (ctx.resolverLock) {
+              await ctx.resolverLock.withLock(deleteResolver);
+            } else {
+              await deleteResolver();
+            }
           }
           break;
-        case 'create-generator':
+        case "create-generator":
           if (!ctx.generatorService) {
-            throw new Error(`Cannot execute rollback step "create-generator": generatorService not available in RollbackContext`);
+            throw new Error(
+              `Cannot execute rollback step "create-generator": generatorService not available in RollbackContext`,
+            );
           }
           await ctx.generatorService.restore(step.generator);
           break;
-        case 'delete-generator':
+        case "delete-generator":
           if (!ctx.generatorService) {
-            throw new Error(`Cannot execute rollback step "delete-generator": generatorService not available in RollbackContext`);
+            throw new Error(
+              `Cannot execute rollback step "delete-generator": generatorService not available in RollbackContext`,
+            );
           }
           await ctx.generatorService.delete(step.id);
           break;
@@ -513,7 +631,9 @@ export class OperationLog {
   }
 
   private markPathRenameEntryRolledBack(operationId: string): void {
-    const pathRenameEntry = this.pathRenameEntries.find((entry) => entry.operationId === operationId);
+    const pathRenameEntry = this.pathRenameEntries.find(
+      (entry) => entry.operationId === operationId,
+    );
     if (pathRenameEntry) {
       pathRenameEntry.rolledBack = true;
     }
@@ -524,15 +644,19 @@ export class OperationLog {
   // ---------------------------------------------------------------------------
 
   /** Roll back an operation by restoring structural state and token snapshots. */
-  async rollback(id: string, ctx: RollbackContext): Promise<{ restoredPaths: string[]; rollbackEntryId: string }> {
+  async rollback(
+    id: string,
+    ctx: RollbackContext,
+  ): Promise<{ restoredPaths: string[]; rollbackEntryId: string }> {
     await this.ensureLoaded();
     // Acquire the lock for the entire rollback so that concurrent rollback requests
     // for the same operation cannot both pass the `rolledBack` check before either
     // sets it to true (TOCTOU race).
     return this.lock.withLock(async () => {
-      const entry = this.entries.find(e => e.id === id);
+      const entry = this.entries.find((e) => e.id === id);
       if (!entry) throw new NotFoundError(`Operation "${id}" not found`);
-      if (entry.rolledBack) throw new ConflictError(`Operation "${id}" was already rolled back`);
+      if (entry.rolledBack)
+        throw new ConflictError(`Operation "${id}" was already rolled back`);
 
       // Compute inverse of structural steps before executing them
       let inverseSteps: RollbackStep[] | undefined;
@@ -550,23 +674,37 @@ export class OperationLog {
         }
 
         // Capture current token state as "before" for the rollback operation itself
-        for (const [snapshotKey, snap] of Object.entries(entry.beforeSnapshot)) {
+        for (const [snapshotKey, snap] of Object.entries(
+          entry.beforeSnapshot,
+        )) {
           const tokenPath = getSnapshotTokenPath(snapshotKey, snap.setName);
           try {
-            const flatTokens = await ctx.tokenStore.getFlatTokensForSet(snap.setName);
+            const flatTokens = await ctx.tokenStore.getFlatTokensForSet(
+              snap.setName,
+            );
             currentSnapshot[snapshotKey] = {
-              token: flatTokens[tokenPath] ? structuredClone(flatTokens[tokenPath]) : null,
+              token: flatTokens[tokenPath]
+                ? structuredClone(flatTokens[tokenPath])
+                : null,
               setName: snap.setName,
             };
           } catch {
             // Set may not exist yet (will be created by token restoration)
-            currentSnapshot[snapshotKey] = { token: null, setName: snap.setName };
+            currentSnapshot[snapshotKey] = {
+              token: null,
+              setName: snap.setName,
+            };
           }
         }
 
         // Group by set for batch token processing
-        const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
-        for (const [snapshotKey, snap] of Object.entries(entry.beforeSnapshot)) {
+        const bySet = new Map<
+          string,
+          Array<{ path: string; token: Token | null }>
+        >();
+        for (const [snapshotKey, snap] of Object.entries(
+          entry.beforeSnapshot,
+        )) {
           const tokenPath = getSnapshotTokenPath(snapshotKey, snap.setName);
           let list = bySet.get(snap.setName);
           if (!list) {
@@ -589,17 +727,22 @@ export class OperationLog {
             await this.executeSteps(inverseSteps, ctx);
           } catch (revertErr) {
             // Revert also failed — system is in an inconsistent state.
-            const revertMsg = revertErr instanceof Error ? revertErr.message : String(revertErr);
+            const revertMsg =
+              revertErr instanceof Error
+                ? revertErr.message
+                : String(revertErr);
             const origMsg = err instanceof Error ? err.message : String(err);
             console.error(
               `[operation-log] CRITICAL: rollback of operation "${id}" failed (${origMsg}) ` +
-              `and the structural revert also failed (${revertMsg}). ` +
-              `System may be in an inconsistent state.`
+                `and the structural revert also failed (${revertMsg}). ` +
+                `System may be in an inconsistent state.`,
             );
             const combined = new Error(
-              `Rollback failed: ${origMsg}. Structural revert also failed: ${revertMsg}. System may be in an inconsistent state.`
+              `Rollback failed: ${origMsg}. Structural revert also failed: ${revertMsg}. System may be in an inconsistent state.`,
             );
-            (combined as NodeJS.ErrnoException & { statusCode?: number }).statusCode = 500;
+            (
+              combined as NodeJS.ErrnoException & { statusCode?: number }
+            ).statusCode = 500;
             throw combined;
           }
         }
@@ -611,23 +754,30 @@ export class OperationLog {
       entry.rolledBack = true;
       this.markPathRenameEntryRolledBack(entry.id);
       const rollbackPathRenames = entry.pathRenames?.length
-        ? entry.pathRenames.map(({ oldPath, newPath }) => ({ oldPath: newPath, newPath: oldPath }))
+        ? entry.pathRenames.map(({ oldPath, newPath }) => ({
+            oldPath: newPath,
+            newPath: oldPath,
+          }))
         : undefined;
       const rollbackEntry = await this.pushAndPersist({
-        type: 'rollback',
+        type: "rollback",
         description: `Undo: ${entry.description}`,
         setName: entry.setName,
         affectedPaths: entry.affectedPaths,
         beforeSnapshot: currentSnapshot,
         afterSnapshot: entry.beforeSnapshot,
-        ...(rollbackPathRenames?.length ? { pathRenames: rollbackPathRenames } : {}),
+        ...(rollbackPathRenames?.length
+          ? { pathRenames: rollbackPathRenames }
+          : {}),
         ...(inverseSteps?.length ? { rollbackSteps: inverseSteps } : {}),
       });
 
-      return { restoredPaths: listSnapshotTokenPaths(entry.beforeSnapshot), rollbackEntryId: rollbackEntry.id };
+      return {
+        restoredPaths: listSnapshotTokenPaths(entry.beforeSnapshot),
+        rollbackEntryId: rollbackEntry.id,
+      };
     });
   }
-
 }
 
 // ---------------------------------------------------------------------------
@@ -690,7 +840,7 @@ export async function snapshotGroup(
 ): Promise<Record<string, SnapshotEntry>> {
   const flatTokens = await tokenStore.getFlatTokensForSet(setName);
   const result: Record<string, SnapshotEntry> = {};
-  const prefix = groupPrefix + '.';
+  const prefix = groupPrefix + ".";
   for (const [p, token] of Object.entries(flatTokens)) {
     if (p === groupPrefix || p.startsWith(prefix)) {
       result[p] = { token: structuredClone(token), setName };

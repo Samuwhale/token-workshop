@@ -3,7 +3,11 @@ import type { RefObject, ReactNode } from "react";
 import type { ThemeDimension, ThemeSetStatus } from "@tokenmanager/core";
 import { SET_NAME_RE } from "../shared/utils";
 import { fuzzyScore } from "../shared/fuzzyMatch";
-import { apiFetch, createFetchSignal, isNetworkError } from "../shared/apiFetch";
+import {
+  apiFetch,
+  createFetchSignal,
+  isNetworkError,
+} from "../shared/apiFetch";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useTokenSetsContext } from "../contexts/TokenDataContext";
 import { useSetMetadata } from "../hooks/useSetMetadata";
@@ -414,7 +418,13 @@ function getPreflightImpactLabel(params: {
     existing?: boolean;
   }>;
 }): string | undefined {
-  const { operation, impactName, sourceSetName, targetSetName, splitPreview = [] } = params;
+  const {
+    operation,
+    impactName,
+    sourceSetName,
+    targetSetName,
+    splitPreview = [],
+  } = params;
   if (operation === "delete" && impactName === sourceSetName) {
     return "Set being deleted";
   }
@@ -424,7 +434,11 @@ function getPreflightImpactLabel(params: {
   }
   if (operation === "split") {
     if (impactName === sourceSetName) return "Set being split";
-    if (splitPreview.some((entry) => entry.existing && entry.newName === impactName)) {
+    if (
+      splitPreview.some(
+        (entry) => entry.existing && entry.newName === impactName,
+      )
+    ) {
       return "Existing split destination";
     }
   }
@@ -476,10 +490,7 @@ function StructuralPreflightSummary({
           </div>
           <div className="mt-1 flex flex-col gap-1">
             {preflight.blockers.map((blocker) => (
-              <div
-                key={`${blocker.generatorId}-${blocker.setName}`}
-                className="text-[10px] text-red-500"
-              >
+              <div key={blocker.id} className="text-[10px] text-red-500">
                 {blocker.message}
               </div>
             ))}
@@ -1432,12 +1443,8 @@ function ManageView({
 }: ManageViewProps) {
   const { connected, serverUrl, getDisconnectSignal, markDisconnected } =
     useConnectionContext();
-  const {
-    setSets,
-    setActiveSet,
-    renameSetInState,
-    removeSetFromState,
-  } = useTokenSetsContext();
+  const { setSets, setActiveSet, renameSetInState, removeSetFromState } =
+    useTokenSetsContext();
   const [dragSetName, setDragSetName] = useState<string | null>(null);
   const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
   const [selectedSets, setSelectedSets] = useState<Set<string>>(new Set());
@@ -1488,10 +1495,10 @@ function ManageView({
         .map((item) => item.folder),
     [sets],
   );
-  const manageItems = useMemo(() => buildManageItems(sets, filtered), [
-    sets,
-    filtered,
-  ]);
+  const manageItems = useMemo(
+    () => buildManageItems(sets, filtered),
+    [sets, filtered],
+  );
 
   const hasBulkOps = !!(onBulkDelete || onBulkDuplicate || onBulkMoveToFolder);
   const hasSelection = selectedSets.size > 0;
@@ -1629,10 +1636,14 @@ function ManageView({
           signal: createFetchSignal(getDisconnectSignal()),
         },
       );
-      response.renamedSets.forEach(({ from, to }) => renameSetInState(from, to));
+      response.renamedSets.forEach(({ from, to }) =>
+        renameSetInState(from, to),
+      );
       setSets(response.sets);
       if (isSetInFolder(activeSet, renamingFolder)) {
-        setActiveSet(replaceFolderPrefix(activeSet, renamingFolder, nextFolder));
+        setActiveSet(
+          replaceFolderPrefix(activeSet, renamingFolder, nextFolder),
+        );
       }
       cancelFolderRename();
       dispatchToast(
@@ -1640,7 +1651,11 @@ function ManageView({
         "success",
       );
     } catch (err) {
-      handleFolderActionError(err, "Failed to rename folder", setFolderRenameError);
+      handleFolderActionError(
+        err,
+        "Failed to rename folder",
+        setFolderRenameError,
+      );
     } finally {
       setFolderActionPending(false);
     }
@@ -1695,7 +1710,11 @@ function ManageView({
         "success",
       );
     } catch (err) {
-      handleFolderActionError(err, "Failed to merge folders", setFolderMergeError);
+      handleFolderActionError(
+        err,
+        "Failed to merge folders",
+        setFolderMergeError,
+      );
     } finally {
       setFolderActionPending(false);
     }
@@ -1739,7 +1758,11 @@ function ManageView({
         "success",
       );
     } catch (err) {
-      handleFolderActionError(err, "Failed to delete folder", setFolderDeleteError);
+      handleFolderActionError(
+        err,
+        "Failed to delete folder",
+        setFolderDeleteError,
+      );
     } finally {
       setFolderActionPending(false);
     }
@@ -2001,9 +2024,7 @@ function ManageView({
             <div
               key={set}
               draggable={canDrag && !isRenaming}
-              onDragStart={
-                canDrag ? (e) => handleDragStart(e, set) : undefined
-              }
+              onDragStart={canDrag ? (e) => handleDragStart(e, set) : undefined}
               onDragOver={canDrag ? (e) => handleDragOver(e, set) : undefined}
               onDrop={canDrag ? (e) => handleDrop(e, set) : undefined}
               onDragEnd={canDrag ? handleDragEnd : undefined}
@@ -2056,7 +2077,9 @@ function ManageView({
                   <div className="flex flex-col gap-1">
                     <input
                       ref={
-                        renameInputRef as RefObject<HTMLInputElement> | undefined
+                        renameInputRef as
+                          | RefObject<HTMLInputElement>
+                          | undefined
                       }
                       value={renameValue}
                       onChange={(e) => {
@@ -2264,7 +2287,8 @@ function ManageView({
                           setFolderRenameError("");
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") void handleFolderRenameConfirm();
+                          if (e.key === "Enter")
+                            void handleFolderRenameConfirm();
                           if (e.key === "Escape") cancelFolderRename();
                         }}
                         className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
@@ -2279,7 +2303,9 @@ function ManageView({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => void handleFolderRenameConfirm()}
-                          disabled={folderActionPending || !folderRenameValue.trim()}
+                          disabled={
+                            folderActionPending || !folderRenameValue.trim()
+                          }
                           className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
                         >
                           {folderActionPending ? "Renaming…" : "Rename folder"}
@@ -2337,7 +2363,9 @@ function ManageView({
                         folderIndex === -1 ||
                         folderIndex >= topLevelItems.length - 1
                       }
-                      onClick={() => void handleFolderMove(item.folder, "right")}
+                      onClick={() =>
+                        void handleFolderMove(item.folder, "right")
+                      }
                     >
                       <path d="M5 8L1 3H9L5 8Z" />
                     </IconButton>
@@ -2400,7 +2428,8 @@ function ManageView({
                       <button
                         onClick={() => void handleFolderMergeConfirm()}
                         disabled={
-                          folderActionPending || targetFolderOptions.length === 0
+                          folderActionPending ||
+                          targetFolderOptions.length === 0
                         }
                         className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
                       >
@@ -2432,7 +2461,8 @@ function ManageView({
                 <div className="border-t border-red-500/20 bg-red-500/10 px-3 py-2.5">
                   <div className="flex items-center gap-2 text-[11px]">
                     <span className="flex-1 text-[var(--color-figma-text)]">
-                      Delete folder "{item.folder}/" and its {item.totalSetCount} set
+                      Delete folder "{item.folder}/" and its{" "}
+                      {item.totalSetCount} set
                       {item.totalSetCount === 1 ? "" : "s"}?
                     </span>
                     <button

@@ -1,12 +1,28 @@
-import type { FastifyPluginAsync } from 'fastify';
-import { flattenTokenGroup, type ThemeDimension, type ThemeSetStatus, type TokenGroup } from '@tokenmanager/core';
-import type { SetMetadataChange, SetMetadataOperationMetadata } from '../services/operation-log.js';
-import type { SetMetadataState } from '../services/token-store.js';
-import { handleRouteError } from '../errors.js';
-import { listSnapshotTokenPaths, snapshotSet, snapshotSets } from '../services/operation-log.js';
-import { stableStringify } from '../services/stable-stringify.js';
+import type { FastifyPluginAsync } from "fastify";
+import {
+  flattenTokenGroup,
+  isDTCGToken,
+  type DTCGToken,
+  type ThemeDimension,
+  type ThemeSetStatus,
+  type Token,
+  type TokenGroup,
+} from "@tokenmanager/core";
+import type {
+  SetMetadataChange,
+  SetMetadataOperationMetadata,
+} from "../services/operation-log.js";
+import type { SetMetadataState } from "../services/token-store.js";
+import { handleRouteError } from "../errors.js";
+import {
+  listSnapshotTokenPaths,
+  snapshotSet,
+  snapshotSets,
+} from "../services/operation-log.js";
+import { stableStringify } from "../services/stable-stringify.js";
+import { setTokenAtPath } from "../services/token-tree-utils.js";
 
-type SetStructuralOperation = 'delete' | 'merge' | 'split';
+type SetStructuralOperation = "delete" | "merge" | "split";
 
 interface SetResolverMeta {
   name: string;
@@ -59,12 +75,19 @@ interface SetPreflightImpact {
   generatorTargets: SetGeneratorTargetImpact[];
 }
 
+type SetPreflightBlockerCode =
+  | "generated-token-ownership"
+  | "generator-target-set"
+  | "resolver-set-ref"
+  | "theme-option-set";
+
 interface SetPreflightBlocker {
-  code: 'generator-target-set';
+  id: string;
+  code: SetPreflightBlockerCode;
   setName: string;
-  generatorId: string;
-  generatorName: string;
   message: string;
+  generatorId?: string;
+  generatorName?: string;
 }
 
 interface SetMergeConflict {
@@ -90,7 +113,8 @@ interface SetStructuralPreflightResponse {
 }
 
 const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
-const FOLDER_ITEM_SUFFIX = '/';
+const FOLDER_ITEM_SUFFIX = "/";
+const GENERATOR_EXTENSION_KEY = "com.tokenmanager.generator";
 
 interface FolderSetRename {
   from: string;
@@ -106,7 +130,7 @@ function isFolderItemKey(item: string): boolean {
 }
 
 function topLevelFolderName(setName: string): string | null {
-  const slashIdx = setName.indexOf('/');
+  const slashIdx = setName.indexOf("/");
   return slashIdx === -1 ? null : setName.slice(0, slashIdx);
 }
 
@@ -158,21 +182,31 @@ function getFolderSetNames(allSets: string[], folder: string): string[] {
   return allSets.filter((setName) => setName.startsWith(prefix));
 }
 
-function replaceFolderPrefix(setName: string, fromFolder: string, toFolder: string): string {
+function replaceFolderPrefix(
+  setName: string,
+  fromFolder: string,
+  toFolder: string,
+): string {
   return `${toFolder}${setName.slice(fromFolder.length)}`;
 }
 
-function sortFolderRenamePairsForApply(pairs: FolderSetRename[]): FolderSetRename[] {
+function sortFolderRenamePairsForApply(
+  pairs: FolderSetRename[],
+): FolderSetRename[] {
   return [...pairs].sort((left, right) => right.from.length - left.from.length);
 }
 
-function sortFolderRenamePairsForRollback(pairs: FolderSetRename[]): FolderSetRename[] {
-  return [...pairs]
-    .reverse()
-    .map(({ from, to }) => ({ from: to, to: from }));
+function sortFolderRenamePairsForRollback(
+  pairs: FolderSetRename[],
+): FolderSetRename[] {
+  return [...pairs].reverse().map(({ from, to }) => ({ from: to, to: from }));
 }
 
-function findFolderRenameConflicts(allSets: string[], sourceSetNames: string[], renames: FolderSetRename[]): string[] {
+function findFolderRenameConflicts(
+  allSets: string[],
+  sourceSetNames: string[],
+  renames: FolderSetRename[],
+): string[] {
   const sourceSetLookup = new Set(sourceSetNames);
   const conflicts = new Set<string>();
   const targetCounts = new Map<string, number>();
@@ -200,7 +234,10 @@ function findFolderRenameConflicts(allSets: string[], sourceSetNames: string[], 
   return [...conflicts].sort((a, b) => a.localeCompare(b));
 }
 
-function buildThemeImpacts(setName: string, dimensions: ThemeDimension[]): SetThemeImpact[] {
+function buildThemeImpacts(
+  setName: string,
+  dimensions: ThemeDimension[],
+): SetThemeImpact[] {
   const impacts: SetThemeImpact[] = [];
   for (const dimension of dimensions) {
     for (const option of dimension.options) {
@@ -222,10 +259,16 @@ function buildGeneratedOwnershipImpacts(
   allOwnedTokens: Array<{ setName: string; path: string; generatorId: string }>,
   generatorById: Map<string, SetGeneratorMeta>,
 ): SetGeneratorOwnershipImpact[] {
-  const grouped = new Map<string, { tokenCount: number; samplePaths: string[] }>();
+  const grouped = new Map<
+    string,
+    { tokenCount: number; samplePaths: string[] }
+  >();
   for (const token of allOwnedTokens) {
     if (token.setName !== setName) continue;
-    const entry = grouped.get(token.generatorId) ?? { tokenCount: 0, samplePaths: [] };
+    const entry = grouped.get(token.generatorId) ?? {
+      tokenCount: 0,
+      samplePaths: [],
+    };
     entry.tokenCount += 1;
     if (entry.samplePaths.length < 5) {
       entry.samplePaths.push(token.path);
@@ -237,8 +280,8 @@ function buildGeneratedOwnershipImpacts(
       const generator = generatorById.get(generatorId);
       return {
         generatorId,
-        generatorName: generator?.name ?? 'Unknown generator',
-        targetGroup: generator?.targetGroup ?? '',
+        generatorName: generator?.name ?? "Unknown generator",
+        targetGroup: generator?.targetGroup ?? "",
         tokenCount: ownership.tokenCount,
         samplePaths: ownership.samplePaths.sort((a, b) => a.localeCompare(b)),
       };
@@ -246,7 +289,10 @@ function buildGeneratedOwnershipImpacts(
     .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
 }
 
-function buildGeneratorTargets(setName: string, generators: SetGeneratorMeta[]): SetGeneratorTargetImpact[] {
+function buildGeneratorTargets(
+  setName: string,
+  generators: SetGeneratorMeta[],
+): SetGeneratorTargetImpact[] {
   return generators
     .filter((generator) => generator.targetSet === setName)
     .map((generator) => ({
@@ -266,8 +312,18 @@ function buildSetImpact(params: {
   generators: SetGeneratorMeta[];
   allOwnedTokens: Array<{ setName: string; path: string; generatorId: string }>;
 }): SetPreflightImpact {
-  const { setName, tokens, metadata, dimensions, resolvers, generators, allOwnedTokens } = params;
-  const generatorById = new Map(generators.map((generator) => [generator.id, generator]));
+  const {
+    setName,
+    tokens,
+    metadata,
+    dimensions,
+    resolvers,
+    generators,
+    allOwnedTokens,
+  } = params;
+  const generatorById = new Map(
+    generators.map((generator) => [generator.id, generator]),
+  );
   return {
     name: setName,
     tokenCount: flattenTokenGroup(tokens).size,
@@ -277,29 +333,77 @@ function buildSetImpact(params: {
       .filter((resolver) => resolver.referencedSets.includes(setName))
       .map((resolver) => ({ name: resolver.name }))
       .sort((a, b) => a.name.localeCompare(b.name)),
-    generatedOwnership: buildGeneratedOwnershipImpacts(setName, allOwnedTokens, generatorById),
+    generatedOwnership: buildGeneratedOwnershipImpacts(
+      setName,
+      allOwnedTokens,
+      generatorById,
+    ),
     generatorTargets: buildGeneratorTargets(setName, generators),
   };
 }
 
-function buildGeneratorTargetBlockers(setImpact: SetPreflightImpact): SetPreflightBlocker[] {
+function buildGeneratorTargetBlockers(
+  setImpact: SetPreflightImpact,
+): SetPreflightBlocker[] {
   return setImpact.generatorTargets.map((generator) => ({
-    code: 'generator-target-set',
+    id: `generator-target:${generator.generatorId}:${setImpact.name}`,
+    code: "generator-target-set",
     setName: setImpact.name,
     generatorId: generator.generatorId,
     generatorName: generator.generatorName,
-    message: `Generator "${generator.generatorName}" still targets "${setImpact.name}"${generator.targetGroup ? ` at ${generator.targetGroup}` : ''}.`,
+    message: `Generator "${generator.generatorName}" still targets "${setImpact.name}"${generator.targetGroup ? ` at ${generator.targetGroup}` : ""}.`,
   }));
 }
 
-function buildMergeConflicts(sourceTokens: TokenGroup, targetTokens: TokenGroup): SetMergeConflict[] {
+function buildThemeOptionBlockers(
+  setImpact: SetPreflightImpact,
+): SetPreflightBlocker[] {
+  return setImpact.themeOptions.map((option) => ({
+    id: `theme-option:${option.dimensionId}:${option.optionName}:${setImpact.name}`,
+    code: "theme-option-set",
+    setName: setImpact.name,
+    message: `Theme option "${option.optionName}" in "${option.dimensionName}" still references "${setImpact.name}" as ${option.status}.`,
+  }));
+}
+
+function buildResolverReferenceBlockers(
+  setImpact: SetPreflightImpact,
+): SetPreflightBlocker[] {
+  return setImpact.resolverRefs.map((resolver) => ({
+    id: `resolver-ref:${resolver.name}:${setImpact.name}`,
+    code: "resolver-set-ref",
+    setName: setImpact.name,
+    message: `Resolver "${resolver.name}" still references "${setImpact.name}".`,
+  }));
+}
+
+function buildGeneratedOwnershipBlockers(
+  setImpact: SetPreflightImpact,
+): SetPreflightBlocker[] {
+  return setImpact.generatedOwnership.map((ownership) => ({
+    id: `generated-ownership:${ownership.generatorId}:${setImpact.name}`,
+    code: "generated-token-ownership",
+    setName: setImpact.name,
+    generatorId: ownership.generatorId,
+    generatorName: ownership.generatorName,
+    message: `Generated tokens in "${setImpact.name}" are still tagged as output from "${ownership.generatorName}"${ownership.targetGroup ? ` at ${ownership.targetGroup}` : ""}.`,
+  }));
+}
+
+function buildMergeConflicts(
+  sourceTokens: TokenGroup,
+  targetTokens: TokenGroup,
+): SetMergeConflict[] {
   const sourceFlat = Object.fromEntries(flattenTokenGroup(sourceTokens));
   const targetFlat = Object.fromEntries(flattenTokenGroup(targetTokens));
   const conflicts: SetMergeConflict[] = [];
   for (const [path, sourceToken] of Object.entries(sourceFlat)) {
     const targetToken = targetFlat[path];
     if (!targetToken) continue;
-    if (stableStringify(sourceToken.$value) !== stableStringify(targetToken.$value)) {
+    if (
+      stableStringify(sourceToken.$value) !==
+      stableStringify(targetToken.$value)
+    ) {
       conflicts.push({
         path,
         sourceValue: sourceToken.$value,
@@ -310,12 +414,22 @@ function buildMergeConflicts(sourceTokens: TokenGroup, targetTokens: TokenGroup)
   return conflicts.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function buildSplitPreview(setName: string, tokens: TokenGroup, existingSetNames: string[]): SetSplitPreviewItem[] {
+function buildSplitPreview(
+  setName: string,
+  tokens: TokenGroup,
+  existingSetNames: string[],
+): SetSplitPreviewItem[] {
   return Object.entries(tokens)
-    .filter(([key, value]) => !key.startsWith('$') && value && typeof value === 'object' && !('$value' in value))
+    .filter(
+      ([key, value]) =>
+        !key.startsWith("$") &&
+        value &&
+        typeof value === "object" &&
+        !("$value" in value),
+    )
     .map(([key, value]) => {
       const count = flattenTokenGroup(value as TokenGroup).size;
-      const sanitized = key.replace(/[^a-zA-Z0-9_-]/g, '-');
+      const sanitized = key.replace(/[^a-zA-Z0-9_-]/g, "-");
       const newName = `${setName}-${sanitized}`;
       return {
         key,
@@ -328,11 +442,63 @@ function buildSplitPreview(setName: string, tokens: TokenGroup, existingSetNames
     .sort((a, b) => a.newName.localeCompare(b.newName));
 }
 
-function listMetadataFields(metadata: SetPreflightImpact['metadata']): string[] {
+function stripGeneratedOwnershipFromTokenGroup(tokens: TokenGroup): TokenGroup {
+  const cloned = structuredClone(tokens);
+
+  const visit = (node: Record<string, unknown>): void => {
+    if (isDTCGToken(node)) {
+      const extensions = node.$extensions;
+      if (
+        extensions &&
+        typeof extensions === "object" &&
+        GENERATOR_EXTENSION_KEY in extensions
+      ) {
+        const nextExtensions = { ...extensions };
+        delete nextExtensions[GENERATOR_EXTENSION_KEY];
+        if (Object.keys(nextExtensions).length > 0) {
+          node.$extensions = nextExtensions;
+        } else {
+          delete node.$extensions;
+        }
+      }
+      return;
+    }
+
+    for (const value of Object.values(node)) {
+      if (value && typeof value === "object") {
+        visit(value as Record<string, unknown>);
+      }
+    }
+  };
+
+  visit(cloned as Record<string, unknown>);
+  return cloned;
+}
+
+function stripGeneratedOwnershipFromToken(token: DTCGToken): Token {
+  return stripGeneratedOwnershipFromTokenGroup({
+    value: token as unknown as TokenGroup,
+  }).value as Token;
+}
+
+function buildRemovalBlockers(
+  setImpact: SetPreflightImpact,
+): SetPreflightBlocker[] {
+  return [
+    ...buildThemeOptionBlockers(setImpact),
+    ...buildResolverReferenceBlockers(setImpact),
+    ...buildGeneratedOwnershipBlockers(setImpact),
+    ...buildGeneratorTargetBlockers(setImpact),
+  ];
+}
+
+function listMetadataFields(
+  metadata: SetPreflightImpact["metadata"],
+): string[] {
   const fields: string[] = [];
-  if (metadata.description) fields.push('description');
-  if (metadata.collectionName) fields.push('collection');
-  if (metadata.modeName) fields.push('mode');
+  if (metadata.description) fields.push("description");
+  if (metadata.collectionName) fields.push("collection");
+  if (metadata.modeName) fields.push("mode");
   return fields;
 }
 
@@ -343,43 +509,50 @@ function buildPreflightWarnings(params: {
   deleteOriginal?: boolean;
   splitPreview: SetSplitPreviewItem[];
 }): string[] {
-  const { operation, source, target, deleteOriginal = false, splitPreview } = params;
+  const {
+    operation,
+    source,
+    target,
+    deleteOriginal = false,
+    splitPreview,
+  } = params;
   const warnings: string[] = [];
 
-  if (operation === 'delete') {
-    if (source.themeOptions.length > 0) {
-      warnings.push(`Deleting "${source.name}" leaves ${source.themeOptions.length} theme option reference${source.themeOptions.length === 1 ? '' : 's'} to repair.`);
-    }
-    if (source.resolverRefs.length > 0) {
-      warnings.push(`Deleting "${source.name}" breaks ${source.resolverRefs.length} resolver source reference${source.resolverRefs.length === 1 ? '' : 's'} until they are repointed.`);
-    }
+  if (operation === "delete") {
     const metadataFields = listMetadataFields(source.metadata);
     if (metadataFields.length > 0) {
-      warnings.push(`Deleting "${source.name}" also removes its Figma ${metadataFields.join(', ')} metadata.`);
-    }
-    if (source.generatedOwnership.length > 0) {
-      warnings.push(`Generated tokens owned inside "${source.name}" are removed with the set; generators are not retargeted automatically.`);
-    }
-  }
-
-  if (operation === 'merge') {
-    warnings.push(`Merging copies tokens from "${source.name}" into "${target?.name ?? 'the target set'}" only. Theme options, resolver refs, Figma metadata, and generator wiring stay attached to their current sets.`);
-    if (source.generatedOwnership.length > 0) {
-      warnings.push(`Generated token ownership stays on "${source.name}" after the merge. Move or recreate those outputs separately if the source set will be retired.`);
+      warnings.push(
+        `Deleting "${source.name}" also removes its Figma ${metadataFields.join(", ")} metadata.`,
+      );
     }
   }
 
-  if (operation === 'split') {
+  if (operation === "merge") {
+    if (source.generatedOwnership.length > 0) {
+      warnings.push(
+        `Generated tokens copied from "${source.name}" into "${target?.name ?? "the target set"}" become regular tokens there so the source generator keeps owning only "${source.name}".`,
+      );
+    }
+  }
+
+  if (operation === "split") {
     const existingDestinations = splitPreview.filter((entry) => entry.existing);
     if (existingDestinations.length > 0) {
       warnings.push(
-        `${existingDestinations.length} split destination${existingDestinations.length === 1 ? '' : 's'} already exist and will be skipped. Their current dependencies are listed below so you can decide whether to rename or merge instead.`,
+        `${existingDestinations.length} split destination${existingDestinations.length === 1 ? "" : "s"} already exist and will be skipped. Their current dependencies are listed below so you can decide whether to rename or merge instead.`,
       );
     }
     if (!deleteOriginal) {
-      warnings.push(`Split creates new sets from "${source.name}" but leaves theme options, resolver refs, Figma metadata, and generator ownership on the original set.`);
-    } else {
-      warnings.push(`Deleting "${source.name}" after the split does not redistribute theme options, resolver refs, Figma metadata, or generator ownership to the new sets.`);
+      if (source.generatedOwnership.length > 0) {
+        warnings.push(
+          `Generated tokens copied into the new split sets become regular tokens there so the original generator keeps owning only "${source.name}".`,
+        );
+      }
+      if (listMetadataFields(source.metadata).length > 0) {
+        warnings.push(
+          `Split does not copy the original set's Figma metadata onto the new sets.`,
+        );
+      }
     }
   }
 
@@ -389,17 +562,34 @@ function buildPreflightWarnings(params: {
 export const setRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
   const METADATA_FIELD_CONFIG: Array<{
-    bodyKey: 'description' | 'figmaCollection' | 'figmaMode';
+    bodyKey: "description" | "figmaCollection" | "figmaMode";
     field: keyof SetMetadataState;
-    label: SetMetadataChange['label'];
+    label: SetMetadataChange["label"];
   }> = [
-    { bodyKey: 'description', field: 'description', label: 'Description' },
-    { bodyKey: 'figmaCollection', field: 'collectionName', label: 'Collection' },
-    { bodyKey: 'figmaMode', field: 'modeName', label: 'Mode' },
+    { bodyKey: "description", field: "description", label: "Description" },
+    {
+      bodyKey: "figmaCollection",
+      field: "collectionName",
+      label: "Collection",
+    },
+    { bodyKey: "figmaMode", field: "modeName", label: "Mode" },
   ];
 
+  const rewriteResolverSetReferences = (oldName: string, newName: string) =>
+    fastify.resolverLock.withLock(() =>
+      fastify.resolverStore.updateSetReferences(oldName, newName),
+    );
+
+  const renameDependentSetReferences = async (
+    oldName: string,
+    newName: string,
+  ) => {
+    await rewriteResolverSetReferences(oldName, newName);
+    await fastify.generatorService.updateSetName(oldName, newName);
+  };
+
   // GET /api/sets — list all sets (with optional descriptions)
-  fastify.get('/sets', async (_request, reply) => {
+  fastify.get("/sets", async (_request, reply) => {
     try {
       const sets = await fastify.tokenStore.getSets();
       const descriptions = fastify.tokenStore.getSetDescriptions();
@@ -408,69 +598,93 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       const modeNames = fastify.tokenStore.getSetModeNames();
       return { sets, descriptions, counts, collectionNames, modeNames };
     } catch (err) {
-      return handleRouteError(reply, err, 'Failed to list sets');
+      return handleRouteError(reply, err, "Failed to list sets");
     }
   });
 
   // GET /api/sets/:name — get a set
-  fastify.get<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
-    const { name } = request.params;
-    try {
-      const set = await fastify.tokenStore.getSet(name);
-      if (!set) {
-        return reply.status(404).send({ error: `Token set "${name}" not found` });
+  fastify.get<{ Params: { name: string } }>(
+    "/sets/:name",
+    async (request, reply) => {
+      const { name } = request.params;
+      try {
+        const set = await fastify.tokenStore.getSet(name);
+        if (!set) {
+          return reply
+            .status(404)
+            .send({ error: `Token set "${name}" not found` });
+        }
+        return { name: set.name, tokens: set.tokens };
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to get set");
       }
-      return { name: set.name, tokens: set.tokens };
-    } catch (err) {
-      return handleRouteError(reply, err, 'Failed to get set');
-    }
-  });
+    },
+  );
 
   // POST /api/sets — create a set
-  fastify.post<{ Body: { name: string; tokens?: Record<string, unknown> } }>('/sets', async (request, reply) => {
-    const { name, tokens } = request.body || {};
-    if (!name) {
-      return reply.status(400).send({ error: 'Set name is required' });
-    }
-
-    // Validate name (alphanumeric, dashes, underscores; / for folder hierarchy)
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(name)) {
-      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, underscores, and / for folders' });
-    }
-
-    return withLock(async () => {
-      try {
-        const existing = await fastify.tokenStore.getSet(name);
-        if (existing) {
-          return reply.status(409).send({ error: `Token set "${name}" already exists` });
-        }
-
-        const set = await fastify.tokenStore.createSet(name, tokens as TokenGroup | undefined);
-        const afterSnap = await snapshotSet(fastify.tokenStore, name);
-        await fastify.operationLog.record({
-          type: 'set-create',
-          description: `Create set "${name}"`,
-          setName: name,
-          affectedPaths: Object.keys(afterSnap),
-          beforeSnapshot: {},
-          afterSnapshot: afterSnap,
-          rollbackSteps: [{ action: 'delete-set', name }],
-        });
-        return reply.status(201).send({ ok: true, name: set.name });
-      } catch (err) {
-        return handleRouteError(reply, err, 'Failed to create set');
+  fastify.post<{ Body: { name: string; tokens?: Record<string, unknown> } }>(
+    "/sets",
+    async (request, reply) => {
+      const { name, tokens } = request.body || {};
+      if (!name) {
+        return reply.status(400).send({ error: "Set name is required" });
       }
-    });
-  });
+
+      // Validate name (alphanumeric, dashes, underscores; / for folder hierarchy)
+      if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(name)) {
+        return reply.status(400).send({
+          error:
+            "Set name must contain only alphanumeric characters, dashes, underscores, and / for folders",
+        });
+      }
+
+      return withLock(async () => {
+        try {
+          const existing = await fastify.tokenStore.getSet(name);
+          if (existing) {
+            return reply
+              .status(409)
+              .send({ error: `Token set "${name}" already exists` });
+          }
+
+          const set = await fastify.tokenStore.createSet(
+            name,
+            tokens as TokenGroup | undefined,
+          );
+          const afterSnap = await snapshotSet(fastify.tokenStore, name);
+          await fastify.operationLog.record({
+            type: "set-create",
+            description: `Create set "${name}"`,
+            setName: name,
+            affectedPaths: Object.keys(afterSnap),
+            beforeSnapshot: {},
+            afterSnapshot: afterSnap,
+            rollbackSteps: [{ action: "delete-set", name }],
+          });
+          return reply.status(201).send({ ok: true, name: set.name });
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to create set");
+        }
+      });
+    },
+  );
 
   // PATCH /api/sets/:name/metadata — update set description, figma collection name, and/or figma mode name
-  fastify.patch<{ Params: { name: string }; Body: { description?: string; figmaCollection?: string; figmaMode?: string } }>('/sets/:name/metadata', async (request, reply) => {
+  fastify.patch<{
+    Params: { name: string };
+    Body: {
+      description?: string;
+      figmaCollection?: string;
+      figmaMode?: string;
+    };
+  }>("/sets/:name/metadata", async (request, reply) => {
     const { name } = request.params;
     const body = request.body || {};
     return withLock(async () => {
       try {
-        const touchedFields = METADATA_FIELD_CONFIG
-          .filter(({ bodyKey }) => Object.prototype.hasOwnProperty.call(body, bodyKey));
+        const touchedFields = METADATA_FIELD_CONFIG.filter(({ bodyKey }) =>
+          Object.prototype.hasOwnProperty.call(body, bodyKey),
+        );
         if (touchedFields.length === 0) {
           const current = fastify.tokenStore.getSetMetadata(name);
           return { ok: true, name, ...current, changed: false };
@@ -498,430 +712,813 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
 
         await fastify.tokenStore.updateSetMetadata(name, patch);
         const afterMeta = fastify.tokenStore.getSetMetadata(name);
-        const rollbackMetadata = changes.reduce<Partial<SetMetadataState>>((acc, change) => {
-          acc[change.field] = change.before;
-          return acc;
-        }, {});
+        const rollbackMetadata = changes.reduce<Partial<SetMetadataState>>(
+          (acc, change) => {
+            acc[change.field] = change.before;
+            return acc;
+          },
+          {},
+        );
         const metadata: SetMetadataOperationMetadata = {
-          kind: 'set-metadata',
+          kind: "set-metadata",
           name,
           before: beforeMeta,
           after: afterMeta,
           changes,
         };
         await fastify.operationLog.record({
-          type: 'set-metadata',
+          type: "set-metadata",
           description: `Update metadata for set "${name}"`,
           setName: name,
           affectedPaths: [],
           beforeSnapshot: {},
           afterSnapshot: {},
-          rollbackSteps: [{ action: 'write-set-metadata', name, metadata: rollbackMetadata }],
+          rollbackSteps: [
+            { action: "write-set-metadata", name, metadata: rollbackMetadata },
+          ],
           metadata,
         });
         return { ok: true, name, ...afterMeta, changed: true };
       } catch (err) {
-        return handleRouteError(reply, err, 'Failed to update metadata');
+        return handleRouteError(reply, err, "Failed to update metadata");
       }
     });
   });
 
   // POST /api/sets/:name/rename — rename a set (atomic: file + themes + in-memory)
-  fastify.post<{ Params: { name: string }; Body: { newName: string } }>('/sets/:name/rename', async (request, reply) => {
-    const { name } = request.params;
-    const { newName } = request.body || {};
+  fastify.post<{ Params: { name: string }; Body: { newName: string } }>(
+    "/sets/:name/rename",
+    async (request, reply) => {
+      const { name } = request.params;
+      const { newName } = request.body || {};
 
-    if (!newName) {
-      return reply.status(400).send({ error: 'newName is required' });
-    }
-    if (!isValidSetName(newName)) {
-      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, underscores, and / for folders' });
-    }
-
-    return withLock(async () => {
-      try {
-        await fastify.tokenStore.renameSet(name, newName);
-        await fastify.generatorService.updateSetName(name, newName);
-        await fastify.operationLog.record({
-          type: 'set-rename',
-          description: `Rename set "${name}" → "${newName}"`,
-          setName: newName,
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          rollbackSteps: [{ action: 'rename-set', from: newName, to: name }],
-        });
-        return { ok: true, oldName: name, newName };
-      } catch (err) {
-        return handleRouteError(reply, err, 'Failed to rename set');
+      if (!newName) {
+        return reply.status(400).send({ error: "newName is required" });
       }
-    });
-  });
+      if (!isValidSetName(newName)) {
+        return reply.status(400).send({
+          error:
+            "Set name must contain only alphanumeric characters, dashes, underscores, and / for folders",
+        });
+      }
+
+      return withLock(async () => {
+        try {
+          await fastify.tokenStore.renameSet(name, newName);
+          await renameDependentSetReferences(name, newName);
+          await fastify.operationLog.record({
+            type: "set-rename",
+            description: `Rename set "${name}" → "${newName}"`,
+            setName: newName,
+            affectedPaths: [],
+            beforeSnapshot: {},
+            afterSnapshot: {},
+            rollbackSteps: [{ action: "rename-set", from: newName, to: name }],
+          });
+          return { ok: true, oldName: name, newName };
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to rename set");
+        }
+      });
+    },
+  );
 
   // PUT /api/sets/reorder — reorder sets
-  fastify.put<{ Body: { order: string[] } }>('/sets/reorder', async (request, reply) => {
-    const { order } = request.body || {};
-    if (!Array.isArray(order)) {
-      return reply.status(400).send({ error: 'order must be an array of set names' });
-    }
-    try {
-      return await withLock(async () => {
-        const previousOrder = await fastify.tokenStore.getSets();
-        fastify.tokenStore.reorderSets(order);
-        await fastify.operationLog.record({
-          type: 'set-reorder',
-          description: 'Reorder token sets',
-          setName: '',
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          rollbackSteps: [{ action: 'reorder-sets', order: previousOrder }],
+  fastify.put<{ Body: { order: string[] } }>(
+    "/sets/reorder",
+    async (request, reply) => {
+      const { order } = request.body || {};
+      if (!Array.isArray(order)) {
+        return reply
+          .status(400)
+          .send({ error: "order must be an array of set names" });
+      }
+      try {
+        return await withLock(async () => {
+          const previousOrder = await fastify.tokenStore.getSets();
+          fastify.tokenStore.reorderSets(order);
+          await fastify.operationLog.record({
+            type: "set-reorder",
+            description: "Reorder token sets",
+            setName: "",
+            affectedPaths: [],
+            beforeSnapshot: {},
+            afterSnapshot: {},
+            rollbackSteps: [{ action: "reorder-sets", order: previousOrder }],
+          });
+          return { ok: true };
         });
-        return { ok: true };
-      });
-    } catch (err) {
-      return handleRouteError(reply, err, 'Failed to reorder sets');
-    }
-  });
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to reorder sets");
+      }
+    },
+  );
 
   // POST /api/set-folders/rename — rename a folder prefix across all contained sets
-  fastify.post<{ Body: { fromFolder?: string; toFolder?: string } }>('/set-folders/rename', async (request, reply) => {
-    const fromFolder = request.body?.fromFolder?.trim();
-    const toFolder = request.body?.toFolder?.trim();
-    if (!fromFolder || !toFolder) {
-      return reply.status(400).send({ error: 'fromFolder and toFolder are required' });
-    }
-    if (!isValidSetName(fromFolder) || !isValidSetName(toFolder)) {
-      return reply.status(400).send({ error: 'Folder names must contain only alphanumeric characters, dashes, underscores, and / for folders' });
-    }
-    if (fromFolder === toFolder) {
-      return reply.status(400).send({ error: 'Target folder must differ from the source folder' });
-    }
+  fastify.post<{ Body: { fromFolder?: string; toFolder?: string } }>(
+    "/set-folders/rename",
+    async (request, reply) => {
+      const fromFolder = request.body?.fromFolder?.trim();
+      const toFolder = request.body?.toFolder?.trim();
+      if (!fromFolder || !toFolder) {
+        return reply
+          .status(400)
+          .send({ error: "fromFolder and toFolder are required" });
+      }
+      if (!isValidSetName(fromFolder) || !isValidSetName(toFolder)) {
+        return reply.status(400).send({
+          error:
+            "Folder names must contain only alphanumeric characters, dashes, underscores, and / for folders",
+        });
+      }
+      if (fromFolder === toFolder) {
+        return reply
+          .status(400)
+          .send({ error: "Target folder must differ from the source folder" });
+      }
 
-    return withLock(async () => {
-      try {
-        const allSets = await fastify.tokenStore.getSets();
-        const folderSetNames = getFolderSetNames(allSets, fromFolder);
-        if (folderSetNames.length === 0) {
-          return reply.status(404).send({ error: `Folder "${fromFolder}" not found` });
-        }
+      return withLock(async () => {
+        try {
+          const allSets = await fastify.tokenStore.getSets();
+          const folderSetNames = getFolderSetNames(allSets, fromFolder);
+          if (folderSetNames.length === 0) {
+            return reply
+              .status(404)
+              .send({ error: `Folder "${fromFolder}" not found` });
+          }
 
-        const renames = folderSetNames.map((setName) => ({
-          from: setName,
-          to: replaceFolderPrefix(setName, fromFolder, toFolder),
-        }));
-        const conflicts = findFolderRenameConflicts(allSets, folderSetNames, renames);
-        if (conflicts.length > 0) {
-          return reply.status(409).send({
-            error: `Folder rename would collide with existing sets: ${conflicts.join(', ')}`,
-            conflicts,
+          const renames = folderSetNames.map((setName) => ({
+            from: setName,
+            to: replaceFolderPrefix(setName, fromFolder, toFolder),
+          }));
+          const conflicts = findFolderRenameConflicts(
+            allSets,
+            folderSetNames,
+            renames,
+          );
+          if (conflicts.length > 0) {
+            return reply.status(409).send({
+              error: `Folder rename would collide with existing sets: ${conflicts.join(", ")}`,
+              conflicts,
+            });
+          }
+
+          const beforeSnapshot = await snapshotSets(
+            fastify.tokenStore,
+            folderSetNames,
+          );
+          for (const rename of sortFolderRenamePairsForApply(renames)) {
+            await fastify.tokenStore.renameSet(rename.from, rename.to);
+            await renameDependentSetReferences(rename.from, rename.to);
+          }
+          const renamedSetNames = renames.map(({ to }) => to);
+          const afterSnapshot = await snapshotSets(
+            fastify.tokenStore,
+            renamedSetNames,
+          );
+          const affectedPaths = [
+            ...new Set([
+              ...listSnapshotTokenPaths(beforeSnapshot),
+              ...listSnapshotTokenPaths(afterSnapshot),
+            ]),
+          ];
+
+          await fastify.operationLog.record({
+            type: "set-folder-rename",
+            description: `Rename folder "${fromFolder}" → "${toFolder}"`,
+            setName: toFolder,
+            affectedPaths,
+            beforeSnapshot,
+            afterSnapshot,
+            rollbackSteps: sortFolderRenamePairsForRollback(renames).map(
+              ({ from, to }) => ({
+                action: "rename-set" as const,
+                from,
+                to,
+              }),
+            ),
+            metadata: {
+              folder: fromFolder,
+              newFolder: toFolder,
+              renamedSets: renames,
+            },
           });
-        }
 
-        const beforeSnapshot = await snapshotSets(fastify.tokenStore, folderSetNames);
-        for (const rename of sortFolderRenamePairsForApply(renames)) {
-          await fastify.tokenStore.renameSet(rename.from, rename.to);
-          await fastify.generatorService.updateSetName(rename.from, rename.to);
-        }
-        const renamedSetNames = renames.map(({ to }) => to);
-        const afterSnapshot = await snapshotSets(fastify.tokenStore, renamedSetNames);
-        const affectedPaths = [...new Set([
-          ...listSnapshotTokenPaths(beforeSnapshot),
-          ...listSnapshotTokenPaths(afterSnapshot),
-        ])];
-
-        await fastify.operationLog.record({
-          type: 'set-folder-rename',
-          description: `Rename folder "${fromFolder}" → "${toFolder}"`,
-          setName: toFolder,
-          affectedPaths,
-          beforeSnapshot,
-          afterSnapshot,
-          rollbackSteps: sortFolderRenamePairsForRollback(renames).map(({ from, to }) => ({
-            action: 'rename-set' as const,
-            from,
-            to,
-          })),
-          metadata: {
+          return {
+            ok: true,
             folder: fromFolder,
             newFolder: toFolder,
             renamedSets: renames,
-          },
-        });
-
-        return {
-          ok: true,
-          folder: fromFolder,
-          newFolder: toFolder,
-          renamedSets: renames,
-          sets: await fastify.tokenStore.getSets(),
-        };
-      } catch (err) {
-        return handleRouteError(reply, err, 'Failed to rename folder');
-      }
-    });
-  });
+            sets: await fastify.tokenStore.getSets(),
+          };
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to rename folder");
+        }
+      });
+    },
+  );
 
   // POST /api/set-folders/reorder — reorder top-level folders and standalone sets
-  fastify.post<{ Body: { order?: string[] } }>('/set-folders/reorder', async (request, reply) => {
-    const order = request.body?.order;
-    if (!Array.isArray(order)) {
-      return reply.status(400).send({ error: 'order must be an array of top-level folder/set items' });
-    }
-
-    return withLock(async () => {
-      try {
-        const previousOrder = await fastify.tokenStore.getSets();
-        const currentItems = buildTopLevelItems(previousOrder);
-        if (
-          order.length !== currentItems.length ||
-          currentItems.some((item) => !order.includes(item))
-        ) {
-          return reply.status(400).send({ error: 'order must contain every current top-level set item exactly once' });
-        }
-
-        const nextOrder = expandTopLevelItems(previousOrder, order);
-        fastify.tokenStore.reorderSets(nextOrder);
-        await fastify.operationLog.record({
-          type: 'set-folder-reorder',
-          description: 'Reorder top-level set folders',
-          setName: '',
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          rollbackSteps: [{ action: 'reorder-sets', order: previousOrder }],
-          metadata: { order },
+  fastify.post<{ Body: { order?: string[] } }>(
+    "/set-folders/reorder",
+    async (request, reply) => {
+      const order = request.body?.order;
+      if (!Array.isArray(order)) {
+        return reply.status(400).send({
+          error: "order must be an array of top-level folder/set items",
         });
-
-        return { ok: true, sets: await fastify.tokenStore.getSets() };
-      } catch (err) {
-        return handleRouteError(reply, err, 'Failed to reorder folders');
       }
-    });
-  });
+
+      return withLock(async () => {
+        try {
+          const previousOrder = await fastify.tokenStore.getSets();
+          const currentItems = buildTopLevelItems(previousOrder);
+          if (
+            order.length !== currentItems.length ||
+            currentItems.some((item) => !order.includes(item))
+          ) {
+            return reply.status(400).send({
+              error:
+                "order must contain every current top-level set item exactly once",
+            });
+          }
+
+          const nextOrder = expandTopLevelItems(previousOrder, order);
+          fastify.tokenStore.reorderSets(nextOrder);
+          await fastify.operationLog.record({
+            type: "set-folder-reorder",
+            description: "Reorder top-level set folders",
+            setName: "",
+            affectedPaths: [],
+            beforeSnapshot: {},
+            afterSnapshot: {},
+            rollbackSteps: [{ action: "reorder-sets", order: previousOrder }],
+            metadata: { order },
+          });
+
+          return { ok: true, sets: await fastify.tokenStore.getSets() };
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to reorder folders");
+        }
+      });
+    },
+  );
 
   // POST /api/set-folders/merge — move every set from one folder into another existing folder
-  fastify.post<{ Body: { sourceFolder?: string; targetFolder?: string } }>('/set-folders/merge', async (request, reply) => {
-    const sourceFolder = request.body?.sourceFolder?.trim();
-    const targetFolder = request.body?.targetFolder?.trim();
-    if (!sourceFolder || !targetFolder) {
-      return reply.status(400).send({ error: 'sourceFolder and targetFolder are required' });
-    }
-    if (!isValidSetName(sourceFolder) || !isValidSetName(targetFolder)) {
-      return reply.status(400).send({ error: 'Folder names must contain only alphanumeric characters, dashes, underscores, and / for folders' });
-    }
-    if (sourceFolder === targetFolder) {
-      return reply.status(400).send({ error: 'Target folder must differ from the source folder' });
-    }
+  fastify.post<{ Body: { sourceFolder?: string; targetFolder?: string } }>(
+    "/set-folders/merge",
+    async (request, reply) => {
+      const sourceFolder = request.body?.sourceFolder?.trim();
+      const targetFolder = request.body?.targetFolder?.trim();
+      if (!sourceFolder || !targetFolder) {
+        return reply
+          .status(400)
+          .send({ error: "sourceFolder and targetFolder are required" });
+      }
+      if (!isValidSetName(sourceFolder) || !isValidSetName(targetFolder)) {
+        return reply.status(400).send({
+          error:
+            "Folder names must contain only alphanumeric characters, dashes, underscores, and / for folders",
+        });
+      }
+      if (sourceFolder === targetFolder) {
+        return reply
+          .status(400)
+          .send({ error: "Target folder must differ from the source folder" });
+      }
 
-    return withLock(async () => {
-      try {
-        const allSets = await fastify.tokenStore.getSets();
-        const sourceSetNames = getFolderSetNames(allSets, sourceFolder);
-        if (sourceSetNames.length === 0) {
-          return reply.status(404).send({ error: `Folder "${sourceFolder}" not found` });
-        }
+      return withLock(async () => {
+        try {
+          const allSets = await fastify.tokenStore.getSets();
+          const sourceSetNames = getFolderSetNames(allSets, sourceFolder);
+          if (sourceSetNames.length === 0) {
+            return reply
+              .status(404)
+              .send({ error: `Folder "${sourceFolder}" not found` });
+          }
 
-        const targetSetNames = getFolderSetNames(allSets, targetFolder);
-        if (targetSetNames.length === 0) {
-          return reply.status(404).send({ error: `Target folder "${targetFolder}" not found` });
-        }
+          const targetSetNames = getFolderSetNames(allSets, targetFolder);
+          if (targetSetNames.length === 0) {
+            return reply
+              .status(404)
+              .send({ error: `Target folder "${targetFolder}" not found` });
+          }
 
-        const renames = sourceSetNames.map((setName) => ({
-          from: setName,
-          to: replaceFolderPrefix(setName, sourceFolder, targetFolder),
-        }));
-        const conflicts = findFolderRenameConflicts(allSets, sourceSetNames, renames);
-        if (conflicts.length > 0) {
-          return reply.status(409).send({
-            error: `Folder merge would collide with existing sets: ${conflicts.join(', ')}`,
-            conflicts,
+          const renames = sourceSetNames.map((setName) => ({
+            from: setName,
+            to: replaceFolderPrefix(setName, sourceFolder, targetFolder),
+          }));
+          const conflicts = findFolderRenameConflicts(
+            allSets,
+            sourceSetNames,
+            renames,
+          );
+          if (conflicts.length > 0) {
+            return reply.status(409).send({
+              error: `Folder merge would collide with existing sets: ${conflicts.join(", ")}`,
+              conflicts,
+            });
+          }
+
+          const beforeSnapshot = await snapshotSets(
+            fastify.tokenStore,
+            sourceSetNames,
+          );
+          for (const rename of sortFolderRenamePairsForApply(renames)) {
+            await fastify.tokenStore.renameSet(rename.from, rename.to);
+            await renameDependentSetReferences(rename.from, rename.to);
+          }
+          const movedSetNames = renames.map(({ to }) => to);
+          const afterSnapshot = await snapshotSets(
+            fastify.tokenStore,
+            movedSetNames,
+          );
+          const affectedPaths = [
+            ...new Set([
+              ...listSnapshotTokenPaths(beforeSnapshot),
+              ...listSnapshotTokenPaths(afterSnapshot),
+            ]),
+          ];
+
+          await fastify.operationLog.record({
+            type: "set-folder-merge",
+            description: `Merge folder "${sourceFolder}" into "${targetFolder}"`,
+            setName: targetFolder,
+            affectedPaths,
+            beforeSnapshot,
+            afterSnapshot,
+            rollbackSteps: sortFolderRenamePairsForRollback(renames).map(
+              ({ from, to }) => ({
+                action: "rename-set" as const,
+                from,
+                to,
+              }),
+            ),
+            metadata: {
+              sourceFolder,
+              targetFolder,
+              movedSets: renames,
+            },
           });
-        }
 
-        const beforeSnapshot = await snapshotSets(fastify.tokenStore, sourceSetNames);
-        for (const rename of sortFolderRenamePairsForApply(renames)) {
-          await fastify.tokenStore.renameSet(rename.from, rename.to);
-          await fastify.generatorService.updateSetName(rename.from, rename.to);
-        }
-        const movedSetNames = renames.map(({ to }) => to);
-        const afterSnapshot = await snapshotSets(fastify.tokenStore, movedSetNames);
-        const affectedPaths = [...new Set([
-          ...listSnapshotTokenPaths(beforeSnapshot),
-          ...listSnapshotTokenPaths(afterSnapshot),
-        ])];
-
-        await fastify.operationLog.record({
-          type: 'set-folder-merge',
-          description: `Merge folder "${sourceFolder}" into "${targetFolder}"`,
-          setName: targetFolder,
-          affectedPaths,
-          beforeSnapshot,
-          afterSnapshot,
-          rollbackSteps: sortFolderRenamePairsForRollback(renames).map(({ from, to }) => ({
-            action: 'rename-set' as const,
-            from,
-            to,
-          })),
-          metadata: {
+          return {
+            ok: true,
             sourceFolder,
             targetFolder,
             movedSets: renames,
-          },
-        });
-
-        return {
-          ok: true,
-          sourceFolder,
-          targetFolder,
-          movedSets: renames,
-          sets: await fastify.tokenStore.getSets(),
-        };
-      } catch (err) {
-        return handleRouteError(reply, err, 'Failed to merge folders');
-      }
-    });
-  });
+            sets: await fastify.tokenStore.getSets(),
+          };
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to merge folders");
+        }
+      });
+    },
+  );
 
   // POST /api/set-folders/delete — delete every set inside a folder
-  fastify.post<{ Body: { folder?: string } }>('/set-folders/delete', async (request, reply) => {
-    const folder = request.body?.folder?.trim();
-    if (!folder) {
-      return reply.status(400).send({ error: 'folder is required' });
-    }
-    if (!isValidSetName(folder)) {
-      return reply.status(400).send({ error: 'Folder names must contain only alphanumeric characters, dashes, underscores, and / for folders' });
-    }
+  fastify.post<{ Body: { folder?: string } }>(
+    "/set-folders/delete",
+    async (request, reply) => {
+      const folder = request.body?.folder?.trim();
+      if (!folder) {
+        return reply.status(400).send({ error: "folder is required" });
+      }
+      if (!isValidSetName(folder)) {
+        return reply.status(400).send({
+          error:
+            "Folder names must contain only alphanumeric characters, dashes, underscores, and / for folders",
+        });
+      }
 
-    return withLock(async () => {
-      try {
-        const allSets = await fastify.tokenStore.getSets();
-        const folderSetNames = getFolderSetNames(allSets, folder);
-        if (folderSetNames.length === 0) {
-          return reply.status(404).send({ error: `Folder "${folder}" not found` });
-        }
+      return withLock(async () => {
+        try {
+          const allSets = await fastify.tokenStore.getSets();
+          const folderSetNames = getFolderSetNames(allSets, folder);
+          if (folderSetNames.length === 0) {
+            return reply
+              .status(404)
+              .send({ error: `Folder "${folder}" not found` });
+          }
 
-        const generators = (await fastify.generatorService.getAll()).map((generator) => ({
-          id: generator.id,
-          name: generator.name,
-          targetSet: generator.targetSet,
-          targetGroup: generator.targetGroup,
-        }));
-        const blockedTargets = folderSetNames.flatMap((setName) =>
-          buildGeneratorTargets(setName, generators),
-        );
-        if (blockedTargets.length > 0) {
-          const names = blockedTargets.map((generator) => `"${generator.generatorName}"`).join(', ');
-          return reply.status(409).send({
-            error: `Cannot delete folder "${folder}" — contained sets are used as generator targets by ${blockedTargets.length === 1 ? 'generator' : 'generators'}: ${names}`,
-            generatorIds: blockedTargets.map((generator) => generator.generatorId),
+          const generators = (await fastify.generatorService.getAll()).map(
+            (generator) => ({
+              id: generator.id,
+              name: generator.name,
+              targetSet: generator.targetSet,
+              targetGroup: generator.targetGroup,
+            }),
+          );
+          const blockedTargets = folderSetNames.flatMap((setName) =>
+            buildGeneratorTargets(setName, generators),
+          );
+          if (blockedTargets.length > 0) {
+            const names = blockedTargets
+              .map((generator) => `"${generator.generatorName}"`)
+              .join(", ");
+            return reply.status(409).send({
+              error: `Cannot delete folder "${folder}" — contained sets are used as generator targets by ${blockedTargets.length === 1 ? "generator" : "generators"}: ${names}`,
+              generatorIds: blockedTargets.map(
+                (generator) => generator.generatorId,
+              ),
+            });
+          }
+
+          const beforeSnapshot = await snapshotSets(
+            fastify.tokenStore,
+            folderSetNames,
+          );
+          for (const setName of folderSetNames) {
+            await fastify.tokenStore.deleteSet(setName);
+          }
+
+          await fastify.operationLog.record({
+            type: "set-folder-delete",
+            description: `Delete folder "${folder}"`,
+            setName: folder,
+            affectedPaths: listSnapshotTokenPaths(beforeSnapshot),
+            beforeSnapshot,
+            afterSnapshot: {},
+            rollbackSteps: folderSetNames.map((setName) => ({
+              action: "create-set" as const,
+              name: setName,
+            })),
+            metadata: {
+              folder,
+              deletedSets: folderSetNames,
+            },
           });
-        }
 
-        const beforeSnapshot = await snapshotSets(fastify.tokenStore, folderSetNames);
-        for (const setName of folderSetNames) {
-          await fastify.tokenStore.deleteSet(setName);
-        }
-
-        await fastify.operationLog.record({
-          type: 'set-folder-delete',
-          description: `Delete folder "${folder}"`,
-          setName: folder,
-          affectedPaths: listSnapshotTokenPaths(beforeSnapshot),
-          beforeSnapshot,
-          afterSnapshot: {},
-          rollbackSteps: folderSetNames.map((setName) => ({
-            action: 'create-set' as const,
-            name: setName,
-          })),
-          metadata: {
+          return {
+            ok: true,
             folder,
             deletedSets: folderSetNames,
-          },
-        });
-
-        return {
-          ok: true,
-          folder,
-          deletedSets: folderSetNames,
-          sets: await fastify.tokenStore.getSets(),
-        };
-      } catch (err) {
-        return handleRouteError(reply, err, 'Failed to delete folder');
-      }
-    });
-  });
+            sets: await fastify.tokenStore.getSets(),
+          };
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to delete folder");
+        }
+      });
+    },
+  );
 
   // DELETE /api/data — wipe all persisted state (danger zone)
   // Requires body: { confirm: "DELETE" } to prevent accidental calls
-  fastify.delete<{ Body: { confirm?: string } }>('/data', async (request, reply) => {
-    if (request.body?.confirm !== 'DELETE') {
-      return reply.status(400).send({ error: 'Missing confirmation — send { confirm: "DELETE" } in the request body' });
-    }
-    return withLock(async () => {
-      try {
-        await fastify.resolverLock.withLock(async () => {
-          await fastify.tokenStore.clearAll();
-          await fastify.dimensionsStore.reset();
-          await fastify.generatorService.reset();
-          await fastify.resolverStore.reset();
-          await fastify.operationLog.reset();
-          await fastify.manualSnapshots.reset();
+  fastify.delete<{ Body: { confirm?: string } }>(
+    "/data",
+    async (request, reply) => {
+      if (request.body?.confirm !== "DELETE") {
+        return reply.status(400).send({
+          error:
+            'Missing confirmation — send { confirm: "DELETE" } in the request body',
         });
-        return { ok: true };
+      }
+      return withLock(async () => {
+        try {
+          await fastify.resolverLock.withLock(async () => {
+            await fastify.tokenStore.clearAll();
+            await fastify.dimensionsStore.reset();
+            await fastify.generatorService.reset();
+            await fastify.resolverStore.reset();
+            await fastify.operationLog.reset();
+            await fastify.manualSnapshots.reset();
+          });
+          return { ok: true };
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to clear data");
+        }
+      });
+    },
+  );
+
+  // POST /api/sets/:name/duplicate — duplicate a set (copies tokens + metadata)
+  fastify.post<{ Params: { name: string }; Body?: { newName?: string } }>(
+    "/sets/:name/duplicate",
+    async (request, reply) => {
+      const { name } = request.params;
+      const requestedName = request.body?.newName;
+
+      return withLock(async () => {
+        try {
+          const source = await fastify.tokenStore.getSet(name);
+          if (!source) {
+            return reply
+              .status(404)
+              .send({ error: `Token set "${name}" not found` });
+          }
+
+          // Auto-generate a unique name if not provided
+          let newName = requestedName;
+          if (!newName) {
+            const allSets = await fastify.tokenStore.getSets();
+            newName = `${name}-copy`;
+            let i = 2;
+            while (allSets.includes(newName)) {
+              newName = `${name}-copy-${i++}`;
+            }
+          } else {
+            if (!isValidSetName(newName)) {
+              return reply.status(400).send({
+                error:
+                  "Set name must contain only alphanumeric characters, dashes, underscores, and / for folders",
+              });
+            }
+            const existing = await fastify.tokenStore.getSet(newName);
+            if (existing) {
+              return reply
+                .status(409)
+                .send({ error: `Token set "${newName}" already exists` });
+            }
+          }
+
+          // Deep-copy tokens (includes $description, $figmaCollection, $figmaMode metadata fields)
+          const tokensCopy = JSON.parse(JSON.stringify(source.tokens));
+          const set = await fastify.tokenStore.createSet(newName, tokensCopy);
+          const afterSnap = await snapshotSet(fastify.tokenStore, newName);
+          await fastify.operationLog.record({
+            type: "set-create",
+            description: `Duplicate set "${name}" → "${newName}"`,
+            setName: newName,
+            affectedPaths: Object.keys(afterSnap),
+            beforeSnapshot: {},
+            afterSnapshot: afterSnap,
+            rollbackSteps: [{ action: "delete-set", name: newName }],
+          });
+          return reply
+            .status(201)
+            .send({ ok: true, name: set.name, originalName: name });
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to duplicate set");
+        }
+      });
+    },
+  );
+
+  // POST /api/sets/:name/merge — merge tokens from one set into another atomically
+  fastify.post<{
+    Params: { name: string };
+    Body: {
+      targetSet?: string;
+      resolutions?: Record<string, "source" | "target">;
+    };
+  }>("/sets/:name/merge", async (request, reply) => {
+    const { name } = request.params;
+    const { targetSet, resolutions = {} } = request.body || {};
+
+    if (!targetSet) {
+      return reply.status(400).send({ error: "targetSet is required" });
+    }
+    if (targetSet === name) {
+      return reply
+        .status(400)
+        .send({ error: "targetSet must differ from the source set" });
+    }
+
+    return withLock(async () => {
+      let beforeTargetTokens: TokenGroup | null = null;
+      let targetMutated = false;
+      try {
+        const sourceSet = await fastify.tokenStore.getSet(name);
+        if (!sourceSet) {
+          return reply
+            .status(404)
+            .send({ error: `Token set "${name}" not found` });
+        }
+
+        const target = await fastify.tokenStore.getSet(targetSet);
+        if (!target) {
+          return reply
+            .status(404)
+            .send({ error: `Token set "${targetSet}" not found` });
+        }
+
+        const conflicts = buildMergeConflicts(sourceSet.tokens, target.tokens);
+        const conflictMap = new Map(
+          conflicts.map((conflict) => [conflict.path, conflict]),
+        );
+        for (const [path, resolution] of Object.entries(resolutions)) {
+          if (!conflictMap.has(path)) {
+            return reply.status(400).send({
+              error: `Merge resolution "${path}" no longer matches a current conflict.`,
+            });
+          }
+          if (resolution !== "source" && resolution !== "target") {
+            return reply.status(400).send({
+              error: `Merge resolution for "${path}" must be "source" or "target".`,
+            });
+          }
+        }
+
+        const nextTargetTokens = structuredClone(target.tokens);
+        beforeTargetTokens = structuredClone(target.tokens);
+        const targetFlat = new Map(flattenTokenGroup(target.tokens));
+        for (const [tokenPath, token] of flattenTokenGroup(sourceSet.tokens)) {
+          const conflict = conflictMap.get(tokenPath);
+          if (conflict && resolutions[tokenPath] !== "source") {
+            continue;
+          }
+          if (!conflict && targetFlat.has(tokenPath)) {
+            continue;
+          }
+          const sanitized = stripGeneratedOwnershipFromToken(
+            structuredClone(token),
+          );
+          setTokenAtPath(nextTargetTokens, tokenPath, sanitized);
+        }
+
+        const beforeSnapshot = await snapshotSet(fastify.tokenStore, targetSet);
+        await fastify.tokenStore.replaceSetTokens(targetSet, nextTargetTokens);
+        targetMutated = true;
+        const afterSnapshot = await snapshotSet(fastify.tokenStore, targetSet);
+        const entry = await fastify.operationLog.record({
+          type: "set-merge",
+          description: `Merge set "${name}" into "${targetSet}"`,
+          setName: targetSet,
+          affectedPaths: [
+            ...new Set([
+              ...listSnapshotTokenPaths(beforeSnapshot),
+              ...listSnapshotTokenPaths(afterSnapshot),
+            ]),
+          ],
+          beforeSnapshot,
+          afterSnapshot,
+          metadata: {
+            sourceSet: name,
+            targetSet,
+            conflictPaths: conflicts.map((conflict) => conflict.path),
+            resolutions,
+          },
+        });
+
+        return {
+          ok: true,
+          sourceSet: name,
+          targetSet,
+          operationId: entry.id,
+        };
       } catch (err) {
-        return handleRouteError(reply, err, 'Failed to clear data');
+        if (targetMutated && beforeTargetTokens) {
+          await fastify.tokenStore
+            .replaceSetTokens(targetSet, beforeTargetTokens)
+            .catch(() => {});
+        }
+        return handleRouteError(reply, err, "Failed to merge set");
       }
     });
   });
 
-  // POST /api/sets/:name/duplicate — duplicate a set (copies tokens + metadata)
-  fastify.post<{ Params: { name: string }; Body?: { newName?: string } }>('/sets/:name/duplicate', async (request, reply) => {
+  // POST /api/sets/:name/split — create new sets from each top-level group in a set
+  fastify.post<{
+    Params: { name: string };
+    Body: { deleteOriginal?: boolean };
+  }>("/sets/:name/split", async (request, reply) => {
     const { name } = request.params;
-    const requestedName = request.body?.newName;
+    const { deleteOriginal = false } = request.body || {};
 
     return withLock(async () => {
+      const createdNames: string[] = [];
+      let sourceTokensForRollback: TokenGroup | null = null;
+      let deletedOriginal = false;
       try {
-        const source = await fastify.tokenStore.getSet(name);
-        if (!source) {
-          return reply.status(404).send({ error: `Token set "${name}" not found` });
+        const sourceSet = await fastify.tokenStore.getSet(name);
+        if (!sourceSet) {
+          return reply
+            .status(404)
+            .send({ error: `Token set "${name}" not found` });
+        }
+        sourceTokensForRollback = structuredClone(sourceSet.tokens);
+
+        const [existingSetNames, dimensions, generators] = await Promise.all([
+          fastify.tokenStore.getSets(),
+          fastify.dimensionsStore.load(),
+          fastify.generatorService.getAll(),
+        ]);
+        const splitPreview = buildSplitPreview(
+          name,
+          sourceSet.tokens,
+          existingSetNames,
+        );
+        if (splitPreview.length === 0) {
+          return reply.status(409).send({
+            error: "No top-level groups are available to split into new sets.",
+          });
         }
 
-        // Auto-generate a unique name if not provided
-        let newName = requestedName;
-        if (!newName) {
-          const allSets = await fastify.tokenStore.getSets();
-          newName = `${name}-copy`;
-          let i = 2;
-          while (allSets.includes(newName)) {
-            newName = `${name}-copy-${i++}`;
-          }
-        } else {
-          if (!isValidSetName(newName)) {
-            return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, underscores, and / for folders' });
-          }
-          const existing = await fastify.tokenStore.getSet(newName);
-          if (existing) {
-            return reply.status(409).send({ error: `Token set "${newName}" already exists` });
+        if (deleteOriginal) {
+          const sourceImpact = buildSetImpact({
+            setName: name,
+            tokens: sourceSet.tokens,
+            metadata: fastify.tokenStore.getSetMetadata(name),
+            dimensions,
+            resolvers: fastify.resolverStore.list().map((resolver) => ({
+              name: resolver.name,
+              referencedSets: resolver.referencedSets,
+            })),
+            generators: generators.map((generator) => ({
+              id: generator.id,
+              name: generator.name,
+              targetSet: generator.targetSet,
+              targetGroup: generator.targetGroup,
+            })),
+            allOwnedTokens: fastify.tokenStore.findTokensByGeneratorId("*"),
+          });
+          const blockers = buildRemovalBlockers(sourceImpact);
+          if (blockers.length > 0) {
+            return reply.status(409).send({
+              error:
+                blockers[0]?.message ??
+                `Cannot delete set "${name}" after splitting because dependent state still references it.`,
+              blockers,
+            });
           }
         }
 
-        // Deep-copy tokens (includes $description, $figmaCollection, $figmaMode metadata fields)
-        const tokensCopy = JSON.parse(JSON.stringify(source.tokens));
-        const set = await fastify.tokenStore.createSet(newName, tokensCopy);
-        const afterSnap = await snapshotSet(fastify.tokenStore, newName);
-        await fastify.operationLog.record({
-          type: 'set-create',
-          description: `Duplicate set "${name}" → "${newName}"`,
-          setName: newName,
-          affectedPaths: Object.keys(afterSnap),
-          beforeSnapshot: {},
-          afterSnapshot: afterSnap,
-          rollbackSteps: [{ action: 'delete-set', name: newName }],
+        const operationBeforeSnapshot = deleteOriginal
+          ? await snapshotSet(fastify.tokenStore, name)
+          : {};
+
+        for (const { key, newName } of splitPreview) {
+          if (existingSetNames.includes(newName)) {
+            continue;
+          }
+          const groupTokens = sourceSet.tokens[key];
+          if (
+            !groupTokens ||
+            typeof groupTokens !== "object" ||
+            isDTCGToken(groupTokens)
+          ) {
+            continue;
+          }
+          await fastify.tokenStore.createSet(
+            newName,
+            stripGeneratedOwnershipFromTokenGroup(groupTokens as TokenGroup),
+          );
+          createdNames.push(newName);
+        }
+
+        if (createdNames.length === 0) {
+          return reply.status(409).send({
+            error:
+              "No new sets can be created from this split preview. Rename the destinations before splitting.",
+          });
+        }
+
+        if (deleteOriginal) {
+          await fastify.tokenStore.deleteSet(name);
+          deletedOriginal = true;
+        }
+
+        const afterSnapshot = deleteOriginal
+          ? await snapshotSets(fastify.tokenStore, createdNames)
+          : await snapshotSets(fastify.tokenStore, createdNames);
+        const entry = await fastify.operationLog.record({
+          type: "set-split",
+          description: deleteOriginal
+            ? `Split set "${name}" into ${createdNames.length} sets and delete the original`
+            : `Split set "${name}" into ${createdNames.length} sets`,
+          setName: name,
+          affectedPaths: [
+            ...new Set([
+              ...listSnapshotTokenPaths(operationBeforeSnapshot),
+              ...listSnapshotTokenPaths(afterSnapshot),
+            ]),
+          ],
+          beforeSnapshot: operationBeforeSnapshot,
+          afterSnapshot,
+          rollbackSteps: [
+            ...createdNames.map((createdName) => ({
+              action: "delete-set" as const,
+              name: createdName,
+            })),
+            ...(deleteOriginal
+              ? [{ action: "create-set" as const, name }]
+              : []),
+          ],
+          metadata: {
+            sourceSet: name,
+            createdSets: createdNames,
+            deleteOriginal,
+          },
         });
-        return reply.status(201).send({ ok: true, name: set.name, originalName: name });
+
+        return {
+          ok: true,
+          sourceSet: name,
+          createdSets: createdNames,
+          deleteOriginal,
+          operationId: entry.id,
+        };
       } catch (err) {
-        return handleRouteError(reply, err, 'Failed to duplicate set');
+        for (let index = createdNames.length - 1; index >= 0; index -= 1) {
+          await fastify.tokenStore
+            .deleteSet(createdNames[index])
+            .catch(() => {});
+        }
+        if (deletedOriginal && sourceTokensForRollback) {
+          await fastify.tokenStore
+            .createSet(name, sourceTokensForRollback)
+            .catch(() => {});
+        }
+        return handleRouteError(reply, err, "Failed to split set");
       }
     });
   });
@@ -929,56 +1526,86 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/sets/:name/preflight — inspect dependency impacts before a structural set change
   fastify.post<{
     Params: { name: string };
-    Body: { operation?: SetStructuralOperation; targetSet?: string; deleteOriginal?: boolean };
-  }>('/sets/:name/preflight', async (request, reply) => {
+    Body: {
+      operation?: SetStructuralOperation;
+      targetSet?: string;
+      deleteOriginal?: boolean;
+    };
+  }>("/sets/:name/preflight", async (request, reply) => {
     const { name } = request.params;
     const { operation, targetSet, deleteOriginal = false } = request.body || {};
-    if (operation !== 'delete' && operation !== 'merge' && operation !== 'split') {
-      return reply.status(400).send({ error: 'operation must be "delete", "merge", or "split"' });
+    if (
+      operation !== "delete" &&
+      operation !== "merge" &&
+      operation !== "split"
+    ) {
+      return reply
+        .status(400)
+        .send({ error: 'operation must be "delete", "merge", or "split"' });
     }
-    if (operation === 'merge') {
+    if (operation === "merge") {
       if (!targetSet) {
-        return reply.status(400).send({ error: 'targetSet is required for merge preflight' });
+        return reply
+          .status(400)
+          .send({ error: "targetSet is required for merge preflight" });
       }
       if (targetSet === name) {
-        return reply.status(400).send({ error: 'targetSet must differ from the source set' });
+        return reply
+          .status(400)
+          .send({ error: "targetSet must differ from the source set" });
       }
     }
 
     try {
       const sourceSet = await fastify.tokenStore.getSet(name);
       if (!sourceSet) {
-        return reply.status(404).send({ error: `Token set "${name}" not found` });
+        return reply
+          .status(404)
+          .send({ error: `Token set "${name}" not found` });
       }
 
-      const [dimensions, generatorsRaw, allOwnedTokens, splitSetNames, targetSetData] = await Promise.all([
+      const [
+        dimensions,
+        generatorsRaw,
+        allOwnedTokens,
+        splitSetNames,
+        targetSetData,
+      ] = await Promise.all([
         fastify.dimensionsStore.load(),
         fastify.generatorService.getAll(),
-        Promise.resolve(fastify.tokenStore.findTokensByGeneratorId('*')),
-        operation === 'split' ? fastify.tokenStore.getSets() : Promise.resolve([] as string[]),
-        operation === 'merge' && targetSet
+        Promise.resolve(fastify.tokenStore.findTokensByGeneratorId("*")),
+        operation === "split"
+          ? fastify.tokenStore.getSets()
+          : Promise.resolve([] as string[]),
+        operation === "merge" && targetSet
           ? fastify.tokenStore.getSet(targetSet)
           : Promise.resolve(undefined),
       ]);
-      if (operation === 'merge' && targetSet && !targetSetData) {
-        return reply.status(404).send({ error: `Token set "${targetSet}" not found` });
+      if (operation === "merge" && targetSet && !targetSetData) {
+        return reply
+          .status(404)
+          .send({ error: `Token set "${targetSet}" not found` });
       }
 
-      const generators: SetGeneratorMeta[] = generatorsRaw.map((generator: {
-        id: string;
-        name: string;
-        targetSet: string;
-        targetGroup: string;
-      }) => ({
-        id: generator.id,
-        name: generator.name,
-        targetSet: generator.targetSet,
-        targetGroup: generator.targetGroup,
-      }));
-      const resolvers: SetResolverMeta[] = fastify.resolverStore.list().map((resolver) => ({
-        name: resolver.name,
-        referencedSets: resolver.referencedSets,
-      }));
+      const generators: SetGeneratorMeta[] = generatorsRaw.map(
+        (generator: {
+          id: string;
+          name: string;
+          targetSet: string;
+          targetGroup: string;
+        }) => ({
+          id: generator.id,
+          name: generator.name,
+          targetSet: generator.targetSet,
+          targetGroup: generator.targetGroup,
+        }),
+      );
+      const resolvers: SetResolverMeta[] = fastify.resolverStore
+        .list()
+        .map((resolver) => ({
+          name: resolver.name,
+          referencedSets: resolver.referencedSets,
+        }));
       const sourceImpact = buildSetImpact({
         setName: name,
         tokens: sourceSet.tokens,
@@ -988,23 +1615,28 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         generators,
         allOwnedTokens,
       });
-      const splitPreview = operation === 'split'
-        ? buildSplitPreview(name, sourceSet.tokens, splitSetNames)
-        : [];
+      const splitPreview =
+        operation === "split"
+          ? buildSplitPreview(name, sourceSet.tokens, splitSetNames)
+          : [];
       const affectedSets: SetPreflightImpact[] = [sourceImpact];
-      if (operation === 'merge' && targetSet && targetSetData) {
-        affectedSets.push(buildSetImpact({
-          setName: targetSet,
-          tokens: targetSetData.tokens,
-          metadata: fastify.tokenStore.getSetMetadata(targetSet),
-          dimensions,
-          resolvers,
-          generators,
-          allOwnedTokens,
-        }));
+      if (operation === "merge" && targetSet && targetSetData) {
+        affectedSets.push(
+          buildSetImpact({
+            setName: targetSet,
+            tokens: targetSetData.tokens,
+            metadata: fastify.tokenStore.getSetMetadata(targetSet),
+            dimensions,
+            resolvers,
+            generators,
+            allOwnedTokens,
+          }),
+        );
       }
-      if (operation === 'split') {
-        const existingDestinations = splitPreview.filter((entry) => entry.existing);
+      if (operation === "split") {
+        const existingDestinations = splitPreview.filter(
+          (entry) => entry.existing,
+        );
         const existingDestinationImpacts = await Promise.all(
           existingDestinations.map(async (entry) => {
             const existingSet = await fastify.tokenStore.getSet(entry.newName);
@@ -1020,15 +1652,21 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             });
           }),
         );
-        affectedSets.push(...existingDestinationImpacts.filter((impact): impact is SetPreflightImpact => impact !== null));
+        affectedSets.push(
+          ...existingDestinationImpacts.filter(
+            (impact): impact is SetPreflightImpact => impact !== null,
+          ),
+        );
       }
 
-      const blockers = operation === 'delete' || (operation === 'split' && deleteOriginal)
-        ? buildGeneratorTargetBlockers(sourceImpact)
-        : [];
-      const mergeConflicts = operation === 'merge' && targetSetData
-        ? buildMergeConflicts(sourceSet.tokens, targetSetData.tokens)
-        : [];
+      const blockers =
+        operation === "delete" || (operation === "split" && deleteOriginal)
+          ? buildRemovalBlockers(sourceImpact)
+          : [];
+      const mergeConflicts =
+        operation === "merge" && targetSetData
+          ? buildMergeConflicts(sourceSet.tokens, targetSetData.tokens)
+          : [];
       const warnings = buildPreflightWarnings({
         operation,
         source: sourceImpact,
@@ -1047,55 +1685,75 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       };
       return response;
     } catch (err) {
-      return handleRouteError(reply, err, 'Failed to inspect set dependencies');
+      return handleRouteError(reply, err, "Failed to inspect set dependencies");
     }
   });
 
   // DELETE /api/sets/:name — delete a set
-  fastify.delete<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
-    const { name } = request.params;
-    return withLock(async () => {
-      try {
-        const set = await fastify.tokenStore.getSet(name);
-        if (!set) {
-          return reply.status(404).send({ error: `Token set "${name}" not found` });
-        }
+  fastify.delete<{ Params: { name: string } }>(
+    "/sets/:name",
+    async (request, reply) => {
+      const { name } = request.params;
+      return withLock(async () => {
+        try {
+          const set = await fastify.tokenStore.getSet(name);
+          if (!set) {
+            return reply
+              .status(404)
+              .send({ error: `Token set "${name}" not found` });
+          }
 
-        const generatorTargets = buildGeneratorTargets(
-          name,
-          (await fastify.generatorService.getAll()).map((generator) => ({
-            id: generator.id,
-            name: generator.name,
-            targetSet: generator.targetSet,
-            targetGroup: generator.targetGroup,
-          })),
-        );
-        if (generatorTargets.length > 0) {
-          const names = generatorTargets.map((generator) => `"${generator.generatorName}"`).join(', ');
-          return reply.status(409).send({
-            error: `Cannot delete set "${name}" — it is used as the target by ${generatorTargets.length === 1 ? 'generator' : 'generators'}: ${names}`,
-            generatorIds: generatorTargets.map((generator) => generator.generatorId),
+          const sourceImpact = buildSetImpact({
+            setName: name,
+            tokens: set.tokens,
+            metadata: fastify.tokenStore.getSetMetadata(name),
+            dimensions: await fastify.dimensionsStore.load(),
+            resolvers: fastify.resolverStore.list().map((resolver) => ({
+              name: resolver.name,
+              referencedSets: resolver.referencedSets,
+            })),
+            generators: (await fastify.generatorService.getAll()).map(
+              (generator) => ({
+                id: generator.id,
+                name: generator.name,
+                targetSet: generator.targetSet,
+                targetGroup: generator.targetGroup,
+              }),
+            ),
+            allOwnedTokens: fastify.tokenStore.findTokensByGeneratorId("*"),
           });
-        }
+          const blockers = buildRemovalBlockers(sourceImpact);
+          if (blockers.length > 0) {
+            const messages = blockers.map((blocker) => blocker.message);
+            return reply.status(409).send({
+              error:
+                messages[0] ??
+                `Cannot delete set "${name}" because dependent state still references it.`,
+              blockers,
+            });
+          }
 
-        const beforeSnap = await snapshotSet(fastify.tokenStore, name);
-        const deleted = await fastify.tokenStore.deleteSet(name);
-        if (!deleted) {
-          return reply.status(404).send({ error: `Token set "${name}" not found` });
+          const beforeSnap = await snapshotSet(fastify.tokenStore, name);
+          const deleted = await fastify.tokenStore.deleteSet(name);
+          if (!deleted) {
+            return reply
+              .status(404)
+              .send({ error: `Token set "${name}" not found` });
+          }
+          const entry = await fastify.operationLog.record({
+            type: "set-delete",
+            description: `Delete set "${name}"`,
+            setName: name,
+            affectedPaths: Object.keys(beforeSnap),
+            beforeSnapshot: beforeSnap,
+            afterSnapshot: {},
+            rollbackSteps: [{ action: "create-set", name }],
+          });
+          return { ok: true, name, operationId: entry.id };
+        } catch (err) {
+          return handleRouteError(reply, err, "Failed to delete set");
         }
-        const entry = await fastify.operationLog.record({
-          type: 'set-delete',
-          description: `Delete set "${name}"`,
-          setName: name,
-          affectedPaths: Object.keys(beforeSnap),
-          beforeSnapshot: beforeSnap,
-          afterSnapshot: {},
-          rollbackSteps: [{ action: 'create-set', name }],
-        });
-        return { ok: true, name, operationId: entry.id };
-      } catch (err) {
-        return handleRouteError(reply, err, 'Failed to delete set');
-      }
-    });
-  });
+      });
+    },
+  );
 };

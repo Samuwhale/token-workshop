@@ -1,6 +1,6 @@
-import type { ThemeSetStatus } from '@tokenmanager/core';
+import type { ThemeSetStatus } from "@tokenmanager/core";
 
-export type SetStructuralOperation = 'delete' | 'merge' | 'split';
+export type SetStructuralOperation = "delete" | "merge" | "split";
 
 export interface SetThemeImpact {
   dimensionId: string;
@@ -42,11 +42,16 @@ export interface SetPreflightImpact {
 }
 
 export interface SetPreflightBlocker {
-  code: 'generator-target-set';
+  id: string;
+  code:
+    | "generated-token-ownership"
+    | "generator-target-set"
+    | "resolver-set-ref"
+    | "theme-option-set";
   setName: string;
-  generatorId: string;
-  generatorName: string;
   message: string;
+  generatorId?: string;
+  generatorName?: string;
 }
 
 export interface SetMergeConflict {

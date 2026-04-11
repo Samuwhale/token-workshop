@@ -1,0 +1,18 @@
+id: block-or-rewrite-theme-resolver-and-generated-to-0a2e3e0f
+title: Block or rewrite theme, resolver, and generated-token dependencies during folder delete operations
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/routes/sets.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: Set rename/merge/split/delete now handle these dependency edges, but `/api/set-folders/delete` still only checks generator targets before removing member sets."
+state: ready
+acceptance_criteria:
+  - Deleting a set folder does not leave theme options or resolver sources pointing at removed sets
+  - Folder delete refuses to proceed while any contained generated tokens or generator targets would become dangling
+source: task-followup
+created_at: 2026-04-11T23:12:16.210Z
+updated_at: 2026-04-11T23:12:16.210Z
