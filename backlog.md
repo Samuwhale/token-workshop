@@ -31,7 +31,7 @@
 - [ ] [HIGH] Extract shared FeedbackPlaceholder component from existing bespoke empty/error/no-results states
 - [ ] [HIGH] Extract shared InlineBanner component and migrate all bespoke inline feedback strips
 - [x] [HIGH] Centralize contextual surface mutual-exclusion into EditorContext
-- [ ] [HIGH] Guard compare-to-edit and preview-to-edit transitions through dirty-state check
+- [x] [HIGH] Guard compare-to-edit and preview-to-edit transitions through dirty-state check
 - [ ] [HIGH] Add generator ownership indicators to TokenDetailPreview and group headers
 - [ ] [HIGH] Surface save-impact summary before confirmation in TokenGeneratorDialog
 - [ ] [HIGH] Extract shared editor shell layout from TokenEditor

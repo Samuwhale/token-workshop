@@ -895,3 +895,12 @@
 - **Learnings for future iterations:**
   - Compare and preview CTA handlers should reuse the same editor-opening helper as list actions so dirty-state guarding and surface cleanup stay consistent across every entry point.
 ---
+## 2026-04-11 - Add generator ownership indicators to TokenDetailPreview and group headers
+- Added generator navigation wiring to token preview surfaces so metadata can deep-link into the generator workspace from both the contextual preview and split Preview panel.
+- Replaced the metadata summary badges with explicit generator ownership chips in `TokenDetailPreview`, and added an always-visible generator icon to generator-managed group headers while preserving the existing active-row regenerate and edit affordances.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false` still fails on unrelated pre-existing workspace TypeScript issues (`packages/core/dist` alias output, `NoticeSeverity` mismatches, existing implicit-`any` errors, and unrelated component type errors).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx` ~L39, `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx` ~L463, `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L17, `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L435, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L616, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L957, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L857
+- **Learnings for future iterations:**
+  - Token preview metadata is easier to scan when relationship badges become dedicated field rows; use chips for each linked entity instead of compressing ownership into count-only pills.
+  - Generator-managed group affordances work better when ownership is always visible and stale state is layered on top, rather than using stale-only signals as the only header indicator.
+---

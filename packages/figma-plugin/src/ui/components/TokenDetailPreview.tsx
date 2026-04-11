@@ -36,6 +36,67 @@ interface TokenDetailPreviewProps {
   onEdit: () => void;
   onClose: () => void;
   onNavigateToAlias?: (path: string) => void;
+  onNavigateToGenerator?: (generatorId: string) => void;
+}
+
+function GeneratorReferenceChip({
+  generator,
+  onNavigateToGenerator,
+}: {
+  generator: TokenGenerator;
+  onNavigateToGenerator?: (generatorId: string) => void;
+}) {
+  const className =
+    "inline-flex items-center gap-1 rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)]";
+
+  if (!onNavigateToGenerator) {
+    return (
+      <span className={className} title={generator.name}>
+        <svg
+          className="shrink-0"
+          width="7"
+          height="7"
+          viewBox="0 0 10 10"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        >
+          <circle cx="5" cy="2" r="1.5" />
+          <circle cx="2" cy="8" r="1.5" />
+          <circle cx="8" cy="8" r="1.5" />
+          <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
+        </svg>
+        <span className="truncate">{generator.name}</span>
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigateToGenerator(generator.id)}
+      className={`${className} text-[var(--color-figma-accent)] hover:underline`}
+      title={`Open generator "${generator.name}"`}
+    >
+      <svg
+        className="shrink-0"
+        width="7"
+        height="7"
+        viewBox="0 0 10 10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      >
+        <circle cx="5" cy="2" r="1.5" />
+        <circle cx="2" cy="8" r="1.5" />
+        <circle cx="8" cy="8" r="1.5" />
+        <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
+      </svg>
+      <span className="truncate">{generator.name}</span>
+    </button>
+  );
 }
 
 export function TokenDetailPreview({
@@ -57,6 +118,7 @@ export function TokenDetailPreview({
   onEdit,
   onClose,
   onNavigateToAlias,
+  onNavigateToGenerator,
 }: TokenDetailPreviewProps) {
   const entry = allTokensFlat[tokenPath];
   const name = tokenName ?? tokenPath.split(".").pop() ?? tokenPath;
@@ -398,6 +460,33 @@ export function TokenDetailPreview({
                   </button>
                 </div>
               )}
+              {sourceGenerators.length > 0 && (
+                <div>
+                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] mb-0.5">
+                    Generator source
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {sourceGenerators.map((generator) => (
+                      <GeneratorReferenceChip
+                        key={generator.id}
+                        generator={generator}
+                        onNavigateToGenerator={onNavigateToGenerator}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {derivedGenerator && (
+                <div>
+                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] mb-0.5">
+                    Derived from
+                  </div>
+                  <GeneratorReferenceChip
+                    generator={derivedGenerator}
+                    onNavigateToGenerator={onNavigateToGenerator}
+                  />
+                </div>
+              )}
               <div className="flex flex-wrap gap-1">
                 {lifecycle && (
                   <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
@@ -412,17 +501,6 @@ export function TokenDetailPreview({
                 {extendsPath && (
                   <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] break-all">
                     Extends: {extendsPath}
-                  </span>
-                )}
-                {sourceGenerators.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
-                    Generator source: {sourceGenerators.length} target
-                    {sourceGenerators.length === 1 ? "" : "s"}
-                  </span>
-                )}
-                {derivedGenerator && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
-                    Derived from: {derivedGenerator.name}
                   </span>
                 )}
                 {usageCount > 0 && (

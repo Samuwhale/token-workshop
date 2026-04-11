@@ -613,6 +613,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             onEdit={p.handlePreviewEdit}
             onClose={p.handlePreviewClose}
             onNavigateToAlias={handleNavigateToAlias}
+            onNavigateToGenerator={p.handleNavigateToGenerator}
           />
         ),
         onDismiss: p.handlePreviewClose,
@@ -953,6 +954,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   tokenUsageCounts={tokenUsageCounts}
                   generators={generators}
                   derivedTokenPaths={derivedTokenPaths}
+                  onNavigateToGenerator={p.handleNavigateToGenerator}
                 />
               </ErrorBoundary>
             </div>
