@@ -210,6 +210,9 @@ export function ContrastMatrixPanel({
       </button>
       {showContrastMatrix && (
         <div className="overflow-auto max-h-96 p-2">
+          <p className="px-1 pb-2 text-[9px] text-[var(--color-figma-text-secondary)]">
+            WCAG AA requires at least 4.5:1 contrast for normal text, while AAA raises that requirement to 7:1.
+          </p>
           {/* Cross-theme toggle */}
           {hasMultiThemeOptions && (
             <div className="flex items-center gap-2 mb-2 px-1 pb-2 border-b border-[var(--color-figma-border)]">
@@ -226,7 +229,7 @@ export function ContrastMatrixPanel({
                   {dimensions.map(dim => dim.options.length >= 2 ? (
                     <div key={dim.id} className="flex items-center gap-1 flex-wrap">
                       {dimensions.length > 1 && <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{dim.name}:</span>}
-                      {dim.options.map(opt => {
+                      {dim.options.map((opt: ThemeDimension['options'][number]) => {
                         const key = `${dim.id}:${opt.name}`;
                         const isActive = activeContrastThemeKeys.has(key);
                         return (

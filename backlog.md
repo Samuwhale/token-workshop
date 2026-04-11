@@ -29,7 +29,7 @@
 - [x] [HIGH] Research generator ownership, save-impact messaging, and return-to-generated-token flows across Tokens and Generators surfaces
 - [x] [HIGH] Hoist import result summary to app-level state
 - [x] [HIGH] Extract shared FeedbackPlaceholder component from existing bespoke empty/error/no-results states
-- [ ] [HIGH] Extract shared InlineBanner component and migrate all bespoke inline feedback strips
+- [x] [HIGH] Extract shared InlineBanner component and migrate all bespoke inline feedback strips
 - [x] [HIGH] Centralize contextual surface mutual-exclusion into EditorContext
 - [x] [HIGH] Guard compare-to-edit and preview-to-edit transitions through dirty-state check
 - [x] [HIGH] Add generator ownership indicators to TokenDetailPreview and group headers

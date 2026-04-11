@@ -275,7 +275,10 @@ export function UnusedTokensPanel({
             {!hasUsageData ? (
               <span className="normal-case font-normal opacity-60">(requires Figma usage scan)</span>
             ) : (
-              <span className="ml-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">{unusedCount}</span>
+              <>
+                <span className="ml-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">{unusedCount}</span>
+                <span className="normal-case font-normal opacity-60">(zero usage)</span>
+              </>
             )}
           </span>
           <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showUnused ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>

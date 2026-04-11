@@ -36,6 +36,13 @@ export function LightnessInspectorPanel({ colorScales }: LightnessInspectorPanel
             const range = lMax - lMin || 1;
             const gaps = lValues.slice(1).map((v, i) => Math.abs(v.l - lValues[i].l));
             const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+            const anomalyPairs = steps.slice(1).flatMap((step, index) => {
+              const previousStep = steps[index];
+              const currentValue = lValues[index + 1];
+              const previousValue = lValues[index];
+              if (Math.abs(currentValue.l - previousValue.l) <= avgGap * 2) return [];
+              return [`${previousStep.path} -> ${step.path}`];
+            });
             const W = 200, H = 40;
             const pts = lValues.map((v, i) => {
               const x = (i / (lValues.length - 1)) * W;
@@ -58,7 +65,7 @@ export function LightnessInspectorPanel({ colorScales }: LightnessInspectorPanel
                 {pts.some(p => p.isAnom) && (
                   <div className="text-[10px] text-[var(--color-figma-warning)] mt-1 flex items-center gap-1">
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                    Uneven lightness steps detected
+                    <span>Uneven lightness steps detected at {anomalyPairs.join(', ')}</span>
                   </div>
                 )}
               </div>

@@ -929,3 +929,11 @@
   - Shared inline feedback needs a small layout switch (`inline` vs `strip`) so inset cards and edge-to-edge panel rails can reuse one primitive without collapsing into one-off wrappers.
   - Keep the shared banner body generic and let callers override icons or button styling only when a surface needs to preserve a specific accent treatment.
 ---
+## 2026-04-11 - Refresh audit panel explanatory-context task touch paths and implement header/context copy
+- Updated the audit headers so Unused Tokens now keeps the count paired with a zero-usage qualifier, Duplicate Values reports both duplicate-group and alias totals, Contrast Matrix opens with an explicit WCAG AA/AAA threshold sentence, and Lightness Inspector now names the exact token-path transitions behind each anomaly warning.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "UnusedTokensPanel|DuplicateDetectionPanel|ContrastMatrixPanel|LightnessInspectorPanel"` reports only the pre-existing `packages/core/dist` alias-output `TS6305` errors in `ContrastMatrixPanel`; no new task-specific diagnostics remained in the touched files.
+- Files changed: `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` ~L272, `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx` ~L194, `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L212, `packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx` ~L32
+- **Learnings for future iterations:**
+  - Collapsed audit headers are more legible when the headline count is paired with a short qualifier that explains what the count actually represents, instead of relying on the expanded body for context.
+  - When surfacing anomaly warnings, prefer listing the exact token paths or transitions that triggered the warning so follow-up cleanup starts from the panel itself.
+---
