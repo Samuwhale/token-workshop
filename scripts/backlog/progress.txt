@@ -987,3 +987,11 @@
   - Once selection bootstrap state exists in `InspectContext`, every selection-driven surface should consume that shared loading flag instead of interpreting the hook's initial `[]` as a real empty selection.
   - Neutral loading placeholders are preferable to search or empty-state affordances while the first Figma selection message is still in flight, because they avoid implying that the canvas has already reported "nothing selected."
 ---
+## 2026-04-11 - Collapse generator card action buttons into a context menu
+- Replaced the generator card's dense seven-button action row with a compact `Re-run` button plus an overflow menu, and added menu open-state handling so preview, steps, quick edit, full edit, clone, and delete actions stay available without stretching card height.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "GeneratorPipelineCard\\.tsx|useMenuKeyboard\\.ts"` returned no matches, so the touched generator card and shared menu helper surfaced no task-specific TypeScript diagnostics in that run.
+- Files changed: `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L973, `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L1442
+- **Learnings for future iterations:**
+  - For dense cards, keep the most common command inline and move secondary toggles into a menu; a small active-state dot on the overflow trigger preserves discoverability without restoring a full button strip.
+  - When adding local overflow menus, wire outside-click dismissal and Arrow/Home/End keyboard navigation at the card level so the pattern stays consistent with the rest of the plugin.
+---
