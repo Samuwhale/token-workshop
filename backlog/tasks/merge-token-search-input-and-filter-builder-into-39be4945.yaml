@@ -12,7 +12,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: Three overlapping filter systems exist — free-text search, a structured filter builder panel, and hidden query qualifiers (type:color, has:alias). The filter builder is well-implemented with sections for Type, Has, Path, Name, Value, Description, Generator. The problem is three separate entry points presenting the same underlying capability."
-state: ready
+  - "Completed: Replaced standalone TokenSearchFilterBuilder panel with inline TokenSearchFilterChips component rendered below search input. Active qualifiers shown as removable chips with hover X button and click-to-edit popover. Added + Filter button with dropdown for adding new filters. Removed filterBuilderOpen state, toggle button, and standalone panel from TokenList. Updated useTokenSearch tooltip text. Build passes."
+state: done
 acceptance_criteria:
   - A single search input serves as the only entry point for searching and filtering.
   - Typing triggers autocomplete qualifier hints (existing behavior, preserved).

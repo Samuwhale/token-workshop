@@ -49,7 +49,7 @@ import { useTokenVirtualScroll } from '../hooks/useTokenVirtualScroll';
 import { useTokenSearch } from '../hooks/useTokenSearch';
 import { useTokenSelection } from '../hooks/useTokenSelection';
 import { dispatchToast } from '../shared/toastBus';
-import { TokenSearchFilterBuilder } from './TokenSearchFilterBuilder';
+import { TokenSearchFilterChips } from './TokenSearchFilterBuilder';
 import type { FilterBuilderSection } from './TokenSearchFilterBuilder';
 import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES } from './WelcomePrompt';
 
@@ -460,12 +460,6 @@ export function TokenList({
   const [copyCssFeedback, setCopyCssFeedback] = useState(false);
   const [copyPreferredFeedback, setCopyPreferredFeedback] = useState(false);
   const [copyAliasFeedback, setCopyAliasFeedback] = useState(false);
-  const [showCopyMenu, setShowCopyMenu] = useState(false);
-  const [showOverflowMenu, setShowOverflowMenu] = useState(false);
-  const copyMenuRef = useRef<HTMLDivElement>(null);
-  const copyMenuBtnRef = useRef<HTMLButtonElement>(null);
-  const overflowMenuRef = useRef<HTMLDivElement>(null);
-  const overflowMenuBtnRef = useRef<HTMLButtonElement>(null);
   const [showMoveToGroup, setShowMoveToGroup] = useState(false);
   const [moveToGroupTarget, setMoveToGroupTarget] = useState('');
   const [moveToGroupError, setMoveToGroupError] = useState('');
@@ -475,8 +469,6 @@ export function TokenList({
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState('');
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
-  const [filterBuilderOpen, setFilterBuilderOpen] = useState(false);
-  const [activeFilterBuilderSection, setActiveFilterBuilderSection] = useState<FilterBuilderSection | null>(null);
   const [bulkWorkflowOpen, setBulkWorkflowOpen] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] = useState<BulkEditScope | null>(null);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] = useState<PendingBulkPresetLaunch | null>(null);
@@ -676,22 +668,6 @@ export function TokenList({
 
   // Clear optimistic deletions when the server response arrives with fresh tokens
   useEffect(() => { setLocallyDeletedPaths(new Set()); }, [tokens]);
-
-  // Close copy/overflow dropdown menus on outside click
-  useEffect(() => {
-    if (!showCopyMenu && !showOverflowMenu) return;
-    const onClickOutside = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (showCopyMenu && !copyMenuRef.current?.contains(t) && !copyMenuBtnRef.current?.contains(t)) {
-        setShowCopyMenu(false);
-      }
-      if (showOverflowMenu && !overflowMenuRef.current?.contains(t) && !overflowMenuBtnRef.current?.contains(t)) {
-        setShowOverflowMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [showCopyMenu, showOverflowMenu]);
 
   const sortedTokens = useMemo(() => {
     const sorted = sortTokenNodes(tokens, sortOrder);
@@ -1302,41 +1278,7 @@ export function TokenList({
     };
   }, [activeFilterSummary, searchQuery, setName]);
 
-  const getPreferredFilterBuilderSection = useCallback((): FilterBuilderSection => {
-    if (parsedSearchQuery.types.length > 0) return 'type';
-    if (selectedHasQualifiers.length > 0) return 'has';
-    if (parsedSearchQuery.paths.length > 0) return 'path';
-    if (parsedSearchQuery.names.length > 0) return 'name';
-    if (parsedSearchQuery.values.length > 0) return 'value';
-    if (parsedSearchQuery.descs.length > 0) return 'desc';
-    if (parsedSearchQuery.generators.length > 0) return 'generator';
-    return 'type';
-  }, [parsedSearchQuery, selectedHasQualifiers.length]);
 
-  const openFilterBuilderSection = useCallback((section: FilterBuilderSection) => {
-    setFilterBuilderOpen(true);
-    setActiveFilterBuilderSection(section);
-  }, []);
-
-  const toggleFilterBuilder = useCallback(() => {
-    setFilterBuilderOpen(open => {
-      const next = !open;
-      if (next) {
-        setActiveFilterBuilderSection(current => current ?? getPreferredFilterBuilderSection());
-      }
-      return next;
-    });
-  }, [getPreferredFilterBuilderSection]);
-
-  useEffect(() => {
-    if (!filterBuilderOpen && !hasStructuredFilters) {
-      setActiveFilterBuilderSection(null);
-      return;
-    }
-    if (activeFilterBuilderSection === null) {
-      setActiveFilterBuilderSection(getPreferredFilterBuilderSection());
-    }
-  }, [activeFilterBuilderSection, filterBuilderOpen, getPreferredFilterBuilderSection, hasStructuredFilters]);
 
   // Sync displayedLeafNodesRef
   displayedLeafNodesRef.current = displayedLeafNodes;
@@ -1696,12 +1638,6 @@ export function TokenList({
 
     // Escape: close create form, exit select mode, exit zoom, or blur search
     if (e.key === 'Escape') {
-      if (showCopyMenu || showOverflowMenu) {
-        e.preventDefault();
-        setShowCopyMenu(false);
-        setShowOverflowMenu(false);
-        return;
-      }
       if (selectMode) {
         e.preventDefault();
         setSelectMode(false);
@@ -2015,7 +1951,7 @@ export function TokenList({
         }
       }
     }
-  }, [selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected, requestBulkDeleteFromHook, sets, setName, setBatchMoveToSetTarget, setShowBatchMoveToSet, setBatchCopyToSetTarget, setShowBatchCopyToSet, editingTokenPath, handleTokenSelect, lastSelectedPathRef, onEdit, searchRef, setSelectMode, setSelectedPaths, setShowBatchEditor, setVirtualScrollTop, showCopyMenu, showOverflowMenu]);
+  }, [selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected, requestBulkDeleteFromHook, sets, setName, setBatchMoveToSetTarget, setShowBatchMoveToSet, setBatchCopyToSetTarget, setShowBatchCopyToSet, editingTokenPath, handleTokenSelect, lastSelectedPathRef, onEdit, searchRef, setSelectMode, setSelectedPaths, setShowBatchEditor, setVirtualScrollTop]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -2064,14 +2000,10 @@ export function TokenList({
     setCrossSetSearch(false);
     setInspectMode(false);
     setShowRecentlyTouched(false);
-    setFilterBuilderOpen(false);
-    setActiveFilterBuilderSection(null);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
   }, [
     onToggleIssuesOnly,
-    setActiveFilterBuilderSection,
     setCrossSetSearch,
-    setFilterBuilderOpen,
     setInspectMode,
     setRefFilter,
     setSearchQuery,
@@ -2868,25 +2800,19 @@ export function TokenList({
       <div className="flex-shrink-0">
         {/* Select mode toolbar */}
         {selectMode && (
-          <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 min-w-0 truncate">
+          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">
               {selectedPaths.size} of {displayedLeafPaths.size} selected
+              <span className="ml-2 opacity-60">· Tab to navigate · Space to toggle</span>
             </span>
-
-            {/* Selection */}
             <button
               onClick={handleSelectAll}
               className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               {[...displayedLeafPaths].every(p => selectedPaths.has(p)) && displayedLeafPaths.size > 0 ? 'Deselect all' : 'Select all'}
             </button>
-
             {selectedPaths.size > 0 && (
               <>
-                {/* Divider */}
-                <div className="w-px h-4 bg-[var(--color-figma-border)] mx-0.5" />
-
-                {/* Edit group */}
                 <button
                   onClick={() => setShowBatchEditor(v => !v)}
                   className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
@@ -2901,11 +2827,12 @@ export function TokenList({
                     Compare
                   </button>
                 )}
-
-                {/* Divider */}
-                <div className="w-px h-4 bg-[var(--color-figma-border)] mx-0.5" />
-
-                {/* Organize group */}
+                <button
+                  onClick={() => handleOpenPromoteReview()}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Link to tokens
+                </button>
                 <button
                   onClick={() => { setMoveToGroupTarget(''); setMoveToGroupError(''); setShowMoveToGroup(true); }}
                   disabled={!!operationLoading}
@@ -2933,94 +2860,45 @@ export function TokenList({
                     </button>
                   </>
                 )}
-
-                {/* Divider */}
-                <div className="w-px h-4 bg-[var(--color-figma-border)] mx-0.5" />
-
-                {/* Copy as... dropdown */}
-                <div className="relative">
-                  <button
-                    ref={copyMenuBtnRef}
-                    onClick={() => { setShowCopyMenu(v => !v); setShowOverflowMenu(false); }}
-                    className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center gap-1"
-                  >
-                    <span aria-live="polite">{(copyFeedback || copyCssFeedback || copyAliasFeedback) ? 'Copied!' : 'Copy as…'}</span>
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1.5 3L4 5.5L6.5 3" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
-                  {showCopyMenu && (
-                    <div ref={copyMenuRef} className="absolute right-0 top-full mt-1 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1 min-w-[148px]">
-                      <button
-                        onClick={() => {
-                          const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
-                          copyTokensAsJson(nodes);
-                          setShowCopyMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left"
-                      >
-                        Copy JSON
-                      </button>
-                      <button
-                        onClick={() => {
-                          const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
-                          copyTokensAsCssVar(nodes);
-                          setShowCopyMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left"
-                      >
-                        Copy CSS var
-                      </button>
-                      <button
-                        title="Copy as DTCG alias reference — {path.to.token} (⌘⌥C)"
-                        onClick={() => {
-                          const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
-                          copyTokensAsDtcgRef(nodes);
-                          setShowCopyMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left font-mono"
-                      >
-                        {'Copy {ref}'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Overflow menu (rarely used actions) */}
-                <div className="relative">
-                  <button
-                    ref={overflowMenuBtnRef}
-                    onClick={() => { setShowOverflowMenu(v => !v); setShowCopyMenu(false); }}
-                    title="More actions"
-                    className="px-1.5 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  >
-                    ···
-                  </button>
-                  {showOverflowMenu && (
-                    <div ref={overflowMenuRef} className="absolute right-0 top-full mt-1 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1 min-w-[164px]">
-                      <button
-                        onClick={() => { handleOpenPromoteReview(); setShowOverflowMenu(false); }}
-                        className="w-full flex items-center gap-3 px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left"
-                      >
-                        Link to tokens
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Divider */}
-                <div className="w-px h-4 bg-[var(--color-figma-border)] mx-0.5" />
-
-                {/* Danger zone */}
+                <button
+                  onClick={() => {
+                    const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
+                    copyTokensAsJson(nodes);
+                  }}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  <span aria-live="polite">{copyFeedback ? 'Copied!' : 'Copy JSON'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
+                    copyTokensAsCssVar(nodes);
+                  }}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  <span aria-live="polite">{copyCssFeedback ? 'Copied!' : 'Copy CSS var'}</span>
+                </button>
+                <button
+                  title="Copy as DTCG alias reference — {path.to.token} (⌘⌥C)"
+                  onClick={() => {
+                    const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
+                    copyTokensAsDtcgRef(nodes);
+                  }}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors font-mono"
+                >
+                  <span aria-live="polite">{copyAliasFeedback ? 'Copied!' : 'Copy {ref}'}</span>
+                </button>
                 <button
                   onClick={requestBulkDelete}
                   disabled={!!operationLoading}
-                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
                 >
                   Delete {selectedPaths.size}
                 </button>
               </>
             )}
             <button
-              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); setShowBatchEditor(false); setShowCopyMenu(false); setShowOverflowMenu(false); }}
+              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); setShowBatchEditor(false); }}
               className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               Cancel
@@ -3200,9 +3078,17 @@ export function TokenList({
                     </div>
                   )}
                 </div>
-                <div className="mt-1 pl-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                  Search text stays simple. Use <span className="font-medium text-[var(--color-figma-text-secondary)]">Add filter</span> for type, token-state, path, value, description, or generator filters.
-                </div>
+                <TokenSearchFilterChips
+                  parsedSearchQuery={parsedSearchQuery}
+                  selectedTypeQualifiers={selectedTypeQualifiers}
+                  selectedHasQualifiers={selectedHasQualifiers}
+                  qualifierTypeOptions={qualifierTypeOptions}
+                  generatorNames={generatorNames}
+                  onToggleQualifierValue={toggleQueryQualifierValue}
+                  onAddQualifierValue={addQueryQualifierValue}
+                  onRemoveQualifierValue={removeQueryQualifierValue}
+                  onClearQualifier={clearQueryQualifier}
+                />
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -3214,24 +3100,6 @@ export function TokenList({
                 >
                   <span className="text-[11px] leading-none">+</span>
                   <span>New token</span>
-                </button>
-
-                <button
-                  onClick={toggleFilterBuilder}
-                  aria-expanded={filterBuilderOpen || hasStructuredFilters}
-                  aria-haspopup="dialog"
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${(filterBuilderOpen || hasStructuredFilters) ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'}`}
-                  title="Build filters without typing query clauses"
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-                  </svg>
-                  <span>{hasStructuredFilters ? 'Filters' : 'Add filter'}</span>
-                  {structuredFilterChips.length > 0 && (
-                    <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
-                      {structuredFilterChips.length}
-                    </span>
-                  )}
                 </button>
 
                 <div className="relative shrink-0" ref={bulkWorkflowRef}>
@@ -3639,25 +3507,6 @@ export function TokenList({
               </div>
             </div>
 
-            {(filterBuilderOpen || hasStructuredFilters) && (
-              <div className="px-2 pb-2">
-                <TokenSearchFilterBuilder
-                  isOpen={filterBuilderOpen}
-                  selectedSection={activeFilterBuilderSection}
-                  onSelectSection={openFilterBuilderSection}
-                  onToggleOpen={toggleFilterBuilder}
-                  parsedSearchQuery={parsedSearchQuery}
-                  selectedTypeQualifiers={selectedTypeQualifiers}
-                  selectedHasQualifiers={selectedHasQualifiers}
-                  qualifierTypeOptions={qualifierTypeOptions}
-                  generatorNames={generatorNames}
-                  onToggleQualifierValue={toggleQueryQualifierValue}
-                  onAddQualifierValue={addQueryQualifierValue}
-                  onRemoveQualifierValue={removeQueryQualifierValue}
-                  onClearQualifier={clearQueryQualifier}
-                />
-              </div>
-            )}
 
             {(activeFilterSummary.length > 0 || activeViewSummary.length > 0 || hasStructuredFilters) && (
               <div className="flex flex-wrap items-start gap-2 px-2 pb-2">
@@ -4186,7 +4035,6 @@ export function TokenList({
                   icon: 'value',
                   action: () => {
                     addQueryQualifierValue('value', q);
-                    openFilterBuilderSection('value');
                   },
                 });
               }
@@ -4217,7 +4065,10 @@ export function TokenList({
                   suggestions.push({
                     label: `Open ${label} filter`,
                     icon: 'hint',
-                    action: () => openFilterBuilderSection(sectionKey),
+                    action: () => {
+                      setSearchQuery(`${sectionKey}:`);
+                      searchRef.current?.focus();
+                    },
                   });
                 }
               }

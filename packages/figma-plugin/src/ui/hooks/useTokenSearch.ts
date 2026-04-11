@@ -434,7 +434,7 @@ export function useTokenSearch({
     return chips;
   }, [parsedSearchQuery, selectedHasQualifiers]);
 
-  const searchTooltip = 'Search names, paths, and descriptions. Use the filter builder for type, token-state, value, path, description, and generator filters, or type clauses such as type:color and has:alias directly.';
+  const searchTooltip = 'Search names, paths, and descriptions. Type qualifier prefixes like type: or has: for autocomplete, or use the + Filter button to add structured filters.';
 
   // displayedTokens: derived from search/filter state and component-level state
   const displayedTokens = useMemo(() => {

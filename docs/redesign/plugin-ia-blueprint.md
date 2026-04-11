@@ -130,6 +130,25 @@ The plugin shell currently reads top-to-bottom in this order:
 7. Contextual side panel, drawer, or split preview when the current screen supports in-place editing.
 8. Modal and transient overlays above the shell.
 
+## Notice placement rules
+
+Notices use one shared severity model (`NoticeSeverity` in `noticeSystem.tsx`): `info`, `success`, `warning`, `stale`, and `error`. The primitives below determine **where** a notice appears.
+
+| Primitive            | When to use                                                                                         | Placement                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `NoticePill`         | Compact status indicator inside a header strip or list row (e.g. stale count, error count)          | Inline within workspace summary strip or row-level metadata    |
+| `NoticeBanner`       | Persistent panel-level condition that affects the entire surface (e.g. disconnected, invalid config) | Top of the panel body, below workspace controls                |
+| `NoticeFieldMessage` | Validation feedback tied to a single form field                                                     | Directly below the input it describes                          |
+| Toast (`dispatchToast`) | Ephemeral confirmation or failure after a user action (save, publish, apply)                     | Bottom of the plugin window, auto-dismisses                    |
+
+**Selection guidelines:**
+
+1. If the notice describes the outcome of an action the user just performed, use a toast.
+2. If the notice describes a persistent condition of the current surface, use a banner.
+3. If the notice is a validation result for a specific input, use a field message.
+4. If the notice is a compact status count in a header or list, use a pill.
+5. Never duplicate the same information across two notice types simultaneously.
+
 ## Transition rules
 
 1. Workspace screens and contextual sub-screens navigate in place and keep the shell visible.

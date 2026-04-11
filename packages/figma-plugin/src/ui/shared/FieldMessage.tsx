@@ -1,8 +1,14 @@
+import { NoticeFieldMessage } from './noticeSystem';
+
 /** Shared field-level feedback component.
  *
  * Renders an error, warning, or info message directly below a form field.
  * Only the first non-empty prop is rendered (priority: error > warning > info).
  * Returns null when all props are empty/undefined.
+ *
+ * This is a convenience wrapper around `NoticeFieldMessage` that accepts
+ * separate props for common severities. Use `NoticeFieldMessage` directly
+ * when you already have a severity value.
  */
 export function FieldMessage({
   error,
@@ -13,26 +19,8 @@ export function FieldMessage({
   warning?: string;
   info?: string;
 }) {
-  if (error) {
-    return (
-      <p role="alert" className="mt-0.5 text-[10px] text-[var(--color-figma-error)] leading-tight">
-        {error}
-      </p>
-    );
-  }
-  if (warning) {
-    return (
-      <p className="mt-0.5 text-[10px] text-amber-500 leading-tight">
-        {warning}
-      </p>
-    );
-  }
-  if (info) {
-    return (
-      <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
-        {info}
-      </p>
-    );
-  }
+  if (error) return <NoticeFieldMessage severity="error">{error}</NoticeFieldMessage>;
+  if (warning) return <NoticeFieldMessage severity="warning">{warning}</NoticeFieldMessage>;
+  if (info) return <NoticeFieldMessage severity="info">{info}</NoticeFieldMessage>;
   return null;
 }

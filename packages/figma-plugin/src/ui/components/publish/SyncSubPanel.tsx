@@ -1,6 +1,28 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { useSyncEntity } from '../../hooks/useSyncEntity';
 import { VarDiffRowItem } from './PublishShared';
+
+/** Group rows by their token type, returning groups in a stable order */
+function groupByType<T extends { localType?: string; figmaType?: string }>(rows: T[]): { type: string; rows: T[] }[] {
+  const map = new Map<string, T[]>();
+  for (const row of rows) {
+    const t = row.localType ?? row.figmaType ?? 'other';
+    const arr = map.get(t);
+    if (arr) arr.push(row); else map.set(t, [row]);
+  }
+  // Sort groups: color first, then dimension, typography, then alphabetical
+  const order = ['color', 'dimension', 'number', 'typography', 'shadow', 'gradient'];
+  return [...map.entries()]
+    .sort(([a], [b]) => {
+      const ai = order.indexOf(a);
+      const bi = order.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    })
+    .map(([type, rows]) => ({ type, rows }));
+}
 
 type SyncState = ReturnType<typeof useSyncEntity>;
 
@@ -49,6 +71,21 @@ export function SyncSubPanel({
 }: SyncSubPanelProps) {
   const [revertPending, setRevertPending] = useState(false);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
+  const [collapsedTypeGroups, setCollapsedTypeGroups] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('tm_collapsed_type_groups');
+      if (stored) return new Set(JSON.parse(stored) as string[]);
+    } catch { /* ignore */ }
+    return new Set();
+  });
+  const toggleTypeGroup = useCallback((key: string) => {
+    setCollapsedTypeGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      try { localStorage.setItem('tm_collapsed_type_groups', JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
   const prevRowsRef = useRef(sync.rows);
 
   // Reset type filter when a new compare completes (rows identity changes)
@@ -133,6 +170,9 @@ export function SyncSubPanel({
         const localOnly = filteredRows.filter(r => r.cat === 'local-only');
         const figmaOnly = filteredRows.filter(r => r.cat === 'figma-only');
         const conflicts = filteredRows.filter(r => r.cat === 'conflict');
+        const localOnlyGroups = groupByType(localOnly);
+        const figmaOnlyGroups = groupByType(figmaOnly);
+        const conflictGroups = groupByType(conflicts);
         const isFiltered = diffFilter.length > 0 || typeFilters.length > 0;
 
         return (
@@ -194,70 +234,136 @@ export function SyncSubPanel({
 
             <div className="divide-y divide-[var(--color-figma-border)]">
               {localOnly.length > 0 && (
-                <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Local only \u2014 not yet in Figma ({localOnly.length})</span>
-                </div>
+                <>
+                  <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Local only \u2014 not yet in Figma ({localOnly.length})</span>
+                  </div>
+                  {localOnlyGroups.map(group => {
+                    const groupKey = `local-only:${group.type}`;
+                    const collapsed = collapsedTypeGroups.has(groupKey);
+                    return (
+                      <div key={groupKey}>
+                        {localOnlyGroups.length > 1 && (
+                          <button
+                            onClick={() => toggleTypeGroup(groupKey)}
+                            className="w-full flex items-center gap-1.5 px-4 py-1 bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform text-[var(--color-figma-text-secondary)] ${collapsed ? '' : 'rotate-90'}`} aria-hidden="true">
+                              <path d="M2 1l4 3-4 3V1z" />
+                            </svg>
+                            <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">{group.type}</span>
+                            <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">{group.rows.length}</span>
+                          </button>
+                        )}
+                        {!collapsed && group.rows.map(row => (
+                          <VarDiffRowItem
+                            key={row.path}
+                            row={row}
+                            dir={sync.dirs[row.path] ?? 'push'}
+                            onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
+                            scopeOptions={getScopeOptions?.(row.localType)}
+                            scopeValue={scopeOverrides?.[row.path] ?? row.localScopes}
+                            onScopesChange={onScopesChange ? (s) => onScopesChange(row.path, s) : undefined}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </>
               )}
-              {localOnly.map(row => (
-                <VarDiffRowItem
-                  key={row.path}
-                  row={row}
-                  dir={sync.dirs[row.path] ?? 'push'}
-                  onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
-                  scopeOptions={getScopeOptions?.(row.localType)}
-                  scopeValue={scopeOverrides?.[row.path] ?? row.localScopes}
-                  onScopesChange={onScopesChange ? (s) => onScopesChange(row.path, s) : undefined}
-                />
-              ))}
               {figmaOnly.length > 0 && (
-                <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Figma only \u2014 not in local files ({figmaOnly.length})</span>
-                </div>
+                <>
+                  <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Figma only \u2014 not in local files ({figmaOnly.length})</span>
+                  </div>
+                  {figmaOnlyGroups.map(group => {
+                    const groupKey = `figma-only:${group.type}`;
+                    const collapsed = collapsedTypeGroups.has(groupKey);
+                    return (
+                      <div key={groupKey}>
+                        {figmaOnlyGroups.length > 1 && (
+                          <button
+                            onClick={() => toggleTypeGroup(groupKey)}
+                            className="w-full flex items-center gap-1.5 px-4 py-1 bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform text-[var(--color-figma-text-secondary)] ${collapsed ? '' : 'rotate-90'}`} aria-hidden="true">
+                              <path d="M2 1l4 3-4 3V1z" />
+                            </svg>
+                            <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">{group.type}</span>
+                            <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">{group.rows.length}</span>
+                          </button>
+                        )}
+                        {!collapsed && group.rows.map(row => (
+                          <VarDiffRowItem
+                            key={row.path}
+                            row={row}
+                            dir={sync.dirs[row.path] ?? 'pull'}
+                            onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
+                            scopeOptions={getScopeOptions?.(row.figmaType)}
+                            scopeValue={row.figmaScopes}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </>
               )}
-              {figmaOnly.map(row => (
-                <VarDiffRowItem
-                  key={row.path}
-                  row={row}
-                  dir={sync.dirs[row.path] ?? 'pull'}
-                  onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
-                  scopeOptions={getScopeOptions?.(row.figmaType)}
-                  scopeValue={row.figmaScopes}
-                />
-              ))}
               {conflicts.length > 0 && (
-                <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
-                  {conflicts.length > 1 && (
-                    <span className="flex items-center gap-1">
-                      {(['push', 'pull', 'skip'] as const).map(action => (
-                        <button
-                          key={action}
-                          onClick={() => sync.setDirs(prev => {
-                            const next = { ...prev };
-                            for (const r of conflicts) next[r.path] = action;
-                            return next;
-                          })}
-                          className="text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                        >
-                          {action === 'push' ? '\u2191 Push' : action === 'pull' ? '\u2193 Pull' : 'Skip'} all
-                        </button>
-                      ))}
-                    </span>
-                  )}
-                </div>
+                <>
+                  <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
+                    {conflicts.length > 1 && (
+                      <span className="flex items-center gap-1">
+                        {(['push', 'pull', 'skip'] as const).map(action => (
+                          <button
+                            key={action}
+                            onClick={() => sync.setDirs(prev => {
+                              const next = { ...prev };
+                              for (const r of conflicts) next[r.path] = action;
+                              return next;
+                            })}
+                            className="text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                          >
+                            {action === 'push' ? '\u2191 Push' : action === 'pull' ? '\u2193 Pull' : 'Skip'} all
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                  {conflictGroups.map(group => {
+                    const groupKey = `conflict:${group.type}`;
+                    const collapsed = collapsedTypeGroups.has(groupKey);
+                    return (
+                      <div key={groupKey}>
+                        {conflictGroups.length > 1 && (
+                          <button
+                            onClick={() => toggleTypeGroup(groupKey)}
+                            className="w-full flex items-center gap-1.5 px-4 py-1 bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform text-[var(--color-figma-text-secondary)] ${collapsed ? '' : 'rotate-90'}`} aria-hidden="true">
+                              <path d="M2 1l4 3-4 3V1z" />
+                            </svg>
+                            <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">{group.type}</span>
+                            <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">{group.rows.length}</span>
+                          </button>
+                        )}
+                        {!collapsed && group.rows.map(row => (
+                          <VarDiffRowItem
+                            key={row.path}
+                            row={row}
+                            dir={sync.dirs[row.path] ?? 'push'}
+                            onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
+                            scopeOptions={getScopeOptions?.(row.localType ?? row.figmaType)}
+                            scopeValue={scopeOverrides?.[row.path] ?? row.localScopes}
+                            onScopesChange={onScopesChange ? (s) => onScopesChange(row.path, s) : undefined}
+                            figmaScopeValue={row.figmaScopes}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </>
               )}
-              {conflicts.map(row => (
-                <VarDiffRowItem
-                  key={row.path}
-                  row={row}
-                  dir={sync.dirs[row.path] ?? 'push'}
-                  onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
-                  scopeOptions={getScopeOptions?.(row.localType ?? row.figmaType)}
-                  scopeValue={scopeOverrides?.[row.path] ?? row.localScopes}
-                  onScopesChange={onScopesChange ? (s) => onScopesChange(row.path, s) : undefined}
-                  figmaScopeValue={row.figmaScopes}
-                />
-              ))}
             </div>
 
             <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">

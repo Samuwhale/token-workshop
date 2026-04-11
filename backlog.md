@@ -20,7 +20,7 @@
 - [x] [HIGH] Research Apply workspace selection-state contract across compare, review, and binding feedback surfaces
 - [x] [HIGH] Research a shared plugin contract for zero-state, loading, progress, success, and error feedback across workspace and secondary surfaces
 - [x] [HIGH] Research Tokens workspace edit-surface ownership across inline row edits, contextual editors, preview surfaces, and modal flows
-- [ ] [HIGH] Create shared plugin notice primitives and severity contract
+- [x] [HIGH] Create shared plugin notice primitives and severity contract
 - [ ] [HIGH] Adopt the notice model in shell connection and workspace summary surfaces
 - [ ] [HIGH] Normalize authoring notices across Tokens, Themes, and Apply
 - [ ] [HIGH] Normalize sync and audit notices around blocking, stale, and validation states
@@ -40,13 +40,13 @@
 - [ ] [HIGH] Surface save-impact summary before confirmation in TokenGeneratorDialog
 - [ ] [HIGH] Extract shared editor shell layout from TokenEditor
 - [ ] [HIGH] Consolidate generator escalation paths through contextual surface contract
-- [ ] [HIGH] Add aggregate summary bar above PublishPanel variable and style diff sections
+- [x] [HIGH] Add aggregate summary bar above PublishPanel variable and style diff sections
 - [x] [HIGH] Add grouping and progressive loading to HealthPanel issue lists
 - [ ] [HIGH] Add return-to-Audit breadcrumb when navigating from audit issue to source workspace
 - [x] [HIGH] Collapse SelectionInspector summary step into a single-line status bar
 - [x] [HIGH] Collapse token editor to three default sections with grouped details and info tab
 - [x] [HIGH] Group and reduce TokenList select-mode toolbar from eleven flat buttons to grouped actions
-- [ ] [HIGH] Merge token search input and filter builder into one unified input with qualifier chips
+- [x] [HIGH] Merge token search input and filter builder into one unified input with qualifier chips
 - [x] [HIGH] Rename resolver modifiers to resolver dimensions to fix dual-meaning modifier terminology
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
@@ -98,7 +98,7 @@
 - [x] Research the Tokens authoring contract for token-editor consistency, generator escalation, and inline generated-group status
 - [x] Add explicit preflight, compare, and apply stage navigation to the Figma Sync publish panel
 - [x] Centralize server connection editing in Settings and reduce shell/onboarding affordances to passive recovery entry points
-- [ ] Introduce confidence-based suggestion groups and shared reason copy across Apply suggestion lists
+- [x] Introduce confidence-based suggestion groups and shared reason copy across Apply suggestion lists
 - [ ] Restructure variable and style diff review into apply-ready review groups inside each sync target
 - [ ] Add next-step recommendation rules based on import result
 - [ ] Replace hardcoded post-import routing with recommendation-driven navigation

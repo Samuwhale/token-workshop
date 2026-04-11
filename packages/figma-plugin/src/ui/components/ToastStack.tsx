@@ -101,12 +101,19 @@ function UndoRow({ description, onUndo, onDismiss, canUndo, canRedo, redoDescrip
   );
 }
 
-/* ---- Success / Error row ---- */
+/* ---- Message row (supports all toast variants) ---- */
+
+const TOAST_ICON: Record<string, { cls: string; d: string; extra?: string }> = {
+  success: { cls: 'text-green-400', d: 'M20 6L9 17l-5-5' },
+  error:   { cls: 'text-red-400',   d: 'M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z' },
+  warning: { cls: 'text-amber-400', d: 'M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z' },
+  info:    { cls: 'text-blue-400',  d: 'M12 16v-4M12 8h.01', extra: 'M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0z' },
+};
 
 function MessageRow({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   // Action toasts persist until explicitly dismissed or clicked
-  const timeout = toast.action ? null : toast.variant === 'error' ? 8000 : 3000;
+  const timeout = toast.action ? null : (toast.variant === 'error' || toast.variant === 'warning') ? 8000 : 3000;
 
   useEffect(() => {
     if (timeout === null) return;
@@ -114,13 +121,11 @@ function MessageRow({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: nu
     return () => clearTimeout(timerRef.current);
   }, [toast.id, toast.message, timeout, onDismiss]);
 
-  const iconEl = toast.variant === 'error' ? (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-red-400">
-      <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-    </svg>
-  ) : (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-green-400">
-      <path d="M20 6L9 17l-5-5" />
+  const iconCfg = TOAST_ICON[toast.variant] ?? TOAST_ICON.info;
+  const iconEl = (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${iconCfg.cls}`}>
+      {iconCfg.extra && <path d={iconCfg.extra} />}
+      <path d={iconCfg.d} />
     </svg>
   );
 

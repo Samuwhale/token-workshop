@@ -445,6 +445,8 @@ export function getQuickBindTargets(
 // Context-aware token surfacing
 // ---------------------------------------------------------------------------
 
+export type SuggestionConfidence = 'strong' | 'moderate' | 'weak';
+
 export interface SuggestedToken {
   path: string;
   entry: TokenMapEntry;
@@ -452,6 +454,82 @@ export interface SuggestedToken {
   bestProperty: BindableProperty;
   resolvedValue: any;
   matchReason: 'value-match' | 'already-bound' | 'sibling-usage' | 'type-match';
+  confidence: SuggestionConfidence;
+  reason: string;
+}
+
+/** Derive a confidence level and human-readable reason from a scored suggestion. */
+export function classifySuggestion(
+  score: number,
+  matchReason: SuggestedToken['matchReason'],
+): { confidence: SuggestionConfidence; reason: string } {
+  if (matchReason === 'already-bound') {
+    return { confidence: 'strong', reason: 'Currently bound' };
+  }
+  if (matchReason === 'value-match' && score >= 50) {
+    return { confidence: 'strong', reason: 'Exact value match' };
+  }
+  if (matchReason === 'value-match') {
+    return { confidence: 'moderate', reason: 'Similar value' };
+  }
+  if (matchReason === 'sibling-usage') {
+    return { confidence: 'strong', reason: 'Used on siblings' };
+  }
+  // type-match fallbacks
+  if (score >= 40) {
+    return { confidence: 'moderate', reason: 'Same type, close value' };
+  }
+  if (score >= 20) {
+    return { confidence: 'moderate', reason: 'Compatible type' };
+  }
+  return { confidence: 'weak', reason: 'All tokens of this type' };
+}
+
+/** Group and order suggestions by confidence, preserving score order within each group. */
+export function groupSuggestionsByConfidence<T extends { confidence: SuggestionConfidence; score: number }>(
+  items: T[],
+): { confidence: SuggestionConfidence; items: T[] }[] {
+  const order: SuggestionConfidence[] = ['strong', 'moderate', 'weak'];
+  const groups: { confidence: SuggestionConfidence; items: T[] }[] = [];
+  for (const level of order) {
+    const matching = items.filter(s => s.confidence === level);
+    if (matching.length > 0) {
+      groups.push({ confidence: level, items: matching });
+    }
+  }
+  return groups;
+}
+
+/** Labels for confidence group headers in suggestion lists. */
+export const CONFIDENCE_LABELS: Record<SuggestionConfidence, string> = {
+  strong: 'Best matches',
+  moderate: 'Possible matches',
+  weak: 'All tokens',
+};
+
+/**
+ * Classify a raw bind-candidate score into a confidence level and reason string.
+ * Used by PropertyRow and QuickApplyPicker for inline token lists.
+ */
+export function classifyBindScore(
+  score: number,
+  tokenPath: string,
+  siblingBindings: Set<string>,
+  currentBinding: string | null | 'mixed',
+): { confidence: SuggestionConfidence; reason: string } {
+  if (currentBinding === tokenPath) {
+    return { confidence: 'strong', reason: 'Currently bound' };
+  }
+  if (siblingBindings.has(tokenPath)) {
+    return { confidence: 'strong', reason: 'Used on siblings' };
+  }
+  if (score >= 45) {
+    return { confidence: 'strong', reason: 'Close value match' };
+  }
+  if (score >= 20) {
+    return { confidence: 'moderate', reason: 'Compatible type' };
+  }
+  return { confidence: 'weak', reason: 'All tokens of this type' };
 }
 
 export interface ApplyWorkflowSummary {
@@ -618,6 +696,7 @@ export function rankTokensForSelection(
 
     // Minimum threshold to avoid surfacing irrelevant tokens
     if (bestScore >= 15) {
+      const { confidence, reason } = classifySuggestion(bestScore, bestReason);
       scored.push({
         path: tokenPath,
         entry,
@@ -625,6 +704,8 @@ export function rankTokensForSelection(
         bestProperty: bestProp,
         resolvedValue: bestResolved,
         matchReason: bestReason,
+        confidence,
+        reason,
       });
     }
   }

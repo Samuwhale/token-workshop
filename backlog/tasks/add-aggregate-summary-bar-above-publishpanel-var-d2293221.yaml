@@ -12,7 +12,8 @@ capabilities:
 validation_profile: plugin
 status_notes:
   - "Context: The dual diff tables (Variables + Styles) are architecturally correct and should NOT be merged or tab-switched. They represent genuinely different data models (scopes vs not, different type sets). Users may need both visible to understand interdependencies. A 'Compare All' function already exists that expands both. The problem is lack of an at-a-glance overview before expanding."
-state: ready
+  - "Completed: Added aggregate summary bar above diff sections showing total changes, per-target breakdown, and conflict count. Made section collapse state sticky via localStorage (tm_publish_sections). Added type-based grouping to SyncSubPanel with collapsible group headers by token type (color, dimension, typography, etc.) with counts. Type group collapse state persisted via localStorage (tm_collapsed_type_groups). Build passes."
+state: done
 acceptance_criteria:
   - A summary bar appears above both diff sections after compare completes, showing total change count across both targets (e.g. '30 total changes — 23 variables, 7 styles — 5 conflicts need review').
   - Each section's collapse state is sticky across compare cycles so users who always work with just Variables can keep Styles collapsed.

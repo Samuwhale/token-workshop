@@ -4,15 +4,10 @@ import { PROPERTY_LABELS } from '../../shared/types';
 import { swatchBgColor } from '../shared/colorUtils';
 import { lsGet, lsSet } from '../shared/storage';
 import type { SuggestedToken } from './selectionInspectorUtils';
+import { groupSuggestionsByConfidence, CONFIDENCE_LABELS } from './selectionInspectorUtils';
 
 const LS_KEY = 'suggested-tokens-collapsed';
-
-const REASON_LABELS: Record<SuggestedToken['matchReason'], string> = {
-  'value-match': 'similar value',
-  'already-bound': 'already bound',
-  'sibling-usage': 'used on siblings',
-  'type-match': 'type match',
-};
+const LS_SHOW_ALL_KEY = 'suggested-tokens-show-all';
 
 function formatValue(entry: TokenMapEntry, resolvedValue: any): string {
   if (entry.$type === 'color' && typeof resolvedValue === 'string') {
@@ -47,6 +42,7 @@ export function SuggestedTokens({
   showHeader = true,
 }: SuggestedTokensProps) {
   const [collapsed, setCollapsed] = useState(() => lsGet(LS_KEY) === 'true');
+  const [showAll, setShowAll] = useState(() => lsGet(LS_SHOW_ALL_KEY) === 'true');
 
   if (suggestions.length === 0) return null;
 
@@ -56,6 +52,12 @@ export function SuggestedTokens({
       return !prev;
     });
   };
+
+  const groups = groupSuggestionsByConfidence(suggestions);
+  const hasWeakGroup = groups.some(g => g.confidence === 'weak');
+  const credibleGroups = groups.filter(g => g.confidence !== 'weak');
+  const weakGroup = groups.find(g => g.confidence === 'weak');
+  const visibleGroups = showAll ? groups : credibleGroups;
 
   return (
     <div className={showHeader ? 'border-b border-[var(--color-figma-border)]' : ''}>
@@ -83,79 +85,113 @@ export function SuggestedTokens({
 
       {(!showHeader || !collapsed) && (
         <div className="px-1 pb-1.5">
-          {suggestions.map((s) => {
-            const isColor = s.entry.$type === 'color' && typeof s.resolvedValue === 'string';
-            const valueStr = formatValue(s.entry, s.resolvedValue);
-            const propLabel = PROPERTY_LABELS[s.bestProperty];
-            const reasonLabel = REASON_LABELS[s.matchReason];
+          {visibleGroups.map((group, groupIdx) => (
+            <div key={group.confidence}>
+              {/* Group header — only when multiple groups are visible */}
+              {visibleGroups.length > 1 && (
+                <div className={`text-[8px] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 ${
+                  groupIdx > 0 ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5' : ''
+                }`}>
+                  {CONFIDENCE_LABELS[group.confidence]}
+                </div>
+              )}
 
-            return (
-              <div
-                key={s.path}
-                className="group relative flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                {/* Color swatch or type icon */}
-                {isColor ? (
+              {group.items.map((s) => {
+                const isColor = s.entry.$type === 'color' && typeof s.resolvedValue === 'string';
+                const valueStr = formatValue(s.entry, s.resolvedValue);
+                const propLabel = PROPERTY_LABELS[s.bestProperty];
+
+                return (
                   <div
-                    className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                    style={{ backgroundColor: swatchBgColor(s.resolvedValue) }}
-                  />
-                ) : (
-                  <div className="w-3 h-3 rounded-sm bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center">
-                    <span className="text-[7px] text-[var(--color-figma-text-secondary)] font-bold leading-none">
-                      {s.entry.$type.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-
-                {/* Token path + metadata */}
-                <div className="flex-1 min-w-0">
-                  <button
-                    onClick={() => onNavigateToToken?.(s.path)}
-                    className="block text-[10px] text-[var(--color-figma-text)] truncate font-mono w-full text-left hover:underline"
-                    title={`${s.path} — ${valueStr}`}
+                    key={s.path}
+                    className="group relative flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   >
-                    {s.path}
-                  </button>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className="text-[8px] text-[var(--color-figma-text-secondary)]">
-                      {propLabel}
-                    </span>
-                    <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
-                    <span className={`text-[8px] ${
-                      s.matchReason === 'already-bound'
-                        ? 'text-[var(--color-figma-success,#18a058)]'
-                        : s.matchReason === 'value-match'
-                        ? 'text-[var(--color-figma-accent)]'
-                        : 'text-[var(--color-figma-text-secondary)]'
-                    }`}>
-                      {reasonLabel}
-                    </span>
-                    {valueStr && (
-                      <>
-                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
-                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[60px]">
-                          {valueStr}
+                    {/* Color swatch or type icon */}
+                    {isColor ? (
+                      <div
+                        className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                        style={{ backgroundColor: swatchBgColor(s.resolvedValue) }}
+                      />
+                    ) : (
+                      <div className="w-3 h-3 rounded-sm bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center">
+                        <span className="text-[7px] text-[var(--color-figma-text-secondary)] font-bold leading-none">
+                          {s.entry.$type.charAt(0).toUpperCase()}
                         </span>
-                      </>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                {/* Apply button — always faintly visible, full opacity on hover */}
-                <div className="absolute right-1 top-0 bottom-0 flex items-center">
-                  <button
-                    onClick={() => onApply(s.path, s.bestProperty)}
-                    className="opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-figma-accent)]"
-                    title={`Apply "${s.path}" to ${propLabel}`}
-                    aria-label={`Apply ${s.path} to ${propLabel}`}
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                    {/* Token path + metadata */}
+                    <div className="flex-1 min-w-0">
+                      <button
+                        onClick={() => onNavigateToToken?.(s.path)}
+                        className="block text-[10px] text-[var(--color-figma-text)] truncate font-mono w-full text-left hover:underline"
+                        title={`${s.path} — ${valueStr}`}
+                      >
+                        {s.path}
+                      </button>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-[8px] text-[var(--color-figma-text-secondary)]">
+                          {propLabel}
+                        </span>
+                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
+                        <span className={`text-[8px] ${
+                          s.confidence === 'strong'
+                            ? 'text-[var(--color-figma-accent)]'
+                            : 'text-[var(--color-figma-text-secondary)]'
+                        }`}>
+                          {s.reason}
+                        </span>
+                        {valueStr && (
+                          <>
+                            <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
+                            <span className="text-[8px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[60px]">
+                              {valueStr}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Apply button — always faintly visible, full opacity on hover */}
+                    <div className="absolute right-1 top-0 bottom-0 flex items-center">
+                      <button
+                        onClick={() => onApply(s.path, s.bestProperty)}
+                        className="opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-figma-accent)]"
+                        title={`Apply "${s.path}" to ${propLabel}`}
+                        aria-label={`Apply ${s.path} to ${propLabel}`}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+
+          {/* Show all tokens expansion */}
+          {hasWeakGroup && !showAll && (
+            <button
+              onClick={() => {
+                setShowAll(true);
+                lsSet(LS_SHOW_ALL_KEY, 'true');
+              }}
+              className="w-full text-[9px] text-[var(--color-figma-accent)] text-center py-1.5 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+            >
+              Show all {weakGroup!.items.length} remaining tokens
+            </button>
+          )}
+          {hasWeakGroup && showAll && weakGroup && weakGroup.items.length > 0 && (
+            <button
+              onClick={() => {
+                setShowAll(false);
+                lsSet(LS_SHOW_ALL_KEY, 'false');
+              }}
+              className="w-full text-[9px] text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Hide weaker matches
+            </button>
+          )}
         </div>
       )}
     </div>

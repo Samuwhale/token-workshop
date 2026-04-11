@@ -14,6 +14,9 @@ import {
   scoreBindCandidate,
   collectSiblingBindings,
   collectBoundPrefixes,
+  classifyBindScore,
+  CONFIDENCE_LABELS,
+  type SuggestionConfidence,
 } from './selectionInspectorUtils';
 import { swatchBgColor } from '../shared/colorUtils';
 import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
@@ -109,6 +112,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
   useEffect(() => { setActiveIdx(0); }, [query, activeProp]);
 
   // Build scored candidates for the active property
+  const currentBindingForProp = getBindingForProperty(rootNodes, activeProp);
   const { candidates, totalCount } = useMemo(() => {
     const compatTypes = getCompatibleTokenTypes(activeProp);
     const currentPropValue = getCurrentValue(rootNodes, activeProp);
@@ -121,7 +125,8 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
       .map(([path, entry]) => {
         const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
         const score = scoreBindCandidate(path, entry, activeProp, currentPropValue, r.value, siblingBindings, nodeBoundPrefixes);
-        return { path, entry, score, resolved: r.value };
+        const { confidence, reason } = classifyBindScore(score, path, siblingBindings, currentBindingForProp);
+        return { path, entry, score, resolved: r.value, confidence, reason };
       });
 
     // Apply fuzzy filter if query present
@@ -133,7 +138,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
       : all.sort((a, b) => b.score - a.score);
 
     return { candidates: filtered.slice(0, MAX_CANDIDATES), totalCount: filtered.length };
-  }, [tokenMap, activeProp, rootNodes, query]);
+  }, [tokenMap, activeProp, rootNodes, query, currentBindingForProp]);
 
   // Recently-used tokens: filter global recents to those present in the current candidate list
   const { recentCandidates, mainCandidates } = useMemo(() => {
@@ -149,8 +154,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
     return { recentCandidates: recent, mainCandidates: main };
   }, [candidates, query]);
 
-  const suggestedCount = mainCandidates.filter(c => c.score > 0).length;
-  const showSuggestedDivider = suggestedCount > 0 && suggestedCount < mainCandidates.length && !query;
+  // No longer using simple suggested/all divider — confidence groups handle this
 
   // Current binding for this property
   const currentBinding = getBindingForProperty(rootNodes, activeProp);
@@ -356,86 +360,87 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                       </button>
                     );
                   })}
-                  {mainCandidates.length > 0 && (
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] px-3 pt-1.5 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
-                      {showSuggestedDivider ? 'Suggested' : 'All tokens'}
-                    </div>
-                  )}
+                  {/* Separator between recent and main — group header will follow */}
                 </>
               )}
 
-              {/* Main candidates */}
-              {mainCandidates.map((c, idx) => {
-                const globalIdx = recentCandidates.length + idx;
-                const isSelected = globalIdx === activeIdx;
-                const isCurrent = currentBinding === c.path;
+              {/* Main candidates — grouped by confidence */}
+              {(() => {
+                let lastConfidence: SuggestionConfidence | null = null;
+                return mainCandidates.map((c, idx) => {
+                  const globalIdx = recentCandidates.length + idx;
+                  const isSelected = globalIdx === activeIdx;
+                  const isCurrent = currentBinding === c.path;
 
-                let colorSwatch: string | null = null;
-                let valueDisplay: string | null = null;
-                if (c.entry.$type === 'color' && typeof c.resolved === 'string' && c.resolved.startsWith('#')) {
-                  colorSwatch = c.resolved;
-                } else if ((c.entry.$type === 'dimension' || c.entry.$type === 'number') && c.resolved != null) {
-                  valueDisplay = isDimensionLike(c.resolved) ? `${c.resolved.value}${c.resolved.unit}` : String(c.resolved);
-                }
+                  let colorSwatch: string | null = null;
+                  let valueDisplay: string | null = null;
+                  if (c.entry.$type === 'color' && typeof c.resolved === 'string' && c.resolved.startsWith('#')) {
+                    colorSwatch = c.resolved;
+                  } else if ((c.entry.$type === 'dimension' || c.entry.$type === 'number') && c.resolved != null) {
+                    valueDisplay = isDimensionLike(c.resolved) ? `${c.resolved.value}${c.resolved.unit}` : String(c.resolved);
+                  }
 
-                const showSuggestedHeader = showSuggestedDivider && idx === 0 && recentCandidates.length === 0;
-                const showOthersHeader = showSuggestedDivider && c.score === 0 && (idx === 0 || mainCandidates[idx - 1].score > 0);
+                  const showGroupHeader = !query && c.confidence !== lastConfidence;
+                  const isFirstGroup = lastConfidence === null && recentCandidates.length === 0;
+                  if (c.confidence !== lastConfidence) lastConfidence = c.confidence;
 
-                return (
-                  <div key={c.path}>
-                    {showSuggestedHeader && (
-                      <div className="text-[9px] text-[var(--color-figma-accent)] font-medium px-3 pt-1.5 pb-0.5 flex items-center gap-1">
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z" />
-                        </svg>
-                        Suggested
-                      </div>
-                    )}
-                    {showOthersHeader && (
-                      <div className="text-[9px] text-[var(--color-figma-text-secondary)] px-3 pt-1.5 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
-                        All tokens
-                      </div>
-                    )}
-                    <button
-                      data-qa-item
-                      role="option"
-                      aria-selected={isSelected}
-                      className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${
-                        isSelected
-                          ? 'bg-[var(--color-figma-accent)] text-white'
-                          : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                      } ${isCurrent ? 'opacity-50' : ''}`}
-                      onMouseEnter={() => setActiveIdx(globalIdx)}
-                      onClick={() => handleSelect(c)}
-                    >
-                      {colorSwatch ? (
-                        <div
-                          className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0"
-                          style={{ backgroundColor: swatchBgColor(colorSwatch) }}
-                        />
-                      ) : (
-                        <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                          <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
+                  return (
+                    <div key={c.path}>
+                      {showGroupHeader && (
+                        <div className={`text-[9px] font-medium px-3 pt-1.5 pb-0.5 ${
+                          !isFirstGroup ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5' : ''
+                        } ${
+                          c.confidence === 'strong' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
+                        }`}>
+                          {CONFIDENCE_LABELS[c.confidence]}
                         </div>
                       )}
-                      <span className={`text-[11px] font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
-                      {isCurrent && (
-                        <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
-                          current
+                      <button
+                        data-qa-item
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${
+                          isSelected
+                            ? 'bg-[var(--color-figma-accent)] text-white'
+                            : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                        } ${isCurrent ? 'opacity-50' : ''}`}
+                        onMouseEnter={() => setActiveIdx(globalIdx)}
+                        onClick={() => handleSelect(c)}
+                      >
+                        {colorSwatch ? (
+                          <div
+                            className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0"
+                            style={{ backgroundColor: swatchBgColor(colorSwatch) }}
+                          />
+                        ) : (
+                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                            <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
+                          </div>
+                        )}
+                        <span className={`text-[11px] font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
+                        {isCurrent && (
+                          <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                            current
+                          </span>
+                        )}
+                        {!isCurrent && !query && c.confidence !== 'weak' && (
+                          <span className={`text-[8px] shrink-0 ${isSelected ? 'text-white/50' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                            {c.reason}
+                          </span>
+                        )}
+                        {valueDisplay && !isCurrent && (
+                          <span className={`text-[9px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                            {valueDisplay}
+                          </span>
+                        )}
+                        <span className={`text-[9px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                          {c.entry.$type}
                         </span>
-                      )}
-                      {valueDisplay && !isCurrent && (
-                        <span className={`text-[9px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
-                          {valueDisplay}
-                        </span>
-                      )}
-                      <span className={`text-[9px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
-                        {c.entry.$type}
-                      </span>
-                    </button>
-                  </div>
-                );
-              })}
+                      </button>
+                    </div>
+                  );
+                });
+              })()}
               {totalCount > MAX_CANDIDATES && (
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center py-1.5 border-t border-[var(--color-figma-border)]">
                   {totalCount - MAX_CANDIDATES} more — type to refine

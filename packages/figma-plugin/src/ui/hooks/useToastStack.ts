@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import type { ToastVariant } from '../shared/toastBus';
 
 export interface ToastAction {
   label: string;
@@ -8,14 +9,14 @@ export interface ToastAction {
 export interface ToastItem {
   id: number;
   message: string;
-  variant: 'success' | 'error';
+  variant: ToastVariant;
   action?: ToastAction;
 }
 
 export interface NotificationEntry {
   id: number;
   message: string;
-  variant: 'success' | 'error';
+  variant: ToastVariant;
   timestamp: number;
 }
 
@@ -26,7 +27,7 @@ export function useToastStack() {
   const [history, setHistory] = useState<NotificationEntry[]>([]);
   const nextId = useRef(1);
 
-  const addToHistory = useCallback((message: string, variant: 'success' | 'error') => {
+  const addToHistory = useCallback((message: string, variant: ToastVariant) => {
     const entry: NotificationEntry = { id: nextId.current, message, variant, timestamp: Date.now() };
     setHistory(prev => [entry, ...prev].slice(0, MAX_HISTORY));
   }, []);

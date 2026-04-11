@@ -216,11 +216,18 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       .catch(() => { renamesRef.current = []; });
   }, [connected, serverUrl, tokenChangeKey]);
 
-  // ── Section accordion state ──
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['figma-variables', 'figma-styles']));
+  // ── Section accordion state (persisted across sessions) ──
+  const [openSections, setOpenSections] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('tm_publish_sections');
+      if (stored) return new Set(JSON.parse(stored) as string[]);
+    } catch { /* ignore */ }
+    return new Set(['figma-variables', 'figma-styles']);
+  });
   const toggleSection = (id: string) => setOpenSections(prev => {
     const next = new Set(prev);
     if (next.has(id)) next.delete(id); else next.add(id);
+    try { localStorage.setItem('tm_publish_sections', JSON.stringify([...next])); } catch { /* ignore */ }
     return next;
   });
 
@@ -434,7 +441,11 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     setPreflightActionBusyId(actionId);
     try {
       if (actionId === 'review-variable-scopes') {
-        setOpenSections(new Set(['figma-variables', 'figma-styles']));
+        setOpenSections(() => {
+          const s = new Set(['figma-variables', 'figma-styles']);
+          try { localStorage.setItem('tm_publish_sections', JSON.stringify([...s])); } catch { /* ignore */ }
+          return s;
+        });
         await varSync.computeDiff();
         focusStage('compare');
         return;
@@ -560,7 +571,11 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
           <button
             onClick={async () => {
-              setOpenSections(new Set(['figma-variables', 'figma-styles']));
+              setOpenSections(() => {
+                const s = new Set(['figma-variables', 'figma-styles']);
+                try { localStorage.setItem('tm_publish_sections', JSON.stringify([...s])); } catch { /* ignore */ }
+                return s;
+              });
               await compareAll();
             }}
             disabled={!canProceedToCompare || compareAllLoading || varSync.loading || styleSync.loading}
@@ -573,6 +588,29 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {/* ── Aggregate summary bar ── */}
+        {(varSync.checked || styleSync.checked) && (() => {
+          const totalChanges = varSync.rows.length + styleSync.rows.length;
+          const varConflicts = varSync.rows.filter(r => r.cat === 'conflict').length;
+          const styleConflicts = styleSync.rows.filter(r => r.cat === 'conflict').length;
+          const totalConflicts = varConflicts + styleConflicts;
+          if (totalChanges === 0) return null;
+          const parts: string[] = [];
+          if (varSync.checked && varSync.rows.length > 0) parts.push(`${varSync.rows.length} variable${varSync.rows.length !== 1 ? 's' : ''}`);
+          if (styleSync.checked && styleSync.rows.length > 0) parts.push(`${styleSync.rows.length} style${styleSync.rows.length !== 1 ? 's' : ''}`);
+          return (
+            <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+              <span className="text-[10px] text-[var(--color-figma-text)]">
+                <span className="font-medium">{totalChanges} total change{totalChanges !== 1 ? 's' : ''}</span>
+                {parts.length > 0 && <> &mdash; {parts.join(', ')}</>}
+                {totalConflicts > 0 && (
+                  <span className="text-yellow-600"> &mdash; {totalConflicts} conflict{totalConflicts !== 1 ? 's' : ''} need review</span>
+                )}
+              </span>
+            </div>
+          );
+        })()}
+
         <Section
           title="Figma Variables"
           open={openSections.has('figma-variables')}
