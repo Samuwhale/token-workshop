@@ -3,6 +3,7 @@ import type { NotificationEntry } from '../hooks/useToastStack';
 import { useNavigationContext } from '../contexts/NavigationContext';
 import { useEditorContext } from '../contexts/EditorContext';
 import { useTokenFlatMapContext, useTokenSetsContext } from '../contexts/TokenDataContext';
+import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 
 type InboxFilter = 'all' | 'blocker' | 'attention' | 'success';
 type InboxSeverity = 'blocker' | 'attention' | 'success';
@@ -304,13 +305,18 @@ export function NotificationsPanel({ history, onClear }: NotificationsPanelProps
       </div>
 
       {inbox.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-          No notifications yet.
-        </div>
+        <FeedbackPlaceholder
+          variant="empty"
+          title="No notifications yet"
+          description="Grouped alerts will appear here once the workspace has blockers, follow-ups, or completed actions to review."
+        />
       ) : visibleItems.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-          No {FILTER_LABELS[filter].toLowerCase()} notifications in the inbox.
-        </div>
+        <FeedbackPlaceholder
+          variant="no-results"
+          title={`No ${FILTER_LABELS[filter].toLowerCase()} notifications`}
+          description="Try a different inbox filter to review the other grouped alerts."
+          secondaryAction={{ label: 'View all', onClick: () => setFilter('all') }}
+        />
       ) : (
         <div className="flex-1 overflow-y-auto">
           {stickyBlockers.length > 0 && (

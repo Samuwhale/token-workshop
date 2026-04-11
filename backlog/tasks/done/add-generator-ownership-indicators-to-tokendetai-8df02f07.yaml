@@ -8,12 +8,13 @@ touch_paths:
   - packages/figma-plugin/src/ui/components/TokenTreeNode.tsx
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Added generator deep links in token previews and a persistent generator-owned icon on group headers; logged progress and noted existing unrelated TypeScript failures."
+state: done
 acceptance_criteria:
   - TokenDetailPreview accepts onNavigateToGenerator prop and renders Derived from as a clickable link
   - TokenDetailPreview renders Generator source entries as clickable links
   - Group headers for generator-managed groups show a persistent small generator icon even when not stale
 source: task-followup
 created_at: 2026-04-11T10:39:50.215Z
-updated_at: 2026-04-11T10:39:50.215Z
+updated_at: 2026-04-11T20:32:39.015Z

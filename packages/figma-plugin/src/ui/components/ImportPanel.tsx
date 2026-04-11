@@ -10,6 +10,7 @@ import { ImportStylesFooter } from './ImportStylesFooter';
 import { ImportFileDestinationRules } from './ImportFileDestinationRules';
 import { ImportWorkflowSteps } from './ImportWorkflowSteps';
 import { getSourceDefinition } from './importPanelTypes';
+import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 
 function ImportPanelRoot() {
   const {
@@ -70,9 +71,11 @@ function ImportPanelRoot() {
 
   if (!connected) {
     return (
-      <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
-        Connect to server to import tokens
-      </div>
+      <FeedbackPlaceholder
+        variant="disconnected"
+        title="Connect to the token server"
+        description="Import sources become available again as soon as the server connection is restored."
+      />
     );
   }
 
@@ -83,9 +86,12 @@ function ImportPanelRoot() {
     >
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
         {error && (
-          <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
-            {error}
-          </div>
+          <FeedbackPlaceholder
+            variant="error"
+            size="section"
+            title="Import failed"
+            description={error}
+          />
         )}
 
         {showDestinationValidation && (

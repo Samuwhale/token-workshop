@@ -32,6 +32,7 @@ import { DeepInspectSection } from './DeepInspectSection';
 import { RemapBindingsPanel } from './RemapBindingsPanel';
 import { ExtractTokensPanel } from './ExtractTokensPanel';
 import { ConfirmModal } from './ConfirmModal';
+import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 import { NoticePill, NoticeFieldMessage } from '../shared/noticeSystem';
 
 type InspectorPropFilterMode = 'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions';
@@ -119,7 +120,12 @@ function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) 
       )}
 
       {!searching && query && results.length === 0 && (
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)] px-1 py-2">No layers found matching "{query}"</p>
+        <FeedbackPlaceholder
+          variant="no-results"
+          size="section"
+          title="No layers found"
+          description={`Nothing matched "${query}". Try a broader layer name, type, or component query.`}
+        />
       )}
 
       {results.length > 0 && (
@@ -805,18 +811,18 @@ export function SelectionInspector({
     return (
       <div className="flex-1 flex flex-col gap-3 px-4 pt-4">
         <LayerSearchPanel onSelect={handleSelectLayer} />
-        <div className="flex flex-col items-center justify-center gap-3 px-2 pt-4 text-center">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] opacity-40" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M3 9h18M9 21V9" />
-          </svg>
-          <div>
-            <p className="text-[11px] font-medium text-[var(--color-figma-text)]">No layer selected</p>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-              Search above or select a layer on the canvas to inspect its token bindings.
-            </p>
-          </div>
-        </div>
+        <FeedbackPlaceholder
+          variant="empty"
+          size="section"
+          icon={(
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18M9 21V9" />
+            </svg>
+          )}
+          title="No layer selected"
+          description="Search above or select a layer on the canvas to inspect its token bindings."
+        />
       </div>
     );
   }
@@ -1053,23 +1059,13 @@ export function SelectionInspector({
             </div>
             <div className="px-1.5 py-1.5">
               {!hasVisibleProperties && totalBindings === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] opacity-40" aria-hidden="true">
-                    <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
-                  </svg>
-                  <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">No token-ready properties found</p>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                    Apply tokens from the Tokens tab or expose more design properties on the selected layer to work here.
-                  </p>
-                  {onGoToTokens && (
-                    <button
-                      onClick={onGoToTokens}
-                      className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                    >
-                      Go to Tokens →
-                    </button>
-                  )}
-                </div>
+                <FeedbackPlaceholder
+                  variant="empty"
+                  size="section"
+                  title="No token-ready properties found"
+                  description="Apply tokens from the Tokens tab or expose more design properties on the selected layer to work here."
+                  secondaryAction={onGoToTokens ? { label: 'Go to Tokens', onClick: onGoToTokens } : undefined}
+                />
               ) : (
                 <div>
                   {PROPERTY_GROUPS.map((group, groupIdx) => {
@@ -1144,15 +1140,13 @@ export function SelectionInspector({
                       return (binding || value !== undefined) && matchesPropFilter(prop);
                     })
                   ) && (
-                    <div className="flex flex-col items-center gap-1 px-4 py-6 text-center">
-                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No properties match the current filter.</p>
-                      <button
-                        onClick={() => { setPropFilter(''); setPropFilterMode('all'); }}
-                        className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                      >
-                        Clear filter
-                      </button>
-                    </div>
+                    <FeedbackPlaceholder
+                      variant="no-results"
+                      size="section"
+                      title="No properties match the current filter"
+                      description="Try a broader property query or reset the active filter mode."
+                      secondaryAction={{ label: 'Clear filter', onClick: () => { setPropFilter(''); setPropFilterMode('all'); } }}
+                    />
                   )}
                 </div>
               )}

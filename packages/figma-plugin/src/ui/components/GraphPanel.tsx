@@ -12,6 +12,7 @@ import type { GraphTemplate } from './graph-templates';
 import { TemplatePicker } from './TemplatePicker';
 import { GeneratorPipelineCard, getGeneratorTypeLabel } from './GeneratorPipelineCard';
 import { SkeletonGeneratorCard } from './Skeleton';
+import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 
 // ---------------------------------------------------------------------------
 // SVG export
@@ -550,12 +551,15 @@ export function GraphPanel({
                   <GeneratorPipelineCard key={gen.id} generator={gen} isFocused={gen.id === highlightedGeneratorId} focusRef={focusRef} serverUrl={serverUrl} allSets={allSets} activeSet={activeSet} onRefresh={onRefresh} allTokensFlat={allTokensFlat} onPushUndo={onPushUndo} />
                 ))
               : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <p className="text-[11px] text-[var(--color-figma-text-secondary)] mb-1">No generators match</p>
-                  <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                    Try a different search term
-                  </p>
-                </div>
+                <FeedbackPlaceholder
+                  variant="no-results"
+                  size="full"
+                  title="No generators match"
+                  description="Try a different search term or clear the active filter."
+                  secondaryAction={searchQuery || typeFilter
+                    ? { label: 'Clear filters', onClick: () => { setSearchQuery(''); setTypeFilter(null); } }
+                    : undefined}
+                />
               )
             }
           </div>
@@ -580,26 +584,25 @@ export function GraphPanel({
     return (
       <div className="flex flex-col h-full overflow-y-auto">
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
-          {/* Icon */}
-          <div className="mb-4 w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
-              <circle cx="5" cy="12" r="3" />
-              <path d="M8 12h3" />
-              <rect x="11" y="9" width="6" height="6" rx="1" />
-              <path d="M17 12h3" />
-              <circle cx="22" cy="12" r="1" />
-            </svg>
-          </div>
-
-          <div className="flex flex-col gap-1 mb-4">
-            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No generators yet</p>
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
-              Generators turn a source token into a whole token group — color scales, spacing scales, type scales, contrast pairs, and semantic aliases.
-            </p>
-          </div>
+          <FeedbackPlaceholder
+            variant="empty"
+            size="section"
+            className="w-full max-w-[320px]"
+            icon={(
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="5" cy="12" r="3" />
+                <path d="M8 12h3" />
+                <rect x="11" y="9" width="6" height="6" rx="1" />
+                <path d="M17 12h3" />
+                <circle cx="22" cy="12" r="1" />
+              </svg>
+            )}
+            title="No generators yet"
+            description="Generators turn a source token into a whole token group — color scales, spacing scales, type scales, contrast pairs, and semantic aliases."
+          />
 
           {/* What generators produce */}
-          <div className="w-full mb-5 grid grid-cols-2 gap-1.5">
+          <div className="mt-5 grid w-full max-w-[320px] grid-cols-2 gap-1.5">
             {[
               { label: 'Color scales', icon: <><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,80%)' }} /><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,55%)' }} /><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,30%)' }} /></> },
               { label: 'Spacing scales', icon: <><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '4px', opacity: 0.5 }} /><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '8px', opacity: 0.7 }} /><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '14px' }} /></> },
@@ -613,19 +616,25 @@ export function GraphPanel({
             ))}
           </div>
 
-          <button
-            onClick={() => setBrowsingTemplates(true)}
-            disabled={!connected}
-            className="px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Add your first generator
-          </button>
+          <div className="mt-5 flex w-full max-w-[320px] flex-col items-center gap-3">
+            <button
+              onClick={() => setBrowsingTemplates(true)}
+              disabled={!connected}
+              className="px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Add your first generator
+            </button>
 
-          {!connected && (
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-2">
-              Connect to the server first
-            </p>
-          )}
+            {!connected && (
+              <FeedbackPlaceholder
+                variant="disconnected"
+                size="section"
+                className="w-full"
+                title="Connect to the server first"
+                description="Template setup needs the server connection before it can create and run generators."
+              />
+            )}
+          </div>
         </div>
       </div>
     );

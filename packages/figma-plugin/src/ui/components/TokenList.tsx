@@ -53,6 +53,7 @@ import { NoticeBanner, NoticeFieldMessage } from '../shared/noticeSystem';
 import { TokenSearchFilterChips } from './TokenSearchFilterBuilder';
 import type { FilterBuilderSection } from './TokenSearchFilterBuilder';
 import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES } from './WelcomePrompt';
+import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
@@ -3798,8 +3799,13 @@ export function TokenList({
         {crossSetResults !== null ? (
           /* Cross-set search results */
           crossSetResults.length === 0 ? (
-            <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-              <p>No tokens found across all sets</p>
+            <div className="py-8">
+              <FeedbackPlaceholder
+                variant="no-results"
+                size="section"
+                title="No tokens found across all sets"
+                description="Try a broader search, or switch back to the current set to keep working in context."
+              />
               {searchQuery && (() => {
                 const q = searchQuery.trim();
                 const qLower = q.toLowerCase();
@@ -3807,12 +3813,14 @@ export function TokenList({
                   || availableTypes.find(t => t.toLowerCase().startsWith(qLower));
                 if (matchingType && typeFilter !== matchingType) {
                   return (
-                    <button
-                      onClick={() => { setSearchQuery(''); setTypeFilter(matchingType); }}
-                      className="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
-                    >
-                      Filter by type: {matchingType} <span aria-hidden="true">&rarr;</span>
-                    </button>
+                    <div className="mt-2 text-center">
+                      <button
+                        onClick={() => { setSearchQuery(''); setTypeFilter(matchingType); }}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+                      >
+                        Filter by type: {matchingType} <span aria-hidden="true">&rarr;</span>
+                      </button>
+                    </div>
                   );
                 }
                 return null;
@@ -3861,13 +3869,18 @@ export function TokenList({
             </div>
           )
         ) : inspectMode && selectedNodes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M13 12H3"/>
-            </svg>
-            <p className="mt-2 text-[11px] font-medium">Select a layer to inspect</p>
-            <p className="text-[10px] mt-0.5">Tokens bound to the selected layer will appear here</p>
-          </div>
+          <FeedbackPlaceholder
+            variant="empty"
+            title="Select a layer to inspect"
+            description="Tokens bound to the selected layer will appear here."
+            icon={(
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <path d="M10 17l5-5-5-5" />
+                <path d="M13 12H3" />
+              </svg>
+            )}
+          />
         ) : viewMode === 'json' ? (
           /* JSON editor — raw DTCG JSON, works for both empty and non-empty sets */
           <div className="h-full flex flex-col">
@@ -3979,21 +3992,20 @@ export function TokenList({
             </div>
           </div>
         ) : tokens.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 px-5 gap-4 text-center">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex flex-col items-center justify-center gap-4 px-5 py-8 text-center">
+            <FeedbackPlaceholder
+              variant="empty"
+              size="section"
+              className="w-full max-w-[260px]"
+              icon={(
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="3" />
                   <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
                 </svg>
-              </div>
-              <div>
-                <p className="text-[12px] font-medium text-[var(--color-figma-text)]">This set is empty</p>
-                <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Open the start branch you need instead of bouncing through a separate empty-state flow.
-                </p>
-              </div>
-            </div>
+              )}
+              title="This set is empty"
+              description="Open the start branch you need instead of bouncing through a separate empty-state flow."
+            />
 
             <div className="flex w-full max-w-[260px] flex-col gap-1.5 text-left">
               {TOKENS_START_HERE_BRANCHES.map((branch) => {
@@ -4028,12 +4040,14 @@ export function TokenList({
           </div>
         ) : displayedTokens.length === 0 && filtersActive ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
-              <path d="M8 11h6M11 8v6" />
-            </svg>
-            <p className="mt-2 text-[11px] font-medium">No tokens match your filters</p>
+            <FeedbackPlaceholder
+              variant="no-results"
+              size="section"
+              className="w-full max-w-[260px]"
+              title="No tokens match your filters"
+              description="Try a broader search, or clear one of the active qualifiers to widen the current scope."
+              secondaryAction={{ label: 'Clear filters', onClick: clearFilters }}
+            />
 
             {/* Smart suggestions based on query shape */}
             {searchQuery && (() => {
@@ -4152,13 +4166,6 @@ export function TokenList({
                 </div>
               );
             })()}
-
-            <button
-              onClick={clearFilters}
-              className="mt-3 px-3 py-1 rounded text-[10px] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
-            >
-              Clear filters
-            </button>
           </div>
         ) : (
           <div className="py-1">

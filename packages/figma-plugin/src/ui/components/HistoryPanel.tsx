@@ -18,6 +18,7 @@ import { GitCommitsSource } from './history/GitCommitsSource';
 import { CommitCompareView } from './history/CommitCompareView';
 import { SnapshotsSource } from './history/SnapshotsSource';
 import { RollbackPreviewModal } from './history/RollbackPreviewModal';
+import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 
 function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }) {
   const styles: Record<string, string> = {
@@ -84,21 +85,6 @@ function RecoverySubsection({
         <p className="mt-0.5 text-[9px] leading-tight text-[var(--color-figma-text-tertiary)]">{description}</p>
       </div>
       {children}
-    </div>
-  );
-}
-
-function SectionEmptyState({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
-  return (
-    <div className="px-3 py-5 text-center">
-      <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{title}</p>
-      <p className="mt-1 text-[9px] leading-tight text-[var(--color-figma-text-tertiary)]">{message}</p>
     </div>
   );
 }
@@ -265,9 +251,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
 
   if (!connected) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 gap-2 text-center">
-        <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Connect to a server to view history.</p>
-      </div>
+      <FeedbackPlaceholder
+        variant="disconnected"
+        title="Connect to the token server"
+        description="History, rollback, snapshots, and git recovery are available once the server connection is restored."
+      />
     );
   }
 
@@ -463,46 +451,29 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
         )}
 
         {!timelineLoading && timelineError && (
-          <div className="flex flex-col items-center justify-center p-6 gap-2 text-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] opacity-60" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Failed to load history</p>
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{timelineError}</p>
-            <button
-              onClick={() => fetchTimeline(debouncedTimelineSearch)}
-              className="mt-1 px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-            >
-              Retry
-            </button>
-          </div>
+          <FeedbackPlaceholder
+            variant="error"
+            title="Failed to load history"
+            description={timelineError}
+            primaryAction={{ label: 'Retry', onClick: () => fetchTimeline(debouncedTimelineSearch) }}
+          />
         )}
 
         {!timelineLoading && isEmpty && (
-          <div className="flex flex-col items-center justify-center h-full p-6 gap-2 text-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] opacity-40" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-            </svg>
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No history yet.</p>
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-              Recovery options will appear here once you make edits, save a snapshot, or sync with git.
-            </p>
-          </div>
+          <FeedbackPlaceholder
+            variant="empty"
+            title="No history yet"
+            description="Recovery options will appear here once you make edits, save a snapshot, or sync with git."
+          />
         )}
 
         {!timelineLoading && isFilteredEmpty && (
-          <div className="flex flex-col items-center justify-center py-8 px-6 gap-2 text-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] opacity-40" aria-hidden="true">
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-            </svg>
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No results.</p>
-            <button
-              onClick={handleClearFilters}
-              className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-            >
-              Clear filters
-            </button>
-          </div>
+          <FeedbackPlaceholder
+            variant="no-results"
+            title="No results"
+            description="Try another history search or clear the token filter to see more recovery options."
+            secondaryAction={{ label: 'Clear filters', onClick: handleClearFilters }}
+          />
         )}
 
         {!timelineLoading && !timelineError && !isEmpty && !isFilteredEmpty && (
@@ -553,9 +524,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                     </div>
                   );
                 }) : (
-                  <SectionEmptyState
+                  <FeedbackPlaceholder
+                    variant={filterTokenPath ? 'no-results' : 'empty'}
+                    size="section"
                     title={filterTokenPath ? 'Session undo is hidden while filtering to one token.' : 'No session undo available.'}
-                    message={filterTokenPath ? 'Local undo cannot be scoped to a single token path, so only saved edits remain visible here.' : 'Make an edit in this window to see quick undo options.'}
+                    description={filterTokenPath ? 'Local undo cannot be scoped to a single token path, so only saved edits remain visible here.' : 'Make an edit in this window to see quick undo options.'}
                   />
                 )}
               </RecoverySubsection>
@@ -640,9 +613,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                     </div>
                   );
                 }) : (
-                  <SectionEmptyState
+                  <FeedbackPlaceholder
+                    variant={filterTokenPath ? 'no-results' : 'empty'}
+                    size="section"
                     title="No saved edits match right now."
-                    message={filterTokenPath ? 'Try another token path or clear the filter to see more rollback targets.' : 'Saved edits appear here after a server-side change is recorded.'}
+                    description={filterTokenPath ? 'Try another token path or clear the filter to see more rollback targets.' : 'Saved edits appear here after a server-side change is recorded.'}
                   />
                 )}
 
@@ -738,9 +713,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   </svg>
                 </button>
               )) : (
-                <SectionEmptyState
+                <FeedbackPlaceholder
+                  variant="no-results"
+                  size="section"
                   title="No snapshots match right now."
-                  message="Save a checkpoint before a larger change so you can restore the whole workspace later."
+                  description="Save a checkpoint before a larger change so you can restore the whole workspace later."
                 />
               )}
             </RecoverySection>
@@ -901,9 +878,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   </button>
                 );
               }) : (
-                <SectionEmptyState
+                <FeedbackPlaceholder
+                  variant="no-results"
+                  size="section"
                   title="No git commits match right now."
-                  message="Sync with git to browse revisions and open the right version to restore."
+                  description="Sync with git to browse revisions and open the right version to restore."
                 />
               )}
 
