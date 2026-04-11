@@ -873,44 +873,60 @@ export function HealthPanel({
       ? Math.round((heatmapResult.green / heatmapResult.total) * 100)
       : null;
 
+  const aliasDependencyIssues = useMemo(
+    () =>
+      (validationIssuesProp ?? []).filter(
+        (issue) =>
+          issue.rule === "broken-alias" || issue.rule === "circular-reference",
+      ),
+    [validationIssuesProp],
+  );
+
   const aliasDependencyCounts = useMemo(() => {
-    const counts = { brokenAlias: 0, circularReference: 0, deepAliasChain: 0 };
-    if (!validationIssuesProp) return counts;
-    for (const issue of validationIssuesProp) {
+    const counts = { brokenAlias: 0, circularReference: 0 };
+    for (const issue of aliasDependencyIssues) {
       if (issue.rule === "broken-alias") counts.brokenAlias += 1;
-      else if (issue.rule === "circular-reference")
-        counts.circularReference += 1;
-      else if (issue.rule === "max-alias-depth") counts.deepAliasChain += 1;
+      else counts.circularReference += 1;
     }
     return counts;
-  }, [validationIssuesProp]);
+  }, [aliasDependencyIssues]);
 
-  const aliasDependencyIssueCount =
-    aliasDependencyCounts.brokenAlias +
-    aliasDependencyCounts.circularReference +
-    aliasDependencyCounts.deepAliasChain;
+  const aliasDependencyIssueCount = aliasDependencyIssues.length;
 
-  const aliasDependencyStatus: HealthStatus =
-    aliasDependencyCounts.brokenAlias > 0 ||
-    aliasDependencyCounts.circularReference > 0
-      ? "critical"
-      : aliasDependencyCounts.deepAliasChain > 0
-        ? "warning"
+  const aliasDependencyPreview = useMemo(() => {
+    const seen = new Set<string>();
+    const preview: ValidationIssue[] = [];
+    for (const issue of aliasDependencyIssues) {
+      const key = `${issue.setName}:${issue.path}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      preview.push(issue);
+      if (preview.length === 5) break;
+    }
+    return preview;
+  }, [aliasDependencyIssues]);
+
+  const aliasDependencyStatus: HealthStatus | null =
+    validationIssuesProp === null
+      ? null
+      : aliasDependencyIssueCount > 0
+        ? "critical"
         : "healthy";
 
   const aliasDependencyDetail =
     validationIssuesProp === null
-      ? "Run an audit to surface broken aliases, cycles, and deep dependency chains."
+      ? "Run an audit to surface broken aliases and circular references."
       : aliasDependencyIssueCount === 0
-        ? "No broken aliases, circular references, or deep chains in the latest audit."
+        ? "No broken aliases or circular references in the latest audit."
         : [
             formatCount(aliasDependencyCounts.brokenAlias, "broken alias"),
             formatCount(
               aliasDependencyCounts.circularReference,
               "circular reference",
             ),
-            formatCount(aliasDependencyCounts.deepAliasChain, "deep chain"),
-          ].join(" · ");
+          ]
+            .filter((part) => !part.startsWith("0 "))
+            .join(" · ");
 
   // Comprehensive prioritised issue list — aggregates ALL sources so the panel
   // is useful at a glance without expanding any sub-section.
@@ -1470,7 +1486,52 @@ export function HealthPanel({
                     : "Open dependencies"
                 }
                 onCta={() => onNavigateTo("apply", "dependencies")}
-              />
+              >
+                <div className="space-y-1.5">
+                  {aliasDependencyPreview.map((issue) => (
+                    <div
+                      key={`${issue.rule}:${issue.setName}:${issue.path}`}
+                      className="flex items-center gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-mono text-[9px] text-[var(--color-figma-text)]">
+                          {issue.path}
+                        </div>
+                        <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                          {getRuleLabel(issue.rule)?.label ?? issue.rule}
+                        </div>
+                      </div>
+                      {onNavigateToToken && (
+                        <button
+                          onClick={() =>
+                            onNavigateToToken(issue.path, issue.setName)
+                          }
+                          title={`Go to ${issue.path}`}
+                          aria-label={`Go to ${issue.path}`}
+                          className="shrink-0 rounded border border-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
+                        >
+                          Go
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {aliasDependencyIssueCount >
+                    aliasDependencyPreview.length && (
+                    <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                      +
+                      {aliasDependencyIssueCount -
+                        aliasDependencyPreview.length}{" "}
+                      more issue
+                      {aliasDependencyIssueCount -
+                        aliasDependencyPreview.length ===
+                      1
+                        ? ""
+                        : "s"}{" "}
+                      in the full audit report
+                    </div>
+                  )}
+                </div>
+              </HealthSection>
             </div>
           )}
         </div>
@@ -2003,7 +2064,18 @@ export function HealthPanel({
             />
 
             {/* Color Scale Lightness Inspector */}
-            <LightnessInspectorPanel colorScales={colorScales} />
+            <LightnessInspectorPanel
+              colorScales={colorScales}
+              onNavigateToToken={
+                onNavigateToToken
+                  ? (path) => {
+                      const setName = pathToSet[path];
+                      if (!setName) return;
+                      onNavigateToToken(path, setName);
+                    }
+                  : undefined
+              }
+            />
           </>
         )}
       </div>

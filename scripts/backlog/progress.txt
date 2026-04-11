@@ -1098,3 +1098,11 @@
   - When a secondary takeover preserves an updated underlay route, keep post-action UI in a hidden pending state and reveal it only when the takeover actually dismisses.
   - If a banner needs to offer a follow-up jump after a recommended route change, pass the chosen recommendation through the routing callback instead of recomputing which destination won.
 ---
+## 2026-04-12 - Wire Alias dependencies card to real validation data and add lightness fix CTAs
+- Replaced the Alias dependencies summary with validation-backed broken-alias and circular-reference counts, added an expandable preview of the first five affected token paths with `Go` navigation, and wired the lightness inspector to surface `Go` buttons on anomalous scale steps.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/components/HealthPanel.tsx packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "HealthPanel\\.tsx|LightnessInspectorPanel\\.tsx"` still reports pre-existing workspace issues: `packages/core/dist` `TS6305` bootstrap errors and existing `HealthPanel.tsx` `"stale"` severity diagnostics; no new task-specific diagnostics surfaced for `LightnessInspectorPanel.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L876, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L1478, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L2067, `packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx` ~L15, `packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx` ~L95, `packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx` ~L130
+- **Learnings for future iterations:**
+  - When a health summary card mirrors a validation rule family, derive both its badge count and its preview rows from the same filtered issue list so the summary cannot drift from the audit report.
+  - Small inline remediation CTAs work well for visual audits when the chart already knows the underlying token path for each anomalous point.
+---
