@@ -971,3 +971,11 @@
   - When a library-only workflow can open the generator editor from multiple entry points, encode one shared target shape for edit-vs-create requests instead of threading separate modal booleans and draft state through each surface.
   - Quick-generator flows can stay lightweight if the popover owns only the fast path and hands advanced editing off as an initial draft for the shared contextual generator surface.
 ---
+## 2026-04-11 - Add inline explanations, specific CTAs, and live counts to HealthPanel priority issues strip
+- Enriched the HealthPanel priority strip with per-row impact copy, remediation-specific CTA labels, and live alias-dependency counts sourced from validation results; suppressed issues now show human-readable rule labels instead of raw ids.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "HealthPanel|TS[0-9]+"` still reports unrelated pre-existing workspace TypeScript failures (`packages/core/dist` `TS6305` build-artifact errors, existing `NoticeSeverity` mismatches, and other long-standing diagnostics). No new task-specific TypeScript errors surfaced in `HealthPanel.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L163, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L626, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L909, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L1092, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L1358
+- **Learnings for future iterations:**
+  - Priority strips need both the count and the impact sentence inline; otherwise the row reads like a status ticker instead of a decision surface.
+  - Aggregate health cards should derive their counts from the same live validation source as the detailed report, or the summary surface drifts out of trust quickly.
+---

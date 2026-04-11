@@ -10,8 +10,9 @@ touch_paths:
   - packages/figma-plugin/src/ui/shared/navigationTypes.ts
 capabilities: []
 validation_profile: plugin
-status_notes: []
-state: ready
+status_notes:
+  - "Completed: Routed Tokens > Library generator create/edit/duplicate flows through the shared generator-editor contextual surface, removed the local library generator dialogs, and logged the work in backlog progress/patterns."
+state: done
 acceptance_criteria:
   - TokenEditor Derived groups section no longer opens TokenGeneratorDialog as a modal overlay but requests the generator-editor contextual surface
   - QuickGeneratorPopover escalation routes to the generator-editor contextual panel
@@ -19,4 +20,4 @@ acceptance_criteria:
   - Generators section tab retains its own generator dialog
 source: task-followup
 created_at: 2026-04-11T10:39:50.219Z
-updated_at: 2026-04-11T10:39:50.219Z
+updated_at: 2026-04-11T20:53:15.224Z

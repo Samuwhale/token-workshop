@@ -37,6 +37,7 @@ interface PriorityIssue {
   severity: 'critical' | 'warning' | 'info';
   category: string;
   message: string;
+  detail: string;
   count: number;
   ctaLabel: string;
   /** Stable string key describing the action — resolved to a handler in JSX */
@@ -153,6 +154,46 @@ const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
 
 function getRuleLabel(rule: string): { label: string; tip: string } | undefined {
   return VALIDATION_LABELS[rule] ?? (LINT_RULE_BY_ID[rule] ? { label: LINT_RULE_BY_ID[rule].label, tip: LINT_RULE_BY_ID[rule].tip } : undefined);
+}
+
+function formatCount(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function getValidationPriorityDetail(rule: string): string {
+  switch (rule) {
+    case 'missing-type':
+      return 'Untyped tokens cannot be interpreted consistently across tooling and exports.';
+    case 'broken-alias':
+      return 'Broken references leave dependent tokens unresolved where they are consumed.';
+    case 'circular-reference':
+      return 'Reference loops stop tokens from resolving to a usable value.';
+    case 'max-alias-depth':
+      return 'Long alias chains are brittle and make overrides harder to trace.';
+    case 'type-mismatch':
+      return 'Type mismatches break consumers that rely on the declared token type.';
+    default:
+      return getRuleLabel(rule)?.tip ?? 'Review this rule to keep the token library predictable.';
+  }
+}
+
+function getValidationPriorityCtaLabel(rule: string): string {
+  switch (rule) {
+    case 'missing-type':
+      return 'Add type';
+    case 'broken-alias':
+      return 'Resolve alias';
+    case 'circular-reference':
+      return 'Break cycle';
+    case 'max-alias-depth':
+      return 'Shorten chain';
+    case 'type-mismatch':
+      return 'Fix type';
+    default: {
+      const label = getRuleLabel(rule)?.label ?? 'issue';
+      return `Review ${label.toLowerCase()}`;
+    }
+  }
 }
 
 function formatDuplicateValue(value: unknown): string {
@@ -582,6 +623,38 @@ export function HealthPanel({
     ? Math.round((heatmapResult.green / heatmapResult.total) * 100)
     : null;
 
+  const aliasDependencyCounts = useMemo(() => {
+    const counts = { brokenAlias: 0, circularReference: 0, deepAliasChain: 0 };
+    if (!validationIssuesProp) return counts;
+    for (const issue of validationIssuesProp) {
+      if (issue.rule === 'broken-alias') counts.brokenAlias += 1;
+      else if (issue.rule === 'circular-reference') counts.circularReference += 1;
+      else if (issue.rule === 'max-alias-depth') counts.deepAliasChain += 1;
+    }
+    return counts;
+  }, [validationIssuesProp]);
+
+  const aliasDependencyIssueCount =
+    aliasDependencyCounts.brokenAlias +
+    aliasDependencyCounts.circularReference +
+    aliasDependencyCounts.deepAliasChain;
+
+  const aliasDependencyStatus: HealthStatus =
+    aliasDependencyCounts.brokenAlias > 0 || aliasDependencyCounts.circularReference > 0 ? 'critical'
+    : aliasDependencyCounts.deepAliasChain > 0 ? 'warning'
+    : 'healthy';
+
+  const aliasDependencyDetail =
+    validationIssuesProp === null
+      ? 'Run an audit to surface broken aliases, cycles, and deep dependency chains.'
+      : aliasDependencyIssueCount === 0
+        ? 'No broken aliases, circular references, or deep chains in the latest audit.'
+        : [
+            formatCount(aliasDependencyCounts.brokenAlias, 'broken alias'),
+            formatCount(aliasDependencyCounts.circularReference, 'circular reference'),
+            formatCount(aliasDependencyCounts.deepAliasChain, 'deep chain'),
+          ].join(' · ');
+
   // Comprehensive prioritised issue list — aggregates ALL sources so the panel
   // is useful at a glance without expanding any sub-section.
   const priorityIssues = ((): PriorityIssue[] => {
@@ -592,9 +665,10 @@ export function HealthPanel({
       items.push({
         severity: 'critical',
         category: 'Lint',
-        message: `${lintErrors} error${lintErrors !== 1 ? 's' : ''} in current set`,
+        message: `${formatCount(lintErrors, 'lint error')} in the current set`,
+        detail: 'Lint errors block a clean, automatable token structure before publish.',
         count: lintErrors,
-        ctaLabel: 'Go to set',
+        ctaLabel: 'Review lint',
         action: 'lint',
       });
     }
@@ -611,9 +685,10 @@ export function HealthPanel({
         items.push({
           severity: 'critical',
           category: meta?.label ?? rule,
-          message: `${count} token${count !== 1 ? 's' : ''} affected`,
+          message: `${formatCount(count, 'token')} affected`,
+          detail: getValidationPriorityDetail(rule),
           count,
-          ctaLabel: 'Fix',
+          ctaLabel: getValidationPriorityCtaLabel(rule),
           action: 'validation-scroll',
         });
       }
@@ -623,9 +698,10 @@ export function HealthPanel({
       items.push({
         severity: 'critical',
         category: 'Generators',
-        message: `${errorGenerators.length} failed`,
+        message: `${formatCount(errorGenerators.length, 'generator')} failed`,
+        detail: 'Failed generators leave downstream artifacts out of sync with current tokens.',
         count: errorGenerators.length,
-        ctaLabel: 'View',
+        ctaLabel: 'Inspect generators',
         action: 'generators',
       });
     }
@@ -635,9 +711,10 @@ export function HealthPanel({
       items.push({
         severity: 'warning',
         category: 'Lint',
-        message: `${lintWarnings} warning${lintWarnings !== 1 ? 's' : ''} in current set`,
+        message: `${formatCount(lintWarnings, 'lint warning')} in the current set`,
+        detail: 'Lint warnings usually point to drift that becomes expensive to fix later.',
         count: lintWarnings,
-        ctaLabel: 'Go to set',
+        ctaLabel: 'Review lint',
         action: 'lint',
       });
     }
@@ -654,9 +731,10 @@ export function HealthPanel({
         items.push({
           severity: 'warning',
           category: meta?.label ?? rule,
-          message: `${count} token${count !== 1 ? 's' : ''} affected`,
+          message: `${formatCount(count, 'token')} affected`,
+          detail: getValidationPriorityDetail(rule),
           count,
-          ctaLabel: 'View',
+          ctaLabel: getValidationPriorityCtaLabel(rule),
           action: 'validation-scroll',
         });
       }
@@ -666,9 +744,10 @@ export function HealthPanel({
       items.push({
         severity: 'warning',
         category: 'Duplicates',
-        message: `${totalDuplicateAliases} redundant value${totalDuplicateAliases !== 1 ? 's' : ''}`,
+        message: `${formatCount(totalDuplicateAliases, 'redundant value')} detected`,
+        detail: 'Duplicate raw values drift apart over time and hide good alias candidates.',
         count: totalDuplicateAliases,
-        ctaLabel: 'Fix',
+        ctaLabel: 'Review duplicates',
         action: 'duplicates-scroll',
       });
     }
@@ -677,9 +756,10 @@ export function HealthPanel({
       items.push({
         severity: 'warning',
         category: 'Generators',
-        message: `${staleGenerators.length} stale`,
+        message: `${formatCount(staleGenerators.length, 'generator')} stale`,
+        detail: 'Stale generators mean exported artifacts no longer match the latest token source.',
         count: staleGenerators.length,
-        ctaLabel: 'Run',
+        ctaLabel: 'Run generators',
         action: 'generators',
       });
     }
@@ -688,9 +768,10 @@ export function HealthPanel({
       items.push({
         severity: 'warning',
         category: 'Canvas',
-        message: `${heatmapResult.red} unbound layer${heatmapResult.red !== 1 ? 's' : ''}`,
+        message: `${formatCount(heatmapResult.red, 'unbound layer')} on canvas`,
+        detail: 'Unbound layers bypass the token system and drift from source-of-truth values.',
         count: heatmapResult.red,
-        ctaLabel: 'Audit',
+        ctaLabel: 'Fix bindings',
         action: 'canvas',
       });
     }
@@ -700,9 +781,10 @@ export function HealthPanel({
       items.push({
         severity: 'info',
         category: 'Unused',
-        message: `${unusedCount} unused token${unusedCount !== 1 ? 's' : ''}`,
+        message: `${formatCount(unusedCount, 'unused token')} ready for cleanup`,
+        detail: 'Unused tokens add noise and make the library harder to curate with confidence.',
         count: unusedCount,
-        ctaLabel: 'Review',
+        ctaLabel: 'Review unused',
         action: 'unused-scroll',
       });
     }
@@ -824,20 +906,27 @@ export function HealthPanel({
             )}
           </div>
           {/* Issue rows — up to 8 visible */}
-          {priorityIssues.slice(0, 8).map((issue, idx) => (
+          {priorityIssues.slice(0, 8).map(issue => (
             <div
-              key={idx}
-              className="flex items-center gap-2 px-3 py-1.5 border-t border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              key={`${issue.severity}:${issue.category}:${issue.message}`}
+              className="flex items-start gap-2 px-3 py-2 border-t border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              title={issue.detail}
             >
-              <NoticePill severity={issueToSeverity(issue.severity)}>
+              <NoticePill severity={issueToSeverity(issue.severity)} className="mt-0.5">
                 {issue.category}
               </NoticePill>
-              <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)] truncate min-w-0">
-                {issue.message}
-              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                  {issue.message}
+                </div>
+                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-relaxed mt-0.5">
+                  {issue.detail}
+                </div>
+              </div>
               <button
                 onClick={resolveIssueAction(issue.action)}
-                className="shrink-0 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors whitespace-nowrap"
+                className="shrink-0 mt-0.5 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors whitespace-nowrap"
+                title={issue.detail}
               >
                 {issue.ctaLabel}
               </button>
@@ -1003,10 +1092,10 @@ export function HealthPanel({
               {/* Alias dependencies */}
               <HealthSection
                 title="Alias dependencies"
-                status="healthy"
-                count={0}
-                detail="Explore alias chains and find circular or deep references in the Dependencies view"
-                ctaLabel="Explore"
+                status={aliasDependencyStatus}
+                count={aliasDependencyIssueCount}
+                detail={aliasDependencyDetail}
+                ctaLabel={aliasDependencyIssueCount > 0 ? 'Review dependencies' : 'Open dependencies'}
                 onCta={() => onNavigateTo('apply', 'dependencies')}
               />
             </div>
@@ -1258,6 +1347,7 @@ export function HealthPanel({
                       {[...suppressedKeys].map(key => {
                         const [rule, setName, ...pathParts] = key.split(':');
                         const path = pathParts.join(':');
+                        const meta = getRuleLabel(rule);
                         return (
                           <div key={key} className="group flex items-center gap-2 px-3 py-1.5">
                             <div className="flex-1 min-w-0">
@@ -1265,7 +1355,9 @@ export function HealthPanel({
                                 <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{path}</span>
                                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">{setName}</span>
                               </div>
-                              <div className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-70">{rule}</div>
+                              <div className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-70" title={meta?.tip}>
+                                {meta?.label ?? rule}
+                              </div>
                             </div>
                             <button
                               onClick={() => handleUnsuppress(key)}

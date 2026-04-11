@@ -35,7 +35,7 @@
 - [x] [HIGH] Add generator ownership indicators to TokenDetailPreview and group headers
 - [x] [HIGH] Surface save-impact summary before confirmation in TokenGeneratorDialog
 - [x] [HIGH] Extract shared editor shell layout from TokenEditor
-- [ ] [HIGH] Consolidate generator escalation paths through contextual surface contract
+- [x] [HIGH] Consolidate generator escalation paths through contextual surface contract
 - [x] [HIGH] Add aggregate summary bar above PublishPanel variable and style diff sections
 - [x] [HIGH] Add grouping and progressive loading to HealthPanel issue lists
 - [x] [HIGH] Add return-to-Audit breadcrumb when navigating from audit issue to source workspace
