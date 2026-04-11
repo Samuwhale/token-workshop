@@ -12,7 +12,8 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Current backlog item points at removed `components/audit/*` paths for UnusedTokensPanel and DuplicateDetectionPanel. The live implementations now sit directly under `components/` and need the requested copy updates there."
-state: ready
+  - "Completed: Updated the audit panel headers/copy, added explicit WCAG threshold context, and surfaced exact lightness anomaly token-path transitions."
+state: done
 acceptance_criteria:
   - Unused Tokens collapsed header includes a brief qualifier alongside the count
   - Duplicate Values collapsed header shows total alias count alongside group count
@@ -20,4 +21,4 @@ acceptance_criteria:
   - Lightness Inspector anomaly warning identifies the specific token paths that triggered it
 source: task-followup
 created_at: 2026-04-11T19:52:00.882Z
-updated_at: 2026-04-11T19:52:00.882Z
+updated_at: 2026-04-11T20:44:17.200Z

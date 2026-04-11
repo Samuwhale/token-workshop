@@ -1,6 +1,7 @@
 import { adaptShortcut, tokenPathToUrlSegment } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
+import { EditorShell } from "./EditorShell";
 import { apiFetch } from "../shared/apiFetch";
 import { TokenHistorySection } from "./TokenHistorySection";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
@@ -1335,13 +1336,108 @@ export function TokenEditor({
     );
   }
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+  const headerTitle = (
+    <>
+      {isCreateMode ? (
+        <div className="relative" ref={pathInputWrapperRef}>
+          <input
+            type="text"
+            value={editPath}
+            onChange={(e) => {
+              setEditPath(e.target.value);
+              setDisplayError(null);
+              setShowPathAutocomplete(true);
+            }}
+            onFocus={() => {
+              if (editPath.trim()) setShowPathAutocomplete(true);
+            }}
+            onBlur={(e) => {
+              if (
+                !pathInputWrapperRef.current?.contains(e.relatedTarget as Node)
+              ) {
+                setShowPathAutocomplete(false);
+              }
+            }}
+            placeholder="Token path (e.g. color.brand.500)"
+            autoFocus
+            autoComplete="off"
+            className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? "border-[var(--color-figma-danger,#f24822)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
+          />
+          {showPathAutocomplete && editPath.trim() && (
+            <PathAutocomplete
+              query={editPath}
+              allTokensFlat={allTokensFlat}
+              onSelect={(path) => {
+                setEditPath(path);
+                setDisplayError(null);
+                setShowPathAutocomplete(path.endsWith("."));
+              }}
+              onClose={() => setShowPathAutocomplete(false)}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
+            {tokenPath}
+          </div>
+          {isDirty && (
+            <span
+              className="shrink-0 px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
+              title="Unsaved changes"
+              aria-label="Unsaved changes"
+            >
+              Unsaved
+            </span>
+          )}
+        </div>
+      )}
+      {isCreateMode && duplicatePath ? (
+        <div className="text-[10px] text-[var(--color-figma-danger,#f24822)]">
+          A token with this path already exists in{" "}
+          {pathToSet[editPath.trim()] || setName}
+        </div>
+      ) : (
+        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          {isCreateMode
+            ? createPresentation === "launcher"
+              ? "quick create"
+              : "new token"
+            : `in ${setName}`}
+        </div>
+      )}
+      {isCreateMode &&
+        !editPath.includes(".") &&
+        (NAMESPACE_SUGGESTIONS[tokenType]?.prefixes.length ?? 0) > 0 && (
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+              Try:
+            </span>
+            {NAMESPACE_SUGGESTIONS[tokenType].prefixes.map((prefix) => (
+              <button
+                key={prefix}
+                type="button"
+                onClick={() => {
+                  setEditPath(prefix);
+                  setDisplayError(null);
+                }}
+                className="px-1 py-px rounded text-[10px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-pressed)] transition-colors cursor-pointer"
+              >
+                {prefix}
+              </button>
+            ))}
+          </div>
+        )}
+    </>
+  );
+
+  const headerActions = (
+    <>
+      {!isCreateMode && onShowReferences && (
         <button
-          onClick={handleBack}
-          aria-label="Back"
+          onClick={() => onShowReferences(tokenPath)}
+          title="Open advanced dependency graph (Apply → Dependencies)"
+          aria-label="Open advanced dependency graph"
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
         >
           <svg
@@ -1351,112 +1447,27 @@ export function TokenEditor({
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M19 12H5M12 19l-7-7 7-7" />
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
           </svg>
         </button>
-        <div className="flex-1 min-w-0">
-          {isCreateMode ? (
-            <div className="relative" ref={pathInputWrapperRef}>
-              <input
-                type="text"
-                value={editPath}
-                onChange={(e) => {
-                  setEditPath(e.target.value);
-                  setDisplayError(null);
-                  setShowPathAutocomplete(true);
-                }}
-                onFocus={() => {
-                  if (editPath.trim()) setShowPathAutocomplete(true);
-                }}
-                onBlur={(e) => {
-                  // Close autocomplete unless the click is within the autocomplete dropdown
-                  if (
-                    !pathInputWrapperRef.current?.contains(
-                      e.relatedTarget as Node,
-                    )
-                  ) {
-                    setShowPathAutocomplete(false);
-                  }
-                }}
-                placeholder="Token path (e.g. color.brand.500)"
-                autoFocus
-                autoComplete="off"
-                className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? "border-[var(--color-figma-danger,#f24822)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
-              />
-              {showPathAutocomplete && editPath.trim() && (
-                <PathAutocomplete
-                  query={editPath}
-                  allTokensFlat={allTokensFlat}
-                  onSelect={(path) => {
-                    setEditPath(path);
-                    setDisplayError(null);
-                    // Keep autocomplete open if the selected path ends with a dot (group)
-                    setShowPathAutocomplete(path.endsWith("."));
-                  }}
-                  onClose={() => setShowPathAutocomplete(false)}
-                />
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 min-w-0">
-              <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
-                {tokenPath}
-              </div>
-              {isDirty && (
-                <span
-                  className="shrink-0 px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
-                  title="Unsaved changes"
-                  aria-label="Unsaved changes"
-                >
-                  Unsaved
-                </span>
-              )}
-            </div>
-          )}
-          {isCreateMode && duplicatePath ? (
-            <div className="text-[10px] text-[var(--color-figma-danger,#f24822)]">
-              A token with this path already exists in{" "}
-              {pathToSet[editPath.trim()] || setName}
-            </div>
-          ) : (
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              {isCreateMode
-                ? (createPresentation === 'launcher' ? 'quick create' : 'new token')
-                : `in ${setName}`}
-            </div>
-          )}
-          {isCreateMode &&
-            !editPath.includes(".") &&
-            (NAMESPACE_SUGGESTIONS[tokenType]?.prefixes.length ?? 0) > 0 && (
-              <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                  Try:
-                </span>
-                {NAMESPACE_SUGGESTIONS[tokenType].prefixes.map((prefix) => (
-                  <button
-                    key={prefix}
-                    type="button"
-                    onClick={() => {
-                      setEditPath(prefix);
-                      setDisplayError(null);
-                    }}
-                    className="px-1 py-px rounded text-[10px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-pressed)] transition-colors cursor-pointer"
-                  >
-                    {prefix}
-                  </button>
-                ))}
-              </div>
-            )}
-        </div>
-        {!isCreateMode && onShowReferences && (
-          <button
-            onClick={() => onShowReferences(tokenPath)}
-            title="Open advanced dependency graph (Apply → Dependencies)"
-            aria-label="Open advanced dependency graph"
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
-          >
+      )}
+      {!isCreateMode && (
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(tokenPath);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          }}
+          title="Copy token path"
+          aria-label="Copy token path"
+          className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+        >
+          {copied ? (
             <svg
               width="12"
               height="12"
@@ -1468,88 +1479,62 @@ export function TokenEditor({
               strokeLinejoin="round"
               aria-hidden="true"
             >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
+              <path d="M20 6L9 17l-5-5" />
             </svg>
-          </button>
-        )}
-        {!isCreateMode && (
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(tokenPath);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            }}
-            title="Copy token path"
-            aria-label="Copy token path"
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
-          >
-            {copied ? (
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-            ) : (
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-            )}
-          </button>
-        )}
-        {aliasMode &&
-          reference &&
-          tokenType === "color" &&
-          (() => {
-            const refPath = extractAliasPath(reference);
-            const resolved = refPath
-              ? resolveRefValue(refPath, colorFlatMap)
-              : null;
-            if (!resolved) return null;
-            return (
-              <div
-                className="w-3.5 h-3.5 rounded-sm border border-white/50 ring-1 ring-[var(--color-figma-border)] shrink-0"
-                style={{ backgroundColor: resolved }}
-                title={resolved}
-                aria-hidden="true"
-              />
-            );
-          })()}
-        <select
-          value={tokenType}
-          onChange={(e) => handleTypeChange(e.target.value)}
-          title="Change token type"
-          className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
-          style={{ backgroundImage: "none" }}
-        >
-          {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </div>
+          ) : (
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          )}
+        </button>
+      )}
+      {aliasMode &&
+        reference &&
+        tokenType === "color" &&
+        (() => {
+          const refPath = extractAliasPath(reference);
+          const resolved = refPath
+            ? resolveRefValue(refPath, colorFlatMap)
+            : null;
+          if (!resolved) return null;
+          return (
+            <div
+              className="w-3.5 h-3.5 rounded-sm border border-white/50 ring-1 ring-[var(--color-figma-border)]"
+              style={{ backgroundColor: resolved }}
+              title={resolved}
+              aria-hidden="true"
+            />
+          );
+        })()}
+      <select
+        value={tokenType}
+        onChange={(e) => handleTypeChange(e.target.value)}
+        title="Change token type"
+        className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
+        style={{ backgroundImage: "none" }}
+      >
+        {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+    </>
+  );
 
-      {/* Draft recovery banner */}
+  const afterHeader = (
+    <>
       {pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-400/40 bg-amber-50/80 dark:bg-amber-900/20 text-[11px]">
           <svg
@@ -1588,7 +1573,7 @@ export function TokenEditor({
         </div>
       )}
 
-      {isCreateMode && createPresentation === 'launcher' && (
+      {isCreateMode && createPresentation === "launcher" && (
         <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -1596,12 +1581,13 @@ export function TokenEditor({
                 Start with the essentials
               </div>
               <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Set the path, type, and value here. Open the full editor when you need metadata, lifecycle, or inheritance controls.
+                Set the path, type, and value here. Open the full editor when
+                you need metadata, lifecycle, or inheritance controls.
               </p>
             </div>
             <button
               type="button"
-              onClick={() => setCreatePresentation('editor')}
+              onClick={() => setCreatePresentation("editor")}
               className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)]"
             >
               Open full editor
@@ -1609,14 +1595,134 @@ export function TokenEditor({
           </div>
         </div>
       )}
+    </>
+  );
 
-      {/* Editor body */}
+  const footer = (
+    <div className="flex items-center gap-2 px-3 py-2.5 bg-[var(--color-figma-bg-secondary)]">
+      {!isCreateMode && (
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          title="Delete token"
+          aria-label="Delete token"
+          className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+          </svg>
+        </button>
+      )}
+      <button
+        onClick={handleBack}
+        className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+      >
+        {isDirty || isCreateMode ? "Cancel" : "Close"}
+      </button>
+      {isDirty && !isCreateMode && (
+        <button
+          onClick={handleRevert}
+          title="Revert to last saved state"
+          className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+        >
+          Revert
+        </button>
+      )}
+      {isCreateMode && createPresentation === "launcher" && (
+        <button
+          type="button"
+          onClick={() => setCreatePresentation("editor")}
+          className="px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-default"
+        >
+          Full editor
+        </button>
+      )}
+      {isCreateMode && onSaveAndCreateAnother && (
+        <button
+          onClick={() => handleSave(false, true)}
+          disabled={saving || !canSave || !editPath.trim()}
+          title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
+          className="px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? (
+            "Creating…"
+          ) : (
+            <>
+              Create & New{" "}
+              <span className="ml-1 opacity-50 text-[10px]">
+                {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)}
+              </span>
+            </>
+          )}
+        </button>
+      )}
       <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto p-3 flex flex-col gap-3"
-        onScroll={(e) => {
-          scrollPositionsRef.current.set(tokenPath, e.currentTarget.scrollTop);
+        className="flex-1"
+        onClick={() => {
+          if (!canSave && saveBlockReason && tokenType === "typography")
+            focusBlockedField();
         }}
+      >
+        <button
+          onClick={() => handleSave()}
+          disabled={
+            saving ||
+            !canSave ||
+            (!isCreateMode && !isDirty) ||
+            (isCreateMode && !editPath.trim())
+          }
+          title={saveBlockReason || `Save (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)})`}
+          className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? (
+            isCreateMode ? (
+              "Creating…"
+            ) : (
+              "Saving…"
+            )
+          ) : saveBlockReason ? (
+            saveBlockReason
+          ) : !isCreateMode && !isDirty ? (
+            "No changes"
+          ) : (
+            <>
+              {isCreateMode ? "Create" : "Save changes"}{" "}
+              <span className="ml-1 opacity-60 text-[10px]">
+                {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)}
+              </span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col h-full">
+      <EditorShell
+        onBack={handleBack}
+        title={headerTitle}
+        headerActions={headerActions}
+        afterHeader={afterHeader}
+        headerClassName="px-3 py-2 bg-[var(--color-figma-bg-secondary)]"
+        bodyRef={scrollContainerRef}
+        bodyProps={{
+          onScroll: (e) => {
+            scrollPositionsRef.current.set(tokenPath, e.currentTarget.scrollTop);
+          },
+        }}
+        bodyClassName="p-3 flex flex-col gap-3"
+        footer={footer}
+        footerClassName="bg-[var(--color-figma-bg-secondary)]"
       >
         {displayError && (
           <div
@@ -2616,7 +2722,7 @@ export function TokenEditor({
             )}
           </div>
         )}
-      </div>
+      </EditorShell>
 
       {/* Save changes confirmation */}
       {showDiscardConfirm && (
@@ -2665,116 +2771,6 @@ export function TokenEditor({
           onCancel={() => setShowConflictConfirm(false)}
         />
       )}
-
-      {/* Footer */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        {!isCreateMode && (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            title="Delete token"
-            aria-label="Delete token"
-            className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-            </svg>
-          </button>
-        )}
-        <button
-          onClick={handleBack}
-          className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-        >
-          {isDirty || isCreateMode ? "Cancel" : "Close"}
-        </button>
-        {isDirty && !isCreateMode && (
-          <button
-            onClick={handleRevert}
-            title="Revert to last saved state"
-            className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-          >
-            Revert
-          </button>
-        )}
-        {isCreateMode && createPresentation === 'launcher' && (
-          <button
-            type="button"
-            onClick={() => setCreatePresentation('editor')}
-            className="px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-default"
-          >
-            Full editor
-          </button>
-        )}
-        {isCreateMode && onSaveAndCreateAnother && (
-          <button
-            onClick={() => handleSave(false, true)}
-            disabled={saving || !canSave || !editPath.trim()}
-            title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-            className="px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? (
-              "Creating…"
-            ) : (
-              <>
-                Create & New{" "}
-                <span className="ml-1 opacity-50 text-[10px]">
-                  {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)}
-                </span>
-              </>
-            )}
-          </button>
-        )}
-        <div
-          className="flex-1"
-          onClick={() => {
-            if (!canSave && saveBlockReason && tokenType === "typography")
-              focusBlockedField();
-          }}
-        >
-          <button
-            onClick={() => handleSave()}
-            disabled={
-              saving ||
-              !canSave ||
-              (!isCreateMode && !isDirty) ||
-              (isCreateMode && !editPath.trim())
-            }
-            title={
-              saveBlockReason ||
-              `Save (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)})`
-            }
-            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? (
-              isCreateMode ? (
-                "Creating…"
-              ) : (
-                "Saving…"
-              )
-            ) : saveBlockReason ? (
-              saveBlockReason
-            ) : !isCreateMode && !isDirty ? (
-              "No changes"
-            ) : (
-              <>
-                {isCreateMode ? "Create" : "Save changes"}{" "}
-                <span className="ml-1 opacity-60 text-[10px]">
-                  {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)}
-                </span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
 
       {/* Token Generator Dialog */}
       {showGeneratorDialog && (

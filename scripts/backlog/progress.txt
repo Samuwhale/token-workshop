@@ -937,3 +937,12 @@
   - Collapsed audit headers are more legible when the headline count is paired with a short qualifier that explains what the count actually represents, instead of relying on the expanded body for context.
   - When surfacing anomaly warnings, prefer listing the exact token paths or transitions that triggered the warning so follow-up cleanup starts from the panel itself.
 ---
+## 2026-04-11 - Extract shared editor shell layout from TokenEditor
+- Added a reusable `EditorShell` layout primitive for editor-style surfaces and moved TokenEditor onto it so the header chrome, scroll container, and sticky footer come from one shared frame while keeping TokenEditor-specific banners and actions intact.
+- Swapped TokenGeneratorDialog onto the same shell frame, which now covers the panel-hosted generator editor without changing its save, discard, or close behavior.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false` still fails on unrelated pre-existing workspace issues (`packages/core/dist` build artifacts, `NoticeSeverity` mismatches, existing implicit-`any` errors, and other pre-existing component diagnostics). No new diagnostics surfaced for `EditorShell`, `TokenEditor`, or `TokenGeneratorDialog`.
+- Files changed: `packages/figma-plugin/src/ui/components/EditorShell.tsx` ~L1, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1339, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1711, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L180, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L237
+- **Learnings for future iterations:**
+  - Keep extracted editor shells structural: header actions, optional under-header content, the scroll body, and footer framing are stable; field logic and banners should stay with the owning editor surface.
+  - If an existing editor has non-scrolling banners between the header and form body, give the shell a narrow `afterHeader` slot instead of forcing those banners into the scroll region.
+---

@@ -3,6 +3,7 @@ import type { MutableRefObject } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
 import { Collapsible } from './Collapsible';
+import { EditorShell } from './EditorShell';
 import type {
   TokenGenerator,
   GeneratorTemplate,
@@ -176,6 +177,48 @@ export function TokenGeneratorDialog({
   const dialogClassName = isPanel
     ? 'bg-[var(--color-figma-bg)] w-full h-full flex flex-col overflow-hidden'
     : 'bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]';
+  const title = (
+    <span id="token-generator-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+      {dialog.isEditing ? 'Edit Generator' : template ? template.label : 'New Generator'}
+    </span>
+  );
+  const headerActions = (
+    <button type="button" onClick={handleClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+    </button>
+  );
+  const footer = (
+    <div className="flex flex-col gap-2 p-3 bg-[var(--color-figma-bg-secondary)]">
+      {missingFields.length > 0 && !dialog.saving && (
+        <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          {missingFields.length === 1
+            ? `${missingFields[0].charAt(0).toUpperCase() + missingFields[0].slice(1)} is required.`
+            : `Required: ${missingFields.join(', ')}.`}
+        </p>
+      )}
+      {dialog.existingTokensError && (
+        <div className="text-[10px] text-[var(--color-figma-error)]">{dialog.existingTokensError}</div>
+      )}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleClose}
+          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
+          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+        >
+          {dialog.saving && <Spinner size="sm" className="text-white" />}
+          {saveLabel}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className={shellClassName}>
@@ -191,25 +234,15 @@ export function TokenGeneratorDialog({
         />
       )}
       <div ref={dialogRef} role="dialog" aria-modal={isPanel ? undefined : true} aria-labelledby="token-generator-dialog-title" className={dialogClassName}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-figma-border)] shrink-0">
-          <div className="flex items-center gap-2">
-            {onBack && (
-              <button type="button" onClick={onBack} aria-label="Back to templates" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-              </button>
-            )}
-            <span id="token-generator-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              {dialog.isEditing ? 'Edit Generator' : template ? template.label : 'New Generator'}
-            </span>
-          </div>
-          <button type="button" onClick={handleClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
+        <EditorShell
+          onBack={onBack}
+          backAriaLabel="Back to templates"
+          title={title}
+          headerActions={headerActions}
+          headerClassName="px-4 py-2.5"
+          footer={footer}
+          footerClassName="bg-[var(--color-figma-bg-secondary)]"
+        >
           <StepWhat
             selectedType={dialog.selectedType}
             recommendedType={dialog.recommendedType}
@@ -303,39 +336,7 @@ export function TokenGeneratorDialog({
               </div>
             </>
           )}
-        </div>
-
-        {/* Sticky footer */}
-        <div className="flex flex-col gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
-          {missingFields.length > 0 && !dialog.saving && (
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-              {missingFields.length === 1
-                ? `${missingFields[0].charAt(0).toUpperCase() + missingFields[0].slice(1)} is required.`
-                : `Required: ${missingFields.join(', ')}.`}
-            </p>
-          )}
-          {dialog.existingTokensError && (
-            <div className="text-[10px] text-[var(--color-figma-error)]">{dialog.existingTokensError}</div>
-          )}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
-              className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              {dialog.saving && <Spinner size="sm" className="text-white" />}
-              {saveLabel}
-            </button>
-          </div>
-        </div>
+        </EditorShell>
       </div>
     </div>
   );
