@@ -1,13 +1,17 @@
-import type React from 'react';
-import type { TokenNode } from '../hooks/useTokens';
-import type { NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
-import type { UndoSlot } from '../hooks/useUndo';
-import type { TokenGenerator } from '../hooks/useGenerators';
-import type { LintViolation } from '../hooks/useLint';
-import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
-import type { TokensLibraryGeneratorEditorTarget } from '../shared/navigationTypes';
-import type { StartHereBranch } from './WelcomePrompt';
-import type { ThemeDimension } from '@tokenmanager/core';
+import type React from "react";
+import type { TokenNode } from "../hooks/useTokens";
+import type {
+  NodeCapabilities,
+  SelectionNodeInfo,
+  TokenMapEntry,
+} from "../../shared/types";
+import type { UndoSlot } from "../hooks/useUndo";
+import type { TokenGenerator } from "../hooks/useGenerators";
+import type { LintViolation } from "../hooks/useLint";
+import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
+import type { TokensLibraryGeneratorEditorTarget } from "../shared/navigationTypes";
+import type { StartHereBranch } from "./WelcomePrompt";
+import type { ThemeDimension } from "@tokenmanager/core";
 
 /** Per-option resolved value for a single token in multi-mode view */
 export interface MultiModeValue {
@@ -21,7 +25,7 @@ export interface MultiModeValue {
 // ---------------------------------------------------------------------------
 // Density preference
 // ---------------------------------------------------------------------------
-export type Density = 'compact' | 'comfortable';
+export type Density = "compact" | "comfortable";
 
 /** Row height (px) per density level */
 export const DENSITY_ROW_HEIGHT: Record<Density, number> = {
@@ -37,8 +41,8 @@ export const DENSITY_SWATCH_SIZE: Record<Density, number> = {
 
 /** Tailwind py class per density level */
 export const DENSITY_PY_CLASS: Record<Density, string> = {
-  compact: 'py-px',
-  comfortable: 'py-1',
+  compact: "py-px",
+  comfortable: "py-1",
 };
 
 // ---------------------------------------------------------------------------
@@ -56,12 +60,12 @@ export const CONDENSED_MAX_DEPTH = 3;
  * depth 0 → transparent (category headers get no bar).
  */
 export const DEPTH_COLORS: readonly string[] = [
-  'transparent',
-  'rgba(24,160,251,0.55)',   // depth 1 — accent blue
-  'rgba(90,210,140,0.55)',   // depth 2 — green
-  'rgba(255,180,50,0.55)',   // depth 3 — amber
-  'rgba(230,100,80,0.55)',   // depth 4 — coral
-  'rgba(170,100,240,0.55)',  // depth 5 — purple
+  "transparent",
+  "rgba(24,160,251,0.55)", // depth 1 — accent blue
+  "rgba(90,210,140,0.55)", // depth 2 — green
+  "rgba(255,180,50,0.55)", // depth 3 — amber
+  "rgba(230,100,80,0.55)", // depth 4 — coral
+  "rgba(170,100,240,0.55)", // depth 5 — purple
 ];
 
 // ---------------------------------------------------------------------------
@@ -75,7 +79,7 @@ export const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the vi
 // Interfaces
 // ---------------------------------------------------------------------------
 
-export type SortOrder = 'default' | 'alpha-asc' | 'by-type';
+export type SortOrder = "default" | "alpha-asc" | "by-type";
 
 export interface TokenListCtx {
   setName: string;
@@ -111,7 +115,11 @@ export interface TokenListData {
 export interface TokenListActions {
   onEdit: (path: string, name?: string) => void;
   onPreview?: (path: string, name?: string) => void;
-  onCreateNew?: (initialPath?: string, initialType?: string, initialValue?: string) => void;
+  onCreateNew?: (
+    initialPath?: string,
+    initialType?: string,
+    initialValue?: string,
+  ) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onTokenCreated?: (path: string) => void;
@@ -122,7 +130,10 @@ export interface TokenListActions {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onGenerateScaleFromGroup?: (groupPath: string, tokenType: string | null) => void;
+  onGenerateScaleFromGroup?: (
+    groupPath: string,
+    tokenType: string | null,
+  ) => void;
   onRefreshGenerators?: () => void;
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
@@ -148,6 +159,10 @@ export interface TokenListActions {
   onOpenCrossThemeCompare?: (path: string) => void;
   /** Open the command palette in token-search mode pre-populated with the given query ("> query") */
   onOpenCommandPaletteWithQuery?: (query: string) => void;
+  /** Open the global paste tokens modal */
+  onShowPasteModal?: () => void;
+  /** Open the import surface from the Tokens workspace */
+  onOpenImportPanel?: () => void;
   /** Open the cross-set "where is this token defined" overlay for the given path */
   onFindInAllSets?: (path: string) => void;
   /** Called when a cross-set token drag starts — lets the parent expose drop zones on set tabs */
@@ -176,7 +191,11 @@ export interface TokenListImperativeHandle {
   /** Open the move-to-set dialog for the given token path */
   triggerMoveToken: (path: string) => void;
   /** Open the extract-to-alias dialog for the given token */
-  triggerExtractToAlias: (path: string, $type?: string, $value?: unknown) => void;
+  triggerExtractToAlias: (
+    path: string,
+    $type?: string,
+    $value?: unknown,
+  ) => void;
 }
 
 export interface TokenListProps {
@@ -204,7 +223,7 @@ export interface GeneratorImpact {
   generatorName: string;
   generatorType: string;
   /** 'source' = sourceToken match; 'config-ref' = $tokenRefs match */
-  role: 'source' | 'config-ref';
+  role: "source" | "config-ref";
   /** The config field key that references the token (only when role === 'config-ref') */
   configField?: string;
 }
@@ -216,9 +235,32 @@ export interface ThemeImpact {
 }
 
 export type DeleteConfirm =
-  | { type: 'token'; path: string; orphanCount: number; affectedRefs: AffectedRef[]; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] }
-  | { type: 'group'; path: string; name: string; tokenCount: number; orphanCount: number; affectedRefs: AffectedRef[]; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] }
-  | { type: 'bulk'; paths: string[]; orphanCount: number; affectedRefs: AffectedRef[]; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] };
+  | {
+      type: "token";
+      path: string;
+      orphanCount: number;
+      affectedRefs: AffectedRef[];
+      generatorImpacts: GeneratorImpact[];
+      themeImpacts: ThemeImpact[];
+    }
+  | {
+      type: "group";
+      path: string;
+      name: string;
+      tokenCount: number;
+      orphanCount: number;
+      affectedRefs: AffectedRef[];
+      generatorImpacts: GeneratorImpact[];
+      themeImpacts: ThemeImpact[];
+    }
+  | {
+      type: "bulk";
+      paths: string[];
+      orphanCount: number;
+      affectedRefs: AffectedRef[];
+      generatorImpacts: GeneratorImpact[];
+      themeImpacts: ThemeImpact[];
+    };
 
 export interface PromoteRow {
   path: string;
@@ -230,22 +272,49 @@ export interface PromoteRow {
 }
 
 /** Types that can be edited inline in the list row (without opening the drawer). Boolean uses a staged true/false toggle. */
-export const INLINE_SIMPLE_TYPES = new Set(['color', 'dimension', 'number', 'string', 'boolean', 'fontFamily', 'fontWeight', 'duration', 'asset']);
+export const INLINE_SIMPLE_TYPES = new Set([
+  "color",
+  "dimension",
+  "number",
+  "string",
+  "boolean",
+  "fontFamily",
+  "fontWeight",
+  "duration",
+  "asset",
+]);
 
 /** Types that open the inline value popover on double-click (not handled by INLINE_SIMPLE_TYPES). */
 export const INLINE_POPOVER_TYPES = new Set([
-  'shadow', 'border', 'typography', 'gradient',
-  'transition', 'cubicBezier', 'composition', 'strokeStyle',
-  'fontStyle', 'lineHeight', 'letterSpacing', 'textDecoration', 'textTransform',
-  'percentage', 'link', 'custom',
+  "shadow",
+  "border",
+  "typography",
+  "gradient",
+  "transition",
+  "cubicBezier",
+  "composition",
+  "strokeStyle",
+  "fontStyle",
+  "lineHeight",
+  "letterSpacing",
+  "textDecoration",
+  "textTransform",
+  "percentage",
+  "link",
+  "custom",
 ]);
 
 // ---------------------------------------------------------------------------
 // Table view sort types
 // ---------------------------------------------------------------------------
 
-export type TableSortField = 'name' | 'type' | 'value' | 'resolvedValue' | 'description';
-export type TableSortDir = 'asc' | 'desc';
+export type TableSortField =
+  | "name"
+  | "type"
+  | "value"
+  | "resolvedValue"
+  | "description";
+export type TableSortDir = "asc" | "desc";
 export interface TableSort {
   field: TableSortField;
   dir: TableSortDir;
@@ -285,7 +354,7 @@ export interface TokenTreeContextType {
   dragOverGroup?: string | null;
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
-  dragOverReorder?: { path: string; position: 'before' | 'after' } | null;
+  dragOverReorder?: { path: string; position: "before" | "after" } | null;
   selectedLeafNodes?: TokenNode[];
 
   // --- Action callbacks ---
@@ -293,7 +362,10 @@ export interface TokenTreeContextType {
   onPreview?: (path: string, name?: string) => void;
   onDelete: (path: string) => void;
   onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
-  onToggleSelect: (path: string, modifiers?: { shift: boolean; ctrl: boolean }) => void;
+  onToggleSelect: (
+    path: string,
+    modifiers?: { shift: boolean; ctrl: boolean },
+  ) => void;
   onSelectGroupChildren?: (groupNode: TokenNode) => void;
   onToggleExpand: (path: string) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
@@ -302,7 +374,10 @@ export interface TokenTreeContextType {
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
   onCreateGroup?: (parentGroupPath: string) => void;
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
-  onUpdateGroupMeta?: (groupPath: string, meta: { $type?: string | null; $description?: string | null }) => Promise<void>;
+  onUpdateGroupMeta?: (
+    groupPath: string,
+    meta: { $type?: string | null; $description?: string | null },
+  ) => Promise<void>;
   onRequestMoveGroup?: (groupPath: string) => void;
   onRequestCopyGroup?: (groupPath: string) => void;
   onRequestMoveToken?: (tokenPath: string) => void;
@@ -311,11 +386,18 @@ export interface TokenTreeContextType {
   onDuplicateToken?: (path: string) => void;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
   onHoverToken?: (path: string) => void;
-  onExtractToAliasForLint?: (path: string, $type?: string, $value?: any) => void;
+  onExtractToAliasForLint?: (
+    path: string,
+    $type?: string,
+    $value?: any,
+  ) => void;
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onGenerateScaleFromGroup?: (groupPath: string, tokenType: string | null) => void;
+  onGenerateScaleFromGroup?: (
+    groupPath: string,
+    tokenType: string | null,
+  ) => void;
   onFilterByType?: (type: string) => void;
   onJumpToGroup?: (path: string) => void;
   onZoomIntoGroup?: (groupPath: string) => void;
@@ -344,10 +426,23 @@ export interface TokenTreeContextType {
   onDragEnd?: () => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
-  onDragOverToken?: (path: string, name: string, position: 'before' | 'after') => void;
+  onDragOverToken?: (
+    path: string,
+    name: string,
+    position: "before" | "after",
+  ) => void;
   onDragLeaveToken?: () => void;
-  onDropOnToken?: (path: string, name: string, position: 'before' | 'after') => void;
-  onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+  onDropOnToken?: (
+    path: string,
+    name: string,
+    position: "before" | "after",
+  ) => void;
+  onMultiModeInlineSave?: (
+    path: string,
+    type: string,
+    newValue: any,
+    targetSet: string,
+  ) => void;
   onNavigateToGenerator?: (generatorId: string) => void;
   /** One-click regenerate a specific generator (by id) — runs POST /api/generators/:id/run */
   onRegenerateGenerator?: (generatorId: string) => Promise<void>;
@@ -364,7 +459,11 @@ export interface TokenTreeContextType {
   /** Clear the pending tab-edit (called by the node once it activates edit mode) */
   clearPendingTabEdit: () => void;
   /** Navigate to next/prev inline-editable cell on Tab key press */
-  onTabToNext: (currentPath: string, columnId: string | null, direction: 1 | -1) => void;
+  onTabToNext: (
+    currentPath: string,
+    columnId: string | null,
+    direction: 1 | -1,
+  ) => void;
   /** Pre-computed theme coverage per group: groupPath → { themed, total } */
   themeCoverage?: Map<string, { themed: number; total: number }>;
   /** Maps token paths to their source set name — for resolution chain debugger */

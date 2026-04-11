@@ -1,0 +1,18 @@
+id: rewrite-remaining-shell-menu-and-match-copy-stri-032819bc
+title: Rewrite remaining shell menu and match-copy strings to task language
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/App.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - 'Context: While updating the assigned panels, App.tsx still showed user-facing copy such as "Reference surfaces that stay open in the shell." and automatic-match text using "surface" as a verb. App.tsx was under another active reservation, so this copy was left untouched.'
+state: ready
+acceptance_criteria:
+  - Shell menu helper text no longer uses implementation terms like surface or shell
+  - Automatic-match status copy in App.tsx uses plain task language
+source: task-followup
+created_at: 2026-04-11T21:34:15.335Z
+updated_at: 2026-04-11T21:34:15.335Z

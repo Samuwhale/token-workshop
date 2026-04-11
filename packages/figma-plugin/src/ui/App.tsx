@@ -414,9 +414,6 @@ export function App() {
   const shellMenuSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
     (surface) => surface.access === "shell-menu",
   );
-  const importSurface = APP_SHELL_NAVIGATION.secondarySurfaces.find(
-    (surface) => surface.id === "import",
-  );
   const notificationSurface = APP_SHELL_NAVIGATION.secondarySurfaces.find(
     (surface) => surface.access === "attention-bell",
   );
@@ -1826,29 +1823,6 @@ export function App() {
     [closeSecondarySurface, guardEditorAction, navigateTo],
   );
 
-  const tokensContextualControls = useMemo(() => {
-    if (activeSecondarySurface !== null || activeWorkspace.id !== "tokens") {
-      return null;
-    }
-
-    return (
-      <div className="flex items-center justify-end px-3 py-2">
-        <button
-          onClick={() => toggleSecondarySurface("import")}
-          className={`${shellControlClass({ size: "sm", shape: "rounded" })} shrink-0`}
-          title={importSurface?.transition.usage}
-        >
-          Import
-        </button>
-      </div>
-    );
-  }, [
-    activeSecondarySurface,
-    activeWorkspace.id,
-    importSurface?.transition.usage,
-    toggleSecondarySurface,
-  ]);
-
   const themeContextualControls = useMemo(() => {
     if (activeSecondarySurface !== null || activeWorkspace.id !== "themes")
       return null;
@@ -2171,25 +2145,6 @@ export function App() {
   ]);
 
   const workspacePrimaryAction = useMemo(() => {
-    if (
-      activeSecondarySurface === null &&
-      activeWorkspace.id === "tokens" &&
-      activeWorkspaceSection?.id === "tokens"
-    ) {
-      return {
-        label: "Create token",
-        onClick: () => {
-          guardEditorAction(() => {
-            navigateTo("define", "tokens");
-            closeSecondarySurface();
-            setEditingGenerator(null);
-            setPreviewingToken(null);
-            setEditingToken({ path: "", set: activeSet, isCreate: true });
-          });
-        },
-      };
-    }
-
     if (activeSecondarySurface === null && activeWorkspace.id === "themes") {
       if (themeShellState.activeView !== "authoring") {
         return {
@@ -2350,7 +2305,6 @@ export function App() {
 
     return null;
   }, [
-    activeSet,
     activeSecondarySurface,
     activeWorkspace.id,
     activeWorkspaceSection?.id,
@@ -2364,9 +2318,6 @@ export function App() {
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
     closeSecondarySurface,
-    setEditingGenerator,
-    setEditingToken,
-    setPreviewingToken,
     themeShellState.activeView,
     themeShellState.showPreview,
     themeWorkflowSummary.currentStage,
@@ -2374,15 +2325,13 @@ export function App() {
   ]);
 
   const workspaceContextualControls =
-    activeWorkspace.id === "tokens"
-      ? tokensContextualControls
-      : activeWorkspace.id === "themes"
-        ? themeContextualControls
-        : activeWorkspace.id === "apply"
-          ? applyContextualControls
-          : activeWorkspace.id === "sync"
-            ? syncContextualControls
-            : null;
+    activeWorkspace.id === "themes"
+      ? themeContextualControls
+      : activeWorkspace.id === "apply"
+        ? applyContextualControls
+        : activeWorkspace.id === "sync"
+          ? syncContextualControls
+          : null;
 
   const secondarySurfacePills = useMemo((): Array<{
     label: string;
@@ -3498,6 +3447,7 @@ export function App() {
                     starredTokens={starredTokens}
                     onImportComplete={handleImportComplete}
                     onShowPasteModal={() => setShowPasteModal(true)}
+                    onShowImportPanel={() => openSecondaryPanel("import")}
                     onShowColorScaleGen={() => setShowColorScaleGen(true)}
                     onOpenStartHere={(branch) => openStartHere(branch)}
                     onRestartGuidedSetup={() => {

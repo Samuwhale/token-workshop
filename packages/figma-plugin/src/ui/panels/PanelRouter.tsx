@@ -8,7 +8,7 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 import type {
   ReactNode,
   MutableRefObject,
@@ -17,47 +17,68 @@ import type {
   SetStateAction,
   MouseEvent,
   KeyboardEvent,
-} from 'react';
-import { TokenList } from '../components/TokenList';
-import { UnifiedComparePanel } from '../components/UnifiedComparePanel';
-import type { TokenListImperativeHandle } from '../components/tokenListTypes';
-import { TokenEditor } from '../components/TokenEditor';
-import { TokenGeneratorDialog } from '../components/TokenGeneratorDialog';
-import { TokenDetailPreview } from '../components/TokenDetailPreview';
-import { ThemeManager } from '../components/ThemeManager';
-import type { ThemeManagerHandle } from '../components/ThemeManager';
-import { PublishPanel } from '../components/PublishPanel';
-import type { PublishPanelHandle } from '../components/PublishPanel';
-import { ImportPanel } from '../components/ImportPanel';
-import type { ImportCompletionResult } from '../components/ImportPanelContext';
-import { SelectionInspector } from '../components/SelectionInspector';
-import type { SelectionInspectorHandle } from '../components/SelectionInspector';
-import { CanvasAnalysisPanel } from '../components/CanvasAnalysisPanel';
-import { GraphPanel } from '../components/GraphPanel';
-import { TokenFlowPanel } from '../components/TokenFlowPanel';
-import { ExportPanel } from '../components/ExportPanel';
-import { HistoryPanel } from '../components/HistoryPanel';
-import { HealthPanel } from '../components/HealthPanel';
-import { PreviewPanel } from '../components/PreviewPanel';
-import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES, type StartHereBranch } from '../components/WelcomePrompt';
-import { SettingsPanel } from '../components/SettingsPanel';
-import { NotificationsPanel } from '../components/NotificationsPanel';
-import { KeyboardShortcutsPanel } from '../components/KeyboardShortcutsPanel';
-import { ErrorBoundary } from '../components/ErrorBoundary';
-import { useConnectionContext, useSyncContext } from '../contexts/ConnectionContext';
-import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from '../contexts/TokenDataContext';
-import { useThemeSwitcherContext, useResolverContext } from '../contexts/ThemeContext';
-import { useSelectionContext, useHeatmapContext, useUsageContext } from '../contexts/InspectContext';
-import { useNavigationContext } from '../contexts/NavigationContext';
-import { useEditorContext } from '../contexts/EditorContext';
-import type { TokenNode } from '../hooks/useTokens';
-import type { LintViolation } from '../hooks/useLint';
-import type { ValidationIssue, ValidationSummary } from '../hooks/useValidationCache';
-import type { UndoSlot } from '../hooks/useUndo';
-import type { OperationEntry } from '../hooks/useRecentOperations';
-import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
-import type { StarredTokensState } from '../hooks/useStarredTokens';
-import type { NotificationEntry } from '../hooks/useToastStack';
+} from "react";
+import { TokenList } from "../components/TokenList";
+import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
+import type { TokenListImperativeHandle } from "../components/tokenListTypes";
+import { TokenEditor } from "../components/TokenEditor";
+import { TokenGeneratorDialog } from "../components/TokenGeneratorDialog";
+import { TokenDetailPreview } from "../components/TokenDetailPreview";
+import { ThemeManager } from "../components/ThemeManager";
+import type { ThemeManagerHandle } from "../components/ThemeManager";
+import { PublishPanel } from "../components/PublishPanel";
+import type { PublishPanelHandle } from "../components/PublishPanel";
+import { ImportPanel } from "../components/ImportPanel";
+import type { ImportCompletionResult } from "../components/ImportPanelContext";
+import { SelectionInspector } from "../components/SelectionInspector";
+import type { SelectionInspectorHandle } from "../components/SelectionInspector";
+import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
+import { GraphPanel } from "../components/GraphPanel";
+import { TokenFlowPanel } from "../components/TokenFlowPanel";
+import { ExportPanel } from "../components/ExportPanel";
+import { HistoryPanel } from "../components/HistoryPanel";
+import { HealthPanel } from "../components/HealthPanel";
+import { PreviewPanel } from "../components/PreviewPanel";
+import {
+  getStartHereBranchCopy,
+  TOKENS_START_HERE_BRANCHES,
+  type StartHereBranch,
+} from "../components/WelcomePrompt";
+import { SettingsPanel } from "../components/SettingsPanel";
+import { NotificationsPanel } from "../components/NotificationsPanel";
+import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import {
+  useConnectionContext,
+  useSyncContext,
+} from "../contexts/ConnectionContext";
+import {
+  useTokenSetsContext,
+  useTokenFlatMapContext,
+  useGeneratorContext,
+} from "../contexts/TokenDataContext";
+import {
+  useThemeSwitcherContext,
+  useResolverContext,
+} from "../contexts/ThemeContext";
+import {
+  useSelectionContext,
+  useHeatmapContext,
+  useUsageContext,
+} from "../contexts/InspectContext";
+import { useNavigationContext } from "../contexts/NavigationContext";
+import { useEditorContext } from "../contexts/EditorContext";
+import type { TokenNode } from "../hooks/useTokens";
+import type { LintViolation } from "../hooks/useLint";
+import type {
+  ValidationIssue,
+  ValidationSummary,
+} from "../hooks/useValidationCache";
+import type { UndoSlot } from "../hooks/useUndo";
+import type { OperationEntry } from "../hooks/useRecentOperations";
+import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
+import type { StarredTokensState } from "../hooks/useStarredTokens";
+import type { NotificationEntry } from "../hooks/useToastStack";
 import type {
   TopTab,
   SubTab,
@@ -65,38 +86,40 @@ import type {
   SurfaceTransition,
   TokensLibraryContextualSurface,
   TokensLibraryGeneratorEditorTarget,
-} from '../shared/navigationTypes';
-import { TOKENS_LIBRARY_SURFACE_CONTRACT } from '../shared/navigationTypes';
-import type { ThemeWorkspaceShellState } from '../shared/themeWorkflow';
-import { useEditorWidth } from '../hooks/useEditorWidth';
+} from "../shared/navigationTypes";
+import { TOKENS_LIBRARY_SURFACE_CONTRACT } from "../shared/navigationTypes";
+import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
+import { useEditorWidth } from "../hooks/useEditorWidth";
 
-const LAST_CREATE_GROUP_STORAGE_KEY = 'tm_last_create_group';
-const LAST_CREATE_TYPE_STORAGE_KEY = 'tm_last_token_type';
+const LAST_CREATE_GROUP_STORAGE_KEY = "tm_last_create_group";
+const LAST_CREATE_TYPE_STORAGE_KEY = "tm_last_token_type";
 
 function readLastCreateGroup(): string {
   try {
-    return localStorage.getItem(LAST_CREATE_GROUP_STORAGE_KEY) || '';
+    return localStorage.getItem(LAST_CREATE_GROUP_STORAGE_KEY) || "";
   } catch (error) {
-    console.debug('[PanelRouter] failed to read last create group:', error);
-    return '';
+    console.debug("[PanelRouter] failed to read last create group:", error);
+    return "";
   }
 }
 
 function readLastCreateType(): string {
   try {
-    return localStorage.getItem(LAST_CREATE_TYPE_STORAGE_KEY) || 'color';
+    return localStorage.getItem(LAST_CREATE_TYPE_STORAGE_KEY) || "color";
   } catch (error) {
-    console.debug('[PanelRouter] failed to read last create type:', error);
-    return 'color';
+    console.debug("[PanelRouter] failed to read last create type:", error);
+    return "color";
   }
 }
 
 function persistLastCreateGroup(tokenPath: string): void {
-  const groupPath = tokenPath.includes('.') ? tokenPath.split('.').slice(0, -1).join('.') : '';
+  const groupPath = tokenPath.includes(".")
+    ? tokenPath.split(".").slice(0, -1).join(".")
+    : "";
   try {
     localStorage.setItem(LAST_CREATE_GROUP_STORAGE_KEY, groupPath);
   } catch (error) {
-    console.debug('[PanelRouter] failed to persist last create group:', error);
+    console.debug("[PanelRouter] failed to persist last create group:", error);
   }
 }
 
@@ -104,14 +127,14 @@ function persistLastCreateType(tokenType: string): void {
   try {
     localStorage.setItem(LAST_CREATE_TYPE_STORAGE_KEY, tokenType);
   } catch (error) {
-    console.debug('[PanelRouter] failed to persist last create type:', error);
+    console.debug("[PanelRouter] failed to persist last create type:", error);
   }
 }
 
 function resolveCreateLauncherPath(initialPath?: string): string {
   if (initialPath !== undefined) return initialPath;
   const lastGroup = readLastCreateGroup();
-  return lastGroup ? `${lastGroup}.` : '';
+  return lastGroup ? `${lastGroup}.` : "";
 }
 
 // ---------------------------------------------------------------------------
@@ -131,7 +154,10 @@ export interface PanelRouterProps {
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
   handleEditorNavigate: (direction: 1 | -1) => void;
   handleEditorSave: (savedPath: string) => void;
-  handleEditorSaveAndCreateAnother: (savedPath: string, savedType: string) => void;
+  handleEditorSaveAndCreateAnother: (
+    savedPath: string,
+    savedType: string,
+  ) => void;
   handlePreviewEdit: () => void;
   handlePreviewClose: () => void;
   splitRatio: number;
@@ -173,8 +199,12 @@ export interface PanelRouterProps {
   canUndo: boolean;
 
   // Sync confirmation state (not the actual sync, which is in ConnectionContext)
-  setSyncGroupPending: (v: { groupPath: string; tokenCount: number } | null) => void;
-  setSyncGroupStylesPending: (v: { groupPath: string; tokenCount: number } | null) => void;
+  setSyncGroupPending: (
+    v: { groupPath: string; tokenCount: number } | null,
+  ) => void;
+  setSyncGroupStylesPending: (
+    v: { groupPath: string; tokenCount: number } | null,
+  ) => void;
   setGroupScopesPath: (path: string | null) => void;
   setGroupScopesSelected: Dispatch<SetStateAction<string[]>>;
   setGroupScopesError: (err: string | null) => void;
@@ -184,7 +214,9 @@ export interface PanelRouterProps {
   pendingGraphTemplate: string | null;
   setPendingGraphTemplate: (id: string | null) => void;
   pendingGraphFromGroup: { groupPath: string; tokenType: string | null } | null;
-  setPendingGraphFromGroup: (v: { groupPath: string; tokenType: string | null } | null) => void;
+  setPendingGraphFromGroup: (
+    v: { groupPath: string; tokenType: string | null } | null,
+  ) => void;
   focusGeneratorId: string | null;
   setFocusGeneratorId: (id: string | null) => void;
   pendingOpenPicker: boolean;
@@ -217,6 +249,7 @@ export interface PanelRouterProps {
   onImportComplete: (result: ImportCompletionResult) => void;
   // Modal openers (for EmptyState + other panels that trigger global modals)
   onShowPasteModal: () => void;
+  onShowImportPanel: () => void;
   onShowColorScaleGen: () => void;
   onOpenStartHere: (branch?: StartHereBranch) => void;
 
@@ -233,130 +266,206 @@ export interface PanelRouterProps {
 
 export function PanelRouter(p: PanelRouterProps): ReactNode {
   // Navigation and editor state from contexts (previously passed as props)
-  const { activeTopTab, activeSubTab, activeSecondarySurface, navigateTo, closeSecondarySurface, setReturnBreadcrumb } = useNavigationContext();
   const {
-    editingToken, setEditingToken, editingGenerator, setEditingGenerator, previewingToken, setPreviewingToken,
-    highlightedToken, setHighlightedToken, createFromEmpty, setCreateFromEmpty,
-    setPendingHighlight, handleNavigateToAlias, handleNavigateBack, navHistoryLength,
-    showTokensCompare, setShowTokensCompare, tokensCompareMode, setTokensCompareMode,
-    tokensComparePaths, setTokensComparePaths, tokensComparePath, setTokensComparePath,
-    tokensCompareThemeKey, setTokensCompareThemeKey, tokensCompareDefaultA, tokensCompareDefaultB, tokensContextualSurfaceState,
+    activeTopTab,
+    activeSubTab,
+    activeSecondarySurface,
+    navigateTo,
+    closeSecondarySurface,
+    setReturnBreadcrumb,
+  } = useNavigationContext();
+  const {
+    editingToken,
+    setEditingToken,
+    editingGenerator,
+    setEditingGenerator,
+    previewingToken,
+    setPreviewingToken,
+    highlightedToken,
+    setHighlightedToken,
+    createFromEmpty,
+    setCreateFromEmpty,
+    setPendingHighlight,
+    handleNavigateToAlias,
+    handleNavigateBack,
+    navHistoryLength,
+    showTokensCompare,
+    setShowTokensCompare,
+    tokensCompareMode,
+    setTokensCompareMode,
+    tokensComparePaths,
+    setTokensComparePaths,
+    tokensComparePath,
+    setTokensComparePath,
+    tokensCompareThemeKey,
+    setTokensCompareThemeKey,
+    tokensCompareDefaultA,
+    tokensCompareDefaultB,
+    tokensContextualSurfaceState,
     switchContextualSurface,
   } = useEditorContext();
-  const activeTokensContextualSurface = tokensContextualSurfaceState.activeSurface;
+  const activeTokensContextualSurface =
+    tokensContextualSurfaceState.activeSurface;
 
   // Read all four contexts — these cover ~40% of the data that panels need.
+  const { serverUrl, connected, checking, updateServerUrlAndConnect } =
+    useConnectionContext();
+  const { sync, syncing, syncProgress, syncResult, syncError } =
+    useSyncContext();
   const {
-    serverUrl, connected, checking,
-    updateServerUrlAndConnect,
-  } = useConnectionContext();
-  const { sync, syncing, syncProgress, syncResult, syncError } = useSyncContext();
-  const {
-    sets, activeSet, setActiveSet, tokens,
-    setCollectionNames, setModeNames,
-    fetchError, refreshTokens, addSetToState,
+    sets,
+    activeSet,
+    setActiveSet,
+    tokens,
+    setCollectionNames,
+    setModeNames,
+    fetchError,
+    refreshTokens,
+    addSetToState,
   } = useTokenSetsContext();
   const {
-    allTokensFlat, pathToSet, perSetFlat, syncSnapshot,
-    tokensError, tokensLoading, setFilteredSetCount,
+    allTokensFlat,
+    pathToSet,
+    perSetFlat,
+    syncSnapshot,
+    tokensError,
+    tokensLoading,
+    setFilteredSetCount,
   } = useTokenFlatMapContext();
   const {
-    generators, generatorsByTargetGroup, derivedTokenPaths, generatorsLoading, refreshGenerators,
+    generators,
+    generatorsByTargetGroup,
+    derivedTokenPaths,
+    generatorsLoading,
+    refreshGenerators,
   } = useGeneratorContext();
   const {
-    dimensions, setDimensions, activeThemes, setActiveThemes, themedAllTokensFlat,
+    dimensions,
+    setDimensions,
+    activeThemes,
+    setActiveThemes,
+    themedAllTokensFlat,
   } = useThemeSwitcherContext();
   const resolverState = useResolverContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
-    heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
-    heatmapScope: _heatmapScope, setHeatmapScope: _setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan: _cancelHeatmapScan,
+    heatmapResult,
+    heatmapLoading,
+    heatmapError,
+    heatmapProgress,
+    heatmapScope: _heatmapScope,
+    setHeatmapScope: _setHeatmapScope,
+    triggerHeatmapScan,
+    cancelHeatmapScan: _cancelHeatmapScan,
   } = useHeatmapContext();
   const { tokenUsageCounts } = useUsageContext();
 
-  const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
-  const editingGeneratorData = editingGenerator?.mode === 'edit'
-    ? (generators.find(generator => generator.id === editingGenerator.id) ?? null)
-    : null;
+  const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(
+    null,
+  );
+  const editingGeneratorData =
+    editingGenerator?.mode === "edit"
+      ? (generators.find((generator) => generator.id === editingGenerator.id) ??
+        null)
+      : null;
 
   useEffect(() => {
-    if (!editingGenerator || editingGenerator.mode !== 'edit' || editingGeneratorData) return;
+    if (
+      !editingGenerator ||
+      editingGenerator.mode !== "edit" ||
+      editingGeneratorData
+    )
+      return;
     setEditingGenerator(null);
   }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
 
   useEffect(() => {
     if (!p.showPreviewSplit) return;
     if (
-      activeTokensContextualSurface === 'compare'
-      || activeTokensContextualSurface === 'token-editor'
-      || activeTokensContextualSurface === 'generator-editor'
+      activeTokensContextualSurface === "compare" ||
+      activeTokensContextualSurface === "token-editor" ||
+      activeTokensContextualSurface === "generator-editor"
     ) {
       p.setShowPreviewSplit(false);
     }
-  }, [activeTokensContextualSurface, p.showPreviewSplit, p.setShowPreviewSplit]);
+  }, [
+    activeTokensContextualSurface,
+    p.showPreviewSplit,
+    p.setShowPreviewSplit,
+  ]);
 
   const editingTokenType = editingToken
     ? (allTokensFlat[editingToken.path]?.$type ?? editingToken.initialType)
     : undefined;
-  const { editorWidth, handleEditorWidthDragStart } = useEditorWidth(editingTokenType);
-  const tokenListHighlightedPath = editingToken?.path || previewingToken?.path || highlightedToken;
-  const hasTokensLibrarySurface = tokens.length > 0 || createFromEmpty || activeTokensContextualSurface !== null;
+  const { editorWidth, handleEditorWidthDragStart } =
+    useEditorWidth(editingTokenType);
+  const tokenListHighlightedPath =
+    editingToken?.path || previewingToken?.path || highlightedToken;
+  const hasTokensLibrarySurface =
+    tokens.length > 0 ||
+    createFromEmpty ||
+    activeTokensContextualSurface !== null;
 
-  const openCreateLauncher = useCallback((options?: {
-    initialPath?: string;
-    initialType?: string;
-    initialValue?: string;
-    set?: string;
-  }) => {
-    const targetSet = options?.set ?? activeSet;
-    switchContextualSurface({
-      surface: 'token-editor',
-      token: {
-        path: resolveCreateLauncherPath(options?.initialPath),
-        set: targetSet,
-        isCreate: true,
-        initialType: options?.initialType ?? readLastCreateType(),
-        initialValue: options?.initialValue,
-        createPresentation: 'launcher',
-      },
-    });
-  }, [activeSet, switchContextualSurface]);
+  const openCreateLauncher = useCallback(
+    (options?: {
+      initialPath?: string;
+      initialType?: string;
+      initialValue?: string;
+      set?: string;
+    }) => {
+      const targetSet = options?.set ?? activeSet;
+      switchContextualSurface({
+        surface: "token-editor",
+        token: {
+          path: resolveCreateLauncherPath(options?.initialPath),
+          set: targetSet,
+          isCreate: true,
+          initialType: options?.initialType ?? readLastCreateType(),
+          initialValue: options?.initialValue,
+          createPresentation: "launcher",
+        },
+      });
+    },
+    [activeSet, switchContextualSurface],
+  );
 
-  const openTokenEditor = useCallback((options: {
-    path: string;
-    set: string;
-    name?: string;
-  }) => {
-    p.setShowPreviewSplit(false);
-    setPreviewingToken(null);
-    setHighlightedToken(options.path);
-    if (options.set !== activeSet) {
-      setActiveSet(options.set);
-    }
-    switchContextualSurface({
-      surface: 'token-editor',
-      token: {
-        path: options.path,
-        name: options.name,
-        set: options.set,
-      },
-    });
-  }, [
-    activeSet,
-    p.setShowPreviewSplit,
-    setActiveSet,
-    setHighlightedToken,
-    setPreviewingToken,
-    switchContextualSurface,
-  ]);
+  const openTokenEditor = useCallback(
+    (options: { path: string; set: string; name?: string }) => {
+      p.setShowPreviewSplit(false);
+      setPreviewingToken(null);
+      setHighlightedToken(options.path);
+      if (options.set !== activeSet) {
+        setActiveSet(options.set);
+      }
+      switchContextualSurface({
+        surface: "token-editor",
+        token: {
+          path: options.path,
+          name: options.name,
+          set: options.set,
+        },
+      });
+    },
+    [
+      activeSet,
+      p.setShowPreviewSplit,
+      setActiveSet,
+      setHighlightedToken,
+      setPreviewingToken,
+      switchContextualSurface,
+    ],
+  );
 
-  const openGeneratorEditor = useCallback((target: TokensLibraryGeneratorEditorTarget) => {
-    p.setShowPreviewSplit(false);
-    switchContextualSurface({
-      surface: 'generator-editor',
-      generator: target,
-    });
-  }, [p.setShowPreviewSplit, switchContextualSurface]);
+  const openGeneratorEditor = useCallback(
+    (target: TokensLibraryGeneratorEditorTarget) => {
+      p.setShowPreviewSplit(false);
+      switchContextualSurface({
+        surface: "generator-editor",
+        generator: target,
+      });
+    },
+    [p.setShowPreviewSplit, switchContextualSurface],
+  );
 
   const handleTokenEditorBack = useCallback(() => {
     if (editingToken?.isCreate) {
@@ -364,35 +473,61 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     }
     setEditingToken(null);
     p.refreshAll();
-  }, [editingToken?.isCreate, p.refreshAll, setCreateFromEmpty, setEditingToken]);
+  }, [
+    editingToken?.isCreate,
+    p.refreshAll,
+    setCreateFromEmpty,
+    setEditingToken,
+  ]);
 
-  const handleTokenEditorSaved = useCallback((savedPath: string) => {
-    if (editingToken?.isCreate) {
+  const handleTokenEditorSaved = useCallback(
+    (savedPath: string) => {
+      if (editingToken?.isCreate) {
+        persistLastCreateGroup(savedPath);
+        setCreateFromEmpty(false);
+      }
+      p.handleEditorSave(savedPath);
+    },
+    [editingToken?.isCreate, p.handleEditorSave, setCreateFromEmpty],
+  );
+
+  const handleTokenEditorSaveAndCreateAnother = useCallback(
+    (savedPath: string, savedType: string) => {
       persistLastCreateGroup(savedPath);
+      persistLastCreateType(savedType);
       setCreateFromEmpty(false);
-    }
-    p.handleEditorSave(savedPath);
-  }, [editingToken?.isCreate, p.handleEditorSave, setCreateFromEmpty]);
-
-  const handleTokenEditorSaveAndCreateAnother = useCallback((savedPath: string, savedType: string) => {
-    persistLastCreateGroup(savedPath);
-    persistLastCreateType(savedType);
-    setCreateFromEmpty(false);
-    setHighlightedToken(savedPath);
-    p.refreshAll();
-    const segments = savedPath.split('.');
-    const parentPrefix = segments.length > 1 ? `${segments.slice(0, -1).join('.')}.` : '';
-    setEditingToken({
-      path: parentPrefix,
-      set: editingToken?.set ?? activeSet,
-      isCreate: true,
-      initialType: savedType,
-      createPresentation: 'launcher',
-    });
-  }, [activeSet, editingToken?.set, p.refreshAll, setCreateFromEmpty, setEditingToken, setHighlightedToken]);
+      setHighlightedToken(savedPath);
+      p.refreshAll();
+      const segments = savedPath.split(".");
+      const parentPrefix =
+        segments.length > 1 ? `${segments.slice(0, -1).join(".")}.` : "";
+      setEditingToken({
+        path: parentPrefix,
+        set: editingToken?.set ?? activeSet,
+        isCreate: true,
+        initialType: savedType,
+        createPresentation: "launcher",
+      });
+    },
+    [
+      activeSet,
+      editingToken?.set,
+      p.refreshAll,
+      setCreateFromEmpty,
+      setEditingToken,
+      setHighlightedToken,
+    ],
+  );
 
   useEffect(() => {
-    if (!createFromEmpty || editingToken || editingGenerator || previewingToken || showTokensCompare) return;
+    if (
+      !createFromEmpty ||
+      editingToken ||
+      editingGenerator ||
+      previewingToken ||
+      showTokensCompare
+    )
+      return;
     p.setShowPreviewSplit(false);
     openCreateLauncher();
   }, [
@@ -408,26 +543,30 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // Build the common TokenList `actions` object once — it's identical across the
   // three TokenList render variants (side-panel, no-split, preview-split).
   const tokenListActions = {
-    onEdit: (path: string, name?: string) => p.guardEditorAction(() => {
-      p.setShowPreviewSplit(false);
-      switchContextualSurface({
-        surface: 'token-editor',
-        token: { path, name, set: activeSet },
-      });
-      setHighlightedToken(path);
-    }),
+    onEdit: (path: string, name?: string) =>
+      p.guardEditorAction(() => {
+        p.setShowPreviewSplit(false);
+        switchContextualSurface({
+          surface: "token-editor",
+          token: { path, name, set: activeSet },
+        });
+        setHighlightedToken(path);
+      }),
     onPreview: (path: string, name?: string) => {
       switchContextualSurface({
-        surface: 'token-preview',
+        surface: "token-preview",
         token: { path, name, set: activeSet },
       });
       setHighlightedToken(path);
     },
-    onCreateNew: (initialPath: string | undefined, initialType: string | undefined, initialValue: string | undefined) =>
-      {
-        p.setShowPreviewSplit(false);
-        openCreateLauncher({ initialPath, initialType, initialValue });
-      },
+    onCreateNew: (
+      initialPath: string | undefined,
+      initialType: string | undefined,
+      initialValue: string | undefined,
+    ) => {
+      p.setShowPreviewSplit(false);
+      openCreateLauncher({ initialPath, initialType, initialValue });
+    },
     onRefresh: p.refreshAll,
     onPushUndo: p.pushUndo,
     onTokenCreated: (path: string) => setHighlightedToken(path),
@@ -435,8 +574,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onNavigateBack: handleNavigateBack,
     navHistoryLength: navHistoryLength,
     onClearHighlight: () => setHighlightedToken(null),
-    onSyncGroup: (groupPath: string, tokenCount: number) => p.setSyncGroupPending({ groupPath, tokenCount }),
-    onSyncGroupStyles: (groupPath: string, tokenCount: number) => p.setSyncGroupStylesPending({ groupPath, tokenCount }),
+    onSyncGroup: (groupPath: string, tokenCount: number) =>
+      p.setSyncGroupPending({ groupPath, tokenCount }),
+    onSyncGroupStyles: (groupPath: string, tokenCount: number) =>
+      p.setSyncGroupStylesPending({ groupPath, tokenCount }),
     onSetGroupScopes: (groupPath: string) => {
       p.setGroupScopesPath(groupPath);
       p.setGroupScopesSelected([]);
@@ -444,89 +585,106 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     },
     onGenerateScaleFromGroup: (groupPath: string, tokenType: string | null) => {
       p.setPendingGraphFromGroup({ groupPath, tokenType });
-      navigateTo('define', 'generators');
+      navigateTo("define", "generators");
     },
     onRefreshGenerators: p.refreshAll,
-    onToggleIssuesOnly: () => p.setShowIssuesOnly(v => !v),
+    onToggleIssuesOnly: () => p.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredSetCount,
     onNavigateToSet: p.handleNavigateToSet,
     onViewTokenHistory: (path: string) => {
       setHistoryFilterPath(path);
-      navigateTo('ship', 'history');
+      navigateTo("ship", "history");
     },
-    onEditGenerator: (generatorId: string) => p.guardEditorAction(() => {
-      openGeneratorEditor({
-        mode: 'edit',
-        id: generatorId,
-      });
-    }),
-    onOpenGeneratorEditor: (target: TokensLibraryGeneratorEditorTarget) => p.guardEditorAction(() => {
-      openGeneratorEditor(target);
-    }),
+    onEditGenerator: (generatorId: string) =>
+      p.guardEditorAction(() => {
+        openGeneratorEditor({
+          mode: "edit",
+          id: generatorId,
+        });
+      }),
+    onOpenGeneratorEditor: (target: TokensLibraryGeneratorEditorTarget) =>
+      p.guardEditorAction(() => {
+        openGeneratorEditor(target);
+      }),
     onNavigateToGenerator: p.handleNavigateToGenerator,
     onShowReferences: (path: string) => {
       p.setFlowPanelInitialPath(path);
-      navigateTo('apply', 'dependencies');
+      navigateTo("apply", "dependencies");
     },
-    onDisplayedLeafNodesChange: (nodes: TokenNode[]) => { p.displayedLeafNodesRef.current = nodes; },
+    onDisplayedLeafNodesChange: (nodes: TokenNode[]) => {
+      p.displayedLeafNodesRef.current = nodes;
+    },
     onTokenTouched: (path: string) => {
       p.recentlyTouched.recordTouch(path);
     },
     onToggleStar: (path: string) => p.starredTokens.toggleStar(path, activeSet),
-    starredPaths: new Set(p.starredTokens.tokens.filter(t => t.setName === activeSet).map(t => t.path)),
+    starredPaths: new Set(
+      p.starredTokens.tokens
+        .filter((t) => t.setName === activeSet)
+        .map((t) => t.path),
+    ),
     onError: p.setErrorToast,
     onOpenCompare: (paths: Set<string>) => {
       p.setShowPreviewSplit(false);
       switchContextualSurface({
-        surface: 'compare',
-        mode: 'tokens',
+        surface: "compare",
+        mode: "tokens",
         paths,
       });
     },
     onOpenCrossThemeCompare: (path: string) => {
       p.setShowPreviewSplit(false);
       switchContextualSurface({
-        surface: 'compare',
-        mode: 'cross-theme',
+        surface: "compare",
+        mode: "cross-theme",
         path,
       });
     },
     onOpenCommandPaletteWithQuery: p.openCommandPaletteWithQuery,
+    onShowPasteModal: p.onShowPasteModal,
+    onOpenImportPanel: p.onShowImportPanel,
     onOpenStartHere: p.onOpenStartHere,
-    onTogglePreviewSplit: () => p.setShowPreviewSplit(v => !v),
+    onTogglePreviewSplit: () => p.setShowPreviewSplit((v) => !v),
     onTokenDragStart: p.onTokenDragStart,
     onTokenDragEnd: p.onTokenDragEnd,
   };
 
   // Common TokenEditor props shared between side-panel and drawer variants
-  const tokenEditorProps = editingToken ? {
-    tokenPath: editingToken.path,
-    tokenName: editingToken.name,
-    setName: editingToken.set,
-    serverUrl,
-    onBack: handleTokenEditorBack,
-    allTokensFlat,
-    pathToSet,
-    generators,
-    isCreateMode: editingToken.isCreate,
-    initialType: editingToken.initialType,
-    initialValue: editingToken.initialValue,
-    createPresentation: editingToken.createPresentation,
-    onDirtyChange: (dirty: boolean) => { p.editorIsDirtyRef.current = dirty; },
-    closeRef: p.editorCloseRef,
-    onSaved: handleTokenEditorSaved,
-    onSaveAndCreateAnother: handleTokenEditorSaveAndCreateAnother,
-    dimensions,
-    perSetFlat,
-    onRefresh: p.refreshAll,
-    availableFonts: p.availableFonts,
-    fontWeightsByFamily: p.fontWeightsByFamily,
-    derivedTokenPaths,
-    onShowReferences: (path: string) => { p.setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); },
-    onNavigateToToken: handleNavigateToAlias,
-    onNavigateToGenerator: p.handleNavigateToGenerator,
-    onOpenGeneratorEditor: openGeneratorEditor,
-  } : null;
+  const tokenEditorProps = editingToken
+    ? {
+        tokenPath: editingToken.path,
+        tokenName: editingToken.name,
+        setName: editingToken.set,
+        serverUrl,
+        onBack: handleTokenEditorBack,
+        allTokensFlat,
+        pathToSet,
+        generators,
+        isCreateMode: editingToken.isCreate,
+        initialType: editingToken.initialType,
+        initialValue: editingToken.initialValue,
+        createPresentation: editingToken.createPresentation,
+        onDirtyChange: (dirty: boolean) => {
+          p.editorIsDirtyRef.current = dirty;
+        },
+        closeRef: p.editorCloseRef,
+        onSaved: handleTokenEditorSaved,
+        onSaveAndCreateAnother: handleTokenEditorSaveAndCreateAnother,
+        dimensions,
+        perSetFlat,
+        onRefresh: p.refreshAll,
+        availableFonts: p.availableFonts,
+        fontWeightsByFamily: p.fontWeightsByFamily,
+        derivedTokenPaths,
+        onShowReferences: (path: string) => {
+          p.setFlowPanelInitialPath(path);
+          navigateTo("apply", "dependencies");
+        },
+        onNavigateToToken: handleNavigateToAlias,
+        onNavigateToGenerator: p.handleNavigateToGenerator,
+        onOpenGeneratorEditor: openGeneratorEditor,
+      }
+    : null;
 
   const renderTokensComparePanel = () => (
     <UnifiedComparePanel
@@ -535,7 +693,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       tokenPaths={tokensComparePaths}
       onClearTokenPaths={() => setTokensComparePaths(new Set())}
       tokenPath={tokensComparePath}
-      onClearTokenPath={() => setTokensComparePath('')}
+      onClearTokenPath={() => setTokensComparePath("")}
       allTokensFlat={allTokensFlat}
       pathToSet={pathToSet}
       dimensions={dimensions}
@@ -550,7 +708,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       }}
       onCreateToken={(path, set, type, value) => {
         p.guardEditorAction(() => {
-          openCreateLauncher({ initialPath: path, initialType: type, initialValue: value, set });
+          openCreateLauncher({
+            initialPath: path,
+            initialType: type,
+            initialValue: value,
+            set,
+          });
         });
       }}
       onGoToTokens={() => setShowTokensCompare(false)}
@@ -561,26 +724,59 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     />
   );
 
-  const generatorEditorProps = editingGenerator && (editingGenerator.mode !== 'edit' || editingGeneratorData) ? {
-    serverUrl,
-    allSets: sets,
-    activeSet,
-    allTokensFlat,
-    sourceTokenPath: editingGenerator.mode === 'create' ? editingGenerator.sourceTokenPath : undefined,
-    sourceTokenName: editingGenerator.mode === 'create' ? editingGenerator.sourceTokenName : undefined,
-    sourceTokenType: editingGenerator.mode === 'create' ? editingGenerator.sourceTokenType : undefined,
-    sourceTokenValue: editingGenerator.mode === 'create' ? editingGenerator.sourceTokenValue : undefined,
-    existingGenerator: editingGenerator.mode === 'edit' ? editingGeneratorData ?? undefined : undefined,
-    initialDraft: editingGenerator.mode === 'create' ? editingGenerator.initialDraft : undefined,
-    template: editingGenerator.mode === 'create' ? editingGenerator.template : undefined,
-    pathToSet,
-    onClose: () => { setEditingGenerator(null); p.refreshAll(); },
-    onSaved: () => { setEditingGenerator(null); p.refreshAll(); },
-    onPushUndo: p.pushUndo,
-    presentation: 'panel' as const,
-    onDirtyChange: (dirty: boolean) => { p.editorIsDirtyRef.current = dirty; },
-    closeRef: p.editorCloseRef,
-  } : null;
+  const generatorEditorProps =
+    editingGenerator &&
+    (editingGenerator.mode !== "edit" || editingGeneratorData)
+      ? {
+          serverUrl,
+          allSets: sets,
+          activeSet,
+          allTokensFlat,
+          sourceTokenPath:
+            editingGenerator.mode === "create"
+              ? editingGenerator.sourceTokenPath
+              : undefined,
+          sourceTokenName:
+            editingGenerator.mode === "create"
+              ? editingGenerator.sourceTokenName
+              : undefined,
+          sourceTokenType:
+            editingGenerator.mode === "create"
+              ? editingGenerator.sourceTokenType
+              : undefined,
+          sourceTokenValue:
+            editingGenerator.mode === "create"
+              ? editingGenerator.sourceTokenValue
+              : undefined,
+          existingGenerator:
+            editingGenerator.mode === "edit"
+              ? (editingGeneratorData ?? undefined)
+              : undefined,
+          initialDraft:
+            editingGenerator.mode === "create"
+              ? editingGenerator.initialDraft
+              : undefined,
+          template:
+            editingGenerator.mode === "create"
+              ? editingGenerator.template
+              : undefined,
+          pathToSet,
+          onClose: () => {
+            setEditingGenerator(null);
+            p.refreshAll();
+          },
+          onSaved: () => {
+            setEditingGenerator(null);
+            p.refreshAll();
+          },
+          onPushUndo: p.pushUndo,
+          presentation: "panel" as const,
+          onDirtyChange: (dirty: boolean) => {
+            p.editorIsDirtyRef.current = dirty;
+          },
+          closeRef: p.editorCloseRef,
+        }
+      : null;
 
   type TokensContextualSurfaceRenderState = {
     surface: TokensLibraryContextualSurface;
@@ -589,65 +785,81 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     height: string;
   };
 
-  const getTokensContextualSurfaceRenderState = (): TokensContextualSurfaceRenderState | null => {
-    if (activeTokensContextualSurface === 'token-editor' && editingToken && tokenEditorProps) {
-      return {
-        surface: 'token-editor',
-        content: <TokenEditor {...tokenEditorProps} />,
-        onDismiss: p.editorCloseRef.current,
-        height: '65%',
-      };
-    }
+  const getTokensContextualSurfaceRenderState =
+    (): TokensContextualSurfaceRenderState | null => {
+      if (
+        activeTokensContextualSurface === "token-editor" &&
+        editingToken &&
+        tokenEditorProps
+      ) {
+        return {
+          surface: "token-editor",
+          content: <TokenEditor {...tokenEditorProps} />,
+          onDismiss: p.editorCloseRef.current,
+          height: "65%",
+        };
+      }
 
-    if (activeTokensContextualSurface === 'generator-editor' && editingGenerator && generatorEditorProps) {
-      return {
-        surface: 'generator-editor',
-        content: <TokenGeneratorDialog {...generatorEditorProps} />,
-        onDismiss: p.editorCloseRef.current,
-        height: '72%',
-      };
-    }
+      if (
+        activeTokensContextualSurface === "generator-editor" &&
+        editingGenerator &&
+        generatorEditorProps
+      ) {
+        return {
+          surface: "generator-editor",
+          content: <TokenGeneratorDialog {...generatorEditorProps} />,
+          onDismiss: p.editorCloseRef.current,
+          height: "72%",
+        };
+      }
 
-    if (activeTokensContextualSurface === 'token-preview' && previewingToken) {
-      return {
-        surface: 'token-preview',
-        content: (
-          <TokenDetailPreview
-            tokenPath={previewingToken.path}
-            tokenName={previewingToken.name}
-            setName={previewingToken.set}
-            allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
-            dimensions={dimensions}
-            activeThemes={activeThemes}
-            tokenUsageCounts={tokenUsageCounts}
-            generators={generators}
-            derivedTokenPaths={derivedTokenPaths}
-            lintViolations={p.lintViolations.filter(violation => violation.path === previewingToken.path)}
-            syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
-            serverUrl={serverUrl}
-            onEdit={p.handlePreviewEdit}
-            onClose={p.handlePreviewClose}
-            onNavigateToAlias={handleNavigateToAlias}
-            onNavigateToGenerator={p.handleNavigateToGenerator}
-          />
-        ),
-        onDismiss: p.handlePreviewClose,
-        height: '50%',
-      };
-    }
+      if (
+        activeTokensContextualSurface === "token-preview" &&
+        previewingToken
+      ) {
+        return {
+          surface: "token-preview",
+          content: (
+            <TokenDetailPreview
+              tokenPath={previewingToken.path}
+              tokenName={previewingToken.name}
+              setName={previewingToken.set}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
+              dimensions={dimensions}
+              activeThemes={activeThemes}
+              tokenUsageCounts={tokenUsageCounts}
+              generators={generators}
+              derivedTokenPaths={derivedTokenPaths}
+              lintViolations={p.lintViolations.filter(
+                (violation) => violation.path === previewingToken.path,
+              )}
+              syncSnapshot={
+                Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined
+              }
+              serverUrl={serverUrl}
+              onEdit={p.handlePreviewEdit}
+              onClose={p.handlePreviewClose}
+              onNavigateToAlias={handleNavigateToAlias}
+              onNavigateToGenerator={p.handleNavigateToGenerator}
+            />
+          ),
+          onDismiss: p.handlePreviewClose,
+          height: "50%",
+        };
+      }
 
-    if (activeTokensContextualSurface === 'compare' && showTokensCompare) {
-      return {
-        surface: 'compare',
-        content: renderTokensComparePanel(),
-        onDismiss: () => setShowTokensCompare(false),
-        height: '72%',
-      };
-    }
+      if (activeTokensContextualSurface === "compare" && showTokensCompare) {
+        return {
+          surface: "compare",
+          content: renderTokensComparePanel(),
+          onDismiss: () => setShowTokensCompare(false),
+          height: "72%",
+        };
+      }
 
-    return null;
-  };
+      return null;
+    };
 
   const renderTokensLibraryBody = () => (
     <div
@@ -656,7 +868,25 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     >
       <TokenList
         ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-        data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, generatorsByTargetGroup, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
+        data={{
+          tokens,
+          allTokensFlat: themedAllTokensFlat,
+          lintViolations: p.lintViolations,
+          syncSnapshot:
+            Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
+          generators,
+          generatorsByTargetGroup,
+          derivedTokenPaths,
+          tokenUsageCounts,
+          cascadeDiff: p.cascadeDiff ?? undefined,
+          perSetFlat,
+          collectionMap: setCollectionNames,
+          modeMap: setModeNames,
+          dimensions,
+          unthemedAllTokensFlat: allTokensFlat,
+          pathToSet,
+          activeThemes,
+        }}
         actions={tokenListActions}
         recentlyTouched={p.recentlyTouched}
         defaultCreateOpen={createFromEmpty}
@@ -669,18 +899,27 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     </div>
   );
 
-  const renderWideTokensContextualSurface = (surfaceState: TokensContextualSurfaceRenderState) => (
+  const renderWideTokensContextualSurface = (
+    surfaceState: TokensContextualSurfaceRenderState,
+  ) => (
     <div
       className="shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-row overflow-hidden"
       style={{ width: editorWidth }}
       data-surface-kind={p.contextualEditorTransition.kind}
       data-surface-presentation={p.contextualEditorTransition.presentation}
-      data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
+      data-tokens-library-surface-slot={
+        TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id
+      }
       data-tokens-library-contextual-surface={surfaceState.surface}
       onKeyDown={(e) => {
-        if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        if (
+          (e.key === "]" || e.key === "[") &&
+          (e.metaKey || e.ctrlKey) &&
+          !e.shiftKey &&
+          !e.altKey
+        ) {
           e.preventDefault();
-          p.handleEditorNavigate(e.key === ']' ? 1 : -1);
+          p.handleEditorNavigate(e.key === "]" ? 1 : -1);
         }
       }}
     >
@@ -707,12 +946,19 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
         data-surface-kind={p.contextualEditorTransition.kind}
         data-surface-presentation={p.contextualEditorTransition.presentation}
-        data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
+        data-tokens-library-surface-slot={
+          TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id
+        }
         data-tokens-library-contextual-surface={surfaceState.surface}
         onKeyDown={(e) => {
-          if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+          if (
+            (e.key === "]" || e.key === "[") &&
+            (e.metaKey || e.ctrlKey) &&
+            !e.shiftKey &&
+            !e.altKey
+          ) {
             e.preventDefault();
-            p.handleEditorNavigate(e.key === ']' ? 1 : -1);
+            p.handleEditorNavigate(e.key === "]" ? 1 : -1);
           }
         }}
       >
@@ -720,13 +966,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           className="absolute inset-0 bg-black/30 drawer-fade-in"
           onClick={() => surfaceState.onDismiss()}
         />
-        <div className="relative flex flex-col rounded-t-xl bg-[var(--color-figma-bg)] shadow-2xl drawer-slide-up" style={{ height: surfaceState.height }}>
+        <div
+          className="relative flex flex-col rounded-t-xl bg-[var(--color-figma-bg)] shadow-2xl drawer-slide-up"
+          style={{ height: surfaceState.height }}
+        >
           <div className="flex justify-center pt-2 pb-1 shrink-0">
             <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
           </div>
-          <div className="flex-1 overflow-hidden">
-            {surfaceState.content}
-          </div>
+          <div className="flex-1 overflow-hidden">{surfaceState.content}</div>
         </div>
       </div>
     );
@@ -736,14 +983,19 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   // Secondary surfaces are full-height takeovers: they keep the shell visible
   // while replacing the main body until the user closes them.
-  const SECONDARY_PANEL_MAP: Partial<Record<SecondarySurfaceId, SecondaryPanelRenderer>> = {
+  const SECONDARY_PANEL_MAP: Partial<
+    Record<SecondarySurfaceId, SecondaryPanelRenderer>
+  > = {
     import: () => (
       <ErrorBoundary panelName="Import" onReset={closeSecondarySurface}>
         <div className="flex h-full flex-col overflow-hidden">
           <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-            <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">Import tokens</h2>
+            <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">
+              Import tokens
+            </h2>
             <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Bring in Figma variables, token files, code exports, or migration inputs without leaving the current shell.
+              Bring in Figma variables, token files, code exports, or migration
+              inputs without leaving the current shell.
             </p>
           </div>
           <ImportPanel
@@ -752,7 +1004,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             onImported={refreshTokens}
             onImportComplete={(result) => {
               p.onImportComplete(result);
-              navigateTo('define', 'tokens');
+              navigateTo("define", "tokens");
               const primaryDestinationSet = result.destinationSets[0];
               if (primaryDestinationSet) {
                 setActiveSet(primaryDestinationSet);
@@ -784,7 +1036,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     ),
   };
 
-  if (activeSecondarySurface && activeSecondarySurface !== 'sets') {
+  if (activeSecondarySurface && activeSecondarySurface !== "sets") {
     const secondaryRenderer = SECONDARY_PANEL_MAP[activeSecondarySurface];
     return secondaryRenderer ? secondaryRenderer() : null;
   }
@@ -797,19 +1049,19 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     define: {
-      tokens:     renderDefineTokens,
+      tokens: renderDefineTokens,
       generators: renderDefineGenerators,
-      themes:     renderDefineThemes,
+      themes: renderDefineThemes,
     },
     apply: {
-      inspect:          renderApplyInspect,
-      'canvas-analysis': renderApplyCanvasAnalysis,
-      dependencies:     renderApplyDependencies,
+      inspect: renderApplyInspect,
+      "canvas-analysis": renderApplyCanvasAnalysis,
+      dependencies: renderApplyDependencies,
     },
     ship: {
-      publish:    renderShipPublish,
-      export:     renderShipExport,
-      history:    renderShipHistory,
+      publish: renderShipPublish,
+      export: renderShipExport,
+      history: renderShipHistory,
       health: renderShipHealth,
     },
   };
@@ -826,13 +1078,25 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       <div className="flex h-full flex-col items-center justify-center gap-5 overflow-y-auto px-5 py-8 text-center">
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="3" />
               <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
             </svg>
           </div>
           <div className="flex flex-col gap-1">
-            <p className="text-[13px] font-semibold text-[var(--color-figma-text)]">{title}</p>
+            <p className="text-[13px] font-semibold text-[var(--color-figma-text)]">
+              {title}
+            </p>
             <p className="max-w-[280px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
               {description}
             </p>
@@ -841,13 +1105,25 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
         {!connected && (
           <div className="flex w-full max-w-[310px] items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0 text-[var(--color-figma-text-secondary)]"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Start here still works offline. Guided setup can walk you through reconnecting before you import, generate, or create tokens.
+              Start here still works offline. Guided setup can walk you through
+              reconnecting before you import, generate, or create tokens.
             </p>
           </div>
         )}
@@ -855,20 +1131,22 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         <div className="flex w-full max-w-[310px] flex-col gap-2 text-left">
           {TOKENS_START_HERE_BRANCHES.map((branch) => {
             const shortcut = getStartHereBranchCopy(branch);
-            const isRecommended = branch === 'guided-setup';
+            const isRecommended = branch === "guided-setup";
             return (
               <button
                 key={branch}
                 onClick={() => p.onOpenStartHere(branch)}
                 className={[
-                  'rounded-lg border px-3 py-2.5 text-left transition-colors',
+                  "rounded-lg border px-3 py-2.5 text-left transition-colors",
                   isRecommended
-                    ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/5 hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10'
-                    : 'border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]',
-                ].join(' ')}
+                    ? "border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/5 hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+                    : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]",
+                ].join(" ")}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{shortcut.title}</span>
+                  <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                    {shortcut.title}
+                  </span>
                   {isRecommended && (
                     <span className="rounded-full bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
                       Recommended
@@ -885,17 +1163,34 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       </div>
     );
 
-    const wideContextualSurface = !p.showPreviewSplit && p.useSidePanel
-      ? getTokensContextualSurfaceRenderState()
-      : null;
+    const wideContextualSurface =
+      !p.showPreviewSplit && p.useSidePanel
+        ? getTokensContextualSurfaceRenderState()
+        : null;
 
     return (
       <>
         {/* Fetch error banner */}
         {(fetchError || tokensError) && (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border-b border-red-500/20 shrink-0">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">Failed to load tokens: {fetchError || tokensError}</span>
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-red-400 shrink-0"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
+              Failed to load tokens: {fetchError || tokensError}
+            </span>
             <button
               onClick={refreshTokens}
               className="text-[10px] px-2 py-0.5 rounded border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
@@ -905,17 +1200,20 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           </div>
         )}
         {/* Empty state */}
-        {tokens.length === 0 && !createFromEmpty && !editingToken && (
+        {tokens.length === 0 &&
+          !createFromEmpty &&
+          !editingToken &&
           renderTokensStartSurface(
-            'Build your token system',
-            'Choose the exact start branch you want to open. Every onboarding path resolves through the same Start here flow.',
-          )
-        )}
+            "Build your token system",
+            "Choose the exact start branch you want to open. Every onboarding path resolves through the same Start here flow.",
+          )}
         {/* Main content: TokenList variants */}
         {hasTokensLibrarySurface && !p.showPreviewSplit && (
           <div className="flex h-full overflow-hidden">
             {renderTokensLibraryBody()}
-            {wideContextualSurface ? renderWideTokensContextualSurface(wideContextualSurface) : null}
+            {wideContextualSurface
+              ? renderWideTokensContextualSurface(wideContextualSurface)
+              : null}
           </div>
         )}
         {/* Preview split view */}
@@ -925,9 +1223,17 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             className="flex flex-col h-full overflow-hidden"
             data-surface-kind={p.splitPreviewTransition.kind}
             data-surface-presentation={p.splitPreviewTransition.presentation}
-            data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.splitPreview.id}
+            data-tokens-library-surface-slot={
+              TOKENS_LIBRARY_SURFACE_CONTRACT.splitPreview.id
+            }
           >
-            <div style={{ height: `${p.splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
+            <div
+              style={{
+                height: `${p.splitRatio * 100}%`,
+                flexShrink: 0,
+                overflow: "hidden",
+              }}
+            >
               {renderTokensLibraryBody()}
             </div>
             <div
@@ -943,15 +1249,18 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               onKeyDown={p.handleSplitKeyDown}
             />
             <div className="flex-1 min-h-0 overflow-hidden">
-              <ErrorBoundary panelName="Preview" onReset={() => navigateTo('define', 'tokens')}>
+              <ErrorBoundary
+                panelName="Preview"
+                onReset={() => navigateTo("define", "tokens")}
+              >
                 <PreviewPanel
                   allTokensFlat={themedAllTokensFlat}
                   dimensions={dimensions}
                   activeThemes={activeThemes}
                   onActiveThemesChange={setActiveThemes}
-                  onGoToTokens={() => navigateTo('define', 'tokens')}
+                  onGoToTokens={() => navigateTo("define", "tokens")}
                   onNavigateToToken={(path) => {
-                    const name = path.split('.').pop();
+                    const name = path.split(".").pop();
                     const set = pathToSet[path] ?? activeSet;
                     setPreviewingToken({ path, name, set });
                     setHighlightedToken(path);
@@ -960,7 +1269,11 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   pathToSet={pathToSet}
                   onClearFocus={() => setPreviewingToken(null)}
                   lintViolations={p.lintViolations}
-                  syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
+                  syncSnapshot={
+                    Object.keys(syncSnapshot).length > 0
+                      ? syncSnapshot
+                      : undefined
+                  }
                   onEditToken={(path, name, set) => {
                     p.guardEditorAction(() => {
                       openTokenEditor({ path, name, set: set ?? activeSet });
@@ -983,7 +1296,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderDefineGenerators(): ReactNode {
     return (
-      <ErrorBoundary panelName="Generators" onReset={() => navigateTo('define', 'tokens')}>
+      <ErrorBoundary
+        panelName="Generators"
+        onReset={() => navigateTo("define", "tokens")}
+      >
         <GraphPanel
           serverUrl={serverUrl}
           activeSet={activeSet}
@@ -991,13 +1307,19 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           generators={generators}
           loading={generatorsLoading}
           connected={connected}
-          onRefresh={() => { p.refreshAll(); refreshGenerators(); }}
+          onRefresh={() => {
+            p.refreshAll();
+            refreshGenerators();
+          }}
           onPushUndo={p.pushUndo}
           pendingTemplateId={p.pendingGraphTemplate}
           onApplyTemplate={() => p.setPendingGraphTemplate(null)}
           pendingGroupPath={p.pendingGraphFromGroup?.groupPath ?? null}
           pendingGroupTokenType={p.pendingGraphFromGroup?.tokenType ?? null}
-          onClearPendingGroup={() => { p.setPendingGraphFromGroup(null); p.setPendingOpenPicker(false); }}
+          onClearPendingGroup={() => {
+            p.setPendingGraphFromGroup(null);
+            p.setPendingOpenPicker(false);
+          }}
           focusGeneratorId={p.focusGeneratorId}
           onClearFocusGenerator={() => p.setFocusGeneratorId(null)}
           openTemplatePicker={p.pendingOpenPicker}
@@ -1010,28 +1332,40 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-hidden">
-          <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
+          <ErrorBoundary
+            panelName="Themes"
+            onReset={() => navigateTo("define", "tokens")}
+          >
             <ThemeManager
               serverUrl={serverUrl}
               connected={connected}
               sets={sets}
               onDimensionsChange={setDimensions}
-              onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); p.handleNavigateToSet(set, path); }}
-              onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }}
+              onNavigateToToken={(path, set) => {
+                navigateTo("define", "tokens");
+                p.handleNavigateToSet(set, path);
+              }}
+              onCreateToken={(tokenPath, set) => {
+                navigateTo("define", "tokens");
+                setEditingToken({ path: tokenPath, set, isCreate: true });
+              }}
               onPushUndo={p.pushUndo}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
               onGapsDetected={p.setThemeGapCount}
               onShellStateChange={p.onThemeShellStateChange}
               onTokensCreated={p.refreshAll}
-              onSetCreated={(name) => { addSetToState(name, 0); setActiveSet(name); }}
-              onGoToTokens={() => navigateTo('define', 'tokens')}
+              onSetCreated={(name) => {
+                addSetToState(name, 0);
+                setActiveSet(name);
+              }}
+              onGoToTokens={() => navigateTo("define", "tokens")}
               themeManagerHandle={p.themeManagerHandleRef}
               onSuccess={p.setSuccessToast}
               onGenerateForDimension={({ dimensionName: _name, targetSet }) => {
                 if (targetSet) setActiveSet(targetSet);
                 p.setPendingOpenPicker(true);
-                navigateTo('define', 'generators');
+                navigateTo("define", "generators");
               }}
               resolverState={{
                 serverUrl,
@@ -1063,7 +1397,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderApplyInspect(): ReactNode {
     return (
-      <ErrorBoundary panelName="Inspector" onReset={() => navigateTo('define', 'tokens')}>
+      <ErrorBoundary
+        panelName="Inspector"
+        onReset={() => navigateTo("define", "tokens")}
+      >
         <SelectionInspector
           selectedNodes={selectedNodes}
           selectionLoading={selectionLoading}
@@ -1079,11 +1416,11 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           onTokenCreated={refreshTokens}
           onNavigateToToken={(path) => {
             setHighlightedToken(path);
-            navigateTo('define', 'tokens');
+            navigateTo("define", "tokens");
           }}
           onPushUndo={p.pushUndo}
           onToast={p.setSuccessToast}
-          onGoToTokens={() => navigateTo('define', 'tokens')}
+          onGoToTokens={() => navigateTo("define", "tokens")}
           triggerCreateToken={p.triggerCreateToken}
           selectionInspectorHandle={p.selectionInspectorHandleRef}
         />
@@ -1093,28 +1430,56 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderApplyCanvasAnalysis(): ReactNode {
     return (
-      <ErrorBoundary panelName="Canvas Analysis" onReset={() => navigateTo('apply', 'inspect')}>
+      <ErrorBoundary
+        panelName="Canvas Analysis"
+        onReset={() => navigateTo("apply", "inspect")}
+      >
         <CanvasAnalysisPanel
           availableTokens={allTokensFlat}
           heatmapResult={heatmapResult}
           heatmapLoading={heatmapLoading}
           heatmapProgress={heatmapProgress}
           heatmapError={heatmapError}
-          onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
+          onSelectNodes={(ids) =>
+            parent.postMessage(
+              { pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids } },
+              "*",
+            )
+          }
           onBatchBind={(nodeIds, tokenPath, property) => {
             const entry = allTokensFlat[tokenPath];
             if (!entry) return;
-            parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
+            parent.postMessage(
+              {
+                pluginMessage: {
+                  type: "batch-bind-heatmap-nodes",
+                  nodeIds,
+                  tokenPath,
+                  tokenType: entry.$type,
+                  targetProperty: property,
+                  resolvedValue: entry.$value,
+                },
+              },
+              "*",
+            );
           }}
-          onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
+          onSelectNode={(nodeId) =>
+            parent.postMessage(
+              { pluginMessage: { type: "select-node", nodeId } },
+              "*",
+            )
+          }
         />
       </ErrorBoundary>
     );
   }
 
-function renderApplyDependencies(): ReactNode {
+  function renderApplyDependencies(): ReactNode {
     return (
-      <ErrorBoundary panelName="Dependencies" onReset={() => navigateTo('ship', 'health')}>
+      <ErrorBoundary
+        panelName="Dependencies"
+        onReset={() => navigateTo("ship", "health")}
+      >
         <TokenFlowPanel
           allTokensFlat={themedAllTokensFlat}
           pathToSet={pathToSet}
@@ -1122,7 +1487,7 @@ function renderApplyDependencies(): ReactNode {
           initialPath={p.flowPanelInitialPath}
           onNavigateToToken={(path) => {
             const targetSet = pathToSet[path];
-            navigateTo('define', 'tokens');
+            navigateTo("define", "tokens");
             setEditingToken(null);
             if (targetSet && targetSet !== activeSet) {
               setActiveSet(targetSet);
@@ -1133,7 +1498,7 @@ function renderApplyDependencies(): ReactNode {
           }}
           onEditToken={(path) => {
             const targetSet = pathToSet[path];
-            navigateTo('define', 'tokens');
+            navigateTo("define", "tokens");
             setEditingToken({ path, set: targetSet ?? activeSet });
             if (targetSet && targetSet !== activeSet) {
               setActiveSet(targetSet);
@@ -1149,7 +1514,10 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipPublish(): ReactNode {
     return (
-      <ErrorBoundary panelName="Figma Sync" onReset={() => navigateTo('ship', 'publish')}>
+      <ErrorBoundary
+        panelName="Figma Sync"
+        onReset={() => navigateTo("ship", "publish")}
+      >
         <PublishPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -1165,7 +1533,10 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipExport(): ReactNode {
     return (
-      <ErrorBoundary panelName="Handoff files" onReset={() => navigateTo('ship', 'export')}>
+      <ErrorBoundary
+        panelName="Handoff files"
+        onReset={() => navigateTo("ship", "export")}
+      >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );
@@ -1173,7 +1544,10 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipHistory(): ReactNode {
     return (
-      <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'health')}>
+      <ErrorBoundary
+        panelName="History"
+        onReset={() => navigateTo("ship", "health")}
+      >
         <HistoryPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -1198,7 +1572,10 @@ function renderApplyDependencies(): ReactNode {
 
   function renderShipHealth(): ReactNode {
     return (
-      <ErrorBoundary panelName="Audit" onReset={() => navigateTo('ship', 'history')}>
+      <ErrorBoundary
+        panelName="Audit"
+        onReset={() => navigateTo("ship", "history")}
+      >
         <HealthPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -1210,11 +1587,17 @@ function renderApplyDependencies(): ReactNode {
           dimensions={dimensions}
           tokenUsageCounts={tokenUsageCounts}
           heatmapResult={heatmapResult}
-          onNavigateTo={(topTab, subTab) => navigateTo(topTab as TopTab, subTab as SubTab | undefined)}
+          onNavigateTo={(topTab, subTab) =>
+            navigateTo(topTab as TopTab, subTab as SubTab | undefined)
+          }
           onNavigateToToken={(path, set) => {
-            setReturnBreadcrumb({ label: 'Audit', topTab: 'ship', subTab: 'health' });
+            setReturnBreadcrumb({
+              label: "Audit",
+              topTab: "ship",
+              subTab: "health",
+            });
             setActiveSet(set);
-            navigateTo('define', 'tokens');
+            navigateTo("define", "tokens");
             setPendingHighlight(path);
           }}
           onTriggerHeatmap={triggerHeatmapScan}
