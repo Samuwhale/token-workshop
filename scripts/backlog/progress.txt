@@ -1083,3 +1083,10 @@
   - If a takeover needs a different landing route after dismissal, preserve the secondary surface while updating the underlying route state instead of closing the surface immediately.
   - Import success messaging works better when the provider stores the last completion summary once and lets both default routing and CTA buttons consume the same recommendation list.
 ---
+## 2026-04-11 - Make contrast failure suggestions actionable with navigation CTAs
+- Added optional token navigation support to `ContrastMatrixPanel`, including per-row `Go` CTAs for failing foreground tokens and suggested replacement tokens in the failures-only table, then wired the panel through `HealthPanel`.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx packages/figma-plugin/src/ui/components/HealthPanel.tsx` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "ContrastMatrixPanel\\.tsx|HealthPanel\\.tsx|error TS"` still reports pre-existing workspace `packages/core/dist` `TS6305` bootstrap errors; the touched files only appeared through that existing workspace issue, with no new task-specific diagnostics.
+- Files changed: `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L8, `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L215, `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L671, `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L714, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L2002
+- **Learnings for future iterations:**
+  - When a health-report table already knows each token path plus `pathToSet`, add navigation CTAs locally instead of forcing users to manually search for remediation targets elsewhere in the workspace.
+---
