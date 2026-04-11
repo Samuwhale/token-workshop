@@ -5,6 +5,10 @@ import type { HasQualifierValue, ParsedQuery } from './tokenListUtils';
 export type FilterBuilderSection = 'type' | 'has' | 'path' | 'name' | 'value' | 'desc' | 'generator';
 
 interface TokenSearchFilterChipsProps {
+  isOpen?: boolean;
+  selectedSection?: FilterBuilderSection | null;
+  onSelectSection?: (section: FilterBuilderSection) => void;
+  onOpenChange?: (open: boolean) => void;
   parsedSearchQuery: ParsedQuery;
   selectedTypeQualifiers: string[];
   selectedHasQualifiers: HasQualifierValue[];
@@ -76,6 +80,10 @@ const ADD_FILTER_SECTIONS: FilterBuilderSection[] = ['type', 'has', 'path', 'nam
  * A "+" button opens a section picker to add new filters.
  */
 export function TokenSearchFilterChips({
+  isOpen = false,
+  selectedSection = null,
+  onSelectSection,
+  onOpenChange,
   parsedSearchQuery,
   selectedTypeQualifiers,
   selectedHasQualifiers,
@@ -104,14 +112,16 @@ export function TokenSearchFilterChips({
     function handleClick(e: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setEditingSection(null);
+        onOpenChange?.(false);
       }
       if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
         setShowAddMenu(false);
+        onOpenChange?.(false);
       }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [editingSection, showAddMenu]);
+  }, [editingSection, onOpenChange, showAddMenu]);
 
   // Focus text input when opening a text section
   useEffect(() => {
@@ -119,6 +129,12 @@ export function TokenSearchFilterChips({
       textInputRef.current?.focus();
     }
   }, [editingSection]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setShowAddMenu(false);
+    setEditingSection(selectedSection ?? 'type');
+  }, [isOpen, selectedSection]);
 
   // Reset draft when switching sections
   useEffect(() => {
@@ -138,11 +154,15 @@ export function TokenSearchFilterChips({
   const openSectionForAdd = (section: FilterBuilderSection) => {
     setShowAddMenu(false);
     setEditingSection(section);
+    onSelectSection?.(section);
+    onOpenChange?.(true);
   };
 
   const handleChipClick = (chip: ChipData) => {
     setShowAddMenu(false);
     setEditingSection(chip.qualifier);
+    onSelectSection?.(chip.qualifier);
+    onOpenChange?.(true);
   };
 
   const selectedTextValues = (() => {
@@ -186,9 +206,16 @@ export function TokenSearchFilterChips({
       ))}
 
       {/* Add filter button */}
-      <div className="relative" ref={addMenuRef}>
+          <div className="relative" ref={addMenuRef}>
         <button
-          onClick={() => { setShowAddMenu(prev => !prev); setEditingSection(null); }}
+          onClick={() => {
+            setShowAddMenu(prev => {
+              const next = !prev;
+              onOpenChange?.(next);
+              return next;
+            });
+            setEditingSection(null);
+          }}
           className="inline-flex items-center gap-0.5 rounded border border-dashed border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] leading-none text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text-secondary)]"
           title="Add a filter"
         >
@@ -239,7 +266,10 @@ export function TokenSearchFilterChips({
                 ) : null;
               })()}
               <button
-                onClick={() => setEditingSection(null)}
+                onClick={() => {
+                  setEditingSection(null);
+                  onOpenChange?.(false);
+                }}
                 className="rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                 title="Close"
               >
@@ -332,6 +362,7 @@ export function TokenSearchFilterChips({
                       if (e.key === 'Escape') {
                         e.preventDefault();
                         setEditingSection(null);
+                        onOpenChange?.(false);
                       }
                     }}
                   />

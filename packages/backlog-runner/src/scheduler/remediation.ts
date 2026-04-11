@@ -7,6 +7,7 @@ import type {
   BacklogDrainResult,
   BacklogRunnerConfig,
   BacklogTaskClaim,
+  BacklogWorkerResult,
   CommandRunner,
   ResolvedRunOptions,
   WorkspaceApplyResult,

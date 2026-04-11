@@ -1287,12 +1287,21 @@ export function TokenEditor({
 
   // Progressive disclosure: collapsible section state
   const [detailsOpen, setDetailsOpen] = useState(() => {
-    try { return localStorage.getItem('tm_editor_details') === '1'; } catch { return false; }
+    try {
+      return localStorage.getItem('tm_editor_details') === '1';
+    } catch (error) {
+      console.debug('[TokenEditor] localStorage read tm_editor_details failed:', error);
+      return false;
+    }
   });
   const toggleDetails = useCallback(() => {
     setDetailsOpen((v) => {
       const next = !v;
-      try { localStorage.setItem('tm_editor_details', next ? '1' : '0'); } catch {}
+      try {
+        localStorage.setItem('tm_editor_details', next ? '1' : '0');
+      } catch (error) {
+        console.debug('[TokenEditor] localStorage write tm_editor_details failed:', error);
+      }
       return next;
     });
   }, []);
@@ -1300,13 +1309,19 @@ export function TokenEditor({
     try {
       const saved = localStorage.getItem('tm_editor_info_tab');
       if (saved === 'dependencies' || saved === 'usage' || saved === 'history') return saved;
-    } catch {}
+    } catch (error) {
+      console.debug('[TokenEditor] localStorage read tm_editor_info_tab failed:', error);
+    }
     return null;
   });
   const handleInfoTab = useCallback((tab: 'dependencies' | 'usage' | 'history') => {
     setInfoTab((prev) => {
       const next = prev === tab ? null : tab;
-      try { localStorage.setItem('tm_editor_info_tab', next ?? ''); } catch {}
+      try {
+        localStorage.setItem('tm_editor_info_tab', next ?? '');
+      } catch (error) {
+        console.debug('[TokenEditor] localStorage write tm_editor_info_tab failed:', error);
+      }
       return next;
     });
   }, []);

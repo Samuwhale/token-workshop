@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { summarizeCommandOutput } from './command-output.js';
@@ -149,11 +149,37 @@ export async function validateGitReadiness(
 export async function validateBacklogState(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
   const messages: string[] = [];
   const state = await inspectBacklogState(config);
+  const legacyInboxPath = path.join(config.projectRoot, 'backlog-inbox.md');
+  const legacyInboxExists = await fileExists(legacyInboxPath);
+
+  if (state.taskSpecCount === 0 && state.hasLegacyTasks) {
+    messages.push('  ✗ backlog is still in legacy markdown mode; create task specs in backlog/tasks before autonomous runs');
+    return { ok: false, messages };
+  }
+
+  if (state.taskSpecCount > 0 && !state.generatedReport) {
+    messages.push('  ✗ backlog.md is not the generated task report; run `pnpm backlog:sync` to rebuild it from task specs');
+    return { ok: false, messages };
+  }
 
   if (state.taskSpecCount === 0) {
     messages.push('  ⚠ no task specs found yet; the queue is empty until you sync or add task YAML files');
   } else {
     messages.push(`  ✓ task spec store is populated (${state.taskSpecCount} task spec${state.taskSpecCount === 1 ? '' : 's'})`);
+  }
+
+  if (state.generatedReport) {
+    messages.push('  ✓ backlog.md is the generated report');
+  }
+
+  if (legacyInboxExists) {
+    messages.push('  ✗ legacy backlog-inbox.md still exists; delete it and use backlog/inbox.jsonl only');
+    return { ok: false, messages };
+  }
+
+  if (state.duplicateTaskIds.length > 0) {
+    messages.push(`  ✗ duplicate task spec ids found (${state.duplicateTaskIds.join(', ')}); run \`pnpm backlog:sync\` to normalize backlog/tasks`);
+    return { ok: false, messages };
   }
 
   if (!(await fileExists(config.files.candidateQueue))) {
@@ -168,24 +194,42 @@ export async function validateBacklogState(config: BacklogRunnerConfig): Promise
 
 export async function validatePromptContracts(config: BacklogRunnerConfig): Promise<{ ok: boolean; messages: string[] }> {
   const messages: string[] = [];
-  const promptFiles: Array<[string, string]> = [
-    ['agent prompt', config.prompts.agent],
+  const promptChecks: Array<[string, string]> = [
     ['planner pass prompt', config.prompts.planner],
     ['product pass prompt', config.prompts.product],
     ['ux pass prompt', config.prompts.ux],
     ['code pass prompt', config.prompts.code],
   ];
 
-  for (const [label, filePath] of promptFiles) {
-    if (await fileExists(filePath)) {
-      messages.push(`  ✓ ${label} found`);
-    } else {
+  let ok = true;
+  for (const [label, filePath] of [['agent prompt', config.prompts.agent], ...promptChecks] as const) {
+    if (!(await fileExists(filePath))) {
       messages.push(`  ✗ ${label} not found`);
       return { ok: false, messages };
     }
   }
 
-  return { ok: true, messages };
+  for (const [label, filePath] of promptChecks) {
+    const content = await readFile(filePath, 'utf8');
+    if (content.includes('backlog-inbox.md') || content.includes('Every item MUST start with `- [ ] `')) {
+      ok = false;
+      messages.push(`  ✗ ${label} still references legacy markdown planner output`);
+      continue;
+    }
+    messages.push(label === 'planner pass prompt'
+      ? '  ✓ planner pass prompt uses structured refinement instructions'
+      : `  ✓ ${label} uses structured candidate queue instructions`);
+  }
+
+  const agentPrompt = await readFile(config.prompts.agent, 'utf8');
+  if (agentPrompt.includes('Do NOT report success unless that injected validation command exits 0.')) {
+    ok = false;
+    messages.push('  ✗ agent prompt still requires the final validation command before success');
+  } else {
+    messages.push('  ✓ agent prompt leaves authoritative final validation to the scheduler');
+  }
+
+  return { ok, messages };
 }
 
 export async function validateBacklogRunner(
@@ -271,11 +315,15 @@ export async function validateBacklogRunner(
   }
   messages.push(...backlogState.messages);
 
-  const queueLint = await lintBacklogQueue(config);
-  if (!queueLint.ok) {
-    ok = false;
+  if (backlogState.ok) {
+    const queueLint = await lintBacklogQueue(config);
+    if (!queueLint.ok) {
+      ok = false;
+    }
+    messages.push(...queueLint.messages);
+  } else {
+    messages.push('  → ready-task queue lint skipped until backlog state issues are resolved');
   }
-  messages.push(...queueLint.messages);
 
   const promptContracts = await validatePromptContracts(config);
   if (!promptContracts.ok) {

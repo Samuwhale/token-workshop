@@ -56,24 +56,24 @@ function CategorySection({
   scopeOverrides?: Record<string, string[]>;
   onScopesChange?: (path: string, scopes: string[]) => void;
 }) {
-  if (rows.length === 0) return null;
-
   // Count current directions within this category
   const pushCount = rows.filter(r => (dirs[r.path] ?? defaultDir) === 'push').length;
   const pullCount = rows.filter(r => (dirs[r.path] ?? defaultDir) === 'pull').length;
   const skipCount = rows.filter(r => (dirs[r.path] ?? defaultDir) === 'skip').length;
 
   // Group rows by token type within this category
-  const typeGroups = useMemo(() => {
-    const groups = new Map<string, DiffRow[]>();
-    for (const row of rows) {
-      const t = row.localType ?? row.figmaType ?? 'other';
-      const arr = groups.get(t);
-      if (arr) arr.push(row);
-      else groups.set(t, [row]);
+  const typeGroups = new Map<string, DiffRow[]>();
+  for (const row of rows) {
+    const type = row.localType ?? row.figmaType ?? 'other';
+    const groupRows = typeGroups.get(type);
+    if (groupRows) {
+      groupRows.push(row);
+    } else {
+      typeGroups.set(type, [row]);
     }
-    return groups;
-  }, [rows]);
+  }
+
+  if (rows.length === 0) return null;
 
   const setBulk = (action: 'push' | 'pull' | 'skip') => {
     onSetDirs(prev => {
@@ -132,10 +132,20 @@ function CategorySection({
                     row={row}
                     dir={dirs[row.path] ?? defaultDir}
                     onChange={d => onSetDirs(prev => ({ ...prev, [row.path]: d }))}
-                    scopeOptions={getScopeOptions?.(row.localType ?? row.figmaType)}
-                    scopeValue={scopeOverrides?.[row.path] ?? row.localScopes}
-                    onScopesChange={onScopesChange ? (s) => onScopesChange(row.path, s) : undefined}
-                    figmaScopeValue={row.cat === 'conflict' ? row.figmaScopes : undefined}
+                    scopeOptions={getScopeOptions?.(
+                      row.cat === 'figma-only' ? row.figmaType : (row.localType ?? row.figmaType),
+                    )}
+                    scopeValue={
+                      row.cat === 'figma-only'
+                        ? row.figmaScopes
+                        : (scopeOverrides?.[row.path] ?? row.localScopes)
+                    }
+                    onScopesChange={
+                      onScopesChange && row.cat !== 'figma-only'
+                        ? (s) => onScopesChange(row.path, s)
+                        : undefined
+                    }
+                    figmaScopeValue={row.cat !== 'local-only' ? row.figmaScopes : undefined}
                   />
                 ))}
               </div>

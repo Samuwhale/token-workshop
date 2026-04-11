@@ -31,6 +31,30 @@ const FIELD_TONE: Record<NoticeSeverity, string> = {
   success: 'text-[var(--color-figma-success)]',
 };
 
+const FIELD_BORDER_TONE: Record<NoticeSeverity, string> = {
+  error: 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]',
+  warning: 'border-[var(--color-figma-warning)] focus-visible:border-[var(--color-figma-warning)]',
+  info: 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]',
+  success: 'border-[var(--color-figma-success)] focus-visible:border-[var(--color-figma-success)]',
+};
+
+const ICON_TONE: Record<NoticeSeverity, string> = {
+  error: 'text-[var(--color-figma-error)]',
+  warning: 'text-[var(--color-figma-warning)]',
+  info: 'text-[var(--color-figma-text-secondary)]',
+  success: 'text-[var(--color-figma-success)]',
+};
+
+export function severityStyles(severity: NoticeSeverity) {
+  return {
+    banner: BANNER_TONE[severity],
+    pill: PILL_TONE[severity],
+    field: FIELD_TONE[severity],
+    fieldBorder: FIELD_BORDER_TONE[severity],
+    icon: ICON_TONE[severity],
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /*  Shared warning icon                                               */
 /* ------------------------------------------------------------------ */

@@ -121,7 +121,7 @@ type ModelsFileShape = {
 export async function resolveModelAlias(
   config: BacklogRunnerConfig,
   alias: string | undefined,
-  tool: ResolvedRunOptions['tool'],
+  tool: BacklogTool,
 ): Promise<string | undefined> {
   if (!alias?.trim()) {
     return undefined;

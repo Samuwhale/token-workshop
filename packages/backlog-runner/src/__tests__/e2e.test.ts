@@ -262,16 +262,32 @@ async function stopAfterFirstSleep(filePath: string): Promise<void> {
   await writeFile(filePath, 'stop\n', 'utf8');
 }
 
-async function readDirTaskFiles(taskDir: string): Promise<string[]> {
-  return (await readdir(taskDir)).filter(name => name.endsWith('.yaml'));
+async function listTaskFilesRecursive(taskDir: string, prefix = ''): Promise<string[]> {
+  const entries = await readdir(taskDir, { withFileTypes: true });
+  const nested = await Promise.all(entries.map(async entry => {
+    if (entry.isDirectory()) {
+      return listTaskFilesRecursive(path.join(taskDir, entry.name), path.join(prefix, entry.name));
+    }
+    return entry.name.endsWith('.yaml') ? [path.join(prefix, entry.name)] : [];
+  }));
+  return nested.flat().sort();
 }
 
 async function readFollowupTask(root: string, taskFiles: string[]): Promise<string> {
-  const followupFile = taskFiles.find(name => name !== 'task-a.yaml');
+  const followupFile = taskFiles.find(name => !name.endsWith('task-a.yaml'));
   if (!followupFile) {
     throw new Error('Expected follow-up task file');
   }
   return readFile(path.join(root, 'backlog/tasks', followupFile), 'utf8');
+}
+
+async function readCurrentTaskYaml(root: string, taskId: string): Promise<string> {
+  const topLevelPath = path.join(root, 'backlog/tasks', `${taskId}.yaml`);
+  try {
+    return await readFile(topLevelPath, 'utf8');
+  } catch {
+    return readFile(path.join(root, 'backlog/tasks', 'done', `${taskId}.yaml`), 'utf8');
+  }
 }
 
 afterEach(async () => {
@@ -302,7 +318,7 @@ describe('runner e2e', () => {
       },
     );
 
-    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: done');
+    expect(await readCurrentTaskYaml(root, 'task-a')).toContain('state: done');
     expect(await readFile(path.join(root, 'backlog.md'), 'utf8')).toContain('- [x] test item');
     // Task must NOT be marked done until after commit succeeds — prevents orphaned "done" state on crash
     expect(events).toEqual(['not-done-at-commit']);
@@ -325,7 +341,7 @@ describe('runner e2e', () => {
       },
     );
 
-    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
     expect(taskYaml).toContain('state: done');
     expect(taskYaml).toContain('Recovered by remediation');
   });
@@ -363,11 +379,11 @@ describe('runner e2e', () => {
       },
     );
 
-    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
     expect(taskYaml).toContain('state: done');
     expect(taskYaml).toContain('Non-blocking validation issue deferred to follow-up');
 
-    const taskFiles = (await readDirTaskFiles(path.join(root, 'backlog/tasks'))).sort();
+    const taskFiles = await listTaskFilesRecursive(path.join(root, 'backlog/tasks'));
     expect(taskFiles.length).toBe(2);
     const followupYaml = await readFollowupTask(root, taskFiles);
     expect(followupYaml).toContain('title: Repair worktree validation environment');
@@ -408,7 +424,7 @@ describe('runner e2e', () => {
       },
     );
 
-    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
     expect(taskYaml).toContain('state: ready');
     expect(taskYaml).toContain('Deferred after remediation: validation failed: src/routes/sets.ts(605,13): error TS2322');
   });
@@ -447,7 +463,7 @@ describe('runner e2e', () => {
       },
     );
 
-    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
     expect(taskYaml).toContain('state: ready');
     expect(taskYaml).toContain("Deferred after remediation: validation failed: src/ui/hooks/useTokenEditorLoad.ts(120,3): error TS2307: Cannot find module '../shared/utils'");
   });
@@ -487,11 +503,11 @@ describe('runner e2e', () => {
       },
     );
 
-    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
     expect(taskYaml).toContain('state: done');
     expect(taskYaml).toContain('Non-blocking validation issue deferred to follow-up');
 
-    const taskFiles = (await readDirTaskFiles(path.join(root, 'backlog/tasks'))).sort();
+    const taskFiles = await listTaskFilesRecursive(path.join(root, 'backlog/tasks'));
     expect(taskFiles.length).toBe(2);
     const followupYaml = await readFollowupTask(root, taskFiles);
     expect(followupYaml).toContain('title: Resolve unrelated validation failure after test item');
@@ -517,7 +533,7 @@ describe('runner e2e', () => {
       },
     );
 
-    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
     expect(taskYaml).toContain('state: ready');
     expect(taskYaml).toContain('Deferred after remediation: dirty workspace preflight: staged user-staged.txt');
     expect(calls).not.toContain('input:agent prompt');
@@ -545,7 +561,7 @@ describe('runner e2e', () => {
       },
     );
 
-    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
     expect(taskYaml).toContain('state: ready');
     expect(taskYaml).toContain('Deferred after remediation: post-validation scope violation: touched packages/server/generated.ts');
   });
@@ -580,7 +596,7 @@ describe('runner e2e', () => {
       },
     );
 
-    expect(await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8')).toContain('state: done');
+    expect(await readCurrentTaskYaml(root, 'task-a')).toContain('state: done');
     expect(calls.filter(call => call === 'run:git push')).toHaveLength(4);
     expect(calls.some(call => call.includes('## Reconciliation Mode'))).toBe(true);
     expect(logSink.lines.join('')).toContain('Reconciliation finalized successfully');
@@ -613,11 +629,51 @@ describe('runner e2e', () => {
       },
     );
 
-    const taskYaml = await readFile(path.join(root, 'backlog/tasks', 'task-a.yaml'), 'utf8');
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
     expect(taskYaml).toContain('state: ready');
     expect(taskYaml).toContain('Deferred after remediation: git push failed after retries; local commit preserved for inspection');
     expect(calls.filter(call => call === 'run:git push')).toHaveLength(6);
     expect(logSink.lines.join('')).toContain('reconciliation finalize failed');
+  });
+
+  it('normalizes duplicate task ids during runner startup before task-store reads become authoritative', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    await mkdir(path.join(root, 'backlog/tasks', 'done'), { recursive: true });
+    await writeFile(path.join(root, 'backlog/tasks', 'done', 'task-a.yaml'), [
+      'id: task-a',
+      'title: archived test item',
+      'priority: normal',
+      'task_kind: implementation',
+      'depends_on:',
+      'touch_paths:',
+      '  - feature.txt',
+      'capabilities:',
+      'validation_profile: repo',
+      'status_notes:',
+      '  - archived duplicate',
+      'state: done',
+      'acceptance_criteria:',
+      '  - test item',
+      'source: manual',
+      'created_at: 2026-04-08T00:00:00.000Z',
+      'updated_at: 2026-04-08T00:01:00.000Z',
+      '',
+    ].join('\n'), 'utf8');
+    await writeFile(config.files.stop, 'stop\n', 'utf8');
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    expect((await readdir(path.join(root, 'backlog/tasks'))).filter(name => name.endsWith('.yaml'))).toEqual([]);
+    expect((await readdir(path.join(root, 'backlog/tasks', 'done'))).filter(name => name.endsWith('.yaml'))).toEqual(['task-a.yaml']);
+    expect(await readFile(path.join(root, 'backlog/tasks', 'done', 'task-a.yaml'), 'utf8')).toContain('title: archived test item');
   });
 
   it('refines a planned task into planner child work and removes the parent from the live queue', async () => {

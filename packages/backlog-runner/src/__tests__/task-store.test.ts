@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
@@ -93,12 +93,6 @@ function taskSpec(overrides: Partial<BacklogTaskSpec> & Pick<BacklogTaskSpec, 'i
 
 async function seedTask(config: BacklogRunnerConfig, task: BacklogTaskSpec): Promise<void> {
   await writeTaskSpec(config.files.taskSpecsDir, task);
-}
-
-async function seedTaskInSubdir(config: BacklogRunnerConfig, subdir: string, task: BacklogTaskSpec): Promise<void> {
-  const targetDir = path.join(config.files.taskSpecsDir, subdir);
-  await mkdir(targetDir, { recursive: true });
-  await writeTaskSpec(targetDir, task);
 }
 
 async function claimNextRunnableTask(
@@ -207,7 +201,7 @@ describe('task store', () => {
 
   it('treats archived done tasks as satisfied dependencies', async () => {
     const { config } = await makeFixture();
-    await seedTaskInSubdir(config, 'done', taskSpec({
+    await seedTask(config, taskSpec({
       id: 'task-a',
       title: 'Task A',
       state: 'done',
@@ -224,6 +218,59 @@ describe('task store', () => {
     const claim = await claimNextRunnableTask(store, 'runner-a');
 
     expect(claim?.task.id).toBe('task-b');
+  });
+
+  it('auto-heals duplicate task ids during ensureTaskSpecsReady', async () => {
+    const { config, store } = await makeFixture();
+    await writeFile(path.join(config.files.taskSpecsDir, 'task-a.yaml'), [
+      'id: task-a',
+      'title: Task A active',
+      'priority: normal',
+      'task_kind: implementation',
+      'depends_on:',
+      'touch_paths:',
+      '  - packages/core/src/a.ts',
+      'capabilities:',
+      'validation_profile: repo',
+      'status_notes:',
+      '  - Active copy',
+      'state: ready',
+      'acceptance_criteria:',
+      '  - Task A',
+      'source: manual',
+      'created_at: 2026-04-08T00:00:00.000Z',
+      'updated_at: 2026-04-08T00:00:00.000Z',
+      '',
+    ].join('\n'), 'utf8');
+    await mkdir(path.join(config.files.taskSpecsDir, 'done'), { recursive: true });
+    await writeFile(path.join(config.files.taskSpecsDir, 'done', 'task-a.yaml'), [
+      'id: task-a',
+      'title: Task A archived',
+      'priority: normal',
+      'task_kind: implementation',
+      'depends_on:',
+      'touch_paths:',
+      '  - packages/core/src/a.ts',
+      'capabilities:',
+      'validation_profile: repo',
+      'status_notes:',
+      '  - Archived copy',
+      'state: done',
+      'acceptance_criteria:',
+      '  - Task A',
+      'source: manual',
+      'created_at: 2026-04-08T00:00:00.000Z',
+      'updated_at: 2026-04-08T00:01:00.000Z',
+      '',
+    ].join('\n'), 'utf8');
+
+    await store.ensureTaskSpecsReady();
+
+    expect((await readdir(config.files.taskSpecsDir)).filter(name => name.endsWith('.yaml'))).toEqual([]);
+    expect((await readdir(path.join(config.files.taskSpecsDir, 'done'))).filter(name => name.endsWith('.yaml'))).toEqual(['task-a.yaml']);
+    const healed = await store.getTaskSpec('task-a');
+    expect(healed?.title).toBe('Task A archived');
+    expect(healed?.state).toBe('done');
   });
 
   it('blocks overlapping touch_paths while another lease is active', async () => {

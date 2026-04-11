@@ -7,6 +7,7 @@ import {
   createTaskFromPlannerChild,
   createTaskFromCandidate,
   normalizeRepoPath,
+  normalizeTaskSpecStore,
   parseCandidateRecord,
   readTaskSpecs,
   renderGeneratedBacklog,
@@ -133,6 +134,7 @@ export class FileBackedTaskStore implements BacklogStore {
   async ensureTaskSpecsReady(): Promise<void> {
     await this.getRuntime();
     await withLock(this.backlogLock, 30, async () => {
+      await normalizeTaskSpecStore(this.config.files.taskSpecsDir);
       await this.refreshEverything();
     });
   }

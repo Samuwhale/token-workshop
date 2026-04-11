@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import YAML from 'yaml';
 import type {
@@ -15,6 +15,11 @@ const TASK_FILE_PATTERN = /\.ya?ml$/i;
 
 import { normalizeWhitespace } from './utils.js';
 
+type TaskSpecFileRecord = {
+  filePath: string;
+  relativePath: string;
+  task: BacklogTaskSpec;
+};
 
 export function normalizeRepoPath(value: string): string {
   return value.replace(/\\/g, '/').replace(/^\.\/+/, '').replace(/\/+/g, '/').replace(/\/$/, '');
@@ -120,6 +125,13 @@ function taskFilename(taskSpecsDir: string, taskId: string): string {
   return path.join(taskSpecsDir, `${taskId}.yaml`);
 }
 
+function canonicalTaskSpecPath(taskSpecsDir: string, task: BacklogTaskSpec): string {
+  if (task.state === 'done') {
+    return path.join(taskSpecsDir, 'done', `${task.id}.yaml`);
+  }
+  return taskFilename(taskSpecsDir, task.id);
+}
+
 export function touchPathsOverlap(a: string[], b: string[]): boolean {
   return a.some(left => b.some(right => pathsOverlap(left, right)));
 }
@@ -213,22 +225,8 @@ export async function listTaskSpecFiles(taskSpecsDir: string): Promise<string[]>
   return collectTaskSpecFiles(taskSpecsDir, taskSpecsDir);
 }
 
-export async function readTaskSpecs(taskSpecsDir: string): Promise<BacklogTaskSpec[]> {
-  const taskSpecFiles = await listTaskSpecFiles(taskSpecsDir);
-  const specs = await Promise.all(
-    taskSpecFiles.map(async filePath => parseTaskSpec(await readFile(filePath, 'utf8'), filePath)),
-  );
-  return specs.sort(taskSort);
-}
-
-async function findExistingTaskSpecPath(taskSpecsDir: string, taskId: string): Promise<string | null> {
-  const files = await listTaskSpecFiles(taskSpecsDir);
-  const expectedName = `${taskId}.yaml`;
-  return files.find(f => path.basename(f) === expectedName) ?? null;
-}
-
-export async function writeTaskSpec(taskSpecsDir: string, task: BacklogTaskSpec): Promise<void> {
-  const content = YAML.stringify({
+function serializeTaskSpec(task: BacklogTaskSpec): string {
+  return YAML.stringify({
     id: task.id,
     title: task.title,
     priority: task.priority,
@@ -244,8 +242,114 @@ export async function writeTaskSpec(taskSpecsDir: string, task: BacklogTaskSpec)
     created_at: task.createdAt,
     updated_at: task.updatedAt,
   }, { indent: 2, lineWidth: 0 });
-  const existingPath = await findExistingTaskSpecPath(taskSpecsDir, task.id);
-  await writeFile(existingPath ?? taskFilename(taskSpecsDir, task.id), content, 'utf8');
+}
+
+function groupTaskSpecRecords(records: TaskSpecFileRecord[]): Map<string, TaskSpecFileRecord[]> {
+  const groups = new Map<string, TaskSpecFileRecord[]>();
+  for (const record of records) {
+    const existing = groups.get(record.task.id) ?? [];
+    existing.push(record);
+    groups.set(record.task.id, existing);
+  }
+  return groups;
+}
+
+function taskSpecPathSort(left: string, right: string): number {
+  return left.length - right.length || left.localeCompare(right);
+}
+
+function chooseAuthoritativeTaskSpec(records: TaskSpecFileRecord[]): TaskSpecFileRecord {
+  return [...records].sort((left, right) => (
+    right.task.updatedAt.localeCompare(left.task.updatedAt)
+    || taskSpecPathSort(left.relativePath, right.relativePath)
+  ))[0]!;
+}
+
+export async function inspectTaskSpecStore(taskSpecsDir: string): Promise<{
+  records: TaskSpecFileRecord[];
+  duplicateTaskIds: string[];
+}> {
+  let records: TaskSpecFileRecord[] = [];
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const taskSpecFiles = await listTaskSpecFiles(taskSpecsDir);
+      records = await Promise.all(
+        taskSpecFiles.map(async filePath => ({
+          filePath,
+          relativePath: normalizeRepoPath(path.relative(taskSpecsDir, filePath)),
+          task: parseTaskSpec(await readFile(filePath, 'utf8'), filePath),
+        })),
+      );
+      break;
+    } catch (error) {
+      const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+      if (code === 'ENOENT' && attempt === 0) {
+        continue;
+      }
+      if (code === 'ENOENT') {
+        return { records: [], duplicateTaskIds: [] };
+      }
+      throw error;
+    }
+  }
+  const duplicateTaskIds = [...groupTaskSpecRecords(records).entries()]
+    .filter(([, grouped]) => grouped.length > 1)
+    .map(([taskId]) => taskId)
+    .sort();
+  return { records, duplicateTaskIds };
+}
+
+export async function normalizeTaskSpecStore(taskSpecsDir: string): Promise<{
+  normalizedTaskIds: string[];
+}> {
+  const { records } = await inspectTaskSpecStore(taskSpecsDir);
+  const normalizedTaskIds: string[] = [];
+  for (const [taskId, grouped] of groupTaskSpecRecords(records).entries()) {
+    const authoritative = chooseAuthoritativeTaskSpec(grouped);
+    const canonicalPath = canonicalTaskSpecPath(taskSpecsDir, authoritative.task);
+    const canonicalRelativePath = normalizeRepoPath(path.relative(taskSpecsDir, canonicalPath));
+    const needsRewrite = grouped.length > 1 || authoritative.relativePath !== canonicalRelativePath;
+    if (!needsRewrite) {
+      continue;
+    }
+
+    await mkdir(path.dirname(canonicalPath), { recursive: true });
+    await writeFile(canonicalPath, serializeTaskSpec(authoritative.task), 'utf8');
+    for (const record of grouped) {
+      if (record.filePath !== canonicalPath) {
+        await rm(record.filePath, { force: true });
+      }
+    }
+    normalizedTaskIds.push(taskId);
+  }
+
+  return { normalizedTaskIds: normalizedTaskIds.sort() };
+}
+
+export async function readTaskSpecs(taskSpecsDir: string): Promise<BacklogTaskSpec[]> {
+  let store = await inspectTaskSpecStore(taskSpecsDir);
+  if (store.duplicateTaskIds.length > 0) {
+    store = await inspectTaskSpecStore(taskSpecsDir);
+  }
+  if (store.duplicateTaskIds.length > 0) {
+    throw new Error(`Duplicate task spec ids found: ${store.duplicateTaskIds.join(', ')}. Run \`pnpm backlog:sync\` to normalize backlog/tasks.`);
+  }
+  return store.records.map(record => record.task).sort(taskSort);
+}
+
+export async function writeTaskSpec(taskSpecsDir: string, task: BacklogTaskSpec): Promise<void> {
+  const { records } = await inspectTaskSpecStore(taskSpecsDir);
+  const duplicatePaths = records
+    .filter(record => record.task.id === task.id)
+    .map(record => record.filePath);
+  const canonicalPath = canonicalTaskSpecPath(taskSpecsDir, task);
+  await mkdir(path.dirname(canonicalPath), { recursive: true });
+  await writeFile(canonicalPath, serializeTaskSpec(task), 'utf8');
+  for (const duplicatePath of duplicatePaths) {
+    if (duplicatePath !== canonicalPath) {
+      await rm(duplicatePath, { force: true });
+    }
+  }
 }
 
 function normalizeStringArray(value: unknown): string[] | null {

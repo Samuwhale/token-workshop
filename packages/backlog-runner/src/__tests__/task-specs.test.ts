@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { readTaskSpecs, renderGeneratedBacklog, writeTaskSpec } from '../task-specs.js';
+import { normalizeTaskSpecStore, readTaskSpecs, renderGeneratedBacklog, writeTaskSpec } from '../task-specs.js';
 import type { BacklogTaskSpec } from '../types.js';
 
 const tempDirs: string[] = [];
@@ -114,5 +114,52 @@ describe('task specs', () => {
     const tasks = await readTaskSpecs(taskDir);
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.statusNotes).toContain('Updated note');
+  });
+
+  it('normalizes duplicate task ids to a single canonical file using the newest update', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'backlog-task-specs-test-'));
+    tempDirs.push(root);
+    const taskDir = path.join(root, 'backlog/tasks');
+    await mkdir(path.join(taskDir, 'done'), { recursive: true });
+    await writeFile(path.join(taskDir, 'task-a.yaml'), renderTaskYaml(taskSpec({
+      id: 'task-a',
+      title: 'Task A active',
+      state: 'ready',
+      updatedAt: '2026-04-08T00:00:00.000Z',
+    })), 'utf8');
+    await writeFile(path.join(taskDir, 'done', 'task-a.yaml'), renderTaskYaml(taskSpec({
+      id: 'task-a',
+      title: 'Task A archived',
+      state: 'done',
+      updatedAt: '2026-04-08T00:01:00.000Z',
+      statusNotes: ['Archived winner'],
+    })), 'utf8');
+
+    const result = await normalizeTaskSpecStore(taskDir);
+
+    expect(result.normalizedTaskIds).toEqual(['task-a']);
+    expect((await readdir(taskDir)).filter(name => name.endsWith('.yaml'))).toEqual([]);
+    expect((await readdir(path.join(taskDir, 'done'))).filter(name => name.endsWith('.yaml'))).toEqual(['task-a.yaml']);
+
+    const tasks = await readTaskSpecs(taskDir);
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.title).toBe('Task A archived');
+    expect(tasks[0]!.statusNotes).toContain('Archived winner');
+  });
+
+  it('moves done tasks into done/ when rewriting canonical task specs', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'backlog-task-specs-test-'));
+    tempDirs.push(root);
+    const taskDir = path.join(root, 'backlog/tasks');
+    await mkdir(taskDir, { recursive: true });
+
+    await writeTaskSpec(taskDir, taskSpec({
+      id: 'task-a',
+      title: 'Task A',
+      state: 'done',
+    }));
+
+    expect((await readdir(taskDir)).filter(name => name.endsWith('.yaml'))).toEqual([]);
+    expect((await readdir(path.join(taskDir, 'done'))).filter(name => name.endsWith('.yaml'))).toEqual(['task-a.yaml']);
   });
 });

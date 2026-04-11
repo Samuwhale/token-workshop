@@ -51,7 +51,7 @@ pnpm backlog:validate
 - `pnpm backlog:sync` performs the queue-maintenance step only: drain the structured candidate queue into YAML task specs and rebuild the generated `backlog.md` report.
 - `pnpm backlog` starts the single orchestrator runner. It manages planner refinement, task execution, and optional discovery passes from one process instead of requiring separate executor/planner lanes.
 - `pnpm backlog -- --workers 3` runs the orchestrator with up to three task workers when worktrees are enabled. In shared-workspace mode the runner automatically caps task execution at one worker.
-- `pnpm backlog:validate` verifies the runner toolchain, prompts, validation command, and queue state before a longer autonomous run. It fails fast if legacy markdown planner files or prompt instructions remain.
+- `pnpm backlog:validate` verifies the runner toolchain, prompts, validation command, and queue state before a longer autonomous run. It fails fast if backlog state is still in legacy/stale mode, duplicate task IDs exist, or legacy prompt instructions remain.
 - These are the only supported backlog entrypoints. Do not use legacy Codex skill wrappers or edit generated backlog state by hand.
 - Task specs live in [`backlog/tasks`](/Users/samuel/Documents/Projects/TokenManager/backlog/tasks).
 - [`backlog.md`](/Users/samuel/Documents/Projects/TokenManager/backlog.md) is a stable generated report built from persisted task specs.

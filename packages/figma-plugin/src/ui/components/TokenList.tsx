@@ -50,7 +50,7 @@ import { useTokenSearch } from '../hooks/useTokenSearch';
 import { useTokenSelection } from '../hooks/useTokenSelection';
 import { dispatchToast } from '../shared/toastBus';
 import { NoticeBanner, NoticeFieldMessage } from '../shared/noticeSystem';
-import { TokenSearchFilterBuilder } from './TokenSearchFilterBuilder';
+import { TokenSearchFilterChips } from './TokenSearchFilterBuilder';
 import type { FilterBuilderSection } from './TokenSearchFilterBuilder';
 import { getStartHereBranchCopy, TOKENS_START_HERE_BRANCHES } from './WelcomePrompt';
 
@@ -3560,11 +3560,16 @@ export function TokenList({
 
             {(filterBuilderOpen || hasStructuredFilters) && (
               <div className="px-2 pb-2">
-                <TokenSearchFilterBuilder
+                <TokenSearchFilterChips
                   isOpen={filterBuilderOpen}
                   selectedSection={activeFilterBuilderSection}
                   onSelectSection={openFilterBuilderSection}
-                  onToggleOpen={toggleFilterBuilder}
+                  onOpenChange={(open) => {
+                    setFilterBuilderOpen(open);
+                    if (!open) {
+                      setActiveFilterBuilderSection(null);
+                    }
+                  }}
                   parsedSearchQuery={parsedSearchQuery}
                   selectedTypeQualifiers={selectedTypeQualifiers}
                   selectedHasQualifiers={selectedHasQualifiers}
