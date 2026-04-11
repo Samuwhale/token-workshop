@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
-import type { WorkspaceSection } from '../shared/navigationTypes';
-import type { ReturnBreadcrumb } from '../contexts/NavigationContext';
-import type { NoticeSeverity } from '../shared/noticeSystem';
-import { NoticePill } from '../shared/noticeSystem';
-import { shellControlClass } from '../shared/shellControlStyles';
+import type { ReactNode } from "react";
+import type { WorkspaceSection } from "../shared/navigationTypes";
+import type { ReturnBreadcrumb } from "../contexts/NavigationContext";
+import type { NoticeSeverity } from "../shared/noticeSystem";
+import { NoticePill } from "../shared/noticeSystem";
+import { shellControlClass } from "../shared/shellControlStyles";
 
 interface WorkspacePill {
   label: string;
@@ -18,7 +18,6 @@ interface WorkspacePrimaryAction {
 
 interface WorkspaceSummaryHeaderProps {
   title: string;
-  guidance: string;
   sections?: WorkspaceSection[];
   activeSectionId?: string | null;
   onSelectSection?: (section: WorkspaceSection) => void;
@@ -31,7 +30,6 @@ interface WorkspaceSummaryHeaderProps {
 
 export function WorkspaceSummaryHeader({
   title,
-  guidance,
   sections,
   activeSectionId,
   onSelectSection,
@@ -64,9 +62,6 @@ export function WorkspaceSummaryHeader({
             <div className="mt-1 truncate text-[13px] font-semibold text-[var(--color-figma-text)]">
               {title}
             </div>
-            <div className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)]">
-              {guidance}
-            </div>
           </div>
 
           {primaryAction && (
@@ -91,7 +86,7 @@ export function WorkspaceSummaryHeader({
                 <span className="pl-2 pr-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                   Sections
                 </span>
-                {sections.map(section => {
+                {sections.map((section) => {
                   const isActive = section.id === activeSectionId;
                   return (
                     <button
@@ -99,7 +94,11 @@ export function WorkspaceSummaryHeader({
                       role="tab"
                       aria-selected={isActive}
                       onClick={() => onSelectSection(section)}
-                      className={shellControlClass({ active: isActive, size: 'sm', shape: 'pill' })}
+                      className={shellControlClass({
+                        active: isActive,
+                        size: "sm",
+                        shape: "pill",
+                      })}
                     >
                       {section.label}
                     </button>

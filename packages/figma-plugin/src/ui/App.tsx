@@ -452,14 +452,6 @@ export function App() {
       activeWorkspace.label,
     [activeWorkspace, activeWorkspaceSection],
   );
-  const defaultWorkspaceSummaryGuidance = useMemo(
-    () =>
-      activeWorkspaceSection?.summaryGuidance ??
-      activeWorkspace.summaryGuidance ??
-      activeWorkspaceSection?.description ??
-      activeWorkspace.description,
-    [activeWorkspace, activeWorkspaceSection],
-  );
   const workspaceSummaryTitle = useMemo(() => {
     if (activeSecondarySurfaceDef)
       return activeSecondarySurfaceDef.summaryTitle;
@@ -479,104 +471,6 @@ export function App() {
     activeWorkspace.id,
     defaultWorkspaceSummaryTitle,
     themeShellState.activeView,
-  ]);
-  const workspaceSummaryGuidance = useMemo(() => {
-    if (activeSecondarySurfaceDef)
-      return activeSecondarySurfaceDef.summaryGuidance;
-    if (
-      activeWorkspace.id === "sync" &&
-      activeWorkspaceSection?.id === "publish"
-    ) {
-      if (publishPreflightState.stage === "running") {
-        return "Preflight is running now. Wait for the current token set to be checked against Figma before moving into compare or apply.";
-      }
-      if (
-        publishPreflightState.isOutdated ||
-        publishPreflightState.stage === "idle"
-      ) {
-        return "Start with preflight. It checks missing variables, orphaned variables, scopes, and descriptions before compare and apply unlock.";
-      }
-      if (publishPreflightState.stage === "blocked") {
-        return `${publishPreflightState.blockingCount} blocking cluster${publishPreflightState.blockingCount === 1 ? "" : "s"} still need attention before you can compare or apply.`;
-      }
-      if (publishPreflightState.stage === "advisory") {
-        return "Preflight passed with advisory cleanup only. Compare differences now, or clear the remaining recommendations before applying.";
-      }
-      return "Preflight is clear. Compare Figma variables and styles, then apply the reviewed destinations you want to keep.";
-    }
-
-    if (
-      activeWorkspace.id === "apply" &&
-      activeWorkspaceSection?.id === "inspect"
-    ) {
-      if (!applyWorkflowSummary.hasSelection) {
-        return "Start with the selection summary. Pick a layer on the canvas, then review best matches and bind the visible properties before opening advanced tools.";
-      }
-      if (!applyWorkflowSummary.hasAnyTokens) {
-        return "The selection is ready, but the token library is empty. Create tokens first so best matches and property binding can follow the default Apply sequence.";
-      }
-      if (applyWorkflowSummary.suggestionCount > 0) {
-        return `The selection is ready and ${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? "" : "es"} surfaced. Review those suggestions before you bind properties manually.`;
-      }
-      if (applyWorkflowSummary.nextUnboundProperty) {
-        return `No strong automatic matches surfaced. Continue to property binding and start with ${PROPERTY_LABELS[applyWorkflowSummary.nextUnboundProperty]}.`;
-      }
-      if (applyWorkflowSummary.allVisiblePropertiesBound) {
-        return "The primary Apply flow is complete. Open advanced tools only when you need sync, remap, extraction, or deep inspection work.";
-      }
-      return "The selection summary is ready. Continue into property binding to finish tokenizing the visible properties.";
-    }
-
-    if (activeWorkspace.id !== "themes") return defaultWorkspaceSummaryGuidance;
-    switch (themeShellState.activeView) {
-      case "coverage":
-        return "Review missing values and override gaps, then jump back into the matching axis and option to fix the mapping.";
-      case "compare":
-        return "Compare theme options without leaving the current theme context, then return to authoring when you are ready to keep editing.";
-      case "advanced":
-        return "Use DTCG resolvers only when the default axis, option, and set-role workflow no longer captures the resolution logic you need.";
-      default:
-        if (
-          themeWorkflowSummary.currentStage === "set-roles" &&
-          themeWorkflowSummary.unmappedOptionCount > 0
-        ) {
-          const target = themeWorkflowSummary.nextSetRoleTarget;
-          return target
-            ? `${themeWorkflowSummary.unmappedOptionCount} option${themeWorkflowSummary.unmappedOptionCount === 1 ? "" : "s"} still need a Base or Override set. ${target.actionLabel} for ${target.dimensionName} -> ${target.optionName}.`
-            : `${themeWorkflowSummary.unmappedOptionCount} option${themeWorkflowSummary.unmappedOptionCount === 1 ? "" : "s"} still need a Base or Override set before preview is reliable.`;
-        }
-        if (
-          themeWorkflowSummary.currentStage === "set-roles" &&
-          themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0
-        ) {
-          const target = themeWorkflowSummary.nextSetRoleTarget;
-          return target
-            ? `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} mapped option${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? "" : "s"} still need stale or empty assignments cleaned up. ${target.recommendedNextAction} Start with ${target.dimensionName} -> ${target.optionName}.`
-            : `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} mapped option${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? "" : "s"} still need stale or empty assignments cleaned up.`;
-        }
-        return themeShellState.showPreview
-          ? "Create axes, add options, map base and override sets, and review the live resolved output below before reaching for advanced logic."
-          : "Create axes, add options, map base and override sets, and preview the active combination before reaching for advanced logic.";
-    }
-  }, [
-    activeSecondarySurfaceDef,
-    activeWorkspace.id,
-    activeWorkspaceSection?.id,
-    defaultWorkspaceSummaryGuidance,
-    publishPreflightState.blockingCount,
-    publishPreflightState.isOutdated,
-    publishPreflightState.stage,
-    applyWorkflowSummary.allVisiblePropertiesBound,
-    applyWorkflowSummary.hasAnyTokens,
-    applyWorkflowSummary.hasSelection,
-    applyWorkflowSummary.nextUnboundProperty,
-    applyWorkflowSummary.suggestionCount,
-    themeShellState.activeView,
-    themeShellState.showPreview,
-    themeWorkflowSummary.currentStage,
-    themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount,
-    themeWorkflowSummary.nextSetRoleTarget,
-    themeWorkflowSummary.unmappedOptionCount,
   ]);
 
   // Track external file change refreshes so we can show a diff toast
@@ -1938,16 +1832,7 @@ export function App() {
     }
 
     return (
-      <div className="flex items-center justify-between gap-3 px-3 py-2">
-        <div className="min-w-0">
-          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Bring tokens in
-          </div>
-          <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-            {importSurface?.description ??
-              "Bring in token files, code exports, migration data, or Figma variables without leaving the token workflow."}
-          </div>
-        </div>
+      <div className="flex items-center justify-end px-3 py-2">
         <button
           onClick={() => toggleSecondarySurface("import")}
           className={`${shellControlClass({ size: "sm", shape: "rounded" })} shrink-0`}
@@ -1960,7 +1845,6 @@ export function App() {
   }, [
     activeSecondarySurface,
     activeWorkspace.id,
-    importSurface?.description,
     importSurface?.transition.usage,
     toggleSecondarySurface,
   ]);
@@ -2881,7 +2765,6 @@ export function App() {
 
         <WorkspaceSummaryHeader
           title={workspaceSummaryTitle}
-          guidance={workspaceSummaryGuidance}
           sections={shellSections}
           activeSectionId={shellActiveSectionId}
           onSelectSection={(section) => {

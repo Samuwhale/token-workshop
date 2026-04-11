@@ -1018,3 +1018,11 @@
   - Once selection bootstrap state exists in `InspectContext`, every selection-driven surface should consume that shared loading flag instead of interpreting the hook's initial `[]` as a real empty selection.
   - Neutral loading placeholders are preferable to search or empty-state affordances while the first Figma selection message is still in flight, because they avoid implying that the canvas has already reported "nothing selected."
 ---
+## 2026-04-11 - Remove description paragraphs and implementation-language copy from all workspaces and surfaces
+- Removed workspace and secondary-surface description/guidance metadata from the shell navigation model, simplified the workspace summary header to title-only, and reduced the Tokens import affordance to a single action so those paragraphs no longer render anywhere in the shell.
+- Validation: `pnpm exec prettier --check packages/figma-plugin/src/ui/App.tsx packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx packages/figma-plugin/src/ui/shared/navigationTypes.ts` passed. `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false 2>&1 | rg "App\\.tsx|WorkspaceSummaryHeader\\.tsx|navigationTypes\\.ts"` still reports pre-existing `App.tsx` diagnostics (`TS2322` tone unions around workflow stage arrays and existing implicit-`any` callbacks); no new errors surfaced in `WorkspaceSummaryHeader.tsx` or `navigationTypes.ts`.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L145, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L337, `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L481, `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` ~L19, `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` ~L45, `packages/figma-plugin/src/ui/App.tsx` ~L447, `packages/figma-plugin/src/ui/App.tsx` ~L1829, `packages/figma-plugin/src/ui/App.tsx` ~L2766
+- **Learnings for future iterations:**
+  - If the shell header should stay scannable, keep navigation metadata limited to titles and labels; long guidance copy in shared route config quickly leaks implementation language into the UI.
+  - Workspace-local secondary actions read better as concise buttons or pills than as mini explainer blocks once the shell already names the active workspace above them.
+---
