@@ -56,6 +56,7 @@ import {
   getFirstDimensionWithFillableGaps,
   resolveThemeAutoFillAction,
 } from "./theme-manager/themeAutoFillTargets";
+import { buildThemeResolverAuthoringContext } from "./theme-manager/themeResolverContext";
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
@@ -1094,6 +1095,19 @@ const ThemeManagerWorkspace = React.forwardRef<
     sets,
   ]);
 
+  const resolverAuthoringContext = useMemo(
+    () =>
+      resolverState
+        ? buildThemeResolverAuthoringContext({
+            dimensions,
+            selectedOptions,
+            resolvers: resolverState.resolvers,
+            activeResolverName: resolverState.activeResolver,
+          })
+        : null,
+    [dimensions, resolverState, selectedOptions],
+  );
+
   // --- Render helpers ---
 
   const renderSetRow = (
@@ -1587,6 +1601,7 @@ const ThemeManagerWorkspace = React.forwardRef<
           ) : activeView === "advanced" && resolverState ? (
             <ThemeAdvancedScreen
               resolverState={resolverState}
+              resolverAuthoringContext={resolverAuthoringContext}
               onBack={() => setActiveView("authoring")}
               onSuccess={onSuccess}
             />
@@ -1612,6 +1627,7 @@ const ThemeManagerWorkspace = React.forwardRef<
               canCompareThemes={canCompareThemes}
               showPreview={showPreview}
               resolverAvailable={Boolean(resolverState)}
+              resolverAuthoringContext={resolverAuthoringContext}
               newlyCreatedDim={newlyCreatedDim}
               draggingDimId={draggingDimId}
               dragOverDimId={dragOverDimId}

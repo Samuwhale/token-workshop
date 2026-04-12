@@ -2,15 +2,19 @@ import type { ResolverContentProps } from "../ResolverPanel";
 import { ResolverContent } from "../ResolverPanel";
 import { adaptShortcut } from "../../shared/utils";
 import { SHORTCUT_KEYS } from "../../shared/shortcutRegistry";
+import { ThemeResolverContextBanner } from "./ThemeResolverContextBanner";
+import type { ThemeResolverAuthoringContext } from "./themeResolverContext";
 
 interface ThemeAdvancedScreenProps {
   resolverState: ResolverContentProps;
+  resolverAuthoringContext: ThemeResolverAuthoringContext | null;
   onBack: () => void;
   onSuccess?: (message: string) => void;
 }
 
 export function ThemeAdvancedScreen({
   resolverState,
+  resolverAuthoringContext,
   onBack,
   onSuccess,
 }: ThemeAdvancedScreenProps) {
@@ -61,7 +65,19 @@ export function ThemeAdvancedScreen({
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">
-        <ResolverContent {...resolverState} onSuccess={onSuccess} />
+        <div className="flex h-full min-h-0 flex-col">
+          {resolverAuthoringContext && (
+            <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
+              <ThemeResolverContextBanner
+                context={resolverAuthoringContext}
+                description="This is the resolver summary reflected back into theme authoring, so structural mismatches are visible before publish preflight."
+              />
+            </div>
+          )}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ResolverContent {...resolverState} onSuccess={onSuccess} />
+          </div>
+        </div>
       </div>
     </>
   );

@@ -32,6 +32,11 @@ import type {
   ThemeRoleNavigationTarget,
 } from "../../shared/themeWorkflow";
 import { getFirstDimensionWithFillableGaps } from "./themeAutoFillTargets";
+import { ThemeResolverContextBanner } from "./ThemeResolverContextBanner";
+import type {
+  ThemeResolverAuthoringContext,
+  ThemeResolverAxisContext,
+} from "./themeResolverContext";
 
 export interface ThemeAuthoringScreenHandle {
   scrollToDimension: (dimId: string | null | undefined) => void;
@@ -89,6 +94,7 @@ interface ThemeAuthoringScreenProps {
   canCompareThemes: boolean;
   showPreview: boolean;
   resolverAvailable: boolean;
+  resolverAuthoringContext: ThemeResolverAuthoringContext | null;
   newlyCreatedDim: string | null;
   draggingDimId: string | null;
   dragOverDimId: string | null;
@@ -250,6 +256,7 @@ export const ThemeAuthoringScreen = forwardRef<
     canCompareThemes,
     showPreview,
     resolverAvailable,
+    resolverAuthoringContext,
     newlyCreatedDim,
     draggingDimId,
     dragOverDimId,
@@ -466,6 +473,18 @@ export const ThemeAuthoringScreen = forwardRef<
     () => getFirstDimensionWithFillableGaps(dimensions, coverage),
     [coverage, dimensions],
   );
+  const resolverAxisContextsById = useMemo<
+    Record<string, ThemeResolverAxisContext>
+  >(
+    () =>
+      Object.fromEntries(
+        (resolverAuthoringContext?.axes ?? []).map((axis) => [
+          axis.dimensionId,
+          axis,
+        ]),
+      ),
+    [resolverAuthoringContext],
+  );
 
   const previewTokens = useMemo<PreviewTokenEntry[]>(() => {
     if (!showPreview || dimensions.length === 0) return [];
@@ -576,6 +595,16 @@ export const ThemeAuthoringScreen = forwardRef<
                 values.
               </p>
             </div>
+
+            {resolverAuthoringContext && (
+              <div className="w-full max-w-[320px]">
+                <ThemeResolverContextBanner
+                  context={resolverAuthoringContext}
+                  actionLabel="Open advanced"
+                  onAction={onOpenAdvancedView}
+                />
+              </div>
+            )}
 
             <div className="w-full max-w-[260px]">
               <p className="mb-2 text-left text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
@@ -979,6 +1008,16 @@ export const ThemeAuthoringScreen = forwardRef<
               </div>
             </div>
 
+            {resolverAuthoringContext && (
+              <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
+                <ThemeResolverContextBanner
+                  context={resolverAuthoringContext}
+                  actionLabel="Open advanced"
+                  onAction={onOpenAdvancedView}
+                />
+              </div>
+            )}
+
             {dimensions.length > 1 && (
               <div className="flex flex-col gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 px-3 py-1.5">
                 <div className="relative">
@@ -1159,6 +1198,8 @@ export const ThemeAuthoringScreen = forwardRef<
                   </div>
                 )}
               {filteredDimensions.map((dimension) => {
+                const resolverAxisContext =
+                  resolverAxisContextsById[dimension.id] ?? null;
                 const selectedOption =
                   selectedOptions[dimension.id] ||
                   dimension.options[0]?.name ||
@@ -1362,6 +1403,30 @@ export const ThemeAuthoringScreen = forwardRef<
                                 className="min-w-[16px] shrink-0 px-1"
                               />
                             )}
+                            {resolverAxisContext && (
+                              <NoticePill
+                                severity={
+                                  resolverAxisContext.status === "matched"
+                                    ? "info"
+                                    : resolverAxisContext.status === "warning"
+                                      ? "warning"
+                                      : "error"
+                                }
+                                title={
+                                  resolverAxisContext.status === "matched"
+                                    ? resolverAxisContext.matchedContextName
+                                      ? `Active option "${resolverAxisContext.selectedOptionName}" maps to resolver context "${resolverAxisContext.matchedContextName}".`
+                                      : `Resolver dimension "${resolverAxisContext.modifierLabel}" is configured for this axis.`
+                                    : resolverAxisContext.issueMessages.join(
+                                        " ",
+                                      )
+                                }
+                              >
+                                {resolverAxisContext.modifierLabel
+                                  ? `Resolver: ${resolverAxisContext.modifierLabel}`
+                                  : "Resolver mismatch"}
+                              </NoticePill>
+                            )}
                             <button
                               onClick={() =>
                                 startRenameDim(dimension.id, dimension.name)
@@ -1524,6 +1589,22 @@ export const ThemeAuthoringScreen = forwardRef<
                         </>
                       )}
                     </div>
+
+                    {resolverAxisContext &&
+                      resolverAxisContext.status !== "matched" && (
+                        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
+                          <NoticeFieldMessage
+                            severity={
+                              resolverAxisContext.status === "warning"
+                                ? "warning"
+                                : "error"
+                            }
+                            className="mt-0"
+                          >
+                            {resolverAxisContext.issueMessages.join(" ")}
+                          </NoticeFieldMessage>
+                        </div>
+                      )}
 
                     {dimension.options.length > 0 && (
                       <div className="relative flex items-stretch border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
