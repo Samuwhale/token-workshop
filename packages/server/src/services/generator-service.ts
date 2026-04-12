@@ -779,12 +779,14 @@ export class GeneratorService {
   private generatorLocks = new Map<string, Promise<void>>();
   /** Promise-chain mutex — serializes all saveGenerators() calls to prevent file-rename races. */
   private saveLock = new PromiseChainLock();
+  private writingFiles = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
   }
 
   async initialize(): Promise<void> {
+    await fs.mkdir(this.dir, { recursive: true });
     await this.loadGenerators();
   }
 
@@ -794,39 +796,63 @@ export class GeneratorService {
 
   private async loadGenerators(): Promise<void> {
     try {
-      const content = await fs.readFile(this.filePath, "utf-8");
-      const data = JSON.parse(content);
-      if (
-        typeof data !== "object" ||
-        data === null ||
-        !Array.isArray(data.$generators)
-      ) {
+      this.generators = await this.readGeneratorsFromDisk();
+      this.pruneGeneratorLocks();
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
         console.warn(
-          "[GeneratorService] Invalid generators file: expected { $generators: [...] }",
+          `[GeneratorService] Failed to load generators from disk: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
         );
-        this.generators.clear();
-        return;
       }
-      this.generators.clear();
-      for (const gen of data.$generators) {
-        try {
-          const normalized = normalizeStoredGenerator(gen);
-          this.generators.set(normalized.id, normalized);
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          const id =
-            isObj(gen) && typeof gen.id === "string" ? gen.id : "(no id)";
-          console.warn(
-            `[GeneratorService] Skipping invalid generator entry: ${message}`,
-            id,
-          );
-          continue;
-        }
-      }
-    } catch {
       // File doesn't exist yet — perfectly normal on first run
       this.generators.clear();
     }
+  }
+
+  async reloadFromDisk(): Promise<"changed" | "removed" | "unchanged"> {
+    try {
+      const nextGenerators = await this.readGeneratorsFromDisk();
+      const prevSerialized = JSON.stringify(
+        Array.from(this.generators.values()),
+      );
+      const nextSerialized = JSON.stringify(
+        Array.from(nextGenerators.values()),
+      );
+      this.generators = nextGenerators;
+      this.pruneGeneratorLocks();
+      return prevSerialized === nextSerialized ? "unchanged" : "changed";
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        const hadGenerators = this.generators.size > 0;
+        this.generators.clear();
+        this.generatorLocks.clear();
+        return hadGenerators ? "removed" : "unchanged";
+      }
+      throw err;
+    }
+  }
+
+  startWriteGuard(absoluteFilePath: string): void {
+    const existing = this.writingFiles.get(absoluteFilePath);
+    if (existing) clearTimeout(existing);
+    this.writingFiles.set(
+      absoluteFilePath,
+      setTimeout(() => this.writingFiles.delete(absoluteFilePath), 30_000),
+    );
+  }
+
+  endWriteGuard(absoluteFilePath: string): void {
+    const timer = this.writingFiles.get(absoluteFilePath);
+    if (timer) clearTimeout(timer);
+    this.writingFiles.delete(absoluteFilePath);
+  }
+
+  consumeWriteGuard(absoluteFilePath: string): boolean {
+    if (!this.writingFiles.has(absoluteFilePath)) return false;
+    this.endWriteGuard(absoluteFilePath);
+    return true;
   }
 
   private saveGenerators(): Promise<void> {
@@ -839,9 +865,11 @@ export class GeneratorService {
     };
     const tmp = `${this.filePath}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+    this.startWriteGuard(this.filePath);
     try {
       await fs.rename(tmp, this.filePath);
     } catch (err) {
+      this.endWriteGuard(this.filePath);
       await fs.unlink(tmp).catch(() => {});
       throw err;
     }
@@ -862,10 +890,36 @@ export class GeneratorService {
 
   async reset(): Promise<void> {
     await this.saveLock.withLock(async () => {
+      this.startWriteGuard(this.filePath);
       await fs.rm(this.filePath, { force: true });
       this.generators.clear();
       this.generatorLocks.clear();
     });
+  }
+
+  private async readGeneratorsFromDisk(): Promise<Map<string, TokenGenerator>> {
+    const content = await fs.readFile(this.filePath, "utf-8");
+    const data = JSON.parse(content) as Partial<GeneratorsFile>;
+    if (!Array.isArray(data.$generators)) {
+      throw new Error(
+        'Invalid generators file: expected { "$generators": [] }',
+      );
+    }
+
+    const nextGenerators = new Map<string, TokenGenerator>();
+    for (const rawGenerator of data.$generators) {
+      const normalized = normalizeStoredGenerator(rawGenerator);
+      nextGenerators.set(normalized.id, normalized);
+    }
+    return nextGenerators;
+  }
+
+  private pruneGeneratorLocks(): void {
+    for (const generatorId of this.generatorLocks.keys()) {
+      if (!this.generators.has(generatorId)) {
+        this.generatorLocks.delete(generatorId);
+      }
+    }
   }
 
   async getById(id: string): Promise<TokenGenerator | undefined> {

@@ -27,6 +27,7 @@ import {
   taskCommitExclusionPaths,
 } from './helpers.js';
 import { classifyValidationFailure, queueNonBlockingValidationFollowup } from './validation-classify.js';
+import { containsSharedInstallPolicyCode } from '../workspace/shared-install.js';
 
 export function reconciliationPrompt(basePrompt: string): string {
   return `${basePrompt}
@@ -52,6 +53,7 @@ You are repairing repo/workspace state for an already-assigned task.
 ${ownershipGuidance}
 - Inspect local code and git state before deciding; do not guess when the repo can answer the question.
 - Leave an audit trail in progress notes when you discard or split work.
+- In shared-symlink temp worktrees, do not run dependency relinking commands such as pnpm install/add, npm install, yarn install, or bun install. If dependency refresh is required, return the dedicated main-repo refresh reason instead.
 - If the task is stale or impossible, return failed with a note starting exactly "stale —" or "impossible —".
 - Otherwise, repair the workspace so scheduler preflight, validation, and finalization can proceed.
 - End with the same strict JSON success/failure object as normal execution.`;
@@ -309,6 +311,15 @@ export async function attemptTaskReconciliation(
     const validation = await runValidationCommand(commandRunner, validationCommand, reconciliationCwd);
     if (!validation.ok) {
       const failureReason = `reconciliation validation failed: ${validation.summary}`;
+      if (containsSharedInstallPolicyCode(failureReason)) {
+        logger.line(`  ⚠ reconciliation deferred: ${failureReason}`);
+        return {
+          recovered: false,
+          deferred: true,
+          failureReason,
+          queuedFollowups: 0,
+        };
+      }
       const classification = classifyValidationFailure(
         claim,
         failureReason,

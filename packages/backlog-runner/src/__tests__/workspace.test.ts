@@ -1,4 +1,4 @@
-import { lstat, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,7 @@ import { createCommandRunner } from '../process.js';
 import type { CommandResult, CommandRunner } from '../types.js';
 import { GitWorktreeWorkspaceStrategy } from '../workspace/git-worktree.js';
 import { gitCommitAndPush } from '../workspace/in-place.js';
+import { SHARED_DEPENDENCY_BOOTSTRAP_MARKER } from '../workspace/shared-install.js';
 
 const tempDirs: string[] = [];
 
@@ -96,8 +97,10 @@ describe('git worktree strategy', () => {
 
     const rootNodeModules = path.join(session.cwd, 'node_modules');
     const packageNodeModules = path.join(session.cwd, 'packages/core/node_modules');
+    const markerPath = path.join(session.cwd, SHARED_DEPENDENCY_BOOTSTRAP_MARKER);
     expect((await lstat(rootNodeModules)).isSymbolicLink()).toBe(true);
     expect((await lstat(packageNodeModules)).isSymbolicLink()).toBe(true);
+    expect((await lstat(markerPath)).isFile()).toBe(true);
 
     await writeFile(path.join(session.cwd, 'feature.txt'), 'after\n', 'utf8');
     await writeFile(
@@ -114,6 +117,7 @@ describe('git worktree strategy', () => {
     expect(await readFile(path.join(root, 'feature.txt'), 'utf8')).toBe('after\n');
     expect(await readFile(path.join(root, 'scripts/backlog/progress.txt'), 'utf8')).toContain('## entry');
     expect(status.stdout).not.toContain('node_modules');
+    await expect(lstat(markerPath)).rejects.toThrow();
   }, 15000);
 
   it('fails cleanly on merge conflicts without overwriting main repo changes', async () => {
@@ -157,6 +161,22 @@ describe('git worktree strategy', () => {
       expect.stringContaining('packages/core:missing-dependency'),
     );
     warnSpy.mockRestore();
+  });
+
+  it('fails setup when a shared install symlink resolves into a temp backlog worktree', async () => {
+    const { root, config, runner } = await makeRepo();
+    const poisonedRoot = await mkdtemp(path.join(tmpdir(), 'backlog-poison-test-'));
+    tempDirs.push(poisonedRoot);
+    await mkdir(path.join(poisonedRoot, 'node_modules/.pnpm/fake@1.0.0/node_modules'), { recursive: true });
+    await symlink(
+      path.join(poisonedRoot, 'node_modules/.pnpm/fake@1.0.0/node_modules'),
+      path.join(root, 'packages/core/node_modules/fake'),
+      'dir',
+    );
+
+    const strategy = new GitWorktreeWorkspaceStrategy(runner, config);
+
+    await expect(strategy.setup()).rejects.toThrow(/BACKLOG_STALE_SHARED_INSTALL_STATE/);
   });
 
   it('does not push on a clean tree unless the runner explicitly retries a pending push', async () => {

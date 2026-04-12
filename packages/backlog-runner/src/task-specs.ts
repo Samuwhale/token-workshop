@@ -11,6 +11,7 @@ import type {
   PlannerTaskChild,
 } from './types.js';
 import { normalizeWhitespace } from './utils.js';
+import { touchesDependencyManifest } from './workspace/shared-install.js';
 
 const TASK_FILE_PATTERN = /\.ya?ml$/i;
 
@@ -71,9 +72,7 @@ function normalizePriority(value: unknown): BacklogTaskPriority | null {
 
 function isWorkspaceConfigPath(touchPath: string): boolean {
   const baseName = path.posix.basename(touchPath);
-  return touchPath === 'package.json'
-    || touchPath === 'pnpm-lock.yaml'
-    || touchPath === 'pnpm-workspace.yaml'
+  return touchesDependencyManifest(touchPath)
     || touchPath.startsWith('.github/')
     || /^tsconfig(?:\..+)?\.json$/i.test(baseName);
 }

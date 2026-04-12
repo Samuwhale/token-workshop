@@ -1,36 +1,44 @@
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
+import Fastify from "fastify";
+import cors from "@fastify/cors";
+import { watch } from "chokidar";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
 const _require = createRequire(import.meta.url);
-const _pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
+const _pkgPath = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "package.json",
+);
 const { version: SERVER_VERSION } = _require(_pkgPath) as { version: string };
-import { getHttpStatusCode, getErrorMessage } from './errors.js';
-import { tokenRoutes } from './routes/tokens.js';
-import { setRoutes } from './routes/sets.js';
-import { themeRoutes } from './routes/themes.js';
-import { syncRoutes } from './routes/sync.js';
-import { exportRoutes } from './routes/export.js';
-import { healthRoutes } from './routes/health.js';
-import { sseRoutes } from './routes/sse.js';
-import { lintRoutes } from './routes/lint.js';
-import { docsRoutes } from './routes/docs.js';
-import { TokenStore } from './services/token-store.js';
-import { GitSync } from './services/git-sync.js';
-import { GeneratorService } from './services/generator-service.js';
-import { OperationLog } from './services/operation-log.js';
-import { generatorRoutes } from './routes/generators.js';
-import { operationRoutes } from './routes/operations.js';
-import { resolverRoutes } from './routes/resolvers.js';
-import { ResolverStore } from './services/resolver-store.js';
-import { ManualSnapshotStore } from './services/manual-snapshot.js';
-import { snapshotRoutes } from './routes/snapshots.js';
-import { PromiseChainLock } from './utils/promise-chain-lock.js';
-import { RateLimiter } from './services/rate-limiter.js';
-import { createDimensionsStore, type DimensionsStore } from './routes/themes.js';
-import { EventBus } from './services/event-bus.js';
+import { getHttpStatusCode, getErrorMessage } from "./errors.js";
+import { tokenRoutes } from "./routes/tokens.js";
+import { setRoutes } from "./routes/sets.js";
+import { themeRoutes } from "./routes/themes.js";
+import { syncRoutes } from "./routes/sync.js";
+import { exportRoutes } from "./routes/export.js";
+import { healthRoutes } from "./routes/health.js";
+import { sseRoutes } from "./routes/sse.js";
+import { lintRoutes } from "./routes/lint.js";
+import { docsRoutes } from "./routes/docs.js";
+import { TokenStore } from "./services/token-store.js";
+import { GitSync } from "./services/git-sync.js";
+import { GeneratorService } from "./services/generator-service.js";
+import { OperationLog } from "./services/operation-log.js";
+import { generatorRoutes } from "./routes/generators.js";
+import { operationRoutes } from "./routes/operations.js";
+import { resolverRoutes } from "./routes/resolvers.js";
+import { ResolverStore } from "./services/resolver-store.js";
+import { ManualSnapshotStore } from "./services/manual-snapshot.js";
+import { snapshotRoutes } from "./routes/snapshots.js";
+import { PromiseChainLock } from "./utils/promise-chain-lock.js";
+import { RateLimiter } from "./services/rate-limiter.js";
+import {
+  createDimensionsStore,
+  type DimensionsStore,
+} from "./routes/themes.js";
+import { EventBus } from "./services/event-bus.js";
 
 export interface ServerConfig {
   tokenDir: string;
@@ -39,14 +47,21 @@ export interface ServerConfig {
 }
 
 export async function startServer(config: ServerConfig) {
-  const fastify = Fastify({ logger: true, bodyLimit: 5 * 1024 * 1024 /* 5 MB */ });
+  const fastify = Fastify({
+    logger: true,
+    bodyLimit: 5 * 1024 * 1024 /* 5 MB */,
+  });
 
   await fastify.register(cors, {
     // 'null' origin is sent by the Figma plugin iframe (sandboxed iframe with no inherited origin)
-    origin: ['https://www.figma.com', 'https://figma.com', /^https:\/\/.*\.figma\.com$/, 'null'],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    origin: [
+      "https://www.figma.com",
+      "https://figma.com",
+      /^https:\/\/.*\.figma\.com$/,
+      "null",
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   });
-
 
   // Global error handler — catches unhandled rejections from any route handler
   // that lacks its own try-catch, ensuring a consistent JSON error envelope
@@ -65,15 +80,15 @@ export async function startServer(config: ServerConfig) {
   // GET/HEAD/OPTIONS requests are exempt — reads are cheap and SSE streams must
   // stay open indefinitely. Uses a sliding-window counter per client IP.
   const rateLimiter = new RateLimiter({ max: 200, windowMs: 60_000 });
-  fastify.addHook('onRequest', async (request, reply) => {
+  fastify.addHook("onRequest", async (request, reply) => {
     const result = rateLimiter.check(request.method, request.ip);
     if (result) {
       reply
-        .header('Retry-After', String(result.retryAfterSec))
+        .header("Retry-After", String(result.retryAfterSec))
         .status(429)
         .send({
           statusCode: 429,
-          error: 'Too Many Requests',
+          error: "Too Many Requests",
           message: `Rate limit exceeded: max 200 write requests per minute. Retry after ${result.retryAfterSec}s.`,
         });
     }
@@ -114,21 +129,138 @@ export async function startServer(config: ServerConfig) {
   const eventBus = new EventBus();
   tokenStore.onChange((event) => eventBus.push(event));
 
+  const emitWorkspaceFileEvent = (
+    type: "workspace-file-changed" | "workspace-file-removed",
+    resourceType: "themes" | "generators" | "resolver",
+    setName: string,
+  ) => {
+    eventBus.push({ type, resourceType, setName });
+  };
+
+  const generatorsFilePath = path.join(config.tokenDir, "$generators.json");
+  const workspaceWatcher = watch(
+    [dimensionsStore.filePath, generatorsFilePath],
+    {
+      ignoreInitial: true,
+      awaitWriteFinish: { stabilityThreshold: 200 },
+    },
+  );
+
+  const reloadThemesFromDisk = async () => {
+    try {
+      const result = await dimensionsStore.reloadFromDisk();
+      if (result === "changed") {
+        emitWorkspaceFileEvent("workspace-file-changed", "themes", "$themes");
+      } else if (result === "removed") {
+        emitWorkspaceFileEvent("workspace-file-removed", "themes", "$themes");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn("[Themes] Failed to reload themes from disk:", err);
+      tokenStore.emitEvent({
+        type: "file-load-error",
+        setName: "$themes",
+        message,
+      });
+    }
+  };
+
+  const reloadGeneratorsFromDisk = async () => {
+    try {
+      const result = await generatorService.reloadFromDisk();
+      if (result === "changed") {
+        emitWorkspaceFileEvent(
+          "workspace-file-changed",
+          "generators",
+          "$generators",
+        );
+      } else if (result === "removed") {
+        emitWorkspaceFileEvent(
+          "workspace-file-removed",
+          "generators",
+          "$generators",
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(
+        "[GeneratorService] Failed to reload generators from disk:",
+        err,
+      );
+      tokenStore.emitEvent({
+        type: "file-load-error",
+        setName: "$generators",
+        message,
+      });
+    }
+  };
+
+  workspaceWatcher.on("add", (filePath) => {
+    if (filePath === dimensionsStore.filePath) {
+      if (dimensionsStore.consumeWriteGuard(filePath)) return;
+      void reloadThemesFromDisk();
+      return;
+    }
+    if (filePath === generatorsFilePath) {
+      if (generatorService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
+    }
+  });
+
+  workspaceWatcher.on("change", (filePath) => {
+    if (filePath === dimensionsStore.filePath) {
+      if (dimensionsStore.consumeWriteGuard(filePath)) return;
+      void reloadThemesFromDisk();
+      return;
+    }
+    if (filePath === generatorsFilePath) {
+      if (generatorService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
+    }
+  });
+
+  workspaceWatcher.on("unlink", (filePath) => {
+    if (filePath === dimensionsStore.filePath) {
+      if (dimensionsStore.consumeWriteGuard(filePath)) return;
+      void reloadThemesFromDisk();
+      return;
+    }
+    if (filePath === generatorsFilePath) {
+      if (generatorService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
+    }
+  });
+
+  workspaceWatcher.on("error", (err) => {
+    fastify.log.warn({ err }, "Workspace watcher error");
+  });
+
   // Decorate fastify with services
-  fastify.decorate('tokenStore', tokenStore);
-  fastify.decorate('tokenLock', tokenLock);
-  fastify.decorate('resolverLock', resolverStore.lock);
-  fastify.decorate('dimensionsStore', dimensionsStore);
-  fastify.decorate('gitSync', gitSync);
-  fastify.decorate('generatorService', generatorService);
-  fastify.decorate('operationLog', operationLog);
-  fastify.decorate('resolverStore', resolverStore);
-  fastify.decorate('manualSnapshots', manualSnapshots);
-  fastify.decorate('eventBus', eventBus);
+  fastify.decorate("tokenStore", tokenStore);
+  fastify.decorate("tokenLock", tokenLock);
+  fastify.decorate("resolverLock", resolverStore.lock);
+  fastify.decorate("dimensionsStore", dimensionsStore);
+  fastify.decorate("gitSync", gitSync);
+  fastify.decorate("generatorService", generatorService);
+  fastify.decorate("operationLog", operationLog);
+  fastify.decorate("resolverStore", resolverStore);
+  fastify.decorate("manualSnapshots", manualSnapshots);
+  fastify.decorate("eventBus", eventBus);
 
   // Forward resolver load errors to the SSE event stream
   resolverStore.onLoadError((name, message) => {
-    tokenStore.emitEvent({ type: 'file-load-error', setName: `resolver:${name}`, message });
+    tokenStore.emitEvent({
+      type: "file-load-error",
+      setName: `resolver:${name}`,
+      message,
+    });
+  });
+  resolverStore.onChange(({ type, name }) => {
+    emitWorkspaceFileEvent(
+      type === "removed" ? "workspace-file-removed" : "workspace-file-changed",
+      "resolver",
+      `resolver:${name}`,
+    );
   });
 
   // Auto-run generators when a source token is updated.
@@ -139,53 +271,76 @@ export async function startServer(config: ServerConfig) {
   // inside an active lock: the promise-chain mutex simply queues this run after
   // the current holder finishes (no re-entrancy / deadlock risk).
   tokenStore.onChange((event) => {
-    if (event.type === 'token-updated' && event.tokenPath) {
+    if (event.type === "token-updated" && event.tokenPath) {
       const tokenPath = event.tokenPath;
       tokenLock
-        .withLock(() => generatorService.runForSourceToken(tokenPath, tokenStore))
-        .catch(err => {
+        .withLock(() =>
+          generatorService.runForSourceToken(tokenPath, tokenStore),
+        )
+        .catch((err) => {
           const message = err instanceof Error ? err.message : String(err);
-          console.warn('[Generator] Auto-run failed:', err);
-          tokenStore.emitEvent({ type: 'generator-error', setName: '', message });
-          // Record the failure persistently so clients connecting later can see it
-          operationLog.record({
-            type: 'generator-auto-run-error',
-            description: `Generator auto-run failed for "${tokenPath}": ${message}`,
-            setName: '',
-            affectedPaths: [tokenPath],
-            beforeSnapshot: {},
-            afterSnapshot: {},
-          }).catch(logErr => {
-            console.error('[OperationLog] Failed to record generator error:', logErr);
+          console.warn("[Generator] Auto-run failed:", err);
+          tokenStore.emitEvent({
+            type: "generator-error",
+            setName: "",
+            message,
           });
+          // Record the failure persistently so clients connecting later can see it
+          operationLog
+            .record({
+              type: "generator-auto-run-error",
+              description: `Generator auto-run failed for "${tokenPath}": ${message}`,
+              setName: "",
+              affectedPaths: [tokenPath],
+              beforeSnapshot: {},
+              afterSnapshot: {},
+            })
+            .catch((logErr) => {
+              console.error(
+                "[OperationLog] Failed to record generator error:",
+                logErr,
+              );
+            });
         });
     }
   });
 
   // Ensure the file watchers are closed on server shutdown
-  fastify.addHook('onClose', async () => {
+  fastify.addHook("onClose", async () => {
     await tokenStore.shutdown();
     await resolverStore.shutdown();
+    await workspaceWatcher.close();
   });
 
   // Register routes
-  await fastify.register(healthRoutes, { prefix: '/api', version: SERVER_VERSION });
-  await fastify.register(tokenRoutes, { prefix: '/api' });
-  await fastify.register(setRoutes, { prefix: '/api' });
-  await fastify.register(themeRoutes, { prefix: '/api', tokenDir: config.tokenDir });
-  await fastify.register(syncRoutes, { prefix: '/api' });
-  await fastify.register(exportRoutes, { prefix: '/api' });
-  await fastify.register(sseRoutes, { prefix: '/api' });
-  await fastify.register(lintRoutes, { prefix: '/api', tokenDir: config.tokenDir });
-  await fastify.register(generatorRoutes, { prefix: '/api' });
-  await fastify.register(operationRoutes, { prefix: '/api' });
-  await fastify.register(resolverRoutes, { prefix: '/api' });
-  await fastify.register(snapshotRoutes, { prefix: '/api' });
+  await fastify.register(healthRoutes, {
+    prefix: "/api",
+    version: SERVER_VERSION,
+  });
+  await fastify.register(tokenRoutes, { prefix: "/api" });
+  await fastify.register(setRoutes, { prefix: "/api" });
+  await fastify.register(themeRoutes, {
+    prefix: "/api",
+    tokenDir: config.tokenDir,
+  });
+  await fastify.register(syncRoutes, { prefix: "/api" });
+  await fastify.register(exportRoutes, { prefix: "/api" });
+  await fastify.register(sseRoutes, { prefix: "/api" });
+  await fastify.register(lintRoutes, {
+    prefix: "/api",
+    tokenDir: config.tokenDir,
+  });
+  await fastify.register(generatorRoutes, { prefix: "/api" });
+  await fastify.register(operationRoutes, { prefix: "/api" });
+  await fastify.register(resolverRoutes, { prefix: "/api" });
+  await fastify.register(snapshotRoutes, { prefix: "/api" });
   await fastify.register(docsRoutes);
 
   try {
     await fastify.listen({ port: config.port, host: config.host });
-    console.log(`TokenManager server running at http://${config.host}:${config.port}`);
+    console.log(
+      `TokenManager server running at http://${config.host}:${config.port}`,
+    );
     console.log(`Token directory: ${config.tokenDir}`);
   } catch (err) {
     fastify.log.error(err);
@@ -196,7 +351,7 @@ export async function startServer(config: ServerConfig) {
 }
 
 // Type augmentation
-declare module 'fastify' {
+declare module "fastify" {
   interface FastifyInstance {
     tokenStore: TokenStore;
     tokenLock: PromiseChainLock;

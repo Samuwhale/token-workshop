@@ -27,6 +27,7 @@ is simple for later agents to understand and maintain.
    - Use focused checks while working so you catch obvious breakage early, but do not spend tokens rerunning the full final validation command unless you need it to debug a failure.
    - Do not spend time on broad extra test work unless the assigned task explicitly calls for it.
    - Do NOT use `npx pnpm …` or `npx turbo …` in worktrees.
+   - In shared-symlink temp worktrees, do NOT run dependency relinking commands such as `pnpm install`, `pnpm add`, `npm install`, `yarn install`, or `bun install`. Dependency refreshes must run from the main repo root only.
    - If validation fails and the issue is unfixable within scope, revert your source changes or report failure instead of leaving unrelated breakage behind.
 5. **Append to `scripts/backlog/progress.txt`** (see format below).
 6. **Queue follow-up work when needed** — if the current item reveals another backlog-worthy task or context a later run will need, append a JSON line to the follow-up queue path provided in your context. Use:
@@ -48,6 +49,7 @@ When the prompt explicitly says you are in workspace repair or reconciliation mo
 - This repository is agent-operated by default. Assume repo changes are agent-originated unless local evidence clearly proves otherwise.
 - You may inspect, keep, discard, restage, or split changes into follow-up backlog work when that is the best way to recover the assigned task.
 - You may use git to inspect and repair state, but do not force-push.
+- In shared-symlink temp worktrees, do not run `pnpm install`, `pnpm add`, `npm install`, `yarn install`, `bun install`, or equivalent relinking commands. If dependency refresh is required, fail or defer with the dedicated main-repo-refresh reason instead.
 - Leave an audit trail in `scripts/backlog/progress.txt` when you discard work or split it into follow-up items.
 - If the task is stale or impossible, end with a failure note that starts exactly with `stale —` or `impossible —`.
 - Otherwise, repair the workspace so the scheduler can re-run preflight, scope, validation, and finalization successfully.

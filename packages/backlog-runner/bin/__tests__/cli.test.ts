@@ -4,7 +4,8 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runCli } from '../cli.js';
 import { normalizeBacklogRunnerConfig } from '../../src/config.js';
-import type { BacklogRunnerConfig } from '../../src/types.js';
+import { LiveOrchestratorError } from '../../src/scheduler/index.js';
+import type { BacklogRunnerConfig, RunOverrides } from '../../src/types.js';
 import type { BacklogRunnerStatus } from '../../src/status.js';
 
 class BufferWriter {
@@ -245,6 +246,41 @@ describe('cli', () => {
 
     expect(exitCode).toBe(0);
     expect(stdout.output).toContain('Backlog Runner Status');
+  });
+
+  it('retries start with takeover after confirming a live orchestrator prompt', async () => {
+    const root = await makeTempDir();
+    await writeFile(path.join(root, 'backlog.config.mjs'), 'export default {};', 'utf8');
+    const config = makeConfig(root);
+    const liveStatus = {
+      orchestratorId: 'orch-live',
+      pid: 4242,
+      requestedWorkers: 2,
+      effectiveWorkers: 2,
+      activeTaskWorkers: [{ taskId: 'task-a', title: 'Task A' }],
+      shutdownRequested: false,
+      pollIntervalMs: 3000,
+      updatedAt: new Date().toISOString(),
+    } satisfies NonNullable<BacklogRunnerStatus['orchestrator']>;
+    const runBacklogRunner = vi.fn(async (_config: BacklogRunnerConfig, _overrides: RunOverrides) => undefined);
+    runBacklogRunner.mockRejectedValueOnce(new LiveOrchestratorError(config, liveStatus));
+    runBacklogRunner.mockResolvedValueOnce(undefined);
+
+    const exitCode = await runCli(
+      ['start'],
+      { stdout: new BufferWriter(), stderr: new BufferWriter() },
+      {
+        cwd: () => root,
+        isInteractive: () => true,
+        loadConfig: async () => config,
+        confirmLiveOrchestratorTakeover: async () => true,
+        runBacklogRunner,
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(runBacklogRunner).toHaveBeenCalledTimes(2);
+    expect(runBacklogRunner.mock.calls[1]![1]).toMatchObject({ takeover: true });
   });
 
   it('suggests the new command names for removed legacy commands', async () => {

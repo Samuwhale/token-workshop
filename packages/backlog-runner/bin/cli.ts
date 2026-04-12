@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { createInterface } from 'node:readline/promises';
+import { stdin as input, stdout as output } from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { promptForStartOverrides, shouldPromptInteractively } from './interactive.js';
 import {
@@ -10,7 +12,7 @@ import {
   type CliCommandName,
 } from './command-helpers.js';
 import { loadBacklogRunnerConfig } from '../src/config.js';
-import { runBacklogRunner, syncBacklogRunner } from '../src/scheduler/index.js';
+import { LiveOrchestratorError, runBacklogRunner, syncBacklogRunner } from '../src/scheduler/index.js';
 import { readBacklogRunnerStatus } from '../src/status.js';
 import { validateBacklogRunner } from '../src/validate.js';
 import type { BacklogRunnerConfig, BacklogSyncResult, RunOverrides, ToolValidationResult } from '../src/types.js';
@@ -23,6 +25,7 @@ type CliWriter = {
 type CliDependencies = {
   cwd: () => string;
   isInteractive: () => boolean;
+  confirmLiveOrchestratorTakeover: (error: LiveOrchestratorError) => Promise<boolean>;
   loadConfig: (configPath: string) => Promise<BacklogRunnerConfig>;
   runBacklogRunner: (config: BacklogRunnerConfig, overrides: RunOverrides) => Promise<void>;
   syncBacklogRunner: (config: BacklogRunnerConfig) => Promise<BacklogSyncResult>;
@@ -30,9 +33,21 @@ type CliDependencies = {
   readBacklogRunnerStatus: (config: BacklogRunnerConfig) => Promise<BacklogRunnerStatus>;
 };
 
+async function confirmLiveOrchestratorTakeover(error: LiveOrchestratorError): Promise<boolean> {
+  const rl = createInterface({ input, output });
+  try {
+    output.write(`${error.message}\n`);
+    const answer = (await rl.question('Type "takeover" to stop the existing orchestrator and continue, or press Enter to cancel: ')).trim().toLowerCase();
+    return answer === 'takeover' || answer === 't';
+  } finally {
+    rl.close();
+  }
+}
+
 const defaultDependencies: CliDependencies = {
   cwd: () => process.cwd(),
   isInteractive: () => Boolean(process.stdin.isTTY && process.stdout.isTTY),
+  confirmLiveOrchestratorTakeover,
   loadConfig: loadBacklogRunnerConfig,
   runBacklogRunner,
   syncBacklogRunner,
@@ -180,7 +195,24 @@ export async function runCli(
     if (shouldPromptInteractively('start', overrides, { yes: parsed.yes }) && deps.isInteractive()) {
       overrides = await promptForStartOverrides(config, overrides);
     }
-    await deps.runBacklogRunner(config, overrides);
+    try {
+      await deps.runBacklogRunner(config, overrides);
+    } catch (error) {
+      const canPromptForTakeover = (
+        error instanceof LiveOrchestratorError
+        && deps.isInteractive()
+        && !parsed.yes
+        && !overrides.takeover
+      );
+      if (!canPromptForTakeover) {
+        throw error;
+      }
+      const confirmedTakeover = await deps.confirmLiveOrchestratorTakeover(error);
+      if (!confirmedTakeover) {
+        throw error;
+      }
+      await deps.runBacklogRunner(config, { ...overrides, takeover: true });
+    }
     return 0;
   } catch (error) {
     writeLine(stderr, error instanceof Error ? error.message : String(error));

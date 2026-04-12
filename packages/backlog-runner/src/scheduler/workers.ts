@@ -20,6 +20,12 @@ import type {
   WorkspaceStrategy,
 } from '../types.js';
 import { BACKLOG_DISCOVERY_PASSES } from '../types.js';
+import {
+  MAIN_REPO_INSTALL_REQUIRED_CODE,
+  SHARED_INSTALL_RECOVERY_INSTRUCTION,
+  containsSharedInstallPolicyCode,
+  touchesDependencyManifest,
+} from '../workspace/shared-install.js';
 import { PREFLIGHT_DEFERRAL_MS } from './constants.js';
 import {
   bookkeepingPaths,
@@ -260,6 +266,14 @@ export async function runTaskWorker(
   logger.line(`  → ${claim.task.title} (${claim.task.id})`);
   let transcriptRecorder: Awaited<ReturnType<typeof createAgentTranscriptRecorder>> | null = null;
 
+  const dependencyManifestTask = claim.task.touchPaths.some(touchesDependencyManifest);
+  if (options.worktrees && dependencyManifestTask) {
+    const reason = `dependency refresh required from main repo [${MAIN_REPO_INSTALL_REQUIRED_CODE}]: task touches dependency manifests that must be refreshed from the main repo root. Recovery: ${SHARED_INSTALL_RECOVERY_INSTRUCTION}`;
+    await store.deferClaim(claim, reason, PREFLIGHT_DEFERRAL_MS, { category: 'preflight' });
+    logger.line(`  ⚠ ${reason} — deferred for retry`);
+    return taskWorkerResult('deferred', claim, startedAt, { note: reason });
+  }
+
   let session: WorkspaceSession;
   try {
     session = await workspaceStrategy.setup();
@@ -376,6 +390,15 @@ export async function runTaskWorker(
     const validation = await runValidationCommand(commandRunner, validationCommand, session.cwd);
     if (!validation.ok) {
       validationSummary = validation.summary;
+      const sharedInstallReason = `validation failed: ${validation.summary}`;
+      if (containsSharedInstallPolicyCode(sharedInstallReason)) {
+        await store.deferClaim(claim, sharedInstallReason, PREFLIGHT_DEFERRAL_MS, { category: 'preflight' });
+        logger.line(`  ⚠ ${sharedInstallReason} — deferred for retry`);
+        return taskWorkerResult('deferred', claim, startedAt, {
+          note: sharedInstallReason,
+          validationSummary,
+        });
+      }
       const outcome = await tryWithRemediation(config, store, commandRunner, logger, options, claim, startedAt, {
         mode: 'validation',
         cwd: session.cwd,

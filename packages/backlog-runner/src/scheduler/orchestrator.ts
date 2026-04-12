@@ -7,7 +7,7 @@ import { isAuthFailure, isRateLimited } from '../providers/common.js';
 import { createCommandRunner, sleep as defaultSleep } from '../process.js';
 import { createFileBackedTaskStore } from '../store/task-store.js';
 import { isOrchestratorStatusLive } from '../orchestrator-status.js';
-import { fileExists } from '../utils.js';
+import { fileExists, isPidAlive } from '../utils.js';
 import type {
   BacklogPassType,
   BacklogRunnerConfig,
@@ -23,6 +23,7 @@ import type {
 import { BACKLOG_RUNNER_ROLES } from '../types.js';
 import { GitWorktreeWorkspaceStrategy } from '../workspace/git-worktree.js';
 import { InPlaceWorkspaceStrategy } from '../workspace/in-place.js';
+import { formatStaleSharedInstallState, inspectSharedInstallState } from '../workspace/shared-install.js';
 import {
   EMPTY_QUEUE_POLL_INTERVAL_MS,
   ORCHESTRATOR_POLL_INTERVAL_MS,
@@ -35,6 +36,8 @@ import { runDiscoveryWorker, runPlannerWorker, runTaskWorker } from './workers.j
 
 const BLOCKED_DISCOVERY_MAX_BACKOFF_MS = 10 * 60 * 1000;
 type DiscoveryLaunchMode = 'empty' | 'blocked';
+const ORCHESTRATOR_TAKEOVER_GRACE_MS = 15_000;
+const ORCHESTRATOR_TAKEOVER_KILL_TIMEOUT_MS = 10_000;
 
 type ActiveControlWorker = {
   kind: 'planner' | 'discovery';
@@ -93,7 +96,17 @@ async function readOrchestratorStatus(config: BacklogRunnerConfig): Promise<Orch
   }
 }
 
-function formatLiveOrchestratorError(config: BacklogRunnerConfig, status: OrchestratorRuntimeStatus): Error {
+export class LiveOrchestratorError extends Error {
+  constructor(
+    readonly config: BacklogRunnerConfig,
+    readonly status: OrchestratorRuntimeStatus,
+  ) {
+    super(formatLiveOrchestratorMessage(config, status));
+    this.name = 'LiveOrchestratorError';
+  }
+}
+
+function formatLiveOrchestratorMessage(config: BacklogRunnerConfig, status: OrchestratorRuntimeStatus): string {
   const activeTasks = status.activeTaskWorkers.map(worker => worker.title);
   const activeTaskSummary = activeTasks.length === 0
     ? 'No active task workers were recorded in the last status heartbeat.'
@@ -101,9 +114,71 @@ function formatLiveOrchestratorError(config: BacklogRunnerConfig, status: Orches
   const shutdownSummary = status.shutdownRequested
     ? 'The existing orchestrator has already been asked to stop; wait for it to settle before starting a new one.'
     : `To stop it cleanly, run: touch ${config.files.stop}`;
-  return new Error(
-    `Another backlog orchestrator is already running (${status.orchestratorId}, pid ${status.pid}). ${activeTaskSummary} Runtime report: ${config.files.runtimeReport}. ${shutdownSummary}`,
+  return `Another backlog orchestrator is already running (${status.orchestratorId}, pid ${status.pid}). ${activeTaskSummary} Runtime report: ${config.files.runtimeReport}. ${shutdownSummary}`;
+}
+
+async function waitForOrchestratorExit(
+  config: BacklogRunnerConfig,
+  orchestratorId: string,
+  timeoutMs: number,
+  sleep: (ms: number) => Promise<void>,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const currentStatus = await readOrchestratorStatus(config);
+    if (!currentStatus) {
+      return true;
+    }
+    if (currentStatus.orchestratorId !== orchestratorId) {
+      return !isOrchestratorStatusLive(currentStatus);
+    }
+    if (!isOrchestratorStatusLive(currentStatus) || !isPidAlive(currentStatus.pid)) {
+      return true;
+    }
+    await sleep(Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
+  }
+  return false;
+}
+
+async function takeOverLiveOrchestrator(
+  config: BacklogRunnerConfig,
+  logger: RunnerLogger,
+  status: OrchestratorRuntimeStatus,
+  sleep: (ms: number) => Promise<void>,
+): Promise<void> {
+  logger.line(`  Live orchestrator detected: ${status.orchestratorId} (pid ${status.pid})`);
+  if (!status.shutdownRequested) {
+    await writeFile(config.files.stop, 'stop\n', 'utf8');
+    logger.line(`  Requested shutdown for existing orchestrator via ${config.files.stop}`);
+  } else {
+    logger.line('  Existing orchestrator already has shutdown requested — waiting for it to settle.');
+  }
+
+  const stoppedGracefully = await waitForOrchestratorExit(config, status.orchestratorId, ORCHESTRATOR_TAKEOVER_GRACE_MS, sleep);
+  if (!stoppedGracefully && isPidAlive(status.pid)) {
+    logger.line(`  Existing orchestrator did not stop in time — sending SIGTERM to pid ${status.pid}`);
+    try {
+      process.kill(status.pid, 'SIGTERM');
+    } catch {
+      // The process may already have exited; the liveness check below decides the next step.
+    }
+  }
+
+  const stoppedAfterSignal = stoppedGracefully || await waitForOrchestratorExit(
+    config,
+    status.orchestratorId,
+    ORCHESTRATOR_TAKEOVER_KILL_TIMEOUT_MS,
+    sleep,
   );
+  if (!stoppedAfterSignal) {
+    throw new Error(
+      `Timed out waiting for orchestrator ${status.orchestratorId} (pid ${status.pid}) to stop. Runtime report: ${config.files.runtimeReport}`,
+    );
+  }
+
+  await clearOrchestratorStatus(config);
+  await rm(config.files.stop, { force: true });
+  logger.line(`  Existing orchestrator stopped — taking over with a new run.`);
 }
 
 function shouldAttemptPlannerBatch(
@@ -137,16 +212,40 @@ async function currentPlannerBatchKey(
 async function ensureOrchestratorAvailable(
   config: BacklogRunnerConfig,
   logger: RunnerLogger,
+  options: { takeover?: boolean; sleep: (ms: number) => Promise<void> },
 ): Promise<void> {
   const status = await readOrchestratorStatus(config);
   if (!status) return;
 
   if (isOrchestratorStatusLive(status)) {
-    throw formatLiveOrchestratorError(config, status);
+    if (options.takeover) {
+      await takeOverLiveOrchestrator(config, logger, status, options.sleep);
+      return;
+    }
+    throw new LiveOrchestratorError(config, status);
   }
 
   await clearOrchestratorStatus(config);
   logger.line(`  Reclaimed stale orchestrator status: ${status.orchestratorId} (pid ${status.pid ?? 'unknown'})`);
+}
+
+async function ensureSharedInstallStartupReadiness(
+  config: BacklogRunnerConfig,
+  logger: RunnerLogger,
+  worktreesEnabled: boolean,
+): Promise<void> {
+  if (!worktreesEnabled) {
+    return;
+  }
+
+  const inspection = await inspectSharedInstallState(config.projectRoot);
+  if (inspection.staleSymlinks.length === 0) {
+    return;
+  }
+
+  const message = formatStaleSharedInstallState(inspection);
+  logger.line(`  ✗ ${message}`);
+  throw new Error(message);
 }
 
 export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<BacklogSyncResult> {
@@ -182,7 +281,8 @@ export async function runBacklogRunner(
   const orchestratorId = `${process.pid}-${Date.now()}`;
   let ownsOrchestratorStatus = false;
 
-  await ensureOrchestratorAvailable(config, logger);
+  await ensureOrchestratorAvailable(config, logger, { takeover: overrides.takeover, sleep });
+  await ensureSharedInstallStartupReadiness(config, logger, options.worktrees);
 
   if (options.worktrees) {
     await pruneGitWorktrees(commandRunner, config, logger);

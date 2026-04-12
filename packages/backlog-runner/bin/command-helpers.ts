@@ -24,6 +24,7 @@ const START_OPTIONS = {
   'no-passes': { type: 'boolean' },
   worktrees: { type: 'boolean' },
   'no-worktrees': { type: 'boolean' },
+  takeover: { type: 'boolean' },
   yes: { type: 'boolean', short: 'y' },
 } satisfies CliOptionSchema;
 
@@ -55,7 +56,7 @@ const COMMANDS: Record<CliCommandName, {
 }> = {
   start: {
     summary: 'Start the backlog orchestrator.',
-    usage: 'backlog-runner start [--workers N] [--tool TOOL] [--model MODEL] [--passes|--no-passes] [--worktrees|--no-worktrees] [--yes] [--config PATH]',
+    usage: 'backlog-runner start [--workers N] [--tool TOOL] [--model MODEL] [--passes|--no-passes] [--worktrees|--no-worktrees] [--takeover] [--yes] [--config PATH]',
     options: [
       '  --workers N         Requested task workers. Shared workspace mode still runs one task at a time.',
       '  --tool TOOL         Global override for all runner roles (`claude` or `codex`).',
@@ -64,6 +65,7 @@ const COMMANDS: Record<CliCommandName, {
       '  --no-passes         Disable discovery when no runnable work remains.',
       '  --worktrees         Use isolated git worktrees for task execution.',
       '  --no-worktrees      Use the shared workspace. Effective task concurrency becomes 1.',
+      '  --takeover          Stop a detected live orchestrator and take over the repo run.',
       '  --yes, -y           Skip the guided prompt and launch immediately.',
       '  --config PATH       Use a specific backlog runner config file.',
       '  --help, -h          Show this help.',
@@ -278,6 +280,7 @@ export async function parseCliCommand(command: CliCommandName, args: string[], c
         model: (values.model as string | undefined) || undefined,
         passes: parseBooleanPair(values, 'passes', 'no-passes'),
         worktrees: parseBooleanPair(values, 'worktrees', 'no-worktrees'),
+        takeover: values.takeover === true ? true : undefined,
       },
     };
   }

@@ -1,4 +1,4 @@
-import type { ChangeEvent } from './token-store.js';
+import type { ChangeEvent } from "./token-store.js";
 
 export interface SequencedEvent {
   id: number;
@@ -8,7 +8,7 @@ export interface SequencedEvent {
 const DEFAULT_BUFFER_SIZE = 256;
 
 /**
- * Wraps TokenStore change events with monotonic sequence IDs and maintains
+ * Wraps workspace change events with monotonic sequence IDs and maintains
  * a ring buffer of recent events for replay on SSE reconnect.
  */
 export class EventBus {
@@ -21,7 +21,7 @@ export class EventBus {
     this.bufferSize = bufferSize;
   }
 
-  /** Push a new event into the bus — called from TokenStore.onChange. */
+  /** Push a new workspace event into the bus. */
   push(event: ChangeEvent): void {
     const entry: SequencedEvent = { id: ++this.seq, event };
     this.buffer.push(entry);
@@ -36,7 +36,9 @@ export class EventBus {
   /** Subscribe to new events. Returns unsubscribe function. */
   subscribe(listener: (entry: SequencedEvent) => void): () => void {
     this.listeners.add(listener);
-    return () => { this.listeners.delete(listener); };
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   /** Current sequence number (0 if no events yet). */
@@ -55,7 +57,7 @@ export class EventBus {
     const oldest = this.buffer[0].id;
     if (lastId < oldest) return null; // gap — client is too stale
     // Find events after lastId
-    const startIdx = this.buffer.findIndex(e => e.id > lastId);
+    const startIdx = this.buffer.findIndex((e) => e.id > lastId);
     if (startIdx === -1) return [];
     return this.buffer.slice(startIdx);
   }

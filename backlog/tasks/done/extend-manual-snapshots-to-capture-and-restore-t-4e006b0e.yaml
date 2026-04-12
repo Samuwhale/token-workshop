@@ -14,11 +14,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: `ManualSnapshotStore` currently serializes only token sets while the History workspace still frames snapshots as whole-workspace checkpoints."
-state: ready
+  - "Completed: Manual snapshots now checkpoint tokens plus themes/resolvers/generators, diff and restore those workspace files, and the recovery UI reflects whole-workspace snapshots; git diff check passed, but prettier/tsc were blocked by missing shared node_modules binaries in this worktree."
+state: done
 acceptance_criteria:
   - Saving a manual snapshot persists token sets plus the current theme dimensions, resolver files, and generator definitions as one checkpoint.
   - Snapshot diff and restore endpoints compare and restore the non-token workspace files together with token sets.
   - Restoring a snapshot cannot leave theme, resolver, or generator config pointing at sets that only exist in the post-snapshot state.
 source: code-pass
 created_at: 2026-04-11T22:54:23.075Z
-updated_at: 2026-04-11T22:54:23.075Z
+updated_at: 2026-04-12T08:25:32.326Z

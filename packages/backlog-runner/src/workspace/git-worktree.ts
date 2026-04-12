@@ -11,6 +11,12 @@ import type {
   WorkspaceSession,
   WorkspaceStrategy,
 } from '../types.js';
+import {
+  SHARED_DEPENDENCY_BOOTSTRAP_MARKER,
+  formatStaleSharedInstallState,
+  inspectSharedInstallState,
+  type SharedDependencyBootstrapMarker,
+} from './shared-install.js';
 
 async function lineCount(filePath: string): Promise<number> {
   try {
@@ -99,13 +105,30 @@ async function verifyManifestDependencies(worktreePackageDir: string, label: str
   return missing;
 }
 
-async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: string): Promise<void> {
+async function writeSharedDependencyBootstrapMarker(
+  worktreeDir: string,
+  marker: SharedDependencyBootstrapMarker,
+): Promise<void> {
+  await writeFile(
+    path.join(worktreeDir, SHARED_DEPENDENCY_BOOTSTRAP_MARKER),
+    `${JSON.stringify(marker, null, 2)}\n`,
+    'utf8',
+  );
+}
+
+async function removeSharedDependencyBootstrapMarker(worktreeDir: string): Promise<void> {
+  await rm(path.join(worktreeDir, SHARED_DEPENDENCY_BOOTSTRAP_MARKER), { force: true });
+}
+
+async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: string): Promise<SharedDependencyBootstrapMarker> {
   const missingSources: string[] = [];
+  const requiredNodeModules: string[] = [];
   const rootNodeModules = path.join(projectRoot, 'node_modules');
   if (!(await pathExists(rootNodeModules))) {
     missingSources.push('root:node_modules');
   } else {
     await ensureDirectorySymlink(rootNodeModules, path.join(worktreeDir, 'node_modules'));
+    requiredNodeModules.push('node_modules');
   }
 
   const packagesDir = path.join(projectRoot, 'packages');
@@ -113,7 +136,7 @@ async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: s
   try {
     packageNames = await readdir(packagesDir);
   } catch {
-    return;
+    packageNames = [];
   }
 
   for (const packageName of packageNames) {
@@ -128,6 +151,7 @@ async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: s
 
     const targetNodeModules = path.join(worktreeDir, 'packages', packageName, 'node_modules');
     await ensureDirectorySymlink(sourceNodeModules, targetNodeModules);
+    requiredNodeModules.push(path.posix.join('packages', packageName, 'node_modules'));
   }
 
   if (missingSources.length > 0) {
@@ -146,9 +170,16 @@ async function bootstrapWorkspaceNodeModules(projectRoot: string, worktreeDir: s
   if (missingDependencies.length > 0) {
     console.warn(`worktree dependency bootstrap: ${missingDependencies.length} dependencies not found at expected paths (may be pnpm-hoisted): ${missingDependencies.join(', ')}`);
   }
+
+  return {
+    kind: 'shared-dependency-bootstrap',
+    projectRoot,
+    requiredNodeModules,
+  };
 }
 
 async function removeBootstrapWorkspaceNodeModules(worktreeDir: string): Promise<void> {
+  await removeSharedDependencyBootstrapMarker(worktreeDir);
   await rm(path.join(worktreeDir, 'node_modules'), { recursive: true, force: true });
 
   const packagesDir = path.join(worktreeDir, 'packages');
@@ -191,6 +222,7 @@ class GitWorktreeSession implements WorkspaceSession {
       ignoreFailure: true,
     });
 
+    await removeSharedDependencyBootstrapMarker(this.cwd);
     await removeBootstrapWorkspaceNodeModules(this.cwd);
     const status = await this.commandRunner.run('git', ['status', '--porcelain'], {
       cwd: this.cwd,
@@ -284,10 +316,31 @@ export class GitWorktreeWorkspaceStrategy implements WorkspaceStrategy {
     })).stdout.trim();
     const worktreeDir = await mkdtemp(path.join(tmpdir(), `backlog-${process.pid}-`));
     await withLock(lockPath(this.config, 'worktree'), 30, async () => {
-      await this.commandRunner.run('git', ['worktree', 'add', '--detach', worktreeDir, 'HEAD', '--quiet'], {
-        cwd: this.config.projectRoot,
-      });
-      await bootstrapWorkspaceNodeModules(this.config.projectRoot, worktreeDir);
+      try {
+        await this.commandRunner.run('git', ['worktree', 'add', '--detach', worktreeDir, 'HEAD', '--quiet'], {
+          cwd: this.config.projectRoot,
+        });
+        const marker = await bootstrapWorkspaceNodeModules(this.config.projectRoot, worktreeDir);
+        await writeSharedDependencyBootstrapMarker(worktreeDir, marker);
+
+        const inspection = await inspectSharedInstallState(worktreeDir, {
+          requiredNodeModules: marker.requiredNodeModules,
+        });
+        if (inspection.staleSymlinks.length > 0) {
+          throw new Error(formatStaleSharedInstallState(inspection));
+        }
+      } catch (error) {
+        await removeBootstrapWorkspaceNodeModules(worktreeDir);
+        await this.commandRunner.run('git', ['worktree', 'remove', worktreeDir, '--force'], {
+          cwd: this.config.projectRoot,
+          ignoreFailure: true,
+        });
+        await this.commandRunner.run('git', ['worktree', 'prune'], {
+          cwd: this.config.projectRoot,
+          ignoreFailure: true,
+        });
+        throw error;
+      }
     });
 
     const progressRelative = path.relative(this.config.projectRoot, this.config.files.progress);

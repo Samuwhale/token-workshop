@@ -42,6 +42,19 @@ describe('classifyValidationFailure', () => {
     expect(classification.blocking).toBe(false);
   });
 
+  it('keeps shared install policy failures blocking so they defer instead of queueing follow-ups', () => {
+    const classification = classifyValidationFailure(
+      makeClaim(),
+      'validation failed: dependency refresh required from main repo [BACKLOG_MAIN_REPO_INSTALL_REQUIRED]: poisoned shared install targets: packages/server/node_modules/fastify -> /tmp/backlog-123/node_modules/.pnpm/fastify/node_modules/fastify Recovery: remove poisoned package-local node_modules links and rerun pnpm install from the main repo root.',
+      ['packages/server/src/routes/sets.ts'],
+    );
+
+    expect(classification).toEqual({
+      blocking: true,
+      reason: 'validation failed: dependency refresh required from main repo [BACKLOG_MAIN_REPO_INSTALL_REQUIRED]: poisoned shared install targets: packages/server/node_modules/fastify -> /tmp/backlog-123/node_modules/.pnpm/fastify/node_modules/fastify Recovery: remove poisoned package-local node_modules links and rerun pnpm install from the main repo root.',
+    });
+  });
+
   it('treats failures in changed files as blocking', () => {
     const classification = classifyValidationFailure(
       makeClaim(),

@@ -96,6 +96,8 @@ export interface RunOverrides {
   workers?: number;
   passes?: boolean;
   worktrees?: boolean;
+  /** When true, stop a detected live orchestrator and take over the repo run. */
+  takeover?: boolean;
   interactive?: boolean;
 }
 

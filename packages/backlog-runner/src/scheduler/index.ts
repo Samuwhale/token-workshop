@@ -1,1 +1,1 @@
-export { runBacklogRunner, syncBacklogRunner } from './orchestrator.js';
+export { LiveOrchestratorError, runBacklogRunner, syncBacklogRunner } from './orchestrator.js';

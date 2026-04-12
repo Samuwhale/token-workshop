@@ -127,6 +127,11 @@ export interface ResolverMeta {
   referencedSets: string[];
 }
 
+export interface ResolverStoreChangeEvent {
+  type: "changed" | "removed";
+  name: string;
+}
+
 export class ResolverStore {
   private dir: string;
   readonly lock = new PromiseChainLock();
@@ -134,6 +139,9 @@ export class ResolverStore {
   private loadErrors: Map<string, { message: string; at: string }> = new Map();
   private loadErrorListeners = new Set<
     (name: string, message: string) => void
+  >();
+  private changeListeners = new Set<
+    (event: ResolverStoreChangeEvent) => void
   >();
   private watcher: ReturnType<typeof watch> | null = null;
   private _writingFiles: Map<string, ReturnType<typeof setTimeout>> = new Map();
@@ -162,6 +170,51 @@ export class ResolverStore {
     }
   }
 
+  startWriteGuard(absoluteFilePath: string): void {
+    this._startWriteGuard(absoluteFilePath);
+  }
+
+  endWriteGuard(absoluteFilePath: string): void {
+    this._clearWriteGuard(absoluteFilePath);
+  }
+
+  async reloadFile(
+    filePath: string,
+  ): Promise<"changed" | "removed" | "unchanged"> {
+    const absolutePath = path.isAbsolute(filePath)
+      ? filePath
+      : path.join(this.dir, filePath);
+    if (!absolutePath.endsWith(".resolver.json")) {
+      return "unchanged";
+    }
+
+    return this.lock.withLock(async () => {
+      try {
+        const changed = await this.loadFile(absolutePath);
+        return changed ? "changed" : "unchanged";
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+          const name = this.pathToName(absolutePath);
+          if (!name || !this.resolvers.has(name)) {
+            return "unchanged";
+          }
+          this.resolvers.delete(name);
+          this.loadErrors.delete(name);
+          this.emitChange({ type: "removed", name });
+          return "removed";
+        }
+        const name = this.pathToName(absolutePath);
+        if (!name) {
+          throw err;
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[ResolverStore] Failed to load ${absolutePath}:`, err);
+        this.emitLoadError(name, message);
+        return "unchanged";
+      }
+    });
+  }
+
   /**
    * Register a listener that fires whenever a resolver file fails to load
    * (parse error, validation error, or I/O error). Returns an unsubscribe fn.
@@ -173,6 +226,13 @@ export class ResolverStore {
     };
   }
 
+  onChange(fn: (event: ResolverStoreChangeEvent) => void): () => void {
+    this.changeListeners.add(fn);
+    return () => {
+      this.changeListeners.delete(fn);
+    };
+  }
+
   /** Returns all resolver files that failed to load, keyed by resolver name. */
   getLoadErrors(): Map<string, { message: string; at: string }> {
     return new Map(this.loadErrors);
@@ -181,6 +241,10 @@ export class ResolverStore {
   private emitLoadError(name: string, message: string): void {
     this.loadErrors.set(name, { message, at: new Date().toISOString() });
     for (const fn of this.loadErrorListeners) fn(name, message);
+  }
+
+  private emitChange(event: ResolverStoreChangeEvent): void {
+    for (const fn of this.changeListeners) fn(event);
   }
 
   // -----------------------------------------------------------------------
@@ -475,7 +539,15 @@ export class ResolverStore {
   private async loadAll(): Promise<void> {
     const files = await this.listResolverFiles();
     for (const filePath of files) {
-      await this.loadFile(filePath);
+      try {
+        await this.loadFile(filePath);
+      } catch (err) {
+        const name = this.pathToName(filePath);
+        if (!name) continue;
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[ResolverStore] Failed to load ${filePath}:`, err);
+        this.emitLoadError(name, message);
+      }
     }
   }
 
@@ -507,37 +579,42 @@ export class ResolverStore {
   private async loadFile(
     filePath: string,
     expectedDeleteGen?: number,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const name = this.pathToName(filePath);
-    if (!name) return;
-    try {
-      const content = await fs.readFile(filePath, "utf-8");
-      // If the file was removed while we were reading, discard the result so the
-      // resolver is not re-added to memory after onFileRemove already deleted it.
-      if (
-        expectedDeleteGen !== undefined &&
-        (this._fileDeleteGen.get(filePath) ?? 0) !== expectedDeleteGen
-      ) {
-        return;
-      }
-      const data = JSON.parse(content);
-      const errors = validateResolverFile(data);
-      if (errors.length > 0) {
-        const message = errors.join("; ");
-        console.warn(
-          `[ResolverStore] Invalid resolver file ${filePath}: ${message}`,
-        );
-        this.emitLoadError(name, message);
-        return;
-      }
-      this.resolvers.set(name, data as ResolverFile);
-      // Clear any prior load error for this resolver on successful load
-      this.loadErrors.delete(name);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn(`[ResolverStore] Failed to load ${filePath}:`, err);
-      this.emitLoadError(name, message);
+    if (!name) return false;
+
+    const previous = this.resolvers.get(name);
+    const content = await fs.readFile(filePath, "utf-8");
+    // If the file was removed while we were reading, discard the result so the
+    // resolver is not re-added to memory after onFileRemove already deleted it.
+    if (
+      expectedDeleteGen !== undefined &&
+      (this._fileDeleteGen.get(filePath) ?? 0) !== expectedDeleteGen
+    ) {
+      return false;
     }
+    const data = JSON.parse(content);
+    const errors = validateResolverFile(data);
+    if (errors.length > 0) {
+      const message = errors.join("; ");
+      console.warn(
+        `[ResolverStore] Invalid resolver file ${filePath}: ${message}`,
+      );
+      this.emitLoadError(name, message);
+      return false;
+    }
+
+    const next = data as ResolverFile;
+    const previousSerialized = previous ? JSON.stringify(previous) : null;
+    const nextSerialized = JSON.stringify(next);
+    this.resolvers.set(name, next);
+    // Clear any prior load error for this resolver on successful load
+    this.loadErrors.delete(name);
+    if (previousSerialized !== nextSerialized) {
+      this.emitChange({ type: "changed", name });
+      return true;
+    }
+    return false;
   }
 
   private startWatching(): void {
@@ -557,10 +634,20 @@ export class ResolverStore {
       this._clearWriteGuard(filePath);
       return;
     }
-    // Capture delete generation before the async load so we can discard stale results
-    // if the file is removed while loadFile is in-flight (create-then-quickly-delete race).
-    const genAtStart = this._fileDeleteGen.get(filePath) ?? 0;
-    await this.loadFile(filePath, genAtStart);
+    await this.lock.withLock(async () => {
+      // Capture delete generation before the async load so we can discard stale results
+      // if the file is removed while loadFile is in-flight (create-then-quickly-delete race).
+      const genAtStart = this._fileDeleteGen.get(filePath) ?? 0;
+      try {
+        await this.loadFile(filePath, genAtStart);
+      } catch (err) {
+        const name = this.pathToName(filePath);
+        if (!name) return;
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[ResolverStore] Failed to load ${filePath}:`, err);
+        this.emitLoadError(name, message);
+      }
+    });
   }
 
   private onFileRemove(filePath: string): void {
@@ -569,12 +656,20 @@ export class ResolverStore {
       this._clearWriteGuard(filePath);
       return;
     }
-    const name = this.pathToName(filePath);
-    if (name) this.resolvers.delete(name);
-    // Bump the generation so any concurrent onFileChange loadFile will discard its result.
-    this._fileDeleteGen.set(
-      filePath,
-      (this._fileDeleteGen.get(filePath) ?? 0) + 1,
-    );
+    void this.lock.withLock(async () => {
+      const name = this.pathToName(filePath);
+      const existed = name ? this.resolvers.delete(name) : false;
+      if (name) {
+        this.loadErrors.delete(name);
+      }
+      // Bump the generation so any concurrent onFileChange loadFile will discard its result.
+      this._fileDeleteGen.set(
+        filePath,
+        (this._fileDeleteGen.get(filePath) ?? 0) + 1,
+      );
+      if (name && existed) {
+        this.emitChange({ type: "removed", name });
+      }
+    });
   }
 }

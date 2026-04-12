@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -9,6 +9,7 @@ import {
   validateCommandReadiness,
   validateGitReadiness,
   validatePromptContracts,
+  validateSharedInstallReadiness,
 } from '../validate.js';
 import type { BacklogRunnerConfig, CommandResult, CommandRunOptions, CommandRunner } from '../types.js';
 
@@ -281,6 +282,24 @@ describe('validate helpers', () => {
     expect(calls.some(call => call.startsWith('git worktree add --detach '))).toBe(true);
     expect(calls.some(call => call.startsWith('git worktree remove '))).toBe(true);
     expect(calls).toContain('git worktree prune');
+  });
+
+  it('fails shared install readiness when package symlinks point into a temp backlog worktree', async () => {
+    const config = await makeFixture();
+    await mkdir(path.join(config.projectRoot, 'packages/server/node_modules'), { recursive: true });
+    const poisonedRoot = await mkdtemp(path.join(tmpdir(), 'backlog-poisoned-install-'));
+    tempDirs.push(poisonedRoot);
+    await mkdir(path.join(poisonedRoot, 'node_modules/.pnpm/fastify@1.0.0/node_modules'), { recursive: true });
+    await symlink(
+      path.join(poisonedRoot, 'node_modules/.pnpm/fastify@1.0.0/node_modules'),
+      path.join(config.projectRoot, 'packages/server/node_modules/fastify'),
+      'dir',
+    );
+
+    const result = await validateSharedInstallReadiness(config);
+
+    expect(result.ok).toBe(false);
+    expect(result.messages[0]).toContain('BACKLOG_STALE_SHARED_INSTALL_STATE');
   });
 
   it('validates mixed runner configurations and applies planner smoke only to the planner runner', async () => {

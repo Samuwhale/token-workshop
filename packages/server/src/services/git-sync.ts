@@ -1,9 +1,12 @@
-import simpleGit, { SimpleGit } from 'simple-git';
-import path from 'node:path';
-import fs from 'node:fs/promises';
-import { BadRequestError, GitTimeoutError } from '../errors.js';
-import type { TokenStore } from './token-store.js';
-import { PromiseChainLock } from '../utils/promise-chain-lock.js';
+import simpleGit, { SimpleGit } from "simple-git";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { BadRequestError, GitTimeoutError } from "../errors.js";
+import type { TokenStore } from "./token-store.js";
+import type { DimensionsStore } from "../routes/themes.js";
+import type { GeneratorService } from "./generator-service.js";
+import type { ResolverStore } from "./resolver-store.js";
+import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
 /**
  * Timeout (ms) applied to all git network operations (fetch, pull, push).
@@ -18,7 +21,7 @@ const GIT_NETWORK_TIMEOUT_MS = 30_000;
 function isTimeoutError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const msg = err.message.toLowerCase();
-  return msg.includes('timeout') || msg.includes('timed out');
+  return msg.includes("timeout") || msg.includes("timed out");
 }
 
 /**
@@ -45,14 +48,22 @@ async function wrapNetworkOp<T>(op: string, promise: Promise<T>): Promise<T> {
  * Type-change and unmerged are treated as modifications.
  * Unknown/broken statuses return null (skip the entry).
  */
-function normalizeGitStatus(raw: string): 'A' | 'M' | 'D' | null {
+function normalizeGitStatus(raw: string): "A" | "M" | "D" | null {
   const ch = raw.charAt(0);
   switch (ch) {
-    case 'A': return 'A';
-    case 'D': return 'D';
-    case 'M': case 'T': case 'U': return 'M';
-    case 'R': case 'C': return 'A'; // destination file is new/copied
-    default: return null;
+    case "A":
+      return "A";
+    case "D":
+      return "D";
+    case "M":
+    case "T":
+    case "U":
+      return "M";
+    case "R":
+    case "C":
+      return "A"; // destination file is new/copied
+    default:
+      return null;
   }
 }
 
@@ -61,16 +72,18 @@ function normalizeGitStatus(raw: string): 'A' | 'M' | 'D' | null {
  * Handles rename (R100\told\tnew) and copy (C100\told\tnew) lines
  * which have two path columns — we use the destination path.
  */
-function parseStatusLine(line: string): { status: string; filePath: string } | null {
-  const parts = line.split('\t');
+function parseStatusLine(
+  line: string,
+): { status: string; filePath: string } | null {
+  const parts = line.split("\t");
   if (parts.length < 2) return null;
   const status = parts[0];
   const ch = status.charAt(0);
   // R and C statuses have: R100\told_path\tnew_path
-  if ((ch === 'R' || ch === 'C') && parts.length >= 3) {
+  if ((ch === "R" || ch === "C") && parts.length >= 3) {
     return { status, filePath: parts[parts.length - 1] };
   }
-  return { status, filePath: parts.slice(1).join('\t') };
+  return { status, filePath: parts.slice(1).join("\t") };
 }
 
 /** Result of applyDiffChoices with partial-failure details. */
@@ -124,7 +137,7 @@ function* parseConflictRegions(
   let pendingBefore: string[] = [];
 
   while (i < lines.length) {
-    if (lines[i].startsWith('<<<<<<<')) {
+    if (lines[i].startsWith("<<<<<<<")) {
       // Yield accumulated non-conflict lines before this region
       yield { beforeLines: pendingBefore, region: null };
       pendingBefore = [];
@@ -132,7 +145,7 @@ function* parseConflictRegions(
       const oursLines: string[] = [];
       const theirsLines: string[] = [];
       i++;
-      while (i < lines.length && !lines[i].startsWith('=======')) {
+      while (i < lines.length && !lines[i].startsWith("=======")) {
         oursLines.push(lines[i]);
         i++;
       }
@@ -142,7 +155,7 @@ function* parseConflictRegions(
         return;
       }
       i++; // skip =======
-      while (i < lines.length && !lines[i].startsWith('>>>>>>>')) {
+      while (i < lines.length && !lines[i].startsWith(">>>>>>>")) {
         theirsLines.push(lines[i]);
         i++;
       }
@@ -152,7 +165,10 @@ function* parseConflictRegions(
         return;
       }
       i++; // skip >>>>>>>
-      yield { beforeLines: [], region: { regionIndex: regionIndex++, oursLines, theirsLines } };
+      yield {
+        beforeLines: [],
+        region: { regionIndex: regionIndex++, oursLines, theirsLines },
+      };
     } else {
       pendingBefore.push(lines[i]);
       i++;
@@ -170,12 +186,12 @@ function* parseConflictRegions(
  */
 export function parseConflictMarkers(content: string): ConflictRegion[] {
   const regions: ConflictRegion[] = [];
-  for (const { region } of parseConflictRegions(content.split('\n'))) {
+  for (const { region } of parseConflictRegions(content.split("\n"))) {
     if (region) {
       regions.push({
         index: region.regionIndex,
-        ours: region.oursLines.join('\n'),
-        theirs: region.theirsLines.join('\n'),
+        ours: region.oursLines.join("\n"),
+        theirs: region.theirsLines.join("\n"),
       });
     }
   }
@@ -188,17 +204,21 @@ export function parseConflictMarkers(content: string): ConflictRegion[] {
  */
 export function resolveConflictContent(
   content: string,
-  choices: Record<number, 'ours' | 'theirs'>,
+  choices: Record<number, "ours" | "theirs">,
 ): string {
   const result: string[] = [];
-  for (const { beforeLines, region } of parseConflictRegions(content.split('\n'))) {
+  for (const { beforeLines, region } of parseConflictRegions(
+    content.split("\n"),
+  )) {
     result.push(...beforeLines);
     if (region) {
-      const choice = choices[region.regionIndex] ?? 'ours';
-      result.push(...(choice === 'theirs' ? region.theirsLines : region.oursLines));
+      const choice = choices[region.regionIndex] ?? "ours";
+      result.push(
+        ...(choice === "theirs" ? region.theirsLines : region.oursLines),
+      );
     }
   }
-  return result.join('\n');
+  return result.join("\n");
 }
 
 export class GitSync {
@@ -209,18 +229,22 @@ export class GitSync {
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
-    this.git = simpleGit({ baseDir: this.dir, timeout: { block: GIT_NETWORK_TIMEOUT_MS } });
+    this.git = simpleGit({
+      baseDir: this.dir,
+      timeout: { block: GIT_NETWORK_TIMEOUT_MS },
+    });
   }
-
 
   /** Validate a branch name is safe (not a flag, not empty, no control chars). */
   private validateBranchName(name: string): void {
-    if (!name || name.startsWith('-')) {
+    if (!name || name.startsWith("-")) {
       throw new Error(`Invalid branch name: "${name}"`);
     }
     // Block control characters and whitespace other than normal space (which git itself rejects)
     if (/[\x00-\x1f\x7f]/.test(name)) {
-      throw new Error(`Invalid branch name: "${name}" contains control characters`);
+      throw new Error(
+        `Invalid branch name: "${name}" contains control characters`,
+      );
     }
   }
 
@@ -236,7 +260,7 @@ export class GitSync {
 
   async isRepo(): Promise<boolean> {
     try {
-      await this.git.revparse(['--git-dir']);
+      await this.git.revparse(["--git-dir"]);
       return true;
     } catch {
       return false;
@@ -257,7 +281,7 @@ export class GitSync {
         this.validatePaths(files);
         await this.git.add(files);
       } else {
-        await this.git.add('.');
+        await this.git.add(".");
       }
       const result = await this.git.commit(message);
       return result.commit;
@@ -265,13 +289,13 @@ export class GitSync {
   }
 
   async push(): Promise<void> {
-    await this.lock.withLock(() => wrapNetworkOp('push', this.git.push()));
+    await this.lock.withLock(() => wrapNetworkOp("push", this.git.push()));
   }
 
   async pull(): Promise<{ conflicts: string[] }> {
     return this.lock.withLock(async () => {
       try {
-        await wrapNetworkOp('pull', this.git.pull());
+        await wrapNetworkOp("pull", this.git.pull());
         return { conflicts: [] };
       } catch (err) {
         if (err instanceof GitTimeoutError) throw err;
@@ -288,8 +312,12 @@ export class GitSync {
   /** List files with unresolved merge conflicts. */
   async getConflictedFiles(): Promise<string[]> {
     try {
-      const raw = await this.git.raw(['diff', '--name-only', '--diff-filter=U']);
-      return raw.trim().split('\n').filter(Boolean);
+      const raw = await this.git.raw([
+        "diff",
+        "--name-only",
+        "--diff-filter=U",
+      ]);
+      return raw.trim().split("\n").filter(Boolean);
     } catch {
       return [];
     }
@@ -302,9 +330,10 @@ export class GitSync {
     for (const file of files) {
       const filePath = path.resolve(this.dir, file);
       // Validate path is within token directory
-      if (!filePath.startsWith(this.dir + path.sep) && filePath !== this.dir) continue;
+      if (!filePath.startsWith(this.dir + path.sep) && filePath !== this.dir)
+        continue;
       try {
-        const content = await fs.readFile(filePath, 'utf-8');
+        const content = await fs.readFile(filePath, "utf-8");
         const regions = parseConflictMarkers(content);
         if (regions.length > 0) {
           results.push({ file, regions });
@@ -317,14 +346,17 @@ export class GitSync {
   }
 
   /** Resolve conflicts in a file by choosing ours/theirs per region, then stage it. */
-  async resolveFileConflict(file: string, choices: Record<number, 'ours' | 'theirs'>): Promise<void> {
+  async resolveFileConflict(
+    file: string,
+    choices: Record<number, "ours" | "theirs">,
+  ): Promise<void> {
     return this.lock.withLock(async () => {
       this.validatePaths([file]);
       const filePath = path.resolve(this.dir, file);
-      const content = await fs.readFile(filePath, 'utf-8');
+      const content = await fs.readFile(filePath, "utf-8");
       const resolved = resolveConflictContent(content, choices);
       const tmp = `${filePath}.tmp`;
-      await fs.writeFile(tmp, resolved, 'utf-8');
+      await fs.writeFile(tmp, resolved, "utf-8");
       await fs.rename(tmp, filePath);
       await this.git.add([file]);
     });
@@ -343,19 +375,30 @@ export class GitSync {
    * files are restored to their conflicted state via `git checkout -m`.
    */
   async resolveAllConflicts(
-    resolutions: Array<{ file: string; choices: Record<number, 'ours' | 'theirs'> }>,
+    resolutions: Array<{
+      file: string;
+      choices: Record<number, "ours" | "theirs">;
+    }>,
   ): Promise<void> {
     return this.lock.withLock(async () => {
       // --- 1. Validate structure of each resolution entry ---
       for (const res of resolutions) {
-        if (!res || typeof res.file !== 'string' || !res.file) {
-          throw new BadRequestError('Each resolution must have a non-empty "file" string');
+        if (!res || typeof res.file !== "string" || !res.file) {
+          throw new BadRequestError(
+            'Each resolution must have a non-empty "file" string',
+          );
         }
-        if (!res.choices || typeof res.choices !== 'object' || Array.isArray(res.choices)) {
-          throw new BadRequestError(`Resolution for "${res.file}" must have a "choices" object`);
+        if (
+          !res.choices ||
+          typeof res.choices !== "object" ||
+          Array.isArray(res.choices)
+        ) {
+          throw new BadRequestError(
+            `Resolution for "${res.file}" must have a "choices" object`,
+          );
         }
         for (const [idxStr, choice] of Object.entries(res.choices)) {
-          if (choice !== 'ours' && choice !== 'theirs') {
+          if (choice !== "ours" && choice !== "theirs") {
             throw new BadRequestError(
               `Invalid choice "${choice}" at region ${idxStr} in "${res.file}": must be "ours" or "theirs"`,
             );
@@ -364,11 +407,11 @@ export class GitSync {
       }
 
       // --- 2. Validate paths (directory traversal check) ---
-      this.validatePaths(resolutions.map(r => r.file));
+      this.validatePaths(resolutions.map((r) => r.file));
 
       // --- 3. Load current conflict state and cross-validate ---
       const currentConflicts = await this.getConflicts();
-      const conflictMap = new Map(currentConflicts.map(c => [c.file, c]));
+      const conflictMap = new Map(currentConflicts.map((c) => [c.file, c]));
 
       for (const { file, choices } of resolutions) {
         const conflict = conflictMap.get(file);
@@ -392,18 +435,26 @@ export class GitSync {
         }
         if (missingIndices.length > 0) {
           throw new BadRequestError(
-            `Incomplete resolution for "${file}": missing choices for conflict region(s) ${missingIndices.join(', ')} ` +
+            `Incomplete resolution for "${file}": missing choices for conflict region(s) ${missingIndices.join(", ")} ` +
               `(file has ${regionCount} conflict region(s); all must be resolved in a single request)`,
           );
         }
       }
 
       // --- 4. Resolve all file contents in memory (no side effects yet) ---
-      const resolved: Array<{ file: string; filePath: string; content: string }> = [];
+      const resolved: Array<{
+        file: string;
+        filePath: string;
+        content: string;
+      }> = [];
       for (const { file, choices } of resolutions) {
         const filePath = path.resolve(this.dir, file);
-        const content = await fs.readFile(filePath, 'utf-8');
-        resolved.push({ file, filePath, content: resolveConflictContent(content, choices) });
+        const content = await fs.readFile(filePath, "utf-8");
+        resolved.push({
+          file,
+          filePath,
+          content: resolveConflictContent(content, choices),
+        });
       }
 
       // --- 5. Write and stage; rollback on partial failure ---
@@ -411,7 +462,7 @@ export class GitSync {
       try {
         for (const { file, filePath, content } of resolved) {
           const tmp = `${filePath}.tmp`;
-          await fs.writeFile(tmp, content, 'utf-8');
+          await fs.writeFile(tmp, content, "utf-8");
           await fs.rename(tmp, filePath);
           await this.git.add([file]);
           staged.push(file);
@@ -422,7 +473,7 @@ export class GitSync {
         // client can retry, rather than a partial merge.
         for (const f of staged) {
           try {
-            await this.git.raw(['checkout', '-m', '--', f]);
+            await this.git.raw(["checkout", "-m", "--", f]);
           } catch (rollbackErr) {
             console.warn(`[GitSync] Rollback failed for "${f}":`, rollbackErr);
           }
@@ -434,7 +485,7 @@ export class GitSync {
 
   /** Abort the current merge. */
   async abortMerge(): Promise<void> {
-    await this.lock.withLock(() => this.git.merge(['--abort']));
+    await this.lock.withLock(() => this.git.merge(["--abort"]));
   }
 
   /** Finalize merge after all conflicts resolved — creates the merge commit. */
@@ -443,19 +494,21 @@ export class GitSync {
       // Check if any conflicts remain
       const remaining = await this.getConflictedFiles();
       if (remaining.length > 0) {
-        throw new Error(`Cannot finalize merge: ${remaining.length} file(s) still have conflicts`);
+        throw new Error(
+          `Cannot finalize merge: ${remaining.length} file(s) still have conflicts`,
+        );
       }
       try {
-        await this.git.commit('Merge remote changes (conflicts resolved)');
+        await this.git.commit("Merge remote changes (conflicts resolved)");
       } catch (err) {
-        console.warn('[GitSync] Finalize merge commit failed:', err);
+        console.warn("[GitSync] Finalize merge commit failed:", err);
         throw err;
       }
     });
   }
 
   async getCurrentBranch(): Promise<string> {
-    const branch = await this.git.revparse(['--abbrev-ref', 'HEAD']);
+    const branch = await this.git.revparse(["--abbrev-ref", "HEAD"]);
     return branch.trim();
   }
 
@@ -480,16 +533,19 @@ export class GitSync {
 
   async log(limit = 20, offset = 0, search?: string) {
     const options: Record<string, unknown> = { maxCount: limit };
-    if (offset > 0) options['--skip'] = offset;
+    if (offset > 0) options["--skip"] = offset;
     if (search) {
-      options['--grep'] = search;
-      options['--regexp-ignore-case'] = null;
+      options["--grep"] = search;
+      options["--regexp-ignore-case"] = null;
     }
     return this.git.log(options as Parameters<typeof this.git.log>[0]);
   }
 
   /** Get the content of a file at a specific commit. Returns null if the file doesn't exist at that commit. */
-  async showFileAtCommit(commitHash: string, filePath: string): Promise<string | null> {
+  async showFileAtCommit(
+    commitHash: string,
+    filePath: string,
+  ): Promise<string | null> {
     try {
       return await this.git.show([`${commitHash}:${filePath}`]);
     } catch {
@@ -498,26 +554,38 @@ export class GitSync {
   }
 
   /** Get token file diffs between two arbitrary commits (fromHash → toHash). */
-  async diffBetweenCommits(fromHash: string, toHash: string): Promise<Array<{
-    file: string;
-    status: 'A' | 'M' | 'D';
-    before: string | null;
-    after: string | null;
-  }>> {
-    const raw = await this.git.raw(['diff', '--name-status', fromHash, toHash]);
-    const lines = raw.trim().split('\n').filter(Boolean);
-    const results: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+  async diffBetweenCommits(
+    fromHash: string,
+    toHash: string,
+  ): Promise<
+    Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }>
+  > {
+    const raw = await this.git.raw(["diff", "--name-status", fromHash, toHash]);
+    const lines = raw.trim().split("\n").filter(Boolean);
+    const results: Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }> = [];
 
     for (const line of lines) {
       const parsed = parseStatusLine(line);
       if (!parsed) continue;
       const { filePath } = parsed;
-      if (!filePath.endsWith('.tokens.json')) continue;
+      if (!filePath.endsWith(".tokens.json")) continue;
 
       const s = normalizeGitStatus(parsed.status);
       if (!s) continue;
-      const before = s !== 'A' ? await this.showFileAtCommit(fromHash, filePath) : null;
-      const after = s !== 'D' ? await this.showFileAtCommit(toHash, filePath) : null;
+      const before =
+        s !== "A" ? await this.showFileAtCommit(fromHash, filePath) : null;
+      const after =
+        s !== "D" ? await this.showFileAtCommit(toHash, filePath) : null;
       results.push({ file: filePath, status: s, before, after });
     }
 
@@ -525,27 +593,44 @@ export class GitSync {
   }
 
   /** Get the list of changed .tokens.json files in a commit with their before/after JSON content. */
-  async getTokenFileDiffs(commitHash: string): Promise<Array<{
-    file: string;
-    status: 'A' | 'M' | 'D';
-    before: string | null;
-    after: string | null;
-  }>> {
+  async getTokenFileDiffs(commitHash: string): Promise<
+    Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }>
+  > {
     // Get list of changed files with status
-    const raw = await this.git.raw(['diff-tree', '--no-commit-id', '-r', '--name-status', commitHash]);
-    const lines = raw.trim().split('\n').filter(Boolean);
-    const results: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+    const raw = await this.git.raw([
+      "diff-tree",
+      "--no-commit-id",
+      "-r",
+      "--name-status",
+      commitHash,
+    ]);
+    const lines = raw.trim().split("\n").filter(Boolean);
+    const results: Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }> = [];
 
     for (const line of lines) {
       const parsed = parseStatusLine(line);
       if (!parsed) continue;
       const { filePath } = parsed;
-      if (!filePath.endsWith('.tokens.json')) continue;
+      if (!filePath.endsWith(".tokens.json")) continue;
 
       const s = normalizeGitStatus(parsed.status);
       if (!s) continue;
-      const after = s !== 'D' ? await this.showFileAtCommit(commitHash, filePath) : null;
-      const before = s !== 'A' ? await this.showFileAtCommit(`${commitHash}~1`, filePath) : null;
+      const after =
+        s !== "D" ? await this.showFileAtCommit(commitHash, filePath) : null;
+      const before =
+        s !== "A"
+          ? await this.showFileAtCommit(`${commitHash}~1`, filePath)
+          : null;
       results.push({ file: filePath, status: s, before, after });
     }
 
@@ -555,9 +640,9 @@ export class GitSync {
   async setRemote(url: string): Promise<void> {
     return this.lock.withLock(async () => {
       try {
-        await this.git.addRemote('origin', url);
+        await this.git.addRemote("origin", url);
       } catch {
-        await this.git.remote(['set-url', 'origin', url]);
+        await this.git.remote(["set-url", "origin", url]);
       }
     });
   }
@@ -565,7 +650,7 @@ export class GitSync {
   async getRemote(): Promise<string | null> {
     try {
       const remotes = await this.git.getRemotes(true);
-      const origin = remotes.find(r => r.name === 'origin');
+      const origin = remotes.find((r) => r.name === "origin");
       return origin?.refs?.push || null;
     } catch {
       return null;
@@ -573,38 +658,50 @@ export class GitSync {
   }
 
   async fetch(): Promise<void> {
-    await this.lock.withLock(() => wrapNetworkOp('fetch', this.git.fetch()));
+    await this.lock.withLock(() => wrapNetworkOp("fetch", this.git.fetch()));
   }
 
   /** Get token-level diffs for uncommitted changes in .tokens.json files.
    *  Compares working tree against HEAD. */
-  async getWorkingTreeTokenDiff(): Promise<Array<{
-    file: string;
-    status: 'A' | 'M' | 'D';
-    before: string | null;
-    after: string | null;
-  }>> {
+  async getWorkingTreeTokenDiff(): Promise<
+    Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }>
+  > {
     // Get both staged and unstaged changes
-    const raw = await this.git.raw(['diff', 'HEAD', '--name-status']);
+    const raw = await this.git.raw(["diff", "HEAD", "--name-status"]);
     // Also include untracked .tokens.json files
-    const untrackedRaw = await this.git.raw(['ls-files', '--others', '--exclude-standard']);
-    const lines = raw.trim().split('\n').filter(Boolean);
-    const results: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+    const untrackedRaw = await this.git.raw([
+      "ls-files",
+      "--others",
+      "--exclude-standard",
+    ]);
+    const lines = raw.trim().split("\n").filter(Boolean);
+    const results: Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }> = [];
 
     for (const line of lines) {
       const parsed = parseStatusLine(line);
       if (!parsed) continue;
       const { filePath } = parsed;
-      if (!filePath.endsWith('.tokens.json')) continue;
+      if (!filePath.endsWith(".tokens.json")) continue;
 
       const s = normalizeGitStatus(parsed.status);
       if (!s) continue;
-      const before = s !== 'A' ? await this.showFileAtCommit('HEAD', filePath) : null;
+      const before =
+        s !== "A" ? await this.showFileAtCommit("HEAD", filePath) : null;
       let after: string | null = null;
-      if (s !== 'D') {
+      if (s !== "D") {
         const absPath = path.resolve(this.dir, filePath);
         try {
-          after = await fs.readFile(absPath, 'utf-8');
+          after = await fs.readFile(absPath, "utf-8");
         } catch {
           after = null;
         }
@@ -613,15 +710,20 @@ export class GitSync {
     }
 
     // Add untracked .tokens.json files as 'A' (added)
-    const untrackedFiles = untrackedRaw.trim().split('\n').filter(Boolean);
+    const untrackedFiles = untrackedRaw.trim().split("\n").filter(Boolean);
     for (const filePath of untrackedFiles) {
-      if (!filePath.endsWith('.tokens.json')) continue;
+      if (!filePath.endsWith(".tokens.json")) continue;
       // Skip if already in diff results
-      if (results.some(r => r.file === filePath)) continue;
+      if (results.some((r) => r.file === filePath)) continue;
       const absPath = path.resolve(this.dir, filePath);
       try {
-        const content = await fs.readFile(absPath, 'utf-8');
-        results.push({ file: filePath, status: 'A', before: null, after: content });
+        const content = await fs.readFile(absPath, "utf-8");
+        results.push({
+          file: filePath,
+          status: "A",
+          before: null,
+          after: content,
+        });
       } catch {
         // skip unreadable files
       }
@@ -633,16 +735,26 @@ export class GitSync {
   /** Token-level diff of what a push would send (local HEAD vs remote tracking branch).
    *  Also returns the list of commits that would be pushed. */
   async getPushPreview(): Promise<{
-    commits: Array<{ hash: string; date: string; message: string; author: string }>;
-    fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }>;
+    commits: Array<{
+      hash: string;
+      date: string;
+      message: string;
+      author: string;
+    }>;
+    fileDiffs: Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }>;
   }> {
     await this.fetch();
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
     // Commits that would be pushed
-    const logResult = await this.git.log({ from: remote, to: 'HEAD' });
-    const commits = logResult.all.map(e => ({
+    const logResult = await this.git.log({ from: remote, to: "HEAD" });
+    const commits = logResult.all.map((e) => ({
       hash: e.hash,
       date: e.date,
       message: e.message,
@@ -650,20 +762,31 @@ export class GitSync {
     }));
 
     // File-level diff (with content) for token files
-    const raw = await this.git.raw(['diff', '--name-status', `${remote}..HEAD`]);
-    const lines = raw.trim().split('\n').filter(Boolean);
-    const fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+    const raw = await this.git.raw([
+      "diff",
+      "--name-status",
+      `${remote}..HEAD`,
+    ]);
+    const lines = raw.trim().split("\n").filter(Boolean);
+    const fileDiffs: Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }> = [];
 
     for (const line of lines) {
       const parsed = parseStatusLine(line);
       if (!parsed) continue;
       const { filePath } = parsed;
-      if (!filePath.endsWith('.tokens.json')) continue;
+      if (!filePath.endsWith(".tokens.json")) continue;
 
       const s = normalizeGitStatus(parsed.status);
       if (!s) continue;
-      const before = s !== 'A' ? await this.showFileAtCommit(remote, filePath) : null;
-      const after = s !== 'D' ? await this.showFileAtCommit('HEAD', filePath) : null;
+      const before =
+        s !== "A" ? await this.showFileAtCommit(remote, filePath) : null;
+      const after =
+        s !== "D" ? await this.showFileAtCommit("HEAD", filePath) : null;
       fileDiffs.push({ file: filePath, status: s, before, after });
     }
 
@@ -673,16 +796,26 @@ export class GitSync {
   /** Token-level diff of what a pull would bring in (remote tracking branch vs local HEAD).
    *  Also returns the list of incoming commits. */
   async getPullPreview(): Promise<{
-    commits: Array<{ hash: string; date: string; message: string; author: string }>;
-    fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }>;
+    commits: Array<{
+      hash: string;
+      date: string;
+      message: string;
+      author: string;
+    }>;
+    fileDiffs: Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }>;
   }> {
     await this.fetch();
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
     // Commits that would be pulled
-    const logResult = await this.git.log({ from: 'HEAD', to: remote });
-    const commits = logResult.all.map(e => ({
+    const logResult = await this.git.log({ from: "HEAD", to: remote });
+    const commits = logResult.all.map((e) => ({
       hash: e.hash,
       date: e.date,
       message: e.message,
@@ -690,21 +823,32 @@ export class GitSync {
     }));
 
     // File-level diff: what remote has that local doesn't
-    const raw = await this.git.raw(['diff', '--name-status', `HEAD..${remote}`]);
-    const lines = raw.trim().split('\n').filter(Boolean);
-    const fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+    const raw = await this.git.raw([
+      "diff",
+      "--name-status",
+      `HEAD..${remote}`,
+    ]);
+    const lines = raw.trim().split("\n").filter(Boolean);
+    const fileDiffs: Array<{
+      file: string;
+      status: "A" | "M" | "D";
+      before: string | null;
+      after: string | null;
+    }> = [];
 
     for (const line of lines) {
       const parsed = parseStatusLine(line);
       if (!parsed) continue;
       const { filePath } = parsed;
-      if (!filePath.endsWith('.tokens.json')) continue;
+      if (!filePath.endsWith(".tokens.json")) continue;
 
       const s = normalizeGitStatus(parsed.status);
       if (!s) continue;
       // "before" = current local state (HEAD), "after" = what remote has
-      const before = s !== 'A' ? await this.showFileAtCommit('HEAD', filePath) : null;
-      const after = s !== 'D' ? await this.showFileAtCommit(remote, filePath) : null;
+      const before =
+        s !== "A" ? await this.showFileAtCommit("HEAD", filePath) : null;
+      const after =
+        s !== "D" ? await this.showFileAtCommit(remote, filePath) : null;
       fileDiffs.push({ file: filePath, status: s, before, after });
     }
 
@@ -723,33 +867,52 @@ export class GitSync {
     const remote = `origin/${branch}`;
 
     const [localRaw, remoteRaw] = await Promise.all([
-      this.git.raw(['diff', '--name-only', `${remote}..HEAD`]).catch((err: unknown) => {
-        throw new Error(`Failed to compute local diff against ${remote}: ${err instanceof Error ? err.message : String(err)}`);
-      }),
-      this.git.raw(['diff', '--name-only', `HEAD..${remote}`]).catch((err: unknown) => {
-        throw new Error(`Failed to compute remote diff against ${remote}: ${err instanceof Error ? err.message : String(err)}`);
-      }),
+      this.git
+        .raw(["diff", "--name-only", `${remote}..HEAD`])
+        .catch((err: unknown) => {
+          throw new Error(
+            `Failed to compute local diff against ${remote}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }),
+      this.git
+        .raw(["diff", "--name-only", `HEAD..${remote}`])
+        .catch((err: unknown) => {
+          throw new Error(
+            `Failed to compute remote diff against ${remote}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }),
     ]);
 
-    const localFiles = localRaw.trim().split('\n').filter(Boolean);
-    const remoteFiles = remoteRaw.trim().split('\n').filter(Boolean);
-    const conflictSet = new Set(localFiles.filter(f => remoteFiles.includes(f)));
+    const localFiles = localRaw.trim().split("\n").filter(Boolean);
+    const remoteFiles = remoteRaw.trim().split("\n").filter(Boolean);
+    const conflictSet = new Set(
+      localFiles.filter((f) => remoteFiles.includes(f)),
+    );
 
     return {
-      localOnly: localFiles.filter(f => !conflictSet.has(f)),
-      remoteOnly: remoteFiles.filter(f => !conflictSet.has(f)),
+      localOnly: localFiles.filter((f) => !conflictSet.has(f)),
+      remoteOnly: remoteFiles.filter((f) => !conflictSet.has(f)),
       conflicts: [...conflictSet],
     };
   }
 
   /** Apply direction choices: push, pull, or skip per file */
   async applyDiffChoices(
-    choices: Record<string, 'push' | 'pull' | 'skip'>,
-    tokenStore?: TokenStore,
+    choices: Record<string, "push" | "pull" | "skip">,
+    stores?: {
+      tokenStore?: TokenStore;
+      dimensionsStore?: DimensionsStore;
+      generatorService?: GeneratorService;
+      resolverStore?: ResolverStore;
+    },
   ): Promise<ApplyDiffResult> {
     return this.lock.withLock(async () => {
-      const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
-      const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
+      const toPull = Object.entries(choices)
+        .filter(([, d]) => d === "pull")
+        .map(([f]) => f);
+      const toPush = Object.entries(choices)
+        .filter(([, d]) => d === "push")
+        .map(([f]) => f);
       this.validatePaths([...toPull, ...toPush]);
 
       const result: ApplyDiffResult = {
@@ -762,9 +925,25 @@ export class GitSync {
       if (toPull.length > 0) {
         // Suppress watcher events for all files we're about to check out so the
         // watcher doesn't reload them mid-iteration while git is still writing.
-        if (tokenStore) {
-          for (const file of toPull) {
-            tokenStore.startWriteGuard(path.join(this.dir, file));
+        for (const file of toPull) {
+          const absolutePath = path.join(this.dir, file);
+          if (stores?.tokenStore && file.endsWith(".tokens.json")) {
+            stores.tokenStore.startWriteGuard(absolutePath);
+          }
+          if (
+            stores?.dimensionsStore &&
+            path.basename(file) === "$themes.json"
+          ) {
+            stores.dimensionsStore.startWriteGuard(absolutePath);
+          }
+          if (
+            stores?.generatorService &&
+            path.basename(file) === "$generators.json"
+          ) {
+            stores.generatorService.startWriteGuard(absolutePath);
+          }
+          if (stores?.resolverStore && file.endsWith(".resolver.json")) {
+            stores.resolverStore.startWriteGuard(absolutePath);
           }
         }
 
@@ -772,7 +951,7 @@ export class GitSync {
         const branch = await this.getCurrentBranch();
         for (const file of toPull) {
           try {
-            await this.git.raw(['checkout', `origin/${branch}`, '--', file]);
+            await this.git.raw(["checkout", `origin/${branch}`, "--", file]);
           } catch (err) {
             console.warn(`[GitSync] Failed to checkout file "${file}":`, err);
             result.pullFailedFiles.push(file);
@@ -780,29 +959,75 @@ export class GitSync {
         }
         // Clear guards for files that failed checkout — git never wrote them,
         // so the watcher won't fire to clear them automatically.
-        if (tokenStore && result.pullFailedFiles.length > 0) {
+        if (result.pullFailedFiles.length > 0) {
           for (const file of result.pullFailedFiles) {
-            tokenStore.endWriteGuard(path.join(this.dir, file));
+            const absolutePath = path.join(this.dir, file);
+            if (stores?.tokenStore && file.endsWith(".tokens.json")) {
+              stores.tokenStore.endWriteGuard(absolutePath);
+            }
+            if (
+              stores?.dimensionsStore &&
+              path.basename(file) === "$themes.json"
+            ) {
+              stores.dimensionsStore.endWriteGuard(absolutePath);
+            }
+            if (
+              stores?.generatorService &&
+              path.basename(file) === "$generators.json"
+            ) {
+              stores.generatorService.endWriteGuard(absolutePath);
+            }
+            if (stores?.resolverStore && file.endsWith(".resolver.json")) {
+              stores.resolverStore.endWriteGuard(absolutePath);
+            }
           }
         }
 
-        const pulledFiles = toPull.filter(f => !result.pullFailedFiles.includes(f));
+        const pulledFiles = toPull.filter(
+          (f) => !result.pullFailedFiles.includes(f),
+        );
         if (pulledFiles.length > 0) {
           await this.git.add(pulledFiles);
           try {
-            await this.git.commit(`chore: pull ${pulledFiles.length} file(s) from remote`);
+            await this.git.commit(
+              `chore: pull ${pulledFiles.length} file(s) from remote`,
+            );
           } catch (err) {
-            console.warn('[GitSync] Pull commit failed (may have no changes):', err);
+            console.warn(
+              "[GitSync] Pull commit failed (may have no changes):",
+              err,
+            );
             result.pullCommitFailed = true;
             result.pullCommitError = String(err);
           }
-          // Explicitly reload all successfully pulled token files so TokenStore is
-          // in sync with the checked-out content without relying on the watcher.
-          if (tokenStore) {
-            for (const file of pulledFiles) {
-              await tokenStore.reloadFile(file).catch(err => {
-                console.warn(`[GitSync] Failed to reload "${file}" after pull:`, err);
-              });
+          // Explicitly reload all successfully pulled workspace files so the
+          // in-memory services stay in sync with the checked-out content
+          // without relying on watcher timing.
+          for (const file of pulledFiles) {
+            try {
+              if (stores?.tokenStore && file.endsWith(".tokens.json")) {
+                await stores.tokenStore.reloadFile(file);
+              } else if (
+                stores?.dimensionsStore &&
+                path.basename(file) === "$themes.json"
+              ) {
+                await stores.dimensionsStore.reloadFromDisk();
+              } else if (
+                stores?.generatorService &&
+                path.basename(file) === "$generators.json"
+              ) {
+                await stores.generatorService.reloadFromDisk();
+              } else if (
+                stores?.resolverStore &&
+                file.endsWith(".resolver.json")
+              ) {
+                await stores.resolverStore.reloadFile(file);
+              }
+            } catch (err) {
+              console.warn(
+                `[GitSync] Failed to reload "${file}" after pull:`,
+                err,
+              );
             }
           }
         }
@@ -812,18 +1037,23 @@ export class GitSync {
         await this.git.add(toPush);
         let pushCommitSucceeded = false;
         try {
-          await this.git.commit(`chore: push ${toPush.length} file(s) to remote`);
+          await this.git.commit(
+            `chore: push ${toPush.length} file(s) to remote`,
+          );
           pushCommitSucceeded = true;
         } catch (err) {
-          console.warn('[GitSync] Push commit failed (may have no changes):', err);
+          console.warn(
+            "[GitSync] Push commit failed (may have no changes):",
+            err,
+          );
           result.pushCommitFailed = true;
           result.pushCommitError = String(err);
         }
         if (pushCommitSucceeded) {
           try {
-            await wrapNetworkOp('push', this.git.push());
+            await wrapNetworkOp("push", this.git.push());
           } catch (err) {
-            console.warn('[GitSync] Push to remote failed:', err);
+            console.warn("[GitSync] Push to remote failed:", err);
             result.pushFailed = true;
             result.pushError = String(err);
             if (err instanceof GitTimeoutError) throw err;

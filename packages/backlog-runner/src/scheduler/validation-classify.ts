@@ -9,6 +9,7 @@ import {
   WORKTREE_LOCATION_PATTERNS,
 } from './constants.js';
 import { logDrainResult, normalizeInlineNote } from './helpers.js';
+import { containsSharedInstallPolicyCode } from '../workspace/shared-install.js';
 
 export type ValidationFailureClassification =
   | { blocking: true; reason: string }
@@ -120,6 +121,9 @@ export function classifyValidationFailure(
   changedFiles: string[] = [],
 ): ValidationFailureClassification {
   const normalizedReason = normalizeValidationReason(reason);
+  if (containsSharedInstallPolicyCode(normalizedReason)) {
+    return { blocking: true, reason };
+  }
   const implicatedPaths = extractValidationPaths(normalizedReason);
   const normalizedChangedFiles = changedFiles.map(filePath => normalizeRepoPath(filePath));
   const changedFileSet = new Set(normalizedChangedFiles);

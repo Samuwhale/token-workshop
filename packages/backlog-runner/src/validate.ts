@@ -11,6 +11,7 @@ import { lintBacklogQueue } from './queue-lint.js';
 import type { BacklogRunnerConfig, BacklogRunnerRole, CommandRunner, RunOverrides, ToolValidationResult } from './types.js';
 import { BACKLOG_RUNNER_ROLES } from './types.js';
 import { fileExists } from './utils.js';
+import { formatStaleSharedInstallState, inspectSharedInstallState } from './workspace/shared-install.js';
 
 const VALIDATION_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
 const GIT_READINESS_TIMEOUT_MS = 2 * 60 * 1000;
@@ -233,6 +234,23 @@ export async function validatePromptContracts(config: BacklogRunnerConfig): Prom
   return { ok, messages };
 }
 
+export async function validateSharedInstallReadiness(
+  config: BacklogRunnerConfig,
+): Promise<{ ok: boolean; messages: string[] }> {
+  const inspection = await inspectSharedInstallState(config.projectRoot);
+  if (inspection.staleSymlinks.length > 0) {
+    return {
+      ok: false,
+      messages: [`  ✗ ${formatStaleSharedInstallState(inspection)}`],
+    };
+  }
+
+  return {
+    ok: true,
+    messages: ['  ✓ shared install symlink targets do not point into temp backlog worktrees'],
+  };
+}
+
 export async function validateBacklogRunner(
   config: BacklogRunnerConfig,
   overrides: RunOverrides = {},
@@ -338,6 +356,12 @@ export async function validateBacklogRunner(
     ok = false;
   }
   messages.push(...gitReadiness.messages);
+
+  const sharedInstallReadiness = await validateSharedInstallReadiness(config);
+  if (!sharedInstallReadiness.ok) {
+    ok = false;
+  }
+  messages.push(...sharedInstallReadiness.messages);
 
   const validationCommand = await validateCommandReadiness(config, commandRunner);
   if (!validationCommand.ok) {

@@ -1,4 +1,5 @@
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { access, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
@@ -286,6 +287,15 @@ function baseTask(overrides: Partial<BacklogTaskSpec> = {}): BacklogTaskSpec {
 
 async function stopAfterFirstSleep(filePath: string): Promise<void> {
   await writeFile(filePath, 'stop\n', 'utf8');
+}
+
+async function fileExistsForTest(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function listTaskFilesRecursive(taskDir: string, prefix = ''): Promise<string[]> {
@@ -616,6 +626,58 @@ describe('runner e2e', () => {
     expect(calls).not.toContain('input:agent prompt');
     expect(calls.some(call => call.includes('## Workspace Repair Mode'))).toBe(true);
     expect(logSink.lines.join('')).toContain('dirty workspace preflight');
+  });
+
+  it('defers dependency-manifest tasks before agent execution in worktree mode', async () => {
+    const { root, config } = await makeFixture([baseTask({ touchPaths: ['package.json'] })]);
+    const logSink = new MemoryLogSink();
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      { worktrees: true },
+      {
+        commandRunner: createFakeCommandRunner(root, { calls }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('BACKLOG_MAIN_REPO_INSTALL_REQUIRED');
+    expect(calls).not.toContain('input:agent prompt');
+    expect(calls.every(call => !call.startsWith('run:git worktree add'))).toBe(true);
+    expect(logSink.lines.join('')).toContain('BACKLOG_MAIN_REPO_INSTALL_REQUIRED');
+  });
+
+  it('defers shared install policy validation failures without entering remediation', async () => {
+    const { root, config } = await makeFixture([baseTask()]);
+    const logSink = new MemoryLogSink();
+    const calls: string[] = [];
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          validationResults: [{
+            code: 1,
+            stdout: 'dependency refresh required from main repo [BACKLOG_MAIN_REPO_INSTALL_REQUIRED]: poisoned shared install targets: packages/server/node_modules/fastify -> /tmp/backlog-123/node_modules/.pnpm/fastify/node_modules/fastify Recovery: remove poisoned package-local node_modules links and rerun pnpm install from the main repo root.',
+            stderr: '',
+          }],
+        }),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    const taskYaml = await readCurrentTaskYaml(root, 'task-a');
+    expect(taskYaml).toContain('state: ready');
+    expect(taskYaml).toContain('BACKLOG_MAIN_REPO_INSTALL_REQUIRED');
+    expect(calls.every(call => !call.includes('## Workspace Repair Mode'))).toBe(true);
+    expect(logSink.lines.join('')).toContain('BACKLOG_MAIN_REPO_INSTALL_REQUIRED');
   });
 
   it('completes the task when validation introduces additional files outside the declared touch paths', async () => {
@@ -1038,6 +1100,59 @@ describe('runner e2e', () => {
     )).rejects.toThrow(
       new RegExp(`Another backlog orchestrator is already running \\(orch-live, pid ${process.pid}\\).[\\s\\S]*${config.files.runtimeReport.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
     );
+  });
+
+  it('takes over a live orchestrator when takeover is requested', async () => {
+    const { config, root } = await makeFixture([]);
+    const logSink = new MemoryLogSink();
+    const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+      stdio: 'ignore',
+    });
+    const priorOrchestratorId = 'orch-live';
+    try {
+      if (!child.pid) {
+        throw new Error('Expected child pid');
+      }
+      await writeFile(
+        path.join(config.files.runtimeDir, 'orchestrator-status.json'),
+        `${JSON.stringify({
+          orchestratorId: priorOrchestratorId,
+          pid: child.pid,
+          requestedWorkers: 2,
+          effectiveWorkers: 2,
+          activeTaskWorkers: [{ taskId: 'task-a', title: 'Task A' }],
+          shutdownRequested: false,
+          pollIntervalMs: ORCHESTRATOR_POLL_INTERVAL_MS,
+          updatedAt: new Date().toISOString(),
+        })}\n`,
+        'utf8',
+      );
+
+      let shutdownApplied = false;
+      await runBacklogRunner(
+        config,
+        { passes: false, takeover: true },
+        {
+          commandRunner: createFakeCommandRunner(root),
+          createLogSink: async () => logSink,
+          sleep: async () => {
+            if (shutdownApplied || !(await fileExistsForTest(config.files.stop))) {
+              return;
+            }
+            shutdownApplied = true;
+            child.kill('SIGTERM');
+            await rm(path.join(config.files.runtimeDir, 'orchestrator-status.json'), { force: true });
+          },
+        },
+      );
+
+      expect(shutdownApplied).toBe(true);
+      expect(await fileExistsForTest(config.files.stop)).toBe(false);
+      expect(logSink.lines.join('\n')).toContain(`Requested shutdown for existing orchestrator via ${config.files.stop}`);
+      expect(logSink.lines.join('\n')).toContain('Existing orchestrator stopped — taking over with a new run.');
+    } finally {
+      child.kill('SIGKILL');
+    }
   });
 
   it('reclaims stale orchestrator status before starting', async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 export interface GeneratorErrorEvent {
   generatorId?: string;
@@ -43,6 +43,7 @@ export function useServerEvents(
 
     let es: EventSource | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     let retryDelay = BASE_DELAY;
     let disposed = false;
     let hasConnectedBefore = false;
@@ -51,6 +52,14 @@ export function useServerEvents(
     // automatically, but when we create a new EventSource instance after CLOSED
     // we must pass it explicitly as a query parameter.
     let lastEventId: string | null = null;
+
+    function scheduleRefresh() {
+      if (disposed || refreshTimer !== null) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        refreshRef.current?.();
+      }, 0);
+    }
 
     function connect() {
       if (disposed) return;
@@ -66,10 +75,10 @@ export function useServerEvents(
       };
 
       // Handle the 'stale' named event — server couldn't replay missed events
-      es.addEventListener('stale', (ev: Event) => {
+      es.addEventListener("stale", (ev: Event) => {
         const id = (ev as MessageEvent).lastEventId;
         if (id) lastEventId = id;
-        refreshRef.current?.();
+        scheduleRefresh();
       });
 
       es.onmessage = (e) => {
@@ -78,33 +87,48 @@ export function useServerEvents(
         try {
           data = JSON.parse(e.data as string);
         } catch (e) {
-          console.debug('[useServerEvents] failed to parse SSE event data:', e);
+          console.debug("[useServerEvents] failed to parse SSE event data:", e);
           return;
         }
 
-        if (data.type === 'connected') {
+        if (data.type === "connected") {
           // If this is a reconnection, trigger a refresh to catch up on any
           // events that were replayed before the connected message, or to
           // handle the case where the server restarted (seq reset).
           if (hasConnectedBefore) {
-            refreshRef.current?.();
+            scheduleRefresh();
           }
           hasConnectedBefore = true;
           return;
         }
 
-        if (data.type === 'generator-error') {
+        if (data.type === "generator-error") {
           callbackRef.current({
-            generatorId: typeof data.generatorId === 'string' ? data.generatorId : undefined,
-            message: typeof data.message === 'string' ? data.message : 'Unknown error',
+            generatorId:
+              typeof data.generatorId === "string"
+                ? data.generatorId
+                : undefined,
+            message:
+              typeof data.message === "string" ? data.message : "Unknown error",
           });
         }
 
-        if (data.type === 'file-load-error') {
+        if (data.type === "file-load-error") {
           serviceErrorRef.current?.({
-            setName: typeof data.setName === 'string' ? data.setName : '',
-            message: typeof data.message === 'string' ? data.message : 'Unknown error',
+            setName: typeof data.setName === "string" ? data.setName : "",
+            message:
+              typeof data.message === "string" ? data.message : "Unknown error",
           });
+        }
+
+        if (
+          data.type === "set-added" ||
+          data.type === "set-updated" ||
+          data.type === "set-removed" ||
+          data.type === "workspace-file-changed" ||
+          data.type === "workspace-file-removed"
+        ) {
+          scheduleRefresh();
         }
       };
 
@@ -135,6 +159,7 @@ export function useServerEvents(
     return () => {
       disposed = true;
       if (retryTimer !== null) clearTimeout(retryTimer);
+      if (refreshTimer !== null) clearTimeout(refreshTimer);
       if (es) es.close();
     };
   }, [serverUrl, connected]);
