@@ -1449,3 +1449,10 @@
 - **Learnings for future iterations:**
   - Batch operations that remove or rename selected entities should hand selection ownership back to the parent surface so the surrounding toolbar/editor state stays consistent with the refreshed data model.
 ---
+## 2026-04-12 - code-pass
+- Areas explored: [packages/server/src/routes/tokens.ts, packages/server/src/services/token-store.ts, packages/server/src/services/operation-log.ts, packages/server/src/services/generator-service.ts, packages/figma-plugin/src/ui/components/TokenList.tsx, packages/figma-plugin/src/ui/components/TokenTreeNode.tsx, packages/figma-plugin/src/ui/components/TokenTreeContext.tsx, packages/figma-plugin/src/ui/components/tokenListTypes.ts, packages/figma-plugin/src/ui/components/ImportPanelContext.tsx, packages/figma-plugin/src/ui/shared/navigationTypes.ts]
+- Code-health themes: [structural decomposition, duplicate logic removal, contract clarity, maintainability hazards]
+- Found 2 items — written to backlog/inbox.jsonl
+- Considered but rejected: [ImportPanelContext follow-up decomposition would mostly restate the just-completed import-controller consolidation; navigationTypes.ts is large but already acts as the canonical route contract, so file size alone did not justify a new item; SetSwitcher.tsx remains bulky, but recent feature churn made it hard to define one non-overlapping structural slice that was sharper than the token-library/controller item.]
+- Notable: The strongest drift cluster is token structural mutation handling: `routes/tokens.ts` and `token-store.ts` both encode rename/move/copy rules in parallel, and every new variant currently has to remember snapshots, cross-set snapshot keying, operation-log payloads, and generator-path maintenance separately.
+---

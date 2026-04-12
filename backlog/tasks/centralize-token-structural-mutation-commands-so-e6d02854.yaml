@@ -1,0 +1,22 @@
+id: centralize-token-structural-mutation-commands-so-e6d02854
+title: Centralize token structural mutation commands so rename/move/copy flows stop duplicating snapshots, rollback, and generator updates
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/routes/tokens.ts
+  - packages/server/src/services/token-store.ts
+  - packages/server/src/services/operation-log.ts
+  - packages/server/src/services/generator-service.ts
+capabilities: []
+validation_profile: server
+status_notes:
+  - "Context: `routes/tokens.ts` currently repeats the same lock/snapshot/log/error shape for more than a dozen mutation endpoints, while `TokenStore` has separate single/group/batch implementations of similar rename and cross-set transfer logic. The duplication makes future mutations easy to wire partially."
+state: ready
+acceptance_criteria:
+  - Single-token, batch-token, and group rename/move/copy routes call shared token-mutation command helpers instead of hand-building before/after snapshots, cross-set snapshot key remapping, and operation-log payloads inline in `routes/tokens.ts`.
+  - "`TokenStore` reuses shared mutation planners for rename/move/copy across token/group and single/batch variants so collision checks, cloning rules, alias-update behavior, and snapshot rollback are defined once instead of in parallel methods."
+  - Generator path maintenance for rename operations runs from the same shared command path as the mutation and log recording, so new structural mutation variants cannot forget the corresponding generator update step.
+source: code-pass
+created_at: 2026-04-12T19:23:01.373Z
+updated_at: 2026-04-12T19:23:01.373Z
