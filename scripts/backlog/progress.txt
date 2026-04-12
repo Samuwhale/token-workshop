@@ -1502,3 +1502,10 @@
 - **Learnings for future iterations:**
   - When a dropdown is the only route into secondary workflow views, its trigger label should name the primary destinations instead of describing the control as generic "tools".
 ---
+## 2026-04-12 - Remove 'When to use resolvers' guidance section from ResolverPanel empty state
+- Removed the empty-state follow-on guidance block so the ResolverPanel now ends on the three get-started actions without the extra divider or Manage-tab redirect copy.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L520
+- **Learnings for future iterations:**
+  - In empty states that already provide clear entry actions, avoid trailing defensive guidance that redirects users to a different workflow surface after the primary call to action.
+---

@@ -565,17 +565,6 @@ function ResolverInner({
                 </p>
               </button>
             </div>
-
-            {/* When to use resolvers note */}
-            <div className="w-full max-w-[260px] pt-1 border-t border-[var(--color-figma-border)]">
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium mb-1.5">When to use resolvers</p>
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed text-left">
-                Use <span className="text-[var(--color-figma-text-secondary)] font-medium">resolvers</span> when token sets combine along multiple independent dimensions (e.g. brand × mode × density). A single resolver replaces an exponential number of per-combination files.
-              </p>
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed text-left mt-1">
-                For simpler scenarios, switch back to the <span className="text-[var(--color-figma-text-secondary)] font-medium">Manage</span> tab to use theme dimensions directly.
-              </p>
-            </div>
           </div>
         )}
 
