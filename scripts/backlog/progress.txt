@@ -1545,3 +1545,12 @@
 - Considered but rejected: [ThemeAuthoringScreen prop-volume remains high, but the sharper verified issue is the stale rollback snapshot in `useThemeBulkOps`, not file size by itself; snapshot restore bookkeeping spans `manual-snapshot.ts` and `routes/snapshots.ts`, but the current duplication mostly reflects different responsibilities and did not surface a clear new failure mode.]
 - Notable: `useThemeBulkOps` explicitly comments that the queue prevents stale rollback snapshots, but `previousDimensions` is captured before the queued task runs, so rapid role edits can still roll back to an out-of-date pre-queue state if a later request fails.
 ---
+## 2026-04-12 - Coverage view offers no way to act on reviewed gaps, forcing a round-trip back to Authoring before auto-fill
+- Added a shared theme auto-fill target resolver, surfaced an in-context auto-fill CTA in Coverage, and routed it through the same preview/strategy confirmation handlers already used in authoring so reviewed gaps can be filled without leaving the matrix.
+- Reused the same fillable-gap lookup in the authoring warning banner so coverage entry and auto-fill entry stay aligned on the same dimension selection logic.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/theme-manager/themeAutoFillTargets.ts` ~L1, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1326, `packages/figma-plugin/src/ui/components/theme-manager/ThemeCoverageScreen.tsx` ~L8, `packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx` ~L465
+- **Learnings for future iterations:**
+  - When a review surface is the place where users decide to remediate, resolve the remediation target there and call the existing mutation flow directly instead of forcing a shell-level round-trip back to authoring.
+  - If multiple surfaces need to answer "what can be auto-filled here?", keep that decision in one small resolver so context-specific actions and global banners do not drift apart.
+---

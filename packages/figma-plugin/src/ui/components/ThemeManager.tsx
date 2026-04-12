@@ -52,6 +52,10 @@ import {
   ThemeAuthoringScreen,
   type ThemeAuthoringScreenHandle,
 } from "./theme-manager/ThemeAuthoringScreen";
+import {
+  getFirstDimensionWithFillableGaps,
+  resolveThemeAutoFillAction,
+} from "./theme-manager/themeAutoFillTargets";
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
@@ -981,14 +985,10 @@ const ThemeManagerWorkspace = React.forwardRef<
     ref,
     () => ({
       autoFillAllGaps: () => {
-        const dimWithGaps = dimensions.find((dim) => {
-          const dimCov = coverage[dim.id] ?? {};
-          return Object.values(dimCov).some((opt) =>
-            opt.uncovered.some(
-              (item) => item.missingRef && item.fillValue !== undefined,
-            ),
-          );
-        });
+        const dimWithGaps = getFirstDimensionWithFillableGaps(
+          dimensions,
+          coverage,
+        );
         if (dimWithGaps) handleAutoFillAllRef.current(dimWithGaps.id);
       },
       navigateToCompare: handleNavigateToCompare,
@@ -1323,6 +1323,38 @@ const ThemeManagerWorkspace = React.forwardRef<
   );
   const coveragePrimaryIssue =
     coverageFocusIssues[0] ?? coverageReviewIssues[0] ?? null;
+  const coverageAutoFillAction = useMemo(
+    () =>
+      resolveThemeAutoFillAction(
+        coverageFocusDimension,
+        coverage,
+        coverageFocusOptionName,
+      ),
+    [coverage, coverageFocusDimension, coverageFocusOptionName],
+  );
+  const isCoverageAutoFillInProgress = useMemo(() => {
+    if (!coverageAutoFillAction) return false;
+    if (coverageAutoFillAction.mode === "single-option") {
+      return fillingKeys.has(
+        `${coverageAutoFillAction.dimId}:${coverageAutoFillAction.optionName}:__all__`,
+      );
+    }
+    return fillingKeys.has(`${coverageAutoFillAction.dimId}:__all_options__`);
+  }, [coverageAutoFillAction, fillingKeys]);
+  const handleCoverageAutoFill = useCallback(() => {
+    if (!coverageAutoFillAction) return;
+    if (
+      coverageAutoFillAction.mode === "single-option" &&
+      coverageAutoFillAction.optionName
+    ) {
+      handleAutoFillAll(
+        coverageAutoFillAction.dimId,
+        coverageAutoFillAction.optionName,
+      );
+      return;
+    }
+    handleAutoFillAllOptions(coverageAutoFillAction.dimId);
+  }, [coverageAutoFillAction, handleAutoFillAll, handleAutoFillAllOptions]);
   const compareFocusDimension = useMemo(
     () =>
       dimensions.find((dim) => dim.id === compareContext.dimId) ??
@@ -1488,10 +1520,13 @@ const ThemeManagerWorkspace = React.forwardRef<
               primaryIssue={coveragePrimaryIssue}
               showAllAxes={showAllCoverageAxes}
               context={coverageContext}
+              autoFillAction={coverageAutoFillAction}
+              isAutoFillInProgress={isCoverageAutoFillInProgress}
               onToggleShowAllAxes={() =>
                 setShowAllCoverageAxes((value) => !value)
               }
               onBack={returnToAuthoring}
+              onAutoFill={handleCoverageAutoFill}
               onSelectIssue={(issue) => {
                 openCoverageView(
                   {

@@ -31,6 +31,7 @@ import type {
   ThemeIssueSummary,
   ThemeRoleNavigationTarget,
 } from "../../shared/themeWorkflow";
+import { getFirstDimensionWithFillableGaps } from "./themeAutoFillTargets";
 
 export interface ThemeAuthoringScreenHandle {
   scrollToDimension: (dimId: string | null | undefined) => void;
@@ -461,6 +462,10 @@ export const ThemeAuthoringScreen = forwardRef<
       );
     });
   }, [coverage, dimSearch, dimensions, showOnlyWithGaps]);
+  const firstDimensionWithFillableGaps = useMemo(
+    () => getFirstDimensionWithFillableGaps(dimensions, coverage),
+    [coverage, dimensions],
+  );
 
   const previewTokens = useMemo<PreviewTokenEntry[]>(() => {
     if (!showPreview || dimensions.length === 0) return [];
@@ -1104,25 +1109,11 @@ export const ThemeAuthoringScreen = forwardRef<
                   <div className="flex shrink-0 items-center gap-1.5">
                     <button
                       onClick={() => {
-                        const dimensionWithGaps = dimensions.find(
-                          (dimension) => {
-                            const dimensionCoverage =
-                              coverage[dimension.id] ?? {};
-                            return Object.values(dimensionCoverage).some(
-                              (option) =>
-                                option.uncovered.some(
-                                  (item) =>
-                                    item.missingRef &&
-                                    item.fillValue !== undefined,
-                                ),
-                            );
-                          },
-                        );
                         onOpenCoverageView(
                           {
                             dimId:
                               focusedDimension?.id ??
-                              dimensionWithGaps?.id ??
+                              firstDimensionWithFillableGaps?.id ??
                               null,
                             optionName: focusedOptionName ?? null,
                             preferredSetName:
@@ -1138,22 +1129,10 @@ export const ThemeAuthoringScreen = forwardRef<
                     </button>
                     <button
                       onClick={() => {
-                        const dimensionWithGaps = dimensions.find(
-                          (dimension) => {
-                            const dimensionCoverage =
-                              coverage[dimension.id] ?? {};
-                            return Object.values(dimensionCoverage).some(
-                              (option) =>
-                                option.uncovered.some(
-                                  (item) =>
-                                    item.missingRef &&
-                                    item.fillValue !== undefined,
-                                ),
-                            );
-                          },
-                        );
-                        if (dimensionWithGaps) {
-                          handleAutoFillAllOptions(dimensionWithGaps.id);
+                        if (firstDimensionWithFillableGaps) {
+                          handleAutoFillAllOptions(
+                            firstDimensionWithFillableGaps.id,
+                          );
                         }
                       }}
                       className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"

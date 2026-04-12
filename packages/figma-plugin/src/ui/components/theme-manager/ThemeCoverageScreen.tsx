@@ -3,6 +3,7 @@ import { ThemeCoverageMatrix } from "../ThemeCoverageMatrix";
 import type { CoverageMap, MissingOverridesMap } from "../themeManagerTypes";
 import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 import type { ThemeRoleNavigationTarget } from "../../shared/themeWorkflow";
+import type { ThemeAutoFillAction } from "./themeAutoFillTargets";
 
 interface ThemeCoverageScreenProps {
   dimensions: ThemeDimension[];
@@ -17,8 +18,11 @@ interface ThemeCoverageScreenProps {
   primaryIssue: ThemeIssueSummary | null;
   showAllAxes: boolean;
   context: ThemeRoleNavigationTarget;
+  autoFillAction: ThemeAutoFillAction | null;
+  isAutoFillInProgress: boolean;
   onToggleShowAllAxes: () => void;
   onBack: (target?: ThemeRoleNavigationTarget | null) => void;
+  onAutoFill: () => void;
   onSelectIssue: (issue: ThemeIssueSummary) => void;
   onSelectOption: (
     dimId: string,
@@ -40,13 +44,26 @@ export function ThemeCoverageScreen({
   primaryIssue,
   showAllAxes,
   context,
+  autoFillAction,
+  isAutoFillInProgress,
   onToggleShowAllAxes,
   onBack,
+  onAutoFill,
   onSelectIssue,
   onSelectOption,
 }: ThemeCoverageScreenProps) {
   const focusedIssueLabel =
     focusIssueCount === 1 ? "1 issue" : `${focusIssueCount} issues`;
+  const autoFillLabel = autoFillAction
+    ? autoFillAction.fillableCount === 1
+      ? "1 fillable gap"
+      : `${autoFillAction.fillableCount} fillable gaps`
+    : null;
+  const autoFillDescription = autoFillAction
+    ? autoFillAction.mode === "single-option" && autoFillAction.optionName
+      ? `${autoFillLabel} in ${autoFillAction.optionName}. Auto-fill opens the same preview and strategy confirmation used in authoring.`
+      : `${autoFillLabel} across ${autoFillAction.optionCount} options in ${autoFillAction.dimensionName}. Auto-fill opens the same preview and strategy confirmation used in authoring.`
+    : null;
 
   return (
     <>
@@ -59,7 +76,9 @@ export function ThemeCoverageScreen({
                 : `Coverage for ${focusDimension.name}`}
             </p>
             <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              {showAllAxes || !focusDimension
+              {autoFillDescription
+                ? autoFillDescription
+                : showAllAxes || !focusDimension
                 ? "Started from the current theme context and expanded to every axis. Focus any issue, then jump straight back into the matching role editor."
                 : primaryIssue
                   ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} -> ${primaryIssue.optionName}. ${primaryIssue.recommendedNextAction}`
@@ -75,6 +94,23 @@ export function ThemeCoverageScreen({
                 className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
               >
                 {showAllAxes ? `Focus ${focusDimension.name}` : "Show all axes"}
+              </button>
+            )}
+            {autoFillAction && (
+              <button
+                onClick={onAutoFill}
+                disabled={isAutoFillInProgress}
+                className="inline-flex items-center gap-1 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                title={
+                  autoFillAction.mode === "single-option" &&
+                  autoFillAction.optionName
+                    ? `Auto-fill ${autoFillAction.fillableCount} missing token${autoFillAction.fillableCount !== 1 ? "s" : ""} in ${autoFillAction.optionName}`
+                    : `Auto-fill ${autoFillAction.fillableCount} missing token${autoFillAction.fillableCount !== 1 ? "s" : ""} across ${autoFillAction.optionCount} option${autoFillAction.optionCount !== 1 ? "s" : ""} in ${autoFillAction.dimensionName}`
+                }
+              >
+                {isAutoFillInProgress
+                  ? "Filling…"
+                  : `Auto-fill gaps (${autoFillAction.fillableCount})`}
               </button>
             )}
             <button
