@@ -1,0 +1,20 @@
+id: centralize-git-backed-token-diff-extraction-so-c-304f0c16
+title: Centralize git-backed token diff extraction so commit, pull, push, working-tree, and restore paths share one parser
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/services/git-sync.ts
+  - packages/server/src/routes/sync.ts
+capabilities: []
+validation_profile: server
+status_notes:
+  - "Context: `git-sync.ts` repeats the same `git diff --name-status` loop and before/after file loading in five methods, while `routes/sync.ts` reparses those payloads again for token-level restore. A new status rule or file-shape change currently has to be patched across multiple paths."
+state: ready
+acceptance_criteria:
+  - "`GitSync` exposes one shared token-file diff loader that owns `.tokens.json` filtering, status normalization, before/after content loading, and untracked-working-tree handling."
+  - "`getTokenFileDiffs()`, `diffBetweenCommits()`, `getWorkingTreeTokenDiff()`, `getPushPreview()`, and `getPullPreview()` delegate to that shared loader instead of repeating raw git loops."
+  - "`routes/sync.ts` compare and restore flows consume the normalized diff/snapshot output instead of reparsing commit file contents into before/after token maps independently."
+source: code-pass
+created_at: 2026-04-12T20:42:36.951Z
+updated_at: 2026-04-12T20:42:36.951Z

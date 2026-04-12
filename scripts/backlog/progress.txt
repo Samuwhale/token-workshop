@@ -1630,3 +1630,10 @@
   - Resolver authoring feedback works best when the UI derives one reusable summary model from theme dimensions plus resolver metadata, then reuses that model in both authoring and advanced surfaces instead of hand-building separate mismatch checks.
   - When multiple resolvers can exist, falling back to the closest structural match keeps authoring-time guidance visible even before a resolver has been explicitly selected.
 ---
+## 2026-04-12 - code-pass
+- Areas explored: [packages/server/src/services/manual-snapshot.ts, packages/server/src/routes/snapshots.ts, packages/server/src/services/git-sync.ts, packages/server/src/routes/sync.ts, packages/backlog-runner/src/scheduler/workers.ts, packages/backlog-runner/src/scheduler/remediation.ts, packages/backlog-runner/src/store/task-store.ts, packages/backlog-runner/src/runtime-state.ts]
+- Code-health themes: [duplicate logic removal, structural decomposition, maintainability hazards, contract clarity, bug prevention]
+- Found 3 items — written to backlog/inbox.jsonl
+- Considered but rejected: [RuntimeStateStore blocker/deferral persistence repeats prune calls heavily, but the read/write contract is still coherent and did not justify a backlog item on its own; Git workflow UI complexity did not clear the bar because the stronger verified issue is the server-side diff/parsing duplication underneath it.]
+- Notable: The strongest cross-cutting drift is in recovery and diff infrastructure: both manual snapshots and git-backed compare/restore flows currently reimplement the same traversal rules in parallel, so expanding either checkpoint scope or git diff semantics risks partial updates in the next change.
+---

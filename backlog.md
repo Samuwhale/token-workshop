@@ -74,7 +74,8 @@
 - [x] [HIGH] Rename 'Review tools' to signal navigation to Coverage and Compare views in ThemeAuthoringScreen
 - [x] [HIGH] Make queued theme role mutations roll back from the last committed state instead of a stale pre-queue snapshot
 - [x] [HIGH] Centralize generator write-route bookkeeping so step overrides and orphan cleanup become rollbackable server operations
-- [ ] [HIGH] Integrate resolver dimension context into theme authoring so multi-mode token assignments are visible without navigating to the Advanced screen
+- [x] [HIGH] Integrate resolver dimension context into theme authoring so multi-mode token assignments are visible without navigating to the Advanced screen
+- [ ] [HIGH] Unify manual snapshot comparison and restore execution so restore and crash recovery stop drifting
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -166,6 +167,8 @@
 - [ ] Add an explicit ownership contract for generated tokens: warn before manual edits and provide a detach-from-generator operation
 - [ ] Replace uppercase tracking-wide eyebrow labels with plain section headings across token preview, theme authoring, and command palette
 - [ ] Hide the Semantic layer section on generator cards when no aliases are configured
+- [ ] Centralize git-backed token diff extraction so commit, pull, push, working-tree, and restore paths share one parser
+- [ ] Split backlog-runner task execution into shared lifecycle phases so remediation and reconciliation stop reimplementing scheduler semantics
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

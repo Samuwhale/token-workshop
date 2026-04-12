@@ -1,0 +1,20 @@
+id: unify-manual-snapshot-comparison-and-restore-exe-6588492b
+title: Unify manual snapshot comparison and restore execution so restore and crash recovery stop drifting
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/services/manual-snapshot.ts
+  - packages/server/src/routes/snapshots.ts
+capabilities: []
+validation_profile: server
+status_notes:
+  - "Context: `manual-snapshot.ts` currently duplicates token diff walks in `diff()` and `diffSnapshots()`, then hand-reimplements the restore order a second time inside `recoverPendingRestore()`. That duplication makes whole-workspace restore semantics easy to update incompletely the next time snapshot scope changes."
+state: ready
+acceptance_criteria:
+  - "`ManualSnapshotStore` exposes one shared snapshot-comparison path that both `diff()` and `diffSnapshots()` use for token and workspace diff generation."
+  - Normal snapshot restore and `recoverPendingRestore()` run through the same journal-backed restore plan/executor instead of maintaining separate set/theme/resolver/generator replay loops.
+  - Snapshot restore rollback metadata is derived from the shared restore plan inputs so adding a new workspace artifact or restore stage updates restore, recovery, and undo together.
+source: code-pass
+created_at: 2026-04-12T20:42:36.862Z
+updated_at: 2026-04-12T20:42:36.862Z
