@@ -3,6 +3,10 @@ import {
   flattenTokenGroup,
   isDTCGToken,
   type DTCGToken,
+  type ResolverFile,
+  type ResolverModifier,
+  type ResolverSet,
+  type ResolverSource,
   type ThemeDimension,
   type ThemeSetStatus,
   type Token,
@@ -15,9 +19,11 @@ import type {
 import type { SetMetadataState } from "../services/token-store.js";
 import { handleRouteError } from "../errors.js";
 import {
+  getSnapshotTokenPath,
   listSnapshotTokenPaths,
   snapshotSet,
   snapshotSets,
+  type SnapshotEntry,
 } from "../services/operation-log.js";
 import { stableStringify } from "../services/stable-stringify.js";
 import { setTokenAtPath } from "../services/token-tree-utils.js";
@@ -301,6 +307,125 @@ function buildGeneratorTargets(
       targetGroup: generator.targetGroup,
     }))
     .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
+}
+
+function removeThemeSetReferences(params: {
+  dimensions: ThemeDimension[];
+  deletedSetNames: Set<string>;
+}): { dimensions: ThemeDimension[]; changed: boolean } {
+  const { dimensions, deletedSetNames } = params;
+  const nextDimensions = structuredClone(dimensions);
+  let changed = false;
+
+  for (const dimension of nextDimensions) {
+    for (const option of dimension.options) {
+      const nextSets = Object.fromEntries(
+        Object.entries(option.sets).filter(
+          ([setName]) => !deletedSetNames.has(setName),
+        ),
+      );
+      if (Object.keys(nextSets).length === Object.keys(option.sets).length) {
+        continue;
+      }
+      option.sets = nextSets;
+      changed = true;
+    }
+  }
+
+  return { dimensions: nextDimensions, changed };
+}
+
+function rewriteResolverSourcesWithoutDeletedSets(params: {
+  sources: ResolverSource[];
+  deletedSetNames: Set<string>;
+}): { sources: ResolverSource[]; changed: boolean } {
+  const { sources, deletedSetNames } = params;
+  let changed = false;
+
+  const nextSources = sources.flatMap((source) => {
+    if (
+      !("$ref" in source) ||
+      typeof source.$ref !== "string" ||
+      source.$ref.startsWith("#/")
+    ) {
+      return [source];
+    }
+
+    const refSetName = source.$ref.endsWith(".tokens.json")
+      ? source.$ref.slice(0, -".tokens.json".length)
+      : source.$ref;
+    if (!deletedSetNames.has(refSetName)) {
+      return [source];
+    }
+
+    changed = true;
+    return [];
+  });
+
+  return { sources: nextSources, changed };
+}
+
+function removeResolverSetReferences(params: {
+  file: ResolverFile;
+  deletedSetNames: Set<string>;
+}): { file: ResolverFile; changed: boolean } {
+  const { file, deletedSetNames } = params;
+  const nextFile = structuredClone(file);
+  let changed = false;
+
+  if (nextFile.sets) {
+    for (const entry of Object.values(nextFile.sets) as ResolverSet[]) {
+      const rewritten = rewriteResolverSourcesWithoutDeletedSets({
+        sources: entry.sources,
+        deletedSetNames,
+      });
+      if (!rewritten.changed) {
+        continue;
+      }
+      entry.sources = rewritten.sources;
+      changed = true;
+    }
+  }
+
+  if (nextFile.modifiers) {
+    for (const modifier of Object.values(
+      nextFile.modifiers,
+    ) as ResolverModifier[]) {
+      for (const [contextName, sources] of Object.entries(
+        modifier.contexts,
+      ) as Array<[string, ResolverSource[]]>) {
+        const rewritten = rewriteResolverSourcesWithoutDeletedSets({
+          sources,
+          deletedSetNames,
+        });
+        if (!rewritten.changed) {
+          continue;
+        }
+        modifier.contexts[contextName] = rewritten.sources;
+        changed = true;
+      }
+    }
+  }
+
+  return { file: nextFile, changed };
+}
+
+function buildTokenGroupFromSnapshot(
+  snapshot: Record<string, SnapshotEntry>,
+  setName: string,
+): TokenGroup {
+  const tokens: TokenGroup = {};
+  for (const [snapshotKey, entry] of Object.entries(snapshot)) {
+    if (entry.setName !== setName || entry.token === null) {
+      continue;
+    }
+    setTokenAtPath(
+      tokens,
+      getSnapshotTokenPath(snapshotKey, setName),
+      structuredClone(entry.token),
+    );
+  }
+  return tokens;
 }
 
 function buildSetImpact(params: {
@@ -1091,6 +1216,13 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return withLock(async () => {
+        let beforeSnapshot: Record<string, SnapshotEntry> | null = null;
+        const deletedSetNames: string[] = [];
+        let previousDimensions: ThemeDimension[] | null = null;
+        let themesChanged = false;
+        const previousResolverFiles: Record<string, ResolverFile> = {};
+        let changedResolverNames: string[] = [];
+
         try {
           const allSets = await fastify.tokenStore.getSets();
           const folderSetNames = getFolderSetNames(allSets, folder);
@@ -1100,6 +1232,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
               .send({ error: `Folder "${folder}" not found` });
           }
 
+          const deletedSetNameSet = new Set(folderSetNames);
           const generators = (await fastify.generatorService.getAll()).map(
             (generator) => ({
               id: generator.id,
@@ -1108,27 +1241,80 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
               targetGroup: generator.targetGroup,
             }),
           );
-          const blockedTargets = folderSetNames.flatMap((setName) =>
-            buildGeneratorTargets(setName, generators),
+          const generatorById = new Map(
+            generators.map((generator) => [generator.id, generator]),
           );
-          if (blockedTargets.length > 0) {
-            const names = blockedTargets
-              .map((generator) => `"${generator.generatorName}"`)
-              .join(", ");
+          const allOwnedTokens = fastify.tokenStore.findTokensByGeneratorId("*");
+          const blockers = folderSetNames.flatMap((setName) => {
+            const generatedOwnership = buildGeneratedOwnershipImpacts(
+              setName,
+              allOwnedTokens,
+              generatorById,
+            );
+            const generatorTargets = buildGeneratorTargets(setName, generators);
+            return [
+              ...buildGeneratedOwnershipBlockers({
+                name: setName,
+                tokenCount: 0,
+                metadata: {},
+                themeOptions: [],
+                resolverRefs: [],
+                generatedOwnership,
+                generatorTargets: [],
+              }),
+              ...buildGeneratorTargetBlockers({
+                name: setName,
+                tokenCount: 0,
+                metadata: {},
+                themeOptions: [],
+                resolverRefs: [],
+                generatedOwnership: [],
+                generatorTargets,
+              }),
+            ];
+          });
+          if (blockers.length > 0) {
             return reply.status(409).send({
-              error: `Cannot delete folder "${folder}" — contained sets are used as generator targets by ${blockedTargets.length === 1 ? "generator" : "generators"}: ${names}`,
-              generatorIds: blockedTargets.map(
-                (generator) => generator.generatorId,
-              ),
+              error:
+                blockers[0]?.message ??
+                `Cannot delete folder "${folder}" because dependent generator state still references its sets.`,
+              blockers,
             });
           }
 
-          const beforeSnapshot = await snapshotSets(
-            fastify.tokenStore,
-            folderSetNames,
-          );
+          beforeSnapshot = await snapshotSets(fastify.tokenStore, folderSetNames);
+          await fastify.dimensionsStore.withLock(async (dimensions) => {
+            previousDimensions = structuredClone(dimensions);
+            const rewritten = removeThemeSetReferences({
+              dimensions,
+              deletedSetNames: deletedSetNameSet,
+            });
+            themesChanged = rewritten.changed;
+            return { dims: rewritten.dimensions, result: undefined };
+          });
+          await fastify.resolverLock.withLock(async () => {
+            const resolverFiles = fastify.resolverStore.getAllFiles();
+            const nextChangedResolverNames: string[] = [];
+            for (const [name, file] of Object.entries(resolverFiles)) {
+              const rewritten = removeResolverSetReferences({
+                file,
+                deletedSetNames: deletedSetNameSet,
+              });
+              if (!rewritten.changed) {
+                continue;
+              }
+              previousResolverFiles[name] = structuredClone(file);
+              await fastify.resolverStore.update(name, rewritten.file);
+              nextChangedResolverNames.push(name);
+            }
+            changedResolverNames = nextChangedResolverNames.sort((a, b) =>
+              a.localeCompare(b),
+            );
+          });
+
           for (const setName of folderSetNames) {
             await fastify.tokenStore.deleteSet(setName);
+            deletedSetNames.push(setName);
           }
 
           await fastify.operationLog.record({
@@ -1138,13 +1324,30 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             affectedPaths: listSnapshotTokenPaths(beforeSnapshot),
             beforeSnapshot,
             afterSnapshot: {},
-            rollbackSteps: folderSetNames.map((setName) => ({
-              action: "create-set" as const,
-              name: setName,
-            })),
+            rollbackSteps: [
+              ...folderSetNames.map((setName) => ({
+                action: "create-set" as const,
+                name: setName,
+              })),
+              ...(themesChanged && previousDimensions
+                ? [
+                    {
+                      action: "write-themes" as const,
+                      dimensions: previousDimensions,
+                    },
+                  ]
+                : []),
+              ...changedResolverNames.map((name) => ({
+                action: "write-resolver" as const,
+                name,
+                file: previousResolverFiles[name],
+              })),
+            ],
             metadata: {
               folder,
               deletedSets: folderSetNames,
+              themesUpdated: themesChanged,
+              changedResolvers: changedResolverNames,
             },
           });
 
@@ -1155,6 +1358,37 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             sets: await fastify.tokenStore.getSets(),
           };
         } catch (err) {
+          if (beforeSnapshot && deletedSetNames.length > 0) {
+            for (const setName of deletedSetNames) {
+              await fastify.tokenStore
+                .createSet(
+                  setName,
+                  buildTokenGroupFromSnapshot(beforeSnapshot, setName),
+                )
+                .catch(() => {});
+            }
+          }
+          if (themesChanged && previousDimensions) {
+            const dimensionsToRestore = previousDimensions;
+            await fastify.dimensionsStore
+              .withLock(async () => ({
+                dims: dimensionsToRestore,
+                result: undefined,
+              }))
+              .catch(() => {});
+          }
+          if (changedResolverNames.length > 0) {
+            await fastify.resolverLock
+              .withLock(async () => {
+                for (const name of changedResolverNames) {
+                  await fastify.resolverStore.update(
+                    name,
+                    previousResolverFiles[name],
+                  );
+                }
+              })
+              .catch(() => {});
+          }
           return handleRouteError(reply, err, "Failed to delete folder");
         }
       });
