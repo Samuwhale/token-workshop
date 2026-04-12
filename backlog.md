@@ -61,7 +61,7 @@
 - [x] [HIGH] Simplify Settings to a flat scrollable list without search or tabs
 - [x] [HIGH] Move set rename, merge, split, and delete into server-owned structural transactions that also rewrite dependent themes, resolvers, and generator state
 - [x] [HIGH] Extend manual snapshots to capture and restore themes, resolvers, and generators instead of only token sets
-- [ ] [HIGH] Add library quality gate to Sync preflight — surface draft lifecycle tokens and active lint errors before compare/apply unlock
+- [x] [HIGH] Add library quality gate to Sync preflight — surface draft lifecycle tokens and active lint errors before compare/apply unlock
 - [ ] [HIGH] Rename 'Filters' sub-section in View options popover to avoid naming collision with 'Add filter' toolbar button
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.

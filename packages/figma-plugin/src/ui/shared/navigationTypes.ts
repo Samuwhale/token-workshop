@@ -490,7 +490,8 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     sections: [
       {
         id: "health",
-        label: "Audit",
+        label: "Issues",
+        summaryTitle: "Issues",
         topTab: "ship",
         subTab: "health",
         transition: workspaceTransition("Review quality checks and blockers."),
