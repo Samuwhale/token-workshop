@@ -63,6 +63,7 @@
 - [x] [HIGH] Extend manual snapshots to capture and restore themes, resolvers, and generators instead of only token sets
 - [x] [HIGH] Add library quality gate to Sync preflight — surface draft lifecycle tokens and active lint errors before compare/apply unlock
 - [x] [HIGH] Rename 'Filters' sub-section in View options popover to avoid naming collision with 'Add filter' toolbar button
+- [ ] [HIGH] Replace ad hoc `/api/tokens` writes with one shared token-mutation path so path encoding and overwrite behavior stop drifting
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -135,6 +136,8 @@
 - [x] Unify external-change reloading and SSE refresh across token, theme, resolver, and generator files
 - [x] Block or rewrite theme, resolver, and generated-token dependencies during folder delete operations
 - [x] Rename 'Audit' section tab inside Audit workspace to avoid tautological label
+- [ ] Finish decomposing App shell orchestration and the PanelRouter prop bag into workspace-owned controllers
+- [ ] Derive Sync preflight, compare rows, and preflight actions from one shared token-vs-Figma snapshot model
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

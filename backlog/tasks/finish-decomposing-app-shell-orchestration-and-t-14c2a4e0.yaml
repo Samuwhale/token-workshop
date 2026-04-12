@@ -1,0 +1,23 @@
+id: finish-decomposing-app-shell-orchestration-and-t-14c2a4e0
+title: Finish decomposing App shell orchestration and the PanelRouter prop bag into workspace-owned controllers
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/App.tsx
+  - packages/figma-plugin/src/ui/panels/PanelRouter.tsx
+  - packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts
+  - packages/figma-plugin/src/ui/contexts/EditorContext.tsx
+  - packages/figma-plugin/src/ui/contexts/NavigationContext.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: `App.tsx` is still over 4k lines, `PanelRouterProps` spans a 100+ line callback/data bag, and the command palette hook still depends on a wide App-owned options object. That coupling makes routine workspace changes fan out across the shell, router, and command palette at once."
+state: ready
+acceptance_criteria:
+  - "`packages/figma-plugin/src/ui/App.tsx` is reduced to shell-level routing, global overlays, and top-level context wiring instead of also owning Tokens workspace actions, set-manager mutations, and command-palette callback assembly."
+  - "`PanelRouter` no longer depends on a large app-wide prop bag for token/history/sync actions; each workspace reads a focused controller or context contract for the state it owns."
+  - "`useCommandPaletteCommands` consumes a small shell-actions contract or focused contexts instead of a long options object of App-local setters and callbacks."
+source: code-pass
+created_at: 2026-04-12T17:30:15.353Z
+updated_at: 2026-04-12T17:30:15.353Z
