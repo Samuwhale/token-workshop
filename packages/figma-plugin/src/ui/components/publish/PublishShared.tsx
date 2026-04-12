@@ -1,8 +1,10 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { swatchBgColor } from '../../shared/colorUtils';
+import { getDiffRowId } from '../../shared/syncWorkflow';
 
 // Display row shape used by VarDiffRowItem — compatible with both VarDiffRow and StyleDiffRow.
 interface VarDiffRow {
+  id?: string;
   path: string;
   cat: 'local-only' | 'figma-only' | 'conflict';
   localValue?: string;
@@ -11,17 +13,20 @@ interface VarDiffRow {
   figmaType?: string;
   localScopes?: string[];
   figmaScopes?: string[];
+  targetLabel?: string;
 }
 
 /* ── Shared types ───────────────────────────────────────────────────────── */
 
 export interface PreviewRow {
+  id?: string;
   path: string;
   localValue?: string;
   figmaValue?: string;
   localType?: string;
   figmaType?: string;
   cat: 'local-only' | 'figma-only' | 'conflict';
+  targetLabel?: string;
 }
 
 /* ── Helpers ────────────────────────────────────────────────────────────── */
@@ -278,9 +283,9 @@ export function SyncDiffSummary({ rows, dirs }: {
   rows: PreviewRow[];
   dirs: Record<string, 'push' | 'pull' | 'skip'>;
 }) {
-  const pushRows = rows.filter(r => dirs[r.path] === 'push');
-  const pullRows = rows.filter(r => dirs[r.path] === 'pull');
-  const skipCount = rows.filter(r => dirs[r.path] === 'skip').length;
+  const pushRows = rows.filter(r => dirs[getDiffRowId(r)] === 'push');
+  const pullRows = rows.filter(r => dirs[getDiffRowId(r)] === 'pull');
+  const skipCount = rows.filter(r => dirs[getDiffRowId(r)] === 'skip').length;
 
   const sections: { label: string; arrow: string; items: PreviewRow[]; direction: 'push' | 'pull' }[] = [];
   if (pushRows.length > 0) sections.push({ label: 'Push to Figma', arrow: '\u2191', items: pushRows, direction: 'push' });
@@ -303,8 +308,13 @@ export function SyncDiffSummary({ rows, dirs }: {
               const beforeVal = section.direction === 'push' ? r.figmaValue : r.localValue;
               const afterVal = section.direction === 'push' ? r.localValue : r.figmaValue;
               return (
-                <div key={r.path} className="px-2 py-1">
+                <div key={getDiffRowId(r)} className="px-2 py-1">
                   <div className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</div>
+                  {r.targetLabel ? (
+                    <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] truncate" title={r.targetLabel}>
+                      {r.targetLabel}
+                    </div>
+                  ) : null}
                   {r.cat === 'conflict' && (
                     <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-[10px] font-mono">
                       <div className="flex items-center gap-1 min-w-0">
@@ -388,7 +398,7 @@ function ScopesEditor({
 
 /* ── VarDiffRowItem ─────────────────────────────────────────────────────── */
 
-export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, onScopesChange, figmaScopeValue }: {
+export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, onScopesChange, figmaScopeValue, reviewOnly = false }: {
   row: VarDiffRow;
   dir: 'push' | 'pull' | 'skip';
   onChange: (dir: 'push' | 'pull' | 'skip') => void;
@@ -400,11 +410,12 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
   onScopesChange?: (scopes: string[]) => void;
   /** Scopes currently on the Figma variable — shown for figma-only and conflict rows */
   figmaScopeValue?: string[];
+  reviewOnly?: boolean;
 }) {
   const [scopesExpanded, setScopesExpanded] = useState(false);
 
   // Determine whether to show scope editing section
-  const canEditScopes = !!onScopesChange && !!scopeOptions?.length && dir === 'push';
+  const canEditScopes = !reviewOnly && !!onScopesChange && !!scopeOptions?.length && dir === 'push';
   // For figma-only rows, show figma scopes as info (read-only)
   const showFigmaScopes = row.cat === 'figma-only' && !!figmaScopeValue?.length && !!scopeOptions?.length;
 
@@ -414,16 +425,29 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
   return (
     <div className="px-3 py-1.5 flex flex-col gap-1">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={row.path}>{row.path}</span>
-        <select
-          value={dir}
-          onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
-          className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
-        >
-          <option value="push">{'\u2191'} Push to Figma</option>
-          <option value="pull">{'\u2193'} Pull to local</option>
-          <option value="skip">Skip</option>
-        </select>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] text-[var(--color-figma-text)] truncate font-mono" title={row.path}>{row.path}</div>
+          {row.targetLabel ? (
+            <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] truncate" title={row.targetLabel}>
+              {row.targetLabel}
+            </div>
+          ) : null}
+        </div>
+        {reviewOnly ? (
+          <span className="shrink-0 rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+            Review only
+          </span>
+        ) : (
+          <select
+            value={dir}
+            onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
+            className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
+          >
+            <option value="push">{'\u2191'} Push to Figma</option>
+            <option value="pull">{'\u2193'} Pull to local</option>
+            <option value="skip">Skip</option>
+          </select>
+        )}
       </div>
       {row.cat === 'conflict' && (
         <div className="flex items-center gap-1.5 pl-0.5">

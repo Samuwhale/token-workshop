@@ -72,7 +72,7 @@
 - [x] [HIGH] Centralize token structural mutation commands so rename/move/copy flows stop duplicating snapshots, rollback, and generator updates
 - [x] [HIGH] Connect resolver contexts to publish configuration so theme dimension combinations map directly to Figma variable modes
 - [x] [HIGH] Rename 'Review tools' to signal navigation to Coverage and Compare views in ThemeAuthoringScreen
-- [ ] [HIGH] Make queued theme role mutations roll back from the last committed state instead of a stale pre-queue snapshot
+- [x] [HIGH] Make queued theme role mutations roll back from the last committed state instead of a stale pre-queue snapshot
 - [ ] [HIGH] Centralize generator write-route bookkeeping so step overrides and orphan cleanup become rollbackable server operations
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
@@ -161,6 +161,7 @@
 - [x] Export button stays enabled with changes-only active and zero changes in a git repo, leading to a click-then-error dead end
 - [x] Coverage view offers no way to act on reviewed gaps, forcing a round-trip back to Authoring before auto-fill
 - [ ] Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
+- [ ] Add resolver-targeted orphan cleanup for mapped publish modes
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

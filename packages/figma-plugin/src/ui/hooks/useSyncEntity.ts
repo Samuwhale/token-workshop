@@ -42,6 +42,19 @@ export interface SyncEntityConfig<TRow extends DiffRowBase, TSnapshot> {
   buildFigmaOnlyRow: (path: string, figma: any) => TRow;
   buildConflictRow: (path: string, local: any, figma: any) => TRow;
   isConflict: (local: any, figma: any) => boolean;
+  loadSnapshot?: (params: {
+    serverUrl: string;
+    activeSet: string;
+    signal?: AbortSignal;
+    readFigmaTokens: () => Promise<any[]>;
+  }) => Promise<{
+    localTokens: Map<string, DTCGToken>;
+    figmaTokens: unknown[];
+    localMap: Map<string, any>;
+    figmaMap: Map<string, any>;
+    rows: TRow[];
+    dirs: Record<string, 'push' | 'pull' | 'skip'>;
+  }>;
   buildApplyPayload: (rows: TRow[]) => Record<string, any>;
   buildPullPayload: (row: TRow) => { $type: string; $value: any };
   buildRevertPayload: (snapshot: TSnapshot) => Record<string, any>;
@@ -131,6 +144,7 @@ export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
     buildFigmaOnlyRow: (path: string, figma: any): TRow => configRef.current.buildFigmaOnlyRow(path, figma),
     buildConflictRow: (path: string, local: any, figma: any): TRow => configRef.current.buildConflictRow(path, local, figma),
     isConflict: (local: any, figma: any) => configRef.current.isConflict(local, figma),
+    loadSnapshot: configRef.current.loadSnapshot,
     executePush: async (rows: TRow[]) => {
       const cfg = configRef.current;
       const result = await sendApply(messages.applySendType, cfg.buildApplyPayload(rows));

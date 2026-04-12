@@ -2,14 +2,14 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DTCGToken } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import {
-  buildVariablePublishFigmaMap,
   getSyncRowsByCategory,
-  loadSyncSnapshot,
-  variablePublishDiffConfig,
+  getDiffRowId,
+  loadVariablePublishSnapshot,
+  type ResolverPublishSyncMapping,
+  type VariablePublishCompareMode,
 } from '../shared/syncWorkflow';
 import type {
   PublishDiffRow,
-  PublishSyncEntry,
   PublishPreflightActionId,
   PublishPreflightCluster,
   PublishPreflightStage,
@@ -68,6 +68,9 @@ interface UseReadinessChecksParams {
   readFigmaTokens: () => Promise<any[]>;
   setOrphanConfirm: (val: { orphanPaths: string[]; localPaths: Set<string> } | null) => void;
   refreshValidation: () => Promise<ValidationSnapshot | null>;
+  resolverName?: string | null;
+  resolverPublishMappings?: ResolverPublishSyncMapping[];
+  compareMode?: VariablePublishCompareMode;
 }
 
 interface ClusterDraft {
@@ -88,15 +91,19 @@ async function loadVariableSyncSnapshot(
   readFigmaTokens: () => Promise<any[]>,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
+  resolverName?: string | null,
+  resolverPublishMappings?: ResolverPublishSyncMapping[],
 ) {
-  return loadSyncSnapshot<PublishSyncEntry, PublishSyncEntry, PublishDiffRow>({
+  return loadVariablePublishSnapshot({
     serverUrl,
     activeSet,
+    collectionMap,
+    modeMap,
     readFigmaTokens,
     figmaTimeoutMs: READINESS_TIMEOUT_MS,
     figmaTimeoutMessage: 'No response from Figma after 15 s — make sure the plugin is open and try again.',
-    ...variablePublishDiffConfig,
-    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, activeSet, collectionMap, modeMap),
+    resolverName,
+    resolverPublishMappings,
   });
 }
 
@@ -129,6 +136,9 @@ export function useReadinessChecks({
   readFigmaTokens,
   setOrphanConfirm,
   refreshValidation,
+  resolverName,
+  resolverPublishMappings,
+  compareMode = 'standard',
 }: UseReadinessChecksParams): UseReadinessChecksReturn {
   const [readinessChecks, setReadinessChecks] = useState<PublishPreflightCluster[]>([]);
   const [readinessLoading, setReadinessLoading] = useState(false);
@@ -147,7 +157,15 @@ export function useReadinessChecks({
     setReadinessError(null);
 
     try {
-      const snapshot = await loadVariableSyncSnapshot(serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap);
+      const snapshot = await loadVariableSyncSnapshot(
+        serverUrl,
+        activeSet,
+        readFigmaTokens,
+        collectionMap,
+        modeMap,
+        resolverName,
+        resolverPublishMappings,
+      );
       const validationSnapshot = await refreshValidation();
       const activeValidationIssues =
         validationSnapshot?.issues.filter((issue) => issue.setName === activeSet && issue.severity === 'error') ?? [];
@@ -166,10 +184,14 @@ export function useReadinessChecks({
           severity: 'blocking',
           affectedCount: missingInFigma.length || undefined,
           detail: missingInFigma.length > 0
-            ? 'Some local tokens are not yet published as Figma variables. Push them first so compare/apply runs against the full set.'
+            ? compareMode === 'resolver-publish'
+              ? 'Some mapped resolver outputs are still missing in their target Figma modes. Sync the resolver mappings before compare/apply can reflect the saved mode routing.'
+              : 'Some local tokens are not yet published as Figma variables. Push them first so compare/apply runs against the full set.'
             : undefined,
           recommendedActionLabel: missingInFigma.length > 0
-            ? `Push ${missingInFigma.length} missing variable${missingInFigma.length === 1 ? '' : 's'}`
+            ? compareMode === 'resolver-publish'
+              ? `Sync ${missingInFigma.length} missing mapped variable${missingInFigma.length === 1 ? '' : 's'}`
+              : `Push ${missingInFigma.length} missing variable${missingInFigma.length === 1 ? '' : 's'}`
             : undefined,
           recommendedActionId: missingInFigma.length > 0 ? 'push-missing-variables' : undefined,
         },
@@ -179,12 +201,16 @@ export function useReadinessChecks({
           severity: 'blocking',
           affectedCount: orphans.length || undefined,
           detail: orphans.length > 0
-            ? 'Figma still contains variables that no longer exist in this token set. Review or delete them before syncing again.'
+            ? compareMode === 'resolver-publish'
+              ? 'Some mapped Figma modes still contain variables that no longer exist in the resolver outputs. Review those target modes before syncing again.'
+              : 'Figma still contains variables that no longer exist in this token set. Review or delete them before syncing again.'
             : undefined,
           recommendedActionLabel: orphans.length > 0
-            ? `Delete ${orphans.length} orphan variable${orphans.length === 1 ? '' : 's'}`
+            ? compareMode === 'resolver-publish'
+              ? 'Review mapped mode differences'
+              : `Delete ${orphans.length} orphan variable${orphans.length === 1 ? '' : 's'}`
             : undefined,
-          recommendedActionId: orphans.length > 0 ? 'delete-orphan-variables' : undefined,
+          recommendedActionId: orphans.length > 0 && compareMode !== 'resolver-publish' ? 'delete-orphan-variables' : undefined,
         },
         {
           id: 'scopes',
@@ -270,16 +296,35 @@ export function useReadinessChecks({
         Promise.resolve().then(() => runReadinessChecksRef.current());
       }
     }
-  }, [activeSet, collectionMap, modeMap, readFigmaTokens, refreshValidation, serverUrl, tokenChangeKey]);
+  }, [
+    activeSet,
+    collectionMap,
+    compareMode,
+    modeMap,
+    readFigmaTokens,
+    refreshValidation,
+    resolverName,
+    resolverPublishMappings,
+    serverUrl,
+    tokenChangeKey,
+  ]);
 
   const triggerReadinessAction = useCallback(async (actionId: PublishPreflightActionId) => {
     if (!activeSet) return;
 
     try {
       if (actionId === 'push-missing-variables') {
-        const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap);
+        const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(
+          serverUrl,
+          activeSet,
+          readFigmaTokens,
+          collectionMap,
+          modeMap,
+          resolverName,
+          resolverPublishMappings,
+        );
         const tokens = getSyncRowsByCategory(snapshot.rows).localOnly.map((row) => {
-          const local = snapshot.localMap.get(row.path);
+          const local = snapshot.localMap.get(getDiffRowId(row));
           const scopes = local?.scopes;
           return {
             path: row.path,
@@ -297,7 +342,15 @@ export function useReadinessChecks({
       }
 
       if (actionId === 'delete-orphan-variables') {
-        const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap);
+        const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(
+          serverUrl,
+          activeSet,
+          readFigmaTokens,
+          collectionMap,
+          modeMap,
+          resolverName,
+          resolverPublishMappings,
+        );
         const localPaths = new Set<string>(snapshot.localTokens.keys());
         const orphanPaths = getSyncRowsByCategory(snapshot.rows).figmaOnly.map((row) => row.path);
 
@@ -308,7 +361,16 @@ export function useReadinessChecks({
     } catch (error) {
       setReadinessError(describeError(error, 'Readiness action'));
     }
-  }, [activeSet, collectionMap, modeMap, readFigmaTokens, serverUrl, setOrphanConfirm]);
+  }, [
+    activeSet,
+    collectionMap,
+    modeMap,
+    readFigmaTokens,
+    resolverName,
+    resolverPublishMappings,
+    serverUrl,
+    setOrphanConfirm,
+  ]);
 
   const runReadinessChecksRef = useRef(runReadinessChecks);
   useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);

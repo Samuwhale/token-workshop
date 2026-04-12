@@ -3,7 +3,13 @@ import { dispatchToast } from '../shared/toastBus';
 import type { DTCGToken } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError, createFetchSignal } from '../shared/apiFetch';
-import { loadSyncSnapshot, type DiffRowBase, type SyncDirection } from '../shared/syncWorkflow';
+import {
+  getDiffRowId,
+  loadSyncSnapshot,
+  type DiffRowBase,
+  type SyncDirection,
+  type SyncSnapshot,
+} from '../shared/syncWorkflow';
 
 export type { DiffRowBase } from '../shared/syncWorkflow';
 
@@ -62,6 +68,14 @@ export interface TokenSyncConfig<TRow extends DiffRowBase> {
 
   /** Return true when local and figma entries differ */
   isConflict: (local: any, figma: any) => boolean;
+
+  /** Optional custom snapshot loader for compare flows that do not map 1:1 to the active set. */
+  loadSnapshot?: (params: {
+    serverUrl: string;
+    activeSet: string;
+    signal?: AbortSignal;
+    readFigmaTokens: () => Promise<any[]>;
+  }) => Promise<SyncSnapshot<any, any, TRow>>;
 
   /**
    * Execute push (local → Figma).
@@ -156,18 +170,25 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
     setError(null);
     setChecked(false);
     try {
-      const snapshot = await loadSyncSnapshot({
-        serverUrl,
-        activeSet,
-        readFigmaTokens: cfg.readFigmaTokens,
-        signal: createFetchSignal(),
-        buildFigmaMap: cfg.buildFigmaMap,
-        buildLocalMap: cfg.buildLocalMap,
-        buildLocalOnlyRow: cfg.buildLocalOnlyRow,
-        buildFigmaOnlyRow: cfg.buildFigmaOnlyRow,
-        buildConflictRow: cfg.buildConflictRow,
-        isConflict: cfg.isConflict,
-      });
+      const snapshot = cfg.loadSnapshot
+        ? await cfg.loadSnapshot({
+          serverUrl,
+          activeSet,
+          signal: createFetchSignal(),
+          readFigmaTokens: cfg.readFigmaTokens,
+        })
+        : await loadSyncSnapshot({
+          serverUrl,
+          activeSet,
+          readFigmaTokens: cfg.readFigmaTokens,
+          signal: createFetchSignal(),
+          buildFigmaMap: cfg.buildFigmaMap,
+          buildLocalMap: cfg.buildLocalMap,
+          buildLocalOnlyRow: cfg.buildLocalOnlyRow,
+          buildFigmaOnlyRow: cfg.buildFigmaOnlyRow,
+          buildConflictRow: cfg.buildConflictRow,
+          isConflict: cfg.isConflict,
+        });
 
       setRows(snapshot.rows);
       rowsRef.current = snapshot.rows; // update ref immediately so applyDiff sees fresh data
@@ -187,8 +208,8 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
     const rowsSnapshot = rowsRef.current;
     const signal = abortRef.current.signal;
 
-    const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
-    const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
+    const pushRows = rowsSnapshot.filter(r => dirsSnapshot[getDiffRowId(r)] === 'push');
+    const pullRows = rowsSnapshot.filter(r => dirsSnapshot[getDiffRowId(r)] === 'pull');
 
     // No-op: nothing to apply (supports quick-sync calling applyDiff unconditionally)
     if (pushRows.length === 0 && pullRows.length === 0) return;
@@ -243,8 +264,11 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
         ]);
         setRows(rowsSnapshot.filter(r => failedPaths.has(r.path)));
         const failedDirs: Record<string, 'push' | 'pull' | 'skip'> = {};
-        for (const path of failedPaths) {
-          if (dirsSnapshot[path]) failedDirs[path] = dirsSnapshot[path];
+        for (const row of rowsSnapshot) {
+          const rowId = getDiffRowId(row);
+          if (failedPaths.has(row.path) && dirsSnapshot[rowId]) {
+            failedDirs[rowId] = dirsSnapshot[rowId];
+          }
         }
         setDirs(failedDirs);
 

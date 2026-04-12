@@ -24,8 +24,12 @@ import { FIGMA_SCOPES } from './MetadataEditor';
 import {
   buildVariablePublishFigmaMap,
   buildPublishPullPayload,
+  getDiffRowId,
+  loadVariablePublishSnapshot,
+  type ResolverPublishSyncMapping,
   stylePublishDiffConfig,
   variablePublishDiffConfig,
+  type VariablePublishCompareMode,
   type PublishDiffRow as DiffRow,
   type PublishPreflightActionId,
   type SyncWorkflowStage,
@@ -163,6 +167,18 @@ function writeResolverPublishMappings(
   nextFile.$extensions =
     Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
   return nextFile;
+}
+
+function buildResolverPublishSyncMappings(rows: ResolverPublishMappingRow[]): ResolverPublishSyncMapping[] {
+  return rows
+    .filter((row) => row.sourceModeName.trim().length > 0)
+    .map((row) => ({
+      key: row.key,
+      label: row.label,
+      contexts: row.contexts,
+      collectionName: row.sourceCollectionName.trim() || undefined,
+      modeName: row.sourceModeName.trim(),
+    }));
 }
 
 
@@ -356,6 +372,14 @@ export function PublishPanel({
     [resolverPublishRows],
   );
 
+  const resolverPublishSyncMappings = useMemo(
+    () => buildResolverPublishSyncMappings(resolverPublishRows),
+    [resolverPublishRows],
+  );
+  const variableCompareMode: VariablePublishCompareMode =
+    activeResolver && resolverPublishSyncMappings.length > 0 ? 'resolver-publish' : 'standard';
+  const isResolverPublishCompareActive = variableCompareMode === 'resolver-publish';
+
   const updateResolverPublishDraft = useCallback(
     (key: string, field: keyof ResolverPublishMappingDraft, value: string) => {
       setResolverPublishDrafts((prev) => ({
@@ -418,6 +442,17 @@ export function PublishPanel({
   const varSync = useSyncEntity<DiffRow, VarSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
     progressEventType: 'variable-sync-progress',
     ...variablePublishDiffConfig,
+    loadSnapshot: ({ signal, readFigmaTokens }) =>
+      loadVariablePublishSnapshot({
+        serverUrl,
+        activeSet,
+        collectionMap,
+        modeMap,
+        readFigmaTokens,
+        signal,
+        resolverName: isResolverPublishCompareActive ? activeResolver : null,
+        resolverPublishMappings: isResolverPublishCompareActive ? resolverPublishSyncMappings : [],
+      }),
     buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, activeSet, collectionMap, modeMap),
     buildPullPayload: buildPublishPullPayload,
     buildApplyPayload: (rows) => ({
@@ -483,6 +518,9 @@ export function PublishPanel({
     readFigmaTokens: varSync.readFigmaTokens,
     setOrphanConfirm: orphanCleanup.setOrphanConfirm,
     refreshValidation,
+    resolverName: isResolverPublishCompareActive ? activeResolver : null,
+    resolverPublishMappings: isResolverPublishCompareActive ? resolverPublishSyncMappings : [],
+    compareMode: variableCompareMode,
   });
 
   const {
@@ -585,8 +623,20 @@ export function PublishPanel({
     setChecksStale,
   ]);
 
+  const publishAllVarSync = useMemo(() => (
+    isResolverPublishCompareActive
+      ? {
+        ...varSync,
+        syncCount: 0,
+        pushCount: 0,
+        pullCount: 0,
+        applyDiff: async () => {},
+      }
+      : varSync
+  ), [isResolverPublishCompareActive, varSync]);
+
   const publishAll = usePublishAll({
-    varSync,
+    varSync: publishAllVarSync,
     styleSync,
     setConfirmAction,
     markChecksStale: stableMarkChecksStale,
@@ -667,6 +717,9 @@ export function PublishPanel({
     const pendingCount = (hasVarChanges ? varSync.syncCount : 0) + (hasStyleChanges ? styleSync.syncCount : 0);
     const applyDetail =
       !canProceedToCompare ? 'Locked until preflight passes' :
+      isResolverPublishCompareActive && varSync.checked
+        ? 'Resolver mode apply runs from the mapping card above'
+        :
       !hasComparedAnything ? 'Compare first to see changes' :
       (publishAllBusy || quickSyncing) ? 'Applying changes\u2026' :
       publishAllAvailable
@@ -684,6 +737,7 @@ export function PublishPanel({
     varSync.loading, varSync.rows.length, varSync.syncCount,
     styleSync.loading, styleSync.rows.length, styleSync.syncCount,
     hasVarChanges, hasStyleChanges,
+    isResolverPublishCompareActive,
   ]);
 
   const focusStage = useCallback((stage: SyncWorkflowStage) => {
@@ -697,6 +751,12 @@ export function PublishPanel({
   const handlePreflightAction = useCallback(async (actionId: PublishPreflightActionId) => {
     setPreflightActionBusyId(actionId);
     try {
+      if (isResolverPublishCompareActive && actionId === 'push-missing-variables') {
+        await syncResolverPublishModes();
+        focusStage('compare');
+        return;
+      }
+
       if (actionId === 'review-draft-tokens') {
         setReturnBreadcrumb({ label: 'Back to Sync', topTab: 'ship', subTab: 'publish' });
         navigateTo('define', 'tokens');
@@ -732,7 +792,15 @@ export function PublishPanel({
     } finally {
       setPreflightActionBusyId(null);
     }
-  }, [focusStage, navigateTo, setReturnBreadcrumb, triggerReadinessAction, varSync]);
+  }, [
+    focusStage,
+    isResolverPublishCompareActive,
+    navigateTo,
+    setReturnBreadcrumb,
+    syncResolverPublishModes,
+    triggerReadinessAction,
+    varSync,
+  ]);
 
   const preflightActionHandlers = useMemo(() => ({
     'push-missing-variables': () => void handlePreflightAction('push-missing-variables'),
@@ -758,13 +826,20 @@ export function PublishPanel({
   // ── Broadcast pending count to Ship tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
   useEffect(() => {
-    const varCount = canProceedToCompare && varSync.checked ? varSync.syncCount : 0;
+    const varCount = canProceedToCompare && varSync.checked && !isResolverPublishCompareActive ? varSync.syncCount : 0;
     const styleCount = canProceedToCompare && styleSync.checked ? styleSync.syncCount : 0;
     window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: varCount + styleCount } }));
     return () => {
       window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: 0 } }));
     };
-  }, [canProceedToCompare, varSync.checked, varSync.syncCount, styleSync.checked, styleSync.syncCount]);
+  }, [
+    canProceedToCompare,
+    isResolverPublishCompareActive,
+    varSync.checked,
+    varSync.syncCount,
+    styleSync.checked,
+    styleSync.syncCount,
+  ]);
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('publish-preflight-state', { detail: publishPreflightState }));
@@ -848,7 +923,9 @@ export function PublishPanel({
               )}
             </div>
             <p className="mt-1.5 max-w-[560px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Compare variables and styles only after preflight is clear. Choose whether each difference should push to Figma, pull back locally, or be skipped.
+              {isResolverPublishCompareActive
+                ? 'Compare each saved resolver context mapping against its target Figma collection and mode after preflight clears. Use the resolver mode sync card above to apply those mapped variable changes.'
+                : 'Compare variables and styles only after preflight is clear. Choose whether each difference should push to Figma, pull back locally, or be skipped.'}
             </p>
             {!canProceedToCompare && (
               <div className="mt-2 rounded-[12px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
@@ -921,18 +998,24 @@ export function PublishPanel({
             diffFilter={diffFilter}
             onRequestConfirm={(action) => setConfirmAction(action as ConfirmAction)}
             onRevert={varSync.revert}
-            description="Keep local tokens and Figma variables in sync. Push local changes to Figma, or pull Figma changes back."
-            sectionLabel="Token differences"
+            description={isResolverPublishCompareActive
+              ? 'Review saved resolver context mappings against their target Figma collection and mode. Variable apply continues through the resolver mode sync card.'
+              : 'Keep local tokens and Figma variables in sync. Push local changes to Figma, or pull Figma changes back.'}
+            sectionLabel={isResolverPublishCompareActive ? 'Mapped resolver differences' : 'Token differences'}
             previewAction="preview-vars"
             applyAction="apply-vars"
-            inSyncMessage="Local tokens match Figma variables."
-            notCheckedMessage={<>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which tokens differ between local files and Figma.</>}
+            inSyncMessage={isResolverPublishCompareActive ? 'Mapped resolver outputs match their target Figma modes.' : 'Local tokens match Figma variables.'}
+            notCheckedMessage={isResolverPublishCompareActive
+              ? <>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to review the saved resolver mappings against their target Figma modes.</>
+              : <>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which tokens differ between local files and Figma.</>}
             revertDescription="Restore Figma variables to their pre-sync state"
             locked={!canProceedToCompare}
             lockedMessage={compareLockedMessage}
             scopeOverrides={scopeOverrides}
             onScopesChange={(path, scopes) => setScopeOverrides(prev => ({ ...prev, [path]: scopes }))}
             getScopeOptions={(type) => FIGMA_SCOPES[type ?? ''] ?? []}
+            reviewOnly={isResolverPublishCompareActive}
+            reviewOnlyMessage="Resolver-mode variable differences are review-only here. Apply them from the mapping card above so the saved resolver publish routing stays authoritative."
           />
         </Section>
 
@@ -1031,7 +1114,9 @@ export function PublishPanel({
             </div>
           ) : hasComparedAnything ? (
             <div className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              No combined Figma changes are pending after compare. Adjust row directions if you want to apply something, or re-run compare against the current file.
+              {isResolverPublishCompareActive && varSync.checked
+                ? 'Resolver-mode variable apply stays on the mapping card above. Re-run compare after syncing there, or use the standard controls here for any style changes.'
+                : 'No combined Figma changes are pending after compare. Adjust row directions if you want to apply something, or re-run compare against the current file.'}
             </div>
           ) : (
             <div className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
@@ -1316,12 +1401,14 @@ function ResolverModePublishCard({
 /* ── Shared types ───────────────────────────────────────────────────────── */
 
 interface PreviewRow {
+  id?: string;
   path: string;
   localValue?: string;
   figmaValue?: string;
   localType?: string;
   figmaType?: string;
   cat: 'local-only' | 'figma-only' | 'conflict';
+  targetLabel?: string;
 }
 
 /* ── SyncDiffSummary (used inside apply confirm modals) ──────────────── */
@@ -1330,9 +1417,9 @@ function SyncDiffSummary({ rows, dirs }: {
   rows: PreviewRow[];
   dirs: Record<string, 'push' | 'pull' | 'skip'>;
 }) {
-  const pushRows = rows.filter(r => dirs[r.path] === 'push');
-  const pullRows = rows.filter(r => dirs[r.path] === 'pull');
-  const skipCount = rows.filter(r => dirs[r.path] === 'skip').length;
+  const pushRows = rows.filter(r => dirs[getDiffRowId(r)] === 'push');
+  const pullRows = rows.filter(r => dirs[getDiffRowId(r)] === 'pull');
+  const skipCount = rows.filter(r => dirs[getDiffRowId(r)] === 'skip').length;
 
   const sections: { label: string; arrow: string; items: PreviewRow[]; direction: 'push' | 'pull' }[] = [];
   if (pushRows.length > 0) sections.push({ label: 'Push to Figma', arrow: '\u2191', items: pushRows, direction: 'push' });
@@ -1355,8 +1442,13 @@ function SyncDiffSummary({ rows, dirs }: {
               const beforeVal = section.direction === 'push' ? r.figmaValue : r.localValue;
               const afterVal = section.direction === 'push' ? r.localValue : r.figmaValue;
               return (
-                <div key={r.path} className="px-2 py-1">
+                <div key={getDiffRowId(r)} className="px-2 py-1">
                   <div className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</div>
+                  {r.targetLabel ? (
+                    <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] truncate" title={r.targetLabel}>
+                      {r.targetLabel}
+                    </div>
+                  ) : null}
                   {r.cat === 'conflict' && (
                     <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-[10px] font-mono">
                       <div className="flex items-center gap-1 min-w-0">
@@ -1408,13 +1500,13 @@ function SyncPreviewModal({
   confirmLabel?: string;
 }) {
   const [busy, setBusy] = useState(false);
-  const pushAdds = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'local-only');
-  const pushUpdates = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'conflict');
-  const pullAdds = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'figma-only');
-  const pullUpdates = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'conflict');
-  const deletesFromFigma = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'local-only');
-  const deletesFromLocal = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'figma-only');
-  const skipped = rows.filter(r => dirs[r.path] === 'skip');
+  const pushAdds = rows.filter(r => dirs[getDiffRowId(r)] === 'push' && r.cat === 'local-only');
+  const pushUpdates = rows.filter(r => dirs[getDiffRowId(r)] === 'push' && r.cat === 'conflict');
+  const pullAdds = rows.filter(r => dirs[getDiffRowId(r)] === 'pull' && r.cat === 'figma-only');
+  const pullUpdates = rows.filter(r => dirs[getDiffRowId(r)] === 'pull' && r.cat === 'conflict');
+  const deletesFromFigma = rows.filter(r => dirs[getDiffRowId(r)] === 'pull' && r.cat === 'local-only');
+  const deletesFromLocal = rows.filter(r => dirs[getDiffRowId(r)] === 'push' && r.cat === 'figma-only');
+  const skipped = rows.filter(r => dirs[getDiffRowId(r)] === 'skip');
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -1470,10 +1562,15 @@ function SyncPreviewModal({
                     const beforeVal = isPush ? r.figmaValue : r.localValue;
                     const afterVal = isPush ? r.localValue : r.figmaValue;
                     return (
-                      <div key={r.path} className="py-1 border-b border-[var(--color-figma-border)] last:border-b-0">
+                      <div key={getDiffRowId(r)} className="py-1 border-b border-[var(--color-figma-border)] last:border-b-0">
                         <div className="flex items-center gap-1 min-w-0">
                           <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</span>
                         </div>
+                        {r.targetLabel ? (
+                          <div className="ml-2 mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] truncate" title={r.targetLabel}>
+                            {r.targetLabel}
+                          </div>
+                        ) : null}
                         {r.cat === 'conflict' && (
                           <div className="ml-2 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
                             <div className="flex items-center gap-1 min-w-0">

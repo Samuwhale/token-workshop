@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { useSyncEntity } from '../../hooks/useSyncEntity';
 import { NoticeBanner } from '../../shared/noticeSystem';
+import { getDiffRowId } from '../../shared/syncWorkflow';
 import { VarDiffRowItem } from './PublishShared';
 
 type SyncState = ReturnType<typeof useSyncEntity>;
@@ -22,6 +23,8 @@ interface SyncSubPanelProps {
   revertDescription: string;
   locked?: boolean;
   lockedMessage?: React.ReactNode;
+  reviewOnly?: boolean;
+  reviewOnlyMessage?: React.ReactNode;
 
   // Optional scope editing (variable sync only)
   scopeOverrides?: Record<string, string[]>;
@@ -44,6 +47,7 @@ function CategorySection({
   getScopeOptions,
   scopeOverrides,
   onScopesChange,
+  reviewOnly,
 }: {
   title: string;
   rows: DiffRow[];
@@ -55,11 +59,12 @@ function CategorySection({
   getScopeOptions?: (type: string | undefined) => { label: string; value: string }[];
   scopeOverrides?: Record<string, string[]>;
   onScopesChange?: (path: string, scopes: string[]) => void;
+  reviewOnly?: boolean;
 }) {
   // Count current directions within this category
-  const pushCount = rows.filter(r => (dirs[r.path] ?? defaultDir) === 'push').length;
-  const pullCount = rows.filter(r => (dirs[r.path] ?? defaultDir) === 'pull').length;
-  const skipCount = rows.filter(r => (dirs[r.path] ?? defaultDir) === 'skip').length;
+  const pushCount = rows.filter(r => (dirs[getDiffRowId(r)] ?? defaultDir) === 'push').length;
+  const pullCount = rows.filter(r => (dirs[getDiffRowId(r)] ?? defaultDir) === 'pull').length;
+  const skipCount = rows.filter(r => (dirs[getDiffRowId(r)] ?? defaultDir) === 'skip').length;
 
   // Group rows by token type within this category
   const typeGroups = new Map<string, DiffRow[]>();
@@ -78,7 +83,7 @@ function CategorySection({
   const setBulk = (action: 'push' | 'pull' | 'skip') => {
     onSetDirs(prev => {
       const next = { ...prev };
-      for (const r of rows) next[r.path] = action;
+      for (const r of rows) next[getDiffRowId(r)] = action;
       return next;
     });
   };
@@ -105,17 +110,19 @@ function CategorySection({
       {!collapsed && (
         <>
           {/* Bulk actions for this category */}
-          <div className="px-3 py-1 bg-[var(--color-figma-bg)] border-t border-[var(--color-figma-border)] flex items-center gap-1.5">
-            {(['push', 'pull', 'skip'] as const).map(action => (
-              <button
-                key={action}
-                onClick={(e) => { e.stopPropagation(); setBulk(action); }}
-                className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
-              </button>
-            ))}
-          </div>
+          {!reviewOnly && (
+            <div className="px-3 py-1 bg-[var(--color-figma-bg)] border-t border-[var(--color-figma-border)] flex items-center gap-1.5">
+              {(['push', 'pull', 'skip'] as const).map(action => (
+                <button
+                  key={action}
+                  onClick={(e) => { e.stopPropagation(); setBulk(action); }}
+                  className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Rows grouped by type */}
           <div className="divide-y divide-[var(--color-figma-border)]">
@@ -128,10 +135,10 @@ function CategorySection({
                 )}
                 {groupRows.map(row => (
                   <VarDiffRowItem
-                    key={row.path}
+                    key={getDiffRowId(row)}
                     row={row}
-                    dir={dirs[row.path] ?? defaultDir}
-                    onChange={d => onSetDirs(prev => ({ ...prev, [row.path]: d }))}
+                    dir={dirs[getDiffRowId(row)] ?? defaultDir}
+                    onChange={d => onSetDirs(prev => ({ ...prev, [getDiffRowId(row)]: d }))}
                     scopeOptions={getScopeOptions?.(
                       row.cat === 'figma-only' ? row.figmaType : (row.localType ?? row.figmaType),
                     )}
@@ -146,6 +153,7 @@ function CategorySection({
                         : undefined
                     }
                     figmaScopeValue={row.cat !== 'local-only' ? row.figmaScopes : undefined}
+                    reviewOnly={reviewOnly}
                   />
                 ))}
               </div>
@@ -237,6 +245,8 @@ export function SyncSubPanel({
   revertDescription,
   locked = false,
   lockedMessage,
+  reviewOnly = false,
+  reviewOnlyMessage,
   scopeOverrides,
   onScopesChange,
   getScopeOptions,
@@ -394,6 +404,7 @@ export function SyncSubPanel({
               getScopeOptions={getScopeOptions}
               scopeOverrides={scopeOverrides}
               onScopesChange={onScopesChange}
+              reviewOnly={reviewOnly}
             />
 
             <CategorySection
@@ -407,6 +418,7 @@ export function SyncSubPanel({
               getScopeOptions={getScopeOptions}
               scopeOverrides={scopeOverrides}
               onScopesChange={onScopesChange}
+              reviewOnly={reviewOnly}
             />
 
             <CategorySection
@@ -420,20 +432,27 @@ export function SyncSubPanel({
               getScopeOptions={getScopeOptions}
               scopeOverrides={scopeOverrides}
               onScopesChange={onScopesChange}
+              reviewOnly={reviewOnly}
             />
 
             {/* Review summary + apply/preview (sticky at bottom) */}
-            <ReviewSummary
-              pushCount={sync.pushCount}
-              pullCount={sync.pullCount}
-              skipCount={skipCount}
-              syncCount={sync.syncCount}
-              syncing={sync.syncing}
-              progress={sync.progress}
-              locked={locked}
-              onPreview={() => onRequestConfirm(previewAction)}
-              onApply={() => onRequestConfirm(applyAction)}
-            />
+            {reviewOnly ? (
+              <div className="px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)]">
+                {reviewOnlyMessage ?? 'Review these differences here, then apply them from the primary sync flow for this target.'}
+              </div>
+            ) : (
+              <ReviewSummary
+                pushCount={sync.pushCount}
+                pullCount={sync.pullCount}
+                skipCount={skipCount}
+                syncCount={sync.syncCount}
+                syncing={sync.syncing}
+                progress={sync.progress}
+                locked={locked}
+                onPreview={() => onRequestConfirm(previewAction)}
+                onApply={() => onRequestConfirm(applyAction)}
+              />
+            )}
           </>
         );
       })()}

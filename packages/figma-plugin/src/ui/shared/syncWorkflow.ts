@@ -1,5 +1,14 @@
-import { flattenTokenGroup, type DTCGGroup, type DTCGToken } from '@tokenmanager/core';
-import type { ReadVariableCollection, ReadVariableToken } from '../../shared/types';
+import {
+  flattenTokenGroup,
+  type DTCGGroup,
+  type DTCGToken,
+  type ResolverInput,
+} from '@tokenmanager/core';
+import type {
+  ReadVariableCollection,
+  ReadVariableToken,
+  VariableSyncToken,
+} from '../../shared/types';
 import { apiFetch, createFetchSignal } from './apiFetch';
 import { stableStringify } from './utils';
 
@@ -47,14 +56,17 @@ export const DEFAULT_PUBLISH_PREFLIGHT_STATE: PublishPreflightState = {
 };
 
 export type SyncDirection = 'push' | 'pull' | 'skip';
+export type VariablePublishCompareMode = 'standard' | 'resolver-publish';
 
 export interface DiffRowBase {
+  id?: string;
   path: string;
   cat: 'local-only' | 'figma-only' | 'conflict';
   localType?: string;
   figmaType?: string;
   localScopes?: string[];
   figmaScopes?: string[];
+  targetLabel?: string;
 }
 
 export interface PublishDiffRow extends DiffRowBase {
@@ -93,7 +105,8 @@ export interface SyncSnapshot<TLocal, TFigma, TRow extends DiffRowBase> {
   dirs: Record<string, SyncDirection>;
 }
 
-export interface LoadSyncSnapshotParams<TLocal, TFigma, TRow extends DiffRowBase> extends SyncDiffConfig<TLocal, TFigma, TRow> {
+export interface LoadSyncSnapshotParams<TLocal, TFigma, TRow extends DiffRowBase>
+  extends SyncDiffConfig<TLocal, TFigma, TRow> {
   serverUrl: string;
   activeSet: string;
   readFigmaTokens: () => Promise<unknown[]>;
@@ -102,15 +115,58 @@ export interface LoadSyncSnapshotParams<TLocal, TFigma, TRow extends DiffRowBase
   figmaTimeoutMessage?: string;
 }
 
+export interface ResolverPublishSyncMapping {
+  key: string;
+  label: string;
+  contexts: ResolverInput;
+  collectionName?: string;
+  modeName: string;
+}
+
+export interface VariablePublishSnapshotParams {
+  serverUrl: string;
+  activeSet: string;
+  collectionMap: Record<string, string>;
+  modeMap: Record<string, string>;
+  readFigmaTokens: () => Promise<unknown[]>;
+  signal?: AbortSignal;
+  figmaTimeoutMs?: number;
+  figmaTimeoutMessage?: string;
+  resolverName?: string | null;
+  resolverPublishMappings?: ResolverPublishSyncMapping[];
+}
+
 interface SyncBuildersSpec<TEntry extends SyncEntry> {
-  fromFigmaToken: (token: any) => TEntry;
+  fromFigmaToken: (token: unknown) => TEntry;
   fromLocalToken: (token: DTCGToken) => TEntry | null;
   isEqual: (a: unknown, b: unknown) => boolean;
   displayValue: (raw: unknown, type: string) => string;
 }
 
+interface BuildSyncRowsFromMapsParams<TLocal, TFigma, TRow extends DiffRowBase>
+  extends SyncDiffConfig<TLocal, TFigma, TRow> {
+  localMap: Map<string, TLocal>;
+  figmaMap: Map<string, TFigma>;
+  resolvePath?: (key: string, local?: TLocal, figma?: TFigma) => string;
+  decorateRow?: (row: TRow, key: string, local?: TLocal, figma?: TFigma) => TRow;
+  defaultDirection?: (row: TRow, key: string, local?: TLocal, figma?: TFigma) => SyncDirection;
+}
+
+interface ResolverResolveResponse {
+  tokens: Record<string, {
+    $value: unknown;
+    $type?: string;
+    $description?: string;
+    $extensions?: VariableSyncToken['$extensions'];
+  }>;
+}
+
 const STYLE_TYPES = new Set(['color', 'gradient', 'typography', 'shadow']);
 const DEFAULT_VARIABLE_COLLECTION_NAME = 'TokenManager';
+
+export function getDiffRowId(row: DiffRowBase): string {
+  return row.id ?? row.path;
+}
 
 function scopesEqual(a: string[] | undefined, b: string[] | undefined): boolean {
   const aArr = a?.length ? [...a].sort() : [];
@@ -201,12 +257,173 @@ function createPublishSyncBuilders<TEntry extends SyncEntry>(spec: SyncBuildersS
   };
 }
 
+function buildSyncRowsFromMaps<TLocal, TFigma, TRow extends DiffRowBase>({
+  localMap,
+  figmaMap,
+  buildLocalOnlyRow,
+  buildFigmaOnlyRow,
+  buildConflictRow,
+  isConflict,
+  resolvePath,
+  decorateRow,
+  defaultDirection,
+}: BuildSyncRowsFromMapsParams<TLocal, TFigma, TRow>): Pick<SyncSnapshot<TLocal, TFigma, TRow>, 'rows' | 'dirs'> {
+  const rows: TRow[] = [];
+  const dirs: Record<string, SyncDirection> = {};
+
+  const pushRow = (key: string, row: TRow, local?: TLocal, figma?: TFigma) => {
+    const nextRow = decorateRow?.(row, key, local, figma) ?? row;
+    rows.push(nextRow);
+    dirs[getDiffRowId(nextRow)] = defaultDirection?.(nextRow, key, local, figma) ?? (nextRow.cat === 'figma-only' ? 'pull' : 'push');
+  };
+
+  for (const [key, local] of localMap) {
+    const figma = figmaMap.get(key);
+    const path = resolvePath?.(key, local, figma) ?? key;
+    if (!figma) {
+      pushRow(key, buildLocalOnlyRow(path, local), local);
+    } else if (isConflict(local, figma)) {
+      pushRow(key, buildConflictRow(path, local, figma), local, figma);
+    }
+  }
+
+  for (const [key, figma] of figmaMap) {
+    if (localMap.has(key)) continue;
+    const path = resolvePath?.(key, undefined, figma) ?? key;
+    pushRow(key, buildFigmaOnlyRow(path, figma), undefined, figma);
+  }
+
+  return { rows, dirs };
+}
+
+function buildResolverTargetLabel(mapping: ResolverPublishSyncMapping): string {
+  const collectionName = mapping.collectionName?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME;
+  return `${mapping.label} → ${collectionName} / ${mapping.modeName}`;
+}
+
+function createResolverRowKey(mappingKey: string, path: string): string {
+  return `${mappingKey}::${path}`;
+}
+
+function createResolvedTokenMap(tokens: ResolverResolveResponse['tokens']): Map<string, DTCGToken> {
+  return new Map(
+    Object.entries(tokens).map(([path, token]) => [
+      path,
+      {
+        $value: token.$value,
+        $type: token.$type ?? 'string',
+        ...(token.$description ? { $description: token.$description } : {}),
+        ...(token.$extensions ? { $extensions: token.$extensions } : {}),
+      } as DTCGToken,
+    ]),
+  );
+}
+
+async function loadResolverVariablePublishSnapshot({
+  serverUrl,
+  resolverName,
+  resolverPublishMappings,
+  readFigmaTokens,
+  signal,
+  figmaTimeoutMs,
+  figmaTimeoutMessage,
+}: Required<Pick<VariablePublishSnapshotParams, 'serverUrl' | 'resolverName' | 'readFigmaTokens'>> &
+  Pick<VariablePublishSnapshotParams, 'signal' | 'figmaTimeoutMs' | 'figmaTimeoutMessage'> & {
+    resolverPublishMappings: ResolverPublishSyncMapping[];
+  }): Promise<SyncSnapshot<PublishSyncEntry, PublishSyncEntry, PublishDiffRow>> {
+  const figmaTokens = await withOptionalTimeout(
+    readFigmaTokens(),
+    figmaTimeoutMs,
+    figmaTimeoutMessage,
+  );
+
+  const typedCollections = figmaTokens as ReadVariableCollection[];
+  const resolvedTargets = await Promise.all(
+    resolverPublishMappings.map(async (mapping) => ({
+      mapping,
+      result: await apiFetch<ResolverResolveResponse>(
+        `${serverUrl}/api/resolvers/${encodeURIComponent(resolverName)}/resolve`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: mapping.contexts }),
+          signal: createFetchSignal(signal),
+        },
+      ),
+    })),
+  );
+
+  const localTokens = new Map<string, DTCGToken>();
+  const localMap = new Map<string, PublishSyncEntry>();
+  const figmaMap = new Map<string, PublishSyncEntry>();
+  const pathByKey = new Map<string, string>();
+  const targetLabelByKey = new Map<string, string>();
+
+  for (const { mapping, result } of resolvedTargets) {
+    const targetLabel = buildResolverTargetLabel(mapping);
+    const resolvedTokenMap = createResolvedTokenMap(result.tokens ?? {});
+    const resolverLocalMap = variablePublishDiffConfig.buildLocalMap(resolvedTokenMap);
+    const resolverFigmaMap = variablePublishDiffConfig.buildFigmaMap(
+      selectVariableModeTokens(
+        typedCollections,
+        mapping.collectionName ?? DEFAULT_VARIABLE_COLLECTION_NAME,
+        mapping.modeName,
+      ),
+    );
+
+    for (const [path, token] of resolvedTokenMap) {
+      localTokens.set(path, token);
+    }
+
+    for (const [path, entry] of resolverLocalMap) {
+      const rowKey = createResolverRowKey(mapping.key, path);
+      localMap.set(rowKey, entry);
+      pathByKey.set(rowKey, path);
+      targetLabelByKey.set(rowKey, targetLabel);
+    }
+
+    for (const [path, entry] of resolverFigmaMap) {
+      const rowKey = createResolverRowKey(mapping.key, path);
+      figmaMap.set(rowKey, entry);
+      pathByKey.set(rowKey, path);
+      targetLabelByKey.set(rowKey, targetLabel);
+    }
+  }
+
+  const { rows, dirs } = buildSyncRowsFromMaps({
+    localMap,
+    figmaMap,
+    resolvePath: (key) => pathByKey.get(key) ?? key,
+    decorateRow: (row, key) => ({
+      ...row,
+      id: key,
+      targetLabel: targetLabelByKey.get(key),
+    }),
+    defaultDirection: () => 'skip',
+    ...variablePublishDiffConfig,
+  });
+
+  return {
+    localTokens,
+    figmaTokens,
+    localMap,
+    figmaMap,
+    rows,
+    dirs,
+  };
+}
+
 export const variablePublishDiffConfig = createPublishSyncBuilders<PublishSyncEntry>({
   fromFigmaToken: (token) => ({
-    raw: String(token.$value ?? ''),
-    type: String(token.$type ?? 'string'),
-    scopes: Array.isArray(token.$scopes) ? token.$scopes : undefined,
-    description: typeof token.$description === 'string' && token.$description.trim().length > 0 ? token.$description : undefined,
+    raw: String((token as { $value?: unknown }).$value ?? ''),
+    type: String((token as { $type?: unknown }).$type ?? 'string'),
+    scopes: Array.isArray((token as { $scopes?: unknown[] }).$scopes)
+      ? ((token as { $scopes: string[] }).$scopes)
+      : undefined,
+    description: typeof (token as { $description?: unknown }).$description === 'string' &&
+      (token as { $description: string }).$description.trim().length > 0
+      ? (token as { $description: string }).$description
+      : undefined,
   }),
   fromLocalToken: (token) => {
     const scopes =
@@ -226,8 +443,8 @@ export const variablePublishDiffConfig = createPublishSyncBuilders<PublishSyncEn
 
 export const stylePublishDiffConfig = createPublishSyncBuilders<PublishSyncEntry>({
   fromFigmaToken: (token) => ({
-    raw: token.$value,
-    type: String(token.$type ?? 'string'),
+    raw: (token as { $value?: unknown }).$value,
+    type: String((token as { $type?: unknown }).$type ?? 'string'),
   }),
   fromLocalToken: (token) => {
     const type = String(token.$type ?? 'string');
@@ -242,23 +459,31 @@ export function buildPublishPullPayload(row: PublishDiffRow) {
   return { $type: row.figmaType ?? 'string', $value: row.figmaRaw };
 }
 
+export function selectVariableModeTokens(
+  collections: unknown[],
+  collectionName: string,
+  modeName?: string,
+): ReadVariableToken[] {
+  const typedCollections = collections as ReadVariableCollection[];
+  const matchingCollections = typedCollections.filter((collection) => collection.name === collectionName);
+
+  return matchingCollections.flatMap((collection) => {
+    const targetMode = modeName
+      ? collection.modes.find((mode) => mode.modeName === modeName)
+      : collection.modes[0];
+    return targetMode?.tokens ?? [];
+  });
+}
+
 export function selectVariableCollectionTokens(
   collections: unknown[],
   activeSet: string,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
 ): ReadVariableToken[] {
-  const typedCollections = collections as ReadVariableCollection[];
   const desiredCollectionName = collectionMap[activeSet] ?? DEFAULT_VARIABLE_COLLECTION_NAME;
   const desiredModeName = modeMap[activeSet];
-  const matchingCollections = typedCollections.filter((collection) => collection.name === desiredCollectionName);
-
-  return matchingCollections.flatMap((collection) => {
-    const targetMode = desiredModeName
-      ? collection.modes.find((mode) => mode.modeName === desiredModeName)
-      : collection.modes[0];
-    return targetMode?.tokens ?? [];
-  });
+  return selectVariableModeTokens(collections, desiredCollectionName, desiredModeName);
 }
 
 export function buildVariablePublishFigmaMap(
@@ -269,6 +494,42 @@ export function buildVariablePublishFigmaMap(
 ) {
   const tokens = selectVariableCollectionTokens(collections, activeSet, collectionMap, modeMap);
   return variablePublishDiffConfig.buildFigmaMap(tokens);
+}
+
+export async function loadVariablePublishSnapshot({
+  serverUrl,
+  activeSet,
+  collectionMap,
+  modeMap,
+  readFigmaTokens,
+  signal,
+  figmaTimeoutMs,
+  figmaTimeoutMessage,
+  resolverName,
+  resolverPublishMappings,
+}: VariablePublishSnapshotParams): Promise<SyncSnapshot<PublishSyncEntry, PublishSyncEntry, PublishDiffRow>> {
+  if (resolverName && resolverPublishMappings && resolverPublishMappings.length > 0) {
+    return loadResolverVariablePublishSnapshot({
+      serverUrl,
+      resolverName,
+      resolverPublishMappings,
+      readFigmaTokens,
+      signal,
+      figmaTimeoutMs,
+      figmaTimeoutMessage,
+    });
+  }
+
+  return loadSyncSnapshot<PublishSyncEntry, PublishSyncEntry, PublishDiffRow>({
+    serverUrl,
+    activeSet,
+    readFigmaTokens,
+    signal,
+    figmaTimeoutMs,
+    figmaTimeoutMessage,
+    ...variablePublishDiffConfig,
+    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, activeSet, collectionMap, modeMap),
+  });
 }
 
 export async function loadSyncSnapshot<TLocal, TFigma, TRow extends DiffRowBase>({
@@ -297,26 +558,14 @@ export async function loadSyncSnapshot<TLocal, TFigma, TRow extends DiffRowBase>
   const localTokens = flattenTokenGroup((data.tokens ?? {}) as DTCGGroup);
   const figmaMap = buildFigmaMap(figmaTokens);
   const localMap = buildLocalMap(localTokens);
-
-  const rows: TRow[] = [];
-  for (const [path, local] of localMap) {
-    const figma = figmaMap.get(path);
-    if (!figma) {
-      rows.push(buildLocalOnlyRow(path, local));
-    } else if (isConflict(local, figma)) {
-      rows.push(buildConflictRow(path, local, figma));
-    }
-  }
-  for (const [path, figma] of figmaMap) {
-    if (!localMap.has(path)) {
-      rows.push(buildFigmaOnlyRow(path, figma));
-    }
-  }
-
-  const dirs: Record<string, SyncDirection> = {};
-  for (const row of rows) {
-    dirs[row.path] = row.cat === 'figma-only' ? 'pull' : 'push';
-  }
+  const { rows, dirs } = buildSyncRowsFromMaps({
+    localMap,
+    figmaMap,
+    buildLocalOnlyRow,
+    buildFigmaOnlyRow,
+    buildConflictRow,
+    isConflict,
+  });
 
   return {
     localTokens,

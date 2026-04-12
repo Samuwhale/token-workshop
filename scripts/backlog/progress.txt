@@ -1563,3 +1563,12 @@
   - Promise-queued optimistic mutations should compute both optimistic data and request payloads from execution-time state, not from render-time closures, or rapid edits can overwrite each other even when the queue itself is serialized.
   - Keep queued UI state and last committed server state in separate refs when later queued failures must preserve earlier successful optimistic writes.
 ---
+## 2026-04-12 - Align publish preflight and compare with resolver mode mappings
+- Routed variable publish snapshots through one shared loader that can switch between direct set sync and saved resolver mode mappings, so preflight and compare now inspect the same mapped resolver outputs the resolver publish action writes to Figma.
+- Updated Publish to diff resolver-mapped rows with stable per-target ids, show each row’s mapped collection/mode in review, and treat resolver-mode variable compare as review-only while keeping standard style/apply flows intact.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/shared/syncWorkflow.ts` ~L118, `packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts` ~L61, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L375, `packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx` ~L9, `packages/figma-plugin/src/ui/components/publish/PublishShared.tsx` ~L3, `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L69, `packages/figma-plugin/src/ui/hooks/useSyncEntity.ts` ~L42
+- **Learnings for future iterations:**
+  - Resolver-mode publish review needs destination-qualified diff-row ids; plain token paths are not unique once one resolver output is compared against multiple mapped Figma modes.
+  - When resolver publish is the apply path, the compare surface should stay review-only unless it can honor those same resolver mappings during apply.
+---
