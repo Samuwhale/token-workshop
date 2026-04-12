@@ -34,6 +34,7 @@ describe('config', () => {
           agent: './scripts/backlog/agent.md',
           planner: './scripts/backlog/planner.md',
           product: './scripts/backlog/product.md',
+          interface: './scripts/backlog/interface.md',
           ux: './scripts/backlog/ux.md',
           code: './scripts/backlog/code.md',
         },
@@ -42,6 +43,7 @@ describe('config', () => {
           task: { tool: 'codex', model: 'default' },
           planner: { tool: 'codex', model: 'default' },
           product: { tool: 'codex', model: 'default' },
+          interface: { tool: 'claude', model: 'sonnet' },
           ux: { tool: 'codex', model: 'default' },
           code: { tool: 'codex', model: 'default' },
         },
@@ -92,6 +94,7 @@ describe('config', () => {
           agent: './scripts/backlog/agent.md',
           planner: './scripts/backlog/planner.md',
           product: './scripts/backlog/product.md',
+          interface: './scripts/backlog/interface.md',
           ux: './scripts/backlog/ux.md',
           code: './scripts/backlog/code.md',
         },
@@ -100,6 +103,7 @@ describe('config', () => {
           task: { tool: 'codex', model: 'default' },
           planner: { tool: 'codex', model: 'sonnet' },
           product: { tool: 'claude', model: 'claudeDefault' },
+          interface: { tool: 'claude', model: 'claudeDefault' },
           ux: { tool: 'codex', model: 'default' },
           code: { tool: 'codex', model: 'default' },
         },
@@ -142,6 +146,7 @@ describe('config', () => {
           agent: './scripts/backlog/agent.md',
           planner: './scripts/backlog/planner.md',
           product: './scripts/backlog/product.md',
+          interface: './scripts/backlog/interface.md',
           ux: './scripts/backlog/ux.md',
           code: './scripts/backlog/code.md',
         },
@@ -150,6 +155,7 @@ describe('config', () => {
           task: { tool: 'codex', model: 'default' },
           planner: { tool: 'claude', model: 'default' },
           product: { tool: 'codex', model: 'sonnet' },
+          interface: { tool: 'claude', model: 'sonnet' },
           ux: { tool: 'claude', model: 'opus' },
           code: { tool: 'codex', model: 'default' },
         },
@@ -168,6 +174,7 @@ describe('config', () => {
     expect(options.runners.task).toEqual({ tool: 'codex', model: 'gpt-5.4' });
     expect(options.runners.planner).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
     expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.4' });
+    expect(options.runners.interface).toEqual({ tool: 'claude', model: 'claude-sonnet-4-6' });
     expect(options.runners.ux).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
   });
 
@@ -187,6 +194,7 @@ describe('config', () => {
           agent: './scripts/backlog/agent.md',
           planner: './scripts/backlog/planner.md',
           product: './scripts/backlog/product.md',
+          interface: './scripts/backlog/interface.md',
           ux: './scripts/backlog/ux.md',
           code: './scripts/backlog/code.md',
         },
@@ -195,6 +203,7 @@ describe('config', () => {
           task: { tool: 'codex', model: 'default' },
           planner: { tool: 'claude', model: 'opus' },
           product: { tool: 'codex', model: 'default' },
+          interface: { tool: 'claude', model: 'sonnet' },
           ux: { tool: 'claude', model: 'sonnet' },
           code: { tool: 'codex', model: 'default' },
         },
@@ -214,6 +223,7 @@ describe('config', () => {
     expect(options.runners.task).toEqual({ tool: 'codex', model: 'gpt-5.4-mini' });
     expect(options.runners.planner).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
     expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.4' });
+    expect(options.runners.interface).toEqual({ tool: 'codex', model: 'gpt-5.4' });
     expect(options.runners.ux).toEqual({ tool: 'codex', model: 'gpt-5.4' });
   });
 });

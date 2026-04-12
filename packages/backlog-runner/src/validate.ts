@@ -197,6 +197,7 @@ export async function validatePromptContracts(config: BacklogRunnerConfig): Prom
   const promptChecks: Array<[string, string]> = [
     ['planner pass prompt', config.prompts.planner],
     ['product pass prompt', config.prompts.product],
+    ['interface pass prompt', config.prompts.interface],
     ['ux pass prompt', config.prompts.ux],
     ['code pass prompt', config.prompts.code],
   ];
@@ -291,6 +292,7 @@ export async function validateBacklogRunner(
     ['agent prompt', config.prompts.agent],
     ['planner pass prompt', config.prompts.planner],
     ['product pass prompt', config.prompts.product],
+    ['interface pass prompt', config.prompts.interface],
     ['ux pass prompt', config.prompts.ux],
     ['code pass prompt', config.prompts.code],
   ] as const;

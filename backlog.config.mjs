@@ -17,6 +17,7 @@ export default {
     agent: './scripts/backlog/agent.md',
     planner: './scripts/backlog/planner-pass.md',
     product: './scripts/backlog/product-pass.md',
+    interface: './scripts/backlog/interface-pass.md',
     ux: './scripts/backlog/ux-pass.md',
     code: './scripts/backlog/code-pass.md',
   },
@@ -38,6 +39,10 @@ export default {
       model: 'claude-opus-4-6',
     },
     product: {
+      tool: 'claude',
+      model: 'claude-sonnet-4-6',
+    },
+    interface: {
       tool: 'claude',
       model: 'claude-sonnet-4-6',
     },

@@ -67,6 +67,7 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
       agent: resolvePath(baseDir, config.prompts.agent),
       planner: resolvePath(baseDir, config.prompts.planner ?? path.join('scripts', 'backlog', 'planner-pass.md')),
       product: resolvePath(baseDir, config.prompts.product),
+      interface: resolvePath(baseDir, config.prompts.interface),
       ux: resolvePath(baseDir, config.prompts.ux),
       code: resolvePath(baseDir, config.prompts.code),
     },
@@ -86,6 +87,9 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
     passes: {
       product: {
         promptFile: resolvePath(baseDir, config.passes?.product?.promptFile ?? config.prompts.product),
+      },
+      interface: {
+        promptFile: resolvePath(baseDir, config.passes?.interface?.promptFile ?? config.prompts.interface),
       },
       ux: {
         promptFile: resolvePath(baseDir, config.passes?.ux?.promptFile ?? config.prompts.ux),

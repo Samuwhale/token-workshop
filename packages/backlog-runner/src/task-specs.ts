@@ -171,7 +171,7 @@ export function parseTaskSpec(raw: string, filePath: string): BacklogTaskSpec {
   const createdAt = normalizeWhitespace(String(parsed.created_at ?? ''));
   const updatedAt = normalizeWhitespace(String(parsed.updated_at ?? createdAt));
   const sourceValue = normalizeWhitespace(String(parsed.source ?? 'manual')).toLowerCase();
-  const validSources = new Set<BacklogTaskSpec['source']>(['product-pass', 'ux-pass', 'code-pass', 'task-followup', 'planner-pass', 'manual']);
+  const validSources = new Set<BacklogTaskSpec['source']>(['product-pass', 'interface-pass', 'ux-pass', 'code-pass', 'task-followup', 'planner-pass', 'manual']);
   if (!validSources.has(sourceValue as BacklogTaskSpec['source'])) {
     throw new Error(`Task spec ${filePath} has invalid source: ${sourceValue || '<empty>'}`);
   }
@@ -370,6 +370,7 @@ function normalizeCandidateSource(value: unknown): BacklogCandidateRecord['sourc
   const normalized = normalizeWhitespace(String(value ?? '')).toLowerCase();
   if (
     normalized === 'product-pass' ||
+    normalized === 'interface-pass' ||
     normalized === 'ux-pass' ||
     normalized === 'code-pass' ||
     normalized === 'task-followup' ||

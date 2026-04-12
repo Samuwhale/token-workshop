@@ -19,6 +19,7 @@ import type {
   WorkspaceSession,
   WorkspaceStrategy,
 } from '../types.js';
+import { BACKLOG_DISCOVERY_PASSES } from '../types.js';
 import { PREFLIGHT_DEFERRAL_MS } from './constants.js';
 import {
   bookkeepingPaths,
@@ -148,7 +149,7 @@ export async function runDiscoveryWorker(
 ): Promise<BacklogWorkerResult> {
   const startedAt = Date.now();
   const before = await store.getQueueCounts();
-  for (const passType of ['product', 'code', 'ux'] as const) {
+  for (const passType of BACKLOG_DISCOVERY_PASSES) {
     onPassStart?.(passType);
     const result = await runSingleDiscoveryPass(config, store, workspaceStrategy, commandRunner, logger, options, passType, sleep);
     if (result.kind === 'rate_limited') {

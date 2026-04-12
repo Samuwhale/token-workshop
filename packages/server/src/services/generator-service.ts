@@ -851,6 +851,15 @@ export class GeneratorService {
     return Array.from(this.generators.values());
   }
 
+  async getAllById(): Promise<Record<string, TokenGenerator>> {
+    return Object.fromEntries(
+      Array.from(this.generators.values()).map((generator) => [
+        generator.id,
+        structuredClone(generator),
+      ]),
+    );
+  }
+
   async reset(): Promise<void> {
     await this.saveLock.withLock(async () => {
       await fs.rm(this.filePath, { force: true });

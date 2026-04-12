@@ -66,6 +66,7 @@ async function makeFixture(options: {
   await writeFile(path.join(root, 'scripts/backlog/agent.md'), 'agent prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/planner.md'), 'planner prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/product.md'), 'product prompt', 'utf8');
+  await writeFile(path.join(root, 'scripts/backlog/interface.md'), 'interface prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/ux.md'), 'ux prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/code.md'), 'code prompt', 'utf8');
 
@@ -93,6 +94,7 @@ async function makeFixture(options: {
         agent: './scripts/backlog/agent.md',
         planner: './scripts/backlog/planner.md',
         product: './scripts/backlog/product.md',
+        interface: './scripts/backlog/interface.md',
         ux: './scripts/backlog/ux.md',
         code: './scripts/backlog/code.md',
       },
@@ -101,6 +103,7 @@ async function makeFixture(options: {
         task: { tool: 'codex', model: 'default' },
         planner: { tool: 'codex', model: 'default' },
         product: { tool: 'codex', model: 'default' },
+        interface: { tool: 'claude', model: 'sonnet' },
         ux: { tool: 'codex', model: 'default' },
         code: { tool: 'codex', model: 'default' },
       },
@@ -291,6 +294,7 @@ describe('validate helpers', () => {
       task: { tool: 'codex', model: 'gpt-5.4' },
       planner: { tool: 'claude', model: 'claude-sonnet-4-6' },
       product: { tool: 'codex', model: 'gpt-5.4' },
+      interface: { tool: 'claude', model: 'claude-sonnet-4-6' },
       ux: { tool: 'claude', model: 'claude-sonnet-4-6' },
       code: { tool: 'codex', model: 'gpt-5.4' },
     };

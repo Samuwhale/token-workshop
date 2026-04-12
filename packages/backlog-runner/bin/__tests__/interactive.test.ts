@@ -24,6 +24,7 @@ function makeConfig() {
         agent: './scripts/backlog/agent.md',
         planner: './scripts/backlog/planner.md',
         product: './scripts/backlog/product.md',
+        interface: './scripts/backlog/interface.md',
         ux: './scripts/backlog/ux.md',
         code: './scripts/backlog/code.md',
       },
@@ -32,6 +33,7 @@ function makeConfig() {
         task: { tool: 'codex', model: 'gpt-5.4' },
         planner: { tool: 'claude', model: 'claude-opus-4-6' },
         product: { tool: 'codex', model: 'gpt-5.4' },
+        interface: { tool: 'claude', model: 'claude-sonnet-4-6' },
         ux: { tool: 'claude', model: 'claude-sonnet-4-6' },
         code: { tool: 'codex', model: 'gpt-5.4' },
       },
@@ -163,6 +165,8 @@ describe('interactive helpers', () => {
       'claude-opus-4-6', // planner model
       '',        // product: repo default tool
       '',        // product: repo default model
+      '',        // interface: repo default tool
+      '',        // interface: repo default model
       '1',       // ux: repo default tool
       '',        // ux: repo default model
       '3',       // code: codex
@@ -183,6 +187,7 @@ describe('interactive helpers', () => {
         task: { tool: 'codex', model: 'gpt-5.4' },
         planner: { tool: 'claude', model: 'claude-opus-4-6' },
         product: { tool: undefined, model: undefined },
+        interface: { tool: undefined, model: undefined },
         ux: { tool: undefined, model: undefined },
         code: { tool: 'codex', model: 'gpt-5.4-mini' },
       },

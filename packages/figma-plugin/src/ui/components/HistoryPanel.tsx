@@ -101,6 +101,20 @@ function formatMetadataValue(value?: string) {
   return value && value.length > 0 ? value : 'cleared';
 }
 
+function formatSnapshotWorkspaceCounts(snapshot: SnapshotSummary) {
+  const parts: string[] = [];
+  if (snapshot.dimensionCount > 0) {
+    parts.push(`${snapshot.dimensionCount} theme ${snapshot.dimensionCount === 1 ? 'dimension' : 'dimensions'}`);
+  }
+  if (snapshot.resolverCount > 0) {
+    parts.push(`${snapshot.resolverCount} ${snapshot.resolverCount === 1 ? 'resolver' : 'resolvers'}`);
+  }
+  if (snapshot.generatorCount > 0) {
+    parts.push(`${snapshot.generatorCount} ${snapshot.generatorCount === 1 ? 'generator' : 'generators'}`);
+  }
+  return parts.join(' · ');
+}
+
 export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, totalOperations, hasMoreOperations, onLoadMoreOperations, onRollback, undoDescriptions, redoableOpIds, onServerRedo, executeUndo, canUndo: _canUndo }: HistoryPanelProps) {
   // Timeline data
   const [timelineCommits, setTimelineCommits] = useState<CommitEntry[]>([]);
@@ -673,7 +687,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                     setShowSaveInput(true);
                   }}
                   className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  title="Save current token state as a snapshot"
+                  title="Save the current workspace as a snapshot"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
@@ -702,8 +716,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                       <TypePill kind="snapshot" />
                       <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{snapshot.label}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
+                      {formatSnapshotWorkspaceCounts(snapshot) ? (
+                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatSnapshotWorkspaceCounts(snapshot)}</span>
+                      ) : null}
                       <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
                     </div>
                   </div>
@@ -716,7 +733,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   variant="no-results"
                   size="section"
                   title="No snapshots match right now."
-                  description="Save a checkpoint before a larger change so you can restore the whole workspace later."
+                  description="Save a checkpoint before a larger change so you can restore the whole workspace, not just token files, later."
                 />
               )}
             </RecoverySection>

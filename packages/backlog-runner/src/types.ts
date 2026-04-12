@@ -1,6 +1,7 @@
 export type BacklogTool = 'claude' | 'codex';
-export type BacklogPassType = 'product' | 'ux' | 'code';
-export const BACKLOG_RUNNER_ROLES = ['task', 'planner', 'product', 'ux', 'code'] as const;
+export const BACKLOG_DISCOVERY_PASSES = ['product', 'interface', 'ux', 'code'] as const;
+export type BacklogPassType = typeof BACKLOG_DISCOVERY_PASSES[number];
+export const BACKLOG_RUNNER_ROLES = ['task', 'planner', ...BACKLOG_DISCOVERY_PASSES] as const;
 export type BacklogRunnerRole = typeof BACKLOG_RUNNER_ROLES[number];
 export type BacklogTaskPriority = 'high' | 'normal' | 'low';
 export type BacklogTaskState = 'planned' | 'ready' | 'done' | 'failed' | 'superseded';
@@ -33,6 +34,7 @@ export interface BacklogRunnerConfigInput {
     agent: string;
     planner?: string;
     product: string;
+    interface: string;
     ux: string;
     code: string;
   };
@@ -201,7 +203,7 @@ export interface BacklogTaskSpec {
   statusNotes: string[];
   state: BacklogTaskState;
   acceptanceCriteria: string[];
-  source: 'product-pass' | 'ux-pass' | 'code-pass' | 'task-followup' | 'planner-pass' | 'manual';
+  source: 'product-pass' | 'interface-pass' | 'ux-pass' | 'code-pass' | 'task-followup' | 'planner-pass' | 'manual';
   createdAt: string;
   updatedAt: string;
 }
@@ -214,7 +216,7 @@ export interface BacklogCandidateRecord {
   validationProfile?: string;
   capabilities?: string[];
   context?: string;
-  source: Extract<BacklogTaskSpec['source'], 'product-pass' | 'ux-pass' | 'code-pass' | 'task-followup' | 'manual'>;
+  source: Extract<BacklogTaskSpec['source'], 'product-pass' | 'interface-pass' | 'ux-pass' | 'code-pass' | 'task-followup' | 'manual'>;
 }
 
 export interface PlannerTaskChild {

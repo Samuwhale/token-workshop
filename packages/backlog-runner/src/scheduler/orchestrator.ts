@@ -93,6 +93,19 @@ async function readOrchestratorStatus(config: BacklogRunnerConfig): Promise<Orch
   }
 }
 
+function formatLiveOrchestratorError(config: BacklogRunnerConfig, status: OrchestratorRuntimeStatus): Error {
+  const activeTasks = status.activeTaskWorkers.map(worker => worker.title);
+  const activeTaskSummary = activeTasks.length === 0
+    ? 'No active task workers were recorded in the last status heartbeat.'
+    : `Active task workers: ${activeTasks.join(' · ')}.`;
+  const shutdownSummary = status.shutdownRequested
+    ? 'The existing orchestrator has already been asked to stop; wait for it to settle before starting a new one.'
+    : `To stop it cleanly, run: touch ${config.files.stop}`;
+  return new Error(
+    `Another backlog orchestrator is already running (${status.orchestratorId}, pid ${status.pid}). ${activeTaskSummary} Runtime report: ${config.files.runtimeReport}. ${shutdownSummary}`,
+  );
+}
+
 function shouldAttemptPlannerBatch(
   batchKey: string,
   waitingPlannerBatchKey: string | null,
@@ -129,7 +142,7 @@ async function ensureOrchestratorAvailable(
   if (!status) return;
 
   if (isOrchestratorStatusLive(status)) {
-    throw new Error(`Another backlog orchestrator is already running (${status.orchestratorId}, pid ${status.pid}).`);
+    throw formatLiveOrchestratorError(config, status);
   }
 
   await clearOrchestratorStatus(config);

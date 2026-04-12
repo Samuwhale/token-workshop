@@ -85,9 +85,6 @@ export async function startServer(config: ServerConfig) {
   const tokenStore = new TokenStore(config.tokenDir);
   await tokenStore.initialize();
 
-  // Replay any snapshot restore that was interrupted by a previous crash
-  await manualSnapshots.recoverPendingRestore(tokenStore);
-
   const gitSync = new GitSync(config.tokenDir);
 
   const generatorService = new GeneratorService(config.tokenDir);
@@ -104,6 +101,14 @@ export async function startServer(config: ServerConfig) {
   const tokenLock = tokenStore.lock;
 
   const dimensionsStore = createDimensionsStore(config.tokenDir);
+
+  // Replay any snapshot restore that was interrupted by a previous crash
+  await manualSnapshots.recoverPendingRestore(
+    tokenStore,
+    dimensionsStore,
+    resolverStore,
+    generatorService,
+  );
 
   // Event bus for SSE with sequence IDs and replay support
   const eventBus = new EventBus();

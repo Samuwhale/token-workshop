@@ -38,6 +38,7 @@ function makeConfig(root: string): BacklogRunnerConfig {
         agent: './scripts/backlog/agent.md',
         planner: './scripts/backlog/planner.md',
         product: './scripts/backlog/product.md',
+        interface: './scripts/backlog/interface.md',
         ux: './scripts/backlog/ux.md',
         code: './scripts/backlog/code.md',
       },
@@ -46,6 +47,7 @@ function makeConfig(root: string): BacklogRunnerConfig {
         task: { tool: 'codex', model: 'default' },
         planner: { tool: 'codex', model: 'default' },
         product: { tool: 'codex', model: 'default' },
+        interface: { tool: 'claude', model: 'sonnet' },
         ux: { tool: 'codex', model: 'default' },
         code: { tool: 'codex', model: 'default' },
       },
@@ -223,6 +225,26 @@ describe('cli', () => {
     expect(stdout.output).toContain('Active task progress');
     expect(stdout.output).toContain('Inspecting repo state.');
     expect(stdout.output).toContain('Planner candidates awaiting refinement');
+  });
+
+  it('accepts pnpm argument separators before command options', async () => {
+    const root = await makeTempDir();
+    await writeFile(path.join(root, 'backlog.config.mjs'), 'export default {};', 'utf8');
+    const config = makeConfig(root);
+    const stdout = new BufferWriter();
+
+    const exitCode = await runCli(
+      ['status', '--', '--verbose'],
+      { stdout, stderr: new BufferWriter() },
+      {
+        cwd: () => root,
+        loadConfig: async () => config,
+        readBacklogRunnerStatus: async () => makeStatus(),
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout.output).toContain('Backlog Runner Status');
   });
 
   it('suggests the new command names for removed legacy commands', async () => {

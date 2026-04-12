@@ -1,6 +1,77 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { handleRouteError } from '../errors.js';
 import { snapshotSet } from '../services/operation-log.js';
+import type { ResolverFile, ThemeDimension, TokenGenerator } from '@tokenmanager/core';
+import type { RollbackStep } from '../services/operation-log.js';
+
+type SnapshotRouteContext = {
+  resolverLock: {
+    withLock<T>(fn: () => Promise<T>): Promise<T>;
+  };
+  resolverStore: {
+    getAllFiles(): Record<string, ResolverFile>;
+  };
+  generatorService: {
+    getAllById(): Promise<Record<string, TokenGenerator>>;
+  };
+};
+
+async function captureCurrentResolvers(
+  fastify: SnapshotRouteContext,
+): Promise<Record<string, ResolverFile>> {
+  return fastify.resolverLock.withLock(async () => fastify.resolverStore.getAllFiles());
+}
+
+async function captureCurrentGenerators(
+  fastify: SnapshotRouteContext,
+): Promise<Record<string, TokenGenerator>> {
+  return fastify.generatorService.getAllById();
+}
+
+function buildSnapshotRestoreRollbackSteps({
+  dimensions,
+  resolvers,
+  generators,
+  snapshotResolvers,
+  snapshotGenerators,
+}: {
+  dimensions: ThemeDimension[];
+  resolvers: Record<string, ResolverFile>;
+  generators: Record<string, TokenGenerator>;
+  snapshotResolvers: Record<string, ResolverFile>;
+  snapshotGenerators: Record<string, TokenGenerator>;
+}): RollbackStep[] {
+  const steps: RollbackStep[] = [{ action: 'write-themes', dimensions }];
+
+  for (const [name, file] of Object.entries(resolvers)) {
+    steps.push({
+      action: 'write-resolver',
+      name,
+      file: structuredClone(file),
+    });
+  }
+
+  for (const name of Object.keys(snapshotResolvers)) {
+    if (!(name in resolvers)) {
+      steps.push({ action: 'delete-resolver', name });
+    }
+  }
+
+  for (const generator of Object.values(generators)) {
+    steps.push({
+      action: 'create-generator',
+      generator: structuredClone(generator),
+    });
+  }
+
+  for (const generatorId of Object.keys(snapshotGenerators)) {
+    if (!(generatorId in generators)) {
+      steps.push({ action: 'delete-generator', id: generatorId });
+    }
+  }
+
+  return steps;
+}
 
 export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
@@ -17,7 +88,13 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
       const label = (typeof rawLabel === 'string' ? rawLabel.trim() : '')
         || `Snapshot ${new Date().toLocaleString()}`;
       return await withLock(async () => {
-        const entry = await fastify.manualSnapshots.save(label, fastify.tokenStore);
+        const entry = await fastify.manualSnapshots.save(
+          label,
+          fastify.tokenStore,
+          fastify.dimensionsStore,
+          fastify.resolverStore,
+          fastify.generatorService,
+        );
         return reply.status(201).send({
           ok: true,
           id: entry.id,
@@ -54,8 +131,8 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/snapshots/:idA/compare/:idB — compare two snapshots against each other
   fastify.get<{ Params: { idA: string; idB: string } }>('/snapshots/:idA/compare/:idB', async (request, reply) => {
     try {
-      const diffs = await fastify.manualSnapshots.diffSnapshots(request.params.idA, request.params.idB);
-      return { diffs };
+      const comparison = await fastify.manualSnapshots.diffSnapshots(request.params.idA, request.params.idB);
+      return comparison;
     } catch (err) {
       return handleRouteError(reply, err);
     }
@@ -64,8 +141,14 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/snapshots/:id/diff — compare with current state
   fastify.get<{ Params: { id: string } }>('/snapshots/:id/diff', async (request, reply) => {
     try {
-      const diffs = await fastify.manualSnapshots.diff(request.params.id, fastify.tokenStore);
-      return { diffs };
+      const comparison = await fastify.manualSnapshots.diff(
+        request.params.id,
+        fastify.tokenStore,
+        fastify.dimensionsStore,
+        fastify.resolverStore,
+        fastify.generatorService,
+      );
+      return comparison;
     } catch (err) {
       return handleRouteError(reply, err);
     }
@@ -95,8 +178,20 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        const [beforeDimensions, beforeResolvers, beforeGenerators] = await Promise.all([
+          fastify.dimensionsStore.withLock(async (dims) => ({ dims, result: structuredClone(dims) })),
+          captureCurrentResolvers(fastify),
+          captureCurrentGenerators(fastify),
+        ]);
+
         // Perform the restore
-        const result = await fastify.manualSnapshots.restore(request.params.id, fastify.tokenStore);
+        const result = await fastify.manualSnapshots.restore(
+          request.params.id,
+          fastify.tokenStore,
+          fastify.dimensionsStore,
+          fastify.resolverStore,
+          fastify.generatorService,
+        );
 
         // Snapshot after state
         const afterSnapshot: Record<string, { token: import('@tokenmanager/core').Token | null; setName: string }> = {};
@@ -115,6 +210,13 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: allPaths,
           beforeSnapshot,
           afterSnapshot,
+          rollbackSteps: buildSnapshotRestoreRollbackSteps({
+            dimensions: beforeDimensions,
+            resolvers: beforeResolvers,
+            generators: beforeGenerators,
+            snapshotResolvers: snapshot.resolvers,
+            snapshotGenerators: snapshot.generators,
+          }),
         });
 
         return { ok: true, ...result, operationId: opEntry.id };

@@ -4,8 +4,31 @@ import { isAbortError } from '../../shared/utils';
 import { ConfirmModal } from '../ConfirmModal';
 import { summarizeChanges, formatRelativeTime, ChangeSummaryBadges } from '../../shared/changeHelpers';
 import { ChangesBySetList } from './ChangesBySetList';
-import type { SnapshotSummary, SnapshotDiff, UndoSlot, TokenChange } from './types';
+import type { SnapshotSummary, SnapshotCompareResponse, UndoSlot, TokenChange, WorkspaceDiff } from './types';
 import { snapshotDiffToChange, defaultSnapshotLabel } from './types';
+
+function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
+  if (workspaceDiffs.length === 0) {
+    return '';
+  }
+
+  const themeCount = workspaceDiffs.filter(diff => diff.kind === 'themes').length;
+  const resolverCount = workspaceDiffs.filter(diff => diff.kind === 'resolver').length;
+  const generatorCount = workspaceDiffs.filter(diff => diff.kind === 'generator').length;
+  const parts: string[] = [];
+
+  if (themeCount > 0) {
+    parts.push(`${themeCount} theme ${themeCount === 1 ? 'change' : 'changes'}`);
+  }
+  if (resolverCount > 0) {
+    parts.push(`${resolverCount} resolver ${resolverCount === 1 ? 'change' : 'changes'}`);
+  }
+  if (generatorCount > 0) {
+    parts.push(`${generatorCount} generator ${generatorCount === 1 ? 'change' : 'changes'}`);
+  }
+
+  return `${workspaceDiffs.length} workspace ${workspaceDiffs.length === 1 ? 'change' : 'changes'} (${parts.join(', ')})`;
+}
 
 export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath, initialComparingId, initialComparingLabel, onBack }: {
   serverUrl: string;
@@ -44,7 +67,9 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
   const [showPairDiff, setShowPairDiff] = useState(false);
   const [pairDiffLoading, setPairDiffLoading] = useState(false);
   const [pairChanges, setPairChanges] = useState<TokenChange[] | null>(null);
+  const [pairWorkspaceDiffs, setPairWorkspaceDiffs] = useState<WorkspaceDiff[]>([]);
   const [pairOpenSections, setPairOpenSections] = useState<Record<string, boolean>>({});
+  const [workspaceDiffs, setWorkspaceDiffs] = useState<WorkspaceDiff[]>([]);
 
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -115,15 +140,17 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
     setComparing(id);
     setDiffLoading(true);
     setChanges(null);
+    setWorkspaceDiffs([]);
     setSingleCompareError(null);
     try {
-      const data = await apiFetch<{ diffs: SnapshotDiff[] }>(
+      const data = await apiFetch<SnapshotCompareResponse>(
         `${serverUrl}/api/snapshots/${id}/diff`,
         { signal: controller.signal }
       );
       if (controller.signal.aborted) return;
       const unified = (data.diffs ?? []).map(snapshotDiffToChange);
       setChanges(unified);
+      setWorkspaceDiffs(data.workspaceDiffs ?? []);
       const sections: Record<string, boolean> = {};
       for (const c of unified) sections[c.set] = true;
       setOpenSections(sections);
@@ -154,15 +181,17 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
     setShowPairDiff(true);
     setPairDiffLoading(true);
     setPairChanges(null);
+    setPairWorkspaceDiffs([]);
     setPairCompareError(null);
     try {
-      const data = await apiFetch<{ diffs: SnapshotDiff[] }>(
+      const data = await apiFetch<SnapshotCompareResponse>(
         `${serverUrl}/api/snapshots/${a.id}/compare/${b.id}`,
         { signal: controller.signal }
       );
       if (controller.signal.aborted) return;
       const unified = (data.diffs ?? []).map(snapshotDiffToChange);
       setPairChanges(unified);
+      setPairWorkspaceDiffs(data.workspaceDiffs ?? []);
       const sections: Record<string, boolean> = {};
       for (const c of unified) sections[c.set] = true;
       setPairOpenSections(sections);
@@ -205,6 +234,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       showSuccess('Reverted to saved state');
       setComparing(null);
       setChanges(null);
+      setWorkspaceDiffs([]);
     } catch (err) {
       console.warn('[SnapshotsSource] failed to revert snapshot:', err);
       setSingleCompareError('Failed to revert');
@@ -220,6 +250,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       if (comparing === id) {
         setComparing(null);
         setChanges(null);
+        setWorkspaceDiffs([]);
       }
       await loadSnapshots();
     } catch (err) {
@@ -235,6 +266,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
     }
     setComparing(null);
     setChanges(null);
+    setWorkspaceDiffs([]);
     showSuccess('Changes kept');
   };
 
@@ -248,7 +280,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       ? pairChanges.filter(c => c.path === filterTokenPath)
       : pairChanges;
     const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
-    const noChanges = displayChanges?.length === 0;
+    const workspaceSummary = formatWorkspaceDiffSummary(pairWorkspaceDiffs);
+    const noChanges = displayChanges?.length === 0 && pairWorkspaceDiffs.length === 0;
 
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -256,7 +289,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
           <button
             className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-            onClick={() => { setShowPairDiff(false); setPairChanges(null); setPairCompareError(null); }}
+            onClick={() => { setShowPairDiff(false); setPairChanges(null); setPairWorkspaceDiffs([]); setPairCompareError(null); }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M19 12H5M12 5l-7 7 7 7" />
@@ -279,7 +312,12 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                 {filterTokenPath ? 'This token was unchanged between these snapshots.' : 'No differences between these snapshots.'}
               </span>
             ) : (
-              <ChangeSummaryBadges {...summary} />
+              <>
+                {displayChanges.length > 0 ? <ChangeSummaryBadges {...summary} /> : null}
+                {workspaceSummary ? (
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{workspaceSummary}</span>
+                ) : null}
+              </>
             )}
           </div>
         )}
@@ -298,6 +336,13 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
               </svg>
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                 {filterTokenPath ? 'This token was unchanged between these snapshots.' : 'No differences between these snapshots.'}
+              </p>
+            </div>
+          )}
+          {!pairDiffLoading && !noChanges && displayChanges?.length === 0 && workspaceSummary && (
+            <div className="flex flex-col items-center justify-center h-32 gap-2 px-6 text-center">
+              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+                No token differences. {workspaceSummary} are included in this snapshot comparison.
               </p>
             </div>
           )}
@@ -326,7 +371,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       ? changes.filter(c => c.path === filterTokenPath)
       : changes;
     const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
-    const noChanges = displayChanges?.length === 0;
+    const workspaceSummary = formatWorkspaceDiffSummary(workspaceDiffs);
+    const noChanges = displayChanges?.length === 0 && workspaceDiffs.length === 0;
 
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -334,7 +380,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
           <button
             className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-            onClick={() => { if (onBack) { onBack(); } else { setComparing(null); setChanges(null); setSingleCompareError(null); } }}
+            onClick={() => { if (onBack) { onBack(); } else { setComparing(null); setChanges(null); setWorkspaceDiffs([]); setSingleCompareError(null); } }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M19 12H5M12 5l-7 7 7 7" />
@@ -355,7 +401,12 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                 {filterTokenPath ? 'This token was unchanged at this snapshot.' : 'No changes since this snapshot.'}
               </span>
             ) : (
-              <ChangeSummaryBadges {...summary} />
+              <>
+                {displayChanges.length > 0 ? <ChangeSummaryBadges {...summary} /> : null}
+                {workspaceSummary ? (
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{workspaceSummary}</span>
+                ) : null}
+              </>
             )}
           </div>
         )}
@@ -374,6 +425,13 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
               </svg>
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                 {filterTokenPath ? 'This token was unchanged at this snapshot.' : 'No changes since this snapshot.'}
+              </p>
+            </div>
+          )}
+          {!diffLoading && !noChanges && displayChanges?.length === 0 && workspaceSummary && (
+            <div className="flex flex-col items-center justify-center h-32 gap-2 px-6 text-center">
+              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+                No token differences. {workspaceSummary} are included in this snapshot.
               </p>
             </div>
           )}
@@ -422,10 +480,11 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                 summary.removed ? `${summary.removed} removed` : '',
               ].filter(Boolean).join(', ')})`
             : 'No token differences from current state';
+          const workspaceText = workspaceSummary ? ` Plus ${workspaceSummary}.` : '';
           return (
             <ConfirmModal
               title={`Restore to "${label}"?`}
-              description={`${summaryText}. This replaces your current token state and cannot be undone without another snapshot.`}
+              description={`${summaryText}.${workspaceText} This replaces your current workspace state and cannot be undone without another snapshot.`}
               confirmLabel="Restore"
               danger
               onConfirm={async () => {
@@ -457,7 +516,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
               </svg>
-              Save current state
+              Save workspace checkpoint
             </button>
             {snapshots.length >= 2 && (
               <button
@@ -566,7 +625,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
               <polyline points="7 3 7 8 15 8" />
             </svg>
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              Save your current token state before making changes. Come back to compare or revert anytime.
+              Save your current workspace before making changes. Come back to compare or restore token sets, themes, resolvers, and generators anytime.
             </p>
           </div>
         )}
@@ -584,6 +643,11 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                     </p>
                     <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
                       {formatRelativeTime(new Date(s.timestamp))}{ticker >= 0 ? '' : ''} · {s.tokenCount} tokens · {s.setCount} {s.setCount === 1 ? 'set' : 'sets'}
+                      {(s.dimensionCount + s.resolverCount + s.generatorCount) > 0 ? ` · ${[
+                        s.dimensionCount > 0 ? `${s.dimensionCount} theme ${s.dimensionCount === 1 ? 'dimension' : 'dimensions'}` : '',
+                        s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',
+                        s.generatorCount > 0 ? `${s.generatorCount} ${s.generatorCount === 1 ? 'generator' : 'generators'}` : '',
+                      ].filter(Boolean).join(' · ')}` : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">

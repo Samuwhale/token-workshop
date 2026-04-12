@@ -21,6 +21,9 @@ export interface SnapshotSummary {
   timestamp: string;
   tokenCount: number;
   setCount: number;
+  dimensionCount: number;
+  resolverCount: number;
+  generatorCount: number;
 }
 
 export interface SnapshotDiff {
@@ -29,6 +32,18 @@ export interface SnapshotDiff {
   status: ChangeStatus;
   before?: { $value: unknown; $type?: string };
   after?: { $value: unknown; $type?: string };
+}
+
+export interface WorkspaceDiff {
+  kind: 'themes' | 'resolver' | 'generator';
+  id: string;
+  label: string;
+  status: ChangeStatus;
+}
+
+export interface SnapshotCompareResponse {
+  diffs: SnapshotDiff[];
+  workspaceDiffs: WorkspaceDiff[];
 }
 
 export interface UndoSlot {

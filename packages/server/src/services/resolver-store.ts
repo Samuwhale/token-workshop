@@ -204,6 +204,15 @@ export class ResolverStore {
     return this.resolvers.get(name);
   }
 
+  getAllFiles(): Record<string, ResolverFile> {
+    return Object.fromEntries(
+      Array.from(this.resolvers.entries()).map(([name, file]) => [
+        name,
+        structuredClone(file),
+      ]),
+    );
+  }
+
   // -----------------------------------------------------------------------
   // Write
   // -----------------------------------------------------------------------

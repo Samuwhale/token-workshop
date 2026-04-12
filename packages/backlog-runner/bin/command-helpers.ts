@@ -233,9 +233,10 @@ function parseCommandArgs(command: CliCommandName, args: string[]): ReturnType<t
     sync: SYNC_OPTIONS,
     status: STATUS_OPTIONS,
   };
+  const normalizedArgs = args.filter(arg => arg !== '--');
 
   return parseArgs({
-    args,
+    args: normalizedArgs,
     options: optionsByCommand[command],
     allowPositionals: false,
     strict: true,
