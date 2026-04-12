@@ -1,0 +1,19 @@
+id: themecoveragescreen-axis-option-issues-pill-row--524123c6
+title: ThemeCoverageScreen axis/option/issues pill row restates information already in the heading and subtitle
+priority: low
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeCoverageScreen.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Minimalism: when focused on a specific axis, a row of three pills appears — 'Axis: {name}', 'Option: {name}', 'Issues: {count}' (lines 98-120). The axis name already appears in the heading ('Coverage for {focusDimension.name}') and the option appears in the subtitle. Only the issue count adds new information. The pill row also appears and disappears as navigation focus changes, creating visual churn in the already-dense header area."
+state: ready
+acceptance_criteria:
+  - The conditional pill row (lines 98-120) is removed or reduced to a single compact issue-count indicator
+  - The heading 'Coverage for {dimension}' and the subtitle (which already names dimension + option) carry the context without a separate pill row
+  - Issue count, if retained, is incorporated into the heading or subtitle rather than shown as a standalone pill
+source: interface-pass
+created_at: 2026-04-12T19:09:17.554Z
+updated_at: 2026-04-12T19:09:17.554Z
