@@ -1,0 +1,25 @@
+id: add-library-quality-gate-to-sync-preflight-surfa-0e160e50
+title: Add library quality gate to Sync preflight — surface draft lifecycle tokens and active lint errors before compare/apply unlock
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/publish/SyncPreflightStep.tsx
+  - packages/figma-plugin/src/ui/components/PublishPanel.tsx
+  - packages/figma-plugin/src/ui/hooks/usePublishPreflight.ts
+  - packages/figma-plugin/src/ui/components/HealthPanel.tsx
+  - packages/figma-plugin/src/ui/hooks/useLintResults.ts
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Sync preflight currently checks only Figma sync compatibility (missing/orphaned variables, scopes, descriptions). Token library quality — broken aliases, type errors, draft-lifecycle tokens that should not be shipped — has zero connection to the publish gate. A designer can push a semantically broken or in-progress library to Figma without any warning. The data is already available: lint results live in useLintResults/HealthPanel and lifecycle state is on every token. The gap is purely workflow: these signals are never plumbed into SyncPreflightStep."
+state: ready
+acceptance_criteria:
+  - Sync preflight step shows an advisory cluster when any tokens have lifecycle='draft', listing the count and offering a CTA to review them in Tokens workspace before proceeding
+  - Sync preflight step shows an advisory cluster summarizing active error-level lint findings (broken aliases, type errors) with a CTA that navigates to Audit and returns to Sync after
+  - Blocking lint errors (broken alias chains that would produce invalid Figma variables) escalate to a blocking cluster in preflight, not just advisory
+  - Preflight clusters for draft tokens and lint health are re-evaluated when preflight is re-run, disappearing once the issues are resolved
+  - Audit workspace has no new UI required — the link is one-way from Sync preflight back to Audit
+source: product-pass
+created_at: 2026-04-12T17:05:50.387Z
+updated_at: 2026-04-12T17:05:50.387Z

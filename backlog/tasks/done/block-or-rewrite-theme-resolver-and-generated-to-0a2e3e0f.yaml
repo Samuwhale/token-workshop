@@ -12,10 +12,11 @@ status_notes:
   - "Deferred after remediation: validation failed: 1221:15 error 'deletedSetNames' is never reassigned. Use 'const' instead prefer-const | FAIL lint — 1 errors until 2026-04-12T08:36:57.131Z"
   - "Deferred after remediation: validation failed: FAIL core tests until 2026-04-12T09:31:49.373Z"
   - "Recovered by remediation: Repaired the folder-delete route by restoring correct multi-set snapshot handling for rollback, preserving original resolver files for rewrite rollback, and verified the server route with TypeScript and ESLint."
-state: ready
+  - "Completed: Folder deletes now block dangling generator ownership/targets, rewrite theme and resolver references before removing sets, and persist rollback/progress updates."
+state: done
 acceptance_criteria:
   - Deleting a set folder does not leave theme options or resolver sources pointing at removed sets
   - Folder delete refuses to proceed while any contained generated tokens or generator targets would become dangling
 source: task-followup
 created_at: 2026-04-11T23:12:16.210Z
-updated_at: 2026-04-12T09:40:44.754Z
+updated_at: 2026-04-12T09:40:47.419Z
