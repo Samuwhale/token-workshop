@@ -9,11 +9,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Minimalism: the View options popover header (TokenList.tsx ~L4800) renders a title 'Library options' followed by a 2-line description that explains the design rationale for why controls are in this popover rather than in the main toolbar. This text does not help users find specific controls — it justifies the organizational decision to the user. The title 'Library options' already conveys what the popover contains; the description occupies permanent space explaining why the popover exists, not what is inside it."
-state: ready
+  - "Completed: Removed the descriptive paragraph from the View options popover header, leaving only the Library options title and preserving the existing sections."
+state: done
 acceptance_criteria:
   - The description paragraph ('Keep the main library flow focused on sets, theme mode, search, and creation. Advanced controls live here.') is removed from the View options popover header
   - The popover header retains only the 'Library options' title
   - The popover content sections and their labels are unchanged
 source: interface-pass
 created_at: 2026-04-12T17:14:12.864Z
-updated_at: 2026-04-12T17:14:12.864Z
+updated_at: 2026-04-12T17:19:14.933Z

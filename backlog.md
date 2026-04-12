@@ -137,4 +137,4 @@
 - [x] Rename 'Audit' section tab inside Audit workspace to avoid tautological label
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
-- [ ] Remove explanatory rationale from View options popover header — title alone is sufficient
+- [x] Remove explanatory rationale from View options popover header — title alone is sufficient

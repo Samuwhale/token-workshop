@@ -1274,3 +1274,15 @@
 - **Learnings for future iterations:**
   - Popover headers should identify the surface, not explain the product rationale for why controls were moved there; persistent explanation text adds noise when the section labels already orient the user.
 ---
+## 2026-04-12 - ux-pass
+- Tasks explored: (1) Import conflict resolution and post-import handoff [ImportConflictResolver.tsx, ImportSuccessView.tsx, ImportPanelContext.tsx], (2) Generator configuration and save [TokenGeneratorDialog.tsx, useGeneratorSave.ts, generator-steps/], (3) Snapshot restore and undo [SnapshotsSource.tsx, HistoryPanel.tsx, UndoToast.tsx], (4) Sync preflight → compare → apply [PublishPanel.tsx, SyncPreflightStep.tsx, useTokenSyncBase.ts, usePublishAll.ts], (5) Audit issue review and remediation [HealthPanel.tsx, ConsistencyPanel.tsx, DuplicateDetectionPanel.tsx], (6) Token creation and editing [TokenEditor.tsx, TokenListModals.tsx, useTokenEditorSave.ts]
+- Walkthrough themes: feedback, handoffs, recovery, task load, dead-end states, draft-vs-saved clarity
+- Found 0 items — nothing cleared the quality bar
+- Considered but rejected:
+  - Quick-sync auto-resolves conflicts by defaulting all non-figma-only rows to push: user explicitly opts into no-preview path via clearly labeled button with tooltip; "Review Figma sync" alternative is adjacent. Design decision, not task-flow breakdown.
+  - Audit "Go →" navigation loses audit context when jumping to Tokens workspace: many issues have inline fix buttons (flatten, make alias, delete, rename, fix type) that don't leave Audit; "Go →" is only needed for issues without auto-fix, and user can navigate back via workspace tabs. Not a dead-end.
+  - Sync apply partial failure removes succeeded rows: error message provides counts and lists failed paths; failed rows remain with directions for retry; user can re-compare to verify. Adequate recovery.
+  - Generator save errors don't auto-clear when user fixes fields: errors clear on next save attempt; minor friction, not a task-level breakdown.
+  - Snapshot restore success message ephemeral (3s): undo toast persists as primary confirmation; compare panel clears to signal completion. Two-channel feedback is adequate.
+- Notable: The codebase has remarkably thorough task-flow design across all examined workflows — clear step progression, operation feedback with progress indicators, error recovery with retry/undo, and context-preserving handoffs. No true dead-end states found.
+---
