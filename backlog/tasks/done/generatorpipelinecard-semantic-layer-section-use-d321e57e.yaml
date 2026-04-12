@@ -9,11 +9,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Hierarchy: the semantic layer is an optional add-on, but its bordered card wrapper (`rounded-lg border bg-[--color-figma-bg-secondary] px-3 py-2.5` at line 1511) is visually indistinguishable from surrounding primary config sections. Users scanning the card see two equally-prominent boxes and must read labels to understand which is core vs. supplemental. The empty state also duplicates signal: a 'Not defined' badge and a separate paragraph describe the same condition."
-state: ready
+  - "Completed: Demoted the semantic layer UI to a lighter divider row, removed the redundant empty-state badge, preserved Add/Edit actions, and logged progress."
+state: done
 acceptance_criteria:
   - Semantic layer section is visually subordinate to the primary generator output section — lower visual weight (e.g. no border card, inline row with label, or de-emphasized background)
   - Empty state removes the redundant 'Not defined' badge + explanatory paragraph pair — one of the two carries the state, not both
   - The section still provides access to 'Add layer' / 'Edit layer'
 source: interface-pass
 created_at: 2026-04-12T19:09:17.497Z
-updated_at: 2026-04-12T19:09:17.497Z
+updated_at: 2026-04-12T19:11:13.388Z

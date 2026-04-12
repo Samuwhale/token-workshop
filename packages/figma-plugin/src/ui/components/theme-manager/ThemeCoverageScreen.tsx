@@ -45,6 +45,9 @@ export function ThemeCoverageScreen({
   onSelectIssue,
   onSelectOption,
 }: ThemeCoverageScreenProps) {
+  const focusedIssueLabel =
+    focusIssueCount === 1 ? "1 issue" : `${focusIssueCount} issues`;
+
   return (
     <>
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -59,10 +62,10 @@ export function ThemeCoverageScreen({
               {showAllAxes || !focusDimension
                 ? "Started from the current theme context and expanded to every axis. Focus any issue, then jump straight back into the matching role editor."
                 : primaryIssue
-                  ? `${primaryIssue.dimensionName} -> ${primaryIssue.optionName}: ${primaryIssue.recommendedNextAction}`
+                  ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} -> ${primaryIssue.optionName}. ${primaryIssue.recommendedNextAction}`
                   : focusOptionName
-                    ? `Review issue summaries for ${focusDimension.name} -> ${focusOptionName}, then jump straight back into that option's set roles.`
-                    : "Review issue summaries for the current axis, then jump back into authoring to fix the mapping."}
+                    ? `${focusedIssueLabel} in ${focusDimension.name} -> ${focusOptionName}. Review issue summaries, then jump straight back into that option's set roles.`
+                    : `${focusedIssueLabel} in ${focusDimension.name}. Review issue summaries, then jump back into authoring to fix the mapping.`}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -95,30 +98,6 @@ export function ThemeCoverageScreen({
             </button>
           </div>
         </div>
-        {!showAllAxes && focusDimension && (
-          <div className="px-3 pb-2 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-              <span className="font-medium text-[var(--color-figma-text-secondary)]">
-                Axis
-              </span>
-              <span>{focusDimension.name}</span>
-            </span>
-            {focusOptionName && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-                <span className="font-medium text-[var(--color-figma-text-secondary)]">
-                  Option
-                </span>
-                <span>{focusOptionName}</span>
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-              <span className="font-medium text-[var(--color-figma-text-secondary)]">
-                Issues
-              </span>
-              <span>{focusIssueCount}</span>
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
