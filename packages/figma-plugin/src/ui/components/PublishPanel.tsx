@@ -1,10 +1,12 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import type { ResolverFile, ResolverFigmaModeMapping, ResolverInput } from '@tokenmanager/core';
 import { dispatchToast } from '../shared/toastBus';
 import { describeError } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { useFigmaMessage } from '../hooks/useFigmaMessage';
 import { swatchBgColor } from '../shared/colorUtils';
 import { SyncSubPanel } from './publish/SyncSubPanel';
 import { SyncPreflightStep } from './publish/SyncPreflightStep';
@@ -15,7 +17,9 @@ import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import type { ValidationSnapshot } from '../hooks/useValidationCache';
 import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
 import { useNavigationContext } from '../contexts/NavigationContext';
-import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
+import { useResolverContext } from '../contexts/ThemeContext';
+import { apiFetch } from '../shared/apiFetch';
+import type { VarSnapshot, StyleSnapshot, VariableSyncToken, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
 import { FIGMA_SCOPES } from './MetadataEditor';
 import {
   buildVariablePublishFigmaMap,
@@ -46,6 +50,120 @@ const STYLE_MESSAGES: SyncMessages<StyleSnapshot> = {
   extractApplySnapshot: (msg: StylesAppliedMessage) => msg.styleSnapshot ?? undefined,
   revertSendType: 'revert-styles', revertResponseType: 'styles-reverted', revertTimeout: 30000,
 };
+
+const DEFAULT_RESOLVER_COLLECTION_NAME = 'TokenManager';
+
+interface ResolverPublishMappingDraft {
+  collectionName: string;
+  modeName: string;
+}
+
+interface ResolverPublishMappingRow extends ResolverPublishMappingDraft {
+  key: string;
+  label: string;
+  contexts: ResolverInput;
+  sourceCollectionName: string;
+  sourceModeName: string;
+  isDirty: boolean;
+}
+
+interface ResolverResolveResponse {
+  tokens: Record<string, {
+    $value: unknown;
+    $type?: string;
+    $extensions?: VariableSyncToken['$extensions'];
+  }>;
+}
+
+function buildResolverContextCombinations(
+  modifiers: Record<string, { contexts: string[]; default?: string }>,
+): ResolverInput[] {
+  const entries = Object.entries(modifiers);
+  if (entries.length === 0) return [{}];
+
+  const combinations: ResolverInput[] = [{}];
+  for (const [modifierName, modifier] of entries) {
+    const next: ResolverInput[] = [];
+    for (const existing of combinations) {
+      for (const contextName of modifier.contexts) {
+        next.push({ ...existing, [modifierName]: contextName });
+      }
+    }
+    combinations.splice(0, combinations.length, ...next);
+  }
+  return combinations;
+}
+
+function buildResolverContextKey(contexts: ResolverInput, modifierNames: string[]): string {
+  if (modifierNames.length === 0) return '__default__';
+  return modifierNames
+    .map((modifierName) => `${modifierName}=${contexts[modifierName] ?? ''}`)
+    .join('|');
+}
+
+function formatResolverContextLabel(contexts: ResolverInput, modifierNames: string[]): string {
+  if (modifierNames.length === 0) return 'Default resolver output';
+  return modifierNames
+    .map((modifierName) => `${modifierName}=${contexts[modifierName] ?? ''}`)
+    .join(' · ');
+}
+
+function buildResolverPublishSourceDrafts(
+  file: ResolverFile | null,
+  combinations: ResolverInput[],
+  modifierNames: string[],
+): Record<string, ResolverPublishMappingDraft> {
+  const mappings = file?.$extensions?.tokenmanager?.resolverPublish?.modeMappings ?? [];
+  const mappingByKey = new Map<string, ResolverFigmaModeMapping>(
+    mappings.map((mapping) => [buildResolverContextKey(mapping.contexts ?? {}, modifierNames), mapping]),
+  );
+
+  const drafts: Record<string, ResolverPublishMappingDraft> = {};
+  for (const contexts of combinations) {
+    const key = buildResolverContextKey(contexts, modifierNames);
+    const mapping = mappingByKey.get(key);
+    drafts[key] = {
+      collectionName: mapping?.collectionName ?? '',
+      modeName: mapping?.modeName ?? '',
+    };
+  }
+  return drafts;
+}
+
+function resolverPublishDraftsEqual(
+  left: ResolverPublishMappingDraft | undefined,
+  right: ResolverPublishMappingDraft | undefined,
+): boolean {
+  return (
+    (left?.collectionName ?? '') === (right?.collectionName ?? '') &&
+    (left?.modeName ?? '') === (right?.modeName ?? '')
+  );
+}
+
+function writeResolverPublishMappings(
+  file: ResolverFile,
+  modeMappings: ResolverFigmaModeMapping[],
+): ResolverFile {
+  const nextFile = structuredClone(file) as ResolverFile;
+  const nextExtensions = { ...(nextFile.$extensions ?? {}) };
+  const nextTokenManager = { ...(nextExtensions.tokenmanager ?? {}) };
+
+  if (modeMappings.length > 0) {
+    nextTokenManager.resolverPublish = { modeMappings };
+  } else {
+    delete nextTokenManager.resolverPublish;
+  }
+
+  if (Object.keys(nextTokenManager).length > 0) {
+    nextExtensions.tokenmanager = nextTokenManager;
+  } else {
+    delete nextExtensions.tokenmanager;
+  }
+
+  nextFile.$extensions =
+    Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
+  return nextFile;
+}
 
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
@@ -82,6 +200,12 @@ export function PublishPanel({
 }: PublishPanelProps) {
   const help = usePanelHelp('publish');
   const { navigateTo, setReturnBreadcrumb } = useNavigationContext();
+  const {
+    activeResolver,
+    activeModifiers,
+    getResolverFile,
+    updateResolver,
+  } = useResolverContext();
 
   // ── Rename history for variable name propagation ──
   // Eagerly fetched from the server so applyVariables can rename existing Figma
@@ -112,12 +236,183 @@ export function PublishPanel({
     return next;
   });
 
+  const resolverModifierNames = useMemo(
+    () => Object.keys(activeModifiers),
+    [activeModifiers],
+  );
+  const resolverContextCombinations = useMemo(
+    () => buildResolverContextCombinations(activeModifiers),
+    [activeModifiers],
+  );
+  const [resolverPublishFile, setResolverPublishFile] = useState<ResolverFile | null>(null);
+  const [resolverPublishDrafts, setResolverPublishDrafts] = useState<Record<string, ResolverPublishMappingDraft>>({});
+  const [resolverPublishLoading, setResolverPublishLoading] = useState(false);
+  const [resolverPublishSaving, setResolverPublishSaving] = useState(false);
+  const [resolverPublishSyncing, setResolverPublishSyncing] = useState(false);
+  const [resolverPublishError, setResolverPublishError] = useState<string | null>(null);
+
+  const sendResolverVariableApply = useFigmaMessage<{
+    count: number;
+    total: number;
+    failures: { path: string; error: string }[];
+    skipped: Array<{ path: string; $type: string }>;
+    created?: number;
+    overwritten?: number;
+  }>({
+    responseType: 'variables-applied',
+    errorType: 'apply-variables-error',
+    timeout: 30000,
+    extractResponse: (msg: VariablesAppliedMessage) => ({
+      count: msg.count ?? 0,
+      total: msg.total ?? msg.count ?? 0,
+      failures: msg.failures ?? [],
+      skipped: msg.skipped ?? [],
+      created: msg.created,
+      overwritten: msg.overwritten,
+    }),
+  });
+
   // ── Scope overrides: user-edited scopes for variable push rows ──
   const [scopeOverrides, setScopeOverrides] = useState<Record<string, string[]>>({});
   const [preflightActionBusyId, setPreflightActionBusyId] = useState<PublishPreflightActionId | null>(null);
   const preflightRef = useRef<HTMLDivElement | null>(null);
   const compareRef = useRef<HTMLDivElement | null>(null);
   const applyRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!connected || !activeResolver) {
+      setResolverPublishFile(null);
+      setResolverPublishDrafts({});
+      setResolverPublishError(null);
+      setResolverPublishLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setResolverPublishLoading(true);
+    setResolverPublishError(null);
+
+    void getResolverFile(activeResolver)
+      .then((file) => {
+        if (cancelled) return;
+        setResolverPublishFile(file);
+        setResolverPublishDrafts(
+          buildResolverPublishSourceDrafts(file, resolverContextCombinations, resolverModifierNames),
+        );
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setResolverPublishFile(null);
+        setResolverPublishDrafts({});
+        setResolverPublishError(describeError(error));
+      })
+      .finally(() => {
+        if (!cancelled) setResolverPublishLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeResolver,
+    connected,
+    getResolverFile,
+    resolverContextCombinations,
+    resolverModifierNames,
+  ]);
+
+  const resolverPublishSourceDrafts = useMemo(
+    () => buildResolverPublishSourceDrafts(resolverPublishFile, resolverContextCombinations, resolverModifierNames),
+    [resolverContextCombinations, resolverModifierNames, resolverPublishFile],
+  );
+
+  const resolverPublishRows = useMemo<ResolverPublishMappingRow[]>(
+    () =>
+      resolverContextCombinations.map((contexts) => {
+        const key = buildResolverContextKey(contexts, resolverModifierNames);
+        const source = resolverPublishSourceDrafts[key] ?? { collectionName: '', modeName: '' };
+        const draft = resolverPublishDrafts[key] ?? source;
+        return {
+          key,
+          label: formatResolverContextLabel(contexts, resolverModifierNames),
+          contexts,
+          collectionName: draft.collectionName,
+          modeName: draft.modeName,
+          sourceCollectionName: source.collectionName,
+          sourceModeName: source.modeName,
+          isDirty: !resolverPublishDraftsEqual(draft, source),
+        };
+      }),
+    [resolverContextCombinations, resolverModifierNames, resolverPublishDrafts, resolverPublishSourceDrafts],
+  );
+
+  const resolverPublishDirtyCount = useMemo(
+    () => resolverPublishRows.filter((row) => row.isDirty).length,
+    [resolverPublishRows],
+  );
+
+  const resolverPublishMappedCount = useMemo(
+    () => resolverPublishRows.filter((row) => row.modeName.trim().length > 0).length,
+    [resolverPublishRows],
+  );
+
+  const updateResolverPublishDraft = useCallback(
+    (key: string, field: keyof ResolverPublishMappingDraft, value: string) => {
+      setResolverPublishDrafts((prev) => ({
+        ...prev,
+        [key]: {
+          ...(prev[key] ?? resolverPublishSourceDrafts[key] ?? { collectionName: '', modeName: '' }),
+          [field]: value,
+        },
+      }));
+    },
+    [resolverPublishSourceDrafts],
+  );
+
+  const resetResolverPublishDrafts = useCallback(() => {
+    setResolverPublishDrafts(resolverPublishSourceDrafts);
+    setResolverPublishError(null);
+  }, [resolverPublishSourceDrafts]);
+
+  const saveResolverPublishMappings = useCallback(async () => {
+    if (!activeResolver || !resolverPublishFile) return;
+
+    setResolverPublishSaving(true);
+    setResolverPublishError(null);
+    try {
+      const modeMappings: ResolverFigmaModeMapping[] = resolverPublishRows
+        .filter((row) => row.modeName.trim().length > 0)
+        .map((row) => ({
+          contexts: row.contexts,
+          collectionName: row.collectionName.trim() || undefined,
+          modeName: row.modeName.trim(),
+        }));
+      const nextFile = writeResolverPublishMappings(resolverPublishFile, modeMappings);
+      await updateResolver(activeResolver, nextFile);
+      setResolverPublishFile(nextFile);
+      setResolverPublishDrafts(
+        buildResolverPublishSourceDrafts(nextFile, resolverContextCombinations, resolverModifierNames),
+      );
+      dispatchToast(
+        modeMappings.length > 0
+          ? `Saved ${modeMappings.length} resolver mode mapping${modeMappings.length === 1 ? '' : 's'}`
+          : 'Cleared resolver mode mappings',
+        'success',
+      );
+    } catch (error) {
+      setResolverPublishError(describeError(error));
+    } finally {
+      setResolverPublishSaving(false);
+    }
+  }, [
+    activeResolver,
+    resolverModifierNames,
+    resolverContextCombinations,
+    resolverPublishFile,
+    resolverPublishRows,
+    updateResolver,
+  ]);
+
 
   // ── Extracted hooks ──
   const varSync = useSyncEntity<DiffRow, VarSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
@@ -212,6 +507,83 @@ export function PublishPanel({
       : readinessBlockingFails > 0
         ? 'Resolve the blocking preflight clusters before comparing or applying Figma changes.'
         : 'Preflight must finish before compare is available.';
+
+  const syncResolverPublishModes = useCallback(async () => {
+    if (!activeResolver || !resolverPublishFile) return;
+    if (resolverPublishDirtyCount > 0) {
+      setResolverPublishError('Save resolver mode mappings before syncing.');
+      return;
+    }
+
+    const modeMappings = resolverPublishFile.$extensions?.tokenmanager?.resolverPublish?.modeMappings ?? [];
+    if (modeMappings.length === 0) {
+      setResolverPublishError('Add at least one resolver mode mapping before syncing.');
+      return;
+    }
+
+    setResolverPublishSyncing(true);
+    setResolverPublishError(null);
+    try {
+      const resolvedTargets = await Promise.all(
+        modeMappings.map(async (mapping) => {
+          const result = await apiFetch<ResolverResolveResponse>(
+            `${serverUrl}/api/resolvers/${encodeURIComponent(activeResolver)}/resolve`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ input: mapping.contexts }),
+            },
+          );
+          return { mapping, result };
+        }),
+      );
+
+      const tokens: VariableSyncToken[] = [];
+      for (const { mapping, result } of resolvedTargets) {
+        for (const [path, token] of Object.entries(result.tokens ?? {})) {
+          tokens.push({
+            path,
+            $type: token.$type ?? 'string',
+            $value: token.$value as VariableSyncToken['$value'],
+            setName: activeResolver,
+            figmaCollection: mapping.collectionName,
+            figmaMode: mapping.modeName,
+            $extensions: token.$extensions,
+          });
+        }
+      }
+
+      if (tokens.length === 0) {
+        setResolverPublishError('Resolver sync produced no tokens to publish.');
+        return;
+      }
+
+      const result = await sendResolverVariableApply('apply-variables', {
+        tokens,
+        renames: renamesRef.current.length > 0 ? renamesRef.current : undefined,
+      });
+      const skippedCount = result.skipped.length;
+      const failureCount = result.failures.length;
+      dispatchToast(
+        `Resolver modes synced — ${tokens.length} writes across ${modeMappings.length} mode${modeMappings.length === 1 ? '' : 's'}`
+        + (skippedCount > 0 ? ` · ${skippedCount} skipped` : '')
+        + (failureCount > 0 ? ` · ${failureCount} failed` : ''),
+        failureCount > 0 ? 'error' : 'success',
+      );
+      setChecksStale(true);
+    } catch (error) {
+      setResolverPublishError(describeError(error));
+    } finally {
+      setResolverPublishSyncing(false);
+    }
+  }, [
+    activeResolver,
+    resolverPublishDirtyCount,
+    resolverPublishFile,
+    sendResolverVariableApply,
+    serverUrl,
+    setChecksStale,
+  ]);
 
   const publishAll = usePublishAll({
     varSync,
@@ -445,6 +817,21 @@ export function PublishPanel({
           actionBusyId={orphansDeleting ? 'delete-orphan-variables' : preflightActionBusyId}
         />
       </div>
+
+      <ResolverModePublishCard
+        activeResolver={activeResolver}
+        loading={resolverPublishLoading}
+        saving={resolverPublishSaving}
+        syncing={resolverPublishSyncing}
+        error={resolverPublishError}
+        rows={resolverPublishRows}
+        dirtyCount={resolverPublishDirtyCount}
+        mappedCount={resolverPublishMappedCount}
+        onFieldChange={updateResolverPublishDraft}
+        onReset={resetResolverPublishDrafts}
+        onSave={() => void saveResolverPublishMappings()}
+        onSync={() => void syncResolverPublishModes()}
+      />
 
       <div ref={compareRef} className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -743,6 +1130,186 @@ export function PublishPanel({
       </ConfirmModal>
     )}
     </>
+  );
+}
+
+function ResolverModePublishCard({
+  activeResolver,
+  loading,
+  saving,
+  syncing,
+  error,
+  rows,
+  dirtyCount,
+  mappedCount,
+  onFieldChange,
+  onReset,
+  onSave,
+  onSync,
+}: {
+  activeResolver: string | null;
+  loading: boolean;
+  saving: boolean;
+  syncing: boolean;
+  error: string | null;
+  rows: ResolverPublishMappingRow[];
+  dirtyCount: number;
+  mappedCount: number;
+  onFieldChange: (
+    key: string,
+    field: keyof ResolverPublishMappingDraft,
+    value: string,
+  ) => void;
+  onReset: () => void;
+  onSave: () => void;
+  onSync: () => void;
+}) {
+  return (
+    <section className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+              Resolver mode publish
+            </h2>
+            {activeResolver ? (
+              <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                {activeResolver}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1.5 max-w-[760px] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+            Map each resolver context combination to a Figma collection + mode, then sync every mapped mode in one run. Per-set mapping stays available as the fallback route for direct set sync and for workflows not covered by a resolver.
+          </p>
+        </div>
+        {activeResolver ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onReset}
+              disabled={loading || saving || syncing || dirtyCount === 0}
+              className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+            >
+              Reset
+            </button>
+            <button
+              onClick={onSave}
+              disabled={loading || saving || syncing || dirtyCount === 0}
+              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : dirtyCount > 0 ? `Save ${dirtyCount}` : 'Saved'}
+            </button>
+            <button
+              onClick={onSync}
+              disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
+              className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            >
+              {syncing ? 'Syncing…' : 'Sync resolver modes'}
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {!activeResolver ? (
+        <div className="mt-3 rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+          Select a resolver in the Resolver workspace to unlock context-to-mode mapping here.
+        </div>
+      ) : loading ? (
+        <div className="mt-3 flex items-center gap-2 rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <Spinner size="sm" />
+          Loading resolver publish configuration…
+        </div>
+      ) : (
+        <>
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
+              {rows.length} context combination{rows.length === 1 ? '' : 's'}
+            </span>
+            <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
+              {mappedCount} mapped mode{mappedCount === 1 ? '' : 's'}
+            </span>
+            <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
+              {rows.filter((row) => row.collectionName.trim().length > 0).length} named collection{rows.filter((row) => row.collectionName.trim().length > 0).length === 1 ? '' : 's'}
+            </span>
+            {dirtyCount > 0 ? (
+              <span className="rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[var(--color-figma-accent)]">
+                {dirtyCount} unsaved
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-3 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+            <div
+              className="hidden items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)] md:grid"
+              style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)' }}
+            >
+              <span>Resolver context</span>
+              <span>Collection</span>
+              <span>Mode</span>
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              {rows.map((row) => (
+                <div
+                  key={row.key}
+                  className={`grid gap-2 border-b border-[var(--color-figma-border)] px-3 py-2.5 last:border-b-0 ${row.isDirty ? 'bg-[var(--color-figma-accent)]/5' : ''}`}
+                  style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)' }}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]" title={row.label}>
+                      {row.label}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                      <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5">
+                        {row.collectionName.trim().length > 0 ? 'Custom collection' : DEFAULT_RESOLVER_COLLECTION_NAME}
+                      </span>
+                      <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5">
+                        {row.modeName.trim().length > 0 ? 'Mapped mode' : 'Not mapped'}
+                      </span>
+                      {row.isDirty ? (
+                        <span className="rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[var(--color-figma-accent)]">
+                          Edited
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={row.collectionName}
+                    onChange={(event) => onFieldChange(row.key, 'collectionName', event.target.value)}
+                    placeholder={`Default ${DEFAULT_RESOLVER_COLLECTION_NAME} collection`}
+                    disabled={saving || syncing}
+                    className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                    aria-label={`Collection for ${row.label}`}
+                  />
+
+                  <input
+                    type="text"
+                    value={row.modeName}
+                    onChange={(event) => onFieldChange(row.key, 'modeName', event.target.value)}
+                    placeholder="Required mode name"
+                    disabled={saving || syncing}
+                    className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                    aria-label={`Mode for ${row.label}`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {dirtyCount > 0 && activeResolver ? (
+        <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+          Save the resolver mapping before syncing so the active resolver stays the source of truth for publish routing.
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="mt-2">
+          <NoticeBanner severity="error">{error}</NoticeBanner>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

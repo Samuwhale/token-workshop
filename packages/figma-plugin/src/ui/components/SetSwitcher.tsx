@@ -2555,12 +2555,13 @@ function SetMappingManager({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-            Figma collection + mode routing
+            Fallback Figma collection + mode routing
           </div>
           <p className="mt-1 max-w-3xl text-[10px] leading-4 text-[var(--color-figma-text-secondary)]">
-            Review every set&rsquo;s Sync destination here. Leave collection
-            blank to use the default TokenManager variable collection, and leave
-            mode blank to use the first mode in the target collection.
+            Review each set&rsquo;s direct Sync destination here. Resolver-based
+            publish flows can now own their own context-to-mode mapping in the
+            Publish workspace, while these per-set destinations remain the
+            fallback for direct set sync and any sets not covered by a resolver.
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -2771,7 +2772,8 @@ function SetMetadataDialog({
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           />
           <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Tokens in this set will sync to this Figma variable collection.
+            Direct set sync uses this collection when no resolver publish
+            mapping is handling the destination.
           </p>
         </div>
         <div className="flex flex-col gap-1">
@@ -2789,8 +2791,8 @@ function SetMetadataDialog({
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           />
           <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-            When multiple sets share a collection, each set maps to a mode.
-            Leave blank to use the first mode.
+            Direct set sync uses this mode when no resolver publish mapping is
+            handling the destination. Leave blank to use the first mode.
           </p>
         </div>
         <div className="flex justify-end gap-2">

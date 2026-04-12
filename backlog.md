@@ -155,6 +155,7 @@
 - [x] Split the Tokens library controller and tree context so row rendering no longer depends on one giant `TokenList` state graph
 - [ ] Add create-and-bind action to canvas analysis surface for hardcoded values that have no matching token
 - [ ] Remove 'When to use resolvers' guidance section from ResolverPanel empty state — it redirects users away after presenting three valid entry points
+- [ ] Align publish preflight and compare with resolver mode mappings
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

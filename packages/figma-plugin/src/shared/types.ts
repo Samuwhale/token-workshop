@@ -261,6 +261,8 @@ export interface VariableSyncToken {
   $type: string;
   $value: ResolvedTokenValue;
   setName?: string;
+  figmaCollection?: string;
+  figmaMode?: string;
   $extensions?: {
     'com.figma.scopes'?: string[];
     [key: string]: unknown;

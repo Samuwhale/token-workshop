@@ -230,12 +230,13 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
           input,
           fastify.tokenStore,
         );
-        const flat: Record<string, { $value: unknown; $type?: string; $description?: string }> = {};
+        const flat: Record<string, { $value: unknown; $type?: string; $description?: string; $extensions?: unknown }> = {};
         for (const [tokenPath, token] of Object.entries(tokens)) {
           flat[tokenPath] = {
             $value: token.$value,
             $type: token.$type,
             ...(token.$description ? { $description: token.$description } : {}),
+            ...(token.$extensions ? { $extensions: token.$extensions } : {}),
           };
         }
         return { tokens: flat, diagnostics };

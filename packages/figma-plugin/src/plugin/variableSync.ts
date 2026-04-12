@@ -106,9 +106,12 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       }
 
       // Resolve which collection this token belongs to
-      const colName = (token.setName && collectionMap[token.setName])
-        ? collectionMap[token.setName]
-        : VARIABLE_COLLECTION_NAME;
+      const explicitCollectionName = token.figmaCollection?.trim();
+      const colName = explicitCollectionName
+        ? explicitCollectionName
+        : (token.setName && collectionMap[token.setName])
+          ? collectionMap[token.setName]
+          : VARIABLE_COLLECTION_NAME;
       const collection = getOrCreateCollection(colName);
 
       // Pre-compute the Figma value before deciding whether to create a new variable.
@@ -154,7 +157,8 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
       try {
         // Resolve the target mode: use modeMap if provided, otherwise fall back to first mode
-        const desiredModeName = token.setName ? modeMap[token.setName] : undefined;
+        const explicitModeName = token.figmaMode?.trim();
+        const desiredModeName = explicitModeName || (token.setName ? modeMap[token.setName] : undefined);
         const modeId = desiredModeName
           ? getOrCreateMode(collection, desiredModeName)
           : collection.modes[0].modeId;

@@ -59,6 +59,8 @@ export type {
   ResolutionOrderEntry,
   ResolverFile,
   ResolverInput,
+  ResolverFigmaModeMapping,
+  ResolverFigmaPublishConfig,
 } from './types.js';
 export { getTokenManagerExt } from './types.js';
 

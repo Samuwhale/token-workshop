@@ -201,6 +201,8 @@ export interface TokenManagerExtensions {
   extends?: string;
   /** Per-mode override values keyed by mode name. */
   modes?: Record<string, unknown>;
+  /** Resolver-driven Figma publish configuration for mapping contexts to modes. */
+  resolverPublish?: ResolverFigmaPublishConfig;
 }
 
 /** Generator provenance stored under `$extensions['com.tokenmanager.generator']`. */
@@ -209,6 +211,16 @@ export interface TokenManagerGeneratorExtension {
   sourceToken: string;
   brand?: string;
   outputKind?: "scale" | "semantic";
+}
+
+export interface ResolverFigmaModeMapping {
+  contexts: ResolverInput;
+  collectionName?: string;
+  modeName: string;
+}
+
+export interface ResolverFigmaPublishConfig {
+  modeMappings: ResolverFigmaModeMapping[];
 }
 
 /** Typed `$extensions` object for tokens and groups. */
