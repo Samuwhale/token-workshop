@@ -444,12 +444,12 @@ export function StepWhat({
             )}
 
             {selectedType !== 'contrastCheck' && !previewError && !previewLoading && previewTokens.length === 0 && !(isMultiBrand && multiBrandPreviews && multiBrandPreviews.size > 0) && (
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] rounded-lg px-2 py-2 bg-[var(--color-figma-bg-secondary)]">
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-dashed border-[var(--color-figma-border)] rounded-lg px-3 py-4 bg-[var(--color-figma-bg-secondary)] text-center">
                 {isMultiBrand
                   ? 'Add a brand row with an input value to see a preview.'
                   : typeNeedsValue && !hasValue
-                    ? `Enter a base ${typeExpectsColor ? 'color' : 'value'} above to see a preview.`
-                    : 'No preview available.'}
+                    ? `Pick or enter a base ${typeExpectsColor ? 'color' : 'value'} to see generated tokens.`
+                    : 'Configure settings to generate a preview.'}
               </div>
             )}
           </div>

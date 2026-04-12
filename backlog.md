@@ -75,7 +75,16 @@
 - [x] [HIGH] Make queued theme role mutations roll back from the last committed state instead of a stale pre-queue snapshot
 - [x] [HIGH] Centralize generator write-route bookkeeping so step overrides and orphan cleanup become rollbackable server operations
 - [x] [HIGH] Integrate resolver dimension context into theme authoring so multi-mode token assignments are visible without navigating to the Advanced screen
-- [ ] [HIGH] Unify manual snapshot comparison and restore execution so restore and crash recovery stop drifting
+- [x] [HIGH] Unify manual snapshot comparison and restore execution so restore and crash recovery stop drifting
+- [ ] [HIGH] Differentiate workspace, section, and contextual-screen depth in the plugin shell
+- [ ] [HIGH] Add a shared cross-workspace handoff contract with breadcrumbs and return paths
+- [ ] [HIGH] Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
+- [ ] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy
+- [ ] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks
+- [ ] [HIGH] Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction
+- [ ] [HIGH] Improve token generation flows so designers can create and manage generators through intent-based discovery, clearer configuration, and visible output relationships
+- [ ] [HIGH] Simplify the token-theme interaction UX so designers can build and manage themes without learning set-role priority logic, coverage diagnostics, and resolver internals
+- [ ] [HIGH] Unify token creation, bulk editing, and generator configuration surfaces for visual consistency and small-viewport fitness in the Figma plugin panel
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.

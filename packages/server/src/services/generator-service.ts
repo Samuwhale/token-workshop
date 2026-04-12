@@ -47,6 +47,7 @@ import type { TokenPathRename } from "./operation-log.js";
 import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError, BadRequestError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
+import { validateTokenPath } from "./token-tree-utils.js";
 
 interface GeneratorsFile {
   $generators: TokenGenerator[];
@@ -127,6 +128,12 @@ export interface OrphanedGeneratorToken {
   generatorId: string;
 }
 
+export interface DetachedGeneratorResult {
+  generator: TokenGenerator;
+  detachedPaths: string[];
+  detachedCount: number;
+}
+
 export type GeneratorPathRenameUpdate =
   | ({ scope: "token" } & TokenPathRename)
   | ({ scope: "group" } & TokenPathRename);
@@ -179,6 +186,27 @@ function validateFormulaSyntax(formula: string): string | undefined {
   } catch (err) {
     return `customScale formula syntax error: ${err instanceof Error ? err.message : String(err)}`;
   }
+}
+
+function getGeneratorStepNames(config: GeneratorConfig): string[] {
+  const configRecord = config as unknown as Record<string, unknown>;
+  if (Array.isArray(configRecord.steps)) {
+    return configRecord.steps.map((step) =>
+      typeof step === "object" && step !== null && "name" in step
+        ? String((step as { name: unknown }).name)
+        : String(step),
+    );
+  }
+  if (
+    typeof configRecord.backgroundStep === "string" &&
+    typeof configRecord.foregroundStep === "string"
+  ) {
+    return [configRecord.backgroundStep, configRecord.foregroundStep];
+  }
+  if (typeof configRecord.stepName === "string") {
+    return [configRecord.stepName];
+  }
+  return [];
 }
 
 function normalizeGeneratorType(rawType: unknown): GeneratorType {
@@ -298,6 +326,26 @@ function normalizeLastRunError(
     at: raw.at,
     ...(typeof raw.blockedBy === "string" ? { blockedBy: raw.blockedBy } : {}),
   };
+}
+
+function normalizeDetachedPaths(raw: unknown): string[] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!Array.isArray(raw)) {
+    throw new BadRequestError("detachedPaths must be an array");
+  }
+  const detachedPaths = [...new Set(
+    raw.map((value, index) => {
+      if (typeof value !== "string" || value.trim() === "") {
+        throw new BadRequestError(
+          `detachedPaths[${index}] must be a non-empty string`,
+        );
+      }
+      const path = value.trim();
+      validateTokenPath(path);
+      return path;
+    }),
+  )].sort();
+  return detachedPaths.length > 0 ? detachedPaths : undefined;
 }
 
 function normalizeGeneratorConfig(
@@ -818,6 +866,7 @@ function normalizeStoredGenerator(raw: unknown): TokenGenerator {
   const overrides = normalizeOverrides(raw.overrides);
   const inputTable = normalizeInputTable(raw.inputTable);
   const semanticLayer = normalizeSemanticLayer(raw.semanticLayer);
+  const detachedPaths = normalizeDetachedPaths(raw.detachedPaths);
   const lastRunError = normalizeLastRunError(raw.lastRunError);
   return {
     id: raw.id,
@@ -829,6 +878,7 @@ function normalizeStoredGenerator(raw: unknown): TokenGenerator {
     targetGroup: raw.targetGroup,
     config: normalizeGeneratorConfig(type, raw.config),
     ...(semanticLayer && { semanticLayer }),
+    ...(detachedPaths && { detachedPaths }),
     ...(overrides && { overrides }),
     ...(inputTable && { inputTable }),
     ...(raw.targetSetTemplate !== undefined && {
@@ -1029,6 +1079,94 @@ export class GeneratorService {
     return { deleted, tokens };
   }
 
+  getScaleOutputPaths(generator: TokenGenerator): string[] {
+    return getGeneratorStepNames(generator.config).map(
+      (name) => `${generator.targetGroup}.${name}`,
+    );
+  }
+
+  private filterDetachedResults(
+    generator: TokenGenerator,
+    results: GeneratedTokenResult[],
+  ): GeneratedTokenResult[] {
+    const detachedPaths = generator.detachedPaths;
+    if (!detachedPaths || detachedPaths.length === 0) return results;
+    const detachedPathSet = new Set(detachedPaths);
+    return results.filter((result) => !detachedPathSet.has(result.path));
+  }
+
+  async detachOutputPaths(
+    id: string,
+    tokenStore: Pick<
+      TokenStore,
+      "findTokensByGeneratorId" | "getToken" | "updateToken"
+    >,
+    paths: string[],
+  ): Promise<DetachedGeneratorResult> {
+    const existing = this.generators.get(id);
+    if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
+    if (paths.length === 0) {
+      throw new BadRequestError("At least one token path is required");
+    }
+
+    const allowedPathSet = new Set(this.getScaleOutputPaths(existing));
+    const detachedPaths = [...new Set(
+      paths.map((value, index) => {
+        if (typeof value !== "string" || value.trim() === "") {
+          throw new BadRequestError(
+            `paths[${index}] must be a non-empty string`,
+          );
+        }
+        const path = value.trim();
+        validateTokenPath(path);
+        if (!allowedPathSet.has(path)) {
+          throw new BadRequestError(
+            `"${path}" is not an output managed by generator "${existing.name}"`,
+          );
+        }
+        return path;
+      }),
+    )].sort();
+
+    const currentDetachedPaths = existing.detachedPaths ?? [];
+    const nextDetachedPaths = [
+      ...new Set([...currentDetachedPaths, ...detachedPaths]),
+    ].sort();
+
+    const generatorBeforeDetach = structuredClone(existing);
+    try {
+      if (nextDetachedPaths.length !== currentDetachedPaths.length) {
+        await this.update(id, { detachedPaths: nextDetachedPaths });
+      }
+      const generator = this.generators.get(id)!;
+
+      const ownedTokens = tokenStore.findTokensByGeneratorId(id);
+      for (const tokenRef of ownedTokens) {
+        if (!detachedPaths.includes(tokenRef.path)) continue;
+        const token = await tokenStore.getToken(tokenRef.setName, tokenRef.path);
+        if (!token) continue;
+        const extensions = {
+          ...(token.$extensions ?? {}),
+        } as Record<string, unknown>;
+        delete extensions["com.tokenmanager.generator"];
+        await tokenStore.updateToken(tokenRef.setName, tokenRef.path, {
+          $extensions: Object.keys(extensions).length > 0 ? extensions : {},
+        });
+      }
+
+      return {
+        generator,
+        detachedPaths,
+        detachedCount: detachedPaths.length,
+      };
+    } catch (err) {
+      if (nextDetachedPaths.length !== currentDetachedPaths.length) {
+        await this.restore(generatorBeforeDetach);
+      }
+      throw err;
+    }
+  }
+
   async create(data: GeneratorCreateInput): Promise<TokenGenerator> {
     const now = new Date().toISOString();
     const generator = normalizeStoredGenerator({
@@ -1156,11 +1294,19 @@ export class GeneratorService {
     for (const [id, gen] of this.generators) {
       let nextSourceToken = gen.sourceToken;
       let nextTargetGroup = gen.targetGroup;
+      let nextDetachedPaths = gen.detachedPaths
+        ? [...gen.detachedPaths]
+        : undefined;
 
       for (const rename of renames) {
         if (rename.scope === "token") {
           if (nextSourceToken === rename.oldPath) {
             nextSourceToken = rename.newPath;
+          }
+          if (nextDetachedPaths) {
+            nextDetachedPaths = nextDetachedPaths.map((path) =>
+              path === rename.oldPath ? rename.newPath : path,
+            );
           }
           continue;
         }
@@ -1180,16 +1326,30 @@ export class GeneratorService {
           nextTargetGroup =
             rename.newPath + nextTargetGroup.slice(rename.oldPath.length);
         }
+        if (nextDetachedPaths) {
+          nextDetachedPaths = nextDetachedPaths.map((path) => {
+            if (path === rename.oldPath) return rename.newPath;
+            if (path.startsWith(prefix)) {
+              return rename.newPath + path.slice(rename.oldPath.length);
+            }
+            return path;
+          });
+        }
       }
 
       if (
         nextSourceToken !== gen.sourceToken ||
-        nextTargetGroup !== gen.targetGroup
+        nextTargetGroup !== gen.targetGroup ||
+        stableStringify(nextDetachedPaths ?? []) !==
+          stableStringify(gen.detachedPaths ?? [])
       ) {
         this.generators.set(id, {
           ...gen,
           ...(nextSourceToken !== undefined ? { sourceToken: nextSourceToken } : {}),
           targetGroup: nextTargetGroup,
+          ...(nextDetachedPaths && nextDetachedPaths.length > 0
+            ? { detachedPaths: [...new Set(nextDetachedPaths)].sort() }
+            : { detachedPaths: undefined }),
         });
         count++;
       }
@@ -1297,11 +1457,15 @@ export class GeneratorService {
     sourceValue?: unknown,
   ): Promise<GeneratedTokenResult[]> {
     const type = normalizeGeneratorType(data.type);
+    const detachedPaths = normalizeDetachedPaths(
+      (data as { detachedPaths?: unknown }).detachedPaths,
+    );
     const normalizedData = {
       ...data,
       type,
       config: normalizeGeneratorConfig(type, data.config),
       overrides: normalizeOverrides(data.overrides),
+      ...(detachedPaths && { detachedPaths }),
     };
     if (sourceValue !== undefined) {
       // source value already resolved on the client; still resolve config tokenRefs on the server
@@ -2095,7 +2259,12 @@ export class GeneratorService {
   private async computeResultsWithValue(
     generator: Pick<
       TokenGenerator,
-      "type" | "sourceToken" | "targetGroup" | "config" | "overrides"
+      | "type"
+      | "sourceToken"
+      | "targetGroup"
+      | "config"
+      | "overrides"
+      | "detachedPaths"
     >,
     resolvedValue: unknown,
   ): Promise<GeneratedTokenResult[]> {
@@ -2236,7 +2405,10 @@ export class GeneratorService {
         throw new BadRequestError(`Unknown generator type: ${type}`);
     }
 
-    return applyOverrides(results, generator.overrides);
+    return this.filterDetachedResults(
+      generator as TokenGenerator,
+      applyOverrides(results, generator.overrides),
+    );
   }
 
   /**
@@ -2278,6 +2450,7 @@ export class GeneratorService {
       | "targetGroup"
       | "config"
       | "overrides"
+      | "detachedPaths"
     >,
     tokenStore: TokenStore,
   ): Promise<GeneratedTokenResult[]> {

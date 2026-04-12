@@ -137,6 +137,20 @@ export function useTokenEditorSave({
           return;
         }
       }
+      if (initialServerSnapshotRef.current) {
+        try {
+          const initialToken = JSON.parse(initialServerSnapshotRef.current) as {
+            $extensions?: Record<string, unknown>;
+          } | null;
+          const generatorOwnership =
+            initialToken?.$extensions?.['com.tokenmanager.generator'];
+          if (generatorOwnership !== undefined) {
+            extensions['com.tokenmanager.generator'] = generatorOwnership;
+          }
+        } catch (err) {
+          console.debug('[TokenEditor] failed to preserve generator ownership extension:', err);
+        }
+      }
       const body = createTokenBody({
         $type: tokenType,
         $value: reference || value,

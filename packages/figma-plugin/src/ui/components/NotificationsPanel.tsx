@@ -294,7 +294,8 @@ export function NotificationsPanel({
   onClear,
 }: NotificationsPanelProps) {
   const [filter, setFilter] = useState<InboxFilter>("all");
-  const { navigateTo, openSecondarySurface } = useNavigationContext();
+  const { navigateTo, openSecondarySurface, beginHandoff } =
+    useNavigationContext();
   const { activeSet, setActiveSet } = useTokenSetsContext();
   const { pathToSet } = useTokenFlatMapContext();
   const { setHighlightedToken, setPendingHighlightForSet } = useEditorContext();
@@ -352,9 +353,14 @@ export function NotificationsPanel({
 
   const openAction = (action: InboxAction | null) => {
     if (!action) return;
+    const actionName = action.label.replace(/^Open\s+/i, "").toLowerCase();
     if (action.target.kind === "token") {
       const targetSet = pathToSet[action.target.tokenPath] ?? activeSet;
-      navigateTo("define", "tokens");
+      beginHandoff({
+        reason:
+          "Inspect the token referenced by this notification, then return to Notifications.",
+      });
+      navigateTo("define", "tokens", { preserveHandoff: true });
       if (targetSet === activeSet) {
         setHighlightedToken(action.target.tokenPath);
       } else {
@@ -364,10 +370,18 @@ export function NotificationsPanel({
       return;
     }
     if (action.target.kind === "surface") {
+      beginHandoff({
+        reason: `Open ${actionName} from this notification, then return to Notifications.`,
+      });
       openSecondarySurface(action.target.surface);
       return;
     }
-    navigateTo(action.target.topTab, action.target.subTab);
+    beginHandoff({
+      reason: `Open ${actionName} from this notification, then return to Notifications.`,
+    });
+    navigateTo(action.target.topTab, action.target.subTab, {
+      preserveHandoff: true,
+    });
   };
 
   return (

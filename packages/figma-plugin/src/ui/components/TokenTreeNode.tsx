@@ -74,6 +74,7 @@ import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratorDialog";
 import { getGeneratorTypeLabel } from "./GeneratorPipelineCard";
 import { detectGeneratorType } from "./generators/generatorUtils";
 import { QuickGeneratorPopover } from "./QuickGeneratorPopover";
+import { ConfirmModal } from "./ConfirmModal";
 
 // ---------------------------------------------------------------------------
 // Reverse-reference helpers (used by "Find references" popover)
@@ -239,20 +240,70 @@ function formatGeneratorRunAt(lastRunAt?: string): string {
   return GENERATOR_RUN_AT_FORMATTER.format(date);
 }
 
+function getGeneratorStepNames(generator: TokenGenerator): string[] {
+  const config = generator.config as Record<string, unknown>;
+  if (Array.isArray(config.steps)) {
+    return config.steps.map((step) =>
+      typeof step === "object" && step !== null && "name" in step
+        ? String((step as { name: unknown }).name)
+        : String(step),
+    );
+  }
+  if (
+    typeof config.backgroundStep === "string" &&
+    typeof config.foregroundStep === "string"
+  ) {
+    return [config.backgroundStep, config.foregroundStep];
+  }
+  if (typeof config.stepName === "string") {
+    return [config.stepName];
+  }
+  return [];
+}
+
+function getGeneratorManagedPaths(generator: TokenGenerator): Set<string> {
+  const detachedPaths = new Set(generator.detachedPaths ?? []);
+  return new Set(
+    getGeneratorStepNames(generator).flatMap((name) => {
+      const path = `${generator.targetGroup}.${String(name)}`;
+      return detachedPaths.has(path) ? [] : [path];
+    }),
+  );
+}
+
+function countManagedGeneratorLeaves(
+  node: TokenTreeNodeProps["node"],
+  managedPaths: Set<string>,
+): number {
+  if (!node.children?.length) {
+    return managedPaths.has(node.path) ? 1 : 0;
+  }
+  return node.children.reduce(
+    (count, child) => count + countManagedGeneratorLeaves(child, managedPaths),
+    0,
+  );
+}
+
 function GeneratorSummaryRow({
   depth,
   condensedView,
   generator,
+  managedTokenCount,
   running,
+  detaching,
   onRun,
   onEdit,
+  onDetach,
 }: {
   depth: number;
   condensedView: boolean;
   generator: TokenGenerator;
+  managedTokenCount: number;
   running: boolean;
+  detaching: boolean;
   onRun?: () => Promise<void> | void;
   onEdit?: () => void;
+  onDetach?: () => Promise<void> | void;
 }) {
   const sourceLabel = generator.sourceToken || "standalone";
   const typeLabel = getGeneratorTypeLabel(generator.type);
@@ -299,6 +350,12 @@ function GeneratorSummaryRow({
               </span>
             </span>
           </div>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            These {managedTokenCount} token
+            {managedTokenCount === 1 ? "" : "s"} are managed by this
+            generator. Edit the generator to change them, or detach them first
+            to make manual edits stick.
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
@@ -318,6 +375,16 @@ function GeneratorSummaryRow({
             className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void onDetach?.();
+            }}
+            disabled={detaching || !onDetach}
+            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {detaching ? "Detaching…" : "Detach group"}
           </button>
         </div>
       </div>
@@ -815,6 +882,7 @@ const TokenGroupNode = memo(
       onDropOnGroup,
       onEditGenerator,
       onRegenerateGenerator,
+      onDetachGeneratorGroup,
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
 
@@ -840,6 +908,8 @@ const TokenGroupNode = memo(
     const [groupMetaDescription, setGroupMetaDescription] = useState("");
     const [groupMetaSaving, setGroupMetaSaving] = useState(false);
     const [regenerating, setRegenerating] = useState(false);
+    const [detachingGroup, setDetachingGroup] = useState(false);
+    const [showDetachGroupConfirm, setShowDetachGroupConfirm] = useState(false);
 
     useLayoutEffect(() => {
       if (renamingGroup && renameGroupInputRef.current) {
@@ -946,6 +1016,13 @@ const TokenGroupNode = memo(
     const isCategoryHeader = depth === 0;
     const leafCount = countLeaves(node);
     const targetGenerator = generatorsByTargetGroup?.get(node.path) ?? null;
+    const managedGeneratorLeafCount = useMemo(() => {
+      if (!targetGenerator) return 0;
+      return countManagedGeneratorLeaves(
+        node,
+        getGeneratorManagedPaths(targetGenerator),
+      );
+    }, [node, targetGenerator]);
     const themeCoverageSummary = themeCoverage?.get(node.path) ?? null;
     const groupSummary =
       leafCount === 0
@@ -1219,12 +1296,12 @@ const TokenGroupNode = memo(
                     : {})}
                   title={
                     canEdit
-                      ? `Generated by ${targetGenerator.name} — click to edit inline`
-                      : `Generated by ${targetGenerator.name}`
+                      ? `${managedGeneratorLeafCount} managed token${managedGeneratorLeafCount === 1 ? "" : "s"} — edit ${targetGenerator.name}`
+                      : `${managedGeneratorLeafCount} managed token${managedGeneratorLeafCount === 1 ? "" : "s"}`
                   }
                   className={`inline-flex items-center px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} font-medium shrink-0 ml-0.5 bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-secondary)]${canEdit ? ` ${INTERACTIVE_BADGE_HIT_AREA_CLASS} cursor-pointer hover:bg-[var(--color-figma-accent)]/20 hover:text-[var(--color-figma-accent)]` : ""}`}
                 >
-                  {targetGenerator.name}
+                  {managedGeneratorLeafCount} managed
                 </Tag>
               );
             })()}
@@ -1712,7 +1789,9 @@ const TokenGroupNode = memo(
             depth={depth}
             condensedView={condensedView}
             generator={targetGenerator}
+            managedTokenCount={managedGeneratorLeafCount}
             running={regenerating}
+            detaching={detachingGroup}
             onRun={
               targetGenerator.id && onRegenerateGenerator
                 ? async () => {
@@ -1731,6 +1810,35 @@ const TokenGroupNode = memo(
                 ? () => onEditGenerator(targetGenerator.id)
                 : undefined
             }
+            onDetach={
+              targetGenerator.id && onDetachGeneratorGroup
+                ? () => {
+                    setShowDetachGroupConfirm(true);
+                  }
+                : undefined
+            }
+          />
+        )}
+
+        {showDetachGroupConfirm && targetGenerator && (
+          <ConfirmModal
+            title="Detach Group From Generator?"
+            description={`This will convert the ${managedGeneratorLeafCount} generator-managed token${managedGeneratorLeafCount === 1 ? "" : "s"} in "${node.path}" into manual tokens. Future runs of "${targetGenerator.name}" will stop updating them.`}
+            confirmLabel="Detach group"
+            onCancel={() => setShowDetachGroupConfirm(false)}
+            onConfirm={async () => {
+              if (!targetGenerator.id || !onDetachGeneratorGroup) {
+                setShowDetachGroupConfirm(false);
+                return;
+              }
+              setDetachingGroup(true);
+              try {
+                await onDetachGeneratorGroup(targetGenerator.id, node.path);
+                setShowDetachGroupConfirm(false);
+              } finally {
+                setDetachingGroup(false);
+              }
+            }}
           />
         )}
 
@@ -1823,6 +1931,7 @@ const TokenLeafNode = memo(
       onRequestMoveToken,
       onRequestCopyToken,
       onDuplicateToken,
+      onDetachFromGenerator,
       onExtractToAlias,
       onHoverToken,
       onFilterByType,
@@ -1893,6 +2002,14 @@ const TokenLeafNode = memo(
     const [inlinePopoverOpen, setInlinePopoverOpen] = useState(false);
     const [inlinePopoverAnchor, setInlinePopoverAnchor] =
       useState<DOMRect | null>(null);
+    const [showGeneratedEditWarning, setShowGeneratedEditWarning] =
+      useState(false);
+    const [pendingGeneratedSave, setPendingGeneratedSave] = useState<{
+      nextValue: unknown;
+      previousState?: { type?: string; value: unknown };
+      afterSave?: () => void;
+    } | null>(null);
+    const [showDetachTokenConfirm, setShowDetachTokenConfirm] = useState(false);
     const nodeRef = useRef<HTMLDivElement>(null);
     // Stable refs for the tab-edit effect (see useEffect near pendingTabEdit)
     const nodeDataRef = useRef(node);
@@ -2194,6 +2311,34 @@ const TokenLeafNode = memo(
       setThemeMap,
     ]);
 
+    const commitInlineValueChange = useCallback(
+      (
+        nextValue: unknown,
+        previousState?: { type?: string; value: unknown },
+        afterSave?: () => void,
+      ) => {
+        onInlineSave?.(node.path, node.$type!, nextValue, previousState);
+        afterSave?.();
+      },
+      [node.$type, node.path, onInlineSave],
+    );
+
+    const requestInlineValueSave = useCallback(
+      (
+        nextValue: unknown,
+        previousState?: { type?: string; value: unknown },
+        afterSave?: () => void,
+      ) => {
+        if (!producingGenerator) {
+          commitInlineValueChange(nextValue, previousState, afterSave);
+          return;
+        }
+        setPendingGeneratedSave({ nextValue, previousState, afterSave });
+        setShowGeneratedEditWarning(true);
+      },
+      [commitInlineValueChange, producingGenerator],
+    );
+
     // Inline quick-edit eligibility
     const canInlineEdit =
       !isAlias(node.$value) &&
@@ -2236,13 +2381,17 @@ const TokenLeafNode = memo(
       }
       setInlineEditError(null);
       setInlineEditActive(false);
-      onInlineSave?.(node.path, node.$type!, parsed, {
-        type: node.$type,
-        value: node.$value,
-      });
-      // Show nudge after saving a raw value — matches will be computed by the hook
-      setInlineNudgeVisible(true);
-    }, [inlineEditActive, inlineEditValue, node, onInlineSave]);
+      requestInlineValueSave(
+        parsed,
+        {
+          type: node.$type,
+          value: node.$value,
+        },
+        () => {
+          setInlineNudgeVisible(true);
+        },
+      );
+    }, [inlineEditActive, inlineEditValue, node, requestInlineValueSave]);
 
     const cancelInlineEdit = useCallback(() => {
       inlineEditEscapedRef.current = true;
@@ -2262,7 +2411,7 @@ const TokenLeafNode = memo(
               setInlineEditError(getInlineValueError(node.$type));
               return;
             }
-            onInlineSave?.(node.path, node.$type, parsed, {
+            requestInlineValueSave(parsed, {
               type: node.$type,
               value: node.$value,
             });
@@ -2273,7 +2422,7 @@ const TokenLeafNode = memo(
         setInlineEditActive(false);
         onTabToNext(node.path, null, shiftKey ? -1 : 1);
       },
-      [inlineEditActive, inlineEditValue, node, onInlineSave, onTabToNext],
+      [inlineEditActive, inlineEditValue, node, onTabToNext, requestInlineValueSave],
     );
 
     // Stepper helpers for number/dimension/fontWeight/duration inline editing
@@ -2788,7 +2937,7 @@ const TokenLeafNode = memo(
                     onClose={() => {
                       setColorPickerOpen(false);
                       if (pendingColor !== node.$value) {
-                        onInlineSave?.(node.path, "color", pendingColor, {
+                        requestInlineValueSave(pendingColor, {
                           type: node.$type,
                           value: node.$value,
                         });
@@ -3665,6 +3814,20 @@ const TokenLeafNode = memo(
                       <span>Copy to set</span>
                     </button>
                   )}
+                  {producingGenerator && onDetachFromGenerator && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        closeTokenMenus();
+                        setShowDetachTokenConfirm(true);
+                      }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <span>Detach from generator</span>
+                    </button>
+                  )}
                   {!isAlias(node.$value) && onExtractToAlias && (
                     <button
                       role="menuitem"
@@ -3810,9 +3973,7 @@ const TokenLeafNode = memo(
                   pathToSet={pathToSet}
                   filterType={node.$type}
                   onSelect={(path) => {
-                    onInlineSave?.(
-                      node.path,
-                      node.$type || "color",
+                    requestInlineValueSave(
                       `{${path}}`,
                       {
                         type: node.$type,
@@ -3895,6 +4056,44 @@ const TokenLeafNode = memo(
             </div>
           )}
 
+          {showGeneratedEditWarning && producingGenerator && pendingGeneratedSave && (
+            <ConfirmModal
+              title="Edit Managed Token?"
+              description={`"${node.path}" is managed by "${producingGenerator.name}". This manual change will be overwritten the next time the generator runs unless you detach the token first.`}
+              confirmLabel="Save anyway"
+              onCancel={() => {
+                setShowGeneratedEditWarning(false);
+                setPendingGeneratedSave(null);
+              }}
+              onConfirm={async () => {
+                commitInlineValueChange(
+                  pendingGeneratedSave.nextValue,
+                  pendingGeneratedSave.previousState,
+                  pendingGeneratedSave.afterSave,
+                );
+                setShowGeneratedEditWarning(false);
+                setPendingGeneratedSave(null);
+              }}
+            >
+              <div className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                Use <span className="font-medium text-[var(--color-figma-text)]">Detach from generator</span> in the token actions menu if you want this token to become independently editable.
+              </div>
+            </ConfirmModal>
+          )}
+
+          {showDetachTokenConfirm && producingGenerator && onDetachFromGenerator && (
+            <ConfirmModal
+              title="Detach Token?"
+              description={`This will convert "${node.path}" into a manual token. Future runs of "${producingGenerator.name}" will stop updating it.`}
+              confirmLabel="Detach token"
+              onCancel={() => setShowDetachTokenConfirm(false)}
+              onConfirm={async () => {
+                await onDetachFromGenerator(node.path);
+                setShowDetachTokenConfirm(false);
+              }}
+            />
+          )}
+
           {/* Inline value popover — for complex types and alias-valued tokens */}
           {inlinePopoverOpen && inlinePopoverAnchor && node.$type && (
             <InlineValuePopover
@@ -3906,7 +4105,7 @@ const TokenLeafNode = memo(
               pathToSet={pathToSet}
               anchorRect={inlinePopoverAnchor}
               onSave={(newVal, previousState) => {
-                onInlineSave?.(node.path, node.$type!, newVal, previousState);
+                requestInlineValueSave(newVal, previousState);
                 setInlinePopoverOpen(false);
               }}
               onOpenFullEditor={() => {
@@ -3936,7 +4135,7 @@ const TokenLeafNode = memo(
               tokenType={node.$type || ""}
               onAccept={(path) => {
                 setInlineNudgeVisible(false);
-                onInlineSave?.(node.path, node.$type!, `{${path}}`, {
+                requestInlineValueSave(`{${path}}`, {
                   type: node.$type,
                   value: node.$value,
                 });

@@ -3,6 +3,7 @@ import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { EditorShell } from "./EditorShell";
 import { createTokenBody, updateToken } from "../shared/tokenMutations";
+import { apiFetch } from "../shared/apiFetch";
 import { TokenHistorySection } from "./TokenHistorySection";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { MutableRefObject } from "react";
@@ -47,7 +48,7 @@ import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
 import { TokenUsages } from "./TokenUsages";
-import { MetadataEditor } from "./MetadataEditor";
+import { MetadataEditor, ModeValuesEditor } from "./MetadataEditor";
 import { PathAutocomplete } from "./PathAutocomplete";
 import { useNearbyTokenMatch } from "../hooks/useNearbyTokenMatch";
 import { TokenNudge } from "./TokenNudge";
@@ -71,6 +72,7 @@ import { useFocusTrap } from "../hooks/useFocusTrap";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
 import type { TokensLibraryGeneratorEditorTarget } from "../shared/navigationTypes";
 import { lsGet, lsSet } from "../shared/storage";
+import { dispatchToast } from "../shared/toastBus";
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
@@ -1152,10 +1154,66 @@ export function TokenEditor({
     existingGeneratorsForToken,
     canBeGeneratorSource,
   } = generators$;
+  const producingGenerator = derivedTokenPaths?.get(tokenPath) ?? null;
+  const [detachedFromGenerator, setDetachedFromGenerator] = useState(false);
+  const [detachingGeneratorOwnership, setDetachingGeneratorOwnership] =
+    useState(false);
+  const activeProducingGenerator =
+    detachedFromGenerator ? null : producingGenerator;
 
   const openGeneratorEditor = useCallback((target: TokensLibraryGeneratorEditorTarget) => {
     onOpenGeneratorEditor?.(target);
   }, [onOpenGeneratorEditor]);
+
+  useEffect(() => {
+    setDetachedFromGenerator(false);
+  }, [tokenPath, producingGenerator?.id]);
+
+  const handleDetachGeneratorOwnership = useCallback(async () => {
+    if (!producingGenerator) return;
+    setDetachingGeneratorOwnership(true);
+    try {
+      setError(null);
+      await apiFetch(`${serverUrl}/api/generators/${producingGenerator.id}/detach`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          scope: "token",
+          path: tokenPath,
+        }),
+      });
+      if (initialServerSnapshotRef.current) {
+        try {
+          const snapshot = JSON.parse(initialServerSnapshotRef.current) as {
+            $extensions?: Record<string, unknown>;
+          } | null;
+          if (snapshot?.$extensions) {
+            const nextExtensions = { ...snapshot.$extensions };
+            delete nextExtensions["com.tokenmanager.generator"];
+            initialServerSnapshotRef.current = JSON.stringify({
+              ...snapshot,
+              $extensions:
+                Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined,
+            });
+          }
+        } catch (err) {
+          console.debug("[TokenEditor] failed to update detached generator snapshot:", err);
+        }
+      }
+      setDetachedFromGenerator(true);
+      onRefresh?.();
+      dispatchToast(
+        `Detached "${tokenPath}" from "${producingGenerator.name}"`,
+        "success",
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to detach token from generator");
+    } finally {
+      setDetachingGeneratorOwnership(false);
+    }
+  }, [initialServerSnapshotRef, onRefresh, producingGenerator, serverUrl, tokenPath]);
 
   // Cross-cutting: re-compute type parsing with actual editPath
   const duplicatePath = useMemo(() => {
@@ -1717,6 +1775,53 @@ export function TokenEditor({
           </div>
         )}
 
+        {activeProducingGenerator && !isCreateMode && (
+          <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[var(--color-figma-text)]">
+                  This token is managed by{" "}
+                  <span className="font-medium">{activeProducingGenerator.name}</span>.
+                  Manual value changes here will be overwritten on the next generator run.
+                </p>
+                <p className="mt-1">
+                  Edit the generator to change the managed output, or detach this token first to make it independently editable.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {(onOpenGeneratorEditor || onNavigateToGenerator) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenGeneratorEditor) {
+                        openGeneratorEditor({
+                          mode: "edit",
+                          id: activeProducingGenerator.id,
+                        });
+                        return;
+                      }
+                      onNavigateToGenerator?.(activeProducingGenerator.id);
+                    }}
+                    className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                  >
+                    Edit generator
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDetachGeneratorOwnership();
+                  }}
+                  disabled={detachingGeneratorOwnership}
+                  className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                >
+                  {detachingGeneratorOwnership ? "Detaching…" : "Detach token"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Type-change confirmation — shown when a type switch would reset a non-default value */}
         {pendingTypeChange && (
           <div className="px-2 py-2 rounded border border-amber-500/30 bg-amber-500/10 text-[10px]">
@@ -2068,6 +2173,21 @@ export function TokenEditor({
           />
         )}
 
+        {/* Per-mode values — shown prominently when theme dimensions exist */}
+        {dimensions.length > 0 && (
+          <ModeValuesEditor
+            dimensions={dimensions}
+            modeValues={modeValues}
+            onModeValuesChange={setModeValues}
+            tokenType={tokenType}
+            aliasMode={aliasMode}
+            reference={reference}
+            value={value}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+          />
+        )}
+
         {/* Details — Modifiers, Extends, Metadata, Scopes, Lifecycle, Theme values */}
         {showAdvancedCreateFields && (
           <Collapsible
@@ -2200,19 +2320,11 @@ export function TokenEditor({
                 tokenType={tokenType}
                 scopes={scopes}
                 onScopesChange={setScopes}
-                dimensions={dimensions}
-                modeValues={modeValues}
-                onModeValuesChange={setModeValues}
-                aliasMode={aliasMode}
-                reference={reference}
-                value={value}
                 extensionsJsonText={extensionsJsonText}
                 onExtensionsJsonTextChange={setExtensionsJsonText}
                 extensionsJsonError={extensionsJsonError}
                 onExtensionsJsonErrorChange={setExtensionsJsonError}
                 isCreateMode={isCreateMode}
-                allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
               />
 
               {/* Inline theme values — per-set overrides for each theme option */}
@@ -2688,7 +2800,7 @@ export function TokenEditor({
                   colorFlatMap={colorFlatMap}
                   pathToSet={pathToSet}
                   initialValue={initialRef.current?.value}
-                  producingGenerator={derivedTokenPaths?.get(tokenPath) ?? null}
+                  producingGenerator={activeProducingGenerator}
                   sourceGenerators={existingGeneratorsForToken}
                   onNavigateToToken={onNavigateToToken}
                   onShowReferences={onShowReferences}

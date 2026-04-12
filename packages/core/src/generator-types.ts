@@ -329,6 +329,11 @@ export interface TokenGenerator {
   config: GeneratorConfig;
   semanticLayer?: GeneratorSemanticLayer;
   /**
+   * Absolute token paths that were explicitly detached from this generator.
+   * Detached outputs stay manual and are skipped on future runs.
+   */
+  detachedPaths?: string[];
+  /**
    * Per-step value overrides. Key = step name.
    * locked: true  → value survives regeneration
    * locked: false → one-time edit, cleared on next regeneration

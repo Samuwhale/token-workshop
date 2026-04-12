@@ -379,6 +379,10 @@ export interface TokenTreeGroupActionsContextType {
   onEditGenerator?: (generatorId: string) => void;
   /** One-click regenerate a specific generator (by id) — runs POST /api/generators/:id/run */
   onRegenerateGenerator?: (generatorId: string) => Promise<void>;
+  onDetachGeneratorGroup?: (
+    generatorId: string,
+    groupPath: string,
+  ) => Promise<void>;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
 }
@@ -437,6 +441,7 @@ export interface TokenTreeLeafActionsContextType {
   onRequestMoveToken?: (tokenPath: string) => void;
   onRequestCopyToken?: (tokenPath: string) => void;
   onDuplicateToken?: (path: string) => void;
+  onDetachFromGenerator?: (path: string) => Promise<void>;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
   onHoverToken?: (path: string) => void;
   onFilterByType?: (type: string) => void;

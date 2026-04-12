@@ -10,6 +10,7 @@ import {
 import { stableStringify } from '../services/stable-stringify.js';
 import type {
   GeneratorCreateInput,
+  DetachedGeneratorResult,
   OrphanedGeneratorToken,
   GeneratorPreviewInput,
   GeneratorUpdateInput,
@@ -29,6 +30,11 @@ interface UpdateBody {
 interface StepOverrideBody {
   value: unknown;
   locked: boolean;
+}
+
+interface DetachOutputsBody {
+  scope?: 'token' | 'group';
+  path?: string;
 }
 
 type SnapshotMap = Record<string, SnapshotEntry>;
@@ -385,6 +391,71 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to list generator tokens');
     }
+  });
+
+  // POST /api/generators/:id/detach — convert generated outputs into manual tokens
+  fastify.post<{
+    Params: { id: string };
+    Body: DetachOutputsBody;
+  }>('/generators/:id/detach', async (request, reply) => {
+    const scope = request.body?.scope === 'group' ? 'group' : 'token';
+    const requestedPath =
+      typeof request.body?.path === 'string' ? request.body.path.trim() : '';
+
+    return withLock(async () => {
+      try {
+        const generator = await fastify.generatorService.getById(request.params.id);
+        if (!generator) {
+          return reply
+            .status(404)
+            .send({ error: `Generator "${request.params.id}" not found` });
+        }
+
+        const detachedPaths =
+          scope === 'group'
+            ? fastify.generatorService.getScaleOutputPaths(generator)
+            : requestedPath
+              ? [requestedPath]
+              : [];
+
+        if (detachedPaths.length === 0) {
+          return reply.status(400).send({
+            error:
+              scope === 'group'
+                ? 'Generator has no managed outputs to detach'
+                : 'path is required when scope is "token"',
+          });
+        }
+
+        const result = await executeLoggedGeneratorMutation<DetachedGeneratorResult>({
+          type: scope === 'group' ? 'generator-detach-group' : 'generator-detach-token',
+          description: (detachResult) =>
+            scope === 'group'
+              ? `Detach ${detachResult.detachedCount} outputs from generator "${detachResult.generator.name}"`
+              : `Detach "${detachResult.detachedPaths[0]}" from generator "${detachResult.generator.name}"`,
+          setName: () => generator.targetSet,
+          captureBefore: () => snapshotGeneratorOutputs(fastify.tokenStore, generator),
+          mutate: () =>
+            fastify.generatorService.detachOutputPaths(
+              request.params.id,
+              fastify.tokenStore,
+              detachedPaths,
+            ),
+          captureAfter: (detachResult) =>
+            snapshotGeneratorOutputs(fastify.tokenStore, detachResult.generator),
+          rollbackSteps: [{ action: 'create-generator', generator }],
+        });
+
+        return {
+          ok: true,
+          detachedCount: result.detachedCount,
+          detachedPaths: result.detachedPaths,
+          generator: result.generator,
+        };
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to detach generator outputs');
+      }
+    });
   });
 
   // DELETE /api/generators/:id — delete generator, optionally delete derived tokens

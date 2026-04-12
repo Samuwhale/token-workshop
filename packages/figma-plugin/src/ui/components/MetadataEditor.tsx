@@ -378,43 +378,155 @@ function ExtensionsEditor({
   );
 }
 
+// ---------------------------------------------------------------------------
+// ModeValuesEditor — standalone section for per-mode token value overrides
+// ---------------------------------------------------------------------------
+
+export interface ModeValuesEditorProps {
+  dimensions: ThemeDimension[];
+  modeValues: Record<string, any>;
+  onModeValuesChange: (modes: Record<string, any>) => void;
+  tokenType: string;
+  aliasMode: boolean;
+  reference: string;
+  value: any;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
+}
+
+export function ModeValuesEditor({
+  dimensions,
+  modeValues,
+  onModeValuesChange,
+  tokenType,
+  aliasMode,
+  reference,
+  value,
+  allTokensFlat = {},
+  pathToSet = {},
+}: ModeValuesEditorProps) {
+  const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
+  const setCount = Object.values(modeValues).filter(v => v !== '' && v !== undefined && v !== null).length;
+  const hasTokens = Object.keys(allTokensFlat).length > 0;
+
+  return (
+    <div className="rounded-lg border border-[var(--color-figma-border)] overflow-hidden">
+      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+          Per-mode values
+        </span>
+        {setCount > 0 && (
+          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{setCount} overridden</span>
+        )}
+      </div>
+      <div className="px-3 py-2 flex flex-col gap-2.5">
+        {dimensions.map(dim => (
+          <div key={dim.id}>
+            {dimensions.length > 1 && (
+              <div className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide mb-1.5">{dim.name}</div>
+            )}
+            {dim.options.map(option => {
+              const modeVal = modeValues[option.name] ?? '';
+              const modeValStr = typeof modeVal === 'string' ? modeVal : '';
+              const isColorVal = tokenType === 'color' && typeof modeVal === 'string' && modeVal.startsWith('#') && !modeVal.startsWith('{');
+              const showingAutocomplete = autocompleteModeKey === option.name;
+              return (
+                <div key={option.name} className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[10px] text-[var(--color-figma-text)] w-16 shrink-0 truncate" title={option.name}>{option.name}</span>
+                  {isColorVal && (
+                    <div
+                      className="w-4 h-4 rounded-sm border border-white/40 ring-1 ring-[var(--color-figma-border)] shrink-0"
+                      style={{ backgroundColor: modeVal }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={modeVal}
+                      onChange={e => {
+                        const v = e.target.value;
+                        onModeValuesChange({ ...modeValues, [option.name]: v });
+                        if (hasTokens) {
+                          const hasOpen = v.includes('{') && !v.endsWith('}');
+                          setAutocompleteModeKey(hasOpen ? option.name : null);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (hasTokens && modeValStr.includes('{') && !modeValStr.endsWith('}')) {
+                          setAutocompleteModeKey(option.name);
+                        }
+                      }}
+                      onBlur={() => setTimeout(() => setAutocompleteModeKey(k => k === option.name ? null : k), 150)}
+                      onKeyDown={e => {
+                        if (hasTokens && e.key === '{') setAutocompleteModeKey(option.name);
+                      }}
+                      placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
+                      className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+                    />
+                    {showingAutocomplete && (
+                      <AliasAutocomplete
+                        query={modeValStr.includes('{') ? modeValStr.slice(modeValStr.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
+                        allTokensFlat={allTokensFlat}
+                        pathToSet={pathToSet}
+                        filterType={tokenType}
+                        onSelect={path => {
+                          onModeValuesChange({ ...modeValues, [option.name]: `{${path}}` });
+                          setAutocompleteModeKey(null);
+                        }}
+                        onClose={() => setAutocompleteModeKey(null)}
+                      />
+                    )}
+                  </div>
+                  {modeVal !== '' && (
+                    <button
+                      type="button"
+                      onClick={() => { const next = { ...modeValues }; delete next[option.name]; onModeValuesChange(next); }}
+                      title={`Clear ${option.name} override`}
+                      aria-label={`Clear ${option.name} override`}
+                      className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MetadataEditor
+// ---------------------------------------------------------------------------
+
 interface MetadataEditorProps {
   description: string;
   onDescriptionChange: (desc: string) => void;
   tokenType: string;
   scopes: string[];
   onScopesChange: (scopes: string[]) => void;
-  dimensions: ThemeDimension[];
-  modeValues: Record<string, any>;
-  onModeValuesChange: (modes: Record<string, any>) => void;
-  aliasMode: boolean;
-  reference: string;
-  value: any;
   extensionsJsonText: string;
   onExtensionsJsonTextChange: (text: string) => void;
   extensionsJsonError: string | null;
   onExtensionsJsonErrorChange: (err: string | null) => void;
   isCreateMode: boolean;
-  allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
 }
 
 export function MetadataEditor({
   description, onDescriptionChange,
   tokenType, scopes, onScopesChange,
-  dimensions, modeValues, onModeValuesChange,
-  aliasMode, reference, value,
   extensionsJsonText, onExtensionsJsonTextChange,
   extensionsJsonError, onExtensionsJsonErrorChange,
   isCreateMode,
-  allTokensFlat = {},
-  pathToSet = {},
 }: MetadataEditorProps) {
   const [showScopes, setShowScopes] = useState(false);
-  const [showModeValues, setShowModeValues] = useState(false);
   const [showExtensions, setShowExtensions] = useState(false);
-  // Track which mode option currently has autocomplete open (by option.name)
-  const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
 
   return (
     <>
@@ -464,109 +576,6 @@ export function MetadataEditor({
                   <span className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
                 </span>
               </label>
-            ))}
-          </div>
-        )}
-      </div>
-    )}
-
-    {/* Mode Values */}
-    {dimensions.length > 0 && (
-      <div className="border-t border-[var(--color-figma-border)]">
-        <button
-          type="button"
-          onClick={() => setShowModeValues(v => !v)}
-          className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
-        >
-          <span>
-            Mode values
-            {Object.values(modeValues).filter(v => v !== '' && v !== undefined && v !== null).length > 0
-              ? ` (${Object.values(modeValues).filter(v => v !== '' && v !== undefined && v !== null).length} set)`
-              : ''}
-          </span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showModeValues ? 'rotate-180' : ''}`}>
-            <path d="M2 3.5l3 3 3-3"/>
-          </svg>
-        </button>
-        {showModeValues && (
-          <div className="px-3 py-2 flex flex-col gap-3">
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Override the default value per mode. Leave empty to inherit the default value.
-            </p>
-            {dimensions.map(dim => (
-              <div key={dim.id}>
-                <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide mb-1.5">{dim.name}</div>
-                {dim.options.map(option => {
-                  const modeVal = modeValues[option.name] ?? '';
-                  const modeValStr = typeof modeVal === 'string' ? modeVal : '';
-                  const isColorVal = tokenType === 'color' && typeof modeVal === 'string' && modeVal.startsWith('#') && !modeVal.startsWith('{');
-                  const showingAutocomplete = autocompleteModeKey === option.name;
-                  const hasTokens = Object.keys(allTokensFlat).length > 0;
-                  return (
-                    <div key={option.name} className="flex items-center gap-2 mb-1.5">
-                      <span className="text-[10px] text-[var(--color-figma-text)] w-16 shrink-0 truncate" title={option.name}>{option.name}</span>
-                      {isColorVal && (
-                        <div
-                          className="w-4 h-4 rounded-sm border border-white/40 ring-1 ring-[var(--color-figma-border)] shrink-0"
-                          style={{ backgroundColor: modeVal }}
-                          aria-hidden="true"
-                        />
-                      )}
-                      <div className="relative flex-1">
-                        <input
-                          type="text"
-                          value={modeVal}
-                          onChange={e => {
-                            const v = e.target.value;
-                            onModeValuesChange({ ...modeValues, [option.name]: v });
-                            if (hasTokens) {
-                              const hasOpen = v.includes('{') && !v.endsWith('}');
-                              setAutocompleteModeKey(hasOpen ? option.name : null);
-                            }
-                          }}
-                          onFocus={() => {
-                            if (hasTokens && modeValStr.includes('{') && !modeValStr.endsWith('}')) {
-                              setAutocompleteModeKey(option.name);
-                            }
-                          }}
-                          onBlur={() => setTimeout(() => setAutocompleteModeKey(k => k === option.name ? null : k), 150)}
-                          onKeyDown={e => {
-                            if (hasTokens && e.key === '{') setAutocompleteModeKey(option.name);
-                          }}
-                          placeholder={aliasMode ? (reference || 'value or {reference}') : String(value !== '' && value !== undefined ? value : 'value or {reference}')}
-                          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
-                        />
-                        {showingAutocomplete && (
-                          <AliasAutocomplete
-                            query={modeValStr.includes('{') ? modeValStr.slice(modeValStr.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
-                            allTokensFlat={allTokensFlat}
-                            pathToSet={pathToSet}
-                            filterType={tokenType}
-                            onSelect={path => {
-                              onModeValuesChange({ ...modeValues, [option.name]: `{${path}}` });
-                              setAutocompleteModeKey(null);
-                            }}
-                            onClose={() => setAutocompleteModeKey(null)}
-                          />
-                        )}
-                      </div>
-                      {modeVal !== '' && (
-                        <button
-                          type="button"
-                          onClick={() => { const next = { ...modeValues }; delete next[option.name]; onModeValuesChange(next); }}
-                          title={`Clear ${option.name} override`}
-                          aria-label={`Clear ${option.name} override`}
-                          className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
-                        >
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            <path d="M18 6L6 18M6 6l12 12"/>
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
             ))}
           </div>
         )}

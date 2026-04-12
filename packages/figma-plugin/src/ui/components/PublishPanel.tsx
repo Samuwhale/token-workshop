@@ -216,7 +216,7 @@ export function PublishPanel({
   publishPanelHandle,
 }: PublishPanelProps) {
   const help = usePanelHelp('publish', { defaultExpanded: false });
-  const { navigateTo, setReturnBreadcrumb } = useNavigationContext();
+  const { navigateTo, beginHandoff } = useNavigationContext();
   const {
     activeResolver,
     activeModifiers,
@@ -777,14 +777,22 @@ export function PublishPanel({
       }
 
       if (actionId === 'review-draft-tokens') {
-        setReturnBreadcrumb({ label: 'Back to Sync', topTab: 'ship', subTab: 'publish' });
-        navigateTo('define', 'tokens');
+        beginHandoff({
+          reason:
+            'Review the draft tokens that blocked preflight, then return to Sync.',
+          onReturn: () => focusStage('preflight'),
+        });
+        navigateTo('define', 'tokens', { preserveHandoff: true });
         return;
       }
 
       if (actionId === 'review-audit-findings') {
-        setReturnBreadcrumb({ label: 'Back to Sync', topTab: 'ship', subTab: 'publish' });
-        navigateTo('ship', 'health');
+        beginHandoff({
+          reason:
+            'Review the audit findings behind these blockers, then return to Sync.',
+          onReturn: () => focusStage('preflight'),
+        });
+        navigateTo('ship', 'health', { preserveHandoff: true });
         return;
       }
 
@@ -797,8 +805,12 @@ export function PublishPanel({
 
       if (actionId === 'add-token-descriptions') {
         dispatchToast('Descriptions are edited in the Tokens workspace. Add them there, then return to re-run preflight.', 'success');
-        setReturnBreadcrumb({ label: 'Back to Sync', topTab: 'ship', subTab: 'publish' });
-        navigateTo('define', 'tokens');
+        beginHandoff({
+          reason:
+            'Add the missing token descriptions in Tokens, then return to Sync.',
+          onReturn: () => focusStage('preflight'),
+        });
+        navigateTo('define', 'tokens', { preserveHandoff: true });
         return;
       }
 
@@ -809,9 +821,9 @@ export function PublishPanel({
     }
   }, [
     focusStage,
+    beginHandoff,
     isResolverPublishCompareActive,
     navigateTo,
-    setReturnBreadcrumb,
     syncResolverPublishModes,
     triggerReadinessAction,
     varSync,

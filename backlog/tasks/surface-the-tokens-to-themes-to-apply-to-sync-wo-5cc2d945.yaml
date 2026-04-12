@@ -1,0 +1,22 @@
+id: surface-the-tokens-to-themes-to-apply-to-sync-wo-5cc2d945
+title: Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/App.tsx
+  - packages/figma-plugin/src/ui/components/WelcomePrompt.tsx
+  - packages/figma-plugin/src/ui/components/ImportSuccessView.tsx
+  - packages/figma-plugin/src/ui/shared/navigationTypes.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The current code has onboarding and import next-step copy that hints at the intended workflow, but the shell itself does not carry that structure, so the relationship between workspaces is only implicit."
+state: ready
+acceptance_criteria:
+  - The shell or workspace summary explains the primary workflow order and labels Audit as a cross-cutting review space rather than another step in the linear flow.
+  - First-run and import-complete guidance reuse the same workspace names and sequencing shown in the shell.
+  - A designer new to the plugin can infer what Tokens, Themes, Apply, Sync, and Audit each do without opening external docs.
+source: task-followup
+created_at: 2026-04-12T22:47:49.450Z
+updated_at: 2026-04-12T22:47:49.450Z

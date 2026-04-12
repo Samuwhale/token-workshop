@@ -195,6 +195,13 @@ export interface AppShellNavigation {
   utilityMenu: UtilityMenu;
 }
 
+export interface ResolvedWorkspaceSummary {
+  workspace: WorkspaceTab;
+  section: WorkspaceSection | null;
+  workspaceLabel: string;
+  currentTitle: string;
+}
+
 export type ImportResultSourceType =
   | "variables"
   | "styles"
@@ -422,6 +429,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: "apply",
     label: "Apply",
+    summaryTitle: "Apply to selection",
     topTab: "apply",
     subTab: "inspect",
     transition: workspaceTransition(
@@ -454,6 +462,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: "sync",
     label: "Sync",
+    summaryTitle: "Sync delivery",
     topTab: "ship",
     subTab: "publish",
     transition: workspaceTransition("Sync to Figma and prepare handoff files."),
@@ -482,6 +491,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: "audit",
     label: "Audit",
+    summaryTitle: "Quality review",
     topTab: "ship",
     subTab: "health",
     transition: workspaceTransition(
@@ -499,6 +509,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       {
         id: "history",
         label: "History",
+        summaryTitle: "Change history",
         topTab: "ship",
         subTab: "history",
         transition: workspaceTransition(
@@ -508,6 +519,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       {
         id: "dependencies",
         label: "Dependencies",
+        summaryTitle: "Dependency tracing",
         topTab: "apply",
         subTab: "dependencies",
         transition: contextualSubScreenTransition(
@@ -828,6 +840,25 @@ export function resolveWorkspaceSection(
       matchesRoute(section, topTab, subTab),
     ) ?? null
   );
+}
+
+export function resolveWorkspaceSummary(
+  topTab: TopTab,
+  subTab: SubTab,
+): ResolvedWorkspaceSummary {
+  const workspace = resolveWorkspace(topTab, subTab);
+  const section = resolveWorkspaceSection(workspace, topTab, subTab);
+
+  return {
+    workspace,
+    section,
+    workspaceLabel: workspace.label,
+    currentTitle:
+      section?.summaryTitle ??
+      section?.label ??
+      workspace.summaryTitle ??
+      workspace.label,
+  };
 }
 
 /** Map an internal route to the primary workspace shown in the shell. */

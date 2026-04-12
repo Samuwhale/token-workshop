@@ -1,0 +1,35 @@
+id: unify-token-and-generator-creation-visual-consis-e5f6a7b8
+title: "Unify token creation, bulk editing, and generator configuration surfaces for visual consistency and small-viewport fitness in the Figma plugin panel"
+priority: high
+task_kind: research
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx
+  - packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx
+  - packages/figma-plugin/src/ui/components/GeneratorStepWhat.tsx
+  - packages/figma-plugin/src/ui/components/GeneratorStepWhere.tsx
+  - packages/figma-plugin/src/ui/components/GeneratorStepReview.tsx
+  - packages/figma-plugin/src/ui/components/TokenEditor.tsx
+  - packages/figma-plugin/src/ui/components/BatchEditor.tsx
+  - packages/figma-plugin/src/ui/components/CanvasCreateTokenDialog.tsx
+  - packages/figma-plugin/src/ui/components/TokenCreateLauncher.tsx
+  - packages/figma-plugin/src/ui/components/EditorShell.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The plugin runs inside a Figma panel window that is often quite small (as narrow as ~240px, commonly ~320-400px). Token creation, bulk token editing, and generator configuration are core authoring surfaces that designers use frequently, but they were built at different times with inconsistent layout strategies."
+  - "Pain point 1: Visual inconsistency across creation surfaces — TokenGeneratorDialog uses a responsive modal with max-w-[min(56rem,95vw)], CanvasCreateTokenDialog uses a hardcoded w-[360px], TokenEditor and BatchEditor rely on parent container sizing with no explicit constraints. Each surface feels like a different app."
+  - "Pain point 2: Small-viewport fitness is not systematic — CanvasCreateTokenDialog's 360px fixed width can overflow on narrow Figma panels. Generator configuration forms with multi-column layouts and dense parameter controls don't gracefully collapse. Long token paths and names overflow without word-break handling."
+  - "Pain point 3: Generator pipeline cards and step forms are information-dense — they were designed for comfortable viewport widths but become cramped and hard to scan when the plugin panel is narrow. Form labels, inputs, and preview areas compete for horizontal space."
+  - "Pain point 4: No shared layout contract across creation/editing surfaces — header, body, footer zones use EditorShell in some places but ad-hoc flex layouts in others. Spacing, typography hierarchy, input sizing, and button placement vary between surfaces."
+  - "Goal: Research and propose a unified visual and layout system for all token creation, bulk editing, and generator configuration surfaces that is visually consistent and works well at small Figma plugin panel sizes (320px and below). All authoring surfaces should feel like parts of the same tool."
+state: ready
+acceptance_criteria:
+  - Research deliverable audits all token creation and generator configuration surfaces for layout strategy, width handling, and visual consistency
+  - Proposes a shared layout contract (spacing, typography, input sizing, header/body/footer zones) that all authoring surfaces adopt
+  - Defines minimum and target viewport widths for the plugin and documents how each surface should respond at those breakpoints
+  - Identifies specific overflow, truncation, and cramping issues at narrow widths and recommends fixes
+  - Proposes a visual consistency pass that aligns generator step forms, token editors, batch editors, and quick-create dialogs into a cohesive authoring experience
+source: product-pass
+created_at: 2026-04-13T00:00:00.000Z
+updated_at: 2026-04-13T00:00:00.000Z

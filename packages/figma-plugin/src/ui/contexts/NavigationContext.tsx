@@ -25,6 +25,8 @@ import {
   TOP_TABS,
   DEFAULT_SUB_TABS,
   SUB_TAB_STORAGE,
+  resolveWorkspaceSummary,
+  resolveSecondarySurface,
 } from "../shared/navigationTypes";
 import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 
@@ -39,23 +41,96 @@ export interface NavigationContextValue {
   navigateTo: (
     top: TopTab,
     sub?: SubTab,
-    options?: { preserveSecondarySurface?: boolean },
+    options?: { preserveSecondarySurface?: boolean; preserveHandoff?: boolean },
   ) => void;
   openSecondarySurface: (surface: SecondarySurfaceId) => void;
   closeSecondarySurface: () => void;
   /** Update only the sub-tab for the current top-tab (persists to localStorage). */
   setSubTab: (subTab: SubTab) => void;
-  /** When set, a breadcrumb linking back to this workspace is shown in the header. */
-  returnBreadcrumb: ReturnBreadcrumb | null;
-  setReturnBreadcrumb: (breadcrumb: ReturnBreadcrumb | null) => void;
+  activeHandoff: NavigationHandoff | null;
+  beginHandoff: (options: BeginHandoffOptions) => void;
+  clearHandoff: () => void;
+  returnFromHandoff: () => void;
 }
 
-export interface ReturnBreadcrumb {
-  /** Label shown in the breadcrumb (e.g. "Audit"). */
-  label: string;
-  /** Route to navigate back to. */
-  topTab: TopTab;
-  subTab: SubTab;
+export interface NavigationHandoff {
+  returnLabel: string;
+  reason: string;
+  origin: {
+    workspaceLabel: string;
+    sectionLabel: string | null;
+    secondarySurfaceLabel: string | null;
+  };
+  returnTarget: {
+    secondarySurfaceId: SecondarySurfaceId | null;
+    topTab: TopTab;
+    subTab: SubTab;
+  };
+  onReturn: (() => void) | null;
+}
+
+export interface BeginHandoffOptions {
+  reason: string;
+  returnLabel?: string;
+  returnSecondarySurfaceId?: SecondarySurfaceId | null;
+  onReturn?: (() => void) | null;
+}
+
+function schedulePostNavigation(fn: (() => void) | null | undefined): void {
+  if (!fn) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      fn();
+    });
+  });
+}
+
+function formatReturnLabel(
+  workspaceLabel: string,
+  sectionLabel: string | null,
+  secondarySurfaceLabel: string | null,
+): string {
+  if (secondarySurfaceLabel) {
+    return `Back to ${secondarySurfaceLabel}`;
+  }
+
+  if (sectionLabel && sectionLabel !== workspaceLabel) {
+    return `Back to ${workspaceLabel}`;
+  }
+
+  return `Back to ${workspaceLabel}`;
+}
+
+function normalizeOriginSectionLabel(
+  workspaceLabel: string,
+  sectionLabel: string | null,
+): string | null {
+  if (!sectionLabel || sectionLabel === workspaceLabel) {
+    return null;
+  }
+
+  return sectionLabel;
+}
+
+function resolveOriginMetadata(
+  topTab: TopTab,
+  subTab: SubTab,
+  secondarySurfaceId: SecondarySurfaceId | null,
+) {
+  const workspaceSummary = resolveWorkspaceSummary(topTab, subTab);
+  const secondarySurface = resolveSecondarySurface(secondarySurfaceId);
+
+  return {
+    workspaceLabel: workspaceSummary.workspaceLabel,
+    sectionLabel: normalizeOriginSectionLabel(
+      workspaceSummary.workspaceLabel,
+      workspaceSummary.section?.label ?? null,
+    ),
+    secondarySurfaceLabel: secondarySurface?.label ?? null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -80,8 +155,8 @@ export function useNavigationContext(): NavigationContextValue {
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const [activeSecondarySurface, setActiveSecondarySurface] =
     useState<SecondarySurfaceId | null>(null);
-  const [returnBreadcrumb, setReturnBreadcrumb] =
-    useState<ReturnBreadcrumb | null>(null);
+  const [activeHandoff, setActiveHandoff] =
+    useState<NavigationHandoff | null>(null);
 
   const [activeTopTab, setActiveTopTabState] = useState<TopTab>(() => {
     const stored = lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB);
@@ -106,7 +181,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     (
       topTab: TopTab,
       subTab?: SubTab,
-      options?: { preserveSecondarySurface?: boolean },
+      options?: { preserveSecondarySurface?: boolean; preserveHandoff?: boolean },
     ) => {
       const topDef = TOP_TABS.find((t) => t.id === topTab)!;
       const resolvedSub =
@@ -121,6 +196,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       if (!options?.preserveSecondarySurface) {
         setActiveSecondarySurface(null);
       }
+      if (!options?.preserveHandoff) {
+        setActiveHandoff(null);
+      }
     },
     [],
   );
@@ -128,12 +206,17 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   // Use a ref so setSubTab stays stable across top-tab changes
   const activeTopTabRef = useRef(activeTopTab);
   activeTopTabRef.current = activeTopTab;
+  const activeSubTabRef = useRef(activeSubTab);
+  activeSubTabRef.current = activeSubTab;
+  const activeSecondarySurfaceRef = useRef(activeSecondarySurface);
+  activeSecondarySurfaceRef.current = activeSecondarySurface;
 
   const setSubTab = useCallback((subTab: SubTab) => {
     const topTab = activeTopTabRef.current;
     lsSet(SUB_TAB_STORAGE[topTab], subTab);
     setActiveSubTabState(subTab);
     setActiveSecondarySurface(null);
+    setActiveHandoff(null);
   }, []);
 
   const openSecondarySurface = useCallback((surface: SecondarySurfaceId) => {
@@ -144,6 +227,57 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setActiveSecondarySurface(null);
   }, []);
 
+  const clearHandoff = useCallback(() => {
+    setActiveHandoff(null);
+  }, []);
+
+  const beginHandoff = useCallback((options: BeginHandoffOptions) => {
+    const topTab = activeTopTabRef.current;
+    const subTab = activeSubTabRef.current;
+    const secondarySurfaceId =
+      options.returnSecondarySurfaceId === undefined
+        ? activeSecondarySurfaceRef.current
+        : options.returnSecondarySurfaceId;
+    const origin = resolveOriginMetadata(topTab, subTab, secondarySurfaceId);
+
+    setActiveHandoff({
+      returnLabel:
+        options.returnLabel ??
+        formatReturnLabel(
+          origin.workspaceLabel,
+          origin.sectionLabel,
+          origin.secondarySurfaceLabel,
+        ),
+      reason: options.reason,
+      origin,
+      returnTarget: {
+        secondarySurfaceId,
+        topTab,
+        subTab,
+      },
+      onReturn: options.onReturn ?? null,
+    });
+  }, []);
+
+  const returnFromHandoff = useCallback(() => {
+    if (!activeHandoff) {
+      return;
+    }
+
+    setActiveHandoff(null);
+    navigateTo(activeHandoff.returnTarget.topTab, activeHandoff.returnTarget.subTab, {
+      preserveSecondarySurface:
+        activeHandoff.returnTarget.secondarySurfaceId !== null,
+      preserveHandoff: true,
+    });
+
+    if (activeHandoff.returnTarget.secondarySurfaceId !== null) {
+      setActiveSecondarySurface(activeHandoff.returnTarget.secondarySurfaceId);
+    }
+
+    schedulePostNavigation(activeHandoff.onReturn);
+  }, [activeHandoff, navigateTo]);
+
   const value = useMemo<NavigationContextValue>(
     () => ({
       activeTopTab,
@@ -153,18 +287,23 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       openSecondarySurface,
       closeSecondarySurface,
       setSubTab,
-      returnBreadcrumb,
-      setReturnBreadcrumb,
+      activeHandoff,
+      beginHandoff,
+      clearHandoff,
+      returnFromHandoff,
     }),
     [
       activeTopTab,
       activeSubTab,
       activeSecondarySurface,
+      activeHandoff,
+      beginHandoff,
+      clearHandoff,
       closeSecondarySurface,
       navigateTo,
       openSecondarySurface,
+      returnFromHandoff,
       setSubTab,
-      returnBreadcrumb,
     ],
   );
 

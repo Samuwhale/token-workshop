@@ -174,8 +174,8 @@ export function PanelRouter(): ReactNode {
     activeSubTab,
     activeSecondarySurface,
     navigateTo,
+    beginHandoff,
     closeSecondarySurface,
-    setReturnBreadcrumb,
   } = useNavigationContext();
   const {
     editingToken,
@@ -930,13 +930,20 @@ export function PanelRouter(): ReactNode {
         setActiveSet(targetSet);
       }
 
+      beginHandoff({
+        reason: recommendation.rationale,
+        returnSecondarySurfaceId: "import",
+      });
       navigateTo(
         recommendation.target.topTab,
         recommendation.target.subTab,
-        options,
+        {
+          preserveSecondarySurface: options?.preserveSecondarySurface,
+          preserveHandoff: true,
+        },
       );
     },
-    [navigateTo, setActiveSet],
+    [beginHandoff, navigateTo, setActiveSet],
   );
 
   type SecondaryPanelRenderer = () => ReactNode;
@@ -1521,7 +1528,11 @@ export function PanelRouter(): ReactNode {
           initialPath={controller.flowPanelInitialPath}
           onNavigateToToken={(path) => {
             const targetSet = pathToSet[path];
-            navigateTo("define", "tokens");
+            beginHandoff({
+              reason:
+                "Inspect the token behind this dependency chain, then return to Audit.",
+            });
+            navigateTo("define", "tokens", { preserveHandoff: true });
             setEditingToken(null);
             if (targetSet && targetSet !== activeSet) {
               setActiveSet(targetSet);
@@ -1532,7 +1543,11 @@ export function PanelRouter(): ReactNode {
           }}
           onEditToken={(path) => {
             const targetSet = pathToSet[path];
-            navigateTo("define", "tokens");
+            beginHandoff({
+              reason:
+                "Edit the token behind this dependency chain, then return to Audit.",
+            });
+            navigateTo("define", "tokens", { preserveHandoff: true });
             setEditingToken({ path, set: targetSet ?? activeSet });
             if (targetSet && targetSet !== activeSet) {
               setActiveSet(targetSet);
@@ -1626,13 +1641,12 @@ export function PanelRouter(): ReactNode {
             navigateTo(topTab as TopTab, subTab as SubTab | undefined)
           }
           onNavigateToToken={(path, set) => {
-            setReturnBreadcrumb({
-              label: "Audit",
-              topTab: "ship",
-              subTab: "health",
+            beginHandoff({
+              reason:
+                "Inspect the source token behind this audit finding, then return to Audit.",
             });
             setActiveSet(set);
-            navigateTo("define", "tokens");
+            navigateTo("define", "tokens", { preserveHandoff: true });
             setPendingHighlight(path);
           }}
           onTriggerHeatmap={triggerHeatmapScan}

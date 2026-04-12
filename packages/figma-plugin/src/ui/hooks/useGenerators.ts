@@ -187,6 +187,7 @@ export interface TokenGenerator {
   targetGroup: string;
   config: GeneratorConfig;
   semanticLayer?: GeneratorSemanticLayer;
+  detachedPaths?: string[];
   overrides?: Record<string, StepOverride>;
   inputTable?: InputTable;
   targetSetTemplate?: string;
@@ -259,9 +260,13 @@ function getStepNames(config: Record<string, unknown>): string[] {
 }
 
 function computeDerivedPaths(generator: TokenGenerator): string[] {
-  return getStepNames(generator.config as unknown as Record<string, unknown>).map(
-    (name) => `${generator.targetGroup}.${name}`,
-  );
+  const detachedPaths = new Set(generator.detachedPaths ?? []);
+  return getStepNames(
+    generator.config as unknown as Record<string, unknown>,
+  ).flatMap((name) => {
+    const path = `${generator.targetGroup}.${name}`;
+    return detachedPaths.has(path) ? [] : [path];
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -321,7 +326,9 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
   const generatorsByTargetGroup = useMemo(() => {
     const map = new Map<string, TokenGenerator>();
     for (const gen of generators) {
-      if (gen.targetGroup) map.set(gen.targetGroup, gen);
+      if (gen.targetGroup && computeDerivedPaths(gen).length > 0) {
+        map.set(gen.targetGroup, gen);
+      }
     }
     return map;
   }, [generators]);

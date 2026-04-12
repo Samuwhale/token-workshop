@@ -1761,6 +1761,28 @@ export function TokenList({
     [serverUrl, onRefresh, onError],
   );
 
+  const handleDetachGeneratorGroup = useCallback(
+    async (generatorId: string, groupPath: string) => {
+      try {
+        await apiFetch(`${serverUrl}/api/generators/${generatorId}/detach`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            scope: "group",
+            path: groupPath,
+          }),
+        });
+        onRefresh();
+        onRefreshGenerators?.();
+      } catch {
+        onError?.("Failed to detach generator group");
+      }
+    },
+    [onError, onRefresh, onRefreshGenerators, serverUrl],
+  );
+
   const handleDismissStaleGeneratorBanner = useCallback(() => {
     lsSet(staleGeneratorBannerStorageKey, staleGeneratorSignature);
     setDismissedStaleGeneratorSignature(staleGeneratorSignature);
@@ -3285,6 +3307,7 @@ export function TokenList({
       onDropOnGroup: handleDropOnGroup,
       onEditGenerator,
       onRegenerateGenerator: handleRegenerateGenerator,
+      onDetachGeneratorGroup: handleDetachGeneratorGroup,
       onRovingFocus: setRovingFocusPath,
     }),
     [
@@ -3306,6 +3329,7 @@ export function TokenList({
       handleDropOnGroup,
       onEditGenerator,
       handleRegenerateGenerator,
+      handleDetachGeneratorGroup,
       setRovingFocusPath,
     ],
   );
@@ -3378,6 +3402,7 @@ export function TokenList({
       onRequestMoveToken: handleRequestMoveTokenReview,
       onRequestCopyToken: handleRequestCopyTokenReview,
       onDuplicateToken: handleDuplicateToken,
+      onDetachFromGenerator: handleDetachFromGenerator,
       onExtractToAlias: handleOpenExtractToAlias,
       onHoverToken: handleHoverToken,
       onFilterByType: setTypeFilter,
@@ -3412,6 +3437,7 @@ export function TokenList({
       handleRequestMoveTokenReview,
       handleRequestCopyTokenReview,
       handleDuplicateToken,
+      handleDetachFromGenerator,
       handleOpenExtractToAlias,
       handleHoverToken,
       setTypeFilter,

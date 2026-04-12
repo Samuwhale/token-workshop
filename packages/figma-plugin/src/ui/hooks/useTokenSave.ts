@@ -5,9 +5,10 @@ import { ApiError } from '../shared/apiFetch';
 import {
   applyTokenMutationSuccess,
   createTokenBody,
-  fetchToken,
   updateToken,
 } from '../shared/tokenMutations';
+import { apiFetch } from '../shared/apiFetch';
+import type { TokenGenerator } from './useGenerators';
 
 export interface UseTokenSaveParams {
   connected: boolean;
@@ -15,6 +16,7 @@ export interface UseTokenSaveParams {
   setName: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  generators?: TokenGenerator[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRecordTouch: (path: string) => void;
@@ -28,12 +30,34 @@ function cloneUndoValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function generatorManagesPath(generator: TokenGenerator, path: string): boolean {
+  const config = generator.config as Record<string, unknown>;
+  const stepNames = Array.isArray(config.steps)
+    ? config.steps.map((step) =>
+        typeof step === 'object' && step !== null && 'name' in step
+          ? String((step as { name: unknown }).name)
+          : String(step),
+      )
+    : typeof config.backgroundStep === 'string' &&
+        typeof config.foregroundStep === 'string'
+      ? [config.backgroundStep, config.foregroundStep]
+      : typeof config.stepName === 'string'
+        ? [config.stepName]
+        : [];
+  const detachedPaths = new Set(generator.detachedPaths ?? []);
+  return stepNames.some((stepName) => {
+    const managedPath = `${generator.targetGroup}.${stepName}`;
+    return managedPath === path && !detachedPaths.has(managedPath);
+  });
+}
+
 export function useTokenSave({
   connected,
   serverUrl,
   setName,
   allTokensFlat,
   perSetFlat,
+  generators,
   onRefresh,
   onPushUndo,
   onRecordTouch,
@@ -210,27 +234,26 @@ export function useTokenSave({
 
   const handleDetachFromGenerator = useCallback(async (path: string) => {
     if (!connected) return;
-    let tokenData: { token: Record<string, unknown> } | null = null;
     try {
-      const result = await fetchToken<{ token: Record<string, unknown> }>(serverUrl, setName, path);
-      tokenData = result;
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Detach failed: network error');
-      return;
-    }
-    const exts: Record<string, unknown> = { ...(tokenData?.token?.$extensions as Record<string, unknown>) };
-    delete exts['com.tokenmanager.generator'];
-    try {
-      await updateToken(serverUrl, setName, path, createTokenBody({
-        $extensions: Object.keys(exts).length > 0 ? exts : {},
-      }));
+      const derivedGenerator = generators?.find((generator) =>
+        generatorManagesPath(generator, path),
+      );
+      if (!derivedGenerator) {
+        onError?.('Detach failed: generator ownership not found');
+        return;
+      }
+      await apiFetch(`${serverUrl}/api/generators/${derivedGenerator.id}/detach`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'token', path }),
+      });
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Detach failed: network error');
       return;
     }
     onRefresh();
     onRefreshGenerators?.();
-  }, [connected, serverUrl, setName, onRefresh, onRefreshGenerators, onError]);
+  }, [connected, generators, onError, onRefresh, onRefreshGenerators, serverUrl]);
 
   return {
     handleInlineSave,

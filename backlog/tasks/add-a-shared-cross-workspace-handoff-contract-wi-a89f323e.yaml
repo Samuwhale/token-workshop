@@ -1,0 +1,25 @@
+id: add-a-shared-cross-workspace-handoff-contract-wi-a89f323e
+title: Add a shared cross-workspace handoff contract with breadcrumbs and return paths
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/contexts/NavigationContext.tsx
+  - packages/figma-plugin/src/ui/App.tsx
+  - packages/figma-plugin/src/ui/panels/PanelRouter.tsx
+  - packages/figma-plugin/src/ui/components/ImportSuccessView.tsx
+  - packages/figma-plugin/src/ui/components/NotificationsPanel.tsx
+  - packages/figma-plugin/src/ui/components/PublishPanel.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: Today only some jumps set `returnBreadcrumb`; Import and Notifications usually navigate without one, so users lose the reason for the transition and how to get back."
+  - "Recovered by remediation: Implemented shared navigation handoffs with origin/reason/return metadata, wired import/notifications/sync/audit jumps to use it, and cleared the stale staged index so repair-mode preflight can proceed."
+state: ready
+acceptance_criteria:
+  - Cross-workspace jumps can carry origin workspace/section metadata plus a reason string and show a visible return affordance after landing.
+  - Import recommendations, notification actions, Sync preflight detours, and Audit token deep-links all use the shared handoff contract instead of mixing silent navigateTo calls with ad hoc breadcrumb writes.
+  - Returning from a handoff restores the expected workspace and preserves focused set/token context when the originating flow provided it.
+source: task-followup
+created_at: 2026-04-12T22:47:49.421Z
+updated_at: 2026-04-12T23:03:37.000Z

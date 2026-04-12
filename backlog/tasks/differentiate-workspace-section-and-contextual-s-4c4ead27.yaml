@@ -1,0 +1,22 @@
+id: differentiate-workspace-section-and-contextual-s-4c4ead27
+title: Differentiate workspace, section, and contextual-screen depth in the plugin shell
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/App.tsx
+  - packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx
+  - packages/figma-plugin/src/ui/shared/navigationTypes.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: Research found that the current shell uses one tab style for both workspace tabs and section pills, while the header exposes only a single title string. Users cannot tell whether they are changing workspaces, changing sections, or opening a contextual screen."
+  - "Deferred after remediation: dirty workspace preflight: staged packages/core/src/generator-types.ts, packages/figma-plugin/src/ui/components/MetadataEditor.tsx, packages/figma-plugin/src/ui/components/TokenEditor.tsx, packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx, packages/figma-plugin/src/ui/components/TokenList.tsx, packages/figma-plugin/src/ui/components/TokenTreeNode.tsx, packages/figma-plugin/src/ui/components/generator-steps/StepReview.tsx, packages/figma-plugin/src/ui/components/generator-steps/StepWhat.tsx until 2026-04-12T23:08:27.858Z"
+state: ready
+acceptance_criteria:
+  - Shell chrome makes workspace, section, and contextual-screen depth visually distinct instead of rendering workspace and section controls as the same tab treatment.
+  - The active header shows both the parent workspace and the current section/context so routes like Audit > Dependencies do not read like peer-level destinations.
+  - The new hierarchy reuses the existing workspace metadata contract rather than hardcoding labels in App.tsx.
+source: task-followup
+created_at: 2026-04-12T22:47:49.370Z
+updated_at: 2026-04-12T22:53:27.898Z

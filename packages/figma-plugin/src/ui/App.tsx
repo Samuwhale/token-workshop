@@ -45,8 +45,7 @@ import {
   CONTEXTUAL_PANEL_TRANSITIONS,
   getImportResultNextStepRecommendations,
   getMostRelevantImportDestinationSet,
-  resolveWorkspace,
-  resolveWorkspaceSection,
+  resolveWorkspaceSummary,
   resolveSecondarySurface,
   toWorkspaceId,
 } from "./shared/navigationTypes";
@@ -154,9 +153,8 @@ function formatImportSource(
 }
 
 function getWorkspaceRouteLabel(topTab: TopTab, subTab: SubTab): string {
-  const workspace = resolveWorkspace(topTab, subTab);
-  const section = resolveWorkspaceSection(workspace, topTab, subTab);
-  return section?.label ?? workspace.label;
+  const summary = resolveWorkspaceSummary(topTab, subTab);
+  return summary.section?.label ?? summary.workspaceLabel;
 }
 
 function matchesWorkspaceRoute(
@@ -292,8 +290,10 @@ export function App() {
     navigateTo,
     openSecondarySurface,
     closeSecondarySurface,
-    returnBreadcrumb,
-    setReturnBreadcrumb,
+    activeHandoff,
+    beginHandoff,
+    clearHandoff,
+    returnFromHandoff,
   } = useNavigationContext();
   const {
     editingToken,
@@ -519,12 +519,17 @@ export function App() {
       setActiveSet(targetSet);
     }
 
+    beginHandoff({
+      reason: postImportBanner.nextRecommendation.rationale,
+      returnSecondarySurfaceId: "import",
+    });
     setPostImportBanner(null);
     navigateTo(
       postImportBanner.nextRecommendation.target.topTab,
       postImportBanner.nextRecommendation.target.subTab,
+      { preserveHandoff: true },
     );
-  }, [navigateTo, postImportBanner, setActiveSet]);
+  }, [beginHandoff, navigateTo, postImportBanner, setActiveSet]);
   const {
     toasts: toastStack,
     dismiss: dismissStackToast,
@@ -641,18 +646,13 @@ export function App() {
     () => generators.filter((g) => g.isStale).length,
     [generators],
   );
-  const activeWorkspaceId = useMemo(
-    () => toWorkspaceId(activeTopTab, activeSubTab),
+  const activeWorkspaceSummary = useMemo(
+    () => resolveWorkspaceSummary(activeTopTab, activeSubTab),
     [activeTopTab, activeSubTab],
   );
-  const activeWorkspace = useMemo(
-    () => resolveWorkspace(activeTopTab, activeSubTab),
-    [activeTopTab, activeSubTab],
-  );
-  const activeWorkspaceSection = useMemo(
-    () => resolveWorkspaceSection(activeWorkspace, activeTopTab, activeSubTab),
-    [activeWorkspace, activeTopTab, activeSubTab],
-  );
+  const activeWorkspace = activeWorkspaceSummary.workspace;
+  const activeWorkspaceSection = activeWorkspaceSummary.section;
+  const activeWorkspaceId = activeWorkspace.id;
   const activeSecondarySurfaceDef = useMemo(
     () => resolveSecondarySurface(activeSecondarySurface),
     [activeSecondarySurface],
@@ -683,18 +683,12 @@ export function App() {
       activeView: "authoring",
       authoringMode: "roles",
     });
-  const defaultWorkspaceSummaryTitle = useMemo(
-    () =>
-      activeWorkspaceSection?.summaryTitle ??
-      activeWorkspace.summaryTitle ??
-      activeWorkspaceSection?.label ??
-      activeWorkspace.label,
-    [activeWorkspace, activeWorkspaceSection],
-  );
-  const workspaceSummaryTitle = useMemo(() => {
+  const shellCurrentTitle = useMemo(() => {
     if (activeSecondarySurfaceDef)
       return activeSecondarySurfaceDef.summaryTitle;
-    if (activeWorkspace.id !== "themes") return defaultWorkspaceSummaryTitle;
+    if (activeWorkspace.id !== "themes") {
+      return activeWorkspaceSummary.currentTitle;
+    }
     switch (themeShellState.activeView) {
       case "coverage":
         return "Theme coverage review";
@@ -710,10 +704,13 @@ export function App() {
   }, [
     activeSecondarySurfaceDef,
     activeWorkspace.id,
-    defaultWorkspaceSummaryTitle,
+    activeWorkspaceSummary.currentTitle,
     themeShellState.activeView,
     themeShellState.authoringMode,
   ]);
+  const shellWorkspaceLabel = activeSecondarySurfaceDef
+    ? null
+    : activeWorkspaceSummary.workspaceLabel;
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -1464,9 +1461,10 @@ export function App() {
       if (panel === "import") {
         setPostImportBanner(null);
       }
+      clearHandoff();
       openSecondarySurface(panel);
     },
-    [dismissEphemeralOverlays, openSecondarySurface],
+    [clearHandoff, dismissEphemeralOverlays, openSecondarySurface],
   );
   const toggleSecondarySurface = useCallback(
     (panel: SecondarySurfaceId) => {
@@ -2611,6 +2609,29 @@ export function App() {
     activeSecondarySurface === null
       ? (activeWorkspaceSection?.id ?? null)
       : null;
+  const visibleHandoff = useMemo(() => {
+    if (!activeHandoff) {
+      return null;
+    }
+
+    if (
+      activeHandoff.returnTarget.secondarySurfaceId !== null &&
+      activeSecondarySurface === activeHandoff.returnTarget.secondarySurfaceId
+    ) {
+      return null;
+    }
+
+    if (
+      activeHandoff.returnTarget.secondarySurfaceId === null &&
+      activeSecondarySurface === null &&
+      activeTopTab === activeHandoff.returnTarget.topTab &&
+      activeSubTab === activeHandoff.returnTarget.subTab
+    ) {
+      return null;
+    }
+
+    return activeHandoff;
+  }, [activeHandoff, activeSecondarySurface, activeSubTab, activeTopTab]);
   const shellPrimaryAction =
     activeSecondarySurface === null ? workspacePrimaryAction : null;
   const shellContextualControls =
@@ -2723,7 +2744,7 @@ export function App() {
                   aria-selected={isActive}
                   onClick={() =>
                     guardEditorAction(() => {
-                      setReturnBreadcrumb(null);
+                      clearHandoff();
                       navigateTo(workspace.topTab, workspace.subTab);
                     })
                   }
@@ -2961,11 +2982,13 @@ export function App() {
         </div>
 
         <WorkspaceSummaryHeader
-          title={workspaceSummaryTitle}
+          workspaceLabel={shellWorkspaceLabel}
+          title={shellCurrentTitle}
           sections={shellSections}
           activeSectionId={shellActiveSectionId}
           onSelectSection={(section) => {
             guardEditorAction(() => {
+              clearHandoff();
               navigateTo(section.topTab, section.subTab);
               if (section.subTab === "canvas-analysis") triggerHeatmapScan();
             });
@@ -2973,13 +2996,8 @@ export function App() {
           statusPills={workspaceHeaderStatusPills}
           primaryAction={shellPrimaryAction}
           contextualControls={shellContextualControls}
-          returnBreadcrumb={returnBreadcrumb}
-          onReturnBreadcrumb={() => {
-            if (returnBreadcrumb) {
-              navigateTo(returnBreadcrumb.topTab, returnBreadcrumb.subTab);
-              setReturnBreadcrumb(null);
-            }
-          }}
+          handoff={visibleHandoff}
+          onReturnHandoff={returnFromHandoff}
         />
       </div>
 

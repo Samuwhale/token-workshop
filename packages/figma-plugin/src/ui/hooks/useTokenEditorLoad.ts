@@ -86,7 +86,11 @@ export function useTokenEditorLoad({
         const loadedExtends = typeof savedExtends === 'string' ? savedExtends : '';
         setExtendsPath(loadedExtends);
         const ext = token?.$extensions ?? {};
-        const knownExtKeys = new Set(['com.figma.scopes', 'tokenmanager']);
+        const knownExtKeys = new Set([
+          'com.figma.scopes',
+          'tokenmanager',
+          'com.tokenmanager.generator',
+        ]);
         const otherExt: Record<string, any> = {};
         for (const [k, v] of Object.entries(ext)) {
           if (!knownExtKeys.has(k)) otherExt[k] = v;

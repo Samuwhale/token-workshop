@@ -286,6 +286,21 @@ export function TokenGeneratorDialog({
           footer={footer}
           footerClassName="bg-[var(--color-figma-bg-secondary)]"
         >
+          {existingGenerator?.detachedPaths &&
+            existingGenerator.detachedPaths.length > 0 && (
+              <div className="mb-3 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <p className="text-[var(--color-figma-text)]">
+                  {existingGenerator.detachedPaths.length} output
+                  {existingGenerator.detachedPaths.length === 1 ? "" : "s"}{" "}
+                  detached from this generator.
+                </p>
+                <p className="mt-1">
+                  Detached tokens stay manual and will not update on the next
+                  generator run unless you recreate them through the generator.
+                </p>
+              </div>
+            )}
+
           <StepWhat
             selectedType={dialog.selectedType}
             recommendedType={dialog.recommendedType}
@@ -321,7 +336,7 @@ export function TokenGeneratorDialog({
             onClearAllOverrides={dialog.clearAllOverrides}
           />
 
-          <div className="border-t border-[var(--color-figma-border)]" />
+          <div className="border-t border-[var(--color-figma-border)] my-1" />
 
           <StepWhere
             name={dialog.name}
@@ -338,11 +353,22 @@ export function TokenGeneratorDialog({
             onToggleMultiBrand={dialog.handleToggleMultiBrand}
             onInputTableChange={dialog.setInputTable}
             onTargetSetTemplateChange={dialog.setTargetSetTemplate}
+            selectedType={dialog.selectedType}
+            previewTokens={dialog.previewTokens}
+            hasInterceptHandler={Boolean(onInterceptSemanticMapping)}
+            semanticEnabled={dialog.semanticEnabled}
+            semanticPrefix={dialog.semanticPrefix}
+            semanticMappings={dialog.semanticMappings}
+            selectedSemanticPatternId={dialog.selectedSemanticPatternId}
+            onSemanticEnabledChange={dialog.setSemanticEnabled}
+            onSemanticPrefixChange={dialog.setSemanticPrefix}
+            onSemanticMappingsChange={dialog.setSemanticMappings}
+            onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
           />
 
           {(dialog.previewTokens.length > 0 || dialog.showConfirmation) && (
             <>
-              <div className="border-t border-[var(--color-figma-border)]" />
+              <div className="border-t border-[var(--color-figma-border)] my-1" />
               <StepReview
                 selectedType={dialog.selectedType}
                 name={dialog.name}
@@ -358,18 +384,7 @@ export function TokenGeneratorDialog({
                 overwritePendingPaths={dialog.overwritePendingPaths}
                 overwriteCheckLoading={dialog.overwriteCheckLoading}
                 overwriteCheckError={dialog.overwriteCheckError}
-                semanticEnabled={dialog.semanticEnabled}
-                semanticPrefix={dialog.semanticPrefix}
-                semanticMappings={dialog.semanticMappings}
-                selectedSemanticPatternId={dialog.selectedSemanticPatternId}
                 saveError={dialog.saveError}
-                hasInterceptHandler={Boolean(onInterceptSemanticMapping)}
-                onSemanticEnabledChange={dialog.setSemanticEnabled}
-                onSemanticPrefixChange={dialog.setSemanticPrefix}
-                onSemanticMappingsChange={dialog.setSemanticMappings}
-                onSemanticPatternSelect={
-                  dialog.setSelectedSemanticPatternId
-                }
               />
             </>
           )}
