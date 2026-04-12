@@ -41,10 +41,13 @@ import type {
 } from "./shared/navigationTypes";
 import {
   APP_SHELL_NAVIGATION,
+  AUDIT_WORKSPACE_GUIDE,
   CONTEXTUAL_PANEL_MIN_WIDTH,
   CONTEXTUAL_PANEL_TRANSITIONS,
   getImportResultNextStepRecommendations,
   getMostRelevantImportDestinationSet,
+  getWorkspaceWorkflowGuide,
+  PRIMARY_WORKSPACE_SEQUENCE,
   resolveWorkspaceSummary,
   resolveSecondarySurface,
   toWorkspaceId,
@@ -214,7 +217,7 @@ function getFallbackPostImportRecommendation(
     return createFallbackWorkspaceRecommendation(
       "define",
       "tokens",
-      "Review the imported tokens in the library before moving on to the next workflow.",
+      "Open Tokens next to review the imported library before moving into Themes, Apply, or Sync.",
     );
   }
 
@@ -225,14 +228,14 @@ function getFallbackPostImportRecommendation(
     return createFallbackWorkspaceRecommendation(
       "define",
       "themes",
-      "Imported variable collections usually need a quick theme-structure pass before you fine-tune individual tokens.",
+      "Open Themes next. Imported variable collections usually need a quick theme-structure pass before you fine-tune individual tokens.",
     );
   }
 
   return createFallbackWorkspaceRecommendation(
     "ship",
     "publish",
-    "Confirm sync mapping for the imported changes before more edits pile on.",
+    "Open Sync next to confirm mapping for the imported changes before more edits pile on.",
   );
 }
 
@@ -653,6 +656,10 @@ export function App() {
   const activeWorkspace = activeWorkspaceSummary.workspace;
   const activeWorkspaceSection = activeWorkspaceSummary.section;
   const activeWorkspaceId = activeWorkspace.id;
+  const activeWorkspaceGuide = useMemo(
+    () => getWorkspaceWorkflowGuide(activeWorkspaceId),
+    [activeWorkspaceId],
+  );
   const activeSecondarySurfaceDef = useMemo(
     () => resolveSecondarySurface(activeSecondarySurface),
     [activeSecondarySurface],
@@ -2609,6 +2616,61 @@ export function App() {
     activeSecondarySurface === null
       ? (activeWorkspaceSection?.id ?? null)
       : null;
+  const shellDescription = useMemo(() => {
+    if (activeSecondarySurfaceDef) {
+      return activeSecondarySurfaceDef.transition.usage;
+    }
+
+    if (activeWorkspaceGuide.stepNumber !== null) {
+      return `Step ${activeWorkspaceGuide.stepNumber} of ${PRIMARY_WORKSPACE_SEQUENCE.length}. ${activeWorkspaceGuide.role}`;
+    }
+
+    return `Cross-cutting review space, not a separate linear step. ${activeWorkspaceGuide.role}`;
+  }, [activeSecondarySurfaceDef, activeWorkspaceGuide]);
+  const shellWorkflowSummary = useMemo(() => {
+    if (activeSecondarySurface !== null) {
+      return null;
+    }
+
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+          Primary workflow
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {PRIMARY_WORKSPACE_SEQUENCE.map((workspace) => {
+            const isActive = workspace.id === activeWorkspace.id;
+            return (
+              <span
+                key={workspace.id}
+                title={workspace.role}
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-medium uppercase tracking-[0.08em] ${
+                  isActive
+                    ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                    : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
+                }`}
+              >
+                <span>{workspace.stepNumber}</span>
+                <span>{workspace.label}</span>
+              </span>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+          <span
+            className={`inline-flex items-center rounded-full border px-2 py-1 text-[9px] font-medium uppercase tracking-[0.08em] ${
+              activeWorkspace.id === AUDIT_WORKSPACE_GUIDE.id
+                ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
+            }`}
+          >
+            {AUDIT_WORKSPACE_GUIDE.label}
+          </span>
+          <span>{AUDIT_WORKSPACE_GUIDE.role}</span>
+        </div>
+      </div>
+    );
+  }, [activeSecondarySurface, activeWorkspace.id]);
   const visibleHandoff = useMemo(() => {
     if (!activeHandoff) {
       return null;
@@ -2984,6 +3046,8 @@ export function App() {
         <WorkspaceSummaryHeader
           workspaceLabel={shellWorkspaceLabel}
           title={shellCurrentTitle}
+          description={shellDescription}
+          workflowSummary={shellWorkflowSummary}
           sections={shellSections}
           activeSectionId={shellActiveSectionId}
           onSelectSection={(section) => {

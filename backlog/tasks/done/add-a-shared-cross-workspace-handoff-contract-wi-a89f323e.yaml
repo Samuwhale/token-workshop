@@ -15,11 +15,12 @@ validation_profile: repo
 status_notes:
   - "Context: Today only some jumps set `returnBreadcrumb`; Import and Notifications usually navigate without one, so users lose the reason for the transition and how to get back."
   - "Recovered by remediation: Implemented shared navigation handoffs with origin/reason/return metadata, wired import/notifications/sync/audit jumps to use it, and cleared the stale staged index so repair-mode preflight can proceed."
-state: ready
+  - "Completed: stale — already done; confirmed the handoff contract and return wiring are live, and logged the stale review in scripts/backlog/progress.txt"
+state: done
 acceptance_criteria:
   - Cross-workspace jumps can carry origin workspace/section metadata plus a reason string and show a visible return affordance after landing.
   - Import recommendations, notification actions, Sync preflight detours, and Audit token deep-links all use the shared handoff contract instead of mixing silent navigateTo calls with ad hoc breadcrumb writes.
   - Returning from a handoff restores the expected workspace and preserves focused set/token context when the originating flow provided it.
 source: task-followup
 created_at: 2026-04-12T22:47:49.421Z
-updated_at: 2026-04-12T23:03:37.000Z
+updated_at: 2026-04-12T23:05:10.582Z

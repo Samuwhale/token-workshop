@@ -1696,3 +1696,12 @@
 - **Learnings for future iterations:**
   - Before reopening a completed navigation task, verify the live wiring across `NavigationContext`, `App.tsx`, and the originating panels; this handoff feature spans all three layers, so the progress log alone can be misleading if you do not confirm the active code paths.
 ---
+## 2026-04-13 - Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
+- Added shared workflow metadata for `Tokens -> Themes -> Apply -> Sync` plus Audit's cross-cutting role, then reused that metadata in the shell summary, first-run start flow, and import-success guidance so the same workspace names and explanations appear in every entry point.
+- Updated import next-step rationale strings to call out the same workspace names directly (`Open Tokens next`, `Open Themes next`, `Open Sync next`) instead of describing the flow indirectly.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed. `pnpm exec tsc -p packages/figma-plugin/tsconfig.json --noEmit` still fails on pre-existing plugin type errors outside this task, including `NoticeSeverity`/workflow-tone issues in `App.tsx`, `NoticeBanner` props in `WelcomePrompt.tsx`, and existing token editor/import typing problems.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L212, ~L774, ~L925; `packages/figma-plugin/src/ui/App.tsx` ~L217, ~L656, ~L2613, ~L3046; `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` ~L18, ~L99, ~L169; `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx` ~L187, ~L202; `packages/figma-plugin/src/ui/components/ImportSuccessView.tsx` ~L110; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - If the shell owns a canonical workspace flow, store the workspace order and one-line role copy in shared navigation metadata and render both shell chrome and onboarding/import guidance from that one source.
+  - Audit-style review spaces need explicit copy that says they are cross-cutting rather than "step 5", otherwise users read the workspace rail as a strictly linear sequence.
+---

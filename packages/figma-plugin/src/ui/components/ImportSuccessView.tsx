@@ -1,4 +1,9 @@
 import { useState } from "react";
+import {
+  AUDIT_WORKSPACE_GUIDE,
+  PRIMARY_WORKSPACE_SEQUENCE,
+  PRIMARY_WORKSPACE_SEQUENCE_LABEL,
+} from "../shared/navigationTypes";
 import { useImportPanel } from "./ImportPanelContext";
 
 export function ImportSuccessView() {
@@ -102,14 +107,44 @@ export function ImportSuccessView() {
           </div>
         </div>
       )}
+      <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
+        <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+          Shared workflow after import
+        </div>
+        <div className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+          Keep using the same shell order: {PRIMARY_WORKSPACE_SEQUENCE_LABEL}.{" "}
+          {AUDIT_WORKSPACE_GUIDE.label} stays available as a review space across
+          every stage.
+        </div>
+        <div className="mt-2 flex flex-col gap-1.5">
+          {PRIMARY_WORKSPACE_SEQUENCE.map((workspace) => (
+            <div key={workspace.id} className="flex items-start gap-2">
+              <span className="inline-flex min-w-[58px] items-center justify-center rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--color-figma-text)]">
+                {workspace.stepNumber}. {workspace.label}
+              </span>
+              <span className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                {workspace.role}
+              </span>
+            </div>
+          ))}
+          <div className="flex items-start gap-2 rounded border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
+            <span className="inline-flex min-w-[58px] items-center justify-center rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--color-figma-text)]">
+              {AUDIT_WORKSPACE_GUIDE.label}
+            </span>
+            <span className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              Cross-cutting review space. {AUDIT_WORKSPACE_GUIDE.role}
+            </span>
+          </div>
+        </div>
+      </div>
       {importNextStepRecommendations.length > 0 && (
         <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
           <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
             Recommended next workspaces
           </div>
           <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Close the import takeover and continue where this result is easiest
-            to review.
+            Close the import takeover and continue in the next workspace that
+            best matches what this import needs.
           </div>
           <div className="mt-2 flex flex-col gap-2">
             {importNextStepRecommendations

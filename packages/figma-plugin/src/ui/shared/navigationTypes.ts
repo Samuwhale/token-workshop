@@ -159,6 +159,13 @@ export interface WorkspaceTab extends WorkspaceRoute {
   matchRoutes?: WorkspaceRoute[];
 }
 
+export interface WorkspaceWorkflowGuide {
+  id: WorkspaceId;
+  label: string;
+  stepNumber: number | null;
+  role: string;
+}
+
 export interface SecondarySurface {
   id: SecondarySurfaceId;
   label: string;
@@ -201,6 +208,52 @@ export interface ResolvedWorkspaceSummary {
   workspaceLabel: string;
   currentTitle: string;
 }
+
+export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
+  {
+    id: "tokens",
+    label: "Tokens",
+    stepNumber: 1,
+    role: "Build and organize the token library, naming, and generators.",
+  },
+  {
+    id: "themes",
+    label: "Themes",
+    stepNumber: 2,
+    role: "Turn token sets into theme dimensions, modes, and coverage.",
+  },
+  {
+    id: "apply",
+    label: "Apply",
+    stepNumber: 3,
+    role: "Test token decisions on selections and inspect the canvas.",
+  },
+  {
+    id: "sync",
+    label: "Sync",
+    stepNumber: 4,
+    role: "Run preflight, publish to Figma, and prepare handoff files.",
+  },
+];
+
+export const AUDIT_WORKSPACE_GUIDE: WorkspaceWorkflowGuide = {
+  id: "audit",
+  label: "Audit",
+  stepNumber: null,
+  role: "Review issues, history, and dependencies across every stage.",
+};
+
+const WORKSPACE_WORKFLOW_GUIDES: Record<WorkspaceId, WorkspaceWorkflowGuide> = {
+  tokens: PRIMARY_WORKSPACE_SEQUENCE[0],
+  themes: PRIMARY_WORKSPACE_SEQUENCE[1],
+  apply: PRIMARY_WORKSPACE_SEQUENCE[2],
+  sync: PRIMARY_WORKSPACE_SEQUENCE[3],
+  audit: AUDIT_WORKSPACE_GUIDE,
+};
+
+export const PRIMARY_WORKSPACE_SEQUENCE_LABEL = PRIMARY_WORKSPACE_SEQUENCE.map(
+  (workspace) => workspace.label,
+).join(" -> ");
 
 export type ImportResultSourceType =
   | "variables"
@@ -721,7 +774,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "themes",
-        "Multiple imported variable collections usually need theme structure before you fine-tune individual tokens.",
+        "Open Themes next. Multiple imported variable collections usually need theme structure before you fine-tune individual tokens.",
       ),
     );
   }
@@ -731,7 +784,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "ship",
         "publish",
-        "A large first import is the right time to confirm sync mapping before more edits pile on.",
+        "Open Sync next. A large first import is the right time to confirm sync mapping before more edits pile on.",
       ),
     );
   }
@@ -741,7 +794,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "tokens",
-        "Code and migration imports usually need a pass in the token library to verify naming, grouping, and cleanup.",
+        "Open Tokens next. Code and migration imports usually need a pass in the token library to verify naming, grouping, and cleanup.",
       ),
     );
   }
@@ -751,7 +804,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "tokens",
-        "Review the imported tokens in the library before moving on to the next workflow.",
+        "Open Tokens next to review the imported library before moving into Themes, Apply, or Sync.",
       ),
     );
   }
@@ -871,4 +924,10 @@ export function resolveSecondarySurface(
 ): SecondarySurface | null {
   if (id === null) return null;
   return SECONDARY_SURFACES.find((surface) => surface.id === id) ?? null;
+}
+
+export function getWorkspaceWorkflowGuide(
+  workspaceId: WorkspaceId,
+): WorkspaceWorkflowGuide {
+  return WORKSPACE_WORKFLOW_GUIDES[workspaceId];
 }

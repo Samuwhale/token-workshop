@@ -77,7 +77,7 @@
 - [x] [HIGH] Integrate resolver dimension context into theme authoring so multi-mode token assignments are visible without navigating to the Advanced screen
 - [x] [HIGH] Unify manual snapshot comparison and restore execution so restore and crash recovery stop drifting
 - [ ] [HIGH] Differentiate workspace, section, and contextual-screen depth in the plugin shell
-- [ ] [HIGH] Add a shared cross-workspace handoff contract with breadcrumbs and return paths
+- [x] [HIGH] Add a shared cross-workspace handoff contract with breadcrumbs and return paths
 - [ ] [HIGH] Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
 - [ ] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy
 - [ ] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks

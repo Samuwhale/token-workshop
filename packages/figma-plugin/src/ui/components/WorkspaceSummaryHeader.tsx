@@ -18,6 +18,8 @@ interface WorkspacePrimaryAction {
 interface WorkspaceSummaryHeaderProps {
   workspaceLabel?: string | null;
   title: string;
+  description?: string | null;
+  workflowSummary?: ReactNode;
   sections?: WorkspaceSection[];
   activeSectionId?: string | null;
   onSelectSection?: (section: WorkspaceSection) => void;
@@ -43,6 +45,8 @@ function describeHandoffOrigin(handoff: NavigationHandoff): string {
 export function WorkspaceSummaryHeader({
   workspaceLabel,
   title,
+  description,
+  workflowSummary,
   sections,
   activeSectionId,
   onSelectSection,
@@ -95,6 +99,11 @@ export function WorkspaceSummaryHeader({
             <div className="truncate text-[13px] font-semibold text-[var(--color-figma-text)]">
               {title}
             </div>
+            {description ? (
+              <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                {description}
+              </p>
+            ) : null}
           </div>
 
           {primaryAction && (
@@ -156,6 +165,12 @@ export function WorkspaceSummaryHeader({
             )}
           </div>
         )}
+
+        {workflowSummary ? (
+          <div className="rounded-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
+            {workflowSummary}
+          </div>
+        ) : null}
       </div>
 
       {contextualControls ? (
