@@ -1554,3 +1554,12 @@
   - When a review surface is the place where users decide to remediate, resolve the remediation target there and call the existing mutation flow directly instead of forcing a shell-level round-trip back to authoring.
   - If multiple surfaces need to answer "what can be auto-filled here?", keep that decision in one small resolver so context-specific actions and global banners do not drift apart.
 ---
+## 2026-04-12 - Make queued theme role mutations roll back from the last committed state instead of a stale pre-queue snapshot
+- Reworked `useThemeBulkOps` to run every queued role mutation through one queue-safe plan builder that derives optimistic state, API payloads, and rollback targets from execution-time refs instead of the render-time `dimensions` snapshot.
+- Split queued mutation state into a working dimensions ref and a committed dimensions ref so later failures restore the last successful role assignment instead of undoing earlier queued successes.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts` ~L31, `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts` ~L47, `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts` ~L93
+- **Learnings for future iterations:**
+  - Promise-queued optimistic mutations should compute both optimistic data and request payloads from execution-time state, not from render-time closures, or rapid edits can overwrite each other even when the queue itself is serialized.
+  - Keep queued UI state and last committed server state in separate refs when later queued failures must preserve earlier successful optimistic writes.
+---

@@ -159,7 +159,7 @@
 - [x] Remove 'When to use resolvers' guidance section from ResolverPanel empty state — it redirects users away after presenting three valid entry points
 - [ ] Align publish preflight and compare with resolver mode mappings
 - [x] Export button stays enabled with changes-only active and zero changes in a git repo, leading to a click-then-error dead end
-- [ ] Coverage view offers no way to act on reviewed gaps, forcing a round-trip back to Authoring before auto-fill
+- [x] Coverage view offers no way to act on reviewed gaps, forcing a round-trip back to Authoring before auto-fill
 - [ ] Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

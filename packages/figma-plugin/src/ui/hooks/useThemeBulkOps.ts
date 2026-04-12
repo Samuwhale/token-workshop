@@ -29,33 +29,53 @@ export function useThemeBulkOps({
   // Mutation queue: serializes set-state mutations so concurrent calls don't
   // interleave optimistic updates or capture stale rollback snapshots.
   const mutationChainRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingMutationsRef = useRef(0);
+  const dimensionsRef = useRef(dimensions);
+  const committedDimensionsRef = useRef(dimensions);
 
   // Prevents setState calls on unmounted component after in-flight mutations complete.
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    if (pendingMutationsRef.current > 0) return;
+    dimensionsRef.current = dimensions;
+    committedDimensionsRef.current = dimensions;
+  }, [dimensions]);
 
   // Generic mutation helper: applies an optimistic update, calls the API, rolls back on error.
   // Chains onto mutationChainRef so concurrent calls run sequentially without interleaving.
   const enqueueMutation = useCallback((config: {
-    optimisticUpdate: (prev: ThemeDimension[]) => ThemeDimension[];
-    apiCall: () => Promise<void>;
+    plan: (baseDimensions: ThemeDimension[]) => {
+      apiCall: () => Promise<void>;
+      nextDimensions: ThemeDimension[];
+      savingKeys?: string[];
+    } | null;
     errorMsg: string;
     label: string;
-    savingKeys?: string[];
   }) => {
-    const { optimisticUpdate, apiCall, errorMsg, label, savingKeys: keys = [] } = config;
-    const previousDimensions = dimensions;
+    const { plan, errorMsg, label } = config;
+    pendingMutationsRef.current += 1;
     const task = async () => {
-      if (keys.length) setSavingKeys(prev => { const n = new Set(prev); keys.forEach(k => n.add(k)); return n; });
-      setDimensions(optimisticUpdate);
+      const rollbackDimensions = committedDimensionsRef.current;
+      let keys: string[] = [];
       try {
+        const mutation = plan(dimensionsRef.current);
+        if (!mutation) return;
+        const { apiCall, nextDimensions, savingKeys = [] } = mutation;
+        keys = savingKeys;
+        if (keys.length) setSavingKeys(prev => { const n = new Set(prev); keys.forEach(k => n.add(k)); return n; });
+        dimensionsRef.current = nextDimensions;
+        setDimensions(nextDimensions);
         await apiCall();
+        committedDimensionsRef.current = nextDimensions;
         if (mountedRef.current) debouncedFetchDimensions();
       } catch (err) {
         if (!mountedRef.current) return;
-        setDimensions(previousDimensions);
+        dimensionsRef.current = rollbackDimensions;
+        setDimensions(rollbackDimensions);
         setError(err instanceof ApiError ? err.message : getErrorMessage(err, errorMsg));
       } finally {
+        pendingMutationsRef.current -= 1;
         if (keys.length && mountedRef.current) {
           setSavingKeys(prev => { const n = new Set(prev); keys.forEach(k => n.delete(k)); return n; });
         }
@@ -66,107 +86,129 @@ export function useThemeBulkOps({
       console.error(`[ThemeManager] mutation chain error (${label}):`, err);
       setError(getErrorMessage(err, 'Unexpected mutation error'));
     });
-  }, [debouncedFetchDimensions, dimensions, setDimensions, setError]);
+  }, [debouncedFetchDimensions, setDimensions, setError]);
 
   // --- Set state toggle (single option, single set) ---
 
   const handleSetState = useCallback((dimId: string, optionName: string, setName: string, targetState: ThemeRoleState) => {
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim) return;
-    const opt = dim.options.find(o => o.name === optionName);
-    if (!opt) return;
-    const updatedSets = { ...opt.sets, [setName]: targetState };
     const saveKey = `${dimId}/${optionName}/${setName}`;
     enqueueMutation({
-      savingKeys: [saveKey],
-      optimisticUpdate: prev => prev.map(d =>
-        d.id === dimId
-          ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
-          : d,
-      ),
-      apiCall: () => apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: optionName, sets: updatedSets }),
-      }),
+      plan: baseDimensions => {
+        const dim = baseDimensions.find(d => d.id === dimId);
+        const opt = dim?.options.find(o => o.name === optionName);
+        if (!dim || !opt) return null;
+        const updatedSets = { ...opt.sets, [setName]: targetState };
+        return {
+          savingKeys: [saveKey],
+          nextDimensions: baseDimensions.map(d =>
+            d.id === dimId
+              ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
+              : d,
+          ),
+          apiCall: () => apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: optionName, sets: updatedSets }),
+          }),
+        };
+      },
       errorMsg: 'Failed to save',
       label: 'handleSetState',
     });
-  }, [dimensions, enqueueMutation, serverUrl]);
+  }, [enqueueMutation, serverUrl]);
 
   // --- Bulk set-status across all options in a dimension ---
 
   const handleBulkSetState = useCallback((dimId: string, setName: string, targetState: ThemeRoleState) => {
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim) return;
-    const bulkKeys = dim.options.map(o => `${dimId}/${o.name}/${setName}`);
     enqueueMutation({
-      savingKeys: bulkKeys,
-      optimisticUpdate: prev => prev.map(d =>
-        d.id === dimId
-          ? { ...d, options: d.options.map(o => ({ ...o, sets: { ...o.sets, [setName]: targetState } })) }
-          : d,
-      ),
-      apiCall: () => Promise.all(dim.options.map(opt => {
-        const updatedSets = { ...opt.sets, [setName]: targetState };
-        return apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: opt.name, sets: updatedSets }),
-        });
-      })).then(() => undefined),
+      plan: baseDimensions => {
+        const dim = baseDimensions.find(d => d.id === dimId);
+        if (!dim) return null;
+        const optionUpdates = dim.options.map(opt => ({
+          name: opt.name,
+          sets: { ...opt.sets, [setName]: targetState },
+        }));
+        return {
+          savingKeys: optionUpdates.map(opt => `${dimId}/${opt.name}/${setName}`),
+          nextDimensions: baseDimensions.map(d =>
+            d.id === dimId
+              ? {
+                  ...d,
+                  options: d.options.map(option => {
+                    const updated = optionUpdates.find(opt => opt.name === option.name);
+                    return updated ? { ...option, sets: updated.sets } : option;
+                  }),
+                }
+              : d,
+          ),
+          apiCall: () => Promise.all(optionUpdates.map(opt => apiFetch(
+            `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: opt.name, sets: opt.sets }),
+            },
+          ))).then(() => undefined),
+        };
+      },
       errorMsg: 'Failed to bulk-update',
       label: 'handleBulkSetState',
     });
-  }, [dimensions, enqueueMutation, serverUrl]);
+  }, [enqueueMutation, serverUrl]);
 
   // --- Bulk assign all sets in an option to a single state ---
 
   const handleBulkSetAllInOption = useCallback((dimId: string, optionName: string, targetState: ThemeRoleState) => {
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim) return;
-    if (!dim.options.find(o => o.name === optionName)) return;
-    const updatedSets: Record<string, ThemeRoleState> = {};
-    sets.forEach(s => { updatedSets[s] = targetState; });
     enqueueMutation({
-      optimisticUpdate: prev => prev.map(d =>
-        d.id === dimId
-          ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
-          : d,
-      ),
-      apiCall: () => apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: optionName, sets: updatedSets }),
-      }),
+      plan: baseDimensions => {
+        const dim = baseDimensions.find(d => d.id === dimId);
+        if (!dim || !dim.options.find(o => o.name === optionName)) return null;
+        const updatedSets: Record<string, ThemeRoleState> = {};
+        sets.forEach(setName => { updatedSets[setName] = targetState; });
+        return {
+          nextDimensions: baseDimensions.map(d =>
+            d.id === dimId
+              ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
+              : d,
+          ),
+          apiCall: () => apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: optionName, sets: updatedSets }),
+          }),
+        };
+      },
       errorMsg: 'Failed to bulk-assign sets',
       label: 'handleBulkSetAllInOption',
     });
-  }, [dimensions, enqueueMutation, serverUrl, sets]);
+  }, [enqueueMutation, serverUrl, sets]);
 
   // --- Copy assignments from one option to another (replaces target's sets) ---
 
   const handleCopyAssignmentsFrom = useCallback((dimId: string, targetOptionName: string, sourceOptionName: string) => {
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim) return;
-    const source = dim.options.find(o => o.name === sourceOptionName);
-    if (!source) return;
-    const copiedSets = { ...source.sets };
     enqueueMutation({
-      optimisticUpdate: prev => prev.map(d =>
-        d.id === dimId
-          ? { ...d, options: d.options.map(o => o.name === targetOptionName ? { ...o, sets: copiedSets } : o) }
-          : d,
-      ),
-      apiCall: () => apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: targetOptionName, sets: copiedSets }),
-      }),
+      plan: baseDimensions => {
+        const dim = baseDimensions.find(d => d.id === dimId);
+        const source = dim?.options.find(o => o.name === sourceOptionName);
+        if (!dim || !source || !dim.options.find(o => o.name === targetOptionName)) return null;
+        const copiedSets = { ...source.sets };
+        return {
+          nextDimensions: baseDimensions.map(d =>
+            d.id === dimId
+              ? { ...d, options: d.options.map(o => o.name === targetOptionName ? { ...o, sets: copiedSets } : o) }
+              : d,
+          ),
+          apiCall: () => apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: targetOptionName, sets: copiedSets }),
+          }),
+        };
+      },
       errorMsg: 'Failed to copy assignments',
       label: 'handleCopyAssignmentsFrom',
     });
-  }, [dimensions, enqueueMutation, serverUrl]);
+  }, [enqueueMutation, serverUrl]);
 
   const getCopySourceOptions = useCallback((dimId: string, optionName: string): string[] => {
     const dim = dimensions.find(d => d.id === dimId);
