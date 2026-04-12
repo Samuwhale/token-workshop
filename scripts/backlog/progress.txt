@@ -1363,3 +1363,9 @@
 - **Learnings for future iterations:**
   - When a panel already has a clear hierarchy and type labels, header-level helper paragraphs add noise faster than they add orientation; remove the copy at the shared wrapper component so every section stays consistent.
 ---
+## 2026-04-12 - Rename 'Audit breakdown' accordion in HealthPanel to 'By category' to distinguish it from the 'Priority issues' flat list above it
+- Renamed the HealthPanel accordion toggle from `Audit breakdown` to `By category` and left the inline issue-count suffix on the same label element unchanged.
+- Files changed: `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L1424
+- **Learnings for future iterations:**
+  - When two adjacent sections present the same dataset with different sorting/grouping logic, label the secondary surface by its organizing principle so users can distinguish it at a glance.
+---

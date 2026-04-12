@@ -1421,7 +1421,7 @@ export function HealthPanel({
             aria-expanded={dashboardExpanded}
           >
             <span className="flex-1 text-left font-medium text-[var(--color-figma-text-secondary)]">
-              Audit breakdown
+              By category
               {validationIssuesProp === null && totalIssues > 0 && (
                 <span className={`ml-1.5 ${statusColor(overallStatus)}`}>
                   — {totalIssues} issue{totalIssues !== 1 ? "s" : ""}

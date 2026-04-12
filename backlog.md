@@ -141,7 +141,7 @@
 - [x] Finish decomposing App shell orchestration and the PanelRouter prop bag into workspace-owned controllers
 - [x] Derive Sync preflight, compare rows, and preflight actions from one shared token-vs-Figma snapshot model
 - [x] Unify generator-scale authoring and semantic token mapping into one token-system workflow instead of two disconnected features
-- [ ] Strip inline description paragraphs from HistoryPanel recovery section and subsection headers — titles and structure already orient the user
+- [x] Strip inline description paragraphs from HistoryPanel recovery section and subsection headers — titles and structure already orient the user
 - [ ] Rename 'Audit breakdown' accordion in HealthPanel to 'By category' to distinguish it from the 'Priority issues' flat list above it
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
