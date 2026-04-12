@@ -68,6 +68,7 @@
 - [x] [HIGH] Remove 'Step N' numbering from SelectionInspector panel sections — they are parallel information areas, not sequential workflow stages
 - [x] [HIGH] Split ThemeManager's multi-view state graph into view-owned controllers instead of one 4k component
 - [x] [HIGH] Centralize set-dependency snapshots for structural set operations so preflight and execution stop drifting
+- [ ] [HIGH] BatchEditor move and rename operations leave stale selection, breaking subsequent batch actions
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -151,4 +152,4 @@
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient
-- [ ] ThemeCoverageScreen axis/option/issues pill row restates information already in the heading and subtitle
+- [x] ThemeCoverageScreen axis/option/issues pill row restates information already in the heading and subtitle

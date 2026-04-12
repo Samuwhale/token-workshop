@@ -1431,3 +1431,14 @@
   - When a shell still needs to drive focus into a view-owned surface, expose a tiny imperative screen handle instead of keeping the DOM refs in the shell just for scroll targeting.
   - Authoring-only toolbar/filter/preview state can reset safely with the screen lifecycle once cross-view navigation keeps only the durable context in the parent manager.
 ---
+## 2026-04-12 - ux-pass
+- Tasks explored: (1) Batch move/copy tokens across sets via BatchEditor [BatchEditor.tsx, TokenList.tsx, useTokenSelection.ts], (2) Batch rename paths via BatchEditor [BatchEditor.tsx], (3) Set delete with dependency blockers [SetSwitcher.tsx, useSetDelete.ts, sets.ts preflight], (4) Set merge with conflict resolution [SetSwitcher.tsx, useSetMergeSplit.ts]
+- Walkthrough themes: feedback after destructive operations, selection state consistency, recovery from blocked operations, handoff from blocker diagnosis to resolution
+- Found 1 item — written to backlog/inbox.jsonl
+- Considered but rejected:
+  - Set structural preflight blockers (delete/merge/split) show no navigation actions to the blocking generator/resolver/theme: real recovery friction, but the blocker messages are descriptive enough that a knowledgeable user can navigate manually; adding follow-up actions straddles product-pass territory since it requires defining an action model for blocker types. Not a dead-end, just a poor handoff.
+  - Merge confirm-time preflight discovering new blockers shows them as a toast but not inline in the dialog: race condition requires concurrent external modifications which are rare in single-user plugin context. Edge case, not a primary task-flow breakdown.
+  - Split dialog deleteOriginal toggle causing preflight re-fetch: already wired correctly via useSetStructuralPreflight hook with deleteOriginal in dependency array. No issue.
+  - BatchEditor copy-to-set leaving selection intact: copy doesn't remove tokens from the source set, so selectedPaths remain valid. Not broken.
+- Notable: The BatchEditor stale selection after move/rename is the strongest finding — it's a clear asymmetry where TokenList's own batch-move handlers correctly clear selection but the BatchEditor's internal move/rename paths don't, leaving the user in a contradictory state where the selection count is positive but the working set is empty.
+---
