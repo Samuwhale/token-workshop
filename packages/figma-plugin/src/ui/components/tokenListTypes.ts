@@ -323,56 +323,39 @@ export interface TableSort {
 }
 
 // ---------------------------------------------------------------------------
-// TokenTreeContext — shared state & callbacks provided via React context
+// TokenTreeContext — split into smaller subscriptions so rows only re-render
+// for the state they actually consume.
 // ---------------------------------------------------------------------------
 
-export interface TokenTreeContextType {
-  // --- Shared data ---
-  density: Density;
-  serverUrl: string;
-  setName: string;
-  sets: string[];
-  selectionCapabilities: NodeCapabilities | null;
+export interface TokenTreeSharedDataContextType {
   allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
+}
+
+export interface TokenTreeGroupStateContextType {
+  density: Density;
   selectMode: boolean;
   expandedPaths: Set<string>;
-  duplicateCounts: Map<string, number>;
   highlightedToken: string | null;
   /** Path currently being previewed in the side panel / split preview */
   previewedPath: string | null;
-  inspectMode?: boolean;
-  syncSnapshot?: Record<string, string>;
-  cascadeDiff?: Record<string, { before: any; after: any }>;
-  generatorsBySource?: Map<string, TokenGenerator[]>;
-  generatorsByTargetGroup?: Map<string, TokenGenerator>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
-  tokenUsageCounts?: Record<string, number>;
   /** Parsed highlight terms from search query */
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
-  /** Selected Figma nodes — used for quick-bind scope narrowing */
-  selectedNodes: SelectionNodeInfo[];
-
-  // --- Drag state ---
   dragOverGroup?: string | null;
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
-  dragOverReorder?: { path: string; position: "before" | "after" } | null;
-  selectedLeafNodes?: TokenNode[];
+  generatorsByTargetGroup?: Map<string, TokenGenerator>;
+  /** Pre-computed theme coverage per group: groupPath → { themed, total } */
+  themeCoverage?: Map<string, { themed: number; total: number }>;
+  /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
+  condensedView?: boolean;
+  /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
+  rovingFocusPath: string | null;
+}
 
-  // --- Action callbacks ---
-  onEdit: (path: string, name?: string) => void;
-  onPreview?: (path: string, name?: string) => void;
-  onDelete: (path: string) => void;
-  onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
-  onToggleSelect: (
-    path: string,
-    modifiers?: { shift: boolean; ctrl: boolean },
-  ) => void;
-  onSelectGroupChildren?: (groupNode: TokenNode) => void;
+export interface TokenTreeGroupActionsContextType {
   onToggleExpand: (path: string) => void;
-  onNavigateToAlias?: (path: string, fromPath?: string) => void;
-  onRefresh: () => void;
-  onPushUndo?: (slot: UndoSlot) => void;
+  onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
   onCreateGroup?: (parentGroupPath: string) => void;
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
@@ -382,17 +365,7 @@ export interface TokenTreeContextType {
   ) => Promise<void>;
   onRequestMoveGroup?: (groupPath: string) => void;
   onRequestCopyGroup?: (groupPath: string) => void;
-  onRequestMoveToken?: (tokenPath: string) => void;
-  onRequestCopyToken?: (tokenPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
-  onDuplicateToken?: (path: string) => void;
-  onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
-  onHoverToken?: (path: string) => void;
-  onExtractToAliasForLint?: (
-    path: string,
-    $type?: string,
-    $value?: any,
-  ) => void;
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
@@ -400,9 +373,71 @@ export interface TokenTreeContextType {
     groupPath: string,
     tokenType: string | null,
   ) => void;
-  onFilterByType?: (type: string) => void;
-  onJumpToGroup?: (path: string) => void;
   onZoomIntoGroup?: (groupPath: string) => void;
+  onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
+  onDropOnGroup?: (groupPath: string) => void;
+  onEditGenerator?: (generatorId: string) => void;
+  /** One-click regenerate a specific generator (by id) — runs POST /api/generators/:id/run */
+  onRegenerateGenerator?: (generatorId: string) => Promise<void>;
+  /** Called when a row receives focus — updates the roving tabindex position */
+  onRovingFocus: (path: string) => void;
+}
+
+export interface TokenTreeLeafStateContextType {
+  density: Density;
+  serverUrl: string;
+  setName: string;
+  sets: string[];
+  selectionCapabilities: NodeCapabilities | null;
+  duplicateCounts: Map<string, number>;
+  selectMode: boolean;
+  highlightedToken: string | null;
+  /** Path currently being previewed in the side panel / split preview */
+  previewedPath: string | null;
+  inspectMode?: boolean;
+  syncSnapshot?: Record<string, string>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
+  /** Parsed highlight terms from search query */
+  searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
+  /** Selected Figma nodes — used for quick-bind scope narrowing */
+  selectedNodes: SelectionNodeInfo[];
+  dragOverReorder?: { path: string; position: "before" | "after" } | null;
+  selectedLeafNodes?: TokenNode[];
+  /** When true, tree view shows fully resolved values instead of alias references */
+  showResolvedValues?: boolean;
+  /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
+  condensedView?: boolean;
+  /** Set of starred token paths in the current set — for fast O(1) lookup */
+  starredPaths?: Set<string>;
+  /** Theme dimensions — for resolution chain debugger */
+  dimensions?: ThemeDimension[];
+  /** Currently active theme selections (dimId → optionName) — for resolution chain debugger */
+  activeThemes?: Record<string, string>;
+  /** Path of a token that should enter inline rename mode as soon as it renders */
+  pendingRenameToken: string | null;
+  /** Tab navigation: token + optional multi-mode column that should enter edit mode */
+  pendingTabEdit: { path: string; columnId: string | null } | null;
+  /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
+  rovingFocusPath: string | null;
+}
+
+export interface TokenTreeLeafActionsContextType {
+  onEdit: (path: string, name?: string) => void;
+  onPreview?: (path: string, name?: string) => void;
+  onDelete: (path: string) => void;
+  onToggleSelect: (
+    path: string,
+    modifiers?: { shift: boolean; ctrl: boolean },
+  ) => void;
+  onNavigateToAlias?: (path: string, fromPath?: string) => void;
+  onRefresh: () => void;
+  onPushUndo?: (slot: UndoSlot) => void;
+  onRequestMoveToken?: (tokenPath: string) => void;
+  onRequestCopyToken?: (tokenPath: string) => void;
+  onDuplicateToken?: (path: string) => void;
+  onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
+  onHoverToken?: (path: string) => void;
+  onFilterByType?: (type: string) => void;
   onInlineSave?: (
     path: string,
     type: string,
@@ -410,29 +445,12 @@ export interface TokenTreeContextType {
     previousState?: { type?: string; value: unknown },
   ) => void;
   onRenameToken?: (oldPath: string, newPath: string) => void;
-  onDetachFromGenerator?: (path: string) => void;
-  onEditGenerator?: (generatorId: string) => void;
-  onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
-  onToggleChain?: (path: string) => void;
-  onTogglePin?: (path: string) => void;
-  /** Toggle starred (cross-set favorites) for the current token */
-  onToggleStar?: (path: string) => void;
-  /** Set of starred token paths in the current set — for fast O(1) lookup */
-  starredPaths?: Set<string>;
-  /** Enter select mode with this token pre-selected and open ComparePanel */
-  onCompareToken?: (path: string) => void;
   /** Navigate to History panel filtered to this token path */
   onViewTokenHistory?: (path: string) => void;
-  /** Navigate to Token Flow panel with this token pre-selected */
-  onShowReferences?: (path: string) => void;
   /** Open cross-theme comparison panel for this token */
   onCompareAcrossThemes?: (path: string) => void;
-  /** Open the cross-set "where is this token defined" overlay for the given path */
-  onFindInAllSets?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
-  onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
-  onDropOnGroup?: (groupPath: string) => void;
   onDragOverToken?: (
     path: string,
     name: string,
@@ -451,19 +469,11 @@ export interface TokenTreeContextType {
     targetSet: string,
     previousState?: { type?: string; value: unknown },
   ) => void;
-  onNavigateToGenerator?: (generatorId: string) => void;
-  /** One-click regenerate a specific generator (by id) — runs POST /api/generators/:id/run */
-  onRegenerateGenerator?: (generatorId: string) => Promise<void>;
-  /** When true, tree view shows fully resolved values instead of alias references */
-  showResolvedValues?: boolean;
-  /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
-  condensedView?: boolean;
-  /** Path of a token that should enter inline rename mode as soon as it renders */
-  pendingRenameToken: string | null;
+  onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
+  /** Toggle starred (cross-set favorites) for the current token */
+  onToggleStar?: (path: string) => void;
   /** Clear the pending rename (called by the node once it activates rename mode) */
   clearPendingRename: () => void;
-  /** Tab navigation: token + optional multi-mode column that should enter edit mode */
-  pendingTabEdit: { path: string; columnId: string | null } | null;
   /** Clear the pending tab-edit (called by the node once it activates edit mode) */
   clearPendingTabEdit: () => void;
   /** Navigate to next/prev inline-editable cell on Tab key press */
@@ -472,16 +482,6 @@ export interface TokenTreeContextType {
     columnId: string | null,
     direction: 1 | -1,
   ) => void;
-  /** Pre-computed theme coverage per group: groupPath → { themed, total } */
-  themeCoverage?: Map<string, { themed: number; total: number }>;
-  /** Maps token paths to their source set name — for resolution chain debugger */
-  pathToSet?: Record<string, string>;
-  /** Theme dimensions — for resolution chain debugger */
-  dimensions?: ThemeDimension[];
-  /** Currently active theme selections (dimId → optionName) — for resolution chain debugger */
-  activeThemes?: Record<string, string>;
-  /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
-  rovingFocusPath: string | null;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
 }

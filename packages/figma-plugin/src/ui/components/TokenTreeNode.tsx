@@ -53,7 +53,13 @@ import { PropertyPicker } from "./PropertyPicker";
 import { ValuePreview } from "./ValuePreview";
 import { ColorPicker } from "./ColorPicker";
 import { getQuickBindTargets } from "./selectionInspectorUtils";
-import { useTokenTree } from "./TokenTreeContext";
+import {
+  useTokenTreeGroupActions,
+  useTokenTreeGroupState,
+  useTokenTreeLeafActions,
+  useTokenTreeLeafState,
+  useTokenTreeSharedData,
+} from "./TokenTreeContext";
 import {
   ComplexTypePreviewCard,
   COMPLEX_PREVIEW_TYPES,
@@ -492,7 +498,7 @@ function MultiModeCell({
   onTabActivated?: () => void;
   onTab?: (direction: 1 | -1) => void;
 }) {
-  const { allTokensFlat, pathToSet } = useTokenTree();
+  const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const escapedRef = useRef(false);
@@ -774,23 +780,25 @@ const TokenGroupNode = memo(
       onMoveDown,
     } = props;
 
-    const ctx = useTokenTree();
     const {
       density,
       selectMode,
       expandedPaths,
-      onToggleExpand,
       highlightedToken,
       previewedPath,
       searchHighlight,
-      selectedNodes: _selectedNodes,
       dragOverGroup,
       dragOverGroupIsInvalid,
       dragSource,
-      dragOverReorder: _dragOverReorder,
+      generatorsByTargetGroup,
+      themeCoverage,
+      condensedView = false,
+      rovingFocusPath: groupRovingFocusPath,
+    } = useTokenTreeGroupState();
+    const { allTokensFlat } = useTokenTreeSharedData();
+    const {
+      onToggleExpand,
       onDeleteGroup,
-      onToggleSelect: _onToggleSelect,
-      onNavigateToAlias: _onNavigateToAlias,
       onCreateSibling,
       onCreateGroup,
       onRenameGroup,
@@ -798,29 +806,17 @@ const TokenGroupNode = memo(
       onRequestMoveGroup,
       onRequestCopyGroup,
       onDuplicateGroup,
-      allTokensFlat,
       onSyncGroup,
       onSyncGroupStyles,
       onSetGroupScopes,
       onGenerateScaleFromGroup,
-      onFilterByType: _onFilterByType,
       onZoomIntoGroup,
-      onDragStart: _onDragStart,
-      onDragEnd: _onDragEnd,
       onDragOverGroup,
       onDropOnGroup,
-      generatorsBySource: _generatorsBySource,
-      generatorsByTargetGroup,
-      derivedTokenPaths: _derivedTokenPaths,
       onEditGenerator,
-      onNavigateToGenerator: _onNavigateToGeneratorGroup,
       onRegenerateGenerator,
-      themeCoverage,
-      onSelectGroupChildren: _onSelectGroupChildren,
-      condensedView = false,
-      rovingFocusPath: groupRovingFocusPath,
       onRovingFocus: onGroupRovingFocus,
-    } = ctx;
+    } = useTokenTreeGroupActions();
 
     const pyClass = DENSITY_PY_CLASS[density];
     const isExpanded = expandedPaths.has(node.path);
@@ -1792,95 +1788,64 @@ const TokenLeafNode = memo(
       multiModeValues,
     } = props;
 
-    const ctx = useTokenTree();
     const {
       density,
       serverUrl,
       setName,
       sets,
       selectionCapabilities,
-      allTokensFlat,
       selectMode,
-      expandedPaths: _expandedPaths,
-      onToggleExpand: _onToggleExpand,
       duplicateCounts,
       highlightedToken,
       previewedPath,
       inspectMode,
       syncSnapshot,
-      cascadeDiff: _cascadeDiff,
-      generatorsBySource: _generatorsBySource,
       derivedTokenPaths,
-      tokenUsageCounts: _tokenUsageCounts,
       searchHighlight,
       selectedNodes,
-      dragOverGroup: _dragOverGroup,
-      dragOverGroupIsInvalid: _dragOverGroupIsInvalid,
-      dragSource: _dragSource,
       dragOverReorder,
       selectedLeafNodes,
+      showResolvedValues,
+      condensedView = false,
+      starredPaths,
+      dimensions,
+      activeThemes,
+      pendingRenameToken,
+      pendingTabEdit,
+      rovingFocusPath,
+    } = useTokenTreeLeafState();
+    const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
+    const {
       onEdit,
       onPreview,
       onDelete,
-      onDeleteGroup: _onDeleteGroup,
       onToggleSelect,
       onNavigateToAlias,
-      onCreateSibling: _onCreateSibling,
-      onCreateGroup: _onCreateGroup,
-      onRenameGroup: _onRenameGroup,
-      onUpdateGroupMeta: _onUpdateGroupMeta,
-      onRequestMoveGroup: _onRequestMoveGroup,
-      onRequestCopyGroup: _onRequestCopyGroup,
       onRequestMoveToken,
       onRequestCopyToken,
-      onDuplicateGroup: _onDuplicateGroup,
       onDuplicateToken,
       onExtractToAlias,
       onHoverToken,
-      onSyncGroup: _onSyncGroup,
-      onSyncGroupStyles: _onSyncGroupStyles,
-      onSetGroupScopes: _onSetGroupScopes,
-      onGenerateScaleFromGroup: _onGenerateScaleFromGroup,
       onFilterByType,
-      onJumpToGroup: _onJumpToGroup,
-      onZoomIntoGroup: _onZoomIntoGroup,
       onInlineSave,
       onRenameToken,
-      onDetachFromGenerator: _onDetachFromGenerator,
-      onToggleChain: _onToggleChain,
-      onTogglePin: _onTogglePin,
-      onCompareToken: _onCompareToken,
       onViewTokenHistory,
-      onShowReferences: _onShowReferences,
       onCompareAcrossThemes,
-      onFindInAllSets: _onFindInAllSets,
       onRefresh,
       onPushUndo,
       onDragStart,
       onDragEnd,
-      onDragOverGroup: _onDragOverGroup,
-      onDropOnGroup: _onDropOnGroup,
       onDragOverToken,
       onDragLeaveToken,
       onDropOnToken,
       onMultiModeInlineSave,
-      showResolvedValues,
-      condensedView = false,
       onToggleStar,
-      starredPaths,
-      pathToSet,
-      dimensions,
-      activeThemes,
-      pendingRenameToken,
       clearPendingRename,
-      pendingTabEdit,
       clearPendingTabEdit,
       onTabToNext,
       onOpenGeneratorEditor,
-      onNavigateToGenerator: _onNavigateToGenerator,
-      rovingFocusPath,
       onRovingFocus,
-    } = ctx;
+    } = useTokenTreeLeafActions();
 
     const pyClass = DENSITY_PY_CLASS[density];
     const swatchSize = DENSITY_SWATCH_SIZE[density];
