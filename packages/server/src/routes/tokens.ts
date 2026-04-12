@@ -3,6 +3,17 @@ import { TOKEN_TYPE_VALUES, TokenValidator, isReference, parseReference, type To
 import { handleRouteError } from '../errors.js';
 import type { SnapshotEntry } from '../services/operation-log.js';
 import { snapshotPaths, snapshotSet, snapshotGroup } from '../services/operation-log.js';
+import {
+  batchCopyTokensCommand,
+  batchMoveTokensCommand,
+  batchRenameTokensCommand,
+  copyGroupCommand,
+  copyTokenCommand,
+  moveGroupCommand,
+  moveTokenCommand,
+  renameGroupCommand,
+  renameTokenCommand,
+} from '../services/token-mutation-commands.js';
 import { stableStringify } from '../services/stable-stringify.js';
 
 function validateTokenBody(body: unknown): body is Partial<Token> {
@@ -184,24 +195,24 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
-          const before = await snapshotGroup(fastify.tokenStore, set, oldGroupPath);
-          const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath, updateAliases !== false);
-          const after = await snapshotGroup(fastify.tokenStore, set, newGroupPath);
-          const groupPathRenames = Object.keys(before).map(oldPath => ({
-            oldPath,
-            newPath: newGroupPath + oldPath.slice(oldGroupPath.length),
-          }));
-          await fastify.operationLog.record({
-            type: 'group-rename',
-            description: `Rename group "${oldGroupPath}" → "${newGroupPath}" in ${set}`,
-            setName: set,
-            affectedPaths: [...Object.keys(before), ...Object.keys(after)],
-            beforeSnapshot: before,
-            afterSnapshot: after,
-            pathRenames: groupPathRenames,
-          });
-          await fastify.generatorService.updateGroupPath(oldGroupPath, newGroupPath);
-          return { ok: true, ...result };
+          const { result } = await renameGroupCommand(
+            {
+              tokenStore: fastify.tokenStore,
+              operationLog: fastify.operationLog,
+              generatorService: fastify.generatorService,
+            },
+            {
+              setName: set,
+              oldGroupPath,
+              newGroupPath,
+              updateAliases: updateAliases !== false,
+            },
+          );
+          return {
+            ok: true,
+            renamedCount: result.renamedCount,
+            aliasesUpdated: result.aliasesUpdated,
+          };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -223,26 +234,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
-          const beforeSource = await snapshotGroup(fastify.tokenStore, set, groupPath);
-          const beforeTarget = await snapshotGroup(fastify.tokenStore, targetSet, groupPath);
-          const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
-          const afterSource = await snapshotGroup(fastify.tokenStore, set, groupPath);
-          const afterTarget = await snapshotGroup(fastify.tokenStore, targetSet, groupPath);
-          const before = { ...beforeSource, ...Object.fromEntries(
-            Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-          )};
-          const after = { ...afterSource, ...Object.fromEntries(
-            Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-          )};
-          await fastify.operationLog.record({
-            type: 'group-move',
-            description: `Move group "${groupPath}" from ${set} to ${targetSet}`,
-            setName: set,
-            affectedPaths: [...Object.keys(beforeSource), ...Object.keys(afterTarget)],
-            beforeSnapshot: before,
-            afterSnapshot: after,
-          });
-          return { ok: true, ...result };
+          const { result } = await moveGroupCommand(
+            {
+              tokenStore: fastify.tokenStore,
+              operationLog: fastify.operationLog,
+              generatorService: fastify.generatorService,
+            },
+            {
+              fromSet: set,
+              groupPath,
+              toSet: targetSet,
+            },
+          );
+          return { ok: true, movedCount: result.movedCount };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -264,22 +268,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
-          const beforeTarget = await snapshotGroup(fastify.tokenStore, targetSet, groupPath);
-          const result = await fastify.tokenStore.copyGroup(set, groupPath, targetSet);
-          const afterTarget = await snapshotGroup(fastify.tokenStore, targetSet, groupPath);
-          await fastify.operationLog.record({
-            type: 'group-copy',
-            description: `Copy group "${groupPath}" from ${set} to ${targetSet}`,
-            setName: set,
-            affectedPaths: [...Object.keys(afterTarget)],
-            beforeSnapshot: Object.fromEntries(
-              Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-            ),
-            afterSnapshot: Object.fromEntries(
-              Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-            ),
-          });
-          return { ok: true, ...result };
+          const { result } = await copyGroupCommand(
+            {
+              tokenStore: fastify.tokenStore,
+              operationLog: fastify.operationLog,
+              generatorService: fastify.generatorService,
+            },
+            {
+              fromSet: set,
+              groupPath,
+              toSet: targetSet,
+            },
+          );
+          return { ok: true, copiedCount: result.copiedCount };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -672,23 +673,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
-        const allOldPaths = renames.map(r => r.oldPath);
-        const allNewPaths = renames.map(r => r.newPath);
-        const before = await snapshotPaths(fastify.tokenStore, set, allOldPaths);
-        const result = await fastify.tokenStore.batchRenameTokens(set, renames, updateAliases !== false);
-        const after = await snapshotPaths(fastify.tokenStore, set, allNewPaths);
-        const pathMap = new Map(renames.map(r => [r.oldPath, r.newPath]));
-        const entry = await fastify.operationLog.record({
-          type: 'batch-rename',
-          description: `Batch rename ${renames.length} token${renames.length === 1 ? '' : 's'} in ${set}`,
-          setName: set,
-          affectedPaths: [...allOldPaths, ...allNewPaths],
-          beforeSnapshot: before,
-          afterSnapshot: after,
-          pathRenames: renames,
-        });
-        await fastify.generatorService.updateTokenPaths(pathMap);
-        return { ok: true, renamed: result.renamed, operationId: entry.id };
+        const { result, operationId } = await batchRenameTokensCommand(
+          {
+            tokenStore: fastify.tokenStore,
+            operationLog: fastify.operationLog,
+            generatorService: fastify.generatorService,
+          },
+          {
+            setName: set,
+            renames,
+            updateAliases: updateAliases !== false,
+          },
+        );
+        return { ok: true, renamed: result.renamed, operationId };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch rename tokens');
       }
@@ -713,26 +710,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
-        const beforeSource = await snapshotPaths(fastify.tokenStore, set, paths);
-        const beforeTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
-        const before = { ...beforeSource, ...Object.fromEntries(
-          Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-        )};
-        const result = await fastify.tokenStore.batchMoveTokens(set, paths, targetSet);
-        const afterSource = await snapshotPaths(fastify.tokenStore, set, paths);
-        const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
-        const after = { ...afterSource, ...Object.fromEntries(
-          Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-        )};
-        const entry = await fastify.operationLog.record({
-          type: 'batch-move',
-          description: `Move ${result.moved} token${result.moved === 1 ? '' : 's'} from ${set} to ${targetSet}`,
-          setName: set,
-          affectedPaths: paths,
-          beforeSnapshot: before,
-          afterSnapshot: after,
-        });
-        return { ok: true, moved: result.moved, operationId: entry.id };
+        const { result, operationId } = await batchMoveTokensCommand(
+          {
+            tokenStore: fastify.tokenStore,
+            operationLog: fastify.operationLog,
+            generatorService: fastify.generatorService,
+          },
+          {
+            fromSet: set,
+            paths,
+            toSet: targetSet,
+          },
+        );
+        return { ok: true, moved: result.moved, operationId };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch move tokens');
       }
@@ -757,22 +747,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
-        const beforeTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
-        const result = await fastify.tokenStore.batchCopyTokens(set, paths, targetSet);
-        const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
-        const entry = await fastify.operationLog.record({
-          type: 'batch-copy',
-          description: `Copy ${result.copied} token${result.copied === 1 ? '' : 's'} from ${set} to ${targetSet}`,
-          setName: targetSet,
-          affectedPaths: paths,
-          beforeSnapshot: Object.fromEntries(
-            Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-          ),
-          afterSnapshot: Object.fromEntries(
-            Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-          ),
-        });
-        return { ok: true, copied: result.copied, operationId: entry.id };
+        const { result, operationId } = await batchCopyTokensCommand(
+          {
+            tokenStore: fastify.tokenStore,
+            operationLog: fastify.operationLog,
+            generatorService: fastify.generatorService,
+          },
+          {
+            fromSet: set,
+            paths,
+            toSet: targetSet,
+          },
+        );
+        return { ok: true, copied: result.copied, operationId };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch copy tokens');
       }
@@ -929,20 +916,20 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
-          const before = await snapshotPaths(fastify.tokenStore, set, [oldPath]);
-          const result = await fastify.tokenStore.renameToken(set, oldPath, newPath, updateAliases !== false);
-          const after = await snapshotPaths(fastify.tokenStore, set, [newPath]);
-          await fastify.operationLog.record({
-            type: 'token-rename',
-            description: `Rename token "${oldPath}" → "${newPath}" in ${set}`,
-            setName: set,
-            affectedPaths: [oldPath, newPath],
-            beforeSnapshot: before,
-            afterSnapshot: after,
-            pathRenames: [{ oldPath, newPath }],
-          });
-          await fastify.generatorService.updateTokenPaths(new Map([[oldPath, newPath]]));
-          return { ok: true, ...result };
+          const { result } = await renameTokenCommand(
+            {
+              tokenStore: fastify.tokenStore,
+              operationLog: fastify.operationLog,
+              generatorService: fastify.generatorService,
+            },
+            {
+              setName: set,
+              oldPath,
+              newPath,
+              updateAliases: updateAliases !== false,
+            },
+          );
+          return { ok: true, aliasesUpdated: result.aliasesUpdated };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -964,25 +951,18 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
-          const beforeSource = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-          const beforeTarget = await snapshotPaths(fastify.tokenStore, targetSet, [tokenPath]);
-          await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
-          const afterSource = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-          const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, [tokenPath]);
-          const before = { ...beforeSource, ...Object.fromEntries(
-            Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-          )};
-          const after = { ...afterSource, ...Object.fromEntries(
-            Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
-          )};
-          await fastify.operationLog.record({
-            type: 'token-move',
-            description: `Move token "${tokenPath}" from ${set} to ${targetSet}`,
-            setName: set,
-            affectedPaths: [tokenPath],
-            beforeSnapshot: before,
-            afterSnapshot: after,
-          });
+          await moveTokenCommand(
+            {
+              tokenStore: fastify.tokenStore,
+              operationLog: fastify.operationLog,
+              generatorService: fastify.generatorService,
+            },
+            {
+              fromSet: set,
+              tokenPath,
+              toSet: targetSet,
+            },
+          );
           return { ok: true };
         } catch (err) {
           return handleRouteError(reply, err);
@@ -1005,17 +985,18 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
-          const beforeTarget = await snapshotPaths(fastify.tokenStore, targetSet, [tokenPath]);
-          await fastify.tokenStore.copyToken(set, tokenPath, targetSet);
-          const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, [tokenPath]);
-          await fastify.operationLog.record({
-            type: 'token-copy',
-            description: `Copy token "${tokenPath}" from ${set} to ${targetSet}`,
-            setName: targetSet,
-            affectedPaths: [tokenPath],
-            beforeSnapshot: beforeTarget,
-            afterSnapshot: afterTarget,
-          });
+          await copyTokenCommand(
+            {
+              tokenStore: fastify.tokenStore,
+              operationLog: fastify.operationLog,
+              generatorService: fastify.generatorService,
+            },
+            {
+              fromSet: set,
+              tokenPath,
+              toSet: targetSet,
+            },
+          );
           return { ok: true };
         } catch (err) {
           return handleRouteError(reply, err);

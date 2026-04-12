@@ -150,7 +150,7 @@
 - [x] Move ThemeManager authoring body into its own screen module
 - [x] GeneratorPipelineCard: semantic layer section uses same card styling as primary config, making optional feature visually equal to required output
 - [x] ThemeAuthoringScreen review-tools menu opens with a meta-description paragraph before its action list
-- [ ] Split the Tokens library controller and tree context so row rendering no longer depends on one giant `TokenList` state graph
+- [x] Split the Tokens library controller and tree context so row rendering no longer depends on one giant `TokenList` state graph
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

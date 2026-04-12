@@ -13,6 +13,11 @@ export interface SnapshotEntry {
   setName: string;
 }
 
+export interface TokenPathRename {
+  oldPath: string;
+  newPath: string;
+}
+
 const MULTI_SET_SNAPSHOT_SEPARATOR = "::";
 
 export function buildMultiSetSnapshotPath(
@@ -42,6 +47,23 @@ export function listSnapshotTokenPaths(
       ),
     ),
   ];
+}
+
+export function qualifySnapshotEntries(
+  setName: string,
+  snapshot: Record<string, SnapshotEntry>,
+): Record<string, SnapshotEntry> {
+  const result: Record<string, SnapshotEntry> = {};
+  for (const [tokenPath, entry] of Object.entries(snapshot)) {
+    result[buildMultiSetSnapshotPath(setName, tokenPath)] = entry;
+  }
+  return result;
+}
+
+export function mergeSnapshots(
+  ...snapshots: Array<Record<string, SnapshotEntry>>
+): Record<string, SnapshotEntry> {
+  return Object.assign({}, ...snapshots);
 }
 
 function findSnapshotEntryForTokenPath(
@@ -153,7 +175,7 @@ export interface OperationEntry {
    * Used by the Figma plugin to rename existing variables instead of
    * creating orphans when tokens are renamed on the server.
    */
-  pathRenames?: Array<{ oldPath: string; newPath: string }>;
+  pathRenames?: TokenPathRename[];
   /** Arbitrary metadata for the operation (e.g. set-metadata before/after). */
   metadata?: SetMetadataOperationMetadata | Record<string, unknown>;
 }
@@ -185,7 +207,7 @@ export interface TokenHistoryEntry {
 interface PathRenameEntry {
   operationId: string;
   rolledBack: boolean;
-  pathRenames: Array<{ oldPath: string; newPath: string }>;
+  pathRenames: TokenPathRename[];
 }
 
 export class OperationLog {
@@ -205,7 +227,7 @@ export class OperationLog {
   }
 
   private clonePathRenames(
-    pathRenames: Array<{ oldPath: string; newPath: string }>,
+    pathRenames: TokenPathRename[],
   ) {
     return pathRenames.map(({ oldPath, newPath }) => ({ oldPath, newPath }));
   }

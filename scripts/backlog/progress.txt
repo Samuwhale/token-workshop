@@ -1465,3 +1465,11 @@
   - When row renderers share one provider with toolbar, review, and drag state, split the provider by row shape and by read-vs-action concerns before trying to optimize individual memo boundaries.
   - Inline helper cells that only need canonical token maps should read from a tiny shared-data context instead of subscribing to the full tree interaction surface.
 ---
+## 2026-04-12 - Centralize token structural mutation commands so rename/move/copy flows stop duplicating snapshots, rollback, and generator updates
+- Added a shared server-side command layer for token/group rename, move, and copy routes, moved cross-set snapshot qualification helpers into the operation-log service, and refactored `TokenStore` onto shared mutation planners so rename/move/copy variants reuse the same collision checks, rollback snapshots, alias updates, and cloning rules. Generator rename maintenance now runs through one `applyPathRenames()` path used by the new command helpers.
+- Validation: `pnpm --filter @tokenmanager/core build` passed. `pnpm --filter @tokenmanager/server build` passed.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L198, `packages/server/src/routes/tokens.ts` ~L676, `packages/server/src/routes/tokens.ts` ~L919, `packages/server/src/services/token-mutation-commands.ts` ~L73, `packages/server/src/services/token-store.ts` ~L1559, `packages/server/src/services/token-store.ts` ~L1808, `packages/server/src/services/token-store.ts` ~L2053, `packages/server/src/services/generator-service.ts` ~L1121, `packages/server/src/services/operation-log.ts` ~L16
+- **Learnings for future iterations:**
+  - Structural token routes stay coherent when they delegate to one command helper that owns snapshot capture, operation-log recording, and generator path updates while `TokenStore` owns only planning and mutation execution.
+  - Cross-set snapshot key qualification belongs in reusable operation-log helpers, not inline route glue, or multi-set rename/move/copy endpoints will drift back into hand-built key remapping.
+---

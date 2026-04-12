@@ -43,6 +43,7 @@ import {
   validateStepName,
 } from "@tokenmanager/core";
 import type { TokenStore } from "./token-store.js";
+import type { TokenPathRename } from "./operation-log.js";
 import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError, BadRequestError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -119,6 +120,10 @@ export interface GeneratorSetDependencyMeta {
   targetSet: string;
   targetGroup: string;
 }
+
+export type GeneratorPathRenameUpdate =
+  | ({ scope: "token" } & TokenPathRename)
+  | ({ scope: "group" } & TokenPathRename);
 
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -1108,17 +1113,56 @@ export class GeneratorService {
   }
 
   /**
-   * Update generator references when a single token path changes.
-   * Updates sourceToken for exact path matches.
+   * Apply structural token/group path renames to generator references.
+   * Token renames update exact sourceToken matches.
+   * Group renames update exact/prefix matches for sourceToken and targetGroup.
    * Returns the count of generators updated.
    */
-  async updateTokenPaths(pathMap: Map<string, string>): Promise<number> {
+  async applyPathRenames(
+    renames: GeneratorPathRenameUpdate[],
+  ): Promise<number> {
+    if (renames.length === 0) {
+      return 0;
+    }
+
     let count = 0;
     for (const [id, gen] of this.generators) {
-      if (gen.sourceToken && pathMap.has(gen.sourceToken)) {
+      let nextSourceToken = gen.sourceToken;
+      let nextTargetGroup = gen.targetGroup;
+
+      for (const rename of renames) {
+        if (rename.scope === "token") {
+          if (nextSourceToken === rename.oldPath) {
+            nextSourceToken = rename.newPath;
+          }
+          continue;
+        }
+
+        const prefix = `${rename.oldPath}.`;
+        if (nextSourceToken) {
+          if (nextSourceToken === rename.oldPath) {
+            nextSourceToken = rename.newPath;
+          } else if (nextSourceToken.startsWith(prefix)) {
+            nextSourceToken =
+              rename.newPath + nextSourceToken.slice(rename.oldPath.length);
+          }
+        }
+        if (nextTargetGroup === rename.oldPath) {
+          nextTargetGroup = rename.newPath;
+        } else if (nextTargetGroup.startsWith(prefix)) {
+          nextTargetGroup =
+            rename.newPath + nextTargetGroup.slice(rename.oldPath.length);
+        }
+      }
+
+      if (
+        nextSourceToken !== gen.sourceToken ||
+        nextTargetGroup !== gen.targetGroup
+      ) {
         this.generators.set(id, {
           ...gen,
-          sourceToken: pathMap.get(gen.sourceToken)!,
+          ...(nextSourceToken !== undefined ? { sourceToken: nextSourceToken } : {}),
+          targetGroup: nextTargetGroup,
         });
         count++;
       }
@@ -1128,39 +1172,28 @@ export class GeneratorService {
   }
 
   /**
+   * Update generator references when a single token path changes.
+   */
+  async updateTokenPaths(pathMap: Map<string, string>): Promise<number> {
+    return this.applyPathRenames(
+      Array.from(pathMap, ([oldPath, newPath]) => ({
+        scope: "token" as const,
+        oldPath,
+        newPath,
+      })),
+    );
+  }
+
+  /**
    * Update generator references when a token group is renamed.
-   * Updates sourceToken (prefix match) and targetGroup (exact or prefix match).
-   * Returns the count of generators updated.
    */
   async updateGroupPath(
     oldGroupPath: string,
     newGroupPath: string,
   ): Promise<number> {
-    let count = 0;
-    const prefix = oldGroupPath + ".";
-    for (const [id, gen] of this.generators) {
-      const updates: Partial<TokenGenerator> = {};
-      if (gen.sourceToken) {
-        if (gen.sourceToken === oldGroupPath) {
-          updates.sourceToken = newGroupPath;
-        } else if (gen.sourceToken.startsWith(prefix)) {
-          updates.sourceToken =
-            newGroupPath + gen.sourceToken.slice(oldGroupPath.length);
-        }
-      }
-      if (gen.targetGroup === oldGroupPath) {
-        updates.targetGroup = newGroupPath;
-      } else if (gen.targetGroup.startsWith(prefix)) {
-        updates.targetGroup =
-          newGroupPath + gen.targetGroup.slice(oldGroupPath.length);
-      }
-      if (Object.keys(updates).length > 0) {
-        this.generators.set(id, { ...gen, ...updates });
-        count++;
-      }
-    }
-    if (count > 0) await this.saveGenerators();
-    return count;
+    return this.applyPathRenames([
+      { scope: "group", oldPath: oldGroupPath, newPath: newGroupPath },
+    ]);
   }
 
   /**
