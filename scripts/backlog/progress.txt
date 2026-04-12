@@ -1738,3 +1738,10 @@
   - Before re-running a research backlog item, check `scripts/backlog/progress.txt` and `backlog/tasks/done/` together; this navigation investigation had already been decomposed into finished implementation tasks even though the original research spec remained present in `backlog/tasks/`.
   - The current navigation sources live in `packages/figma-plugin/src/ui/shared/navigationTypes.ts`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`, and `packages/figma-plugin/src/ui/contexts/NavigationContext.tsx`; legacy touch paths like `AppShell.tsx`, `useWorkspaceRouter.ts`, and `WorkspaceTabBar.tsx` are stale.
 ---
+## 2026-04-13 - [Redesign token tree rows for fast library scanning]
+- Reworked leaf-row browse metadata so token type is always visible, alias ownership is always surfaced even when resolved values are shown, and generator-managed tokens now expose a compact ownership badge instead of only a glyph. Active or previewed rows expand that same summary slot to show the fuller alias path and generator provenance without adding a second metadata lane.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L472, ~L2597, ~L3223; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - For dense token rows, keep one always-visible browse-summary slot and let active state expand the same badge rather than mounting a separate metadata strip; that preserves scanability without hiding provenance until hover.
+  - Alias ownership should stay visible independently from resolved-value display, otherwise the "show resolved values" mode erases an important piece of token-library context.
+---

@@ -1,5 +1,5 @@
 id: improve-token-library-browsing-and-inspection-ux-d4e5f6a7
-title: "Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction"
+title: Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction
 priority: high
 task_kind: research
 depends_on: []
@@ -21,7 +21,8 @@ status_notes:
   - "Pain point 4: Tree navigation at scale is tedious — expanding and collapsing groups manually to find tokens in deeply nested structures, with no 'zoom into group' shortcut or breadcrumb trail for the current position."
   - "Pain point 5: The token row itself shows minimal information — name and a small value swatch. Type, alias status, generator ownership, and usage count require opening the detail panel, making bulk scanning of token properties slow."
   - "Goal: Research and propose improvements to the token library view that make browsing, searching, filtering, and inspecting tokens faster and more intuitive for designers working with large token collections. Focus on information density in the tree, filter discoverability, search result context, and reducing clicks to understand a token."
-state: ready
+  - "Completed: Delivered a research audit, captured a reusable filtered-tree pattern, and queued follow-up implementation items for row summaries, filter discovery, hierarchy-preserving search, and deep-branch navigation."
+state: done
 acceptance_criteria:
   - Research deliverable audits the current token list row, preview panel, and search/filter system for information density and interaction cost
   - Proposes improvements to token row rendering that surface key properties (type, alias status, value preview, generator ownership) without requiring the detail panel
@@ -30,4 +31,4 @@ acceptance_criteria:
   - Proposes navigation improvements for deep hierarchies (breadcrumbs, zoom-to-group, or structural shortcuts) that reduce manual expand/collapse overhead
 source: product-pass
 created_at: 2026-04-13T00:00:00.000Z
-updated_at: 2026-04-13T00:00:00.000Z
+updated_at: 2026-04-12T23:32:34.577Z
