@@ -803,7 +803,7 @@ export const ThemeAuthoringScreen = forwardRef<
                         ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
                         : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/35 hover:text-[var(--color-figma-text)]"
                     }`}
-                    title="Open review and advanced theme tools"
+                    title="Open Coverage, Compare, and advanced theme views"
                   >
                     <svg
                       width="10"
@@ -826,7 +826,7 @@ export const ThemeAuthoringScreen = forwardRef<
                       <line x1="9" y1="8" x2="15" y2="8" />
                       <line x1="17" y1="16" x2="23" y2="16" />
                     </svg>
-                    <span>Review tools</span>
+                    <span>Coverage & Compare</span>
                   </button>
 
                   {secondaryToolsOpen && (

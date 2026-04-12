@@ -1495,3 +1495,10 @@
   - When a resolver becomes the canonical multi-context source of truth, store Figma publish routing on the resolver file itself and generate token-level collection/mode targets from resolved context combinations instead of trying to mirror that structure through per-set metadata.
   - Resolver-driven publish can ship independently of the legacy per-set compare flow, but preflight and compare should eventually read the same saved resolver mappings so review surfaces stay aligned with the apply path.
 ---
+## 2026-04-12 - Rename 'Review tools' to signal navigation to Coverage and Compare views in ThemeAuthoringScreen
+- Renamed the secondary workflow trigger from `Review tools` to `Coverage & Compare` and updated its hover title so the button reads like the navigation entry point for coverage review and compare flows instead of a generic utility menu.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx` ~L804, `packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx` ~L829
+- **Learnings for future iterations:**
+  - When a dropdown is the only route into secondary workflow views, its trigger label should name the primary destinations instead of describing the control as generic "tools".
+---

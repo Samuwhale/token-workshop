@@ -70,7 +70,7 @@
 - [x] [HIGH] Centralize set-dependency snapshots for structural set operations so preflight and execution stop drifting
 - [x] [HIGH] BatchEditor move and rename operations leave stale selection, breaking subsequent batch actions
 - [x] [HIGH] Centralize token structural mutation commands so rename/move/copy flows stop duplicating snapshots, rollback, and generator updates
-- [ ] [HIGH] Connect resolver contexts to publish configuration so theme dimension combinations map directly to Figma variable modes
+- [x] [HIGH] Connect resolver contexts to publish configuration so theme dimension combinations map directly to Figma variable modes
 - [ ] [HIGH] Rename 'Review tools' to signal navigation to Coverage and Compare views in ThemeAuthoringScreen
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
