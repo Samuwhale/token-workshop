@@ -1722,3 +1722,10 @@
   - Shell hierarchy stays maintainable when navigation metadata provides both breadcrumb labels and fuller screen titles; the shell can then compose headers without route-specific strings.
   - Contextual sections benefit from a small in-rail marker instead of sharing the same visual treatment as top-level workspace tabs.
 ---
+## 2026-04-13 - Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks
+- stale — already done. Verified the prior research entry already maps the routing model, names the abstraction leaks, and records the follow-up implementation items that were completed as separate backlog tasks (`differentiate-workspace-section-and-contextual-s-4c4ead27`, `add-a-shared-cross-workspace-handoff-contract-wi-a89f323e`, `surface-the-tokens-to-themes-to-apply-to-sync-wo-5cc2d945`, `reposition-import-sets-notifications-shortcuts-a-669b3904`).
+- Files changed: `scripts/backlog/progress.txt` ~L1750
+- **Learnings for future iterations:**
+  - Before re-running a research backlog item, check `scripts/backlog/progress.txt` and `backlog/tasks/done/` together; this navigation investigation had already been decomposed into finished implementation tasks even though the original research spec remained present in `backlog/tasks/`.
+  - The current navigation sources live in `packages/figma-plugin/src/ui/shared/navigationTypes.ts`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`, and `packages/figma-plugin/src/ui/contexts/NavigationContext.tsx`; legacy touch paths like `AppShell.tsx`, `useWorkspaceRouter.ts`, and `WorkspaceTabBar.tsx` are stale.
+---

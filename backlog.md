@@ -79,7 +79,7 @@
 - [x] [HIGH] Differentiate workspace, section, and contextual-screen depth in the plugin shell
 - [x] [HIGH] Add a shared cross-workspace handoff contract with breadcrumbs and return paths
 - [x] [HIGH] Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
-- [ ] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy
+- [x] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy
 - [ ] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks
 - [ ] [HIGH] Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction
 - [ ] [HIGH] Improve token generation flows so designers can create and manage generators through intent-based discovery, clearer configuration, and visible output relationships
