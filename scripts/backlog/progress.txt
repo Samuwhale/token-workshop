@@ -1350,3 +1350,9 @@
   - When alias tokens are conceptually downstream output of a generator, they need persisted generator metadata and generator-owned provenance tags; client-only post-save token creation cannot support coherent reruns, deletes, or rollback.
   - Generator operation snapshots need to include every derived token surface, not just the raw target group, once a generator is allowed to write semantic aliases outside its scale prefix.
 ---
+## 2026-04-12 - Remove 'Step N' numbering from SelectionInspector panel sections — they are parallel information areas, not sequential workflow stages
+- Removed the `Step 1` / `Step 2` / `Step 3` labels from the SelectionInspector summary, suggestions, and bindings section headers so the panel reads as parallel information areas while keeping the existing section refs and titles intact.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L864, ~L905, ~L956
+- **Learnings for future iterations:**
+  - When shell-owned workflow stages coexist with always-visible panel sections, keep numbering in the shell chrome only; repeating it inside the panel implies gating even when section refs still support direct jumps.
+---

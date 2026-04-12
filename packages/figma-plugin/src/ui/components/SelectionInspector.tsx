@@ -861,9 +861,6 @@ export function SelectionInspector({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                  Step 1
-                </p>
                 <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">
                   Selected layer summary
                 </p>
@@ -905,9 +902,6 @@ export function SelectionInspector({
             className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden"
           >
             <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                Step 2
-              </p>
               <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">
                 Best-match suggestions
               </p>
@@ -959,9 +953,6 @@ export function SelectionInspector({
             className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden"
           >
             <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                Step 3
-              </p>
               <p className="text-[10px] font-semibold text-[var(--color-figma-text)]">
                 Bind visible properties
               </p>
