@@ -65,6 +65,7 @@
 - [x] [HIGH] Rename 'Filters' sub-section in View options popover to avoid naming collision with 'Add filter' toolbar button
 - [x] [HIGH] Replace ad hoc `/api/tokens` writes with one shared token-mutation path so path encoding and overwrite behavior stop drifting
 - [ ] [HIGH] Add alias-opportunity detection and bulk promote-to-alias workflow to the health audit surface
+- [ ] [HIGH] Remove 'Step N' numbering from SelectionInspector panel sections — they are parallel information areas, not sequential workflow stages
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -140,6 +141,8 @@
 - [x] Finish decomposing App shell orchestration and the PanelRouter prop bag into workspace-owned controllers
 - [x] Derive Sync preflight, compare rows, and preflight actions from one shared token-vs-Figma snapshot model
 - [ ] Unify generator-scale authoring and semantic token mapping into one token-system workflow instead of two disconnected features
+- [ ] Strip inline description paragraphs from HistoryPanel recovery section and subsection headers — titles and structure already orient the user
+- [ ] Rename 'Audit breakdown' accordion in HealthPanel to 'By category' to distinguish it from the 'Priority issues' flat list above it
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient
