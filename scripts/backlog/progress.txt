@@ -1416,3 +1416,11 @@
   - When a shell still needs to drive focus into a view-owned surface, expose a tiny imperative screen handle instead of keeping the DOM refs in the shell just for scroll targeting.
   - Authoring-only toolbar/filter/preview state can reset safely with the screen lifecycle once cross-view navigation keeps only the durable context in the parent manager.
 ---
+---
+- Extracted the authoring workspace into `ThemeAuthoringScreen`, moved the authoring-only refs/search state/review-tools menu/preview chrome into that screen, and rewired `ThemeManager` to talk to it through a small imperative screen handle for scroll-and-focus flows.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed. `pnpm --filter @tokenmanager/figma-plugin exec tsc --noEmit --pretty false 2>&1 | rg "ThemeAuthoringScreen|ThemeManager.tsx"` now only reports the existing `packages/core/dist` bootstrap gap (`TS6305`) for these files.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L224, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1559, `packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx` ~L35, `packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx` ~L228
+- **Learnings for future iterations:**
+  - When a shell still needs to drive focus into a view-owned surface, expose a tiny imperative screen handle instead of keeping the DOM refs in the shell just for scroll targeting.
+  - Authoring-only toolbar/filter/preview state can reset safely with the screen lifecycle once cross-view navigation keeps only the durable context in the parent manager.
+---

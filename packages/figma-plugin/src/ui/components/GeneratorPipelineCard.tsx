@@ -1508,61 +1508,61 @@ export function GeneratorPipelineCard({
           {stepCount} tokens
         </span>
       </div>
-      <div className="mt-2 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Semantic layer
+      <div className="mt-2 flex items-start justify-between gap-3 border-t border-[var(--color-figma-border)]/60 pt-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+              Semantic layer
+            </span>
+            {semanticAliasCount > 0 ? (
+              <span className="text-[9px] px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/20">
+                {semanticAliasCount} alias
+                {semanticAliasCount === 1 ? "" : "es"}
               </span>
-              {semanticAliasCount > 0 ? (
-                <span className="text-[9px] px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/20">
-                  {semanticAliasCount} alias
-                  {semanticAliasCount === 1 ? "" : "es"}
-                </span>
-              ) : (
-                <span className="text-[9px] px-1 py-px rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
-                  Not defined
-                </span>
-              )}
-            </div>
+            ) : (
+              <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                Optional
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
             <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
               {semanticAliasCount > 0
                 ? `${generator.semanticLayer?.prefix}.* maps semantic roles onto ${generator.targetGroup}.*`
                 : "Attach semantic aliases so this scale and its role tokens stay in one generator workflow."}
             </p>
-          </div>
-          <button
-            onClick={handleOpenSemanticDialog}
-            disabled={semanticDialogLoading}
-            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
-          >
-            {semanticDialogLoading
-              ? "Loading…"
-              : semanticAliasCount > 0
-                ? "Edit layer"
-                : "Add layer"}
-          </button>
-        </div>
-        {semanticAliasCount > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {generator.semanticLayer?.mappings
-              .slice(0, 3)
-              .map((mapping) => (
-                <span
-                  key={mapping.semantic}
-                  className="text-[9px] px-1.5 py-px rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] font-mono"
-                >
-                  {generator.semanticLayer?.prefix}.{mapping.semantic}
-                </span>
-              ))}
-            {semanticAliasCount > 3 && (
-              <span className="text-[9px] px-1.5 py-px rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]">
-                +{semanticAliasCount - 3} more
-              </span>
+            {semanticAliasCount > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {generator.semanticLayer?.mappings
+                  .slice(0, 3)
+                  .map((mapping) => (
+                    <span
+                      key={mapping.semantic}
+                      className="text-[9px] px-1.5 py-px rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] font-mono"
+                    >
+                      {generator.semanticLayer?.prefix}.{mapping.semantic}
+                    </span>
+                  ))}
+                {semanticAliasCount > 3 && (
+                  <span className="text-[9px] px-1.5 py-px rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]">
+                    +{semanticAliasCount - 3} more
+                  </span>
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
+        <button
+          onClick={handleOpenSemanticDialog}
+          disabled={semanticDialogLoading}
+          className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+        >
+          {semanticDialogLoading
+            ? "Loading…"
+            : semanticAliasCount > 0
+              ? "Edit layer"
+              : "Add layer"}
+        </button>
       </div>
       <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">

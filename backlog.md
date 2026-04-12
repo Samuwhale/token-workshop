@@ -147,7 +147,7 @@
 - [x] Rename 'Audit breakdown' accordion in HealthPanel to 'By category' to distinguish it from the 'Priority issues' flat list above it
 - [x] Move ThemeManager authoring body into its own screen module
 - [ ] GeneratorPipelineCard: semantic layer section uses same card styling as primary config, making optional feature visually equal to required output
-- [ ] ThemeAuthoringScreen review-tools menu opens with a meta-description paragraph before its action list
+- [x] ThemeAuthoringScreen review-tools menu opens with a meta-description paragraph before its action list
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

@@ -9,11 +9,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Minimalism / chrome discipline: the menu's fixed header block (lines 848-856) contains a 2-line prose description explaining the design philosophy for the menu before users can see the options. This is instructional chrome — it teaches the UX rationale rather than labeling what the menu contains. Users must scroll past it to reach the actions. The button label 'Review tools' already sets the context."
-state: ready
+  - "Completed: Removed the review-tools menu header copy so the popover opens directly to its grouped actions; plugin build passed."
+state: done
 acceptance_criteria:
   - The 'Theme review tools' header section (lines 848-856) no longer includes the explanatory paragraph ('Keep authoring focused on axes…')
   - The menu opens directly to its grouped action list
   - The button label 'Review tools' is sufficient orientation; no explanatory preamble is needed
 source: interface-pass
 created_at: 2026-04-12T19:09:17.529Z
-updated_at: 2026-04-12T19:09:17.529Z
+updated_at: 2026-04-12T19:10:25.847Z
