@@ -632,6 +632,32 @@ export function flattenLeafNodes(nodes: TokenNode[]): TokenNode[] {
   return result;
 }
 
+export interface FlatLeafNodeWithAncestors {
+  node: TokenNode;
+  ancestors: Array<{ name: string; path: string }>;
+}
+
+export function flattenLeafNodesWithAncestors(
+  nodes: TokenNode[],
+): FlatLeafNodeWithAncestors[] {
+  const result: FlatLeafNodeWithAncestors[] = [];
+  const walk = (
+    list: TokenNode[],
+    ancestors: Array<{ name: string; path: string }>,
+  ) => {
+    for (const node of list) {
+      if (!node.isGroup) {
+        result.push({ node, ancestors });
+        continue;
+      }
+      if (!node.children) continue;
+      walk(node.children, [...ancestors, { name: node.name, path: node.path }]);
+    }
+  };
+  walk(nodes, []);
+  return result;
+}
+
 export function findLeafByPath(nodes: TokenNode[], path: string): TokenNode | null {
   for (const node of nodes) {
     if (!node.isGroup && node.path === path) return node;

@@ -81,7 +81,7 @@
 - [x] [HIGH] Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
 - [x] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy
 - [x] [HIGH] Redesign token tree rows for fast library scanning
-- [ ] [HIGH] Promote the token filter builder into the primary search discovery flow
+- [x] [HIGH] Promote the token filter builder into the primary search discovery flow
 - [ ] [HIGH] Preserve hierarchy context in filtered token results
 - [x] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks
 - [x] [HIGH] Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction

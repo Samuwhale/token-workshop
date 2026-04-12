@@ -12,11 +12,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: Current filtering logic is strong but discoverability is syntax-first. Reuse the existing builder-over-query helpers instead of introducing parallel filter state."
-state: ready
+  - "Completed: Added a labeled Filters entry point plus inline structured-filter suggestions for empty and early queries, while keeping all builder actions synced through the raw search string."
+state: done
 acceptance_criteria:
   - The token search toolbar exposes a labeled filter entry point instead of relying on the current icon-only affordance and colon autocomplete.
   - Empty-query and early-query states suggest common structured filters without requiring users to memorize qualifier syntax.
   - Builder interactions continue to write back into the raw query string so manual query editing still works.
 source: task-followup
 created_at: 2026-04-12T23:28:46.704Z
-updated_at: 2026-04-12T23:28:46.704Z
+updated_at: 2026-04-12T23:43:44.552Z

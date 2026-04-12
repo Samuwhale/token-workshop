@@ -12,6 +12,7 @@ export interface FilterPreset {
 }
 import {
   flattenLeafNodes, filterTokenNodes, filterByDuplicatePaths,
+  collectAllGroupPaths, flattenLeafNodesWithAncestors,
   findGroupByPath, parseStructuredQuery, QUERY_QUALIFIERS,
   getActiveQueryToken, getQualifierDefinitionForToken, getQueryQualifierValues,
   normalizeHasQualifier, removeQueryQualifierValues, setQueryQualifierValues,
@@ -479,6 +480,11 @@ export function useTokenSearch({
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
+  const displayedGroupPaths = useMemo(() => collectAllGroupPaths(displayedTokens), [displayedTokens]);
+  const displayedLeafNodesWithAncestors = useMemo(
+    () => flattenLeafNodesWithAncestors(displayedTokens),
+    [displayedTokens],
+  );
 
   return {
     // State
@@ -550,5 +556,7 @@ export function useTokenSearch({
     searchTooltip,
     displayedTokens,
     displayedLeafNodes,
+    displayedGroupPaths,
+    displayedLeafNodesWithAncestors,
   };
 }

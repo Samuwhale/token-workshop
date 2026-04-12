@@ -20,6 +20,7 @@ export interface UseTokenVirtualScrollParams {
   itemOffsetsRef: React.MutableRefObject<number[]>;
   scrollAnchorPathRef: React.MutableRefObject<string | null>;
   isFilterChangeRef: React.MutableRefObject<boolean>;
+  flatItemsOverride?: Array<{ node: TokenNode; depth: number }> | null;
 }
 
 export function useTokenVirtualScroll({
@@ -37,6 +38,7 @@ export function useTokenVirtualScroll({
   itemOffsetsRef,
   scrollAnchorPathRef,
   isFilterChangeRef,
+  flatItemsOverride = null,
 }: UseTokenVirtualScrollParams) {
   const [virtualScrollTop, setVirtualScrollTop] = useState(0);
 
@@ -48,10 +50,11 @@ export function useTokenVirtualScroll({
   const flatItems = useMemo(() => {
     if (viewMode !== 'tree') return [];
     if (recentlyTouched.paths.size > 0 && (displayedTokens as TokenNode[]).length === 0) return [];
+    if (flatItemsOverride) return flatItemsOverride;
     // Check if we're in "recently touched" mode by checking the recentlyTouched special rendering path
     // This is controlled outside, so we just flatten normally
     return flattenVisible(displayedTokens, expandedPaths);
-  }, [displayedTokens, expandedPaths, viewMode, recentlyTouched.paths]);
+  }, [displayedTokens, expandedPaths, flatItemsOverride, viewMode, recentlyTouched.paths]);
 
   const CHAIN_STEP_HEIGHT = 18;
   // Cumulative row offsets for variable-height virtual scroll.

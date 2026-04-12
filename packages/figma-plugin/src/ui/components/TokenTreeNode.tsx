@@ -1964,6 +1964,7 @@ const TokenGroupNode = memo(
       prev.lintViolations === next.lintViolations &&
       prev.skipChildren === next.skipChildren &&
       prev.showFullPath === next.showFullPath &&
+      prev.ancestorPathLabel === next.ancestorPathLabel &&
       prev.isPinned === next.isPinned &&
       prev.chainExpanded === next.chainExpanded &&
       prev.onMoveUp === next.onMoveUp &&
@@ -1985,6 +1986,7 @@ const TokenLeafNode = memo(
       lintViolations = [],
       skipChildren,
       showFullPath,
+      ancestorPathLabel,
       isPinned: _isPinned,
       chainExpanded: chainExpandedProp = false,
       onMoveUp: _onMoveUp,
@@ -3208,17 +3210,41 @@ const TokenLeafNode = memo(
                   )}
                 </div>
               ) : (
-                <span
-                  className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-figma-text)]"
-                  title={formatDisplayPath(node.path, node.name)}
-                >
-                  {highlightMatch(
-                    showFullPath
-                      ? formatDisplayPath(node.path, node.name)
-                      : node.name,
-                    searchHighlight?.nameTerms ?? [],
+                <>
+                  {ancestorPathLabel && (
+                    <span
+                      className="inline-flex max-w-[160px] shrink-0 items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]"
+                      title={`In ${ancestorPathLabel}`}
+                    >
+                      <svg
+                        width="8"
+                        height="8"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        className="shrink-0 opacity-70"
+                      >
+                        <path d="M3 7h6l2 2h10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                      </svg>
+                      <span className="truncate">{ancestorPathLabel}</span>
+                    </span>
                   )}
-                </span>
+                  <span
+                    className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-figma-text)]"
+                    title={formatDisplayPath(node.path, node.name)}
+                  >
+                    {highlightMatch(
+                      showFullPath
+                        ? formatDisplayPath(node.path, node.name)
+                        : node.name,
+                      searchHighlight?.nameTerms ?? [],
+                    )}
+                  </span>
+                </>
               )}
               {node.$type && (
                 <button

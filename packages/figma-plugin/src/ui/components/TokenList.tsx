@@ -139,6 +139,14 @@ type PendingBulkPresetLaunch = {
   query: string;
 };
 
+type SearchResultPresentation = "grouped" | "flat";
+
+type VisibleTokenRow = {
+  node: TokenNode;
+  depth: number;
+  ancestorPathLabel?: string;
+};
+
 type BatchEditorFocusTarget = "find-path";
 
 function SelectModeOverflowMenu({
@@ -1200,6 +1208,11 @@ export function TokenList({
     handleCollapseAll,
     handleToggleChain,
   } = tokenExpansion;
+  const expandedPathsRef = useRef(expandedPaths);
+
+  useEffect(() => {
+    expandedPathsRef.current = expandedPaths;
+  }, [expandedPaths]);
 
   // Compute lintPaths here so we can pass it to useTokenSearch
   const lintPaths = useMemo(() => {
@@ -1301,7 +1314,28 @@ export function TokenList({
     searchTooltip,
     displayedTokens,
     displayedLeafNodes,
+    displayedGroupPaths,
+    displayedLeafNodesWithAncestors,
   } = tokenSearch;
+
+  const [searchResultPresentation, setSearchResultPresentation] =
+    useState<SearchResultPresentation>("grouped");
+  const canToggleSearchResultPresentation =
+    viewMode === "tree" && filtersActive && !showRecentlyTouched;
+  const showFlatSearchResults =
+    canToggleSearchResultPresentation &&
+    searchResultPresentation === "flat" &&
+    !crossSetSearch;
+  const searchExpansionRestoreRef = useRef<Set<string> | null>(null);
+  const flatSearchRows = useMemo<VisibleTokenRow[]>(
+    () =>
+      displayedLeafNodesWithAncestors.map(({ node, ancestors }) => ({
+        node,
+        depth: 0,
+        ancestorPathLabel: ancestors.map((ancestor) => ancestor.name).join(" › "),
+      })),
+    [displayedLeafNodesWithAncestors],
+  );
 
   const viewOptionsActiveCount = useMemo(() => {
     let count = activeFilterCount;
@@ -1311,6 +1345,7 @@ export function TokenList({
     if (multiModeEnabled) count += 1;
     if (condensedView) count += 1;
     if (showPreviewSplit) count += 1;
+    if (showFlatSearchResults) count += 1;
     return count;
   }, [
     activeFilterCount,
@@ -1318,6 +1353,7 @@ export function TokenList({
     crossSetSearch,
     inspectMode,
     multiModeEnabled,
+    showFlatSearchResults,
     showPreviewSplit,
     sortOrder,
   ]);
@@ -1368,11 +1404,13 @@ export function TokenList({
     }
     if (condensedView) items.push("Condensed");
     if (showPreviewSplit) items.push(TOKENS_LIBRARY_SPLIT_PREVIEW_LABEL);
+    if (showFlatSearchResults) items.push("Flat results");
     return items;
   }, [
     condensedView,
     multiModeDimensionName,
     multiModeEnabled,
+    showFlatSearchResults,
     showPreviewSplit,
   ]);
 
@@ -1629,9 +1667,52 @@ export function TokenList({
     }
   }, [sortedTokens, zoomRootPath]);
 
+  useLayoutEffect(() => {
+    if (viewMode !== "tree" || showRecentlyTouched || !filtersActive) return;
+    if (searchExpansionRestoreRef.current === null) {
+      searchExpansionRestoreRef.current = new Set(expandedPathsRef.current);
+    }
+    if (displayedGroupPaths.length === 0) return;
+    setExpandedPaths((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const path of displayedGroupPaths) {
+        if (next.has(path)) continue;
+        next.add(path);
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [
+    displayedGroupPaths,
+    filtersActive,
+    setExpandedPaths,
+    showRecentlyTouched,
+    viewMode,
+  ]);
+
+  useLayoutEffect(() => {
+    if (viewMode !== "tree" || showRecentlyTouched || filtersActive) return;
+    if (searchExpansionRestoreRef.current === null) return;
+    const restore = searchExpansionRestoreRef.current;
+    searchExpansionRestoreRef.current = null;
+    const isSameSize = restore.size === expandedPaths.size;
+    const hasSameEntries =
+      isSameSize &&
+      [...restore].every((path) => expandedPaths.has(path));
+    if (hasSameEntries) return;
+    setExpandedPaths(new Set(restore));
+  }, [
+    expandedPaths,
+    filtersActive,
+    setExpandedPaths,
+    showRecentlyTouched,
+    viewMode,
+  ]);
+
   // Phase 3: useTokenVirtualScroll (needs displayedTokens from useTokenSearch)
   // Note: showRecentlyTouched special-case for flatItems is handled here
-  const flatItemsForScroll = useMemo(() => {
+  const flatItemsForScroll = useMemo<VisibleTokenRow[]>(() => {
     if (viewMode !== "tree") return [];
     if (showRecentlyTouched) {
       const leaves = flattenLeafNodes(displayedTokens);
@@ -1642,18 +1723,22 @@ export function TokenList({
       );
       return leaves.map((node) => ({ node, depth: 0 }));
     }
+    if (showFlatSearchResults) {
+      return flatSearchRows;
+    }
     return flattenVisible(displayedTokens, expandedPaths);
   }, [
     displayedTokens,
     expandedPaths,
+    flatSearchRows,
     viewMode,
     showRecentlyTouched,
+    showFlatSearchResults,
     recentlyTouched.timestamps,
   ]);
 
   const tokenVirtualScroll = useTokenVirtualScroll({
-    displayedTokens:
-      flatItemsForScroll.length === 0 ? displayedTokens : displayedTokens,
+    displayedTokens,
     expandedPaths,
     expandedChains,
     rowHeight,
@@ -1667,6 +1752,7 @@ export function TokenList({
     itemOffsetsRef,
     scrollAnchorPathRef,
     isFilterChangeRef,
+    flatItemsOverride: flatItemsForScroll,
   });
   // Override flatItems from the hook with our special recency-sorted version
   const flatItems = flatItemsForScroll;
@@ -4386,6 +4472,13 @@ export function TokenList({
                     hasDimensions={dimensions.length > 0}
                     showPreviewSplit={showPreviewSplit}
                     onTogglePreviewSplit={onTogglePreviewSplit}
+                    canToggleSearchResultPresentation={
+                      canToggleSearchResultPresentation && !crossSetSearch
+                    }
+                    searchResultPresentation={searchResultPresentation}
+                    onSearchResultPresentationChange={
+                      setSearchResultPresentation
+                    }
                     showIssuesOnly={showIssuesOnly ?? false}
                     onToggleIssuesOnly={onToggleIssuesOnly}
                     lintCount={lintViolations.length}
@@ -5311,7 +5404,7 @@ export function TokenList({
                     </span>
                   ))}
                 </div>
-              ) : breadcrumbSegments.length > 0 ? (
+              ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
                 <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] group/breadcrumb">
                   <svg
                     width="10"
@@ -5378,7 +5471,7 @@ export function TokenList({
               <div style={{ height: virtualTopPad }} aria-hidden="true" />
               {flatItems
                 .slice(virtualStartIdx, virtualEndIdx)
-                .map(({ node, depth }) => {
+                .map(({ node, depth, ancestorPathLabel }) => {
                   const moveEnabled = sortOrder === "default" && connected;
                   const parentPath = moveEnabled
                     ? (nodeParentPath(node.path, node.name) ?? "")
@@ -5401,6 +5494,7 @@ export function TokenList({
                         EMPTY_LINT_VIOLATIONS
                       }
                       chainExpanded={expandedChains.has(node.path)}
+                      ancestorPathLabel={ancestorPathLabel}
                       showFullPath={showRecentlyTouched}
                       onMoveUp={
                         moveEnabled && sibIdx > 0

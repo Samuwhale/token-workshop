@@ -504,6 +504,7 @@ export interface TokenTreeNodeProps {
   lintViolations?: LintViolation[];
   skipChildren?: boolean;
   showFullPath?: boolean;
+  ancestorPathLabel?: string;
   isPinned?: boolean;
   chainExpanded?: boolean;
   onMoveUp?: () => void;

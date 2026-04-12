@@ -19,6 +19,11 @@ export interface TokenListOverflowMenuProps {
   hasDimensions: boolean;
   showPreviewSplit: boolean;
   onTogglePreviewSplit?: () => void;
+  canToggleSearchResultPresentation: boolean;
+  searchResultPresentation: "grouped" | "flat";
+  onSearchResultPresentationChange: (
+    presentation: "grouped" | "flat",
+  ) => void;
 
   // Filter
   showIssuesOnly: boolean;
@@ -275,6 +280,25 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
                 runAndClose(() => props.onTogglePreviewSplit?.())
               }
             />
+            {props.canToggleSearchResultPresentation && (
+              <MenuItem
+                label={
+                  props.searchResultPresentation === "grouped"
+                    ? "Search results: Grouped"
+                    : "Search results: Flat"
+                }
+                checked={props.searchResultPresentation === "flat"}
+                onClick={() =>
+                  runAndClose(() =>
+                    props.onSearchResultPresentationChange(
+                      props.searchResultPresentation === "grouped"
+                        ? "flat"
+                        : "grouped",
+                    ),
+                  )
+                }
+              />
+            )}
 
             {/* ── Filter ── */}
             <div className={MENU_SECTION_BORDER}>
