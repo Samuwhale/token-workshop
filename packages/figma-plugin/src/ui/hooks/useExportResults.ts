@@ -54,6 +54,12 @@ const PLATFORM_FOLDERS: Record<string, string> = {
   tailwind: 'tailwind', 'css-in-js': 'css-in-js',
 };
 
+function getNoChangedTokensMessage(isGitRepo: boolean | undefined, lastExportTimestamp: number | null) {
+  return isGitRepo === false && lastExportTimestamp !== null
+    ? `No changed tokens found since ${new Date(lastExportTimestamp).toLocaleString()}.`
+    : 'No changed tokens found. All tokens are up to date since the last commit.';
+}
+
 export function useExportResults({
   connected,
   serverUrl,
@@ -82,9 +88,13 @@ export function useExportResults({
 
   const handleExport = async (showModal = false) => {
     if (selected.size === 0 || !connected) return;
+    if (changesOnly && diffPaths !== null && diffPaths.length === 0) {
+      setError(getNoChangedTokensMessage(isGitRepo, lastExportTimestamp));
+      return;
+    }
+
     setExporting(true);
     setError(null);
-    setResults([]);
 
     try {
       let resolvedDiffPaths: string[] | undefined;
@@ -132,15 +142,14 @@ export function useExportResults({
           }
         }
         if (paths.length === 0) {
-          const sinceMsg = isGitRepo === false && lastExportTimestamp !== null
-            ? `No changed tokens found since ${new Date(lastExportTimestamp).toLocaleString()}.`
-            : 'No changed tokens found. All tokens are up to date since the last commit.';
-          setError(sinceMsg);
+          setError(getNoChangedTokensMessage(isGitRepo, lastExportTimestamp));
           setExporting(false);
           return;
         }
         resolvedDiffPaths = paths;
       }
+
+      setResults([]);
 
       const body: {
         platforms: string[];

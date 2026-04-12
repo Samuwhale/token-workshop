@@ -50,6 +50,13 @@ export function ExportFooter({
   selectedExportMode, setSelectedExportMode, savePerMode, setSavePerMode,
   handleExportFigmaVariables, handleCopyAll, handlePreviewSave,
 }: ExportFooterProps) {
+  const hasResolvedZeroChanges = changesOnly && diffPaths !== null && !diffLoading && diffPaths.length === 0;
+  const exportDisabled = selected.size === 0
+    || (selectedSets !== null && selectedSets.size === 0)
+    || exporting
+    || (changesOnly && isGitRepo === false)
+    || hasResolvedZeroChanges;
+
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
       {/* Changes-only toggle pill */}
@@ -194,16 +201,20 @@ export function ExportFooter({
           </div>
           <button
             onClick={() => handleExport(true)}
-            disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting}
+            disabled={exportDisabled}
             className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
-            title="Re-fetch tokens from the server and regenerate all platform files"
+            title={hasResolvedZeroChanges
+              ? 'No changed tokens to export'
+              : 'Re-fetch tokens from the server and regenerate all platform files'}
           >
             {exporting ? (
               <>
                 <Spinner />
                 Exporting…
               </>
-            ) : 'Re-export'}
+            ) : hasResolvedZeroChanges
+              ? 'Re-export 0 Changed Tokens'
+              : 'Re-export'}
           </button>
         </>
       )}
@@ -224,7 +235,7 @@ export function ExportFooter({
           )}
           <button
             onClick={() => handleExport(true)}
-            disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting || (changesOnly && isGitRepo === false)}
+            disabled={exportDisabled}
             className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
           >
             {exporting ? (
@@ -238,6 +249,8 @@ export function ExportFooter({
               ? 'Select at least one set'
               : changesOnly && isGitRepo === false
               ? 'Changes only — requires git'
+              : hasResolvedZeroChanges
+              ? `Export 0 Changed Tokens · ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`
               : changesOnly && diffPaths !== null && diffPaths.length > 0
               ? `Export ${diffPaths.length} Changed Token${diffPaths.length !== 1 ? 's' : ''} · ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`
               : selectedSets !== null
@@ -257,6 +270,11 @@ export function ExportFooter({
           {changesOnly && isGitRepo === false && (
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center leading-tight">
               Changes-only without git requires a baseline — open Scope above to set one.
+            </p>
+          )}
+          {hasResolvedZeroChanges && isGitRepo !== false && (
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center leading-tight">
+              No uncommitted token changes to export right now.
             </p>
           )}
         </>

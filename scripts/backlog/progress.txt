@@ -1530,3 +1530,12 @@
   - Export button label says "Changes only — requires git" when non-git path actually requires a baseline, not git itself: misleading label, but the adjacent guidance text ("No baseline set — open Scope to configure") is correct and actionable. The button IS correctly disabled in this state. Interface-pass label issue, not a task-flow dead-end.
 - Notable: The export changes-only flow has an asymmetry: the non-git baseline path correctly disables the Export button and shows guidance when no changes exist, but the git path leaves the button enabled with a generic label when diffPaths resolves to an empty array, causing the user to click into an immediate error at useExportResults.ts:134-140.
 ---
+## 2026-04-12 - Export button stays enabled with changes-only active and zero changes in a git repo, leading to a click-then-error dead end
+- Disabled export actions in the footer when changes-only is already resolved to zero changed tokens, updated the button copy to surface the `0 changed tokens` state, and added matching empty-state guidance so the footer no longer looks ready to export when git has nothing to send.
+- Kept existing export results intact when a no-change export is attempted by moving the result reset to the point where an actual export request begins and reusing one shared no-changes message for early exits.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportFooter.tsx` ~L53, `packages/figma-plugin/src/ui/components/ExportFooter.tsx` ~L202, `packages/figma-plugin/src/ui/components/ExportFooter.tsx` ~L236, `packages/figma-plugin/src/ui/hooks/useExportResults.ts` ~L57, `packages/figma-plugin/src/ui/hooks/useExportResults.ts` ~L89, `packages/figma-plugin/src/ui/hooks/useExportResults.ts` ~L152
+- **Learnings for future iterations:**
+  - If a changes-only diff resolves before export starts, treat the zero-change state as a first-class CTA state in the footer instead of letting the action fall through to a generic export label.
+  - Guard no-op export attempts before clearing preview state so users do not lose the last successful export just because the latest diff came back empty.
+---
