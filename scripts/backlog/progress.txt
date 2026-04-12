@@ -1356,3 +1356,10 @@
 - **Learnings for future iterations:**
   - When shell-owned workflow stages coexist with always-visible panel sections, keep numbering in the shell chrome only; repeating it inside the panel implies gating even when section refs still support direct jumps.
 ---
+## 2026-04-12 - Strip inline description paragraphs from HistoryPanel recovery section and subsection headers — titles and structure already orient the user
+- Removed the inline recovery copy from `RecoverySection` and `RecoverySubsection`, then deleted the now-unused description props from the recovery panel call sites so the scan path runs directly from headers into the entry rows.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/HistoryPanel.tsx` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L39, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L70, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L489, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L642, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L732
+- **Learnings for future iterations:**
+  - When a panel already has a clear hierarchy and type labels, header-level helper paragraphs add noise faster than they add orientation; remove the copy at the shared wrapper component so every section stays consistent.
+---

@@ -9,11 +9,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Hierarchy and progressive disclosure: the three sections render simultaneously in a single scrollable panel but are labeled as sequential steps, implying the user must complete earlier steps before acting in later ones. A designer wanting to go straight to the binding section (their primary goal) is framed as skipping 'Step 1' rather than simply scrolling to the relevant area. Step numbering on concurrent sections mislabels parallel information as a gated workflow."
-state: ready
+  - "Completed: Removed the Step 1/2/3 labels from SelectionInspector section headers, kept the existing section titles and refs unchanged, and logged the work in scripts/backlog/progress.txt."
+state: done
 acceptance_criteria:
   - Section headers no longer display 'Step 1', 'Step 2', 'Step 3' labels
   - Each section retains its descriptive title ('Selected layer summary', 'Best-match suggestions', 'Bind visible properties')
   - Removing step numbers does not change the scroll anchoring or section ref behavior
 source: interface-pass
 created_at: 2026-04-12T18:04:20.550Z
-updated_at: 2026-04-12T18:04:20.550Z
+updated_at: 2026-04-12T18:14:07.552Z

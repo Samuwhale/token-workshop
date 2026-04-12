@@ -38,13 +38,11 @@ function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }
 
 function RecoverySection({
   title,
-  description,
   countLabel,
   action,
   children,
 }: {
   title: string;
-  description: string;
   countLabel?: string;
   action?: ReactNode;
   children: ReactNode;
@@ -61,7 +59,6 @@ function RecoverySection({
               </span>
             ) : null}
           </div>
-          <p className="mt-1 text-[10px] leading-tight text-[var(--color-figma-text-secondary)]">{description}</p>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
@@ -72,18 +69,15 @@ function RecoverySection({
 
 function RecoverySubsection({
   title,
-  description,
   children,
 }: {
   title: string;
-  description: string;
   children: ReactNode;
 }) {
   return (
     <div className="border-t border-[var(--color-figma-border)] first:border-t-0">
       <div className="px-3 py-2 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_42%,transparent)]">
         <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">{title}</p>
-        <p className="mt-0.5 text-[9px] leading-tight text-[var(--color-figma-text-tertiary)]">{description}</p>
       </div>
       {children}
     </div>
@@ -493,12 +487,10 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           <>
             <RecoverySection
               title="Undo recent edits"
-              description="Start here when you want to back out a recent mistake. Use session undo for work from this window, or rollback for saved edits that already reached the server."
               countLabel={`${filteredLocalEntries.length + filteredOperations.length} option${filteredLocalEntries.length + filteredOperations.length !== 1 ? 's' : ''}`}
             >
               <RecoverySubsection
                 title="This session"
-                description="Fastest option for mistakes from this open window. These entries disappear after a refresh."
               >
                 {filteredLocalEntries.length > 0 ? filteredLocalEntries.map(({ description, stepsToUndo }) => {
                   const isTop = stepsToUndo === 1;
@@ -548,7 +540,6 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
 
               <RecoverySubsection
                 title="Saved server edits"
-                description="Use rollback when an edit was already saved and you want to reverse that single change without affecting other work."
               >
                 {filteredOperations.length > 0 ? filteredOperations.map((op) => {
                   const isError = op.type.includes('error');
@@ -649,7 +640,6 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
 
             <RecoverySection
               title="Restore snapshot"
-              description="Use a named checkpoint when you want to restore the whole workspace to a known-safe state before or after a larger experiment."
               countLabel={`${filteredSnapshots.length} snapshot${filteredSnapshots.length !== 1 ? 's' : ''}`}
               action={showSaveInput ? (
                 <div className="flex items-center gap-1.5 min-w-0 max-w-[240px]">
@@ -740,7 +730,6 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
 
             <RecoverySection
               title="Return to git commit"
-              description="Open a git version when you want to inspect or recover from a specific saved revision. Compare two commits here before you restore from version control."
               countLabel={`${filteredCommits.length} commit${filteredCommits.length !== 1 ? 's' : ''}`}
               action={(
                 <button
