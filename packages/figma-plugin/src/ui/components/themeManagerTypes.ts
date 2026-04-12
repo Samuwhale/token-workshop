@@ -1,4 +1,10 @@
 import type { ThemeOption } from '@tokenmanager/core';
+export type {
+  ThemeCoverageMap as CoverageMap,
+  ThemeCoverageToken as CoverageToken,
+  ThemeMissingOverrideToken as MissingOverrideToken,
+  ThemeMissingOverridesMap as MissingOverridesMap,
+} from '@tokenmanager/core';
 
 // Shared types and constants for ThemeManager and its extracted hooks
 
@@ -18,36 +24,11 @@ export const STATE_DESCRIPTIONS: Record<ThemeRoleState, string> = {
   enabled: 'Highest priority — these tokens override Base set values',
 };
 
-export type CoverageToken = {
-  path: string;
-  set: string;
-  /** The first alias target that cannot be resolved in the active sets */
-  missingRef?: string;
-  /** A concrete value found in another set that can fill the gap */
-  fillValue?: unknown;
-  /** $type for the fill token */
-  fillType?: string;
-};
-
-export type CoverageMap = Record<string, Record<string, { uncovered: CoverageToken[] }>>;
-
 export type AutoFillPendingItem = { path: string; $value: unknown; $type?: string };
 
 export type AutoFillPreview =
   | { mode: 'single-option'; dimId: string; optionName: string; targetSet: string; tokens: AutoFillPendingItem[] }
   | { mode: 'all-options'; dimId: string; perSetBatch: Record<string, AutoFillPendingItem[]>; totalCount: number };
-
-/** A token that exists in a source set but has no counterpart in any enabled/override set */
-export type MissingOverrideToken = {
-  path: string;
-  /** Which source set this token lives in */
-  sourceSet: string;
-  value: unknown;
-  type?: string;
-};
-
-/** Maps dimId → optionName → list of tokens missing from override sets */
-export type MissingOverridesMap = Record<string, Record<string, { missing: MissingOverrideToken[] }>>;
 
 export type ThemeOptionRolePriority = 'unmapped' | 'stale-set' | 'empty-override' | 'coverage' | 'ready';
 

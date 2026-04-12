@@ -6,7 +6,6 @@ import type {
   ThemesFile,
   ThemeSetStatus,
 } from "@tokenmanager/core";
-import { flattenTokenGroup } from "@tokenmanager/core";
 import {
   handleRouteError,
   NotFoundError,
@@ -244,30 +243,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   _opts,
 ) => {
   const store = fastify.dimensionsStore;
-
-  // Coverage cache — invalidated when themes file or token sets change
-  let coverageCache: {
-    themeMtimeMs: number | null;
-    result: Record<
-      string,
-      Record<string, { uncovered: Array<{ path: string; set: string }> }>
-    >;
-  } | null = null;
-
-  const themesFilePath = store.filePath;
-  async function getThemeMtime(): Promise<number | null> {
-    try {
-      const stat = await fs.stat(themesFilePath);
-      return stat.mtimeMs;
-    } catch {
-      return null;
-    }
-  }
-
-  // Invalidate coverage cache when any token set changes
-  fastify.tokenStore.onChange(() => {
-    coverageCache = null;
-  });
 
   /**
    * Wrapper around store.withLock that also records an operation log entry.
@@ -680,94 +655,4 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     },
   );
 
-  // GET /api/themes/coverage — compute coverage gaps server-side (cached)
-  fastify.get("/themes/coverage", async (_request, reply) => {
-    try {
-      // Check if cached result is still valid (theme file unchanged)
-      const currentMtime = await getThemeMtime();
-      if (coverageCache && coverageCache.themeMtimeMs === currentMtime) {
-        return { coverage: coverageCache.result };
-      }
-
-      const dimensions = await store.load();
-      const tokenStore = fastify.tokenStore;
-
-      // Build a flat value map per set
-      const setTokenValues: Record<string, Record<string, any>> = {};
-      const allSetNames = new Set<string>();
-      for (const dim of dimensions) {
-        for (const opt of dim.options) {
-          for (const setName of Object.keys(opt.sets)) {
-            allSetNames.add(setName);
-          }
-        }
-      }
-      for (const setName of allSetNames) {
-        const tokenSet = await tokenStore.getSet(setName);
-        if (tokenSet) {
-          const map: Record<string, any> = {};
-          for (const [p, token] of flattenTokenGroup(tokenSet.tokens)) {
-            map[p] = token.$value;
-          }
-          setTokenValues[setName] = map;
-        }
-      }
-
-      const isResolved = (
-        value: any,
-        activeValues: Record<string, any>,
-        visited = new Set<string>(),
-      ): boolean => {
-        if (typeof value !== "string") return true;
-        const m = /^\{([^}]+)\}$/.exec(value);
-        if (!m) return true;
-        const target = m[1];
-        if (visited.has(target)) return false;
-        if (!(target in activeValues)) return false;
-        return isResolved(
-          activeValues[target],
-          activeValues,
-          new Set([...visited, target]),
-        );
-      };
-
-      const coverage: Record<
-        string,
-        Record<string, { uncovered: Array<{ path: string; set: string }> }>
-      > = {};
-      for (const dim of dimensions) {
-        coverage[dim.id] = {};
-        for (const opt of dim.options) {
-          const activeValues: Record<string, any> = {};
-          const tokenSetOrigin: Record<string, string> = {};
-          for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === "source") {
-              for (const p of Object.keys(setTokenValues[setName] ?? {})) {
-                tokenSetOrigin[p] = setName;
-              }
-              Object.assign(activeValues, setTokenValues[setName] ?? {});
-            }
-          }
-          for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === "enabled") {
-              for (const p of Object.keys(setTokenValues[setName] ?? {})) {
-                tokenSetOrigin[p] = setName;
-              }
-              Object.assign(activeValues, setTokenValues[setName] ?? {});
-            }
-          }
-          const uncovered = Object.entries(activeValues)
-            .filter(([, v]) => !isResolved(v, activeValues))
-            .map(([p]) => ({ path: p, set: tokenSetOrigin[p] ?? "" }));
-          coverage[dim.id][opt.name] = { uncovered };
-        }
-      }
-
-      // Cache the result
-      coverageCache = { themeMtimeMs: currentMtime, result: coverage };
-      return { coverage };
-    } catch (err) {
-      return handleRouteError(reply, err, "Failed to compute coverage");
-    }
-  });
 };

@@ -1572,3 +1572,12 @@
   - Resolver-mode publish review needs destination-qualified diff-row ids; plain token paths are not unique once one resolver output is compared against multiple mapped Figma modes.
   - When resolver publish is the apply path, the compare surface should stay review-only unless it can honor those same resolver mappings during apply.
 ---
+## 2026-04-12 - Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
+- Moved theme coverage and missing-override derivation into one shared core builder, switched `useThemeDimensions` to call it from the fetched flattened set maps, and re-exported the coverage types from the theme manager UI layer.
+- Removed the unused server-side `/api/themes/coverage` branch and its cache so there is no second partial coverage model left to drift from the Theme workspace.
+- Validation: `pnpm --filter @tokenmanager/core build` passed; `pnpm --filter @tokenmanager/server build` passed; `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/core/src/theme-coverage.ts` ~L1, `packages/core/src/index.ts` ~L123, `packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts` ~L109, `packages/figma-plugin/src/ui/components/themeManagerTypes.ts` ~L1, `packages/server/src/routes/themes.ts` ~L1
+- **Learnings for future iterations:**
+  - If the UI is the only in-repo consumer of a derived data model, put the computation in a shared package and have any optional server surface call that builder instead of maintaining a parallel route-specific fork.
+  - Keep coverage data and adjacent remediation metadata, like missing overrides and fill candidates, in the same builder so future changes land in one semantic contract.
+---

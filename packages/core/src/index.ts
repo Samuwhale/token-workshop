@@ -120,6 +120,19 @@ export {
 // Resolver
 export { TokenResolver } from './resolver.js';
 
+// Theme coverage
+export {
+  buildThemeCoverage,
+} from './theme-coverage.js';
+export type {
+  ThemeCoverageToken,
+  ThemeCoverageMap,
+  ThemeMissingOverrideToken,
+  ThemeMissingOverridesMap,
+  ThemeCoverageSetTokens,
+  ThemeCoverageResult,
+} from './theme-coverage.js';
+
 // DTCG Resolver (v2025.10)
 export {
   validateResolverFile,
