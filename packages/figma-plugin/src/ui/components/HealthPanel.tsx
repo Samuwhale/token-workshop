@@ -28,6 +28,11 @@ import { UnusedTokensPanel } from "./UnusedTokensPanel";
 import { DuplicateDetectionPanel } from "./DuplicateDetectionPanel";
 import { ContrastMatrixPanel } from "./ContrastMatrixPanel";
 import { LightnessInspectorPanel } from "./LightnessInspectorPanel";
+import {
+  ensureUniqueSharedAliasPath,
+  promoteTokensToSharedAlias,
+  suggestSharedAliasPath,
+} from "../hooks/useExtractToAlias";
 
 type HealthStatus = "healthy" | "warning" | "critical";
 
@@ -58,6 +63,7 @@ interface PriorityIssue {
     | "lint"
     | "generators"
     | "validation-scroll"
+    | "alias-opportunities-scroll"
     | "duplicates-scroll"
     | "canvas"
     | "unused-scroll";
@@ -309,6 +315,21 @@ function formatDuplicateValue(value: unknown): string {
   }
 }
 
+interface AliasOpportunityToken {
+  path: string;
+  setName: string;
+}
+
+interface AliasOpportunityGroup {
+  id: string;
+  tokens: AliasOpportunityToken[];
+  typeLabel: string;
+  valueLabel: string;
+  suggestedPrimitivePath: string;
+  suggestedPrimitiveSet: string;
+  colorHex?: string;
+}
+
 export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
@@ -363,6 +384,9 @@ export function HealthPanel({
   const runValidation = onRefreshValidation;
 
   const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set());
+  const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<
+    string | null
+  >(null);
 
   // Suppressions
   const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(new Set());
@@ -595,6 +619,73 @@ export function HealthPanel({
       .sort((a, b) => b.tokens.length - a.tokens.length);
   }, [validationIssuesProp, allTokensUnified]);
 
+  const aliasOpportunityGroups = useMemo((): AliasOpportunityGroup[] => {
+    if (!validationIssuesProp) return [];
+    const groupedIssues = validationIssuesProp.filter(
+      (issue) => issue.rule === "alias-opportunity" && issue.group,
+    );
+    if (groupedIssues.length === 0) return [];
+
+    const groups = new Map<string, AliasOpportunityToken[]>();
+    for (const issue of groupedIssues) {
+      const groupId = issue.group!;
+      const existing = groups.get(groupId) ?? [];
+      if (
+        !existing.some(
+          (token) =>
+            token.path === issue.path && token.setName === issue.setName,
+        )
+      ) {
+        existing.push({ path: issue.path, setName: issue.setName });
+      }
+      groups.set(groupId, existing);
+    }
+
+    return [...groups.entries()]
+      .filter(([, tokens]) => tokens.length > 1)
+      .map(([id, tokens]) => {
+        const sortedTokens = [...tokens].sort(
+          (a, b) =>
+            a.path.localeCompare(b.path) ||
+            a.setName.localeCompare(b.setName),
+        );
+        const sampleEntry = allTokensUnified[sortedTokens[0]?.path ?? ""];
+        const sourceSetNames = Array.from(
+          new Set(sortedTokens.map((token) => token.setName)),
+        );
+        const suggestedPrimitiveSet = sourceSetNames.includes(activeSet)
+          ? activeSet
+          : sortedTokens[0]?.setName ?? activeSet;
+        const suggestedPrimitivePath = ensureUniqueSharedAliasPath(
+          suggestSharedAliasPath(
+            sortedTokens.map((token) => token.path),
+            sampleEntry?.$type,
+          ),
+          [
+            ...Object.keys(allTokensUnified),
+            ...sortedTokens.map((token) => token.path),
+          ],
+        );
+
+        return {
+          id,
+          tokens: sortedTokens,
+          typeLabel: sampleEntry?.$type ?? "unknown",
+          valueLabel: sampleEntry
+            ? formatDuplicateValue(sampleEntry.$value)
+            : "Unknown value",
+          suggestedPrimitivePath,
+          suggestedPrimitiveSet,
+          colorHex:
+            sampleEntry?.$type === "color" &&
+            typeof sampleEntry.$value === "string"
+              ? sampleEntry.$value
+              : undefined,
+        };
+      })
+      .sort((a, b) => b.tokens.length - a.tokens.length);
+  }, [validationIssuesProp, allTokensUnified, activeSet]);
+
   // Color scales for LightnessInspectorPanel (groups with numeric suffix, ≥3 steps)
   const colorScales = useMemo(() => {
     const parentGroups = new Map<
@@ -664,6 +755,7 @@ export function HealthPanel({
     ? validationIssuesProp.filter(
         (i) =>
           i.rule !== "no-duplicate-values" &&
+          i.rule !== "alias-opportunity" &&
           !suppressedKeys.has(suppressKey(i)),
       )
     : null;
@@ -793,6 +885,38 @@ export function HealthPanel({
         next.delete(key);
         return next;
       });
+    }
+  };
+
+  const handlePromoteAliasOpportunity = async (
+    group: AliasOpportunityGroup,
+  ) => {
+    const sampleEntry = allTokensUnified[group.tokens[0]?.path ?? ""];
+    if (!sampleEntry) {
+      onError("Alias promotion failed — source tokens are no longer available.");
+      return;
+    }
+
+    setPromotingAliasGroupId(group.id);
+    try {
+      await promoteTokensToSharedAlias({
+        serverUrl,
+        primitivePath: group.suggestedPrimitivePath,
+        primitiveSet: group.suggestedPrimitiveSet,
+        sourceTokens: group.tokens,
+        tokenType: sampleEntry.$type,
+        tokenValue: sampleEntry.$value,
+      });
+      await runValidation();
+    } catch (err) {
+      console.warn("[HealthPanel] promote alias opportunity failed:", err);
+      onError(
+        err instanceof Error
+          ? err.message
+          : "Alias promotion failed — refresh the audit and try again.",
+      );
+    } finally {
+      setPromotingAliasGroupId(null);
     }
   };
 
@@ -1051,6 +1175,19 @@ export function HealthPanel({
     }
 
     // ── Info ──────────────────────────────────────────────────────────────────
+    if (aliasOpportunityGroups.length > 0) {
+      items.push({
+        severity: "info",
+        category: "Alias",
+        message: `${formatCount(aliasOpportunityGroups.length, "shared-alias opportunity", "shared-alias opportunities")} detected`,
+        detail:
+          "These groups still duplicate a raw value and can be replaced by one shared primitive token.",
+        count: aliasOpportunityGroups.length,
+        ctaLabel: "Promote aliases",
+        action: "alias-opportunities-scroll",
+      });
+    }
+
     if (hasUsageData && unusedCount > 0) {
       items.push({
         severity: "info",
@@ -1086,6 +1223,11 @@ export function HealthPanel({
         return () =>
           document
             .getElementById("health-validation-section")
+            ?.scrollIntoView({ behavior: "smooth" });
+      case "alias-opportunities-scroll":
+        return () =>
+          document
+            .getElementById("health-alias-opportunities-section")
             ?.scrollIntoView({ behavior: "smooth" });
       case "duplicates-scroll":
         return () =>
@@ -1519,6 +1661,66 @@ export function HealthPanel({
                         ? ""
                         : "s"}{" "}
                       in the full audit report
+                    </div>
+                  )}
+                </div>
+              </HealthSection>
+
+              <HealthSection
+                title="Alias opportunities"
+                status={
+                  validationIssuesProp === null
+                    ? null
+                    : aliasOpportunityGroups.length > 0
+                      ? "warning"
+                      : "healthy"
+                }
+                count={aliasOpportunityGroups.length}
+                detail={
+                  validationIssuesProp === null
+                    ? "Run an audit to group raw-value duplicates that can become shared aliases."
+                    : aliasOpportunityGroups.length === 0
+                      ? "No promotable raw-value groups in the latest audit."
+                      : `${aliasOpportunityGroups.length} grouped duplicate values can be promoted into shared primitives.`
+                }
+                ctaLabel={
+                  aliasOpportunityGroups.length > 0
+                    ? "Review groups"
+                    : "Open report"
+                }
+                onCta={() =>
+                  document
+                    .getElementById("health-alias-opportunities-section")
+                    ?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                <div className="space-y-1.5">
+                  {aliasOpportunityGroups.slice(0, 4).map((group) => (
+                    <div
+                      key={group.id}
+                      className="flex items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/60 px-2 py-1.5"
+                    >
+                      {group.colorHex && (
+                        <div
+                          className="h-4 w-4 shrink-0 rounded border border-[var(--color-figma-border)]"
+                          style={{ background: group.colorHex }}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
+                          {group.tokens.length} tokens share {group.valueLabel}
+                        </div>
+                        <div className="truncate text-[9px] text-[var(--color-figma-text-secondary)]">
+                          {group.suggestedPrimitiveSet}:{group.suggestedPrimitivePath}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {aliasOpportunityGroups.length > 4 && (
+                    <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                      +{aliasOpportunityGroups.length - 4} more group
+                      {aliasOpportunityGroups.length - 4 === 1 ? "" : "s"} in
+                      the full audit report
                     </div>
                   )}
                 </div>
@@ -2030,6 +2232,118 @@ export function HealthPanel({
                 onError={onError}
                 onMutate={() => setReloadKey((k) => k + 1)}
               />
+            </div>
+
+            <div id="health-alias-opportunities-section">
+              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
+                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                    Alias Opportunities
+                    {aliasOpportunityGroups.length > 0 ? (
+                      <span className="rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 font-mono normal-case">
+                        {aliasOpportunityGroups.length} group
+                        {aliasOpportunityGroups.length === 1 ? "" : "s"}
+                      </span>
+                    ) : (
+                      <NoticePill severity="success">All clear</NoticePill>
+                    )}
+                  </span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    Promote duplicate raw values into one shared primitive token.
+                  </span>
+                </div>
+                {aliasOpportunityGroups.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
+                    No alias-opportunity groups in the latest audit.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[var(--color-figma-border)]">
+                    {aliasOpportunityGroups.map((group) => {
+                      const isPromoting = promotingAliasGroupId === group.id;
+                      const tokenListPreview = group.tokens
+                        .slice(0, 4)
+                        .map((token) => `${token.path} (${token.setName})`)
+                        .join(", ");
+                      const remainingTokens = group.tokens.length - 4;
+
+                      return (
+                        <div
+                          key={group.id}
+                          className="flex flex-col gap-2 px-3 py-3"
+                        >
+                          <div className="flex items-start gap-2">
+                            {group.colorHex && (
+                              <div
+                                className="mt-0.5 h-5 w-5 shrink-0 rounded border border-[var(--color-figma-border)]"
+                                style={{ background: group.colorHex }}
+                              />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                                  {group.tokens.length} tokens share one raw{" "}
+                                  {group.typeLabel} value
+                                </span>
+                                <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                                  {group.typeLabel}
+                                </span>
+                              </div>
+                              <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                Shared value:{" "}
+                                <span className="font-mono text-[var(--color-figma-text)]">
+                                  {group.valueLabel}
+                                </span>
+                              </div>
+                              <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                Promote to{" "}
+                                <span className="font-mono text-[var(--color-figma-text)]">
+                                  {group.suggestedPrimitivePath}
+                                </span>{" "}
+                                in{" "}
+                                <span className="font-mono text-[var(--color-figma-text)]">
+                                  {group.suggestedPrimitiveSet}
+                                </span>
+                                .
+                              </div>
+                              <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                {tokenListPreview}
+                                {remainingTokens > 0
+                                  ? `, and ${remainingTokens} more`
+                                  : ""}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() =>
+                                handlePromoteAliasOpportunity(group)
+                              }
+                              disabled={isPromoting}
+                              className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                            >
+                              {isPromoting
+                                ? "Promoting…"
+                                : "Promote to shared alias"}
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {group.tokens.map((token) => (
+                              <span
+                                key={`${token.setName}:${token.path}`}
+                                className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]"
+                              >
+                                {token.path}
+                                <span className="opacity-60">
+                                  {" "}
+                                  · {token.setName}
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Duplicate Detection */}

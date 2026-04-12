@@ -16,6 +16,7 @@ const KNOWN_RULE_IDS = [
   'path-pattern',
   'max-alias-depth',
   'no-duplicate-values',
+  'alias-opportunity',
   'no-hardcoded-dimensions',
   'require-alias-for-semantic-tokens',
   'enforce-token-type-consistency',

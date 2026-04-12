@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { TOKEN_TYPE_VALUES, TokenValidator, isReference, parseReference, type Token, type TokenGroup } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
+import type { SnapshotEntry } from '../services/operation-log.js';
 import { snapshotPaths, snapshotSet, snapshotGroup } from '../services/operation-log.js';
 import { stableStringify } from '../services/stable-stringify.js';
 
@@ -52,6 +53,16 @@ function isNonEmptyTrimmedString(v: unknown): v is string {
 
 function wildcardParamToTokenPath(pathParam: string): string {
   return pathParam.split('/').join('.');
+}
+
+function mergeSetSnapshot(
+  target: Record<string, SnapshotEntry>,
+  setName: string,
+  snapshot: Record<string, SnapshotEntry>,
+): void {
+  for (const [tokenPath, entry] of Object.entries(snapshot)) {
+    target[`${tokenPath}@${setName}`] = entry;
+  }
 }
 
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
@@ -501,6 +512,145 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return { ok: true, updated: patches.length, operationId: entry.id };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch update tokens');
+      }
+    });
+  });
+
+  fastify.post<{
+    Body: {
+      primitiveSet: string;
+      primitivePath: string;
+      sourceTokens: Array<{ setName: string; path: string }>;
+    };
+  }>('/tokens/promote-alias', async (request, reply) => {
+    const { primitiveSet, primitivePath, sourceTokens } = request.body ?? {};
+
+    if (!isValidSetName(primitiveSet)) {
+      return reply.status(400).send({ error: 'primitiveSet must be a valid non-empty set name' });
+    }
+    if (!isValidTokenPath(primitivePath)) {
+      return reply.status(400).send({ error: 'primitivePath must be a valid non-empty path with no leading/trailing dots' });
+    }
+    if (!Array.isArray(sourceTokens) || sourceTokens.length === 0) {
+      return reply.status(400).send({ error: 'sourceTokens must include at least one token' });
+    }
+
+    const seenSourceTokens = new Set<string>();
+    for (const sourceToken of sourceTokens) {
+      if (!isValidSetName(sourceToken?.setName) || !isValidTokenPath(sourceToken?.path)) {
+        return reply.status(400).send({ error: 'Each source token must include a valid setName and path' });
+      }
+      const sourceKey = `${sourceToken.setName}:${sourceToken.path}`;
+      if (seenSourceTokens.has(sourceKey)) {
+        return reply.status(400).send({ error: `Duplicate source token "${sourceKey}"` });
+      }
+      seenSourceTokens.add(sourceKey);
+    }
+
+    return withLock(async () => {
+      try {
+        if (await fastify.tokenStore.getToken(primitiveSet, primitivePath)) {
+          return reply.status(409).send({ error: `Token "${primitivePath}" already exists in set "${primitiveSet}"` });
+        }
+
+        const resolvedSources: Array<{ setName: string; path: string; token: Token }> = [];
+        let canonicalValue: unknown = undefined;
+        let canonicalType: string | undefined = undefined;
+        let canonicalSerialized: string | null = null;
+
+        for (const sourceToken of sourceTokens) {
+          const token = await fastify.tokenStore.getToken(sourceToken.setName, sourceToken.path);
+          if (!token) {
+            return reply.status(404).send({ error: `Source token "${sourceToken.path}" not found in set "${sourceToken.setName}"` });
+          }
+          if (isReference(token.$value)) {
+            return reply.status(400).send({ error: `Source token "${sourceToken.path}" in "${sourceToken.setName}" is already an alias` });
+          }
+
+          const serializedValue = stableStringify(token.$value);
+          if (canonicalSerialized === null) {
+            canonicalValue = token.$value;
+            canonicalType = token.$type;
+            canonicalSerialized = serializedValue;
+          } else if (serializedValue !== canonicalSerialized || token.$type !== canonicalType) {
+            return reply.status(400).send({
+              error: `Source token "${sourceToken.path}" in "${sourceToken.setName}" does not match the group's shared raw value`,
+            });
+          }
+
+          resolvedSources.push({
+            setName: sourceToken.setName,
+            path: sourceToken.path,
+            token,
+          });
+        }
+
+        const touchedPathsBySet = new Map<string, Set<string>>();
+        for (const sourceToken of resolvedSources) {
+          const paths = touchedPathsBySet.get(sourceToken.setName) ?? new Set<string>();
+          paths.add(sourceToken.path);
+          touchedPathsBySet.set(sourceToken.setName, paths);
+        }
+        const primitiveSetPaths = touchedPathsBySet.get(primitiveSet) ?? new Set<string>();
+        primitiveSetPaths.add(primitivePath);
+        touchedPathsBySet.set(primitiveSet, primitiveSetPaths);
+
+        const beforeSnapshot: Record<string, SnapshotEntry> = {};
+        for (const [setName, paths] of touchedPathsBySet.entries()) {
+          const snapshot = await snapshotPaths(fastify.tokenStore, setName, [...paths]);
+          mergeSetSnapshot(beforeSnapshot, setName, snapshot);
+        }
+
+        await fastify.tokenStore.createToken(
+          primitiveSet,
+          primitivePath,
+          {
+            ...(canonicalType ? { $type: canonicalType } : {}),
+            $value: canonicalValue,
+          } as Token,
+        );
+
+        const sourceTokensBySet = new Map<string, Array<{ path: string; patch: Record<string, unknown> }>>();
+        for (const sourceToken of resolvedSources) {
+          const patches = sourceTokensBySet.get(sourceToken.setName) ?? [];
+          patches.push({
+            path: sourceToken.path,
+            patch: { $value: `{${primitivePath}}` },
+          });
+          sourceTokensBySet.set(sourceToken.setName, patches);
+        }
+
+        for (const [setName, patches] of sourceTokensBySet.entries()) {
+          await fastify.tokenStore.batchUpdateTokens(setName, patches);
+        }
+
+        const afterSnapshot: Record<string, SnapshotEntry> = {};
+        for (const [setName, paths] of touchedPathsBySet.entries()) {
+          const snapshot = await snapshotPaths(fastify.tokenStore, setName, [...paths]);
+          mergeSetSnapshot(afterSnapshot, setName, snapshot);
+        }
+
+        const entry = await fastify.operationLog.record({
+          type: 'batch-update',
+          description: `Promote ${resolvedSources.length} tokens to shared alias "${primitivePath}"`,
+          setName: primitiveSet,
+          affectedPaths: [
+            primitivePath,
+            ...resolvedSources.map(sourceToken => sourceToken.path),
+          ],
+          beforeSnapshot,
+          afterSnapshot,
+        });
+
+        return reply.status(201).send({
+          ok: true,
+          primitivePath,
+          primitiveSet,
+          promoted: resolvedSources.length,
+          operationId: entry.id,
+        });
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to promote tokens to a shared alias');
       }
     });
   });

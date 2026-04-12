@@ -42,6 +42,7 @@ export interface LintConfig {
     'path-pattern'?: LintRuleConfig;
     'max-alias-depth'?: LintRuleConfig;
     'no-duplicate-values'?: LintRuleConfig;
+    'alias-opportunity'?: LintRuleConfig;
     'no-hardcoded-dimensions'?: LintRuleConfig;
     'require-alias-for-semantic-tokens'?: LintRuleConfig;
     'enforce-token-type-consistency'?: LintRuleConfig;
@@ -73,6 +74,7 @@ export const DEFAULT_LINT_CONFIG: LintConfig = {
     'path-pattern': { enabled: false, severity: 'warning', options: { pattern: '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$' } },
     'max-alias-depth': { enabled: true, severity: 'warning', options: { maxDepth: 3 } },
     'no-duplicate-values': { enabled: true, severity: 'info' },
+    'alias-opportunity': { enabled: true, severity: 'info' },
     'no-hardcoded-dimensions': { enabled: false, severity: 'warning' },
     'require-alias-for-semantic-tokens': { enabled: false, severity: 'warning' },
     'enforce-token-type-consistency': { enabled: false, severity: 'warning', options: { minGroupSize: 2 } },
@@ -225,6 +227,7 @@ function serializeValue(value: unknown): string {
 interface DuplicateGroupEntry {
   path: string;
   setName: string;
+  severity?: Severity;
 }
 
 function formatDuplicateEntryLabel(entry: DuplicateGroupEntry, includeSetName: boolean): string {
@@ -249,6 +252,48 @@ function buildDuplicateGroupId(entries: DuplicateGroupEntry[]): string {
     .map(entry => `${entry.setName}:${entry.path}`)
     .sort((a, b) => a.localeCompare(b));
   return JSON.stringify(stableKeys);
+}
+
+function buildRawValueGroupKey(token: Token): string | null {
+  if (isReference(token.$value)) return null;
+  return `${token.$type ?? ''}:${serializeValue(token.$value)}`;
+}
+
+interface WorkspaceRawValueEntry extends DuplicateGroupEntry {
+  token: Token;
+  severity: Severity;
+}
+
+function collectWorkspaceRawValueGroups(
+  allEntries: Array<{ path: string; setName: string; token: Token }>,
+  resolveEntrySeverity: (entry: {
+    path: string;
+    setName: string;
+    token: Token;
+  }) => Severity | null,
+): WorkspaceRawValueEntry[][] {
+  const groups = new Map<string, WorkspaceRawValueEntry[]>();
+
+  for (const entry of allEntries) {
+    const severity = resolveEntrySeverity(entry);
+    if (!severity) continue;
+    const groupKey = buildRawValueGroupKey(entry.token);
+    if (!groupKey) continue;
+    const nextEntry: WorkspaceRawValueEntry = {
+      path: entry.path,
+      setName: entry.setName,
+      token: entry.token,
+      severity,
+    };
+    const existing = groups.get(groupKey);
+    if (existing) {
+      existing.push(nextEntry);
+      continue;
+    }
+    groups.set(groupKey, [nextEntry]);
+  }
+
+  return [...groups.values()].filter(entries => entries.length > 1);
 }
 
 export async function lintTokens(
@@ -398,32 +443,64 @@ export async function lintTokens(
   }
 
   // --- no-duplicate-values ---
-  const noDuplicates = rules['no-duplicate-values'] ? resolveRuleForSet(rules['no-duplicate-values'], setName) : undefined;
-  if (noDuplicates?.enabled) {
-    const severity = noDuplicates.severity ?? 'info';
-    const valueMap = new Map<string, string[]>();
-    for (const [tokenPath, token] of Object.entries(flatTokens)) {
-      if (isPathExcluded(tokenPath, noDuplicates.excludePaths)) continue;
-      if (isReference(token.$value)) continue; // aliases are expected to share values
-      const key = `${token.$type ?? ''}:${serializeValue(token.$value)}`;
-      if (!valueMap.has(key)) valueMap.set(key, []);
-      valueMap.get(key)!.push(tokenPath);
+  const duplicateGroups = collectWorkspaceRawValueGroups(
+    allEntries,
+    entry => {
+      const rule = rules['no-duplicate-values']
+        ? resolveRuleForSet(rules['no-duplicate-values'], entry.setName)
+        : undefined;
+      if (!rule?.enabled) return null;
+      if (isPathExcluded(entry.path, rule.excludePaths)) return null;
+      return rule.severity ?? 'info';
+    },
+  );
+  for (const groupEntries of duplicateGroups) {
+    const groupId = buildDuplicateGroupId(groupEntries);
+    for (const entry of groupEntries) {
+      if (entry.setName !== setName) continue;
+      const peers = formatDuplicatePeerSummary(groupEntries, entry);
+      violations.push({
+        rule: 'no-duplicate-values',
+        path: entry.path,
+        severity: entry.severity,
+        message: `Token "${entry.path}" shares the same direct value as ${peers}. Choose one canonical token before converting the rest to aliases.`,
+        group: groupId,
+      });
     }
-    for (const [, paths] of valueMap) {
-      if (paths.length > 1) {
-        const groupEntries = paths.map(path => ({ path, setName }));
-        const groupId = buildDuplicateGroupId(groupEntries);
-        for (const tokenPath of paths) {
-          const peers = formatDuplicatePeerSummary(groupEntries, { path: tokenPath, setName });
-          violations.push({
-            rule: 'no-duplicate-values',
-            path: tokenPath,
-            severity,
-            message: `Token "${tokenPath}" shares the same direct value as ${peers}. Choose one canonical token before converting the rest to aliases.`,
-            group: groupId,
-          });
-        }
-      }
+  }
+
+  // --- alias-opportunity ---
+  const aliasOpportunityGroups = collectWorkspaceRawValueGroups(
+    allEntries,
+    entry => {
+      const rule = rules['alias-opportunity']
+        ? resolveRuleForSet(rules['alias-opportunity'], entry.setName)
+        : undefined;
+      if (!rule?.enabled) return null;
+      if (isPathExcluded(entry.path, rule.excludePaths)) return null;
+      return rule.severity ?? 'info';
+    },
+  );
+  for (const groupEntries of aliasOpportunityGroups) {
+    const groupId = buildDuplicateGroupId(groupEntries);
+    const includeSetName = new Set(groupEntries.map(entry => entry.setName)).size > 1;
+    const tokenLabels = groupEntries
+      .map(entry => formatDuplicateEntryLabel(entry, includeSetName))
+      .sort((a, b) => a.localeCompare(b));
+    const labelSummary = tokenLabels.length <= 3
+      ? tokenLabels.join(', ')
+      : `${tokenLabels.slice(0, 3).join(', ')}, and ${tokenLabels.length - 3} more`;
+
+    for (const entry of groupEntries) {
+      if (entry.setName !== setName) continue;
+      violations.push({
+        rule: 'alias-opportunity',
+        path: entry.path,
+        severity: entry.severity,
+        message: `Raw-value group "${labelSummary}" can be promoted into one shared alias token.`,
+        suggestedFix: 'promote-to-shared-alias',
+        group: groupId,
+      });
     }
   }
 
@@ -709,31 +786,63 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
   }
 
   // no-duplicate-values (needs all tokens seen first)
-  const noDupRule = cfg.lintRules['no-duplicate-values'];
-  if (noDupRule?.enabled) {
-    const severity = noDupRule.severity ?? 'info';
-    const valueMap = new Map<string, Array<{ path: string; setName: string }>>();
-    for (const { path: tokenPath, token, setName } of allTokensList) {
-      if (isReference(token.$value)) continue;
-      const key = `${token.$type ?? ''}:${serializeValue(token.$value)}`;
-      if (!valueMap.has(key)) valueMap.set(key, []);
-      valueMap.get(key)!.push({ path: tokenPath, setName });
+  const duplicateGroups = collectWorkspaceRawValueGroups(
+    allTokensList,
+    entry => {
+      const rule = cfg.lintRules['no-duplicate-values']
+        ? resolveRuleForSet(cfg.lintRules['no-duplicate-values'], entry.setName)
+        : undefined;
+      if (!rule?.enabled) return null;
+      if (isPathExcluded(entry.path, rule.excludePaths)) return null;
+      return rule.severity ?? 'info';
+    },
+  );
+  for (const entries of duplicateGroups) {
+    const groupId = buildDuplicateGroupId(entries);
+    for (const entry of entries) {
+      const peers = formatDuplicatePeerSummary(entries, entry);
+      issues.push({
+        severity: entry.severity,
+        setName: entry.setName,
+        path: entry.path,
+        rule: 'no-duplicate-values',
+        message: `Token "${entry.path}" shares the same direct value as ${peers}. Choose one canonical token before converting the rest to aliases.`,
+        group: groupId,
+      });
     }
-    for (const [, entries] of valueMap) {
-      if (entries.length > 1) {
-        const groupId = buildDuplicateGroupId(entries);
-        for (const { path: tokenPath, setName } of entries) {
-          const peers = formatDuplicatePeerSummary(entries, { path: tokenPath, setName });
-          issues.push({
-            severity,
-            setName,
-            path: tokenPath,
-            rule: 'no-duplicate-values',
-            message: `Token "${tokenPath}" shares the same direct value as ${peers}. Choose one canonical token before converting the rest to aliases.`,
-            group: groupId,
-          });
-        }
-      }
+  }
+
+  const aliasOpportunityGroups = collectWorkspaceRawValueGroups(
+    allTokensList,
+    entry => {
+      const rule = cfg.lintRules['alias-opportunity']
+        ? resolveRuleForSet(cfg.lintRules['alias-opportunity'], entry.setName)
+        : undefined;
+      if (!rule?.enabled) return null;
+      if (isPathExcluded(entry.path, rule.excludePaths)) return null;
+      return rule.severity ?? 'info';
+    },
+  );
+  for (const entries of aliasOpportunityGroups) {
+    const groupId = buildDuplicateGroupId(entries);
+    const includeSetName = new Set(entries.map(entry => entry.setName)).size > 1;
+    const tokenLabels = entries
+      .map(entry => formatDuplicateEntryLabel(entry, includeSetName))
+      .sort((a, b) => a.localeCompare(b));
+    const labelSummary = tokenLabels.length <= 3
+      ? tokenLabels.join(', ')
+      : `${tokenLabels.slice(0, 3).join(', ')}, and ${tokenLabels.length - 3} more`;
+
+    for (const entry of entries) {
+      issues.push({
+        severity: entry.severity,
+        setName: entry.setName,
+        path: entry.path,
+        rule: 'alias-opportunity',
+        message: `Raw-value group "${labelSummary}" can be promoted into one shared alias token.`,
+        suggestedFix: 'promote-to-shared-alias',
+        group: groupId,
+      });
     }
   }
 
