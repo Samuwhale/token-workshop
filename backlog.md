@@ -160,7 +160,7 @@
 - [x] Align publish preflight and compare with resolver mode mappings
 - [x] Export button stays enabled with changes-only active and zero changes in a git repo, leading to a click-then-error dead end
 - [x] Coverage view offers no way to act on reviewed gaps, forcing a round-trip back to Authoring before auto-fill
-- [ ] Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
+- [x] Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
 - [ ] Add resolver-targeted orphan cleanup for mapped publish modes
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

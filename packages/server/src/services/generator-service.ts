@@ -121,6 +121,12 @@ export interface GeneratorSetDependencyMeta {
   targetGroup: string;
 }
 
+export interface OrphanedGeneratorToken {
+  setName: string;
+  path: string;
+  generatorId: string;
+}
+
 export type GeneratorPathRenameUpdate =
   | ({ scope: "token" } & TokenPathRename)
   | ({ scope: "group" } & TokenPathRename);
@@ -1000,6 +1006,27 @@ export class GeneratorService {
 
   async getById(id: string): Promise<TokenGenerator | undefined> {
     return this.generators.get(id);
+  }
+
+  findOrphanedTokens(
+    tokenStore: Pick<TokenStore, "findTokensByGeneratorId">,
+  ): OrphanedGeneratorToken[] {
+    const activeIds = new Set(this.generators.keys());
+    return tokenStore
+      .findTokensByGeneratorId("*")
+      .filter((token) => !activeIds.has(token.generatorId));
+  }
+
+  async deleteOrphanedTokens(
+    tokenStore: Pick<TokenStore, "findTokensByGeneratorId" | "deleteTokensByGeneratorId">,
+  ): Promise<{ deleted: number; tokens: OrphanedGeneratorToken[] }> {
+    const tokens = this.findOrphanedTokens(tokenStore);
+    const orphanIds = new Set(tokens.map((token) => token.generatorId));
+    let deleted = 0;
+    for (const generatorId of orphanIds) {
+      deleted += await tokenStore.deleteTokensByGeneratorId(generatorId);
+    }
+    return { deleted, tokens };
   }
 
   async create(data: GeneratorCreateInput): Promise<TokenGenerator> {

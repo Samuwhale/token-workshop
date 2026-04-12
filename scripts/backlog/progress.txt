@@ -1581,3 +1581,21 @@
   - If the UI is the only in-repo consumer of a derived data model, put the computation in a shared package and have any optional server surface call that builder instead of maintaining a parallel route-specific fork.
   - Keep coverage data and adjacent remediation metadata, like missing overrides and fill candidates, in the same builder so future changes land in one semantic contract.
 ---
+## 2026-04-12 - Centralize generator write-route bookkeeping so step overrides and orphan cleanup become rollbackable server operations
+- Added a shared logged generator mutation helper in the generator routes so create, update, delete, run, step override writes, and orphaned-token cleanup all capture before/after snapshots and write one operation-log entry through the same path.
+- Moved orphaned generator token discovery and deletion into `GeneratorService`, then wired orphan cleanup and step override set/clear routes into the shared bookkeeping flow with rollback metadata so recent operations can restore both generator state and generated tokens.
+- Validation: `pnpm --filter @tokenmanager/server build` is currently blocked by pre-existing workspace TypeScript/project-reference failures in unrelated files (`TS6305` for `packages/core/dist` plus existing route typing errors); syntax-level transpile checks for the touched files passed via `node -e \"...typescript.transpileModule(...)\"`.
+- Files changed: `packages/server/src/routes/generators.ts` ~L34, `packages/server/src/routes/generators.ts` ~L162, `packages/server/src/routes/generators.ts` ~L221, `packages/server/src/routes/generators.ts` ~L243, `packages/server/src/routes/generators.ts` ~L328, `packages/server/src/routes/generators.ts` ~L390, `packages/server/src/routes/generators.ts` ~L461, `packages/server/src/routes/generators.ts` ~L494, `packages/server/src/routes/generators.ts` ~L531, `packages/server/src/services/generator-service.ts` ~L121, `packages/server/src/services/generator-service.ts` ~L1011
+- **Learnings for future iterations:**
+  - When multiple routes mutate the same generator-owned state, keep snapshot capture and operation-log recording in one route-local helper so new write routes inherit rollback coverage instead of reimplementing it piecemeal.
+  - Treat orphan cleanup as a generator-service concern, not ad hoc route logic, so detection, deletion, and rollback bookkeeping stay aligned on the same generator-id semantics.
+---
+## 2026-04-12 - Centralize generator write-route bookkeeping so step overrides and orphan cleanup become rollbackable server operations
+- Rechecked the generator mutation bookkeeping in repair mode: the shared route helper now owns operation-log capture for generator create, update, run, delete, step override set/clear, and orphan cleanup, while orphan discovery/deletion stays centralized in `GeneratorService`.
+- Repaired the validation failure by rebuilding `@tokenmanager/core`, which refreshed the missing project-reference outputs and let the server package compile cleanly without further source changes.
+- Validation: `pnpm --filter @tokenmanager/core build` passed; `pnpm --filter @tokenmanager/server build` passed.
+- Files changed: `packages/server/src/routes/generators.ts` ~L34, `packages/server/src/routes/generators.ts` ~L162, `packages/server/src/routes/generators.ts` ~L221, `packages/server/src/routes/generators.ts` ~L494, `packages/server/src/routes/generators.ts` ~L531, `packages/server/src/services/generator-service.ts` ~L124, `packages/server/src/services/generator-service.ts` ~L1011, `scripts/backlog/progress.txt` ~L1574
+- **Learnings for future iterations:**
+  - In temp worktrees that use TypeScript project references, `TS6305` against `packages/core/dist` can mean the referenced package was never built in that workspace, even when the touched server files are valid.
+  - Keeping orphaned-generator token discovery in `GeneratorService` lets route-level rollback bookkeeping reuse the same token list for mutation, snapshot capture, and restoration.
+---

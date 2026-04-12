@@ -4,15 +4,17 @@ import {
   buildMultiSetSnapshotPath,
   listSnapshotTokenPaths,
   snapshotGroup,
+  type RollbackStep,
   type SnapshotEntry,
 } from '../services/operation-log.js';
 import { stableStringify } from '../services/stable-stringify.js';
 import type {
   GeneratorCreateInput,
+  OrphanedGeneratorToken,
   GeneratorPreviewInput,
   GeneratorUpdateInput,
 } from '../services/generator-service.js';
-import type { TokenGenerator } from '@tokenmanager/core';
+import type { GeneratedTokenResult, TokenGenerator } from '@tokenmanager/core';
 
 type CreateBody = GeneratorCreateInput;
 
@@ -27,6 +29,38 @@ interface UpdateBody {
 interface StepOverrideBody {
   value: unknown;
   locked: boolean;
+}
+
+type SnapshotMap = Record<string, SnapshotEntry>;
+type GeneratorSnapshotTarget = Pick<
+  TokenGenerator,
+  'targetSet' | 'targetSetTemplate' | 'inputTable' | 'targetGroup' | 'semanticLayer'
+>;
+
+interface LoggedGeneratorMutationConfig<TResult> {
+  type: string;
+  description: string | ((result: TResult) => string);
+  setName: string | ((result: TResult) => string);
+  captureBefore: () => Promise<SnapshotMap>;
+  mutate: () => Promise<TResult>;
+  captureAfter: (result: TResult) => Promise<SnapshotMap>;
+  affectedPaths?: (
+    before: SnapshotMap,
+    after: SnapshotMap,
+    result: TResult,
+  ) => string[];
+  rollbackSteps?: RollbackStep[] | ((result: TResult) => RollbackStep[] | undefined);
+}
+
+interface DeleteOrphanedTokensResult {
+  deleted: number;
+  tokens: OrphanedGeneratorToken[];
+}
+
+interface DeleteGeneratorResult {
+  ok: true;
+  id: string;
+  tokensDeleted: number;
 }
 
 function getGeneratorSetNames(generator: Pick<TokenGenerator, 'targetSet' | 'targetSetTemplate' | 'inputTable'>): string[] {
@@ -63,12 +97,9 @@ async function snapshotTokenPaths(
 
 async function snapshotGeneratorOutputs(
   tokenStore: Parameters<typeof snapshotGroup>[0],
-  generator: Pick<
-    TokenGenerator,
-    'targetSet' | 'targetSetTemplate' | 'inputTable' | 'targetGroup' | 'semanticLayer'
-  >,
-): Promise<Record<string, SnapshotEntry>> {
-  const snapshot: Record<string, SnapshotEntry> = {};
+  generator: GeneratorSnapshotTarget,
+): Promise<SnapshotMap> {
+  const snapshot: SnapshotMap = {};
   const semanticPaths =
     generator.semanticLayer &&
     typeof generator.semanticLayer.prefix === 'string' &&
@@ -99,8 +130,65 @@ async function snapshotGeneratorOutputs(
   return snapshot;
 }
 
+async function snapshotTaggedTokens(
+  tokenStore: Parameters<typeof snapshotGroup>[0],
+  tokens: Array<Pick<OrphanedGeneratorToken, 'setName' | 'path'>>,
+): Promise<SnapshotMap> {
+  const snapshot: SnapshotMap = {};
+  const pathsBySet = new Map<string, string[]>();
+  for (const token of tokens) {
+    const existing = pathsBySet.get(token.setName);
+    if (existing) {
+      existing.push(token.path);
+      continue;
+    }
+    pathsBySet.set(token.setName, [token.path]);
+  }
+  for (const [setName, paths] of pathsBySet) {
+    Object.assign(snapshot, await snapshotTokenPaths(tokenStore, setName, [...new Set(paths)]));
+  }
+  return snapshot;
+}
+
+function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
+  return [
+    ...new Set([
+      ...listSnapshotTokenPaths(before),
+      ...listSnapshotTokenPaths(after),
+    ]),
+  ];
+}
+
 export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
+  const executeLoggedGeneratorMutation = async <TResult>(
+    config: LoggedGeneratorMutationConfig<TResult>,
+  ): Promise<TResult> => {
+    const beforeSnapshot = await config.captureBefore();
+    const result = await config.mutate();
+    const afterSnapshot = await config.captureAfter(result);
+    await fastify.operationLog.record({
+      type: config.type,
+      description:
+        typeof config.description === 'function'
+          ? config.description(result)
+          : config.description,
+      setName:
+        typeof config.setName === 'function'
+          ? config.setName(result)
+          : config.setName,
+      affectedPaths:
+        config.affectedPaths?.(beforeSnapshot, afterSnapshot, result) ??
+        listAffectedPaths(beforeSnapshot, afterSnapshot),
+      beforeSnapshot,
+      afterSnapshot,
+      rollbackSteps:
+        typeof config.rollbackSteps === 'function'
+          ? config.rollbackSteps(result)
+          : config.rollbackSteps,
+    });
+    return result;
+  };
 
   // GET /api/generators — list all generators
   fastify.get('/generators', async (_request, reply) => {
@@ -123,10 +211,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/generators/orphaned-tokens — find tokens whose generator no longer exists
   fastify.get('/generators/orphaned-tokens', async (_request, reply) => {
     try {
-      const allGenerators = await fastify.generatorService.getAll();
-      const activeIds = new Set(allGenerators.map((g) => g.id));
-      const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
-      const orphaned = allTagged.filter((t) => !activeIds.has(t.generatorId));
+      const orphaned = fastify.generatorService.findOrphanedTokens(fastify.tokenStore);
       return { count: orphaned.length, tokens: orphaned };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to list orphaned tokens');
@@ -137,17 +222,18 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete('/generators/orphaned-tokens', async (_request, reply) => {
     try {
       return await withLock(async () => {
-        const allGenerators = await fastify.generatorService.getAll();
-        const activeIds = new Set(allGenerators.map((g) => g.id));
-        const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
-        const orphanIds = new Set(
-          allTagged.filter((t) => !activeIds.has(t.generatorId)).map((t) => t.generatorId),
-        );
-        let totalDeleted = 0;
-        for (const gid of orphanIds) {
-          totalDeleted += await fastify.tokenStore.deleteTokensByGeneratorId(gid);
-        }
-        return { ok: true, deleted: totalDeleted };
+        return await executeLoggedGeneratorMutation<DeleteOrphanedTokensResult>({
+          type: 'generator-orphaned-tokens-delete',
+          description: (result) => `Delete ${result.deleted} orphaned generator tokens`,
+          setName: (result) => result.tokens[0]?.setName ?? 'orphaned-generator-tokens',
+          captureBefore: async () =>
+            snapshotTaggedTokens(
+              fastify.tokenStore,
+              fastify.generatorService.findOrphanedTokens(fastify.tokenStore),
+            ),
+          mutate: () => fastify.generatorService.deleteOrphanedTokens(fastify.tokenStore),
+          captureAfter: (result) => snapshotTaggedTokens(fastify.tokenStore, result.tokens),
+        }).then((result) => ({ ok: true, deleted: result.deleted }));
       });
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to delete orphaned tokens');
@@ -164,43 +250,37 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
-        const beforeTarget = {
-          targetSet,
-          targetGroup,
-          inputTable,
-          targetSetTemplate: targetSetTemplate ?? undefined,
-          semanticLayer: request.body?.semanticLayer,
-        } as Pick<
-          TokenGenerator,
-          'targetSet' | 'targetGroup' | 'inputTable' | 'targetSetTemplate' | 'semanticLayer'
-        >;
-        const before = await snapshotGeneratorOutputs(fastify.tokenStore, beforeTarget);
-        const generator = await fastify.generatorService.create({
-          type,
-          sourceToken: sourceToken ?? undefined,
-          inlineValue: inlineValue ?? undefined,
-          targetSet,
-          targetGroup,
-          name: typeof name === 'string' ? name : sourceToken ? `${sourceToken} ${type}` : type,
-          config,
-          overrides,
-          inputTable,
-          targetSetTemplate: targetSetTemplate ?? undefined,
-          semanticLayer: request.body?.semanticLayer,
-        });
-        // Run immediately so tokens exist right away
-        await fastify.generatorService.run(generator.id, fastify.tokenStore);
-        const after = await snapshotGeneratorOutputs(fastify.tokenStore, generator);
-        await fastify.operationLog.record({
+        return reply.status(201).send(await executeLoggedGeneratorMutation({
           type: 'generator-create',
-          description: `Create generator "${generator.name}" → ${targetGroup}`,
+          description: (generator) => `Create generator "${generator.name}" → ${generator.targetGroup}`,
           setName: targetSet,
-          affectedPaths: [...new Set([...listSnapshotTokenPaths(before), ...listSnapshotTokenPaths(after)])],
-          beforeSnapshot: before,
-          afterSnapshot: after,
-          rollbackSteps: [{ action: 'delete-generator', id: generator.id }],
-        });
-        return reply.status(201).send(generator);
+          captureBefore: () => snapshotGeneratorOutputs(fastify.tokenStore, {
+            targetSet,
+            targetGroup,
+            inputTable,
+            targetSetTemplate: targetSetTemplate ?? undefined,
+            semanticLayer: request.body?.semanticLayer,
+          } as GeneratorSnapshotTarget),
+          mutate: async () => {
+            const generator = await fastify.generatorService.create({
+              type,
+              sourceToken: sourceToken ?? undefined,
+              inlineValue: inlineValue ?? undefined,
+              targetSet,
+              targetGroup,
+              name: typeof name === 'string' ? name : sourceToken ? `${sourceToken} ${type}` : type,
+              config,
+              overrides,
+              inputTable,
+              targetSetTemplate: targetSetTemplate ?? undefined,
+              semanticLayer: request.body?.semanticLayer,
+            });
+            await fastify.generatorService.run(generator.id, fastify.tokenStore);
+            return generator;
+          },
+          captureAfter: (generator) => snapshotGeneratorOutputs(fastify.tokenStore, generator),
+          rollbackSteps: (generator) => [{ action: 'delete-generator', id: generator.id }],
+        }));
       } catch (err) {
         return handleRouteError(reply, err);
       }
@@ -271,28 +351,26 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         if (body.config !== undefined) updates.config = body.config;
         if (body.semanticLayer !== undefined) updates.semanticLayer = body.semanticLayer;
 
-        const before = await snapshotGeneratorOutputs(fastify.tokenStore, existing);
-        const generator = await fastify.generatorService.update(
-          request.params.id,
-          updates,
-        );
-        // Skip re-run when only the enabled flag changed — it's a state toggle, not a config change.
-        const onlyEnabledChanged = Object.keys(updates).every(k => k === 'enabled');
-        if (!onlyEnabledChanged) {
-          await fastify.generatorService.run(generator.id, fastify.tokenStore);
-        }
-        const afterSet = generator.targetSet;
-        const after = await snapshotGeneratorOutputs(fastify.tokenStore, generator);
-        await fastify.operationLog.record({
+        return await executeLoggedGeneratorMutation({
           type: 'generator-update',
-          description: `Update generator "${generator.name}"`,
-          setName: afterSet,
-          affectedPaths: [...new Set([...listSnapshotTokenPaths(before), ...listSnapshotTokenPaths(after)])],
-          beforeSnapshot: before,
-          afterSnapshot: after,
+          description: (generator) => `Update generator "${generator.name}"`,
+          setName: (generator) => generator.targetSet,
+          captureBefore: () => snapshotGeneratorOutputs(fastify.tokenStore, existing),
+          mutate: async () => {
+            const generator = await fastify.generatorService.update(
+              request.params.id,
+              updates,
+            );
+            // Skip re-run when only the enabled flag changed — it's a state toggle, not a config change.
+            const onlyEnabledChanged = Object.keys(updates).every(k => k === 'enabled');
+            if (!onlyEnabledChanged) {
+              await fastify.generatorService.run(generator.id, fastify.tokenStore);
+            }
+            return generator;
+          },
+          captureAfter: (generator) => snapshotGeneratorOutputs(fastify.tokenStore, generator),
           rollbackSteps: [{ action: 'create-generator', generator: existing }],
         });
-        return generator;
       } catch (err) {
         return handleRouteError(reply, err);
       }
@@ -321,32 +399,35 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           }
           // Snapshot before delete if tokens will also be removed
           const willDeleteTokens = request.query.deleteTokens === 'true';
-          const before = willDeleteTokens
-            ? await snapshotGeneratorOutputs(fastify.tokenStore, gen)
-            : {};
-          const deleted = await fastify.generatorService.delete(request.params.id);
-          if (!deleted) {
-            return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-          }
-          let tokensDeleted = 0;
-          if (willDeleteTokens) {
-            tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
-          }
-          const after = tokensDeleted > 0
-            ? await snapshotGeneratorOutputs(fastify.tokenStore, gen)
-            : {};
-          await fastify.operationLog.record({
+          const result = await executeLoggedGeneratorMutation<DeleteGeneratorResult>({
             type: 'generator-delete',
-            description: tokensDeleted > 0
+            description: ({ tokensDeleted }) => tokensDeleted > 0
               ? `Delete generator "${gen.name}" and ${tokensDeleted} tokens`
               : `Delete generator "${gen.name}"`,
             setName: gen.targetSet,
-            affectedPaths: listSnapshotTokenPaths(before),
-            beforeSnapshot: before,
-            afterSnapshot: after,
+            captureBefore: () =>
+              willDeleteTokens
+                ? snapshotGeneratorOutputs(fastify.tokenStore, gen)
+                : Promise.resolve({}),
+            mutate: async () => {
+              const deleted = await fastify.generatorService.delete(request.params.id);
+              if (!deleted) {
+                throw new Error(`Generator "${request.params.id}" disappeared during delete`);
+              }
+              let tokensDeleted = 0;
+              if (willDeleteTokens) {
+                tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
+              }
+              return { ok: true, id: request.params.id, tokensDeleted };
+            },
+            captureAfter: () =>
+              willDeleteTokens
+                ? snapshotGeneratorOutputs(fastify.tokenStore, gen)
+                : Promise.resolve({}),
+            affectedPaths: (before) => listSnapshotTokenPaths(before),
             rollbackSteps: [{ action: 'create-generator', generator: gen }],
           });
-          return { ok: true, id: request.params.id, tokensDeleted };
+          return result;
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -383,20 +464,13 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const gen = await fastify.generatorService.getById(request.params.id);
         if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-        const targetSet = gen.targetSet;
-        const before = await snapshotGeneratorOutputs(fastify.tokenStore, gen);
-        const results = await fastify.generatorService.run(
-          request.params.id,
-          fastify.tokenStore,
-        );
-        const after = await snapshotGeneratorOutputs(fastify.tokenStore, gen);
-        await fastify.operationLog.record({
+        const results = await executeLoggedGeneratorMutation<GeneratedTokenResult[]>({
           type: 'generator-run',
           description: `Run generator "${gen.name}"`,
-          setName: targetSet,
-          affectedPaths: [...new Set([...listSnapshotTokenPaths(before), ...listSnapshotTokenPaths(after)])],
-          beforeSnapshot: before,
-          afterSnapshot: after,
+          setName: gen.targetSet,
+          captureBefore: () => snapshotGeneratorOutputs(fastify.tokenStore, gen),
+          mutate: () => fastify.generatorService.run(request.params.id, fastify.tokenStore),
+          captureAfter: () => snapshotGeneratorOutputs(fastify.tokenStore, gen),
         });
         return { count: results.length, tokens: results };
       } catch (err) {
@@ -430,13 +504,24 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const gen = await fastify.generatorService.getById(request.params.id);
         if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-        const generator = await fastify.generatorService.setStepOverride(
-          request.params.id,
-          request.params.stepName,
-          { value, locked },
-        );
-        await fastify.generatorService.run(generator.id, fastify.tokenStore);
-        return generator;
+        return await executeLoggedGeneratorMutation({
+          type: 'generator-step-override-set',
+          description: (generator) =>
+            `Set step override "${request.params.stepName}" on generator "${generator.name}"`,
+          setName: (generator) => generator.targetSet,
+          captureBefore: () => snapshotGeneratorOutputs(fastify.tokenStore, gen),
+          mutate: async () => {
+            const generator = await fastify.generatorService.setStepOverride(
+              request.params.id,
+              request.params.stepName,
+              { value, locked },
+            );
+            await fastify.generatorService.run(generator.id, fastify.tokenStore);
+            return generator;
+          },
+          captureAfter: (generator) => snapshotGeneratorOutputs(fastify.tokenStore, generator),
+          rollbackSteps: [{ action: 'create-generator', generator: gen }],
+        });
       } catch (err) {
         return handleRouteError(reply, err);
       }
@@ -451,13 +536,24 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const gen = await fastify.generatorService.getById(request.params.id);
         if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-        const generator = await fastify.generatorService.setStepOverride(
-          request.params.id,
-          request.params.stepName,
-          null,
-        );
-        await fastify.generatorService.run(generator.id, fastify.tokenStore);
-        return generator;
+        return await executeLoggedGeneratorMutation({
+          type: 'generator-step-override-clear',
+          description: (generator) =>
+            `Clear step override "${request.params.stepName}" on generator "${generator.name}"`,
+          setName: (generator) => generator.targetSet,
+          captureBefore: () => snapshotGeneratorOutputs(fastify.tokenStore, gen),
+          mutate: async () => {
+            const generator = await fastify.generatorService.setStepOverride(
+              request.params.id,
+              request.params.stepName,
+              null,
+            );
+            await fastify.generatorService.run(generator.id, fastify.tokenStore);
+            return generator;
+          },
+          captureAfter: (generator) => snapshotGeneratorOutputs(fastify.tokenStore, generator),
+          rollbackSteps: [{ action: 'create-generator', generator: gen }],
+        });
       } catch (err) {
         return handleRouteError(reply, err);
       }

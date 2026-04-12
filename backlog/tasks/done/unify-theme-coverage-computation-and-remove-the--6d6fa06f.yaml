@@ -11,10 +11,11 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: No in-repo caller hits `/api/themes/coverage`. The server route computes only `{ path, set }` uncovered rows, while `useThemeDimensions()` separately recomputes `missingRef`, `fillValue`, `fillType`, and `missingOverrides`, leaving two different coverage models to maintain."
-state: ready
+  - "Completed: Centralized theme coverage in shared core logic, updated the Theme workspace to consume it, removed the unused server coverage route, and verified core/server/plugin builds."
+state: done
 acceptance_criteria:
   - Theme coverage is derived from one shared computation path that returns the data the Theme workspace actually consumes, instead of keeping a second partial implementation in `routes/themes.ts`.
   - The unused `coverageCache` and `/api/themes/coverage` branch are removed or rewritten to call that shared coverage builder, so server and client coverage semantics cannot drift.
 source: code-pass
 created_at: 2026-04-12T20:04:13.723Z
-updated_at: 2026-04-12T20:04:13.723Z
+updated_at: 2026-04-12T20:16:38.910Z
