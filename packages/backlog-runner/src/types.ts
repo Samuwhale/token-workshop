@@ -313,6 +313,8 @@ export interface BacklogStore {
   ensureTaskSpecsReady(): Promise<void>;
   close(): Promise<void>;
   getQueueCounts(): Promise<BacklogQueueCounts>;
+  getQueueState(): Promise<{ counts: BacklogQueueCounts; blockages: TaskBlockage[] }>;
+  reapStaleRuntimeState(): Promise<{ deadRunnerLeases: number }>;
   claimNextRunnableTasks(limit: number, runnerId: string): Promise<BacklogTaskClaim[]>;
   heartbeatClaim(claim: BacklogTaskClaim): Promise<void>;
   releaseClaim(claim: BacklogTaskClaim): Promise<void>;
@@ -380,12 +382,14 @@ export interface BacklogWorkerResult {
 
 export interface OrchestratorRuntimeStatus {
   orchestratorId: string;
+  pid: number;
   requestedWorkers: number;
   effectiveWorkers: number;
   activeTaskWorkers: Array<{ taskId: string; title: string }>;
   activeControlWorker?: { kind: 'planner' | 'discovery'; passType?: BacklogPassType };
   shutdownRequested: boolean;
   pollIntervalMs: number;
+  updatedAt: string;
 }
 
 export interface RunnerDependencies {

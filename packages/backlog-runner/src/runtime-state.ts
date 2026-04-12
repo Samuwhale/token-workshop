@@ -13,6 +13,12 @@ import type {
 
 const DEFAULT_LEASE_DURATION_MS = 10 * 60 * 1000;
 
+type RuntimePruneResult = {
+  deadRunnerLeases: number;
+  expiredLeases: number;
+  expiredDeferrals: number;
+};
+
 type RuntimeStatement = {
   run(...params: unknown[]): unknown;
   get(...params: unknown[]): unknown;
@@ -27,6 +33,23 @@ type RuntimeDatabase = {
 
 function isoNow(offsetMs = 0): string {
   return new Date(Date.now() + offsetMs).toISOString();
+}
+
+function runnerPidFromId(runnerId: string): number | null {
+  const match = /^(\d+)-/.exec(runnerId.trim());
+  if (!match) return null;
+  const parsed = Number.parseInt(match[1]!, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isPidAlive(pid: number | null): boolean {
+  if (!pid) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function openRuntimeDatabase(dbPath: string): RuntimeDatabase {
@@ -94,22 +117,58 @@ export class RuntimeStateStore {
     this.db.close();
   }
 
-  private pruneExpiredLeases(): void {
+  private pruneExpiredLeases(): RuntimePruneResult {
     const now = isoNow();
-    const expiredIds = this.db.prepare('SELECT task_id FROM leases WHERE expires_at <= ?').all(now) as { task_id: string }[];
-    if (expiredIds.length === 0) return;
+    const leaseRows = this.db.prepare('SELECT task_id, runner_id, expires_at FROM leases').all() as {
+      task_id: string;
+      runner_id: string;
+      expires_at: string;
+    }[];
+    const expiredTaskIds: string[] = [];
+    const deadRunnerTaskIds: string[] = [];
+    for (const row of leaseRows) {
+      if (row.expires_at <= now) {
+        expiredTaskIds.push(row.task_id);
+        continue;
+      }
+      const runnerPid = runnerPidFromId(row.runner_id);
+      if (runnerPid !== null && !isPidAlive(runnerPid)) {
+        deadRunnerTaskIds.push(row.task_id);
+      }
+    }
+    if (expiredTaskIds.length === 0 && deadRunnerTaskIds.length === 0) {
+      return { deadRunnerLeases: 0, expiredLeases: 0, expiredDeferrals: 0 };
+    }
     const deleteReservations = this.db.prepare('DELETE FROM reservations WHERE task_id = ?');
     const deleteLease = this.db.prepare('DELETE FROM leases WHERE task_id = ?');
     const deleteActivity = this.db.prepare('DELETE FROM task_activity WHERE task_id = ?');
-    for (const row of expiredIds) {
-      deleteReservations.run(row.task_id);
-      deleteActivity.run(row.task_id);
-      deleteLease.run(row.task_id);
+    for (const taskId of [...expiredTaskIds, ...deadRunnerTaskIds]) {
+      deleteReservations.run(taskId);
+      deleteActivity.run(taskId);
+      deleteLease.run(taskId);
     }
+    return {
+      deadRunnerLeases: deadRunnerTaskIds.length,
+      expiredLeases: expiredTaskIds.length,
+      expiredDeferrals: 0,
+    };
   }
 
-  private pruneExpiredDeferrals(): void {
-    this.db.prepare('DELETE FROM deferrals WHERE retry_at <= ?').run(isoNow());
+  private pruneExpiredDeferrals(): number {
+    const result = this.db.prepare('DELETE FROM deferrals WHERE retry_at <= ?').run(isoNow()) as { changes?: number };
+    return result.changes ?? 0;
+  }
+
+  reapStaleRuntimeState(): RuntimePruneResult {
+    return this.transaction(() => {
+      const leaseResult = this.pruneExpiredLeases();
+      const expiredDeferrals = this.pruneExpiredDeferrals();
+      return {
+        deadRunnerLeases: leaseResult.deadRunnerLeases,
+        expiredLeases: leaseResult.expiredLeases,
+        expiredDeferrals,
+      };
+    });
   }
 
   transaction<T>(fn: () => T): T {

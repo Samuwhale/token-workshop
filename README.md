@@ -49,7 +49,7 @@ pnpm backlog:sync
 pnpm backlog:doctor
 ```
 
-- `pnpm backlog` starts the backlog orchestrator through the guided `start` command. In a TTY it offers repo defaults first, then lets you customize workspace mode, workers, discovery behavior, and either one all-runner tool/model override or a mixed per-role runner setup such as `planner = claude opus` and `task = codex gpt`.
+- `pnpm backlog` starts the backlog orchestrator through the guided `start` command. In a TTY it offers repo defaults first, then lets you customize workspace mode, workers, discovery behavior when no runnable work remains, and either one all-runner tool/model override or a mixed per-role runner setup such as `planner = claude opus` and `task = codex gpt`.
 - `pnpm backlog -- --yes --workers 3` skips the guided prompt and starts immediately with up to three requested task workers. In shared-workspace mode the runner still executes one task at a time.
 - `pnpm backlog:status` shows current queue counts, whether the orchestrator is active, and the key runtime file locations. Add `-- --verbose` to include the live lease, reservation, planner, and blockage sections from the runtime report.
 - `pnpm backlog:sync` performs the queue-maintenance step only: drain the structured candidate queue into YAML task specs and rebuild the generated `backlog.md` report.

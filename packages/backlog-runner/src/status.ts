@@ -4,6 +4,9 @@ import { ensureConfigReady } from './config.js';
 import { createFileBackedTaskStore } from './store/task-store.js';
 import type { BacklogQueueCounts, BacklogRunnerConfig, OrchestratorRuntimeStatus } from './types.js';
 
+const ORCHESTRATOR_STATUS_STALE_MULTIPLIER = 3;
+const ORCHESTRATOR_STATUS_MIN_FRESHNESS_MS = 5_000;
+
 export interface BacklogRunnerStatus {
   counts: BacklogQueueCounts;
   orchestrator: OrchestratorRuntimeStatus | null;
@@ -43,7 +46,21 @@ function readMarkdownSection(markdown: string, heading: string): string[] {
 async function readOrchestratorStatus(config: BacklogRunnerConfig): Promise<OrchestratorRuntimeStatus | null> {
   try {
     const content = await readFile(path.join(config.files.runtimeDir, 'orchestrator-status.json'), 'utf8');
-    return JSON.parse(content) as OrchestratorRuntimeStatus;
+    const status = JSON.parse(content) as OrchestratorRuntimeStatus;
+    const updatedAtMs = Date.parse(status.updatedAt);
+    const freshnessWindow = Math.max(
+      ORCHESTRATOR_STATUS_MIN_FRESHNESS_MS,
+      status.pollIntervalMs * ORCHESTRATOR_STATUS_STALE_MULTIPLIER,
+    );
+    if (!Number.isFinite(updatedAtMs) || Date.now() - updatedAtMs > freshnessWindow) {
+      return null;
+    }
+    try {
+      process.kill(status.pid, 0);
+      return status;
+    } catch {
+      return null;
+    }
   } catch {
     return null;
   }

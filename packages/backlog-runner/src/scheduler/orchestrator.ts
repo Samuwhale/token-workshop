@@ -1,4 +1,4 @@
-import { rm, writeFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ensureConfigReady, resolveRunOptions } from '../config.js';
 import { createDefaultLogSink, RunnerLogger } from '../logger.js';
@@ -32,11 +32,17 @@ import {
 import { formatDuration, genericWorkerResult, getRunnerConfig, logDrainResult } from './helpers.js';
 import { runDiscoveryWorker, runPlannerWorker, runTaskWorker } from './workers.js';
 
+const BLOCKED_DISCOVERY_MAX_BACKOFF_MS = 10 * 60 * 1000;
+const ORCHESTRATOR_STATUS_STALE_MULTIPLIER = 3;
+const ORCHESTRATOR_STATUS_MIN_FRESHNESS_MS = 5_000;
+type DiscoveryLaunchMode = 'empty' | 'blocked';
+
 type ActiveControlWorker = {
   kind: 'planner' | 'discovery';
   promise: Promise<BacklogWorkerResult>;
   batchKey?: string;
   passType?: BacklogPassType;
+  discoveryMode?: DiscoveryLaunchMode;
 };
 
 function describeActiveControlWorker(worker: ActiveControlWorker | null): string {
@@ -79,6 +85,35 @@ async function clearOrchestratorStatus(config: BacklogRunnerConfig): Promise<voi
   await rm(path.join(config.files.runtimeDir, 'orchestrator-status.json'), { force: true });
 }
 
+async function readOrchestratorStatus(config: BacklogRunnerConfig): Promise<OrchestratorRuntimeStatus | null> {
+  try {
+    const content = await readFile(path.join(config.files.runtimeDir, 'orchestrator-status.json'), 'utf8');
+    return JSON.parse(content) as OrchestratorRuntimeStatus;
+  } catch {
+    return null;
+  }
+}
+
+function isPidAlive(pid: number | null | undefined): boolean {
+  if (!pid || !Number.isFinite(pid)) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function orchestratorStatusIsFresh(status: OrchestratorRuntimeStatus): boolean {
+  const updatedAtMs = Date.parse(status.updatedAt);
+  if (!Number.isFinite(updatedAtMs)) return false;
+  const freshnessWindow = Math.max(
+    ORCHESTRATOR_STATUS_MIN_FRESHNESS_MS,
+    status.pollIntervalMs * ORCHESTRATOR_STATUS_STALE_MULTIPLIER,
+  );
+  return Date.now() - updatedAtMs <= freshnessWindow;
+}
+
 function shouldAttemptPlannerBatch(
   batchKey: string,
   waitingPlannerBatchKey: string | null,
@@ -105,6 +140,23 @@ async function currentPlannerBatchKey(
 ): Promise<string> {
   const plannerCandidates = await store.listPlannerCandidates(plannerBatchSize());
   return plannerCandidates.map(task => task.id).join(',');
+}
+
+async function ensureOrchestratorAvailable(
+  config: BacklogRunnerConfig,
+  logger: RunnerLogger,
+): Promise<void> {
+  const status = await readOrchestratorStatus(config);
+  if (!status) return;
+
+  const pidAlive = isPidAlive(status.pid);
+  const isFresh = orchestratorStatusIsFresh(status);
+  if (pidAlive && isFresh) {
+    throw new Error(`Another backlog orchestrator is already running (${status.orchestratorId}, pid ${status.pid}).`);
+  }
+
+  await clearOrchestratorStatus(config);
+  logger.line(`  Reclaimed stale orchestrator status: ${status.orchestratorId} (pid ${status.pid ?? 'unknown'})`);
 }
 
 export async function syncBacklogRunner(config: BacklogRunnerConfig): Promise<BacklogSyncResult> {
@@ -138,6 +190,9 @@ export async function runBacklogRunner(
     ? new GitWorktreeWorkspaceStrategy(commandRunner, config)
     : new InPlaceWorkspaceStrategy(commandRunner, config);
   const orchestratorId = `${process.pid}-${Date.now()}`;
+  let ownsOrchestratorStatus = false;
+
+  await ensureOrchestratorAvailable(config, logger);
 
   if (options.worktrees) {
     await pruneGitWorktrees(commandRunner, config, logger);
@@ -147,18 +202,23 @@ export async function runBacklogRunner(
   let fatalError: Error | null = null;
   let rateLimitUntil = 0;
   let discoveryCooldownUntil = 0;
+  let blockedDiscoveryCooldownUntil = 0;
+  let blockedDiscoveryBackoffMs = EMPTY_QUEUE_POLL_INTERVAL_MS;
   let plannerCooldownBatchKey: string | null = null;
   let plannerCooldownUntil = 0;
   let iteration = 0;
   let previousCompletedTaskDuration = 0;
   let lastLoopSummaryKey = '';
+  let lastBlockedStateKey = '';
 
   const taskWorkers = new Map<string, { title: string; promise: Promise<BacklogWorkerResult> }>();
   let controlWorker: ActiveControlWorker | null = null;
 
   const updateStatus = async (): Promise<void> => {
+    ownsOrchestratorStatus = true;
     const status: OrchestratorRuntimeStatus = {
       orchestratorId,
+      pid: process.pid,
       requestedWorkers: options.workers,
       effectiveWorkers,
       activeTaskWorkers: [...taskWorkers.entries()].map(([taskId, worker]) => ({ taskId, title: worker.title })),
@@ -169,9 +229,15 @@ export async function runBacklogRunner(
         : undefined,
       shutdownRequested: stopRequested || fatalError !== null,
       pollIntervalMs: ORCHESTRATOR_POLL_INTERVAL_MS,
+      updatedAt: new Date().toISOString(),
     };
     await writeOrchestratorStatus(config, status);
     await store.getQueueCounts();
+  };
+
+  const resetBlockedDiscoveryBackoff = (): void => {
+    blockedDiscoveryCooldownUntil = 0;
+    blockedDiscoveryBackoffMs = EMPTY_QUEUE_POLL_INTERVAL_MS;
   };
 
   const handleTaskWorkerResult = (result: BacklogWorkerResult): void => {
@@ -183,7 +249,12 @@ export async function runBacklogRunner(
     }
   };
 
-  const handleControlWorkerResult = (kind: 'planner' | 'discovery', batchKey: string | undefined, result: BacklogWorkerResult): void => {
+  const handleControlWorkerResult = (
+    kind: 'planner' | 'discovery',
+    batchKey: string | undefined,
+    result: BacklogWorkerResult,
+    discoveryMode?: DiscoveryLaunchMode,
+  ): void => {
     if (result.kind === 'rate_limited') {
       rateLimitUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
       return;
@@ -199,6 +270,15 @@ export async function runBacklogRunner(
       return;
     }
     if (kind === 'discovery') {
+      if (discoveryMode === 'blocked') {
+        if (result.kind === 'completed') {
+          resetBlockedDiscoveryBackoff();
+          return;
+        }
+        blockedDiscoveryCooldownUntil = Date.now() + blockedDiscoveryBackoffMs;
+        blockedDiscoveryBackoffMs = Math.min(BLOCKED_DISCOVERY_MAX_BACKOFF_MS, blockedDiscoveryBackoffMs * 2);
+        return;
+      }
       discoveryCooldownUntil = result.kind === 'completed' ? 0 : Date.now() + EMPTY_QUEUE_POLL_INTERVAL_MS;
     }
   };
@@ -261,7 +341,7 @@ export async function runBacklogRunner(
     controlWorker = { kind: 'planner', promise, batchKey };
   };
 
-  const launchDiscoveryWorker = (): void => {
+  const launchDiscoveryWorker = (discoveryMode: DiscoveryLaunchMode): void => {
     const promise = runDiscoveryWorker(
       config,
       store,
@@ -273,7 +353,14 @@ export async function runBacklogRunner(
       (passType) => { if (controlWorker) controlWorker.passType = passType; },
     )
       .then(result => {
-        handleControlWorkerResult('discovery', undefined, result);
+        handleControlWorkerResult('discovery', undefined, result, discoveryMode);
+        if (discoveryMode === 'blocked') {
+          if (result.kind === 'completed') {
+            logger.line('  Blocked-state discovery made progress — resuming normal scheduling.');
+          } else if (result.kind === 'no_progress') {
+            logger.line(`  Blocked-state discovery made no progress — retrying in ${formatDuration(Math.ceil((blockedDiscoveryCooldownUntil - Date.now()) / 1000))}.`);
+          }
+        }
         return result;
       })
       .catch(error => {
@@ -288,7 +375,7 @@ export async function runBacklogRunner(
           controlWorker = null;
         }
       });
-    controlWorker = { kind: 'discovery', promise };
+    controlWorker = { kind: 'discovery', promise, discoveryMode };
   };
 
   const onSignal = () => {
@@ -303,6 +390,10 @@ export async function runBacklogRunner(
   try {
     await store.ensureProgressFile();
     await store.ensureTaskSpecsReady();
+    const startupReap = await store.reapStaleRuntimeState();
+    if (startupReap.deadRunnerLeases > 0) {
+      logger.line(`  Reclaimed ${startupReap.deadRunnerLeases} dead-runner lease${startupReap.deadRunnerLeases === 1 ? '' : 's'}.`);
+    }
     logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
 
     logger.line('');
@@ -324,8 +415,41 @@ export async function runBacklogRunner(
     while (!stopRequested && !fatalError && !(await fileExists(config.files.stop))) {
       iteration += 1;
       logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
-      const counts = await store.getQueueCounts();
+      const staleRuntime = await store.reapStaleRuntimeState();
+      if (staleRuntime.deadRunnerLeases > 0) {
+        logger.line(`  Reclaimed ${staleRuntime.deadRunnerLeases} dead-runner lease${staleRuntime.deadRunnerLeases === 1 ? '' : 's'}.`);
+      }
+      const queueState = await store.getQueueState();
+      const counts = queueState.counts;
       const activeControlKind = describeActiveControlWorker(controlWorker);
+      const blockedOnlyIdle = (
+        !controlWorker
+        && taskWorkers.size === 0
+        && counts.ready === 0
+        && counts.planned === 0
+        && counts.failed === 0
+        && counts.inProgress === 0
+        && counts.blocked > 0
+      );
+      const blockedStateKey = (
+        blockedOnlyIdle
+      )
+        ? JSON.stringify({
+            ready: counts.ready,
+            blocked: counts.blocked,
+            planned: counts.planned,
+            inProgress: counts.inProgress,
+            failed: counts.failed,
+            activeControlKind,
+            blockages: [...queueState.blockages]
+              .map(blockage => `${blockage.taskId}:${blockage.reason}:${blockage.retryAt ?? ''}`)
+              .sort(),
+          })
+        : '';
+      if (blockedStateKey !== lastBlockedStateKey) {
+        resetBlockedDiscoveryBackoff();
+        lastBlockedStateKey = blockedStateKey;
+      }
       const loopSummary = renderLoopSummary({
         iteration,
         ready: counts.ready,
@@ -393,22 +517,28 @@ export async function runBacklogRunner(
         && counts.failed === 0
         && counts.inProgress === 0
         && options.passes
-        && now >= discoveryCooldownUntil
       ) {
-        logger.line('  No tasks found — running discovery passes to replenish backlog…');
-        launchDiscoveryWorker();
-        await updateStatus();
-        await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
-        continue;
+        if (counts.blocked === 0 && now >= discoveryCooldownUntil) {
+          logger.line('  No tasks found — running discovery passes to replenish backlog…');
+          launchDiscoveryWorker('empty');
+          await updateStatus();
+          await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
+          continue;
+        }
+        if (counts.blocked > 0 && now >= blockedDiscoveryCooldownUntil) {
+          logger.line('  No runnable tasks remain — running discovery passes to unblock backlog…');
+          launchDiscoveryWorker('blocked');
+          await updateStatus();
+          await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
+          continue;
+        }
       }
 
       if (!controlWorker && taskWorkers.size === 0 && counts.ready === 0 && counts.planned === 0 && counts.failed === 0) {
-        if (counts.blocked > 0) {
-          logger.line('  No runnable tasks remain. Remaining tasks are blocked; stopping instead of spending tokens on new discovery.');
-          break;
-        }
         if (!options.passes) {
-          logger.line('  Task queue empty and discovery passes are disabled — stopping.');
+          logger.line(counts.blocked > 0
+            ? '  No runnable tasks remain and discovery passes are disabled — stopping.'
+            : '  Task queue empty and discovery passes are disabled — stopping.');
           break;
         }
       }
@@ -444,7 +574,9 @@ export async function runBacklogRunner(
   } finally {
     process.removeListener('SIGINT', onSignal);
     process.removeListener('SIGTERM', onSignal);
-    await clearOrchestratorStatus(config);
+    if (ownsOrchestratorStatus) {
+      await clearOrchestratorStatus(config);
+    }
     try {
       await store.close();
     } finally {

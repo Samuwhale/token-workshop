@@ -201,12 +201,14 @@ describe('cli', () => {
         readBacklogRunnerStatus: async () => makeStatus({
           orchestrator: {
             orchestratorId: 'orch-1',
+            pid: 12345,
             requestedWorkers: 3,
             effectiveWorkers: 2,
             activeTaskWorkers: [{ taskId: 'task-a', title: 'Task A' }],
             activeControlWorker: { kind: 'planner' },
             shutdownRequested: false,
             pollIntervalMs: 15000,
+            updatedAt: new Date().toISOString(),
           },
         }),
       },

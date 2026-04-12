@@ -135,7 +135,7 @@ export function summarizeStartOverrides(overrides: StartSummaryInput): string {
     SUMMARY_DIVIDER,
     `Workspace mode:            ${workspaceModeLabel(overrides.worktrees)}`,
     `Requested task workers:    ${workerSummary}`,
-    `Discovery when queue is empty: ${overrides.passes ? 'enabled' : 'disabled'}`,
+    `Discovery when no runnable work remains: ${overrides.passes ? 'enabled' : 'disabled'}`,
     ...renderRunnerSummaryLines(overrides),
     SUMMARY_DIVIDER,
   ].join('\n');
@@ -253,7 +253,7 @@ export async function promptForStartOverrides(
 
       const defaultPasses = previous.passes ?? config.defaults.passes;
       const passesAnswer = await prompter.question(
-        `Enable discovery when the queue is empty? [Y/n] (${defaultPasses ? 'yes' : 'no'}): `,
+        `Enable discovery when no runnable work remains? [Y/n] (${defaultPasses ? 'yes' : 'no'}): `,
       );
       const nextPasses = parseYesNoAnswer(passesAnswer, defaultPasses);
       const currentSetup = previous.runners && Object.keys(previous.runners).length > 0 ? 'mixed' : 'global';

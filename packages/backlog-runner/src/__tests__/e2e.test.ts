@@ -1,9 +1,12 @@
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it } from 'vitest';
 import { normalizeBacklogRunnerConfig } from '../config.js';
 import { runBacklogRunner } from '../scheduler/index.js';
+import { ORCHESTRATOR_POLL_INTERVAL_MS } from '../scheduler/constants.js';
+import { createFileBackedTaskStore } from '../store/task-store.js';
 import { writeTaskSpec } from '../task-specs.js';
 import type { BacklogTaskSpec, CommandResult, CommandRunOptions, CommandRunner, LogSink } from '../types.js';
 
@@ -35,6 +38,7 @@ function createFakeCommandRunner(
     calls?: string[];
     plannerOutput?: Record<string, unknown>;
     onGitCommit?: (message: string) => Promise<void> | void;
+    onAgentInput?: (input: string | undefined) => Promise<void> | void;
   } = {},
 ): CommandRunner {
   const stagedFiles = new Set(options.initialStagedFiles ?? []);
@@ -84,6 +88,7 @@ function createFakeCommandRunner(
         if (runOptions?.input) {
           options.calls?.push(`input:${runOptions.input}`);
         }
+        await options.onAgentInput?.(runOptions?.input);
         const isRepairPrompt = runOptions?.input?.includes('## Workspace Repair Mode') || runOptions?.input?.includes('## Reconciliation Mode');
         if (isRepairPrompt && options.clearStagedFilesOnRepair) {
           stagedFiles.clear();
@@ -308,8 +313,22 @@ async function readCurrentTaskYaml(root: string, taskId: string): Promise<string
   }
 }
 
+async function cleanupTempDir(dir: string): Promise<void> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await rm(dir, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (!(error instanceof Error) || !('code' in error) || (error as NodeJS.ErrnoException).code !== 'ENOTEMPTY' || attempt === 4) {
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }
+}
+
 afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map(dir => rm(dir, { recursive: true, force: true })));
+  await Promise.all(tempDirs.splice(0).map(dir => cleanupTempDir(dir)));
 });
 
 describe('runner e2e', () => {
@@ -1012,5 +1031,215 @@ describe('runner e2e', () => {
     );
 
     expect(calls.filter(call => call === 'run:git worktree prune --expire now')).toHaveLength(expected);
+  });
+
+  it('refuses to start when another fresh orchestrator status is still live', async () => {
+    const { config, root } = await makeFixture([]);
+    await writeFile(
+      path.join(config.files.runtimeDir, 'orchestrator-status.json'),
+      `${JSON.stringify({
+        orchestratorId: 'orch-live',
+        pid: process.pid,
+        requestedWorkers: 2,
+        effectiveWorkers: 2,
+        activeTaskWorkers: [],
+        shutdownRequested: false,
+        pollIntervalMs: ORCHESTRATOR_POLL_INTERVAL_MS,
+        updatedAt: new Date().toISOString(),
+      })}\n`,
+      'utf8',
+    );
+
+    await expect(runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    )).rejects.toThrow('Another backlog orchestrator is already running');
+  });
+
+  it('reclaims stale orchestrator status before starting', async () => {
+    const { config, root } = await makeFixture([]);
+    const logSink = new MemoryLogSink();
+    await writeFile(
+      path.join(config.files.runtimeDir, 'orchestrator-status.json'),
+      `${JSON.stringify({
+        orchestratorId: 'orch-stale',
+        pid: process.pid,
+        requestedWorkers: 2,
+        effectiveWorkers: 2,
+        activeTaskWorkers: [],
+        shutdownRequested: false,
+        pollIntervalMs: ORCHESTRATOR_POLL_INTERVAL_MS,
+        updatedAt: new Date(Date.now() - 60_000).toISOString(),
+      })}\n`,
+      'utf8',
+    );
+
+    await runBacklogRunner(
+      config,
+      { passes: false },
+      {
+        commandRunner: createFakeCommandRunner(root),
+        createLogSink: async () => logSink,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(logSink.lines.join('')).toContain('Reclaimed stale orchestrator status: orch-stale');
+  });
+
+  it('reclaims dead-runner leases on startup so inherited in-progress work does not wedge the next run', async () => {
+    const { config, root } = await makeFixture([baseTask()]);
+    const seedStore = createFileBackedTaskStore(config);
+    await seedStore.ensureProgressFile();
+    await seedStore.ensureTaskSpecsReady();
+    await seedStore.close();
+    const db = new Database(config.files.stateDb);
+    db.prepare(`
+      INSERT INTO leases (task_id, runner_id, claim_token, claimed_at, heartbeat_at, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('task-a', '999999-1', 'dead-claim', new Date().toISOString(), new Date().toISOString(), new Date(Date.now() + 60_000).toISOString());
+    db.prepare(`
+      INSERT INTO reservations (task_id, kind, value)
+      VALUES (?, ?, ?)
+    `).run('task-a', 'touch_path', 'feature.txt');
+    db.close();
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          onGitCommit: async message => {
+            if (message === 'chore(backlog): done – test item') {
+              await stopAfterFirstSleep(config.files.stop);
+            }
+          },
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(await readCurrentTaskYaml(root, 'task-a')).toContain('state: done');
+  });
+
+  it('runs discovery passes for blocked-only queues instead of stopping', async () => {
+    const { config, root } = await makeFixture([baseTask()]);
+    const seedStore = createFileBackedTaskStore(config);
+    await seedStore.ensureProgressFile();
+    await seedStore.ensureTaskSpecsReady();
+    await seedStore.deferTaskById('task-a', 'waiting on external precondition', 60_000);
+    await seedStore.close();
+
+    const calls: string[] = [];
+    const logSink = new MemoryLogSink();
+    let sleepCalls = 0;
+
+    await runBacklogRunner(
+      config,
+      { passes: true },
+      {
+        commandRunner: createFakeCommandRunner(root, { calls }),
+        createLogSink: async () => logSink,
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 1) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
+      },
+    );
+
+    expect(logSink.lines.join('')).toContain('No runnable tasks remain — running discovery passes to unblock backlog…');
+    expect(logSink.lines.join('')).not.toContain('Remaining tasks are blocked; stopping instead of spending tokens on new discovery.');
+    expect(calls.some(call => call.includes('product prompt'))).toBe(true);
+    expect(calls.some(call => call.includes('ux prompt'))).toBe(true);
+    expect(calls.some(call => call.includes('code prompt'))).toBe(true);
+  });
+
+  it('backs off instead of exiting when blocked-state discovery makes no progress', async () => {
+    const { config, root } = await makeFixture([baseTask()]);
+    const seedStore = createFileBackedTaskStore(config);
+    await seedStore.ensureProgressFile();
+    await seedStore.ensureTaskSpecsReady();
+    await seedStore.deferTaskById('task-a', 'waiting on external precondition', 60_000);
+    await seedStore.close();
+
+    const logSink = new MemoryLogSink();
+    let sleepCalls = 0;
+
+    await runBacklogRunner(
+      config,
+      { passes: true },
+      {
+        commandRunner: createFakeCommandRunner(root),
+        createLogSink: async () => logSink,
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 3) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
+      },
+    );
+
+    expect(logSink.lines.join('')).toContain('Blocked-state discovery made no progress — retrying in 30s.');
+    expect(logSink.lines.join('')).not.toContain('Remaining tasks are blocked; stopping instead of spending tokens on new discovery.');
+  });
+
+  it('resets blocked-state discovery backoff after discovery creates runnable work', async () => {
+    const { config, root } = await makeFixture([baseTask()]);
+    const seedStore = createFileBackedTaskStore(config);
+    await seedStore.ensureProgressFile();
+    await seedStore.ensureTaskSpecsReady();
+    await seedStore.deferTaskById('task-a', 'waiting on external precondition', 60_000);
+    await seedStore.close();
+
+    const calls: string[] = [];
+    let createdFollowup = false;
+    let sleepCalls = 0;
+
+    await runBacklogRunner(
+      config,
+      { passes: true },
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          statusResponses: [[], [], []],
+          onAgentInput: async input => {
+            if (!createdFollowup && input?.includes('product prompt')) {
+              createdFollowup = true;
+              await writeFile(
+                path.join(root, 'backlog/inbox.jsonl'),
+                `${JSON.stringify({
+                  title: 'Discovery follow-up',
+                  priority: 'normal',
+                  touch_paths: ['discovered.txt'],
+                  acceptance_criteria: ['Discovery follow-up is implemented'],
+                  validation_profile: 'repo',
+                  source: 'product-pass',
+                })}\n`,
+                'utf8',
+              );
+            }
+          },
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 4) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
+      },
+    );
+
+    expect(calls.some(call => call.includes('product prompt'))).toBe(true);
+    expect(calls).toContain('input:agent prompt');
   });
 });

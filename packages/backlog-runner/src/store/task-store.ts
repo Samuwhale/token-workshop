@@ -331,6 +331,27 @@ export class FileBackedTaskStore implements BacklogStore {
     return withLock(this.backlogLock, 30, async () => (await this.refreshRuntimeAndWriteLiveReport()).counts);
   }
 
+  async getQueueState(): Promise<{ counts: BacklogQueueCounts; blockages: TaskBlockage[] }> {
+    return withLock(this.backlogLock, 30, async () => {
+      const snapshot = await this.refreshRuntimeAndWriteLiveReport();
+      return {
+        counts: snapshot.counts,
+        blockages: snapshot.blockages,
+      };
+    });
+  }
+
+  async reapStaleRuntimeState(): Promise<{ deadRunnerLeases: number }> {
+    return withLock(this.backlogLock, 30, async () => {
+      const runtime = await this.getRuntime();
+      const result = runtime.reapStaleRuntimeState();
+      await this.refreshRuntimeAndWriteLiveReport();
+      return {
+        deadRunnerLeases: result.deadRunnerLeases,
+      };
+    });
+  }
+
   async claimNextRunnableTasks(limit: number, runnerId: string): Promise<BacklogTaskClaim[]> {
     return withLock(this.backlogLock, 30, async () => {
       if (limit <= 0) {

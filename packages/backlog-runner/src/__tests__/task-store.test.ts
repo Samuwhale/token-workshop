@@ -371,6 +371,38 @@ describe('task store', () => {
     expect(reclaimed?.task.id).toBe('task-a');
   });
 
+  it('reclaims dead-runner leases immediately and clears reservations and activity', async () => {
+    const { config } = await makeFixture();
+    await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));
+
+    const storeB = createFileBackedTaskStore(config);
+    const db = new Database(config.files.stateDb);
+    db.prepare(`
+      INSERT INTO leases (task_id, runner_id, claim_token, claimed_at, heartbeat_at, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('task-a', '999999-1', 'dead-claim', new Date().toISOString(), new Date().toISOString(), new Date(Date.now() + 60_000).toISOString());
+    db.prepare(`
+      INSERT INTO reservations (task_id, kind, value)
+      VALUES (?, ?, ?)
+    `).run('task-a', 'touch_path', 'packages/core/src/a.ts');
+    db.prepare(`
+      INSERT INTO task_activity (task_id, transcript_path, milestones_json, updated_at)
+      VALUES (?, ?, ?, ?)
+    `).run('task-a', '/tmp/task-a.jsonl', JSON.stringify(['Inspecting repo state.']), new Date().toISOString());
+    db.close();
+
+    const reclaimedRuntime = await storeB.reapStaleRuntimeState();
+    const reclaimed = await claimNextRunnableTask(storeB, 'runner-b');
+    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
+
+    expect(reclaimedRuntime.deadRunnerLeases).toBe(1);
+    expect(reclaimed?.task.id).toBe('task-a');
+    expect(runtimeReport).toContain('## Active Leases');
+    expect(runtimeReport).toContain('- None');
+    expect(runtimeReport).toContain('## Active Task Progress');
+    expect(runtimeReport).toContain('- None');
+  });
+
   it('blocks deferred ready tasks until the runtime deferral expires', async () => {
     const { config } = await makeFixture();
     await seedTask(config, taskSpec({ id: 'task-a', title: 'Task A', touchPaths: ['packages/core/src/a.ts'] }));

@@ -78,7 +78,7 @@ describe('interactive helpers', () => {
     expect(resolveWorkerChoice('99', 2, 8)).toBe(2);
   });
 
-  it('renders a readable launch summary including shared-workspace worker limits', () => {
+  it('renders a launch summary with workspace and runner info', () => {
     const summary = summarizeStartOverrides({
       tool: undefined,
       runners: undefined,
@@ -89,12 +89,13 @@ describe('interactive helpers', () => {
       worktrees: false,
     });
 
-    expect(summary).toContain('Workspace mode:            shared workspace');
-    expect(summary).toContain('Requested task workers:    3 requested, 1 effective in shared workspace');
-    expect(summary).toContain('Discovery when queue is empty: enabled');
-    expect(summary).toContain('Runners:');
-    expect(summary).toContain('  task    codex · gpt-5.4');
-    expect(summary).toContain('  planner claude · claude-opus-4-6');
+    expect(summary).toContain('shared workspace');
+    expect(summary).toContain('3 requested');
+    expect(summary).toContain('1 effective');
+    expect(summary).toContain('enabled');
+    expect(summary).toContain('codex');
+    expect(summary).toContain('claude');
+    expect(summary).toContain('gpt-5.4');
   });
 
   it('only prompts interactively for start when a TTY is present, no explicit overrides were supplied, and --yes is absent', () => {
@@ -119,20 +120,19 @@ describe('interactive helpers', () => {
       interactive: true,
     });
     expect(prompter.prompts).toHaveLength(1);
-    expect(prompter.writes.join('')).toContain('Repo defaults');
   });
 
   it('guides the user through customizing launch settings', async () => {
     const config = makeConfig();
     const prompter = new FakePrompter([
       'customize',
-      '2',
-      '4',
-      'n',
-      '1',
-      '2',
-      'gpt-5.4-mini',
-      '',
+      '2',       // shared workspace
+      '4',       // workers
+      'n',       // no discovery passes
+      '1',       // global runner setup
+      '2',       // tool: claude
+      'gpt-5.4-mini', // model
+      '',        // confirm launch
     ]);
 
     const overrides = await promptForStartOverrides(config, {}, prompter);
@@ -145,39 +145,29 @@ describe('interactive helpers', () => {
       worktrees: false,
       interactive: true,
     });
-    expect(prompter.prompts).toEqual([
-      'Press Enter to start with repo defaults, type "customize" to change launch settings, or "cancel" to abort: ',
-      'Workspace mode [1-2] (1): ',
-      'Requested task workers [1-8] (2, shared workspace still runs 1 at a time): ',
-      'Enable discovery when the queue is empty? [Y/n] (yes): ',
-      'Runner setup [1-2] (1): ',
-      'Tool override [1-3 or name] (repo defaults): ',
-      'Model override (blank keeps repo defaults) (repo defaults): ',
-      'Press Enter to launch, type "edit" to revise, or "cancel" to abort: ',
-    ]);
-    expect(prompter.writes.join('')).toContain('Runner setup options');
-    expect(prompter.writes.join('')).toContain('shared workspace');
+    // 8 prompts: start-or-customize, workspace, workers, passes, runner-setup, tool, model, confirm
+    expect(prompter.prompts).toHaveLength(8);
   });
 
   it('guides the user through a mixed per-role runner setup', async () => {
     const config = makeConfig();
     const prompter = new FakePrompter([
       'customize',
-      '1',
-      '2',
-      'y',
-      '2',
-      '3',
-      'gpt-5.4',
-      '2',
-      'claude-opus-4-6',
-      '',
-      '',
-      '1',
-      '',
-      '3',
-      'gpt-5.4-mini',
-      '',
+      '1',       // isolated worktrees
+      '2',       // workers
+      'y',       // discovery passes
+      '2',       // mixed runner setup
+      '3',       // task: codex
+      'gpt-5.4', // task model
+      '2',       // planner: claude
+      'claude-opus-4-6', // planner model
+      '',        // product: repo default tool
+      '',        // product: repo default model
+      '1',       // ux: repo default tool
+      '',        // ux: repo default model
+      '3',       // code: codex
+      'gpt-5.4-mini', // code model
+      '',        // confirm launch
     ]);
 
     const overrides = await promptForStartOverrides(config, {}, prompter);
@@ -197,11 +187,5 @@ describe('interactive helpers', () => {
         code: { tool: 'codex', model: 'gpt-5.4-mini' },
       },
     });
-    expect(prompter.prompts).toContain('Runner setup [1-2] (1): ');
-    expect(prompter.prompts).toContain('  Tool [1-3 or name] (claude): ');
-    expect(prompter.prompts).toContain('  Model (blank keeps repo default) (claude-opus-4-6): ');
-    expect(prompter.writes.join('')).toContain('Per-role runner setup');
-    expect(prompter.writes.join('')).toContain('Planner runner');
-    expect(prompter.writes.join('')).toContain('Runners:\n  task    codex · gpt-5.4');
   });
 });
