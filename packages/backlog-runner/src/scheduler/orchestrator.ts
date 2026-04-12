@@ -6,6 +6,7 @@ import { plannerBatchSize } from '../planner.js';
 import { isAuthFailure, isRateLimited } from '../providers/common.js';
 import { createCommandRunner, sleep as defaultSleep } from '../process.js';
 import { createFileBackedTaskStore } from '../store/task-store.js';
+import { isOrchestratorStatusLive } from '../orchestrator-status.js';
 import { fileExists } from '../utils.js';
 import type {
   BacklogPassType,
@@ -33,8 +34,6 @@ import { formatDuration, genericWorkerResult, getRunnerConfig, logDrainResult } 
 import { runDiscoveryWorker, runPlannerWorker, runTaskWorker } from './workers.js';
 
 const BLOCKED_DISCOVERY_MAX_BACKOFF_MS = 10 * 60 * 1000;
-const ORCHESTRATOR_STATUS_STALE_MULTIPLIER = 3;
-const ORCHESTRATOR_STATUS_MIN_FRESHNESS_MS = 5_000;
 type DiscoveryLaunchMode = 'empty' | 'blocked';
 
 type ActiveControlWorker = {
@@ -94,26 +93,6 @@ async function readOrchestratorStatus(config: BacklogRunnerConfig): Promise<Orch
   }
 }
 
-function isPidAlive(pid: number | null | undefined): boolean {
-  if (!pid || !Number.isFinite(pid)) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function orchestratorStatusIsFresh(status: OrchestratorRuntimeStatus): boolean {
-  const updatedAtMs = Date.parse(status.updatedAt);
-  if (!Number.isFinite(updatedAtMs)) return false;
-  const freshnessWindow = Math.max(
-    ORCHESTRATOR_STATUS_MIN_FRESHNESS_MS,
-    status.pollIntervalMs * ORCHESTRATOR_STATUS_STALE_MULTIPLIER,
-  );
-  return Date.now() - updatedAtMs <= freshnessWindow;
-}
-
 function shouldAttemptPlannerBatch(
   batchKey: string,
   waitingPlannerBatchKey: string | null,
@@ -149,9 +128,7 @@ async function ensureOrchestratorAvailable(
   const status = await readOrchestratorStatus(config);
   if (!status) return;
 
-  const pidAlive = isPidAlive(status.pid);
-  const isFresh = orchestratorStatusIsFresh(status);
-  if (pidAlive && isFresh) {
+  if (isOrchestratorStatusLive(status)) {
     throw new Error(`Another backlog orchestrator is already running (${status.orchestratorId}, pid ${status.pid}).`);
   }
 
@@ -415,11 +392,10 @@ export async function runBacklogRunner(
     while (!stopRequested && !fatalError && !(await fileExists(config.files.stop))) {
       iteration += 1;
       logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
-      const staleRuntime = await store.reapStaleRuntimeState();
-      if (staleRuntime.deadRunnerLeases > 0) {
-        logger.line(`  Reclaimed ${staleRuntime.deadRunnerLeases} dead-runner lease${staleRuntime.deadRunnerLeases === 1 ? '' : 's'}.`);
-      }
       const queueState = await store.getQueueState();
+      if (queueState.reapResult.deadRunnerLeases > 0) {
+        logger.line(`  Reclaimed ${queueState.reapResult.deadRunnerLeases} dead-runner lease${queueState.reapResult.deadRunnerLeases === 1 ? '' : 's'}.`);
+      }
       const counts = queueState.counts;
       const activeControlKind = describeActiveControlWorker(controlWorker);
       const blockedOnlyIdle = (

@@ -331,12 +331,15 @@ export class FileBackedTaskStore implements BacklogStore {
     return withLock(this.backlogLock, 30, async () => (await this.refreshRuntimeAndWriteLiveReport()).counts);
   }
 
-  async getQueueState(): Promise<{ counts: BacklogQueueCounts; blockages: TaskBlockage[] }> {
+  async getQueueState(): Promise<{ counts: BacklogQueueCounts; blockages: TaskBlockage[]; reapResult: { deadRunnerLeases: number } }> {
     return withLock(this.backlogLock, 30, async () => {
+      const runtime = await this.getRuntime();
+      const reapResult = runtime.reapStaleRuntimeState();
       const snapshot = await this.refreshRuntimeAndWriteLiveReport();
       return {
         counts: snapshot.counts,
         blockages: snapshot.blockages,
+        reapResult: { deadRunnerLeases: reapResult.deadRunnerLeases },
       };
     });
   }
@@ -345,7 +348,6 @@ export class FileBackedTaskStore implements BacklogStore {
     return withLock(this.backlogLock, 30, async () => {
       const runtime = await this.getRuntime();
       const result = runtime.reapStaleRuntimeState();
-      await this.refreshRuntimeAndWriteLiveReport();
       return {
         deadRunnerLeases: result.deadRunnerLeases,
       };

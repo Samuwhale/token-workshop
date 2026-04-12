@@ -10,6 +10,7 @@ import type {
   TaskLeaseSnapshot,
   TaskReservationSnapshot,
 } from './types.js';
+import { isPidAlive } from './utils.js';
 
 const DEFAULT_LEASE_DURATION_MS = 10 * 60 * 1000;
 
@@ -40,16 +41,6 @@ function runnerPidFromId(runnerId: string): number | null {
   if (!match) return null;
   const parsed = Number.parseInt(match[1]!, 10);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function isPidAlive(pid: number | null): boolean {
-  if (!pid) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function openRuntimeDatabase(dbPath: string): RuntimeDatabase {

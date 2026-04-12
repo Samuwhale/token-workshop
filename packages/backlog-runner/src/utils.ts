@@ -21,6 +21,16 @@ export async function readFileIfExists(filePath: string, fallback = ''): Promise
   }
 }
 
+export function isPidAlive(pid: number | null | undefined): boolean {
+  if (!pid || !Number.isFinite(pid)) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function parseGitStatusPaths(stdout: string): string[] {
   const files = new Set<string>();
   for (const rawLine of stdout.split('\n').map(line => line.trimEnd()).filter(Boolean)) {

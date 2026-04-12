@@ -3,6 +3,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { BacklogRunnerConfig } from './types.js';
+import { isPidAlive } from './utils.js';
 
 type LocalLockState = {
   ownerId: string;
@@ -22,15 +23,6 @@ async function pidFromLock(lockDir: string): Promise<number | null> {
   }
 }
 
-function isPidAlive(pid: number | null): boolean {
-  if (!pid) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export class LockHandle {
   constructor(

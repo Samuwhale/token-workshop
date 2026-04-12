@@ -1197,3 +1197,9 @@
 - **Learnings for future iterations:**
   - `flattenTokenGroup()` yields raw `DTCGToken` shapes; when sanitized tokens are written back through server token-tree helpers, narrow them back to the persisted `Token` type at the boundary instead of carrying a generic record type through the write path.
 ---
+- Verified the structural-transaction work was already present on the assigned server and UI surfaces, then normalized `packages/server/src/services/generator-service.ts` with Prettier so focused validation on the declared touch paths no longer fails on formatting drift.
+- Validation: `pnpm exec prettier --check packages/server/src/routes/sets.ts packages/server/src/services/operation-log.ts packages/server/src/services/generator-service.ts packages/server/src/services/resolver-store.ts packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` passed. `git diff --check -- packages/server/src/routes/sets.ts packages/server/src/services/operation-log.ts packages/server/src/services/generator-service.ts packages/server/src/services/resolver-store.ts packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` passed. `pnpm exec tsc --noEmit -p packages/server/tsconfig.json --pretty false` and `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json --pretty false` still report the pre-existing `packages/core/dist` bootstrap `TS6305` failures plus unrelated repo diagnostics outside this task surface; no additional task-specific issues were introduced.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L1
+- **Learnings for future iterations:**
+  - When a backlog item is already implemented, it is still worth re-running focused validation on the declared touch paths because stale formatting drift can block the scheduler even when the feature work itself is complete.
+---

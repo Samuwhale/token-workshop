@@ -138,6 +138,7 @@ export interface AgentRunRequest {
   cwd: string;
   maxTurns?: number;
   schema: string;
+  signal?: AbortSignal;
   onProgress?: (event: AgentProgressEvent) => void | Promise<void>;
 }
 
@@ -167,6 +168,7 @@ export interface CommandRunOptions {
   env?: NodeJS.ProcessEnv;
   timeoutMs?: number;
   ignoreFailure?: boolean;
+  signal?: AbortSignal;
   onStdoutLine?: (line: string) => void | Promise<void>;
   onStderrLine?: (line: string) => void | Promise<void>;
 }
@@ -313,7 +315,7 @@ export interface BacklogStore {
   ensureTaskSpecsReady(): Promise<void>;
   close(): Promise<void>;
   getQueueCounts(): Promise<BacklogQueueCounts>;
-  getQueueState(): Promise<{ counts: BacklogQueueCounts; blockages: TaskBlockage[] }>;
+  getQueueState(): Promise<{ counts: BacklogQueueCounts; blockages: TaskBlockage[]; reapResult: { deadRunnerLeases: number } }>;
   reapStaleRuntimeState(): Promise<{ deadRunnerLeases: number }>;
   claimNextRunnableTasks(limit: number, runnerId: string): Promise<BacklogTaskClaim[]>;
   heartbeatClaim(claim: BacklogTaskClaim): Promise<void>;
