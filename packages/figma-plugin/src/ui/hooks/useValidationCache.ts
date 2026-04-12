@@ -28,7 +28,12 @@ export interface ValidationCacheResult {
   validationError: string | null;
   validationLastRefreshed: Date | null;
   validationIsStale: boolean;
-  refreshValidation: () => void;
+  refreshValidation: () => Promise<ValidationSnapshot | null>;
+}
+
+export interface ValidationSnapshot {
+  issues: ValidationIssue[];
+  summary: ValidationSummary | null;
 }
 
 interface UseValidationCacheOptions {
@@ -70,8 +75,8 @@ export function useValidationCache({
   const autoRevalidateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasResultsRef = useRef(false);
 
-  const runValidation = useCallback(async () => {
-    if (!connected) return;
+  const runValidation = useCallback(async (): Promise<ValidationSnapshot | null> => {
+    if (!connected) return null;
     setLoading(true);
     setError(null);
     try {
@@ -80,14 +85,20 @@ export function useValidationCache({
         { method: 'POST', signal: AbortSignal.timeout(15000) },
       );
       const fetched = data.issues ?? [];
+      const nextSummary = data.summary ?? null;
       setIssues(fetched);
-      setSummary(data.summary ?? null);
+      setSummary(nextSummary);
       setLastRefreshed(new Date());
       setIsStale(false);
       hasResultsRef.current = true;
+      return {
+        issues: fetched,
+        summary: nextSummary,
+      };
     } catch (err) {
       console.warn('[useValidationCache] validation fetch failed:', err);
       setError('Validation failed — check server connection');
+      return null;
     } finally {
       setLoading(false);
     }

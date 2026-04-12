@@ -71,6 +71,7 @@ import { useEditorContext } from "../contexts/EditorContext";
 import type { TokenNode } from "../hooks/useTokens";
 import type { LintViolation } from "../hooks/useLint";
 import type {
+  ValidationSnapshot,
   ValidationIssue,
   ValidationSummary,
 } from "../hooks/useValidationCache";
@@ -191,7 +192,7 @@ export interface PanelRouterProps {
   validationError: string | null;
   validationLastRefreshed: Date | null;
   validationIsStale: boolean;
-  refreshValidation: () => void;
+  refreshValidation: () => Promise<ValidationSnapshot | null>;
 
   // History / operations
   recentOperations: OperationEntry[];
@@ -1604,6 +1605,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           activeSet={activeSet}
           collectionMap={setCollectionNames}
           modeMap={setModeNames}
+          refreshValidation={p.refreshValidation}
           tokenChangeKey={p.tokenChangeKey}
           publishPanelHandle={p.publishPanelHandleRef}
         />

@@ -12,7 +12,9 @@ import { NoticeBanner } from '../shared/noticeSystem';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
 import { useReadinessChecks } from '../hooks/useReadinessChecks';
+import type { ValidationSnapshot } from '../hooks/useValidationCache';
 import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
+import { useNavigationContext } from '../contexts/NavigationContext';
 import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
 import { FIGMA_SCOPES } from './MetadataEditor';
 import type { PublishPreflightActionId, SyncWorkflowStage, SyncWorkflowTone } from '../shared/syncWorkflow';
@@ -187,6 +189,7 @@ interface PublishPanelProps {
   activeSet: string;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
+  refreshValidation: () => Promise<ValidationSnapshot | null>;
   /** Increments whenever tokens are edited — used to detect stale readiness results */
   tokenChangeKey?: number;
   publishPanelHandle?: React.MutableRefObject<PublishPanelHandle | null>;
@@ -200,8 +203,18 @@ export interface PublishPanelHandle {
 
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
 
-export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {}, tokenChangeKey, publishPanelHandle }: PublishPanelProps) {
+export function PublishPanel({
+  serverUrl,
+  connected,
+  activeSet,
+  collectionMap = {},
+  modeMap = {},
+  refreshValidation,
+  tokenChangeKey,
+  publishPanelHandle,
+}: PublishPanelProps) {
   const help = usePanelHelp('publish');
+  const { navigateTo, setReturnBreadcrumb } = useNavigationContext();
 
   // ── Rename history for variable name propagation ──
   // Eagerly fetched from the server so applyVariables can rename existing Figma
@@ -304,6 +317,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     collectionMap, modeMap, tokenChangeKey,
     readFigmaTokens: varSync.readFigmaTokens,
     setOrphanConfirm: orphanCleanup.setOrphanConfirm,
+    refreshValidation,
   });
 
   const {
@@ -441,9 +455,21 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const handlePreflightAction = useCallback(async (actionId: PublishPreflightActionId) => {
     setPreflightActionBusyId(actionId);
     try {
+      if (actionId === 'review-draft-tokens') {
+        setReturnBreadcrumb({ label: 'Back to Sync', topTab: 'ship', subTab: 'publish' });
+        navigateTo('define', 'tokens');
+        return;
+      }
+
+      if (actionId === 'review-audit-findings') {
+        setReturnBreadcrumb({ label: 'Back to Sync', topTab: 'ship', subTab: 'publish' });
+        navigateTo('ship', 'health');
+        return;
+      }
+
       if (actionId === 'review-variable-scopes') {
         setOpenSections(() => {
-          const s = new Set(['figma-variables', 'figma-styles']);
+          const s = new Set<string>(['figma-variables', 'figma-styles']);
           try { localStorage.setItem('tm_publish_sections', JSON.stringify([...s])); } catch { /* ignore */ }
           return s;
         });
@@ -454,6 +480,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
       if (actionId === 'add-token-descriptions') {
         dispatchToast('Descriptions are edited in the Tokens workspace. Add them there, then return to re-run preflight.', 'success');
+        setReturnBreadcrumb({ label: 'Back to Sync', topTab: 'ship', subTab: 'publish' });
+        navigateTo('define', 'tokens');
         return;
       }
 
@@ -462,13 +490,15 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     } finally {
       setPreflightActionBusyId(null);
     }
-  }, [focusStage, triggerReadinessAction, varSync]);
+  }, [focusStage, navigateTo, setReturnBreadcrumb, triggerReadinessAction, varSync]);
 
   const preflightActionHandlers = useMemo(() => ({
     'push-missing-variables': () => void handlePreflightAction('push-missing-variables'),
     'delete-orphan-variables': () => void handlePreflightAction('delete-orphan-variables'),
     'review-variable-scopes': () => void handlePreflightAction('review-variable-scopes'),
     'add-token-descriptions': () => void handlePreflightAction('add-token-descriptions'),
+    'review-draft-tokens': () => void handlePreflightAction('review-draft-tokens'),
+    'review-audit-findings': () => void handlePreflightAction('review-audit-findings'),
   }), [handlePreflightAction]);
 
   useEffect(() => {
@@ -573,7 +603,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           <button
             onClick={async () => {
               setOpenSections(() => {
-                const s = new Set(['figma-variables', 'figma-styles']);
+                const s = new Set<string>(['figma-variables', 'figma-styles']);
                 try { localStorage.setItem('tm_publish_sections', JSON.stringify([...s])); } catch { /* ignore */ }
                 return s;
               });

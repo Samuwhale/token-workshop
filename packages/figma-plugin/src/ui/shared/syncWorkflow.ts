@@ -10,7 +10,9 @@ export type PublishPreflightActionId =
   | 'push-missing-variables'
   | 'delete-orphan-variables'
   | 'review-variable-scopes'
-  | 'add-token-descriptions';
+  | 'add-token-descriptions'
+  | 'review-draft-tokens'
+  | 'review-audit-findings';
 
 export interface PublishPreflightCluster {
   id: string;

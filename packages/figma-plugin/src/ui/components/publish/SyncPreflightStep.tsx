@@ -28,7 +28,7 @@ export function SyncPreflightStep({
 }: SyncPreflightStepProps) {
   const statusSeverity: NoticeSeverity =
     running ? 'info'
-      : isOutdated ? 'stale'
+      : isOutdated ? 'warning'
         : stage === 'blocked' ? 'error'
           : stage === 'advisory' ? 'warning'
             : stage === 'ready' ? 'success'
@@ -44,7 +44,7 @@ export function SyncPreflightStep({
 
   const summary =
     running
-      ? 'Checking the current token set against Figma variables before compare/apply is unlocked.'
+      ? 'Checking Figma sync readiness together with draft-token and audit-health gates before compare/apply is unlocked.'
       : isOutdated
         ? 'Token data changed since the last check. Run preflight again before comparing differences.'
         : stage === 'blocked'
@@ -53,7 +53,7 @@ export function SyncPreflightStep({
             ? 'Nothing blocks sync right now. You can compare next, or clear the advisory clusters first.'
             : stage === 'ready'
               ? 'Preflight is clear. Move to compare once you are ready to inspect differences.'
-              : 'Start here. Preflight checks missing variables, orphaned variables, scopes, and descriptions before any compare/apply work.';
+              : 'Start here. Preflight checks Figma coverage, token quality, draft lifecycle state, and audit blockers before any compare/apply work.';
 
   return (
     <section className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]" aria-labelledby="sync-preflight-heading">
@@ -89,9 +89,17 @@ export function SyncPreflightStep({
 
         {!running && isOutdated && !error && (
           <NoticeBanner
-            severity="stale"
+            severity="warning"
             className="mt-2"
-            action={{ label: 'Re-run preflight', onClick: onRunChecks }}
+            actions={(
+              <button
+                type="button"
+                onClick={onRunChecks}
+                className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-500/16"
+              >
+                Re-run preflight
+              </button>
+            )}
           >
             Token data changed since the last check. Run preflight again before comparing differences.
           </NoticeBanner>
@@ -106,7 +114,7 @@ export function SyncPreflightStep({
         {running && (
           <div className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
             <Spinner size="sm" />
-            Checking the current Figma file for publish blockers and advisory cleanup.
+            Checking the current Figma file plus token-library publish blockers and advisory cleanup.
           </div>
         )}
 

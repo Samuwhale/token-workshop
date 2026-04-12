@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { flattenTokenGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, type DTCGToken } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import type {
@@ -7,10 +7,49 @@ import type {
   PublishPreflightCluster,
   PublishPreflightStage,
 } from '../shared/syncWorkflow';
+import type { ValidationSnapshot } from './useValidationCache';
 
 export const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
 
 const READINESS_TIMEOUT_MS = 15_000;
+const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
+
+function getTokenLifecycle(token: DTCGToken): 'draft' | 'published' | 'deprecated' {
+  const rawLifecycle = (token.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
+  return rawLifecycle === 'draft' || rawLifecycle === 'deprecated' ? rawLifecycle : 'published';
+}
+
+function formatCount(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function summarizeValidationIssues(
+  issues: Array<{ rule: string; severity: 'error' | 'warning' | 'info' }>,
+): string {
+  const counts = {
+    brokenAlias: 0,
+    circularReference: 0,
+    typeMismatch: 0,
+    otherErrors: 0,
+  };
+
+  for (const issue of issues) {
+    if (issue.severity !== 'error') continue;
+    if (issue.rule === 'broken-alias') counts.brokenAlias += 1;
+    else if (issue.rule === 'circular-reference') counts.circularReference += 1;
+    else if (issue.rule === 'type-mismatch') counts.typeMismatch += 1;
+    else counts.otherErrors += 1;
+  }
+
+  const parts = [
+    counts.brokenAlias > 0 ? formatCount(counts.brokenAlias, 'broken alias') : null,
+    counts.circularReference > 0 ? formatCount(counts.circularReference, 'circular reference') : null,
+    counts.typeMismatch > 0 ? formatCount(counts.typeMismatch, 'type mismatch', 'type mismatches') : null,
+    counts.otherErrors > 0 ? formatCount(counts.otherErrors, 'other error') : null,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(' · ') : 'No active error-level audit findings.';
+}
 
 interface UseReadinessChecksParams {
   serverUrl: string;
@@ -21,6 +60,7 @@ interface UseReadinessChecksParams {
   tokenChangeKey?: number;
   readFigmaTokens: () => Promise<any[]>;
   setOrphanConfirm: (val: { orphanPaths: string[]; localPaths: Set<string> } | null) => void;
+  refreshValidation: () => Promise<ValidationSnapshot | null>;
 }
 
 interface ClusterDraft {
@@ -61,6 +101,7 @@ export function useReadinessChecks({
   tokenChangeKey,
   readFigmaTokens,
   setOrphanConfirm,
+  refreshValidation,
 }: UseReadinessChecksParams): UseReadinessChecksReturn {
   const [readinessChecks, setReadinessChecks] = useState<PublishPreflightCluster[]>([]);
   const [readinessLoading, setReadinessLoading] = useState(false);
@@ -86,6 +127,9 @@ export function useReadinessChecks({
 
       const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       const localTokens = flattenTokenGroup(data.tokens || {});
+      const validationSnapshot = await refreshValidation();
+      const activeValidationIssues =
+        validationSnapshot?.issues.filter((issue) => issue.setName === activeSet && issue.severity === 'error') ?? [];
       const localFlat = Array.from(localTokens, ([path, token]) => ({
         path,
         value: String(token.$value),
@@ -101,6 +145,8 @@ export function useReadinessChecks({
       );
       const missingDescriptions = figmaTokens.filter((token) => !token.$description);
       const orphans = figmaTokens.filter((token) => !localPaths.has(token.path));
+      const draftTokens = Array.from(localTokens.values()).filter((token) => getTokenLifecycle(token) === 'draft');
+      const blockingValidationIssues = activeValidationIssues.filter((issue) => BLOCKING_VALIDATION_RULES.has(issue.rule));
 
       const drafts: ClusterDraft[] = [
         {
@@ -151,6 +197,39 @@ export function useReadinessChecks({
           recommendedActionLabel: missingDescriptions.length > 0 ? 'Add token descriptions in the Tokens workspace' : undefined,
           recommendedActionId: missingDescriptions.length > 0 ? 'add-token-descriptions' : undefined,
         },
+        {
+          id: 'blocking-lint-errors',
+          label: 'Broken alias chains',
+          severity: 'blocking',
+          affectedCount: blockingValidationIssues.length || undefined,
+          detail: blockingValidationIssues.length > 0
+            ? `${summarizeValidationIssues(blockingValidationIssues)} would publish invalid Figma variable references. Fix these Audit findings before compare/apply unlocks.`
+            : undefined,
+          recommendedActionLabel: blockingValidationIssues.length > 0 ? 'Review in Audit' : undefined,
+          recommendedActionId: blockingValidationIssues.length > 0 ? 'review-audit-findings' : undefined,
+        },
+        {
+          id: 'lint-errors',
+          label: 'Active audit errors',
+          severity: 'advisory',
+          affectedCount: activeValidationIssues.length || undefined,
+          detail: activeValidationIssues.length > 0
+            ? `${summarizeValidationIssues(activeValidationIssues)} still need review in Audit before shipping this library.`
+            : undefined,
+          recommendedActionLabel: activeValidationIssues.length > 0 ? 'Review in Audit' : undefined,
+          recommendedActionId: activeValidationIssues.length > 0 ? 'review-audit-findings' : undefined,
+        },
+        {
+          id: 'draft-tokens',
+          label: 'Draft lifecycle tokens',
+          severity: 'advisory',
+          affectedCount: draftTokens.length || undefined,
+          detail: draftTokens.length > 0
+            ? `${formatCount(draftTokens.length, 'draft token')} in this set still carries lifecycle="draft". Review them in Tokens before publishing to Figma.`
+            : undefined,
+          recommendedActionLabel: draftTokens.length > 0 ? 'Review draft tokens in Tokens' : undefined,
+          recommendedActionId: draftTokens.length > 0 ? 'review-draft-tokens' : undefined,
+        },
       ];
 
       setReadinessChecks(drafts.map((draft) => ({
@@ -180,7 +259,7 @@ export function useReadinessChecks({
         Promise.resolve().then(() => runReadinessChecksRef.current());
       }
     }
-  }, [activeSet, readFigmaTokens, serverUrl, tokenChangeKey]);
+  }, [activeSet, readFigmaTokens, refreshValidation, serverUrl, tokenChangeKey]);
 
   const triggerReadinessAction = useCallback(async (actionId: PublishPreflightActionId) => {
     if (!activeSet) return;
@@ -208,7 +287,7 @@ export function useReadinessChecks({
         const figmaTokens = await readFigmaTokens();
         const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
         const localTokens = flattenTokenGroup(data.tokens || {});
-        const localPaths = new Set(localTokens.keys());
+        const localPaths = new Set<string>(localTokens.keys());
         const orphanPaths = figmaTokens
           .filter((token) => !localPaths.has(token.path))
           .map((token) => token.path);
