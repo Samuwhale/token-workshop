@@ -1,0 +1,21 @@
+id: integrate-resolver-dimension-context-into-theme--ed55ae7a
+title: Integrate resolver dimension context into theme authoring so multi-mode token assignments are visible without navigating to the Advanced screen
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeAdvancedScreen.tsx
+  - packages/figma-plugin/src/ui/components/ResolverPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Resolver dimensions control how theme option combinations map to Figma variable modes during publish. They are configured entirely in a separate Advanced screen and are invisible during theme option authoring. Users who build multi-brand or multi-mode systems using DTCG resolvers assign token roles to theme options without any awareness of active resolver dimensions, and only discover structural mismatches at publish preflight — at which point fixing them requires round-tripping back through two disconnected screens."
+state: ready
+acceptance_criteria:
+  - Theme authoring screen surfaces a contextual indicator when resolver dimensions are configured for the current theme, showing which dimensions exist and how the active option maps into them
+  - Users authoring theme options can see resolver dimension context without navigating away to the Advanced screen
+  - Resolver misconfiguration relative to the authored theme structure is visible during authoring, not only at publish preflight
+source: product-pass
+created_at: 2026-04-12T20:29:57.873Z
+updated_at: 2026-04-12T20:29:57.873Z

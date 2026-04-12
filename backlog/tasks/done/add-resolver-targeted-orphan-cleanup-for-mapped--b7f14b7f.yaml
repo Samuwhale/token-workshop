@@ -11,11 +11,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: Resolver compare/preflight now reads saved resolver mode mappings, but orphaned mapped variables remain review-only because the existing delete-orphan flow only knows active-set collection routing and can over-delete when the same token path appears in another mapped target."
-state: ready
+  - "Completed: Added resolver-aware orphan cleanup planning and explicit target deletes so publish preflight now offers safe mapped-mode cleanup instead of manual review."
+state: done
 acceptance_criteria:
   - Resolver-publish preflight can offer an actionable orphan cleanup path that only removes variables from the mapped collection+mode targets that are truly absent from the resolved output for that same mapping.
   - Resolver publish orphan cleanup does not reuse active-set collection fallback logic when the same token path exists in other mapped modes or collections.
   - Publish preflight messaging no longer falls back to manual review for resolver-mode orphan cleanup once the targeted delete flow exists.
 source: task-followup
 created_at: 2026-04-12T20:11:07.670Z
-updated_at: 2026-04-12T20:11:07.670Z
+updated_at: 2026-04-12T20:23:48.303Z

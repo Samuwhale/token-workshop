@@ -74,6 +74,7 @@
 - [x] [HIGH] Rename 'Review tools' to signal navigation to Coverage and Compare views in ThemeAuthoringScreen
 - [x] [HIGH] Make queued theme role mutations roll back from the last committed state instead of a stale pre-queue snapshot
 - [x] [HIGH] Centralize generator write-route bookkeeping so step overrides and orphan cleanup become rollbackable server operations
+- [ ] [HIGH] Integrate resolver dimension context into theme authoring so multi-mode token assignments are visible without navigating to the Advanced screen
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -161,7 +162,8 @@
 - [x] Export button stays enabled with changes-only active and zero changes in a git repo, leading to a click-then-error dead end
 - [x] Coverage view offers no way to act on reviewed gaps, forcing a round-trip back to Authoring before auto-fill
 - [x] Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
-- [ ] Add resolver-targeted orphan cleanup for mapped publish modes
+- [x] Add resolver-targeted orphan cleanup for mapped publish modes
+- [ ] Add an explicit ownership contract for generated tokens: warn before manual edits and provide a detach-from-generator operation
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

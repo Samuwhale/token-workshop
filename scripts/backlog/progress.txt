@@ -1608,3 +1608,9 @@
   - Resolver-mode orphan cleanup should collapse per-mode diff rows into unique collection/path delete targets before it reaches the plugin, otherwise shared multi-mode variables get treated as deletable duplicates.
   - When a publish workflow needs both legacy active-set cleanup and resolver-targeted cleanup, keep the shared message type broad enough to carry explicit targets while preserving the old fallback path for standard sync.
 ---
+## 2026-04-12 - product-pass
+- Areas explored: ThemeAuthoringScreen, ThemeAdvancedScreen, ResolverPanel, TokenTreeNode, TokenEditor, TokenGeneratorDialog, done task history (generator ownership, resolver publish, tokens authoring contract research), all open/superseded backlog tasks
+- Found 2 items — written to backlog/inbox.jsonl
+- Considered but rejected: Token creation entry-point consolidation (already well-covered by superseded task chain leading to route-manual-token-starts and collapse-tokens-library tasks, which are done); canvas untokenized-value discovery (likely interface-pass scope — the surface exists, it's an IA/label problem not a workflow ownership change); import post-handoff routing (superseded task already covered the product model; done per research)
+- Notable: Resolver configuration is structurally isolated from theme authoring — users building multi-mode systems with DTCG resolvers assign token roles to theme options without any authoring-time visibility into active resolver dimensions, only discovering mismatches at publish preflight. The "connect resolvers to publish" work was completed but authoring-time resolver context was not addressed.
+---
