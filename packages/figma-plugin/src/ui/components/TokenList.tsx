@@ -4912,7 +4912,7 @@ export function TokenList({
 
                           <section className="space-y-2">
                             <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                              Filters
+                              Browse
                             </div>
                             <label className="flex flex-col gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
                               Sort

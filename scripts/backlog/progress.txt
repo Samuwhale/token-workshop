@@ -1260,3 +1260,10 @@
   - Whole-workspace snapshot restore needs a staged replay order: restore token sets first, then rewrite themes/resolvers/generators, and only then delete post-snapshot sets so dependent config never points at deleted sets during crash recovery.
   - Snapshot diff APIs need a second channel for non-token workspace artifacts; token-only “no changes” messaging becomes wrong as soon as themes, resolvers, or generators are part of the checkpoint contract.
 ---
+## 2026-04-12 - Rename 'Filters' sub-section in View options popover to avoid naming collision with 'Add filter' toolbar button
+- Renamed the View options subsection heading from `Filters` to `Browse` so the popover label no longer collides with the toolbar's structured-filter entry point while still matching the section's sort, browsing toggles, values, and preset controls.
+- Validation: `git diff --check -- packages/figma-plugin/src/ui/components/TokenList.tsx` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4915
+- **Learnings for future iterations:**
+  - When a search builder and a display-options section both affect result narrowing, their labels need to describe the mechanism, not just the outcome, or users cannot distinguish where to start.
+---

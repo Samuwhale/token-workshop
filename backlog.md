@@ -134,7 +134,7 @@
 - [x] Rewrite remaining shell menu and match-copy strings to task language
 - [x] Unify external-change reloading and SSE refresh across token, theme, resolver, and generator files
 - [x] Block or rewrite theme, resolver, and generated-token dependencies during folder delete operations
-- [ ] Rename 'Audit' section tab inside Audit workspace to avoid tautological label
+- [x] Rename 'Audit' section tab inside Audit workspace to avoid tautological label
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [ ] Remove explanatory rationale from View options popover header — title alone is sufficient
