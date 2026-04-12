@@ -9,7 +9,6 @@ import type {
 import type { TokenListImperativeHandle } from "../components/tokenListTypes";
 import type { ThemeManagerHandle } from "../components/ThemeManager";
 import type { PublishPanelHandle } from "../components/PublishPanel";
-import type { SelectionInspectorHandle } from "../components/SelectionInspector";
 import type { StartHereBranch } from "../components/WelcomePrompt";
 import type { LintViolation } from "../hooks/useLint";
 import type { ValidationIssue, ValidationSnapshot, ValidationSummary } from "../hooks/useValidationCache";
@@ -115,7 +114,6 @@ export interface ThemeWorkspaceController {
 }
 
 export interface ApplyWorkspaceController {
-  selectionInspectorHandleRef: MutableRefObject<SelectionInspectorHandle | null>;
   triggerCreateToken: number;
 }
 

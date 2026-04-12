@@ -4,6 +4,7 @@ import { parseInlineValue, generateNameSuggestions } from '../components/tokenLi
 import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
 import { ApiError } from '../shared/apiFetch';
+import { ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
 import {
   createToken,
   createTokenBody,
@@ -35,31 +36,28 @@ function saveDraft(group: string, rows: TableRow[]): void {
   // Only save if there's meaningful data (at least one row with content)
   const hasContent = rows.some(r => r.name.trim() || r.value.trim());
   if (!hasContent) {
-    sessionStorage.removeItem(STORAGE_KEY);
+    ssRemove(STORAGE_KEY);
     return;
   }
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ group, rows }));
-  } catch { /* quota exceeded — silently ignore */ }
+  ssSetJson(STORAGE_KEY, { group, rows });
 }
 
 function loadDraft(): TableDraft | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const draft = JSON.parse(raw) as TableDraft;
+    const draft = ssGetJson<TableDraft | null>(STORAGE_KEY, null);
+    if (!draft) return null;
     if (!Array.isArray(draft.rows) || draft.rows.length === 0) return null;
     // Re-assign IDs to avoid collisions with current counter
     draft.rows = draft.rows.map(r => ({ ...r, id: newRowId() }));
     return draft;
   } catch {
-    sessionStorage.removeItem(STORAGE_KEY);
+    ssRemove(STORAGE_KEY);
     return null;
   }
 }
 
 function clearDraft(): void {
-  sessionStorage.removeItem(STORAGE_KEY);
+  ssRemove(STORAGE_KEY);
 }
 
 export interface UseTableCreateParams {

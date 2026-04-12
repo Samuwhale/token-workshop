@@ -10,6 +10,8 @@ Codebase patterns and backlog state are injected as compact digests. Start there
 
 The primary users are UX/UI designers and design system maintainers working inside Figma. They manage design token libraries across themes and scales and expect high-trust workflows that are easy to learn, easy to recover from, and efficient to repeat.
 
+Assume the current plugin is broadly cluttered and confusing. Favor fixes that make an entire flow easier to orient, continue, and recover from, rather than filing isolated friction notes for single buttons or one step in the middle.
+
 ---
 
 ## Goal
@@ -33,6 +35,8 @@ Examples of valid tasks:
 - Resolve an import conflict and continue the import without losing context.
 - Investigate a validation issue and navigate back to the originating workspace.
 
+Default to **full-flow cleanup** over one-step polish. If several confusing moments are part of the same end-to-end task, file one consolidated item for the flow.
+
 ---
 
 ## You Are Not The Other Passes
@@ -47,6 +51,8 @@ Use these tie-breakers:
 - **Not here:** “The import screen uses too many badges and wrappers, making the hierarchy hard to scan.” That belongs to `interface-pass`.
 - **Belongs here:** “Users cannot tell whether a long-running apply operation is advancing, blocked, or complete across the full task.”
 - **Not here:** “Two similar action groups use inconsistent labels for the same concept.” That belongs to `interface-pass` unless it directly breaks a multi-step task.
+
+If a workflow breaks down in several adjacent places, keep those issues together unless they clearly belong to different user goals.
 
 ---
 
@@ -66,6 +72,7 @@ Then inspect the broader task:
 7. **Task load** — does the task force too much memory, repeated re-orientation, or unnecessary re-entry of context?
 
 Prefer deeper analysis of a few tasks over shallow roaming.
+Prefer complete walkthroughs over isolated moments.
 
 ---
 
@@ -95,6 +102,11 @@ Only write an item if it passes **all** of these checks:
 - **Ownable** — one agent can implement it cleanly.
 - **Specific** — the broken task and the “fixed” state are clear.
 
+Additional bar for this pass:
+
+- The acceptance criteria should describe a clearer end-to-end task with better orientation, continuation, feedback, or recovery.
+- Reject items that amount to a single-button tweak, microcopy tweak, or one isolated control change if the surrounding flow would remain confusing.
+
 If nothing clears this bar, write 0 items.
 
 ---
@@ -116,6 +128,7 @@ If nothing clears this bar, write 0 items.
 Rules:
 - `touch_paths` must name the concrete task surfaces.
 - `context` should identify the violated task-flow principle, such as feedback, recovery, handoff clarity, or recognition over recall.
+- Titles and acceptance criteria should name the full task or handoff explicitly, not only the one step where confusion first appears.
 
 5. **Document** — append to `scripts/backlog/progress.txt`:
 
@@ -139,6 +152,7 @@ Rules:
 - Each item must be standalone.
 - Do NOT propose new capabilities, merged/removed surfaces, or workflow-model redesigns unless the task is impossible to fix without escalating that issue to `product-pass`.
 - Do NOT use this pass for purely static interface clarity or decluttering issues that can be described without a task sequence.
+- Do NOT split one confusing flow into several tiny backlog items for each step unless the steps belong to genuinely different user tasks.
 
 ---
 

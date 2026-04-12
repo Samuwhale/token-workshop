@@ -338,10 +338,10 @@ export function ContrastMatrixPanel({
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
       <button
         onClick={() => setShowContrastMatrix((v) => !v)}
-        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
       >
         <span className="flex flex-col items-start gap-0.5 text-left">
-          <span>
+          <span className="text-[var(--color-figma-text)]">
             Color Contrast Matrix (
             {contrastGroupFilter === "all"
               ? sourceTokens.length
@@ -369,9 +369,6 @@ export function ContrastMatrixPanel({
       </button>
       {showContrastMatrix && (
         <div className="overflow-auto max-h-96 p-2">
-          <p className="px-1 pb-2 text-[9px] text-[var(--color-figma-text-secondary)]">
-            {contrastRequirementSummary}
-          </p>
           {/* Cross-theme toggle */}
           {hasMultiThemeOptions && (
             <div className="flex items-center gap-2 mb-2 px-1 pb-2 border-b border-[var(--color-figma-border)]">

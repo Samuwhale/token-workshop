@@ -29,11 +29,13 @@ export function LightnessInspectorPanel({
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
       <button
         onClick={() => setShowScaleInspector((v) => !v)}
-        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
       >
-        <span>
-          Color Scale Lightness ({colorScales.length} scale
-          {colorScales.length !== 1 ? "s" : ""})
+        <span className="text-left">
+          <span className="text-[var(--color-figma-text)]">
+            Color Scale Lightness ({colorScales.length} scale
+            {colorScales.length !== 1 ? "s" : ""})
+          </span>
         </span>
         <svg
           width="8"

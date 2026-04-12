@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from './useGenerators';
-import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
+import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson, ssGet, ssSet } from '../shared/storage';
 import { ALL_TOKEN_TYPES } from '../shared/tokenTypeCategories';
 
 export interface FilterPreset {
@@ -77,11 +77,12 @@ export function useTokenSearch({
   const filterPanelRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQueryState] = useState(() => {
-    try { return sessionStorage.getItem('token-search') || ''; } catch (e) { console.debug('[useTokenSearch] storage read search query:', e); return ''; }
+    return ssGet('token-search', '');
   });
   const [typeFilter, setTypeFilterState] = useState<string>('');
   const [refFilter, setRefFilterState] = useState<'all' | 'aliases' | 'direct'>(() => {
-    try { return (sessionStorage.getItem('token-ref-filter') as 'all' | 'aliases' | 'direct') || 'all'; } catch (e) { console.debug('[useTokenSearch] storage read ref filter:', e); return 'all'; }
+    const stored = ssGet('token-ref-filter');
+    return stored === 'aliases' || stored === 'direct' || stored === 'all' ? stored : 'all';
   });
 
   useEffect(() => {
@@ -104,7 +105,7 @@ export function useTokenSearch({
   const setSearchQuery = useCallback((v: string) => {
     saveScrollAnchor();
     setSearchQueryState(v);
-    try { sessionStorage.setItem('token-search', v); } catch (e) { console.debug('[useTokenSearch] storage write search query:', e); }
+    ssSet('token-search', v);
   }, [saveScrollAnchor]);
 
   const setTypeFilter = useCallback((v: string) => {
@@ -116,15 +117,15 @@ export function useTokenSearch({
   const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
     saveScrollAnchor();
     setRefFilterState(v);
-    try { sessionStorage.setItem('token-ref-filter', v); } catch (e) { console.debug('[useTokenSearch] storage write ref filter:', e); }
+    ssSet('token-ref-filter', v);
   }, [saveScrollAnchor]);
 
   const [showDuplicates, setShowDuplicatesState] = useState(() => {
-    try { return sessionStorage.getItem('token-duplicates') === '1'; } catch (e) { console.debug('[useTokenSearch] storage read duplicates flag:', e); return false; }
+    return ssGet('token-duplicates') === '1';
   });
   const setShowDuplicates = useCallback((v: boolean) => {
     setShowDuplicatesState(v);
-    try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch (e) { console.debug('[useTokenSearch] storage write duplicates flag:', e); }
+    ssSet('token-duplicates', v ? '1' : '0');
   }, []);
 
   // Filter presets — persisted globally in localStorage

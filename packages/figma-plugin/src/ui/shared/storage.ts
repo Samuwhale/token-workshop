@@ -4,6 +4,125 @@
  * instead of sprinkling raw strings and try/catch blocks everywhere.
  */
 
+type BrowserStorageKind = "local" | "session";
+
+function createMemoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return {
+    get length() {
+      return values.size;
+    },
+    clear() {
+      values.clear();
+    },
+    getItem(key: string) {
+      return values.has(key) ? values.get(key)! : null;
+    },
+    key(index: number) {
+      return Array.from(values.keys())[index] ?? null;
+    },
+    removeItem(key: string) {
+      values.delete(key);
+    },
+    setItem(key: string, value: string) {
+      values.set(key, String(value));
+    },
+  };
+}
+
+const storageFallbacks: Record<BrowserStorageKind, Storage> = {
+  local: createMemoryStorage(),
+  session: createMemoryStorage(),
+};
+
+const storageCache: Partial<Record<BrowserStorageKind, Storage>> = {};
+
+function getStorage(kind: BrowserStorageKind): Storage {
+  const cached = storageCache[kind];
+  if (cached) return cached;
+
+  try {
+    const root =
+      typeof window !== "undefined"
+        ? window
+        : (globalThis as typeof globalThis & {
+            localStorage?: Storage;
+            sessionStorage?: Storage;
+          });
+    const storage =
+      kind === "local" ? root.localStorage : root.sessionStorage;
+    if (!storage) throw new Error(`${kind}Storage is unavailable.`);
+    storageCache[kind] = storage;
+    return storage;
+  } catch (error) {
+    console.debug(`[storage] ${kind}Storage unavailable; using memory fallback:`, error);
+    const fallback = storageFallbacks[kind];
+    storageCache[kind] = fallback;
+    return fallback;
+  }
+}
+
+function storageGet(kind: BrowserStorageKind, key: string): string | null {
+  try {
+    return getStorage(kind).getItem(key);
+  } catch (error) {
+    console.debug(`[storage] ${kind}Storage read failed:`, key, error);
+    return null;
+  }
+}
+
+function storageSet(kind: BrowserStorageKind, key: string, value: string): void {
+  try {
+    getStorage(kind).setItem(key, value);
+  } catch (error) {
+    console.debug(`[storage] ${kind}Storage write failed:`, key, error);
+  }
+}
+
+function storageRemove(kind: BrowserStorageKind, key: string): void {
+  try {
+    getStorage(kind).removeItem(key);
+  } catch (error) {
+    console.debug(`[storage] ${kind}Storage remove failed:`, key, error);
+  }
+}
+
+function storageGetJson<T>(kind: BrowserStorageKind, key: string, fallback: T): T {
+  const raw = storageGet(kind, key);
+  if (raw === null) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    console.debug(`[storage] ${kind}Storage JSON read failed:`, key, error);
+    return fallback;
+  }
+}
+
+function storageSetJson<T>(kind: BrowserStorageKind, key: string, value: T): void {
+  try {
+    storageSet(kind, key, JSON.stringify(value));
+  } catch (error) {
+    console.debug(`[storage] ${kind}Storage JSON write failed:`, key, error);
+  }
+}
+
+function storageEntries(kind: BrowserStorageKind): Array<[string, string]> {
+  try {
+    const storage = getStorage(kind);
+    const entries: Array<[string, string]> = [];
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
+      if (!key) continue;
+      const value = storage.getItem(key);
+      if (value !== null) entries.push([key, value]);
+    }
+    return entries;
+  } catch (error) {
+    console.debug(`[storage] ${kind}Storage iteration failed:`, error);
+    return [];
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Key constants
 // ---------------------------------------------------------------------------
@@ -99,24 +218,18 @@ const WORKSPACE_RECOVERY_RESET_KEYS = [
 export function lsGet(key: string): string | null;
 export function lsGet(key: string, fallback: string): string;
 export function lsGet(key: string, fallback?: string): string | null {
-  try {
-    const v = localStorage.getItem(key);
-    if (v !== null) return v;
-    return fallback ?? null;
-  } catch (e) {
-    console.debug('[storage] read failed:', key, e);
-    return fallback ?? null;
-  }
+  const value = storageGet("local", key);
+  return value ?? fallback ?? null;
 }
 
 /** Write a string value; silently ignores errors (quota, private mode). */
 export function lsSet(key: string, value: string): void {
-  try { localStorage.setItem(key, value); } catch (e) { console.debug('[storage] write failed:', key, e); }
+  storageSet("local", key, value);
 }
 
 /** Remove a key; silently ignores errors. */
 export function lsRemove(key: string): void {
-  try { localStorage.removeItem(key); } catch (e) { console.debug('[storage] remove failed:', key, e); }
+  storageRemove("local", key);
 }
 
 // ---------------------------------------------------------------------------
@@ -125,18 +238,45 @@ export function lsRemove(key: string): void {
 
 /** Read and parse a JSON value; returns fallback on missing key or parse error. */
 export function lsGetJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw !== null ? (JSON.parse(raw) as T) : fallback;
-  } catch (e) {
-    console.debug('[storage] JSON read failed:', key, e);
-    return fallback;
-  }
+  return storageGetJson("local", key, fallback);
 }
 
 /** Stringify and write a JSON value; silently ignores errors. */
 export function lsSetJson<T>(key: string, value: T): void {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { console.debug('[storage] JSON write failed:', key, e); }
+  storageSetJson("local", key, value);
+}
+
+/** Read a string value from sessionStorage; returns null (or fallback) on any error. */
+export function ssGet(key: string): string | null;
+export function ssGet(key: string, fallback: string): string;
+export function ssGet(key: string, fallback?: string): string | null {
+  const value = storageGet("session", key);
+  return value ?? fallback ?? null;
+}
+
+/** Write a string value to sessionStorage; silently ignores errors. */
+export function ssSet(key: string, value: string): void {
+  storageSet("session", key, value);
+}
+
+/** Remove a sessionStorage key; silently ignores errors. */
+export function ssRemove(key: string): void {
+  storageRemove("session", key);
+}
+
+/** Read and parse a JSON value from sessionStorage; returns fallback on error. */
+export function ssGetJson<T>(key: string, fallback: T): T {
+  return storageGetJson("session", key, fallback);
+}
+
+/** Stringify and write a JSON value to sessionStorage; silently ignores errors. */
+export function ssSetJson<T>(key: string, value: T): void {
+  storageSetJson("session", key, value);
+}
+
+/** Snapshot all localStorage entries, falling back to an empty list when unavailable. */
+export function lsEntries(): Array<[string, string]> {
+  return storageEntries("local");
 }
 
 // ---------------------------------------------------------------------------
@@ -148,16 +288,11 @@ export function lsSetJson<T>(key: string, value: T): void {
  * Iterates localStorage in a single pass.
  */
 export function lsClearByPrefix(...prefixes: string[]): void {
-  try {
-    const toRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && prefixes.some(p => k.startsWith(p))) toRemove.push(k);
+  for (const [key] of lsEntries()) {
+    if (prefixes.some((prefix) => key.startsWith(prefix))) {
+      lsRemove(key);
     }
-    for (const k of toRemove) {
-      try { localStorage.removeItem(k); } catch (e) { console.debug('[storage] prefix remove failed:', k, e); }
-    }
-  } catch (e) { console.debug('[storage] prefix clear failed:', e); }
+  }
 }
 
 /**

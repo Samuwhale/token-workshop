@@ -6,6 +6,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import { TokenDetailPreview } from './TokenDetailPreview';
 import { Spinner } from './Spinner';
+import { lsGet, lsSet } from '../shared/storage';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
@@ -224,11 +225,11 @@ const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
 export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, onNavigateToGenerator, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, generators, generatorsBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_TEMPLATE);
+    const saved = lsGet(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
   });
   const [darkMode, setDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem(STORAGE_KEY_DARK_MODE) === 'true';
+    return lsGet(STORAGE_KEY_DARK_MODE) === 'true';
   });
 
   // Defer heavy token computations so template switches and token reloads don't block the UI
@@ -447,7 +448,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
             {visibleTemplates.map(t => (
               <button
                 key={t.id}
-                onClick={() => { startTransition(() => setTemplate(t.id)); localStorage.setItem(STORAGE_KEY_TEMPLATE, t.id); }}
+                onClick={() => { startTransition(() => setTemplate(t.id)); lsSet(STORAGE_KEY_TEMPLATE, t.id); }}
                 className={`shrink-0 px-2.5 py-1 text-[10px] font-medium rounded transition-colors ${
                   effectiveTemplate === t.id
                     ? 'bg-[var(--color-figma-accent)] text-white'
@@ -459,7 +460,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
             ))}
           </div>
           <button
-            onClick={() => setDarkMode(v => { const next = !v; localStorage.setItem(STORAGE_KEY_DARK_MODE, String(next)); return next; })}
+            onClick={() => setDarkMode(v => { const next = !v; lsSet(STORAGE_KEY_DARK_MODE, String(next)); return next; })}
             title={darkMode ? 'Switch to light' : 'Switch to dark'}
             className={`shrink-0 flex items-center gap-1 px-2 py-1 text-[10px] rounded transition-colors ${
               darkMode

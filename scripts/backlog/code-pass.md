@@ -23,6 +23,7 @@ You own code quality broadly, not just runtime bugs. Look for:
 - **Dead or misleading structure** — unused code or legacy structure that meaningfully increases maintenance burden.
 
 Prefer fewer, larger items over many small ones.
+Assume user-visible clutter and confusion are usually owned by `interface-pass` or `ux-pass`, not this pass.
 
 ---
 
@@ -38,6 +39,8 @@ Use these tie-breakers:
 - **Not here:** “Move this workflow into a different panel so users stop bouncing between surfaces.” That belongs to `product-pass`.
 - **Belongs here:** “Unify three save paths that currently encode the same merge rules differently.”
 - **Not here:** “The current save dialog makes progress and errors hard to interpret.” That belongs to `ux-pass`.
+
+If the problem is mainly that a screen feels cluttered, hard to parse, or confusing to use, do not file it here unless a concrete structural code issue is the blocker preventing the UX cleanup.
 
 ---
 
@@ -67,6 +70,11 @@ Only write an item if it passes **all** of these checks:
 - **Consolidated** — related findings merged into one coherent item.
 - **Ownable** — one agent can own it end to end.
 - **Specific** — the structural problem and the completed state are clear.
+
+Additional bar for this pass:
+
+- Reject items that are mainly about user-facing confusion, labels, hierarchy, or clutter unless the evidence shows a shared structural root cause that must be cleaned up before the UX can improve.
+- Prefer filing the structural blocker, not the visible symptom.
 
 If nothing clears this bar, write 0 items.
 
@@ -114,6 +122,7 @@ Rules:
 - Use the current backlog as input: extend meaningful architecture clusters and avoid restating existing work.
 - Do NOT require a confirmed runtime bug before filing an item. Maintainability and code-health issues are valid if they are real, durable, and verified.
 - Do NOT file pure UX/product issues unless the root problem is clearly code structure.
+- Do NOT turn visible UI confusion into a code-pass item just because the confusing screen has complicated code; the user-facing issue still belongs to `interface-pass` or `ux-pass` unless the structural cleanup is the actual deliverable.
 
 ---
 

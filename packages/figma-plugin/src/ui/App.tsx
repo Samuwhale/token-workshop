@@ -4,10 +4,8 @@ import type { ThemeManagerHandle } from "./components/ThemeManager";
 import type { PublishPanelHandle } from "./components/PublishPanel";
 import { ToastStack } from "./components/ToastStack";
 import { WorkspaceSummaryHeader } from "./components/WorkspaceSummaryHeader";
-import { ApplyWorkflowControls } from "./components/ApplyWorkflowControls";
 import { ThemeStageModelControls } from "./components/ThemeStageModelControls";
 import { SyncWorkflowControls } from "./components/publish/SyncWorkflowControls";
-import type { SelectionInspectorHandle } from "./components/SelectionInspector";
 import { useToastStack } from "./hooks/useToastStack";
 import { useToastBusListener } from "./shared/toastBus";
 import { ConfirmModal } from "./components/ConfirmModal";
@@ -99,10 +97,7 @@ import { useGraphState } from "./hooks/useGraphState";
 import { useSettingsListener } from "./components/SettingsPanel";
 import { WorkspaceControllerProvider } from "./contexts/WorkspaceControllerContext";
 import type { TokenMapEntry } from "../shared/types";
-import {
-  KNOWN_CONTROLLER_MESSAGE_TYPES,
-  PROPERTY_LABELS,
-} from "../shared/types";
+import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { adaptShortcut, tokenPathToUrlSegment } from "./shared/utils";
 import { SHORTCUT_KEYS, matchesShortcut } from "./shared/shortcutRegistry";
 import { getMenuItems, handleMenuArrowKeys } from "./hooks/useMenuKeyboard";
@@ -114,7 +109,6 @@ import {
   shellMetaTextClass,
 } from "./shared/shellControlStyles";
 import { findLeafByPath } from "./components/tokenListUtils";
-import { summarizeApplyWorkflow } from "./components/selectionInspectorUtils";
 
 const LAST_IMPORT_RESULT_DISMISS_MS = 30_000;
 
@@ -684,14 +678,10 @@ export function App() {
       }),
     [dimensions, sets, themeSetTokenCounts],
   );
-  const applyWorkflowSummary = useMemo(
-    () => summarizeApplyWorkflow(selectedNodes, allTokensFlat),
-    [allTokensFlat, selectedNodes],
-  );
   const [themeShellState, setThemeShellState] =
     useState<ThemeWorkspaceShellState>({
       activeView: "authoring",
-      showPreview: false,
+      authoringMode: "roles",
     });
   const defaultWorkspaceSummaryTitle = useMemo(
     () =>
@@ -713,13 +703,16 @@ export function App() {
       case "advanced":
         return "Advanced theme logic";
       default:
-        return "Theme authoring";
+        return themeShellState.authoringMode === "preview"
+          ? "Theme preview"
+          : "Theme authoring";
     }
   }, [
     activeSecondarySurfaceDef,
     activeWorkspace.id,
     defaultWorkspaceSummaryTitle,
     themeShellState.activeView,
+    themeShellState.authoringMode,
   ]);
 
   // Track external file change refreshes so we can show a diff toast
@@ -896,9 +889,6 @@ export function App() {
   // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
   const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
-  const selectionInspectorHandleRef = useRef<SelectionInspectorHandle | null>(
-    null,
-  );
   const [themeGapCount, setThemeGapCount] = useState(0);
   // Open compare view within the Tokens tab in 'cross-theme' mode for a specific token
   const handleOpenCrossThemeCompare = useCallback(
@@ -1903,7 +1893,6 @@ export function App() {
       onThemeShellStateChange: setThemeShellState,
     },
     apply: {
-      selectionInspectorHandleRef,
       triggerCreateToken,
     },
     ship: {
@@ -2041,8 +2030,12 @@ export function App() {
             label: `${themeGapCount} gap${themeGapCount === 1 ? "" : "s"}`,
             tone: "warning",
           });
-        if (themeShellState.showPreview)
-          pills.push({ label: "Live preview open", tone: "info" });
+        if (
+          themeShellState.activeView === "authoring" &&
+          themeShellState.authoringMode === "preview"
+        ) {
+          pills.push({ label: "Preview stage", tone: "info" });
+        }
         if (themeShellState.activeView === "coverage")
           pills.push({ label: "Coverage review", tone: "info" });
         if (themeShellState.activeView === "compare")
@@ -2052,8 +2045,8 @@ export function App() {
         break;
       case "apply":
         pills.push({
-          label: `${applyWorkflowSummary.selectionCount} layer${applyWorkflowSummary.selectionCount === 1 ? "" : "s"} selected`,
-          tone: applyWorkflowSummary.hasSelection ? "info" : "info",
+          label: `${selectedNodes.length} layer${selectedNodes.length === 1 ? "" : "s"} selected`,
+          tone: "info",
         });
         if (deepInspect) {
           pills.push({ label: "Deep inspect on", tone: "info" });
@@ -2067,31 +2060,6 @@ export function App() {
                 ? "1 filter active"
                 : `${activeFilterCount} filters active`,
             tone: "info",
-          });
-        }
-        if (applyWorkflowSummary.suggestionCount > 0) {
-          pills.push({
-            label: `${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? "" : "es"} ready`,
-            tone: "info",
-          });
-        } else if (
-          !applyWorkflowSummary.hasAnyTokens &&
-          applyWorkflowSummary.hasSelection
-        ) {
-          pills.push({ label: "Token library needed", tone: "warning" });
-        }
-        if (applyWorkflowSummary.allVisiblePropertiesBound) {
-          pills.push({ label: "Visible properties bound", tone: "success" });
-        } else if (applyWorkflowSummary.unboundPropertyCount > 0) {
-          pills.push({
-            label: `${applyWorkflowSummary.unboundPropertyCount} propert${applyWorkflowSummary.unboundPropertyCount === 1 ? "y" : "ies"} to bind`,
-            tone: "warning",
-          });
-        }
-        if (applyWorkflowSummary.mixedPropertyCount > 0) {
-          pills.push({
-            label: `${applyWorkflowSummary.mixedPropertyCount} mixed`,
-            tone: "warning",
           });
         }
         break;
@@ -2158,13 +2126,7 @@ export function App() {
   }, [
     activeWorkspace.id,
     activeWorkspaceSection?.id,
-    applyWorkflowSummary.allVisiblePropertiesBound,
-    applyWorkflowSummary.hasAnyTokens,
-    applyWorkflowSummary.hasSelection,
-    applyWorkflowSummary.mixedPropertyCount,
-    applyWorkflowSummary.selectionCount,
-    applyWorkflowSummary.suggestionCount,
-    applyWorkflowSummary.unboundPropertyCount,
+    selectedNodes.length,
     checking,
     connected,
     deepInspect,
@@ -2183,7 +2145,7 @@ export function App() {
     staleGeneratorCount,
     themeGapCount,
     themeShellState.activeView,
-    themeShellState.showPreview,
+    themeShellState.authoringMode,
     undoDescriptions.length,
     validationLoading,
     validationSummary,
@@ -2275,15 +2237,15 @@ export function App() {
         label: "Preview",
         detail: !themeWorkflowSummary.previewReady
           ? "Assign sets before previewing"
-          : themeShellState.showPreview &&
-              themeShellState.activeView === "authoring"
-            ? "Live preview is open below"
+          : themeShellState.activeView === "authoring" &&
+              themeShellState.authoringMode === "preview"
+            ? "Preview stage is active"
             : "Review the resolved combination",
         tone: !themeWorkflowSummary.previewReady
           ? "blocked"
           : themeWorkflowSummary.currentStage === "preview" ||
-              (themeShellState.showPreview &&
-                themeShellState.activeView === "authoring")
+              (themeShellState.activeView === "authoring" &&
+                themeShellState.authoringMode === "preview")
             ? "current"
             : "pending",
         disabled: !themeWorkflowSummary.previewReady,
@@ -2295,12 +2257,17 @@ export function App() {
       onClick: () => void;
       active?: boolean;
     }> = [];
-    if (themeShellState.activeView !== "authoring") {
+    if (
+      themeShellState.activeView !== "authoring" ||
+      themeShellState.authoringMode === "preview"
+    ) {
       actions.push({
         label:
           themeShellState.activeView === "coverage"
             ? "Back to set roles"
-            : "Back to authoring",
+            : themeShellState.authoringMode === "preview"
+              ? "Back to set roles"
+              : "Back to authoring",
         onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
       });
     }
@@ -2317,112 +2284,11 @@ export function App() {
     activeSecondarySurface,
     handleSelectThemeStage,
     themeShellState.activeView,
-    themeShellState.showPreview,
+    themeShellState.authoringMode,
     themeWorkflowSummary,
   ]);
 
-  const handleSelectApplyStage = useCallback(
-    (stage: "summary" | "suggestions" | "bindings" | "advanced") => {
-      guardEditorAction(() => {
-        navigateTo("apply", "inspect");
-        closeSecondarySurface();
-        selectionInspectorHandleRef.current?.focusStage(stage);
-      });
-    },
-    [closeSecondarySurface, guardEditorAction, navigateTo],
-  );
-
-  const applyContextualControls = useMemo(() => {
-    if (
-      activeSecondarySurface !== null ||
-      activeWorkspace.id !== "apply" ||
-      activeWorkspaceSection?.id !== "inspect"
-    )
-      return null;
-
-    const stages = [
-      {
-        id: "summary" as const,
-        step: 1,
-        label: "Summary",
-        detail: !applyWorkflowSummary.hasSelection
-          ? "Select a layer to start"
-          : `${applyWorkflowSummary.selectionCount} layer${applyWorkflowSummary.selectionCount === 1 ? "" : "s"} ready to review`,
-        tone: !applyWorkflowSummary.hasSelection ? "current" : "complete",
-      },
-      {
-        id: "suggestions" as const,
-        step: 2,
-        label: "Best matches",
-        detail: !applyWorkflowSummary.hasSelection
-          ? "Pick a layer first"
-          : !applyWorkflowSummary.hasAnyTokens
-            ? "Create tokens before the app can suggest matches"
-            : applyWorkflowSummary.suggestionCount > 0
-              ? `${applyWorkflowSummary.suggestionCount} best match${applyWorkflowSummary.suggestionCount === 1 ? "" : "es"} ready`
-              : "No strong matches found for this selection",
-        tone: !applyWorkflowSummary.hasSelection
-          ? "blocked"
-          : !applyWorkflowSummary.hasAnyTokens
-            ? "blocked"
-            : applyWorkflowSummary.suggestionCount > 0
-              ? "current"
-              : "pending",
-        disabled: !applyWorkflowSummary.hasSelection,
-      },
-      {
-        id: "bindings" as const,
-        step: 3,
-        label: "Bindings",
-        detail: !applyWorkflowSummary.hasSelection
-          ? "Selection required"
-          : !applyWorkflowSummary.hasVisibleProperties
-            ? "No token-ready properties on this selection"
-            : applyWorkflowSummary.allVisiblePropertiesBound
-              ? "All visible properties are already bound"
-              : applyWorkflowSummary.nextUnboundProperty
-                ? `Next: ${PROPERTY_LABELS[applyWorkflowSummary.nextUnboundProperty]}`
-                : `${applyWorkflowSummary.unboundPropertyCount} propert${applyWorkflowSummary.unboundPropertyCount === 1 ? "y" : "ies"} left to review`,
-        tone:
-          !applyWorkflowSummary.hasSelection ||
-          !applyWorkflowSummary.hasVisibleProperties
-            ? "blocked"
-            : applyWorkflowSummary.allVisiblePropertiesBound
-              ? "complete"
-              : "current",
-        disabled: !applyWorkflowSummary.hasSelection,
-      },
-      {
-        id: "advanced" as const,
-        step: 4,
-        label: "Advanced",
-        detail:
-          "Open sync, extract, remap, deep inspect, or filters only when the main binding flow is done",
-        tone: applyWorkflowSummary.hasSelection ? "pending" : "blocked",
-        disabled: !applyWorkflowSummary.hasSelection,
-      },
-    ];
-
-    return (
-      <ApplyWorkflowControls
-        stages={stages}
-        onSelectStage={handleSelectApplyStage}
-      />
-    );
-  }, [
-    activeWorkspace.id,
-    activeWorkspaceSection?.id,
-    activeSecondarySurface,
-    applyWorkflowSummary.allVisiblePropertiesBound,
-    applyWorkflowSummary.hasAnyTokens,
-    applyWorkflowSummary.hasSelection,
-    applyWorkflowSummary.hasVisibleProperties,
-    applyWorkflowSummary.nextUnboundProperty,
-    applyWorkflowSummary.selectionCount,
-    applyWorkflowSummary.suggestionCount,
-    applyWorkflowSummary.unboundPropertyCount,
-    handleSelectApplyStage,
-  ]);
+  const applyContextualControls = null;
 
   const handleSelectSyncStage = useCallback(
     (stage: SyncWorkflowStage) => {
@@ -2523,12 +2389,17 @@ export function App() {
 
   const workspacePrimaryAction = useMemo(() => {
     if (activeSecondarySurface === null && activeWorkspace.id === "themes") {
-      if (themeShellState.activeView !== "authoring") {
+      if (
+        themeShellState.activeView !== "authoring" ||
+        themeShellState.authoringMode === "preview"
+      ) {
         return {
           label:
             themeShellState.activeView === "coverage"
               ? "Back to set roles"
-              : "Back to authoring",
+              : themeShellState.authoringMode === "preview"
+                ? "Back to set roles"
+                : "Back to authoring",
           onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
         };
       }
@@ -2565,9 +2436,10 @@ export function App() {
 
       if (themeWorkflowSummary.currentStage === "preview") {
         return {
-          label: themeShellState.showPreview
-            ? "Review preview"
-            : "Preview combination",
+          label:
+            themeShellState.authoringMode === "preview"
+              ? "Review preview"
+              : "Preview combination",
           onClick: () => {
             guardEditorAction(() => {
               navigateTo("define", "themes");
@@ -2595,35 +2467,7 @@ export function App() {
       activeWorkspace.id === "apply" &&
       activeWorkspaceSection?.id === "inspect"
     ) {
-      if (!applyWorkflowSummary.hasSelection) {
-        return {
-          label: "Select a layer",
-          onClick: () => {},
-          disabled: true,
-        };
-      }
-
-      if (applyWorkflowSummary.suggestionCount > 0) {
-        return {
-          label: "Review matches",
-          onClick: () =>
-            selectionInspectorHandleRef.current?.focusStage("suggestions"),
-        };
-      }
-
-      if (applyWorkflowSummary.nextUnboundProperty) {
-        return {
-          label: `Bind ${PROPERTY_LABELS[applyWorkflowSummary.nextUnboundProperty]}`,
-          onClick: () =>
-            selectionInspectorHandleRef.current?.focusStage("bindings"),
-        };
-      }
-
-      return {
-        label: "Review bindings",
-        onClick: () =>
-          selectionInspectorHandleRef.current?.focusStage("bindings"),
-      };
+      return null;
     }
 
     if (
@@ -2685,9 +2529,6 @@ export function App() {
     activeSecondarySurface,
     activeWorkspace.id,
     activeWorkspaceSection?.id,
-    applyWorkflowSummary.hasSelection,
-    applyWorkflowSummary.nextUnboundProperty,
-    applyWorkflowSummary.suggestionCount,
     guardEditorAction,
     navigateTo,
     refreshValidation,
@@ -2696,7 +2537,7 @@ export function App() {
     publishPreflightState.stage,
     closeSecondarySurface,
     themeShellState.activeView,
-    themeShellState.showPreview,
+    themeShellState.authoringMode,
     themeWorkflowSummary.currentStage,
     themeWorkflowSummary.unmappedOptionCount,
   ]);

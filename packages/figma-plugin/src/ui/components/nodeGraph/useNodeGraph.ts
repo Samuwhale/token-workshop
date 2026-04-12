@@ -6,6 +6,7 @@ import type {
   GraphNode,
 } from './nodeGraphTypes';
 import { generatorsToGraph } from './nodeGraphTypes';
+import { lsGetJson, lsSetJson } from '../../shared/storage';
 
 // ---------------------------------------------------------------------------
 // localStorage persistence for node positions
@@ -14,13 +15,7 @@ import { generatorsToGraph } from './nodeGraphTypes';
 const STORAGE_PREFIX = 'tokenmanager:nodeGraph:';
 
 function loadPositions(activeSet: string): Record<string, { x: number; y: number }> {
-  try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${activeSet}`);
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) {
-    console.debug('[useNodeGraph] failed to load positions from localStorage:', e);
-    return {};
-  }
+  return lsGetJson(`${STORAGE_PREFIX}${activeSet}`, {});
 }
 
 function savePositions(activeSet: string, nodes: GraphNode[]): void {
@@ -28,9 +23,7 @@ function savePositions(activeSet: string, nodes: GraphNode[]): void {
   for (const n of nodes) {
     positions[n.id] = { x: n.x, y: n.y };
   }
-  try {
-    localStorage.setItem(`${STORAGE_PREFIX}${activeSet}`, JSON.stringify(positions));
-  } catch (e) { console.debug('[useNodeGraph] failed to save positions (quota exceeded?):', e); }
+  lsSetJson(`${STORAGE_PREFIX}${activeSet}`, positions);
 }
 
 // ---------------------------------------------------------------------------

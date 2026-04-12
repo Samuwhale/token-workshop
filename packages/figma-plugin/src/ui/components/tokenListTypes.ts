@@ -419,6 +419,8 @@ export interface TokenTreeLeafStateContextType {
   pendingTabEdit: { path: string; columnId: string | null } | null;
   /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
   rovingFocusPath: string | null;
+  /** When true, the duplicate-values filter is active — show duplicate count badges on token rows */
+  showDuplicatesFilter?: boolean;
 }
 
 export interface TokenTreeLeafActionsContextType {

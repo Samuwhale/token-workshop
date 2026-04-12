@@ -91,6 +91,7 @@ export function DuplicateDetectionPanel({
   onRefreshValidation,
 }: DuplicateDetectionPanelProps) {
   const [showDuplicates, setShowDuplicates] = useState(false);
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [selectedCanonicalKeys, setSelectedCanonicalKeys] = useState<Record<string, string>>({});
   const [deduplicatingGroupId, setDeduplicatingGroupId] = useState<string | null>(null);
   const [confirmDedupGroupId, setConfirmDedupGroupId] = useState<string | null>(null);
@@ -184,9 +185,9 @@ export function DuplicateDetectionPanel({
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
       <button
         onClick={() => setShowDuplicates(v => !v)}
-        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
       >
-        <span className="flex flex-wrap items-center gap-1.5">
+        <span className="flex flex-wrap items-center gap-1.5 text-left">
           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
           <span>Duplicate Values</span>
           <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">
@@ -198,29 +199,20 @@ export function DuplicateDetectionPanel({
       </button>
       {showDuplicates && (
         <div className="divide-y divide-[var(--color-figma-border)]">
-          <div className="p-3 flex flex-col gap-2">
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 p-2.5 flex flex-col gap-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Batch resolve duplicate groups</span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  {configuredGroupCount}/{lintDuplicateGroups.length} configured
-                </span>
-              </div>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Select one canonical token in every group before converting <span className="font-medium text-[var(--color-figma-text)]">{totalDuplicateAliases} duplicate token{totalDuplicateAliases !== 1 ? 's' : ''}</span> into aliases.
-              </p>
-              {confirmBulkDedup ? (
-                <div className="flex flex-col gap-1.5 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5 p-2">
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Resolve {configuredAliasCount} duplicate token{configuredAliasCount !== 1 ? 's' : ''} across {lintDuplicateGroups.length} groups using your selected canonicals?
-                  </p>
-                  <div className="flex gap-2 mt-0.5">
+          <div className="px-3 py-2.5">
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {configuredGroupCount}/{lintDuplicateGroups.length} groups configured · {configuredAliasCount} aliases ready to create
+                </div>
+                {confirmBulkDedup ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       disabled={bulkDeduplicating || !allGroupsConfigured}
                       onClick={handleBulkDeduplicate}
                       className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
                     >
-                      {bulkDeduplicating ? 'Resolving…' : `Confirm — resolve ${configuredAliasCount} aliases`}
+                      {bulkDeduplicating ? 'Resolving…' : `Confirm ${configuredAliasCount} aliases`}
                     </button>
                     <button
                       onClick={() => setConfirmBulkDedup(false)}
@@ -229,19 +221,19 @@ export function DuplicateDetectionPanel({
                       Cancel
                     </button>
                   </div>
-                </div>
-              ) : (
-                <button
-                  disabled={bulkDeduplicating || !allGroupsConfigured}
-                  onClick={() => setConfirmBulkDedup(true)}
-                  className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                >
-                  {bulkDeduplicating ? 'Resolving…' : `Resolve all configured groups (${configuredAliasCount} aliases)`}
-                </button>
-              )}
+                ) : (
+                  <button
+                    disabled={bulkDeduplicating || !allGroupsConfigured}
+                    onClick={() => setConfirmBulkDedup(true)}
+                    className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                  >
+                    {bulkDeduplicating ? 'Resolving…' : `Resolve configured (${configuredAliasCount})`}
+                  </button>
+                )}
+              </div>
               {!allGroupsConfigured && (
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Choose a canonical token in each group to unlock batch cleanup.
+                <p className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Expand a group and pick the canonical token to unlock batch cleanup.
                 </p>
               )}
             </div>
@@ -252,133 +244,153 @@ export function DuplicateDetectionPanel({
               ? group.tokens.filter(token => tokenKey(token) !== tokenKey(canonical))
               : [];
             const isDeduplicating = deduplicatingGroupId === group.id;
+            const isExpanded = expandedGroupId === group.id;
+            const isConfigured = Boolean(canonical);
 
             return (
-              <div key={group.id} className="p-3 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  {group.colorHex && <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: group.colorHex }} />}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.tokens.length} matching tokens</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{group.typeLabel}</span>
+              <div key={group.id} className="px-3 py-2.5">
+                <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                  <button
+                    onClick={() =>
+                      setExpandedGroupId(current =>
+                        current === group.id ? null : group.id,
+                      )
+                    }
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    aria-expanded={isExpanded}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                    {group.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: group.colorHex }} />}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.tokens.length} matching tokens</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{group.typeLabel}</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded border ${isConfigured ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+                          {isConfigured ? 'Configured' : 'Needs canonical'}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate">
+                        Shared value: {truncateValue(group.valueLabel)}
+                      </p>
                     </div>
-                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 font-mono truncate">
-                      Shared value: {truncateValue(group.valueLabel)}
-                    </p>
-                  </div>
-                </div>
+                  </button>
 
-                <div className="flex flex-col gap-1.5">
-                  {group.tokens.map(token => {
-                    const isSelected = canonical ? tokenKey(token) === tokenKey(canonical) : false;
-                    return (
-                      <div
-                        key={tokenKey(token)}
-                        className={`rounded border p-2 ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/20'}`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <button
-                            onClick={() => setSelectedCanonicalKeys(prev => ({ ...prev, [group.id]: tokenKey(token) }))}
-                            className="flex-1 min-w-0 text-left"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className={`w-3 h-3 rounded-full border ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-transparent'}`} />
-                              {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
-                              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                              <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.setName}</span>
-                              {isSelected && <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>}
-                            </div>
-                            <div className="mt-1 pl-5 flex flex-wrap gap-1">
-                              <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Lifecycle: {formatLifecycle(token.lifecycle)}</span>
-                              <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Scopes: {formatScopes(token.scopes)}</span>
-                            </div>
-                          </button>
-                          {onNavigateToToken && (
-                            <button
-                              onClick={() => onNavigateToToken(token.path, token.setName)}
-                              className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                  {isExpanded && (
+                    <div className="border-t border-[var(--color-figma-border)] p-3 flex flex-col gap-2">
+                      <div className="flex flex-col gap-1.5">
+                        {group.tokens.map(token => {
+                          const isSelected = canonical ? tokenKey(token) === tokenKey(canonical) : false;
+                          return (
+                            <div
+                              key={tokenKey(token)}
+                              className={`rounded border p-2 ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/20'}`}
                             >
-                              Go →
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {canonical ? (
-                  <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 p-2.5 flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Metadata preview</p>
-                        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                          Keeping <span className="font-mono text-[var(--color-figma-text)]">{canonical.path}</span> and aliasing {others.length} token{others.length !== 1 ? 's' : ''} to it.
-                        </p>
-                      </div>
-                      <button
-                        disabled={isDeduplicating}
-                        onClick={() => setConfirmDedupGroupId(group.id)}
-                        className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors shrink-0"
-                      >
-                        {isDeduplicating ? 'Resolving…' : `Resolve group (${others.length} aliases)`}
-                      </button>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      {others.map(token => {
-                        const diffs = getMetadataDiffs(canonical, token);
-                        return (
-                          <div key={tokenKey(token)} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/60 p-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                              <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.setName}</span>
-                            </div>
-                            {diffs.length > 0 ? (
-                              <div className="mt-1 flex flex-col gap-1">
-                                {diffs.map(diff => (
-                                  <div key={`${tokenKey(token)}:${diff.label}`} className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                    <span className="font-medium text-[var(--color-figma-text)]">{diff.label}:</span> {diff.candidate} → {diff.canonical}
+                              <div className="flex items-start gap-2">
+                                <button
+                                  onClick={() => setSelectedCanonicalKeys(prev => ({ ...prev, [group.id]: tokenKey(token) }))}
+                                  className="flex-1 min-w-0 text-left"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-3 h-3 rounded-full border ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-transparent'}`} />
+                                    {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
+                                    <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
+                                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.setName}</span>
+                                    {isSelected && <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>}
                                   </div>
-                                ))}
+                                  <div className="mt-1 pl-5 flex flex-wrap gap-1">
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Lifecycle: {formatLifecycle(token.lifecycle)}</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Scopes: {formatScopes(token.scopes)}</span>
+                                  </div>
+                                </button>
+                                {onNavigateToToken && (
+                                  <button
+                                    onClick={() => onNavigateToToken(token.path, token.setName)}
+                                    className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
+                                  >
+                                    Open
+                                  </button>
+                                )}
                               </div>
-                            ) : (
-                              <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                Metadata matches the selected canonical token.
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 p-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Choose the token to keep before resolving this group.
-                  </div>
-                )}
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                {confirmDedupGroupId === group.id && canonical && (
-                  <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5">
-                    <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                      Convert {others.length} token{others.length !== 1 ? 's' : ''} into aliases that point to <span className="font-mono text-[var(--color-figma-text)]">{canonical.path}</span>?
-                    </p>
-                    <div className="flex gap-2 mt-0.5">
-                      <button
-                        disabled={isDeduplicating}
-                        onClick={() => handleDeduplicate(group, canonical)}
-                        className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                      >
-                        {isDeduplicating ? 'Resolving…' : 'Confirm'}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDedupGroupId(null)}
-                        className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        Cancel
-                      </button>
+                      {canonical ? (
+                        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 p-2.5 flex flex-col gap-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Metadata preview</p>
+                              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                                Keeping <span className="font-mono text-[var(--color-figma-text)]">{canonical.path}</span> and aliasing {others.length} token{others.length !== 1 ? 's' : ''} to it.
+                              </p>
+                            </div>
+                            <button
+                              disabled={isDeduplicating}
+                              onClick={() => setConfirmDedupGroupId(group.id)}
+                              className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors shrink-0"
+                            >
+                              {isDeduplicating ? 'Resolving…' : `Resolve group (${others.length})`}
+                            </button>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            {others.map(token => {
+                              const diffs = getMetadataDiffs(canonical, token);
+                              return (
+                                <div key={tokenKey(token)} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/60 p-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
+                                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.setName}</span>
+                                  </div>
+                                  {diffs.length > 0 ? (
+                                    <div className="mt-1 flex flex-col gap-1">
+                                      {diffs.map(diff => (
+                                        <div key={`${tokenKey(token)}:${diff.label}`} className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                                          <span className="font-medium text-[var(--color-figma-text)]">{diff.label}:</span> {diff.candidate} → {diff.canonical}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                      Metadata matches the selected canonical token.
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 p-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          Choose the token to keep before resolving this group.
+                        </div>
+                      )}
+
+                      {confirmDedupGroupId === group.id && canonical && (
+                        <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5">
+                          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                            Convert {others.length} token{others.length !== 1 ? 's' : ''} into aliases that point to <span className="font-mono text-[var(--color-figma-text)]">{canonical.path}</span>?
+                          </p>
+                          <div className="flex gap-2 mt-0.5">
+                            <button
+                              disabled={isDeduplicating}
+                              onClick={() => handleDeduplicate(group, canonical)}
+                              className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                            >
+                              {isDeduplicating ? 'Resolving…' : 'Confirm'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDedupGroupId(null)}
+                              className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}

@@ -13,6 +13,7 @@ Prefer:
 - research-first child tasks when the area is broad or ambiguous
 - concrete implementation child tasks only when the affected surface is already obvious
 - failed-task recovery children that preserve the intent of important work instead of dropping it
+- screen-level or flow-level child tasks when the parent is about UX/UI simplification; do not fragment one cluttered surface into a handful of tiny polish children
 
 ## Rules
 
@@ -24,6 +25,7 @@ Prefer:
 - Research children should focus on inspecting code and emitting concrete follow-up tasks, not writing product code.
 - Implementation children must name concrete `touch_paths` that describe the intended starting surface.
 - Use the smallest reasonable child set that makes the parent work executable.
+- Preserve the parent task's intended level of granularity. If a parent is about a whole screen or end-to-end flow, keep the child at that level unless the code clearly demands a split.
 - Treat failed-task notes as recovery evidence, not passive history.
 - For a failed parent, choose one of these recovery patterns:
   - emit a like-for-like replacement child if the task is still valid and the failure was transient,
@@ -60,3 +62,4 @@ Return exactly one JSON object matching the requested schema.
   - keep the task narrow enough for one execution agent
   - use concrete repo paths in `touch_paths` to describe the expected implementation surface
   - write acceptance criteria that can be validated directly
+  - for UX/UI parents, prefer a single child that owns the full screen or full workflow cleanup over several children for isolated labels, pills, or local controls

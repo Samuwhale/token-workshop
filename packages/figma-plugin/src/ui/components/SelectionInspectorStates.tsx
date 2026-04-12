@@ -1,5 +1,5 @@
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
-import { LayerSearchPanel } from "./MaintenanceToolsSection";
+import { LayerSearchPanel } from "./LayerSearchPanel";
 
 export function SelectionInspectorLoadingState() {
   return (

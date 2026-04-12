@@ -36,26 +36,12 @@ import {
 
 type HealthStatus = "healthy" | "warning" | "critical";
 
-/** Map the legacy HealthStatus to the shared NoticeSeverity vocabulary. */
-function healthToSeverity(status: HealthStatus | null): NoticeSeverity {
-  if (status === "critical") return "error";
-  if (status === "warning") return "warning";
-  return "success";
-}
 
-/** Map a validation issue severity string to the shared NoticeSeverity vocabulary. */
-function issueToSeverity(
-  severity: "critical" | "warning" | "info" | "error",
-): NoticeSeverity {
-  if (severity === "critical") return "error";
-  return severity;
-}
 
 interface PriorityIssue {
   severity: "critical" | "warning" | "info";
   category: string;
   message: string;
-  detail: string;
   count: number;
   ctaLabel: string;
   /** Stable string key describing the action — resolved to a handler in JSX */
@@ -69,15 +55,6 @@ interface PriorityIssue {
     | "unused-scroll";
 }
 
-interface HealthSectionProps {
-  title: string;
-  status: HealthStatus | null;
-  count: number;
-  detail: string;
-  children?: React.ReactNode;
-  ctaLabel: string;
-  onCta: () => void;
-}
 
 function statusColor(status: HealthStatus | null): string {
   if (status === "critical") return "text-[var(--color-figma-error)]";
@@ -85,12 +62,6 @@ function statusColor(status: HealthStatus | null): string {
   return "text-[var(--color-figma-success,#18a058)]";
 }
 
-function statusBg(status: HealthStatus | null): string {
-  if (status === "critical")
-    return "bg-[var(--color-figma-error)]/10 border-[var(--color-figma-error)]/20";
-  if (status === "warning") return "bg-amber-500/10 border-amber-500/20";
-  return "bg-emerald-500/10 border-emerald-500/20";
-}
 
 function StatusIcon({ status }: { status: HealthStatus | null }) {
   if (status === "critical") {
@@ -146,76 +117,6 @@ function StatusIcon({ status }: { status: HealthStatus | null }) {
   );
 }
 
-function HealthSection({
-  title,
-  status,
-  count,
-  detail,
-  children,
-  ctaLabel,
-  onCta,
-}: HealthSectionProps) {
-  const [expanded, setExpanded] = useState(false);
-  const hasChildren = !!children;
-  return (
-    <div className={`rounded border ${statusBg(status)} mb-2`}>
-      <div className="flex items-start gap-2.5 px-3 py-2.5">
-        <span className={`mt-0.5 shrink-0 ${statusColor(status)}`}>
-          <StatusIcon status={status} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-              {title}
-            </span>
-            {count > 0 && (
-              <span
-                className={`text-[10px] font-bold tabular-nums ${statusColor(status)}`}
-              >
-                {count}
-              </span>
-            )}
-          </div>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-            {detail}
-          </p>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {hasChildren && count > 0 && (
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              aria-label={expanded ? "Collapse" : "Expand"}
-            >
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 8 8"
-                fill="currentColor"
-                className={`transition-transform ${expanded ? "rotate-90" : ""}`}
-                aria-hidden="true"
-              >
-                <path d="M2 1l4 3-4 3V1z" />
-              </svg>
-            </button>
-          )}
-          <button
-            onClick={onCta}
-            className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors whitespace-nowrap"
-          >
-            {ctaLabel}
-          </button>
-        </div>
-      </div>
-      {hasChildren && expanded && count > 0 && (
-        <div className="px-3 pb-2.5 border-t border-[var(--color-figma-border)]/50">
-          <div className="mt-2">{children}</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** No longer needed — InfoIcon was used for priority rows, now covered by NoticePill. */
 
 /** Human-friendly labels for validation rules */
@@ -261,25 +162,6 @@ function formatCount(
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function getValidationPriorityDetail(rule: string): string {
-  switch (rule) {
-    case "missing-type":
-      return "Untyped tokens cannot be interpreted consistently across tooling and exports.";
-    case "broken-alias":
-      return "Broken references leave dependent tokens unresolved where they are consumed.";
-    case "circular-reference":
-      return "Reference loops stop tokens from resolving to a usable value.";
-    case "max-alias-depth":
-      return "Long alias chains are brittle and make overrides harder to trace.";
-    case "type-mismatch":
-      return "Type mismatches break consumers that rely on the declared token type.";
-    default:
-      return (
-        getRuleLabel(rule)?.tip ??
-        "Review this rule to keep the token library predictable."
-      );
-  }
-}
 
 function getValidationPriorityCtaLabel(rule: string): string {
   switch (rule) {
@@ -455,14 +337,15 @@ export function HealthPanel({
     }
   };
 
-  // Dashboard strip — expanded by default so health overview is primary
-  const [dashboardExpanded, setDashboardExpanded] = useState(true);
-
   // Analytics section state
   const [severityFilter, setSeverityFilter] = useState<
     "all" | "error" | "warning" | "info"
   >("all");
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
+  const [validationReportExpanded, setValidationReportExpanded] =
+    useState(true);
+  const [validationToolsExpanded, setValidationToolsExpanded] =
+    useState(false);
   const [validationCopied, setValidationCopied] = useState(false);
   const [validationExported, setValidationExported] = useState<
     "json" | "csv" | null
@@ -778,6 +661,12 @@ export function HealthPanel({
       }
     : null;
 
+  useEffect(() => {
+    if (validationIssuesProp === null) return;
+    setValidationReportExpanded((activeIssues?.length ?? 0) > 0);
+    setValidationToolsExpanded(false);
+  }, [validationIssuesProp, activeIssues?.length]);
+
   const issueGroups = (() => {
     if (!filteredIssues || filteredIssues.length === 0) return [];
     const map = new Map<string, ValidationIssue[]>();
@@ -959,14 +848,6 @@ export function HealthPanel({
         ? "warning"
         : "healthy";
 
-  const totalIssues =
-    lintErrors +
-    lintWarnings +
-    staleGenerators.length +
-    errorGenerators.length +
-    totalDuplicateAliases +
-    (heatmapResult?.red ?? 0);
-
   const lintStatus: HealthStatus | null =
     lintErrors > 0 ? "critical" : lintWarnings > 0 ? "warning" : "healthy";
 
@@ -1054,8 +935,6 @@ export function HealthPanel({
         severity: "critical",
         category: "Lint",
         message: `${formatCount(lintErrors, "lint error")} in the current set`,
-        detail:
-          "Lint errors block a clean, automatable token structure before publish.",
         count: lintErrors,
         ctaLabel: "Review lint",
         action: "lint",
@@ -1077,7 +956,6 @@ export function HealthPanel({
           severity: "critical",
           category: meta?.label ?? rule,
           message: `${formatCount(count, "token")} affected`,
-          detail: getValidationPriorityDetail(rule),
           count,
           ctaLabel: getValidationPriorityCtaLabel(rule),
           action: "validation-scroll",
@@ -1090,8 +968,6 @@ export function HealthPanel({
         severity: "critical",
         category: "Generators",
         message: `${formatCount(errorGenerators.length, "generator")} failed`,
-        detail:
-          "Failed generators leave downstream artifacts out of sync with current tokens.",
         count: errorGenerators.length,
         ctaLabel: "Inspect generators",
         action: "generators",
@@ -1104,8 +980,6 @@ export function HealthPanel({
         severity: "warning",
         category: "Lint",
         message: `${formatCount(lintWarnings, "lint warning")} in the current set`,
-        detail:
-          "Lint warnings usually point to drift that becomes expensive to fix later.",
         count: lintWarnings,
         ctaLabel: "Review lint",
         action: "lint",
@@ -1127,7 +1001,6 @@ export function HealthPanel({
           severity: "warning",
           category: meta?.label ?? rule,
           message: `${formatCount(count, "token")} affected`,
-          detail: getValidationPriorityDetail(rule),
           count,
           ctaLabel: getValidationPriorityCtaLabel(rule),
           action: "validation-scroll",
@@ -1140,8 +1013,6 @@ export function HealthPanel({
         severity: "warning",
         category: "Duplicates",
         message: `${formatCount(totalDuplicateAliases, "redundant value")} detected`,
-        detail:
-          "Duplicate raw values drift apart over time and hide good alias candidates.",
         count: totalDuplicateAliases,
         ctaLabel: "Review duplicates",
         action: "duplicates-scroll",
@@ -1153,8 +1024,6 @@ export function HealthPanel({
         severity: "warning",
         category: "Generators",
         message: `${formatCount(staleGenerators.length, "generator")} stale`,
-        detail:
-          "Stale generators mean exported artifacts no longer match the latest token source.",
         count: staleGenerators.length,
         ctaLabel: "Run generators",
         action: "generators",
@@ -1166,8 +1035,6 @@ export function HealthPanel({
         severity: "warning",
         category: "Canvas",
         message: `${formatCount(heatmapResult.red, "unbound layer")} on canvas`,
-        detail:
-          "Unbound layers bypass the token system and drift from source-of-truth values.",
         count: heatmapResult.red,
         ctaLabel: "Fix bindings",
         action: "canvas",
@@ -1180,8 +1047,6 @@ export function HealthPanel({
         severity: "info",
         category: "Alias",
         message: `${formatCount(aliasOpportunityGroups.length, "shared-alias opportunity", "shared-alias opportunities")} detected`,
-        detail:
-          "These groups still duplicate a raw value and can be replaced by one shared primitive token.",
         count: aliasOpportunityGroups.length,
         ctaLabel: "Promote aliases",
         action: "alias-opportunities-scroll",
@@ -1193,8 +1058,6 @@ export function HealthPanel({
         severity: "info",
         category: "Unused",
         message: `${formatCount(unusedCount, "unused token")} ready for cleanup`,
-        detail:
-          "Unused tokens add noise and make the library harder to curate with confidence.",
         count: unusedCount,
         ctaLabel: "Review unused",
         action: "unused-scroll",
@@ -1203,6 +1066,14 @@ export function HealthPanel({
 
     return items;
   })();
+
+  const summaryCounts = priorityIssues.reduce(
+    (counts, issue) => {
+      counts[issue.severity] += issue.count;
+      return counts;
+    },
+    { critical: 0, warning: 0, info: 0 },
+  );
 
   const totalAllIssues = priorityIssues
     .filter((i) => i.severity !== "info")
@@ -1253,483 +1124,6 @@ export function HealthPanel({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div
-        className={`shrink-0 flex items-center gap-3 px-4 py-3 border-b border-[var(--color-figma-border)] ${validationIssuesProp !== null ? `border-l-2 ${severityStyles(healthToSeverity(overallStatus)).banner}` : "bg-[var(--color-figma-bg-secondary)]"}`}
-      >
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p
-              className={`text-[12px] font-bold ${validationIssuesProp !== null ? severityStyles(healthToSeverity(overallStatus)).icon : "text-[var(--color-figma-text)]"}`}
-            >
-              {validationIssuesProp === null
-                ? "Audit Overview"
-                : overallStatus === "healthy"
-                  ? "Audit checks passed"
-                  : totalIssues > 0
-                    ? `Audit found ${totalIssues} issue${totalIssues !== 1 ? "s" : ""}`
-                    : "Audit Overview"}
-            </p>
-            {validationIsStale && (
-              <NoticePill severity="stale">Stale</NoticePill>
-            )}
-          </div>
-          {lastRefreshed && (
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              {formatValidatedAt(lastRefreshed)}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={runValidation}
-            disabled={validating || !connected}
-            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-40 transition-colors"
-            aria-label="Refresh validation"
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className={validating ? "animate-spin" : ""}
-            >
-              <path d="M23 4v6h-6" />
-              <path d="M1 20v-6h6" />
-              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-            </svg>
-            {validating ? "Checking…" : "Refresh"}
-          </button>
-        </div>
-      </div>
-
-      {/* Stale results banner — prominent rerun action */}
-      {validationIsStale && connected && (
-        <NoticeBanner
-          severity="stale"
-          className="mx-3 mt-2"
-          action={{ label: "Re-run audit", onClick: runValidation }}
-        >
-          Audit results are outdated. Token data has changed since the last
-          check.
-        </NoticeBanner>
-      )}
-
-      {/* Audit request failure banner */}
-      {_validationError && connected && (
-        <NoticeBanner severity="error" className="mx-3 mt-2">
-          {_validationError}
-        </NoticeBanner>
-      )}
-
-      {/* Priority Issues — always visible when connected and validation has run */}
-      {connected &&
-        validationIssuesProp !== null &&
-        priorityIssues.length > 0 && (
-          <div className="shrink-0 border-b border-[var(--color-figma-border)]">
-            {/* Summary header row */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-                Priority issues
-              </span>
-              <span className="flex-1" />
-              {priorityIssues.filter((i) => i.severity === "critical").length >
-                0 && (
-                <NoticePill severity="error">
-                  {priorityIssues
-                    .filter((i) => i.severity === "critical")
-                    .reduce((s, i) => s + i.count, 0)}{" "}
-                  critical
-                </NoticePill>
-              )}
-              {priorityIssues.filter((i) => i.severity === "warning").length >
-                0 && (
-                <NoticePill severity="warning">
-                  {priorityIssues
-                    .filter((i) => i.severity === "warning")
-                    .reduce((s, i) => s + i.count, 0)}{" "}
-                  warning
-                </NoticePill>
-              )}
-              {priorityIssues.filter((i) => i.severity === "info").length >
-                0 && (
-                <NoticePill severity="info">
-                  {priorityIssues
-                    .filter((i) => i.severity === "info")
-                    .reduce((s, i) => s + i.count, 0)}{" "}
-                  info
-                </NoticePill>
-              )}
-            </div>
-            {/* Issue rows — up to 8 visible */}
-            {priorityIssues.slice(0, 8).map((issue) => (
-              <div
-                key={`${issue.severity}:${issue.category}:${issue.message}`}
-                className="flex items-start gap-2 px-3 py-2 border-t border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                title={issue.detail}
-              >
-                <NoticePill
-                  severity={issueToSeverity(issue.severity)}
-                  className="mt-0.5"
-                >
-                  {issue.category}
-                </NoticePill>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                    {issue.message}
-                  </div>
-                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-relaxed mt-0.5">
-                    {issue.detail}
-                  </div>
-                </div>
-                <button
-                  onClick={resolveIssueAction(issue.action)}
-                  className="shrink-0 mt-0.5 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors whitespace-nowrap"
-                  title={issue.detail}
-                >
-                  {issue.ctaLabel}
-                </button>
-              </div>
-            ))}
-            {priorityIssues.length > 8 && (
-              <div className="px-3 py-1 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">
-                +{priorityIssues.length - 8} more — see section details below
-              </div>
-            )}
-            {/* All-clear row for non-info issues when only info issues remain */}
-            {totalAllIssues === 0 && priorityIssues.length > 0 && (
-              <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
-                <NoticePill severity="success">
-                  No critical or warning issues
-                </NoticePill>
-              </div>
-            )}
-          </div>
-        )}
-
-      {/* Section Breakdown — collapsible, shows per-area health cards */}
-      {connected && (
-        <div className="shrink-0 border-b border-[var(--color-figma-border)]">
-          <button
-            onClick={() => setDashboardExpanded((v) => !v)}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            aria-expanded={dashboardExpanded}
-          >
-            <span className="flex-1 text-left font-medium text-[var(--color-figma-text-secondary)]">
-              By category
-              {validationIssuesProp === null && totalIssues > 0 && (
-                <span className={`ml-1.5 ${statusColor(overallStatus)}`}>
-                  — {totalIssues} issue{totalIssues !== 1 ? "s" : ""}
-                </span>
-              )}
-              {validationIssuesProp === null && totalIssues === 0 && (
-                <span className="ml-1.5 text-[var(--color-figma-text-secondary)] opacity-60">
-                  — all clear
-                </span>
-              )}
-            </span>
-            <svg
-              width="8"
-              height="8"
-              viewBox="0 0 8 8"
-              fill="currentColor"
-              className={`transition-transform shrink-0 ${dashboardExpanded ? "rotate-90" : ""}`}
-              aria-hidden="true"
-            >
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
-          </button>
-          {dashboardExpanded && (
-            <div
-              className="px-3 py-2 overflow-y-auto max-h-52"
-              style={{ scrollbarWidth: "thin" }}
-            >
-              {/* Lint violations */}
-              <HealthSection
-                title="Lint violations"
-                status={lintStatus}
-                count={lintErrors + lintWarnings}
-                detail={
-                  lintErrors + lintWarnings === 0
-                    ? "No lint issues in the current set"
-                    : `${lintErrors > 0 ? `${lintErrors} error${lintErrors !== 1 ? "s" : ""}` : ""}${lintErrors > 0 && lintWarnings > 0 ? ", " : ""}${lintWarnings > 0 ? `${lintWarnings} warning${lintWarnings !== 1 ? "s" : ""}` : ""} in the current set`
-                }
-                ctaLabel={
-                  lintErrors + lintWarnings > 0 ? "Jump to issues" : "View set"
-                }
-                onCta={() => onNavigateTo("define", "tokens")}
-              >
-                <ul className="space-y-1">
-                  {lintViolations.slice(0, 5).map((v, i) => {
-                    const fixKey = `lint:${v.rule}:${v.path}`;
-                    return (
-                      <li key={i} className="group flex items-start gap-1.5">
-                        <span
-                          className={`mt-0.5 shrink-0 w-1.5 h-1.5 rounded-full ${v.severity === "error" ? "bg-[var(--color-figma-error)]" : v.severity === "warning" ? "bg-amber-500" : "bg-sky-500"}`}
-                        />
-                        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all leading-relaxed flex-1 min-w-0">
-                          {v.path}
-                        </span>
-                        {v.suggestedFix === "rename-token" && v.suggestion && (
-                          <button
-                            onClick={() => applyLintFix(v)}
-                            disabled={fixingKeys.has(fixKey)}
-                            className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-success,#34a853)] text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/10 shrink-0 disabled:opacity-40 disabled:cursor-wait"
-                            title={`Rename to ${v.suggestion}`}
-                          >
-                            {fixingKeys.has(fixKey) ? "…" : "Rename"}
-                          </button>
-                        )}
-                      </li>
-                    );
-                  })}
-                  {lintViolations.length > 5 && (
-                    <li className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 pl-3">
-                      +{lintViolations.length - 5} more
-                    </li>
-                  )}
-                </ul>
-              </HealthSection>
-
-              {/* Generator health */}
-              <HealthSection
-                title="Generator health"
-                status={generators.length === 0 ? null : generatorStatus}
-                count={
-                  errorGenerators.length +
-                  blockedGenerators.length +
-                  staleGenerators.length
-                }
-                detail={
-                  generators.length === 0
-                    ? "No generators configured"
-                    : errorGenerators.length + staleGenerators.length === 0
-                      ? `${generators.length} generator${generators.length !== 1 ? "s" : ""} up to date`
-                      : [
-                          errorGenerators.length > 0 &&
-                            `${errorGenerators.length} failed`,
-                          blockedGenerators.length > 0 &&
-                            `${blockedGenerators.length} blocked`,
-                          staleGenerators.length > 0 &&
-                            `${staleGenerators.length} stale`,
-                        ]
-                          .filter(Boolean)
-                          .join(", ")
-                }
-                ctaLabel="Manage"
-                onCta={() => onNavigateTo("define", "generators")}
-              >
-                {errorGenerators.length > 0 && (
-                  <div className="mb-2">
-                    <p className="text-[10px] font-semibold text-[var(--color-figma-error)] mb-1">
-                      Failed generators
-                    </p>
-                    <ul className="space-y-1">
-                      {errorGenerators.map((g, i) => (
-                        <li
-                          key={i}
-                          className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed"
-                        >
-                          <span className="font-medium">{g.name}</span>
-                          {g.lastRunError && (
-                            <span className="block opacity-70 font-mono text-[9px] truncate">
-                              {g.lastRunError.message}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {staleGenerators.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-semibold text-amber-500 mb-1">
-                      Stale generators
-                    </p>
-                    <ul className="space-y-0.5">
-                      {staleGenerators.map((g, i) => (
-                        <li
-                          key={i}
-                          className="text-[10px] text-[var(--color-figma-text-secondary)]"
-                        >
-                          {g.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </HealthSection>
-
-              {/* Canvas coverage */}
-              <HealthSection
-                title="Canvas coverage"
-                status={canvasStatus}
-                count={
-                  heatmapResult ? heatmapResult.red + heatmapResult.yellow : 0
-                }
-                detail={
-                  !heatmapResult
-                    ? "Run a canvas audit to see token binding coverage"
-                    : heatmapResult.total === 0
-                      ? "No checkable layers on canvas"
-                      : `${canvasCoveragePercent}% fully bound · ${heatmapResult.green} green, ${heatmapResult.yellow} partial, ${heatmapResult.red} unbound`
-                }
-                ctaLabel={heatmapResult ? "Full audit" : "Scan canvas"}
-                onCta={() => {
-                  onNavigateTo("apply", "canvas-analysis");
-                  if (!heatmapResult) onTriggerHeatmap();
-                }}
-              >
-                {heatmapResult && (
-                  <div className="flex gap-2">
-                    {(["green", "yellow", "red"] as const).map((color) => (
-                      <div key={color} className="flex-1 text-center">
-                        <div
-                          className={`text-[11px] font-bold tabular-nums ${color === "green" ? "text-emerald-500" : color === "yellow" ? "text-amber-500" : "text-[var(--color-figma-error)]"}`}
-                        >
-                          {heatmapResult[color]}
-                        </div>
-                        <div className="text-[9px] text-[var(--color-figma-text-secondary)] capitalize">
-                          {color === "green"
-                            ? "Bound"
-                            : color === "yellow"
-                              ? "Partial"
-                              : "Unbound"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </HealthSection>
-
-              {/* Alias dependencies */}
-              <HealthSection
-                title="Alias dependencies"
-                status={aliasDependencyStatus}
-                count={aliasDependencyIssueCount}
-                detail={aliasDependencyDetail}
-                ctaLabel={
-                  aliasDependencyIssueCount > 0
-                    ? "Review dependencies"
-                    : "Open dependencies"
-                }
-                onCta={() => onNavigateTo("apply", "dependencies")}
-              >
-                <div className="space-y-1.5">
-                  {aliasDependencyPreview.map((issue) => (
-                    <div
-                      key={`${issue.rule}:${issue.setName}:${issue.path}`}
-                      className="flex items-center gap-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-mono text-[9px] text-[var(--color-figma-text)]">
-                          {issue.path}
-                        </div>
-                        <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                          {getRuleLabel(issue.rule)?.label ?? issue.rule}
-                        </div>
-                      </div>
-                      {onNavigateToToken && (
-                        <button
-                          onClick={() =>
-                            onNavigateToToken(issue.path, issue.setName)
-                          }
-                          title={`Go to ${issue.path}`}
-                          aria-label={`Go to ${issue.path}`}
-                          className="shrink-0 rounded border border-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
-                        >
-                          Go
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {aliasDependencyIssueCount >
-                    aliasDependencyPreview.length && (
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                      +
-                      {aliasDependencyIssueCount -
-                        aliasDependencyPreview.length}{" "}
-                      more issue
-                      {aliasDependencyIssueCount -
-                        aliasDependencyPreview.length ===
-                      1
-                        ? ""
-                        : "s"}{" "}
-                      in the full audit report
-                    </div>
-                  )}
-                </div>
-              </HealthSection>
-
-              <HealthSection
-                title="Alias opportunities"
-                status={
-                  validationIssuesProp === null
-                    ? null
-                    : aliasOpportunityGroups.length > 0
-                      ? "warning"
-                      : "healthy"
-                }
-                count={aliasOpportunityGroups.length}
-                detail={
-                  validationIssuesProp === null
-                    ? "Run an audit to group raw-value duplicates that can become shared aliases."
-                    : aliasOpportunityGroups.length === 0
-                      ? "No promotable raw-value groups in the latest audit."
-                      : `${aliasOpportunityGroups.length} grouped duplicate values can be promoted into shared primitives.`
-                }
-                ctaLabel={
-                  aliasOpportunityGroups.length > 0
-                    ? "Review groups"
-                    : "Open report"
-                }
-                onCta={() =>
-                  document
-                    .getElementById("health-alias-opportunities-section")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                <div className="space-y-1.5">
-                  {aliasOpportunityGroups.slice(0, 4).map((group) => (
-                    <div
-                      key={group.id}
-                      className="flex items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/60 px-2 py-1.5"
-                    >
-                      {group.colorHex && (
-                        <div
-                          className="h-4 w-4 shrink-0 rounded border border-[var(--color-figma-border)]"
-                          style={{ background: group.colorHex }}
-                        />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
-                          {group.tokens.length} tokens share {group.valueLabel}
-                        </div>
-                        <div className="truncate text-[9px] text-[var(--color-figma-text-secondary)]">
-                          {group.suggestedPrimitiveSet}:{group.suggestedPrimitivePath}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {aliasOpportunityGroups.length > 4 && (
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                      +{aliasOpportunityGroups.length - 4} more group
-                      {aliasOpportunityGroups.length - 4 === 1 ? "" : "s"} in
-                      the full audit report
-                    </div>
-                  )}
-                </div>
-              </HealthSection>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Body */}
       <div
         className="flex-1 overflow-y-auto px-3 py-3"
@@ -1759,184 +1153,303 @@ export function HealthPanel({
           </div>
         ) : (
           <>
+            {validationIsStale && (
+              <NoticeBanner severity="stale" className="mb-3">
+                Audit results are outdated. Token data changed after the last
+                check, so review findings with caution until you refresh from
+                the shell header.
+              </NoticeBanner>
+            )}
+
+            {_validationError && (
+              <NoticeBanner severity="error" className="mb-3">
+                {_validationError}
+              </NoticeBanner>
+            )}
+
+            <section className="rounded border border-[var(--color-figma-border)] mb-3 overflow-hidden">
+              <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-[var(--color-figma-bg-secondary)]/35">
+                <div className="flex items-center gap-2 min-w-0">
+                  {validationIssuesProp !== null && (
+                    <span className={statusColor(overallStatus)}>
+                      <StatusIcon status={overallStatus} />
+                    </span>
+                  )}
+                  <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                    {validationIssuesProp === null
+                      ? "Run the audit to check library health"
+                      : overallStatus === "healthy"
+                        ? "All clear"
+                        : `${totalAllIssues} active issue${totalAllIssues !== 1 ? "s" : ""}`}
+                  </span>
+                  {validating && (
+                    <NoticePill severity="info">Auditing…</NoticePill>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {summaryCounts.critical > 0 && (
+                    <NoticePill severity="error">
+                      {summaryCounts.critical} critical
+                    </NoticePill>
+                  )}
+                  {summaryCounts.warning > 0 && (
+                    <NoticePill severity="warning">
+                      {summaryCounts.warning} warning
+                    </NoticePill>
+                  )}
+                  {summaryCounts.info > 0 && (
+                    <NoticePill severity="info">
+                      {summaryCounts.info} info
+                    </NoticePill>
+                  )}
+                </div>
+              </div>
+
+              {priorityIssues.length > 0 && (
+                <div className="divide-y divide-[var(--color-figma-border)] border-t border-[var(--color-figma-border)]">
+                  {priorityIssues.map((issue) => (
+                    <div
+                      key={`${issue.severity}:${issue.category}:${issue.message}`}
+                      className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      <span className={`shrink-0 ${statusColor(
+                        issue.severity === "critical"
+                          ? "critical"
+                          : issue.severity === "warning"
+                            ? "warning"
+                            : "healthy",
+                      )}`}>
+                        <StatusIcon
+                          status={
+                            issue.severity === "critical"
+                              ? "critical"
+                              : issue.severity === "warning"
+                                ? "warning"
+                                : "healthy"
+                          }
+                        />
+                      </span>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 min-w-0 truncate">
+                        {issue.category}
+                        <span className="font-normal text-[var(--color-figma-text-secondary)]">
+                          {" \u2014 "}{issue.message}
+                        </span>
+                      </span>
+                      <button
+                        onClick={resolveIssueAction(issue.action)}
+                        className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors whitespace-nowrap"
+                      >
+                        {issue.ctaLabel}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {lastRefreshed && (
+                <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)]">
+                  Last checked {formatValidatedAt(lastRefreshed)}
+                </div>
+              )}
+            </section>
+
             {/* Validation Issues */}
             {validationIssuesProp !== null && (
               <div
                 id="health-validation-section"
                 className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2"
               >
-                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-                    Audit Report
-                    {validationIsStale && (
-                      <NoticePill severity="stale">stale</NoticePill>
-                    )}
-                    {lastRefreshed && !validationIsStale && (
-                      <span className="normal-case font-normal tracking-normal text-[var(--color-figma-text-tertiary)]">
-                        {formatValidatedAt(lastRefreshed)}
-                      </span>
-                    )}
-                    {severityCounts && (activeIssues?.length ?? 0) > 0 && (
-                      <span className="flex items-center gap-1 normal-case font-normal tracking-normal">
-                        {severityCounts.error > 0 && (
-                          <NoticePill severity="error">
-                            {severityCounts.error} error
-                            {severityCounts.error !== 1 ? "s" : ""}
-                          </NoticePill>
-                        )}
-                        {severityCounts.warning > 0 && (
-                          <NoticePill severity="warning">
-                            {severityCounts.warning} warning
-                            {severityCounts.warning !== 1 ? "s" : ""}
-                          </NoticePill>
-                        )}
-                        {severityCounts.info > 0 && (
-                          <NoticePill severity="info">
-                            {severityCounts.info} info
-                          </NoticePill>
-                        )}
-                      </span>
-                    )}
-                    {(activeIssues?.length ?? 0) === 0 && (
-                      <NoticePill severity="success">All clear</NoticePill>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1">
+                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                  <div className="flex flex-wrap items-start justify-between gap-2 px-3 py-2">
                     <button
-                      onClick={() => {
-                        const issues = validationIssuesProp ?? [];
-                        const lines: string[] = [
-                          `# Validation Report — ${issues.length} issue${issues.length !== 1 ? "s" : ""}\n`,
-                        ];
-                        for (const sev of [
-                          "error",
-                          "warning",
-                          "info",
-                        ] as const) {
-                          const group = issues.filter(
-                            (i) => i.severity === sev,
-                          );
-                          if (group.length === 0) continue;
-                          lines.push(
-                            `## ${sev.charAt(0).toUpperCase() + sev.slice(1)}s (${group.length})`,
-                          );
-                          for (const issue of group) {
-                            lines.push(
-                              `- **${issue.path}** (set: ${issue.setName}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ""}`,
-                            );
-                          }
-                          lines.push("");
+                      onClick={() =>
+                        setValidationReportExpanded((current) => !current)
+                      }
+                      className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                      aria-expanded={validationReportExpanded}
+                    >
+                      <svg
+                        width="8"
+                        height="8"
+                        viewBox="0 0 8 8"
+                        fill="currentColor"
+                        className={`mt-1 shrink-0 transition-transform ${validationReportExpanded ? "rotate-90" : ""}`}
+                        aria-hidden="true"
+                      >
+                        <path d="M2 1l4 3-4 3V1z" />
+                      </svg>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                            Audit report
+                          </span>
+                          {validationIsStale && (
+                            <NoticePill severity="stale">Stale</NoticePill>
+                          )}
+                          {(activeIssues?.length ?? 0) === 0 ? (
+                            <NoticePill severity="success">All clear</NoticePill>
+                          ) : null}
+                        </div>
+                        <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                          {(activeIssues?.length ?? 0) === 0
+                            ? "No validation issues in the current audit."
+                            : `${severityCounts?.error ?? 0} error${severityCounts?.error === 1 ? "" : "s"}, ${severityCounts?.warning ?? 0} warning${severityCounts?.warning === 1 ? "" : "s"}, ${severityCounts?.info ?? 0} info.`}
+                          {lastRefreshed
+                            ? ` Updated ${formatValidatedAt(lastRefreshed)}.`
+                            : ""}
+                        </p>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {(["all", "error", "warning", "info"] as const).map((f) => {
+                        const filterSeverity: NoticeSeverity =
+                          f === "all" ? "info" : f;
+                        const isActive = severityFilter === f;
+                        const label =
+                          severityCounts && f !== "all"
+                            ? `${f} (${severityCounts[f]})`
+                            : f;
+                        return (
+                          <button
+                            key={f}
+                            onClick={() => setSeverityFilter(f)}
+                            className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                              isActive
+                                ? `${severityStyles(filterSeverity).pill} border-current/20`
+                                : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                      <button
+                        onClick={() =>
+                          setValidationToolsExpanded((current) => !current)
                         }
-                        navigator.clipboard
-                          .writeText(lines.join("\n"))
-                          .then(() => {
-                            setValidationCopied(true);
-                            setTimeout(() => setValidationCopied(false), 1500);
-                          });
-                      }}
-                      className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      {validationCopied ? "Copied!" : "Copy MD"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        const issues = validationIssuesProp ?? [];
-                        const payload = {
-                          generatedAt: new Date().toISOString(),
-                          total: issues.length,
-                          issues: issues.map((i) => ({
-                            severity: i.severity,
-                            rule: i.rule,
-                            set: i.setName,
-                            path: i.path,
-                            message: i.message,
-                            ...(i.suggestedFix
-                              ? { suggestedFix: i.suggestedFix }
-                              : {}),
-                          })),
-                        };
-                        const blob = new Blob(
-                          [JSON.stringify(payload, null, 2)],
-                          { type: "application/json" },
-                        );
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = "validation-report.json";
-                        a.click();
-                        URL.revokeObjectURL(url);
-                        setValidationExported("json");
-                        setTimeout(() => setValidationExported(null), 1500);
-                      }}
-                      className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      {validationExported === "json" ? "Saved!" : "JSON"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        const issues = validationIssuesProp ?? [];
-                        const header =
-                          "severity,rule,set,path,message,suggestedFix";
-                        const escape = (s: string) =>
-                          `"${s.replace(/"/g, '""')}"`;
-                        const rows = issues.map((i) =>
-                          [
-                            i.severity,
-                            i.rule,
-                            i.setName,
-                            i.path,
-                            i.message,
-                            i.suggestedFix ?? "",
-                          ]
-                            .map(escape)
-                            .join(","),
-                        );
-                        const blob = new Blob([[header, ...rows].join("\n")], {
-                          type: "text/csv",
-                        });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = "validation-report.csv";
-                        a.click();
-                        URL.revokeObjectURL(url);
-                        setValidationExported("csv");
-                        setTimeout(() => setValidationExported(null), 1500);
-                      }}
-                      className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      {validationExported === "csv" ? "Saved!" : "CSV"}
-                    </button>
-                    <span
-                      className="w-px h-3 bg-[var(--color-figma-border)]"
-                      aria-hidden="true"
-                    />
-                    {(["all", "error", "warning", "info"] as const).map((f) => {
-                      const filterSeverity: NoticeSeverity =
-                        f === "all" ? "info" : f;
-                      const isActive = severityFilter === f;
-                      const label =
-                        severityCounts && f !== "all"
-                          ? `${f} (${severityCounts[f]})`
-                          : f;
-                      return (
-                        <button
-                          key={f}
-                          onClick={() => setSeverityFilter(f)}
-                          className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
-                            isActive
-                              ? severityStyles(filterSeverity).pill +
-                                " border-current/20"
-                              : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
+                        className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                        aria-expanded={validationToolsExpanded}
+                      >
+                        Tools
+                      </button>
+                    </div>
                   </div>
+
+                  {validationToolsExpanded && (
+                    <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/45">
+                      <button
+                        onClick={() => {
+                          const issues = validationIssuesProp ?? [];
+                          const lines: string[] = [
+                            `# Validation Report — ${issues.length} issue${issues.length !== 1 ? "s" : ""}\n`,
+                          ];
+                          for (const sev of [
+                            "error",
+                            "warning",
+                            "info",
+                          ] as const) {
+                            const group = issues.filter(
+                              (i) => i.severity === sev,
+                            );
+                            if (group.length === 0) continue;
+                            lines.push(
+                              `## ${sev.charAt(0).toUpperCase() + sev.slice(1)}s (${group.length})`,
+                            );
+                            for (const issue of group) {
+                              lines.push(
+                                `- **${issue.path}** (set: ${issue.setName}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ""}`,
+                              );
+                            }
+                            lines.push("");
+                          }
+                          navigator.clipboard
+                            .writeText(lines.join("\n"))
+                            .then(() => {
+                              setValidationCopied(true);
+                              setTimeout(() => setValidationCopied(false), 1500);
+                            });
+                        }}
+                        className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        {validationCopied ? "Copied!" : "Copy MD"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const issues = validationIssuesProp ?? [];
+                          const payload = {
+                            generatedAt: new Date().toISOString(),
+                            total: issues.length,
+                            issues: issues.map((i) => ({
+                              severity: i.severity,
+                              rule: i.rule,
+                              set: i.setName,
+                              path: i.path,
+                              message: i.message,
+                              ...(i.suggestedFix
+                                ? { suggestedFix: i.suggestedFix }
+                                : {}),
+                            })),
+                          };
+                          const blob = new Blob(
+                            [JSON.stringify(payload, null, 2)],
+                            { type: "application/json" },
+                          );
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "validation-report.json";
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          setValidationExported("json");
+                          setTimeout(() => setValidationExported(null), 1500);
+                        }}
+                        className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        {validationExported === "json" ? "Saved!" : "JSON"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const issues = validationIssuesProp ?? [];
+                          const header =
+                            "severity,rule,set,path,message,suggestedFix";
+                          const escape = (s: string) =>
+                            `"${s.replace(/"/g, '""')}"`;
+                          const rows = issues.map((i) =>
+                            [
+                              i.severity,
+                              i.rule,
+                              i.setName,
+                              i.path,
+                              i.message,
+                              i.suggestedFix ?? "",
+                            ]
+                              .map(escape)
+                              .join(","),
+                          );
+                          const blob = new Blob(
+                            [[header, ...rows].join("\n")],
+                            {
+                              type: "text/csv",
+                            },
+                          );
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "validation-report.csv";
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          setValidationExported("csv");
+                          setTimeout(() => setValidationExported(null), 1500);
+                        }}
+                        className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        {validationExported === "csv" ? "Saved!" : "CSV"}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {filteredIssues && filteredIssues.length === 0 ? (
+
+                {validationReportExpanded && filteredIssues && filteredIssues.length === 0 ? (
                   <div className="px-3 py-6 text-center">
                     <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
                       {(activeIssues?.length ?? 0) === 0
@@ -1944,7 +1457,7 @@ export function HealthPanel({
                         : "No issues match this filter"}
                     </div>
                   </div>
-                ) : (
+                ) : validationReportExpanded ? (
                   <div className="max-h-64 overflow-y-auto">
                     {issueGroups.map((group) => {
                       const isCollapsed = collapsedRules.has(group.rule);
@@ -2059,7 +1572,7 @@ export function HealthPanel({
                                           disabled={fixingKeys.has(
                                             suppressKey(issue),
                                           )}
-                                          className={`opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border shrink-0 disabled:opacity-40 disabled:cursor-wait ${issue.suggestedFix === "delete-token" ? "border-[var(--color-figma-error)] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10" : "border-[var(--color-figma-success,#34a853)] text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/10"}`}
+                                          className={`text-[10px] px-2 py-0.5 rounded border shrink-0 disabled:opacity-40 disabled:cursor-wait ${issue.suggestedFix === "delete-token" ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/15" : "border-[var(--color-figma-success,#34a853)] bg-[var(--color-figma-success,#34a853)]/10 text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/15"}`}
                                         >
                                           {fixingKeys.has(suppressKey(issue))
                                             ? "…"
@@ -2090,7 +1603,7 @@ export function HealthPanel({
                                           suppressingKey === suppressKey(issue)
                                         }
                                         title="Suppress this violation — hide it from the report"
-                                        className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0 disabled:opacity-40 disabled:cursor-wait"
+                                        className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0 disabled:opacity-40 disabled:cursor-wait"
                                       >
                                         {suppressingKey === suppressKey(issue)
                                           ? "…"
@@ -2104,9 +1617,9 @@ export function HealthPanel({
                                               issue.setName,
                                             )
                                           }
-                                          className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                                          className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
                                         >
-                                          Go →
+                                          Open
                                         </button>
                                       )}
                                     </div>
@@ -2144,6 +1657,10 @@ export function HealthPanel({
                       );
                     })}
                   </div>
+                ) : (
+                  <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    Report collapsed. Expand to inspect grouped issues and actions.
+                  </div>
                 )}
               </div>
             )}
@@ -2153,7 +1670,7 @@ export function HealthPanel({
               <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
                 <button
                   onClick={() => setShowSuppressed((v) => !v)}
-                  className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+                  className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
                 >
                   <span className="flex items-center gap-1.5">
                     Suppressed Issues
@@ -2236,21 +1753,17 @@ export function HealthPanel({
 
             <div id="health-alias-opportunities-section">
               <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
-                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                     Alias Opportunities
-                    {aliasOpportunityGroups.length > 0 ? (
-                      <span className="rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 font-mono normal-case">
-                        {aliasOpportunityGroups.length} group
-                        {aliasOpportunityGroups.length === 1 ? "" : "s"}
-                      </span>
-                    ) : (
-                      <NoticePill severity="success">All clear</NoticePill>
-                    )}
                   </span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Promote duplicate raw values into one shared primitive token.
-                  </span>
+                  {aliasOpportunityGroups.length > 0 ? (
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      {aliasOpportunityGroups.length} group{aliasOpportunityGroups.length === 1 ? "" : "s"}
+                    </span>
+                  ) : (
+                    <NoticePill severity="success">All clear</NoticePill>
+                  )}
                 </div>
                 {aliasOpportunityGroups.length === 0 ? (
                   <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
@@ -2260,84 +1773,46 @@ export function HealthPanel({
                   <div className="divide-y divide-[var(--color-figma-border)]">
                     {aliasOpportunityGroups.map((group) => {
                       const isPromoting = promotingAliasGroupId === group.id;
-                      const tokenListPreview = group.tokens
-                        .slice(0, 4)
-                        .map((token) => `${token.path} (${token.setName})`)
-                        .join(", ");
-                      const remainingTokens = group.tokens.length - 4;
-
                       return (
                         <div
                           key={group.id}
-                          className="flex flex-col gap-2 px-3 py-3"
+                          className="flex items-start gap-2 px-3 py-2.5"
                         >
-                          <div className="flex items-start gap-2">
-                            {group.colorHex && (
-                              <div
-                                className="mt-0.5 h-5 w-5 shrink-0 rounded border border-[var(--color-figma-border)]"
-                                style={{ background: group.colorHex }}
-                              />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                                  {group.tokens.length} tokens share one raw{" "}
-                                  {group.typeLabel} value
-                                </span>
-                                <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
-                                  {group.typeLabel}
-                                </span>
-                              </div>
-                              <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                Shared value:{" "}
-                                <span className="font-mono text-[var(--color-figma-text)]">
-                                  {group.valueLabel}
-                                </span>
-                              </div>
-                              <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                Promote to{" "}
-                                <span className="font-mono text-[var(--color-figma-text)]">
-                                  {group.suggestedPrimitivePath}
-                                </span>{" "}
-                                in{" "}
-                                <span className="font-mono text-[var(--color-figma-text)]">
-                                  {group.suggestedPrimitiveSet}
-                                </span>
-                                .
-                              </div>
-                              <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                {tokenListPreview}
-                                {remainingTokens > 0
-                                  ? `, and ${remainingTokens} more`
-                                  : ""}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() =>
-                                handlePromoteAliasOpportunity(group)
-                              }
-                              disabled={isPromoting}
-                              className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                            >
-                              {isPromoting
-                                ? "Promoting…"
-                                : "Promote to shared alias"}
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {group.tokens.map((token) => (
-                              <span
-                                key={`${token.setName}:${token.path}`}
-                                className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]"
-                              >
-                                {token.path}
-                                <span className="opacity-60">
-                                  {" "}
-                                  · {token.setName}
-                                </span>
+                          {group.colorHex && (
+                            <div
+                              className="mt-0.5 h-4 w-4 shrink-0 rounded border border-[var(--color-figma-border)]"
+                              style={{ background: group.colorHex }}
+                            />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-[10px] font-medium font-mono text-[var(--color-figma-text)]">
+                                {group.valueLabel}
                               </span>
-                            ))}
+                              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                                {group.typeLabel} · {group.tokens.length} tokens
+                              </span>
+                            </div>
+                            <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                              Promote to{" "}
+                              <span className="font-mono text-[var(--color-figma-text)]">
+                                {group.suggestedPrimitivePath}
+                              </span>
+                              {" "}in{" "}
+                              <span className="font-mono text-[var(--color-figma-text)]">
+                                {group.suggestedPrimitiveSet}
+                              </span>
+                            </div>
                           </div>
+                          <button
+                            onClick={() =>
+                              handlePromoteAliasOpportunity(group)
+                            }
+                            disabled={isPromoting}
+                            className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                          >
+                            {isPromoting ? "Promoting…" : "Promote"}
+                          </button>
                         </div>
                       );
                     })}

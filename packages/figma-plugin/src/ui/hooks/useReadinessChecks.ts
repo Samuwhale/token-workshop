@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DTCGToken } from '@tokenmanager/core';
 import type { OrphanVariableDeleteTarget } from '../../shared/types';
 import { describeError } from '../shared/utils';
+import { lsGet, lsSet } from '../shared/storage';
 import {
   getSyncRowsByCategory,
   getDiffRowId,
@@ -365,7 +366,7 @@ export function useReadinessChecks({
       const runKey = tokenChangeKey ?? 0;
       setChecksRunAtKey(runKey);
       setChecksStale(false);
-      try { localStorage.setItem(LAST_READINESS_CHANGE_KEY, String(runKey)); } catch { /* ignore */ }
+      lsSet(LAST_READINESS_CHANGE_KEY, String(runKey));
     } catch (err) {
       setReadinessError(describeError(err, 'Readiness checks'));
     } finally {
@@ -471,7 +472,7 @@ export function useReadinessChecks({
 
   useEffect(() => {
     if (!connected || !activeSet || tokenChangeKey === undefined) return;
-    const stored = localStorage.getItem(LAST_READINESS_CHANGE_KEY);
+    const stored = lsGet(LAST_READINESS_CHANGE_KEY);
     if (stored !== null && tokenChangeKey > parseInt(stored, 10)) {
       runReadinessChecksRef.current();
     }

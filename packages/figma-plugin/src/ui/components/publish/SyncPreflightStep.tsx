@@ -1,6 +1,5 @@
 import type { PublishPreflightCluster, PublishPreflightStage } from '../../shared/syncWorkflow';
-import { NoticeBanner, NoticePill } from '../../shared/noticeSystem';
-import type { NoticeSeverity } from '../../shared/noticeSystem';
+import { NoticeBanner } from '../../shared/noticeSystem';
 import { Spinner } from '../Spinner';
 
 interface SyncPreflightStepProps {
@@ -9,7 +8,6 @@ interface SyncPreflightStepProps {
   error: string | null;
   blockingClusters: PublishPreflightCluster[];
   advisoryClusters: PublishPreflightCluster[];
-  onRunChecks: () => void;
   running: boolean;
   actionHandlers: Partial<Record<string, () => void>>;
   actionBusyId?: string | null;
@@ -21,127 +19,58 @@ export function SyncPreflightStep({
   error,
   blockingClusters,
   advisoryClusters,
-  onRunChecks,
   running,
   actionHandlers,
   actionBusyId = null,
 }: SyncPreflightStepProps) {
-  const statusSeverity: NoticeSeverity =
-    running ? 'info'
-      : isOutdated ? 'warning'
-        : stage === 'blocked' ? 'error'
-          : stage === 'advisory' ? 'warning'
-            : stage === 'ready' ? 'success'
-              : 'info';
-
-  const statusLabel =
-    running ? 'Running preflight'
-      : isOutdated ? 'Outdated'
-        : stage === 'blocked' ? 'Blocking issues found'
-          : stage === 'advisory' ? 'Advisory recommendations'
-            : stage === 'ready' ? 'Ready for compare'
-              : 'Preflight not run';
-
-  const summary =
-    running
-      ? 'Checking Figma sync readiness together with draft-token and audit-health gates before compare/apply is unlocked.'
-      : isOutdated
-        ? 'Token data changed since the last check. Run preflight again before comparing differences.'
-        : stage === 'blocked'
-          ? 'Resolve the blocking clusters below before compare and apply become available.'
-          : stage === 'advisory'
-            ? 'Nothing blocks sync right now. You can compare next, or clear the advisory clusters first.'
-            : stage === 'ready'
-              ? 'Preflight is clear. Move to compare once you are ready to inspect differences.'
-              : 'Start here. Preflight checks Figma coverage, token quality, draft lifecycle state, and audit blockers before any compare/apply work.';
-
   return (
-    <section className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]" aria-labelledby="sync-preflight-heading">
-      <div className="px-3 py-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                Step 1
-              </span>
-              <h2 id="sync-preflight-heading" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Sync preflight
-              </h2>
-              <NoticePill severity={statusSeverity}>{statusLabel}</NoticePill>
-            </div>
-            <p className="mt-1.5 max-w-[560px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              {summary}
-            </p>
-          </div>
+    <div className="flex flex-col gap-3">
+      {error && (
+        <NoticeBanner severity="error">{error}</NoticeBanner>
+      )}
 
-          <button
-            onClick={onRunChecks}
-            disabled={running}
-            className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {running ? 'Running…' : isOutdated || stage === 'idle' ? 'Run preflight' : 'Re-run preflight'}
-          </button>
+      {!running && isOutdated && !error && (
+        <NoticeBanner severity="warning">
+          Token data changed since the last check. Run preflight again before comparing differences.
+        </NoticeBanner>
+      )}
+
+      {!running && blockingClusters.length === 0 && advisoryClusters.length === 0 && stage === 'idle' && !error && (
+        <div className="rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+          Compare and apply stay locked until preflight has run at least once for the current token state.
         </div>
+      )}
 
-        {error && (
-          <NoticeBanner severity="error" className="mt-2">{error}</NoticeBanner>
-        )}
+      {running && (
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <Spinner size="sm" />
+          Running preflight checks…
+        </div>
+      )}
 
-        {!running && isOutdated && !error && (
-          <NoticeBanner
-            severity="warning"
-            className="mt-2"
-            actions={(
-              <button
-                type="button"
-                onClick={onRunChecks}
-                className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-500/16"
-              >
-                Re-run preflight
-              </button>
-            )}
-          >
-            Token data changed since the last check. Run preflight again before comparing differences.
-          </NoticeBanner>
-        )}
-
-        {!running && blockingClusters.length === 0 && advisoryClusters.length === 0 && stage === 'idle' && !error && (
-          <div className="mt-2 rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Compare and apply stay locked until preflight has run at least once for the current token state.
-          </div>
-        )}
-
-        {running && (
-          <div className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-            <Spinner size="sm" />
-            Checking the current Figma file plus token-library publish blockers and advisory cleanup.
-          </div>
-        )}
-
-        {!running && (blockingClusters.length > 0 || advisoryClusters.length > 0) && (
-          <div className="mt-3 flex flex-col gap-3">
-            {blockingClusters.length > 0 && (
-              <ClusterGroup
-                title="Blocking clusters"
-                tone="danger"
-                clusters={blockingClusters}
-                actionHandlers={actionHandlers}
-                actionBusyId={actionBusyId}
-              />
-            )}
-            {advisoryClusters.length > 0 && (
-              <ClusterGroup
-                title="Advisory clusters"
-                tone="warning"
-                clusters={advisoryClusters}
-                actionHandlers={actionHandlers}
-                actionBusyId={actionBusyId}
-              />
-            )}
-          </div>
-        )}
-      </div>
-    </section>
+      {!running && (blockingClusters.length > 0 || advisoryClusters.length > 0) && (
+        <div className="flex flex-col gap-3">
+          {blockingClusters.length > 0 && (
+            <ClusterGroup
+              title="Blockers"
+              tone="danger"
+              clusters={blockingClusters}
+              actionHandlers={actionHandlers}
+              actionBusyId={actionBusyId}
+            />
+          )}
+          {advisoryClusters.length > 0 && (
+            <ClusterGroup
+              title="Advisories"
+              tone="warning"
+              clusters={advisoryClusters}
+              actionHandlers={actionHandlers}
+              actionBusyId={actionBusyId}
+            />
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -158,20 +87,14 @@ function ClusterGroup({
   actionHandlers: Partial<Record<string, () => void>>;
   actionBusyId: string | null;
 }) {
-  const clusterSeverity: NoticeSeverity = tone === 'danger' ? 'error' : 'warning';
   const toneClasses = tone === 'danger'
     ? 'border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/5'
     : 'border-amber-400/25 bg-amber-400/8';
 
   return (
     <div className={`rounded-[16px] border p-3 ${toneClasses}`}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-          {title}
-        </div>
-        <NoticePill severity={clusterSeverity}>
-          {clusters.length} cluster{clusters.length === 1 ? '' : 's'}
-        </NoticePill>
+      <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+        {title}
       </div>
 
       <div className="mt-2 grid gap-2">

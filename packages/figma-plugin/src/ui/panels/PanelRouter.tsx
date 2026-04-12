@@ -31,7 +31,6 @@ import type { PublishPanelHandle } from "../components/PublishPanel";
 import { ImportPanel } from "../components/ImportPanel";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import { SelectionInspector } from "../components/SelectionInspector";
-import type { SelectionInspectorHandle } from "../components/SelectionInspector";
 import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
 import { GraphPanel } from "../components/GraphPanel";
 import { TokenFlowPanel } from "../components/TokenFlowPanel";
@@ -68,6 +67,7 @@ import {
 } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
+import { lsGet, lsSet } from "../shared/storage";
 import {
   useApplyWorkspaceController,
   useEditorShellController,
@@ -112,40 +112,22 @@ const LAST_CREATE_GROUP_STORAGE_KEY = "tm_last_create_group";
 const LAST_CREATE_TYPE_STORAGE_KEY = "tm_last_token_type";
 
 function readLastCreateGroup(): string {
-  try {
-    return localStorage.getItem(LAST_CREATE_GROUP_STORAGE_KEY) || "";
-  } catch (error) {
-    console.debug("[PanelRouter] failed to read last create group:", error);
-    return "";
-  }
+  return lsGet(LAST_CREATE_GROUP_STORAGE_KEY, "");
 }
 
 function readLastCreateType(): string {
-  try {
-    return localStorage.getItem(LAST_CREATE_TYPE_STORAGE_KEY) || "color";
-  } catch (error) {
-    console.debug("[PanelRouter] failed to read last create type:", error);
-    return "color";
-  }
+  return lsGet(LAST_CREATE_TYPE_STORAGE_KEY, "color");
 }
 
 function persistLastCreateGroup(tokenPath: string): void {
   const groupPath = tokenPath.includes(".")
     ? tokenPath.split(".").slice(0, -1).join(".")
     : "";
-  try {
-    localStorage.setItem(LAST_CREATE_GROUP_STORAGE_KEY, groupPath);
-  } catch (error) {
-    console.debug("[PanelRouter] failed to persist last create group:", error);
-  }
+  lsSet(LAST_CREATE_GROUP_STORAGE_KEY, groupPath);
 }
 
 function persistLastCreateType(tokenType: string): void {
-  try {
-    localStorage.setItem(LAST_CREATE_TYPE_STORAGE_KEY, tokenType);
-  } catch (error) {
-    console.debug("[PanelRouter] failed to persist last create type:", error);
-  }
+  lsSet(LAST_CREATE_TYPE_STORAGE_KEY, tokenType);
 }
 
 function resolveCreateLauncherPath(initialPath?: string): string {
@@ -1475,7 +1457,6 @@ export function PanelRouter(): ReactNode {
           onToast={controller.setSuccessToast}
           onGoToTokens={() => navigateTo("define", "tokens")}
           triggerCreateToken={controller.triggerCreateToken}
-          selectionInspectorHandle={controller.selectionInspectorHandleRef}
         />
       </ErrorBoundary>
     );

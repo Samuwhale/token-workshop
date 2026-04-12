@@ -319,7 +319,7 @@ export function PropertyRow({
     <div>
       {/* Property row */}
       <div
-        className={`rounded-md border px-2 py-1.5 transition-colors ${rowStateClass}`}
+        className={`group/proprow rounded-md border px-2 py-1.5 transition-colors ${rowStateClass}`}
       >
         <div className="flex items-start gap-2">
           {/* Color swatch */}
@@ -367,16 +367,26 @@ export function PropertyRow({
                   <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                   <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                 </svg>
-                <span className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
-                  {binding as string}
-                </span>
+                {onNavigateToToken ? (
+                  <button
+                    onClick={() => onNavigateToToken(binding as string)}
+                    className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate hover:underline text-left"
+                    title={`Go to ${binding as string}`}
+                  >
+                    {binding as string}
+                  </button>
+                ) : (
+                  <span className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
+                    {binding as string}
+                  </span>
+                )}
               </div>
             )}
           </div>
         </div>
 
         {showActionRail && (
-          <div className="mt-2 flex flex-wrap items-center gap-1 pl-6">
+          <div className={`mt-2 flex flex-wrap items-center gap-1 pl-6 transition-opacity ${isThisPropActive ? '' : 'opacity-0 group-hover/proprow:opacity-100'}`}>
             {canBind && (
               <PropertyActionButton
                 label={isMixed ? 'Bind token' : 'Bind'}
@@ -444,18 +454,6 @@ export function PropertyRow({
                     className={`transition-transform ${showMixedDetail ? 'rotate-90' : ''}`}
                   >
                     <path d="M2 1l4 3-4 3V1z" />
-                  </svg>
-                }
-              />
-            )}
-            {isBound && onNavigateToToken && (
-              <PropertyActionButton
-                label="View token"
-                title="Go to token"
-                onClick={() => onNavigateToToken(binding as string)}
-                icon={
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
                 }
               />

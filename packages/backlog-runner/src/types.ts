@@ -1,5 +1,5 @@
 export type BacklogTool = 'claude' | 'codex';
-export const BACKLOG_DISCOVERY_PASSES = ['product', 'interface', 'ux', 'code'] as const;
+export const BACKLOG_DISCOVERY_PASSES = ['interface', 'ux', 'product', 'code'] as const;
 export type BacklogPassType = typeof BACKLOG_DISCOVERY_PASSES[number];
 export const BACKLOG_RUNNER_ROLES = ['task', 'planner', ...BACKLOG_DISCOVERY_PASSES] as const;
 export type BacklogRunnerRole = typeof BACKLOG_RUNNER_ROLES[number];

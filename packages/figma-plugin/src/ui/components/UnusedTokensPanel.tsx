@@ -86,6 +86,7 @@ export function UnusedTokensPanel({
   const [lifecycleFilter, setLifecycleFilter] = useState<'all' | LifecycleValue>('all');
   const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [stagedActions, setStagedActions] = useState<Record<string, CleanupAction>>({});
+  const [showBulkActions, setShowBulkActions] = useState(false);
   const [confirmApplyStaged, setConfirmApplyStaged] = useState(false);
   const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set());
   const [deprecatingUnused, setDeprecatingUnused] = useState<Set<string>>(new Set());
@@ -177,6 +178,12 @@ export function UnusedTokensPanel({
   const stagedDeleteCount = stagedQueue.filter(entry => entry.action === 'delete').length;
   const stagedDeprecateCount = stagedQueue.length - stagedDeleteCount;
   const visibleStagedCount = filteredTokens.filter(token => stagedActions[token.key]).length;
+  const hasActiveFilters = (
+    searchQuery.trim().length > 0
+    || setFilter !== 'all'
+    || lifecycleFilter !== 'all'
+    || stageFilter !== 'all'
+  );
 
   const busyKeys = useMemo(() => {
     const next = new Set<string>();
@@ -184,6 +191,12 @@ export function UnusedTokensPanel({
     for (const key of deprecatingUnused) next.add(key);
     return next;
   }, [deletingUnused, deprecatingUnused]);
+
+  useEffect(() => {
+    if (stagedQueue.length > 0 || hasActiveFilters) {
+      setShowBulkActions(true);
+    }
+  }, [stagedQueue.length, hasActiveFilters]);
 
   const stageTokens = (tokens: QueueToken[], action: CleanupAction) => {
     if (tokens.length === 0) return;
@@ -295,114 +308,117 @@ export function UnusedTokensPanel({
               </div>
             ) : (
               <>
-                <div className="px-3 py-3 border-b border-[var(--color-figma-border)] space-y-3">
+                <div className="px-3 py-3 border-b border-[var(--color-figma-border)] space-y-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    <span>{unusedTokens.length} token{unusedTokens.length !== 1 ? 's' : ''} with zero Figma usage and no alias dependents. Stage cleanup actions before applying them.</span>
+                    <span>{unusedTokens.length} token{unusedTokens.length !== 1 ? 's' : ''} have zero Figma usage and no alias dependents.</span>
                     <div className="flex items-center gap-1.5">
                       <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] font-mono">Visible {filteredTokens.length}</span>
                       <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] font-mono">Staged {stagedQueue.length}</span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.8fr)_repeat(3,minmax(0,1fr))] gap-2">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1.8fr)_repeat(3,minmax(0,0.8fr))_auto]">
                     <input
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
                       placeholder="Search path, set, type, or lifecycle"
                       className="px-2.5 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
                     />
-                    <label className="flex flex-col gap-1 text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-                      Set
-                      <select
-                        value={setFilter}
-                        onChange={(event) => setSetFilter(event.target.value)}
-                        className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
-                      >
-                        <option value="all">All sets</option>
-                        {availableSets.map(setName => (
-                          <option key={setName} value={setName}>{setName}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="flex flex-col gap-1 text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-                      Lifecycle
-                      <select
-                        value={lifecycleFilter}
-                        onChange={(event) => setLifecycleFilter(event.target.value as 'all' | LifecycleValue)}
-                        className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
-                      >
-                        <option value="all">All lifecycles</option>
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="deprecated">Deprecated</option>
-                      </select>
-                    </label>
-                    <label className="flex flex-col gap-1 text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-                      Stage
-                      <select
-                        value={stageFilter}
-                        onChange={(event) => setStageFilter(event.target.value as StageFilter)}
-                        className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
-                      >
-                        <option value="all">All queue items</option>
-                        <option value="staged">Staged only</option>
-                        <option value="unstaged">Unstaged only</option>
-                        <option value="deprecate">Staged to deprecate</option>
-                        <option value="delete">Staged to delete</option>
-                      </select>
-                    </label>
+                    <select
+                      value={setFilter}
+                      onChange={(event) => setSetFilter(event.target.value)}
+                      className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
+                      aria-label="Filter unused tokens by set"
+                    >
+                      <option value="all">All sets</option>
+                      {availableSets.map(setName => (
+                        <option key={setName} value={setName}>{setName}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={lifecycleFilter}
+                      onChange={(event) => setLifecycleFilter(event.target.value as 'all' | LifecycleValue)}
+                      className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
+                      aria-label="Filter unused tokens by lifecycle"
+                    >
+                      <option value="all">All lifecycles</option>
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                      <option value="deprecated">Deprecated</option>
+                    </select>
+                    <select
+                      value={stageFilter}
+                      onChange={(event) => setStageFilter(event.target.value as StageFilter)}
+                      className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
+                      aria-label="Filter unused tokens by staging state"
+                    >
+                      <option value="all">All queue items</option>
+                      <option value="staged">Staged only</option>
+                      <option value="unstaged">Unstaged only</option>
+                      <option value="deprecate">Staged to deprecate</option>
+                      <option value="delete">Staged to delete</option>
+                    </select>
+                    <button
+                      onClick={() => setShowBulkActions(v => !v)}
+                      className="px-2 py-2 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors whitespace-nowrap"
+                      aria-expanded={showBulkActions || hasActiveFilters || stagedQueue.length > 0}
+                    >
+                      {showBulkActions || hasActiveFilters || stagedQueue.length > 0 ? 'Hide bulk actions' : 'Bulk actions'}
+                    </button>
                   </div>
 
-                  <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5 space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                        {totalVisibleGroups} queue group{totalVisibleGroups === 1 ? '' : 's'} across {groupedQueue.length} set{groupedQueue.length === 1 ? '' : 's'} match the current filters.
+                  {(showBulkActions || hasActiveFilters || stagedQueue.length > 0) && (
+                    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                          {totalVisibleGroups} queue group{totalVisibleGroups === 1 ? '' : 's'} across {groupedQueue.length} set{groupedQueue.length === 1 ? '' : 's'} match the current filters.
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <button
+                            onClick={() => stageTokens(filteredTokens, 'deprecate')}
+                            disabled={filteredTokens.length === 0}
+                            className="text-[10px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Stage visible to deprecate
+                          </button>
+                          <button
+                            onClick={() => stageTokens(filteredTokens, 'delete')}
+                            disabled={filteredTokens.length === 0}
+                            className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Stage visible to delete
+                          </button>
+                          <button
+                            onClick={() => clearStagedTokens(filteredTokens.filter(token => stagedActions[token.key]))}
+                            disabled={visibleStagedCount === 0}
+                            className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Clear visible
+                          </button>
+                          <button
+                            onClick={() => setStagedActions({})}
+                            disabled={stagedQueue.length === 0}
+                            className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Clear all
+                          </button>
+                          <button
+                            onClick={() => setConfirmApplyStaged(true)}
+                            disabled={stagedQueue.length === 0}
+                            className="text-[10px] px-2.5 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Apply staged cleanup
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-1">
-                        <button
-                          onClick={() => stageTokens(filteredTokens, 'deprecate')}
-                          disabled={filteredTokens.length === 0}
-                          className="text-[10px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Stage visible to deprecate
-                        </button>
-                        <button
-                          onClick={() => stageTokens(filteredTokens, 'delete')}
-                          disabled={filteredTokens.length === 0}
-                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Stage visible to delete
-                        </button>
-                        <button
-                          onClick={() => clearStagedTokens(filteredTokens.filter(token => stagedActions[token.key]))}
-                          disabled={visibleStagedCount === 0}
-                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Clear visible staged
-                        </button>
-                        <button
-                          onClick={() => setStagedActions({})}
-                          disabled={stagedQueue.length === 0}
-                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Clear all staged
-                        </button>
-                        <button
-                          onClick={() => setConfirmApplyStaged(true)}
-                          disabled={stagedQueue.length === 0}
-                          className="text-[10px] px-2.5 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Apply staged cleanup
-                        </button>
-                      </div>
+                      {stagedQueue.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{stagedDeprecateCount} staged to deprecate</span>
+                          <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{stagedDeleteCount} staged to delete</span>
+                        </div>
+                      )}
                     </div>
-                    {stagedQueue.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{stagedDeprecateCount} staged to deprecate</span>
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{stagedDeleteCount} staged to delete</span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 {filteredTokens.length === 0 ? (

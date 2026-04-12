@@ -70,6 +70,7 @@ import {
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
 import type { TokensLibraryGeneratorEditorTarget } from "../shared/navigationTypes";
+import { lsGet, lsSet } from "../shared/storage";
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
@@ -1138,11 +1139,7 @@ export function TokenEditor({
 
   useEffect(() => {
     if (!isCreateMode) return;
-    try {
-      localStorage.setItem('tm_last_token_type', tokenType);
-    } catch (error) {
-      console.debug('[TokenEditor] failed to persist last create type:', error);
-    }
+    lsSet('tm_last_token_type', tokenType);
   }, [isCreateMode, tokenType]);
 
   // 8. Generators hook
@@ -1280,41 +1277,24 @@ export function TokenEditor({
 
   // Progressive disclosure: collapsible section state
   const [detailsOpen, setDetailsOpen] = useState(() => {
-    try {
-      return localStorage.getItem('tm_editor_details') === '1';
-    } catch (error) {
-      console.debug('[TokenEditor] localStorage read tm_editor_details failed:', error);
-      return false;
-    }
+    return lsGet('tm_editor_details') === '1';
   });
   const toggleDetails = useCallback(() => {
     setDetailsOpen((v) => {
       const next = !v;
-      try {
-        localStorage.setItem('tm_editor_details', next ? '1' : '0');
-      } catch (error) {
-        console.debug('[TokenEditor] localStorage write tm_editor_details failed:', error);
-      }
+      lsSet('tm_editor_details', next ? '1' : '0');
       return next;
     });
   }, []);
   const [infoTab, setInfoTab] = useState<'dependencies' | 'usage' | 'history' | null>(() => {
-    try {
-      const saved = localStorage.getItem('tm_editor_info_tab');
-      if (saved === 'dependencies' || saved === 'usage' || saved === 'history') return saved;
-    } catch (error) {
-      console.debug('[TokenEditor] localStorage read tm_editor_info_tab failed:', error);
-    }
+    const saved = lsGet('tm_editor_info_tab');
+    if (saved === 'dependencies' || saved === 'usage' || saved === 'history') return saved;
     return null;
   });
   const handleInfoTab = useCallback((tab: 'dependencies' | 'usage' | 'history') => {
     setInfoTab((prev) => {
       const next = prev === tab ? null : tab;
-      try {
-        localStorage.setItem('tm_editor_info_tab', next ?? '');
-      } catch (error) {
-        console.debug('[TokenEditor] localStorage write tm_editor_info_tab failed:', error);
-      }
+      lsSet('tm_editor_info_tab', next ?? '');
       return next;
     });
   }, []);

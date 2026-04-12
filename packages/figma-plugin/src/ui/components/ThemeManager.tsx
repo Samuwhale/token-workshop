@@ -40,6 +40,7 @@ import {
 } from "../shared/noticeSystem";
 import type {
   ThemeAuthoringStage,
+  ThemeAuthoringMode,
   ThemeIssueSummary,
   ThemeManagerView,
   ThemeRoleNavigationTarget,
@@ -52,6 +53,7 @@ import {
   ThemeAuthoringScreen,
   type ThemeAuthoringScreenHandle,
 } from "./theme-manager/ThemeAuthoringScreen";
+import { ThemePreviewScreen } from "./theme-manager/ThemePreviewScreen";
 import {
   getFirstDimensionWithFillableGaps,
   resolveThemeAutoFillAction,
@@ -120,8 +122,8 @@ interface ThemeManagerWorkspaceProps extends Omit<
 > {
   activeView: ThemeManagerView;
   onActiveViewChange: (view: ThemeManagerView) => void;
-  showPreview: boolean;
-  onShowPreviewChange: (show: boolean) => void;
+  authoringMode: ThemeAuthoringMode;
+  onAuthoringModeChange: (mode: ThemeAuthoringMode) => void;
 }
 
 type ThemeManagerWorkspaceHandle = ThemeManagerHandle;
@@ -146,13 +148,14 @@ export function ThemeManager({
   onSetCreated,
   onShellStateChange,
 }: ThemeManagerProps) {
-  const [showPreview, setShowPreview] = useState(false);
+  const [authoringMode, setAuthoringMode] =
+    useState<ThemeAuthoringMode>("roles");
   const [activeView, setActiveView] = useState<ThemeManagerView>("authoring");
   const workspaceRef = useRef<ThemeManagerWorkspaceHandle | null>(null);
 
   useEffect(() => {
-    onShellStateChange?.({ activeView, showPreview });
-  }, [activeView, onShellStateChange, showPreview]);
+    onShellStateChange?.({ activeView, authoringMode });
+  }, [activeView, authoringMode, onShellStateChange]);
 
   useEffect(() => {
     if (!themeManagerHandle) return;
@@ -185,8 +188,8 @@ export function ThemeManager({
       onSetCreated={onSetCreated}
       activeView={activeView}
       onActiveViewChange={setActiveView}
-      showPreview={showPreview}
-      onShowPreviewChange={setShowPreview}
+      authoringMode={authoringMode}
+      onAuthoringModeChange={setAuthoringMode}
     />
   );
 }
@@ -214,13 +217,13 @@ const ThemeManagerWorkspace = React.forwardRef<
     onSetCreated,
     activeView,
     onActiveViewChange,
-    showPreview,
-    onShowPreviewChange,
+    authoringMode,
+    onAuthoringModeChange,
   }: ThemeManagerWorkspaceProps,
   ref,
 ) {
   const setActiveView = onActiveViewChange;
-  const setShowPreview = onShowPreviewChange;
+  const setAuthoringMode = onAuthoringModeChange;
   const [editingRoleTarget, setEditingRoleTarget] = useState<{
     dimId: string;
     optionName: string;
@@ -599,12 +602,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     ],
   );
 
-  const scrollToPreview = useCallback(() => {
-    requestAnimationFrame(() => {
-      authoringScreenRef.current?.scrollToPreview();
-    });
-  }, []);
-
   const handleSelectOption = useCallback(
     (dimId: string, optionName: string) => {
       setFocusedDimensionId(dimId);
@@ -616,6 +613,7 @@ const ThemeManagerWorkspace = React.forwardRef<
   const returnToAuthoring = useCallback(
     (target?: ThemeRoleNavigationTarget | string | null) => {
       setShowCompare(false);
+      setAuthoringMode("roles");
       setActiveView("authoring");
 
       const resolvedTarget =
@@ -650,10 +648,9 @@ const ThemeManagerWorkspace = React.forwardRef<
     (stage: ThemeAuthoringStage) => {
       setShowCompare(false);
       setActiveView("authoring");
+      setAuthoringMode(stage === "preview" ? "preview" : "roles");
 
       if (stage === "preview") {
-        setShowPreview(true);
-        scrollToPreview();
         return;
       }
 
@@ -766,7 +763,7 @@ const ThemeManagerWorkspace = React.forwardRef<
       optionSetOrders,
       coverage,
       missingOverrides,
-      scrollToPreview,
+      setAuthoringMode,
       setShowAddOption,
       setShowCompare,
       sets,
@@ -874,10 +871,15 @@ const ThemeManagerWorkspace = React.forwardRef<
       });
       setShowAllCoverageAxes(allAxes);
       setShowCompare(false);
-      setShowPreview(false);
+      setAuthoringMode("roles");
       setActiveView("coverage");
     },
-    [getDimensionForContext, getOptionNameForContext, setShowCompare],
+    [
+      getDimensionForContext,
+      getOptionNameForContext,
+      setAuthoringMode,
+      setShowCompare,
+    ],
   );
 
   const openCompareView = useCallback(
@@ -931,7 +933,7 @@ const ThemeManagerWorkspace = React.forwardRef<
       }
       setCompareThemeKey((k) => k + 1);
       setShowCompare(true);
-      setShowPreview(false);
+      setAuthoringMode("roles");
       setActiveView("compare");
     },
     [
@@ -943,15 +945,16 @@ const ThemeManagerWorkspace = React.forwardRef<
       setCompareThemeDefaultA,
       setCompareThemeDefaultB,
       setCompareThemeKey,
+      setAuthoringMode,
       setShowCompare,
     ],
   );
 
   const openAdvancedView = useCallback(() => {
     setShowCompare(false);
-    setShowPreview(false);
+    setAuthoringMode("roles");
     setActiveView("advanced");
-  }, [setShowCompare]);
+  }, [setAuthoringMode, setShowCompare]);
 
   const handleNavigateToCompare = useCallback(
     (
@@ -1605,6 +1608,14 @@ const ThemeManagerWorkspace = React.forwardRef<
               onBack={() => setActiveView("authoring")}
               onSuccess={onSuccess}
             />
+          ) : activeView === "authoring" && authoringMode === "preview" ? (
+            <ThemePreviewScreen
+              dimensions={dimensions}
+              selectedOptions={selectedOptions}
+              setTokenValues={setTokenValues}
+              onNavigateToToken={onNavigateToToken}
+              onBack={() => setAuthoringMode("roles")}
+            />
           ) : (
             <ThemeAuthoringScreen
               ref={authoringScreenRef}
@@ -1615,17 +1626,11 @@ const ThemeManagerWorkspace = React.forwardRef<
               selectedOptions={selectedOptions}
               setTokenValues={setTokenValues}
               optionIssues={optionIssues}
-              totalIssueCount={totalIssueCount}
               totalFillableGaps={totalFillableGaps}
               optionDiffCounts={optionDiffCounts}
               optionRoleSummaries={optionRoleSummaries}
               focusedDimension={focusedDimension}
-              focusedOptionName={focusedOptionName}
-              focusedContextLabel={focusedContextLabel}
-              focusedIssueCount={focusedIssueCount}
-              focusedPrimaryIssue={focusedPrimaryIssue}
               canCompareThemes={canCompareThemes}
-              showPreview={showPreview}
               resolverAvailable={Boolean(resolverState)}
               resolverAuthoringContext={resolverAuthoringContext}
               newlyCreatedDim={newlyCreatedDim}
@@ -1649,7 +1654,6 @@ const ThemeManagerWorkspace = React.forwardRef<
               renameOption={renameOption}
               renameOptionValue={renameOptionValue}
               renameOptionError={renameOptionError}
-              editingRoleTarget={editingRoleTarget}
               roleStates={roleStates}
               fillingKeys={fillingKeys}
               onNavigateToToken={onNavigateToToken}
@@ -1687,24 +1691,15 @@ const ThemeManagerWorkspace = React.forwardRef<
               setRenameOptionError={setRenameOptionError}
               executeRenameOption={executeRenameOption}
               cancelRenameOption={cancelRenameOption}
-              openRoleEditor={openRoleEditor}
-              closeRoleEditor={closeRoleEditor}
-              setRoleEditorSetName={setRoleEditorSetName}
-              getSetRoleCounts={getSetRoleCounts}
               getCopySourceOptions={getCopySourceOptions}
-              handleBulkSetState={handleBulkSetState}
-              handleBulkSetAllInOption={handleBulkSetAllInOption}
+              handleSetState={handleSetState}
               handleCopyAssignmentsFrom={handleCopyAssignmentsFrom}
-              setCreateOverrideSet={setCreateOverrideSet}
               handleAutoFillAll={handleAutoFillAll}
               handleAutoFillAllOptions={handleAutoFillAllOptions}
               onOpenCoverageView={openCoverageView}
               onOpenCompareView={openCompareView}
               onOpenAdvancedView={openAdvancedView}
               onFocusRoleTarget={focusRoleTarget}
-              renderSetRow={renderSetRow}
-              renderIssueEntry={renderIssueEntry}
-              renderValuePreview={renderValuePreview}
             />
           )}
         </>

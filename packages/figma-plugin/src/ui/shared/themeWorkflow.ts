@@ -13,6 +13,7 @@ export type ThemeManagerView =
   | "coverage"
   | "compare"
   | "advanced";
+export type ThemeAuthoringMode = "roles" | "preview";
 
 export interface ThemeRoleNavigationTarget {
   dimId: string | null;
@@ -28,7 +29,7 @@ export type ThemeIssueKind =
 
 export interface ThemeWorkspaceShellState {
   activeView: ThemeManagerView;
-  showPreview: boolean;
+  authoringMode: ThemeAuthoringMode;
 }
 
 export interface ThemeIssueSummary {

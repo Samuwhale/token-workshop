@@ -1000,6 +1000,7 @@ describe('runner e2e', () => {
   it('uses each discovery pass runner configuration independently', async () => {
     const { config, root } = await makeFixture([]);
     config.runners.product = { tool: 'codex', model: 'default' };
+    config.runners.interface = { tool: 'claude', model: 'sonnet' };
     config.runners.ux = { tool: 'claude', model: 'default' };
     config.runners.code = { tool: 'codex', model: 'default' };
     const calls: string[] = [];
@@ -1023,6 +1024,20 @@ describe('runner e2e', () => {
       },
     );
 
+    const discoveryInputs = calls
+      .filter(call => call.startsWith('input:'))
+      .map(call => call.slice('input:'.length))
+      .flatMap(input => {
+        const matches: string[] = [];
+        if (input.includes('interface prompt')) matches.push('interface prompt');
+        if (input.includes('ux prompt')) matches.push('ux prompt');
+        if (input.includes('product prompt')) matches.push('product prompt');
+        if (input.includes('code prompt')) matches.push('code prompt');
+        return matches;
+      });
+
+    expect(discoveryInputs).toEqual(['interface prompt', 'ux prompt', 'product prompt', 'code prompt']);
+    expect(calls.some(call => call.includes('interface prompt'))).toBe(true);
     expect(calls.some(call => call.includes('product prompt'))).toBe(true);
     expect(calls.some(call => call.includes('ux prompt'))).toBe(true);
     expect(calls.some(call => call.includes('code prompt'))).toBe(true);
@@ -1251,6 +1266,7 @@ describe('runner e2e', () => {
 
     expect(logSink.lines.join('')).toContain('No runnable tasks remain — running discovery passes to unblock backlog…');
     expect(logSink.lines.join('')).not.toContain('Remaining tasks are blocked; stopping instead of spending tokens on new discovery.');
+    expect(calls.some(call => call.includes('interface prompt'))).toBe(true);
     expect(calls.some(call => call.includes('product prompt'))).toBe(true);
     expect(calls.some(call => call.includes('ux prompt'))).toBe(true);
     expect(calls.some(call => call.includes('code prompt'))).toBe(true);

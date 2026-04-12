@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   STORAGE_KEYS,
   STORAGE_PREFIXES,
+  lsEntries,
   lsGet,
   lsSet,
   lsGetJson,
@@ -385,32 +386,21 @@ export function SettingsPanel({
 
     // Fixed preference keys
     for (const key of preferenceKeys) {
-      try {
-        const val = localStorage.getItem(key);
-        if (val !== null) out[key] = val;
-      } catch {
-        /* ignore */
-      }
+      const value = lsGet(key);
+      if (value !== null) out[key] = value;
     }
 
     // Dynamic per-set keys: token-sort:*, token-type-filter:*, tm_pinned:*
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!k) continue;
-        if (
-          k.startsWith(STORAGE_PREFIXES.TOKEN_SORT) ||
-          k.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER) ||
-          k.startsWith("tm_pinned:") ||
-          k.startsWith("tm_view-mode:") ||
-          k.startsWith(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES)
-        ) {
-          const v = localStorage.getItem(k);
-          if (v !== null) out[k] = v;
-        }
+    for (const [key, value] of lsEntries()) {
+      if (
+        key.startsWith(STORAGE_PREFIXES.TOKEN_SORT) ||
+        key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER) ||
+        key.startsWith("tm_pinned:") ||
+        key.startsWith("tm_view-mode:") ||
+        key.startsWith(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES)
+      ) {
+        out[key] = value;
       }
-    } catch {
-      /* ignore */
     }
 
     const payload = JSON.stringify(
@@ -464,13 +454,7 @@ export function SettingsPanel({
         // Build diff: only entries that differ from current localStorage
         const diff: ImportDiffEntry[] = [];
         for (const [key, newValue] of Object.entries(data)) {
-          const oldValue = (() => {
-            try {
-              return localStorage.getItem(key);
-            } catch {
-              return null;
-            }
-          })();
+          const oldValue = lsGet(key);
           if (oldValue === newValue) continue; // unchanged
           let label = IMPORT_KEY_LABELS[key];
           if (!label) {
@@ -542,12 +526,8 @@ export function SettingsPanel({
     let applied = 0;
     for (const [key, value] of Object.entries(pendingImport.data)) {
       if (!isAllowedImportKey(key)) continue; // defense-in-depth: skip any non-whitelisted keys
-      try {
-        localStorage.setItem(key, value);
-        applied++;
-      } catch {
-        /* quota */
-      }
+      lsSet(key, value);
+      applied++;
     }
     if (applied === 0) {
       setImportError("Failed to write settings");

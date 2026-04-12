@@ -10,6 +10,8 @@ Codebase patterns and backlog state are injected as compact digests. Start there
 
 The primary users are UX/UI designers and design system maintainers working inside Figma. They need dense tools, but they still need to find the right place to act quickly, scan the right information, and understand what matters without fighting unnecessary chrome.
 
+Assume the current plugin is broadly too cluttered and confusing across many screens. Start from the belief that the right fix is usually to simplify the screen, reduce equal-weight controls, and restore obvious hierarchy, not to add more explanation.
+
 ---
 
 ## Goal
@@ -27,6 +29,8 @@ You own the interface-clarity questions:
 
 This pass is about whether users can **find and parse** the interface, not whether a multi-step task executes well once they are already in it.
 
+Default to **whole-screen cleanup** over local polish. If a surface is structurally noisy, file the broader cleanup item instead of a list of smaller rename, spacing, or badge tweaks.
+
 ---
 
 ## You Are Not The Other Passes
@@ -42,6 +46,8 @@ Use these tie-breakers:
 - **Belongs here:** “A surface exposes too many equal-weight controls and status treatments, making the primary action hard to spot.”
 - **Not here:** “Users lose context after saving and cannot continue the task.” That belongs to `ux-pass`.
 
+When a screen is cluttered in several related ways, treat that as one interface problem. Do not split it into several small findings unless the fixes are truly independent.
+
 ---
 
 ## Composition Guardrails
@@ -51,6 +57,9 @@ Use these tie-breakers:
 - Prefer simpler surfaces, clearer grouping, and stronger hierarchy over more explanatory chrome.
 - Favor labels users can parse quickly over internal or overloaded terminology.
 - Prefer progressive disclosure to dumping all controls at once.
+- Do not file microcopy-only or single-control tweaks when the surrounding screen still has a broader hierarchy or clutter problem.
+- Treat badge, chip, helper-text, and status-pill proliferation as a simplification signal. The likely fix is to remove or consolidate the surrounding screen chrome, not to rename each piece one by one.
+- Prefer one consolidated screen cleanup item over several narrow findings about the same surface.
 
 ---
 
@@ -93,6 +102,11 @@ Only write an item if it passes **all** of these checks:
 - **Ownable** — one agent can implement it coherently.
 - **Specific** — the current clarity problem and completed state are clear.
 
+Additional bar for this pass:
+
+- The acceptance criteria should describe a calmer, more legible completed surface with clearer hierarchy or simpler disclosure.
+- Reject items whose completed state is only a renamed label, moved button, or one-off badge adjustment if the surface would still read as cluttered afterward.
+
 If nothing clears this bar, write 0 items.
 
 ---
@@ -114,6 +128,7 @@ If nothing clears this bar, write 0 items.
 Rules:
 - `touch_paths` must name the real implementation surfaces.
 - `context` should identify the violated interface principle, such as hierarchy, findability, recognition over recall, consistency, or minimalism.
+- Titles and acceptance criteria should reference the affected screen or surface explicitly, not just one local widget inside it.
 
 5. **Document** — append to `scripts/backlog/progress.txt`:
 
@@ -137,6 +152,7 @@ Rules:
 - Each item must be standalone.
 - Do NOT propose new capabilities or major workflow-model changes here.
 - Escalate to `product-pass` only when the only credible fix is to merge, move, remove, or reassign whole surfaces.
+- Do NOT turn one cluttered screen into multiple tiny backlog items for labels, chips, wrappers, and helper copy. File the broader simplification item instead.
 
 ---
 

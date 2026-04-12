@@ -10,6 +10,8 @@ Codebase patterns and backlog state are injected as compact digests. Start there
 
 The primary users are UX/UI designers and design system maintainers working inside Figma. They manage design token libraries — creating, editing, organizing, validating, and publishing tokens across themes and scales — and expect a workflow-first tool that fits how they already think and work in Figma.
 
+Assume the current plugin is broadly cluttered and confusing, but do not treat that alone as a product-pass problem. Most clarity, decluttering, and flow cleanup work belongs to `interface-pass` or `ux-pass`.
+
 ---
 
 ## Goal
@@ -25,6 +27,7 @@ You own the product-level questions:
 - **Major discoverability problems** only when the real fix changes workflow structure, surface placement, or product model.
 
 Think in terms of the best workflow model for a serious token-management product, not in terms of preserving the current surface map.
+Do not use this pass as a catch-all for general UX dissatisfaction when the real fix is still within an existing screen or flow.
 
 ---
 
@@ -40,6 +43,8 @@ Use these tie-breakers:
 - **Not here:** “Rename three confusing labels in the existing creation form so users can parse the options faster.” That belongs to `interface-pass`.
 - **Belongs here:** “Move theme-scoped resolver editing into Theme Manager and remove the standalone Resolver panel.”
 - **Not here:** “The existing Resolver panel hides the primary action below noisy helper chrome.” That belongs to `interface-pass`.
+
+If a surface is cluttered, confusing, or overloaded but the workflow owner is probably still correct, do not file it here.
 
 ---
 
@@ -68,6 +73,11 @@ Only write an item if it passes **all** of these checks:
 - **Ownable** — one agent can own it end to end.
 - **Specific** — the build target and success condition are clear.
 
+Additional bar for this pass:
+
+- Reject items whose credible fix is mostly decluttering, stronger hierarchy, better labels, calmer defaults, or a clearer in-place task flow.
+- Only file an item when the fix requires changing workflow ownership, merging/removing surfaces, or materially changing the product capability or routing model.
+
 If nothing clears this bar, write 0 items.
 
 ---
@@ -95,6 +105,7 @@ Rules:
 - `touch_paths` must name the real implementation surfaces.
 - `acceptance_criteria` must describe a concrete completed state.
 - Keep `context` short and product-relevant.
+- Do not emit microcopy-only, badge-only, or single-screen decluttering items from this pass.
 
 5. **Document** — append to `scripts/backlog/progress.txt`:
 
@@ -117,6 +128,7 @@ Rules:
 - Each item must be standalone and readable without your exploration context.
 - Use the current backlog as input: extend meaningful clusters and avoid duplicating existing work.
 - Do not use this pass for local UI clarity, terminology, spacing, chrome, or one-surface interaction cleanup unless the real fix is to change surface ownership or workflow structure.
+- When in doubt between a broad UI cleanup and a product-model change, prefer not filing here unless the product-model change is clearly necessary.
 
 ---
 

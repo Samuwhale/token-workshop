@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import { collectGroupPathsByDepth, collectAllGroupPaths } from '../components/tokenListUtils';
+import { lsGetJson, lsSetJson } from '../shared/storage';
 
 export interface UseTokenExpansionParams {
   setName: string;
@@ -26,25 +27,15 @@ export function useTokenExpansion({
     if (tokens.length === 0) return;
     if (initializedForSet.current === setName) return;
     initializedForSet.current = setName;
-    try {
-      const stored = localStorage.getItem(`token-expand:${setName}`);
-      if (stored !== null) {
-        setExpandedPaths(new Set(JSON.parse(stored) as string[]));
-      } else {
-        setExpandedPaths(new Set(collectGroupPathsByDepth(tokens, 2)));
-      }
-    } catch (e) {
-      console.debug('[useTokenExpansion] storage read/parse expanded paths:', e);
-      setExpandedPaths(new Set(collectGroupPathsByDepth(tokens, 2)));
-    }
+    const fallback = collectGroupPathsByDepth(tokens, 2);
+    const stored = lsGetJson<string[]>(`token-expand:${setName}`, fallback);
+    setExpandedPaths(new Set(stored));
   }, [setName, tokens]);
 
   // Persist to localStorage
   useEffect(() => {
     if (initializedForSet.current !== setNameRef.current) return;
-    try {
-      localStorage.setItem(`token-expand:${setNameRef.current}`, JSON.stringify([...expandedPaths]));
-    } catch (e) { console.debug('[useTokenExpansion] storage write expanded paths:', e); }
+    lsSetJson(`token-expand:${setNameRef.current}`, [...expandedPaths]);
   }, [expandedPaths]);
 
   // Expand ancestors when highlightedToken changes

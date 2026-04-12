@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { lsGet, lsSet } from '../shared/storage';
 
 interface PanelHelpHintProps {
   /** Unique key for localStorage persistence, e.g. "resolvers" */
@@ -21,9 +22,7 @@ const STORAGE_PREFIX = 'tm-panel-hint-dismissed-';
 
 export function PanelHelpHint({ panelKey, title, description }: PanelHelpHintProps) {
   const storageKey = STORAGE_PREFIX + panelKey;
-  const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem(storageKey) === '1'; } catch (e) { console.debug('[PanelHelpHint] localStorage read failed:', e); return false; }
-  });
+  const [dismissed, setDismissed] = useState(() => lsGet(storageKey) === '1');
   const [expanded, setExpanded] = useState(!dismissed);
 
   const toggle = useCallback(() => {
@@ -33,7 +32,7 @@ export function PanelHelpHint({ panelKey, title, description }: PanelHelpHintPro
   const dismiss = useCallback(() => {
     setExpanded(false);
     setDismissed(true);
-    try { localStorage.setItem(storageKey, '1'); } catch (e) { console.debug('[PanelHelpHint] localStorage write failed:', e); }
+    lsSet(storageKey, '1');
   }, [storageKey]);
 
   return (
@@ -136,18 +135,20 @@ export function PanelHelpBanner({ title, description, onDismiss }: {
 }
 
 /** Hook for panels that need the icon in one place and the banner in another */
-export function usePanelHelp(panelKey: string) {
+export function usePanelHelp(
+  panelKey: string,
+  options?: { defaultExpanded?: boolean },
+) {
   const storageKey = STORAGE_PREFIX + panelKey;
-  const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem(storageKey) === '1'; } catch (e) { console.debug('[usePanelHelp] localStorage read failed:', e); return false; }
-  });
-  const [expanded, setExpanded] = useState(!dismissed);
+  const defaultExpanded = options?.defaultExpanded ?? true;
+  const [dismissed, setDismissed] = useState(() => lsGet(storageKey) === '1');
+  const [expanded, setExpanded] = useState(defaultExpanded && !dismissed);
 
   const toggle = useCallback(() => setExpanded(prev => !prev), []);
   const dismiss = useCallback(() => {
     setExpanded(false);
     setDismissed(true);
-    try { localStorage.setItem(storageKey, '1'); } catch (e) { console.debug('[usePanelHelp] localStorage write failed:', e); }
+    lsSet(storageKey, '1');
   }, [storageKey]);
 
   return { expanded, dismissed, toggle, dismiss };

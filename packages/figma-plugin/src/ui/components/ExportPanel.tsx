@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { STORAGE_KEYS, lsGetJson } from '../shared/storage';
+import { STORAGE_KEYS, lsGet, lsGetJson, lsRemove } from '../shared/storage';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { ConfirmModal } from './ConfirmModal';
 import { useDiffState } from '../hooks/useDiffState';
@@ -123,9 +123,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   handleLoadPresetRef.current = handleLoadPreset;
   useEffect(() => {
     const onApply = () => {
-      const id = localStorage.getItem(STORAGE_KEYS.EXPORT_PRESET_APPLY);
+      const id = lsGet(STORAGE_KEYS.EXPORT_PRESET_APPLY);
       if (!id) return;
-      localStorage.removeItem(STORAGE_KEYS.EXPORT_PRESET_APPLY);
+      lsRemove(STORAGE_KEYS.EXPORT_PRESET_APPLY);
       const preset = lsGetJson<ExportPreset[]>(STORAGE_KEYS.EXPORT_PRESETS, []).find(p => p.id === id);
       if (preset) handleLoadPresetRef.current(preset);
     };

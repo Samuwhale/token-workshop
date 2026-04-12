@@ -6,7 +6,6 @@ import {
   useMemo,
   useLayoutEffect,
 } from "react";
-import type { ReactNode } from "react";
 import { Spinner } from "./Spinner";
 import type { TokenNode } from "../hooks/useTokens";
 import {
@@ -88,6 +87,13 @@ import { useTokenSearch } from "../hooks/useTokenSearch";
 import { useTokenSelection } from "../hooks/useTokenSelection";
 import { dispatchToast } from "../shared/toastBus";
 import { NoticeBanner, NoticeFieldMessage } from "../shared/noticeSystem";
+import {
+  ReviewPanelOverlay,
+  VariableDiffReviewPanel,
+  PromoteReviewPanel,
+  RelocateTokenReviewPanel,
+} from "./ContextualReviewPanel";
+import { TokenListOverflowMenu } from "./TokenListOverflowMenu";
 import { TokenSearchFilterChips } from "./TokenSearchFilterBuilder";
 import type { FilterBuilderSection } from "./TokenSearchFilterBuilder";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
@@ -129,7 +135,138 @@ type PendingBulkPresetLaunch = {
 
 type BatchEditorFocusTarget = "find-path";
 
-type RelocateTokenReviewMode = "move" | "copy";
+function SelectModeOverflowMenu({
+  selectedPaths,
+  displayedLeafNodes: _displayedLeafNodes,
+  sets,
+  setName,
+  operationLoading,
+  copyFeedback,
+  copyCssFeedback,
+  copyAliasFeedback,
+  onCopyJson,
+  onCopyCssVar,
+  onCopyDtcgRef,
+  onMoveToGroup,
+  onMoveToSet,
+  onCopyToSet,
+  onCompare,
+  onLinkToTokens,
+}: {
+  selectedPaths: Set<string>;
+  displayedLeafNodes: TokenNode[];
+  sets: string[];
+  setName: string;
+  operationLoading: string | null;
+  copyFeedback: boolean;
+  copyCssFeedback: boolean;
+  copyAliasFeedback: boolean;
+  onCopyJson: () => void;
+  onCopyCssVar: () => void;
+  onCopyDtcgRef: () => void;
+  onMoveToGroup: () => void;
+  onMoveToSet: () => void;
+  onCopyToSet: () => void;
+  onCompare?: () => void;
+  onLinkToTokens: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  const menuItemClass =
+    "w-full flex items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-not-allowed disabled:opacity-40";
+  const sectionBorder = "border-t border-[var(--color-figma-border)] mt-1 pt-1";
+  const sectionLabel =
+    "px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--color-figma-text-tertiary)]";
+
+  return (
+    <div className="relative shrink-0" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className={`inline-flex items-center justify-center rounded px-1.5 py-1 transition-colors ${
+          open
+            ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+        }`}
+        title="More actions"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="5" r="2" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="12" cy="19" r="2" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-full z-50 mt-1 w-[180px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
+          role="menu"
+        >
+          <div className={sectionLabel}>Copy</div>
+          <button type="button" role="menuitem" onClick={() => { onCopyJson(); setOpen(false); }} className={menuItemClass}>
+            <span aria-live="polite">{copyFeedback ? "Copied!" : "Copy JSON"}</span>
+          </button>
+          <button type="button" role="menuitem" onClick={() => { onCopyCssVar(); setOpen(false); }} className={menuItemClass}>
+            <span aria-live="polite">{copyCssFeedback ? "Copied!" : "Copy CSS var"}</span>
+          </button>
+          <button type="button" role="menuitem" onClick={() => { onCopyDtcgRef(); setOpen(false); }} className={menuItemClass}>
+            <span aria-live="polite" className="font-mono">{copyAliasFeedback ? "Copied!" : "Copy {ref}"}</span>
+          </button>
+
+          <div className={sectionBorder}>
+            <div className={sectionLabel}>Organize</div>
+          </div>
+          <button type="button" role="menuitem" onClick={() => { onMoveToGroup(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
+            Move to group...
+          </button>
+          {sets.length > 1 && (
+            <>
+              <button type="button" role="menuitem" onClick={() => { onMoveToSet(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
+                Move to set...
+              </button>
+              <button type="button" role="menuitem" onClick={() => { onCopyToSet(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
+                Copy to set...
+              </button>
+            </>
+          )}
+
+          <div className={sectionBorder}>
+            <div className={sectionLabel}>Analyze</div>
+          </div>
+          {onCompare && (
+            <button type="button" role="menuitem" onClick={() => { onCompare(); setOpen(false); }} className={menuItemClass}>
+              Compare {selectedPaths.size}
+            </button>
+          )}
+          <button type="button" role="menuitem" onClick={() => { onLinkToTokens(); setOpen(false); }} className={menuItemClass}>
+            Link to tokens
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function dispatchTokenListViewChanged(setName: string): void {
   window.dispatchEvent(
@@ -137,391 +274,9 @@ function dispatchTokenListViewChanged(setName: string): void {
   );
 }
 
-function ContextualReviewPanel({
-  title,
-  description,
-  onClose,
-  children,
-  footer,
-}: {
-  title: string;
-  description: string;
-  onClose: () => void;
-  children: ReactNode;
-  footer?: ReactNode;
-}) {
-  return (
-    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-      <div className="flex items-start justify-between gap-3 px-3 py-3">
-        <div className="min-w-0">
-          <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-            {title}
-          </div>
-          <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-            {description}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="shrink-0 rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-        >
-          Close
-        </button>
-      </div>
-      <div className="px-3 pb-3">{children}</div>
-      {footer ? (
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-          {footer}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
-function VariableDiffReviewPanel({
-  pending,
-  onApply,
-  onClose,
-}: {
-  pending: { added: number; modified: number; unchanged: number; flat: any[] };
-  onApply: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <ContextualReviewPanel
-      title="Apply as Figma Variables"
-      description="Review the variable sync impact before pushing the current token scope into Figma."
-      onClose={onClose}
-      footer={
-        <>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onApply}
-            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
-          >
-            Apply
-          </button>
-        </>
-      }
-    >
-      <div className="space-y-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-        <p>
-          {pending.flat.length} token{pending.flat.length !== 1 ? "s" : ""} will
-          be pushed to Figma.
-        </p>
-        <div className="overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          {pending.added > 0 && (
-            <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-2 py-1.5 last:border-b-0">
-              <span className="font-medium text-[var(--color-figma-success)]">
-                +{pending.added}
-              </span>
-              <span>
-                new variable{pending.added !== 1 ? "s" : ""} will be created
-              </span>
-            </div>
-          )}
-          {pending.modified > 0 && (
-            <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-2 py-1.5 last:border-b-0">
-              <span className="font-medium text-yellow-600">
-                ~{pending.modified}
-              </span>
-              <span>
-                existing variable{pending.modified !== 1 ? "s" : ""} will be
-                updated
-              </span>
-            </div>
-          )}
-          {pending.unchanged > 0 && (
-            <div className="flex items-center gap-2 px-2 py-1.5 text-[var(--color-figma-text-tertiary)]">
-              <span>{pending.unchanged} unchanged</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </ContextualReviewPanel>
-  );
-}
 
-function PromoteReviewPanel({
-  rows,
-  busy,
-  onRowsChange,
-  onConfirm,
-  onClose,
-}: {
-  rows: PromoteRow[];
-  busy: boolean;
-  onRowsChange: (rows: PromoteRow[] | null) => void;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  const acceptedCount = rows.filter(
-    (row) => row.accepted && row.proposedAlias,
-  ).length;
 
-  return (
-    <ContextualReviewPanel
-      title="Link to tokens"
-      description="Review each proposed alias before replacing raw values with references."
-      onClose={onClose}
-      footer={
-        <>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={busy || acceptedCount === 0}
-            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-          >
-            {busy ? "Converting…" : `Convert ${acceptedCount}`}
-          </button>
-        </>
-      }
-    >
-      {rows.length === 0 ? (
-        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] italic text-[var(--color-figma-text-secondary)]">
-          No raw-value tokens were available for alias promotion.
-        </div>
-      ) : (
-        <div className="max-h-[300px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          {rows.map((row, index) => (
-            <div
-              key={row.path}
-              className={`flex items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 last:border-b-0 ${row.proposedAlias ? "" : "opacity-50"}`}
-            >
-              <input
-                type="checkbox"
-                checked={row.accepted && row.proposedAlias !== null}
-                disabled={row.proposedAlias === null}
-                onChange={(event) => {
-                  onRowsChange(
-                    rows.map((candidate, candidateIndex) =>
-                      candidateIndex === index
-                        ? { ...candidate, accepted: event.target.checked }
-                        : candidate,
-                    ),
-                  );
-                }}
-                aria-label={`Promote ${row.path} to alias`}
-                className="mt-0.5 shrink-0 accent-[var(--color-figma-accent)]"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <ValuePreview type={row.$type} value={row.$value} />
-                  <span className="truncate font-mono text-[10px] text-[var(--color-figma-text)]">
-                    {row.path}
-                  </span>
-                </div>
-                {row.proposedAlias ? (
-                  <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    →{" "}
-                    <span className="font-mono text-[var(--color-figma-accent)]">{`{${row.proposedAlias}}`}</span>
-                    {row.$type === "color" && row.deltaE !== undefined && (
-                      <span
-                        className="ml-1 opacity-60"
-                        title={`ΔE=${row.deltaE.toFixed(2)} — lower is a closer color match`}
-                      >
-                        {row.deltaE < 1
-                          ? "Exact"
-                          : row.deltaE < 5
-                            ? "Close"
-                            : "Approximate"}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-1 text-[10px] italic text-[var(--color-figma-text-secondary)]">
-                    No matching primitive found
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </ContextualReviewPanel>
-  );
-}
-
-function RelocateTokenReviewPanel({
-  mode,
-  tokenPath,
-  setName,
-  sets,
-  targetSet,
-  onTargetSetChange,
-  conflict,
-  conflictAction,
-  onConflictActionChange,
-  conflictNewPath,
-  onConflictNewPathChange,
-  sourceToken,
-  onConfirm,
-  onClose,
-}: {
-  mode: RelocateTokenReviewMode;
-  tokenPath: string;
-  setName: string;
-  sets: string[];
-  targetSet: string;
-  onTargetSetChange: (value: string) => void;
-  conflict: TokenMapEntry | null;
-  conflictAction: "overwrite" | "skip" | "rename";
-  onConflictActionChange: (value: "overwrite" | "skip" | "rename") => void;
-  conflictNewPath: string;
-  onConflictNewPathChange: (value: string) => void;
-  sourceToken: TokenMapEntry | null;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  const isMove = mode === "move";
-  const confirmLabel =
-    conflict && conflictAction === "skip" ? "Skip" : isMove ? "Move" : "Copy";
-
-  return (
-    <ContextualReviewPanel
-      title={`${isMove ? "Move" : "Copy"} token to set`}
-      description={`Review the destination for ${tokenPath} before ${isMove ? "removing it from" : "duplicating it out of"} ${setName}.`}
-      onClose={onClose}
-      footer={
-        <>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={
-              !targetSet ||
-              (conflictAction === "rename" && !conflictNewPath.trim())
-            }
-            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-          >
-            {confirmLabel}
-          </button>
-        </>
-      }
-    >
-      <div className="space-y-3">
-        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2">
-          <div className="text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-            Token
-          </div>
-          <div
-            className="mt-1 truncate font-mono text-[10px] text-[var(--color-figma-text)]"
-            title={tokenPath}
-          >
-            {tokenPath}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Destination set
-          </label>
-          <select
-            value={targetSet}
-            onChange={(event) => onTargetSetChange(event.target.value)}
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-          >
-            {sets
-              .filter((candidateSet) => candidateSet !== setName)
-              .map((candidateSet) => (
-                <option key={candidateSet} value={candidateSet}>
-                  {candidateSet}
-                </option>
-              ))}
-          </select>
-        </div>
-
-        {conflict ? (
-          <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-            <NoticeFieldMessage severity="warning" className="font-medium">
-              Conflict: a token already exists at this path in {targetSet}
-            </NoticeFieldMessage>
-            <div className="grid grid-cols-2 gap-2 text-[10px]">
-              <div>
-                <div className="text-[var(--color-figma-text-secondary)]">
-                  Existing
-                </div>
-                <div className="mt-1">
-                  <ValuePreview value={conflict.$value} type={conflict.$type} />
-                </div>
-              </div>
-              <div>
-                <div className="text-[var(--color-figma-text-secondary)]">
-                  Incoming
-                </div>
-                <div className="mt-1">
-                  {sourceToken ? (
-                    <ValuePreview
-                      value={sourceToken.$value}
-                      type={sourceToken.$type}
-                    />
-                  ) : (
-                    <span className="text-[var(--color-figma-text-secondary)]">
-                      —
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-1">
-              {(["overwrite", "skip", "rename"] as const).map((action) => (
-                <button
-                  key={action}
-                  type="button"
-                  onClick={() => onConflictActionChange(action)}
-                  className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
-                    conflictAction === action
-                      ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white"
-                      : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                  }`}
-                >
-                  {action.charAt(0).toUpperCase() + action.slice(1)}
-                </button>
-              ))}
-            </div>
-            {conflictAction === "rename" ? (
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  New path in target set
-                </label>
-                <input
-                  type="text"
-                  value={conflictNewPath}
-                  onChange={(event) =>
-                    onConflictNewPathChange(event.target.value)
-                  }
-                  placeholder="e.g. color.primary.new"
-                  className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </ContextualReviewPanel>
-  );
-}
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
@@ -633,7 +388,6 @@ export function TokenList({
   const [activeFilterBuilderSection, setActiveFilterBuilderSection] =
     useState<FilterBuilderSection | null>(null);
   const [createToolsMenuOpen, setCreateToolsMenuOpen] = useState(false);
-  const [bulkWorkflowOpen, setBulkWorkflowOpen] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] =
     useState<BulkEditScope | null>(null);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] =
@@ -717,12 +471,9 @@ export function TokenList({
   );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
-  const [viewOptionsOpen, setViewOptionsOpen] = useState(false);
   const createToolsMenuContainerRef = useRef<HTMLDivElement>(null);
   const createToolsMenuButtonRef = useRef<HTMLButtonElement>(null);
   const createToolsMenuRef = useRef<HTMLDivElement>(null);
-  const viewOptionsRef = useRef<HTMLDivElement>(null);
-  const bulkWorkflowRef = useRef<HTMLDivElement>(null);
   const batchEditorPanelRef = useRef<HTMLDivElement>(null);
   const virtualListRef = useRef<HTMLDivElement>(null);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
@@ -794,47 +545,6 @@ export function TokenList({
     };
   }, [createToolsMenuOpen]);
 
-  useEffect(() => {
-    if (!viewOptionsOpen) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (
-        viewOptionsRef.current &&
-        !viewOptionsRef.current.contains(e.target as Node)
-      ) {
-        setViewOptionsOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setViewOptionsOpen(false);
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [viewOptionsOpen]);
-
-  useEffect(() => {
-    if (!bulkWorkflowOpen) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (
-        bulkWorkflowRef.current &&
-        !bulkWorkflowRef.current.contains(e.target as Node)
-      ) {
-        setBulkWorkflowOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setBulkWorkflowOpen(false);
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [bulkWorkflowOpen]);
 
   // Sort order — persisted in localStorage per-set so each set remembers its own order
   const [sortOrder, setSortOrderState] = useState<SortOrder>("default");
@@ -1041,23 +751,14 @@ export function TokenList({
   }, []);
 
   // Multi-mode column view — show resolved values per theme option side-by-side
-  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem("tm_multi_mode") === "1";
-    } catch (e) {
-      console.debug("[TokenList] storage read multi-mode:", e);
-      return false;
-    }
-  });
+  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(
+    () => lsGet("tm_multi_mode") === "1",
+  );
   const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
   const toggleMultiMode = useCallback(() => {
     setMultiModeEnabled((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem("tm_multi_mode", next ? "1" : "0");
-      } catch (e) {
-        console.debug("[TokenList] storage write multi-mode:", e);
-      }
+      lsSet("tm_multi_mode", next ? "1" : "0");
       return next;
     });
   }, []);
@@ -1889,8 +1590,6 @@ export function TokenList({
       setSelectedPaths(paths);
       setShowBatchEditor(true);
       setActiveBulkEditScope(scope);
-      setBulkWorkflowOpen(false);
-      setViewOptionsOpen(false);
     },
     [setSelectMode, setSelectedPaths, setShowBatchEditor],
   );
@@ -1969,9 +1668,6 @@ export function TokenList({
   useEffect(() => {
     if (!selectMode || selectedPaths.size === 0) {
       setActiveBulkEditScope(null);
-    }
-    if (selectMode) {
-      setBulkWorkflowOpen(false);
     }
   }, [selectMode, selectedPaths.size]);
 
@@ -3640,6 +3336,7 @@ export function TokenList({
       pendingRenameToken,
       pendingTabEdit,
       rovingFocusPath: effectiveRovingPath,
+      showDuplicatesFilter: showDuplicates,
     }),
     [
       density,
@@ -3665,6 +3362,7 @@ export function TokenList({
       pendingRenameToken,
       pendingTabEdit,
       effectiveRovingPath,
+      showDuplicates,
     ],
   );
 
@@ -4013,131 +3711,34 @@ export function TokenList({
       <div className="flex-shrink-0">
         {/* Select mode toolbar */}
         {selectMode && (
-          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <input
+              type="checkbox"
+              checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every((p) => selectedPaths.has(p))}
+              ref={(el) => {
+                if (el) el.indeterminate = selectedPaths.size > 0 && selectedPaths.size < displayedLeafPaths.size;
+              }}
+              onChange={handleSelectAll}
+              aria-label="Toggle select all"
+              className="shrink-0 accent-[var(--color-figma-accent)]"
+            />
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
               {selectedPaths.size} of {displayedLeafPaths.size} selected
-              <span className="ml-2 opacity-60">
-                · Tab to navigate · Space to toggle
-              </span>
             </span>
-            <button
-              onClick={handleSelectAll}
-              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              {[...displayedLeafPaths].every((p) => selectedPaths.has(p)) &&
-              displayedLeafPaths.size > 0
-                ? "Deselect all"
-                : "Select all"}
-            </button>
             {selectedPaths.size > 0 && (
               <>
                 <button
                   onClick={() => setShowBatchEditor((v) => !v)}
-                  className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? "bg-[var(--color-figma-accent)] text-white" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`shrink-0 px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? "bg-[var(--color-figma-accent)] text-white" : "bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"}`}
                 >
-                  Bulk edit {selectedPaths.size}
-                </button>
-                {selectedPaths.size >= 2 && onOpenCompare && (
-                  <button
-                    onClick={() => onOpenCompare(selectedPaths)}
-                    className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  >
-                    Compare
-                  </button>
-                )}
-                <button
-                  onClick={() => handleOpenPromoteReview()}
-                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  Link to tokens
-                </button>
-                <button
-                  onClick={() => {
-                    setMoveToGroupTarget("");
-                    setMoveToGroupError("");
-                    setShowMoveToGroup(true);
-                  }}
-                  disabled={!!operationLoading}
-                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  Move to group…
-                </button>
-                {sets.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setBatchMoveToSetTarget(
-                          sets.filter((s) => s !== setName)[0] ?? "",
-                        );
-                        setShowBatchMoveToSet(true);
-                      }}
-                      disabled={!!operationLoading}
-                      title={`Move selected tokens to another set (⌘⇧M)`}
-                      className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                    >
-                      Move to set…
-                    </button>
-                    <button
-                      onClick={() => {
-                        setBatchCopyToSetTarget(
-                          sets.filter((s) => s !== setName)[0] ?? "",
-                        );
-                        setShowBatchCopyToSet(true);
-                      }}
-                      disabled={!!operationLoading}
-                      title={`Copy selected tokens to another set (⌘⇧Y)`}
-                      className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                    >
-                      Copy to set…
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => {
-                    const nodes = displayedLeafNodes.filter((n) =>
-                      selectedPaths.has(n.path),
-                    );
-                    copyTokensAsJson(nodes);
-                  }}
-                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  <span aria-live="polite">
-                    {copyFeedback ? "Copied!" : "Copy JSON"}
-                  </span>
-                </button>
-                <button
-                  onClick={() => {
-                    const nodes = displayedLeafNodes.filter((n) =>
-                      selectedPaths.has(n.path),
-                    );
-                    copyTokensAsCssVar(nodes);
-                  }}
-                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  <span aria-live="polite">
-                    {copyCssFeedback ? "Copied!" : "Copy CSS var"}
-                  </span>
-                </button>
-                <button
-                  title="Copy as DTCG alias reference — {path.to.token} (⌘⌥C)"
-                  onClick={() => {
-                    const nodes = displayedLeafNodes.filter((n) =>
-                      selectedPaths.has(n.path),
-                    );
-                    copyTokensAsDtcgRef(nodes);
-                  }}
-                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors font-mono"
-                >
-                  <span aria-live="polite">
-                    {copyAliasFeedback ? "Copied!" : "Copy {ref}"}
-                  </span>
+                  Edit {selectedPaths.size}
                 </button>
                 <button
                   onClick={requestBulkDelete}
                   disabled={!!operationLoading}
-                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                  className="shrink-0 px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  Delete {selectedPaths.size}
+                  Delete
                 </button>
               </>
             )}
@@ -4147,10 +3748,49 @@ export function TokenList({
                 setSelectedPaths(new Set());
                 setShowBatchEditor(false);
               }}
-              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              className="shrink-0 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
-              Cancel
+              Done
             </button>
+            {selectedPaths.size > 0 && (
+              <SelectModeOverflowMenu
+                selectedPaths={selectedPaths}
+                displayedLeafNodes={displayedLeafNodes}
+                sets={sets}
+                setName={setName}
+                operationLoading={operationLoading}
+                copyFeedback={copyFeedback}
+                copyCssFeedback={copyCssFeedback}
+                copyAliasFeedback={copyAliasFeedback}
+                onCopyJson={() => {
+                  const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
+                  copyTokensAsJson(nodes);
+                }}
+                onCopyCssVar={() => {
+                  const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
+                  copyTokensAsCssVar(nodes);
+                }}
+                onCopyDtcgRef={() => {
+                  const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
+                  copyTokensAsDtcgRef(nodes);
+                }}
+                onMoveToGroup={() => {
+                  setMoveToGroupTarget("");
+                  setMoveToGroupError("");
+                  setShowMoveToGroup(true);
+                }}
+                onMoveToSet={() => {
+                  setBatchMoveToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
+                  setShowBatchMoveToSet(true);
+                }}
+                onCopyToSet={() => {
+                  setBatchCopyToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
+                  setShowBatchCopyToSet(true);
+                }}
+                onCompare={selectedPaths.size >= 2 && onOpenCompare ? () => onOpenCompare(selectedPaths) : undefined}
+                onLinkToTokens={() => handleOpenPromoteReview()}
+              />
+            )}
           </div>
         )}
 
@@ -4173,64 +3813,6 @@ export function TokenList({
           </div>
         )}
 
-        {!showBatchEditor && varDiffPending && (
-          <VariableDiffReviewPanel
-            pending={varDiffPending}
-            onApply={() => {
-              doApplyVariables(varDiffPending.flat);
-              setVarDiffPending(null);
-            }}
-            onClose={() => setVarDiffPending(null)}
-          />
-        )}
-
-        {!showBatchEditor && promoteRows !== null && (
-          <PromoteReviewPanel
-            rows={promoteRows}
-            busy={promoteBusy}
-            onRowsChange={setPromoteRows}
-            onConfirm={handleConfirmPromote}
-            onClose={() => setPromoteRows(null)}
-          />
-        )}
-
-        {!showBatchEditor && movingToken && (
-          <RelocateTokenReviewPanel
-            mode="move"
-            tokenPath={movingToken}
-            setName={setName}
-            sets={sets}
-            targetSet={moveTokenTargetSet}
-            onTargetSetChange={handleChangeMoveTokenTargetSet}
-            conflict={moveConflict}
-            conflictAction={moveConflictAction}
-            onConflictActionChange={setMoveConflictAction}
-            conflictNewPath={moveConflictNewPath}
-            onConflictNewPathChange={setMoveConflictNewPath}
-            sourceToken={allTokensFlat[movingToken] ?? null}
-            onConfirm={handleConfirmMoveToken}
-            onClose={() => setMovingToken(null)}
-          />
-        )}
-
-        {!showBatchEditor && copyingToken && (
-          <RelocateTokenReviewPanel
-            mode="copy"
-            tokenPath={copyingToken}
-            setName={setName}
-            sets={sets}
-            targetSet={copyTokenTargetSet}
-            onTargetSetChange={handleChangeCopyTokenTargetSet}
-            conflict={copyConflict}
-            conflictAction={copyConflictAction}
-            onConflictActionChange={setCopyConflictAction}
-            conflictNewPath={copyConflictNewPath}
-            onConflictNewPathChange={setCopyConflictNewPath}
-            sourceToken={allTokensFlat[copyingToken] ?? null}
-            onConfirm={handleConfirmCopyToken}
-            onClose={() => setCopyingToken(null)}
-          />
-        )}
 
         {/* Navigation back button — appears after alias navigation */}
         {(navHistoryLength ?? 0) > 0 && !selectMode && (
@@ -4456,7 +4038,7 @@ export function TokenList({
                           runCreateToolsAction(() => onCreateNew?.())
                         }
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                         title="Create a single token"
                       >
                         <svg
@@ -4472,20 +4054,15 @@ export function TokenList({
                         >
                           <path d="M12 5v14M5 12h14" />
                         </svg>
-                        <div className="min-w-0">
-                          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                            Single token
-                          </div>
-                          <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                            Open the token editor
-                          </div>
-                        </div>
+                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                          Single token
+                        </span>
                       </button>
                       <button
                         role="menuitem"
                         onClick={() => runCreateToolsAction(openTableCreate)}
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                         title="Create multiple tokens at once in a spreadsheet-like table"
                       >
                         <svg
@@ -4505,14 +4082,9 @@ export function TokenList({
                           <path d="M4 6h4v10H4z" />
                           <path d="M16 4h4v14h-4z" />
                         </svg>
-                        <div className="min-w-0">
-                          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                            Bulk create
-                          </div>
-                          <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                            Table editor for multiple tokens
-                          </div>
-                        </div>
+                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                          Bulk create
+                        </span>
                       </button>
                       <button
                         role="menuitem"
@@ -4520,7 +4092,7 @@ export function TokenList({
                           runCreateToolsAction(handleOpenNewGroupDialog)
                         }
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                         title="Create an empty group to organize tokens"
                       >
                         <svg
@@ -4538,14 +4110,9 @@ export function TokenList({
                           <path d="M3 12h10" />
                           <path d="M3 17h18" />
                         </svg>
-                        <div className="min-w-0">
-                          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                            New group
-                          </div>
-                          <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                            Add an empty group at the current set root
-                          </div>
-                        </div>
+                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                          New group
+                        </span>
                       </button>
                       <button
                         role="menuitem"
@@ -4553,7 +4120,7 @@ export function TokenList({
                           runCreateToolsAction(() => onShowPasteModal?.())
                         }
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                         title="Paste token JSON into the current workspace"
                       >
                         <svg
@@ -4570,14 +4137,9 @@ export function TokenList({
                           <rect x="8" y="2" width="8" height="4" rx="1" />
                           <path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3" />
                         </svg>
-                        <div className="min-w-0">
-                          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                            Paste JSON
-                          </div>
-                          <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                            Paste DTCG or Tokens Studio data
-                          </div>
-                        </div>
+                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                          Paste JSON
+                        </span>
                       </button>
                       <button
                         role="menuitem"
@@ -4585,7 +4147,7 @@ export function TokenList({
                           runCreateToolsAction(() => onOpenImportPanel?.())
                         }
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                         title="Import an existing token system"
                       >
                         <svg
@@ -4603,14 +4165,9 @@ export function TokenList({
                           <path d="M7 10l5 5 5-5" />
                           <path d="M5 21h14" />
                         </svg>
-                        <div className="min-w-0">
-                          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                            Import
-                          </div>
-                          <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                            Open Figma and file import tools
-                          </div>
-                        </div>
+                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                          Import
+                        </span>
                       </button>
                     </div>
                   )}
@@ -4619,10 +4176,9 @@ export function TokenList({
                 {tokens.length > 0 && (
                   <button
                     onClick={toggleFilterBuilder}
-                    aria-expanded={filterBuilderOpen || hasStructuredFilters}
-                    aria-haspopup="dialog"
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${filterBuilderOpen || hasStructuredFilters ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"}`}
-                    title="Build filters without typing query clauses"
+                    aria-label="Toggle filter builder"
+                    className={`inline-flex shrink-0 items-center justify-center rounded border px-1.5 py-1.5 transition-colors ${filterBuilderOpen || hasStructuredFilters ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"}`}
+                    title="Build filters"
                   >
                     <svg
                       width="10"
@@ -4637,554 +4193,57 @@ export function TokenList({
                     >
                       <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
                     </svg>
-                    <span>
-                      {hasStructuredFilters ? "Filters" : "Add filter"}
-                    </span>
-                    {structuredFilterChips.length > 0 && (
-                      <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
-                        {structuredFilterChips.length}
-                      </span>
-                    )}
                   </button>
                 )}
 
                 {tokens.length > 0 && (
-                  <div className="relative shrink-0" ref={bulkWorkflowRef}>
-                    <button
-                      onClick={() => setBulkWorkflowOpen((open) => !open)}
-                      aria-expanded={bulkWorkflowOpen}
-                      aria-haspopup="dialog"
-                      className={`inline-flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${bulkWorkflowOpen ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"}`}
-                      title="Open the bulk-edit workflow"
-                    >
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M9 11H3" />
-                        <path d="M21 11h-6" />
-                        <path d="M12 8v6" />
-                        <path d="M4 6h4v10H4z" />
-                        <path d="M16 4h4v14h-4z" />
-                      </svg>
-                      <span>Bulk edit</span>
-                      <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
-                        {displayedLeafNodes.length}
-                      </span>
-                    </button>
-
-                    {bulkWorkflowOpen && (
-                      <div className="absolute right-0 top-full z-50 mt-1 w-[320px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
-                        <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-                          <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                            Bulk maintenance
-                          </div>
-                          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                            Launch bulk edits directly from the current search
-                            scope or a saved preset without hand-picking rows
-                            first.
-                          </div>
-                        </div>
-                        <div className="space-y-3 p-3">
-                          <section className="space-y-2">
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                              Current scope
-                            </div>
-                            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                                {currentBulkEditScope.title}
-                              </div>
-                              <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                {currentBulkEditScope.detail}
-                              </div>
-                              <div className="mt-2 flex items-center justify-between gap-2">
-                                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                  {displayedLeafNodes.length} token
-                                  {displayedLeafNodes.length === 1
-                                    ? ""
-                                    : "s"}{" "}
-                                  ready
-                                </div>
-                                <button
-                                  onClick={
-                                    handleOpenBulkWorkflowForVisibleTokens
-                                  }
-                                  disabled={bulkWorkflowDisabledReason !== null}
-                                  className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                  Edit results
-                                </button>
-                              </div>
-                              {bulkWorkflowDisabledReason && (
-                                <div className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                                  {bulkWorkflowDisabledReason}
-                                </div>
-                              )}
-                            </div>
-                          </section>
-
-                          <section className="space-y-2">
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                              Saved scopes
-                            </div>
-                            {filterPresets.length === 0 ? (
-                              <div className="rounded border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                                Save a filter preset in View options to reopen
-                                the same bulk-edit scope later.
-                              </div>
-                            ) : (
-                              <div className="max-h-[220px] space-y-1 overflow-y-auto">
-                                {filterPresets.map((preset) => {
-                                  const launchingPreset =
-                                    pendingBulkPresetLaunch?.presetId ===
-                                    preset.id;
-                                  return (
-                                    <div
-                                      key={preset.id}
-                                      className="flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
-                                    >
-                                      <button
-                                        onClick={() =>
-                                          handleOpenBulkWorkflowForPreset(
-                                            preset,
-                                          )
-                                        }
-                                        className="min-w-0 flex-1 text-left"
-                                        title={`Launch bulk edit for ${preset.query}`}
-                                      >
-                                        <div className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
-                                          {preset.name}
-                                        </div>
-                                        <div className="truncate font-mono text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                          {preset.query}
-                                        </div>
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          handleOpenBulkWorkflowForPreset(
-                                            preset,
-                                          )
-                                        }
-                                        className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                                      >
-                                        {launchingPreset ? "Preparing…" : "Use"}
-                                      </button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </section>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {tokens.length > 0 && (
-                  <div className="relative shrink-0" ref={viewOptionsRef}>
-                    <button
-                      onClick={() => setViewOptionsOpen((v) => !v)}
-                      aria-expanded={viewOptionsOpen}
-                      aria-haspopup="dialog"
-                      className={`inline-flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${viewOptionsOpen ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"}`}
-                      title="View options and advanced actions"
-                    >
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <line x1="4" y1="21" x2="4" y2="14" />
-                        <line x1="4" y1="10" x2="4" y2="3" />
-                        <line x1="12" y1="21" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12" y2="3" />
-                        <line x1="20" y1="21" x2="20" y2="16" />
-                        <line x1="20" y1="12" x2="20" y2="3" />
-                        <line x1="1" y1="14" x2="7" y2="14" />
-                        <line x1="9" y1="8" x2="15" y2="8" />
-                        <line x1="17" y1="16" x2="23" y2="16" />
-                      </svg>
-                      <span>View options</span>
-                      {viewOptionsActiveCount > 0 && (
-                        <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] leading-none text-white">
-                          {viewOptionsActiveCount}
-                        </span>
-                      )}
-                    </button>
-
-                    {viewOptionsOpen && (
-                      <div className="absolute right-0 top-full z-50 mt-1 w-[320px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
-                        <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-                          <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                            Library options
-                          </div>
-                        </div>
-
-                        <div className="max-h-[420px] space-y-4 overflow-y-auto p-3">
-                          <section className="space-y-2">
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                              View
-                            </div>
-                            {tokens.some((n) => n.isGroup) && (
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={handleExpandAll}
-                                  className="flex-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                                >
-                                  Expand all
-                                </button>
-                                <button
-                                  onClick={handleCollapseAll}
-                                  className="flex-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                                >
-                                  Collapse all
-                                </button>
-                              </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-2">
-                              <button
-                                onClick={() => {
-                                  const cycle: Density[] = [
-                                    "compact",
-                                    "comfortable",
-                                  ];
-                                  setDensity(
-                                    cycle[
-                                      (cycle.indexOf(density) + 1) %
-                                        cycle.length
-                                    ],
-                                  );
-                                }}
-                                className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${density === "compact" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                              >
-                                Density:{" "}
-                                {density === "compact"
-                                  ? "Compact"
-                                  : "Comfortable"}
-                              </button>
-                              <button
-                                onClick={() => setCondensedView(!condensedView)}
-                                className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${condensedView ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                              >
-                                {condensedView
-                                  ? "Condensed on"
-                                  : "Condense deep groups"}
-                              </button>
-                            </div>
-                            {dimensions.length > 0 && (
-                              <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div>
-                                    <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                                      Mode columns
-                                    </div>
-                                    <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                      Compare resolved values across theme
-                                      options inline.
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={toggleMultiMode}
-                                    className={`rounded-full px-2 py-1 text-[10px] font-medium transition-colors ${multiModeEnabled ? "bg-[var(--color-figma-accent)] text-white" : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                                  >
-                                    {multiModeEnabled ? "On" : "Off"}
-                                  </button>
-                                </div>
-                                {multiModeEnabled && dimensions.length > 1 && (
-                                  <label className="flex flex-col gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                    Dimension
-                                    <select
-                                      value={multiModeDimId ?? ""}
-                                      onChange={(e) =>
-                                        setMultiModeDimId(e.target.value)
-                                      }
-                                      className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none"
-                                    >
-                                      {dimensions.map((d) => (
-                                        <option key={d.id} value={d.id}>
-                                          {d.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </label>
-                                )}
-                              </div>
-                            )}
-                            <button
-                              onClick={() => {
-                                onTogglePreviewSplit?.();
-                                setViewOptionsOpen(false);
-                              }}
-                              className={`w-full rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showPreviewSplit ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                            >
-                              {showPreviewSplit
-                                ? "Hide split preview"
-                                : "Show split preview"}
-                            </button>
-                          </section>
-
-                          <section className="space-y-2">
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                              Browse
-                            </div>
-                            <label className="flex flex-col gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                              Sort
-                              <select
-                                value={sortOrder}
-                                onChange={(e) =>
-                                  setSortOrder(e.target.value as SortOrder)
-                                }
-                                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none"
-                              >
-                                <option value="default">Default order</option>
-                                <option value="alpha-asc">A to Z</option>
-                                <option value="by-type">Group by type</option>
-                              </select>
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                              {lintViolations.length > 0 && (
-                                <button
-                                  onClick={() => onToggleIssuesOnly?.()}
-                                  className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showIssuesOnly ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                                >
-                                  Issues only ({lintViolations.length})
-                                </button>
-                              )}
-                              {recentlyTouched.count > 0 && (
-                                <button
-                                  onClick={() =>
-                                    setShowRecentlyTouched((v) => !v)
-                                  }
-                                  className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showRecentlyTouched ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                                >
-                                  Recent ({recentlyTouched.count})
-                                </button>
-                              )}
-                              <button
-                                onClick={() => setInspectMode((v) => !v)}
-                                className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${inspectMode ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                              >
-                                Selection only
-                              </button>
-                              {sets.length > 1 && (
-                                <button
-                                  onClick={() =>
-                                    setCrossSetSearch(!crossSetSearch)
-                                  }
-                                  className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${crossSetSearch ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                                >
-                                  Search all sets
-                                </button>
-                              )}
-                            </div>
-                            <div className="space-y-1">
-                              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                                Values shown
-                              </div>
-                              <div className="flex gap-1">
-                                <button
-                                  onClick={() => setRefFilter("all")}
-                                  className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${refFilter === "all" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                                >
-                                  All
-                                </button>
-                                <button
-                                  onClick={() => setRefFilter("aliases")}
-                                  className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${refFilter === "aliases" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                                >
-                                  References
-                                </button>
-                                <button
-                                  onClick={() => setRefFilter("direct")}
-                                  className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${refFilter === "direct" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                                >
-                                  Direct
-                                </button>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setShowDuplicates(!showDuplicates)}
-                              className={`w-full rounded border px-2 py-1 text-[10px] font-medium transition-colors ${showDuplicates ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                            >
-                              Duplicate values
-                            </button>
-                            <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                              <div>
-                                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                                  Filter presets
-                                </div>
-                                <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                  Save the current search state for repeated
-                                  library reviews.
-                                </div>
-                              </div>
-                              {filterPresets.length === 0 ? (
-                                <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                                  No saved presets yet.
-                                </div>
-                              ) : (
-                                <div className="space-y-1">
-                                  {filterPresets.map((preset) => (
-                                    <div
-                                      key={preset.id}
-                                      className="flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1"
-                                    >
-                                      <button
-                                        onClick={() => {
-                                          applyFilterPreset(preset);
-                                          setViewOptionsOpen(false);
-                                        }}
-                                        className="min-w-0 flex-1 text-left"
-                                        title={`Apply: ${preset.query}`}
-                                      >
-                                        <div className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
-                                          {preset.name}
-                                        </div>
-                                        <div className="truncate font-mono text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                          {preset.query}
-                                        </div>
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          deleteFilterPreset(preset.id)
-                                        }
-                                        title="Delete preset"
-                                        aria-label={`Delete preset "${preset.name}"`}
-                                        className="shrink-0 text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
-                                      >
-                                        <svg
-                                          width="8"
-                                          height="8"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="2"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          aria-hidden="true"
-                                        >
-                                          <path d="M18 6L6 18M6 6l12 12" />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              <form
-                                onSubmit={(e) => {
-                                  e.preventDefault();
-                                  saveFilterPreset(presetNameInput);
-                                }}
-                                className="flex gap-1"
-                              >
-                                <input
-                                  type="text"
-                                  value={presetNameInput}
-                                  onChange={(e) =>
-                                    setPresetNameInput(e.target.value)
-                                  }
-                                  placeholder={
-                                    searchQuery.trim()
-                                      ? "Preset name…"
-                                      : "Search first to save a preset"
-                                  }
-                                  disabled={!searchQuery.trim()}
-                                  className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                                <button
-                                  type="submit"
-                                  disabled={
-                                    !searchQuery.trim() ||
-                                    !presetNameInput.trim()
-                                  }
-                                  className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                  Save
-                                </button>
-                              </form>
-                            </div>
-                          </section>
-
-                          <section className="space-y-2">
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                              Advanced actions
-                            </div>
-                            <button
-                              onClick={() => {
-                                setSelectMode(true);
-                                setShowBatchEditor(false);
-                                setViewOptionsOpen(false);
-                              }}
-                              className="w-full rounded border border-[var(--color-figma-border)] px-2 py-1 text-left text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                            >
-                              Open manual multi-select
-                            </button>
-                            <button
-                              onClick={() => {
-                                onOpenStartHere?.("template-library");
-                                setViewOptionsOpen(false);
-                              }}
-                              className="w-full rounded border border-[var(--color-figma-border)] px-2 py-1 text-left text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                            >
-                              Foundation templates…
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleOpenFindReplaceReview();
-                                setViewOptionsOpen(false);
-                              }}
-                              disabled={!connected}
-                              className="w-full rounded border border-[var(--color-figma-border)] px-2 py-1 text-left text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              Find &amp; Replace…
-                            </button>
-                            <div className="grid grid-cols-2 gap-2">
-                              <button
-                                onClick={() => {
-                                  handleApplyVariables();
-                                  setViewOptionsOpen(false);
-                                }}
-                                disabled={
-                                  applying ||
-                                  varDiffLoading ||
-                                  tokens.length === 0
-                                }
-                                className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
-                              >
-                                {varDiffLoading
-                                  ? "Comparing…"
-                                  : "Apply as Variables"}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleApplyStyles();
-                                  setViewOptionsOpen(false);
-                                }}
-                                disabled={applying || tokens.length === 0}
-                                className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
-                              >
-                                Apply as Styles
-                              </button>
-                            </div>
-                          </section>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <TokenListOverflowMenu
+                    sortOrder={sortOrder}
+                    onSortOrderChange={setSortOrder}
+                    onExpandAll={handleExpandAll}
+                    onCollapseAll={handleCollapseAll}
+                    hasGroups={tokens.some((n) => n.isGroup)}
+                    density={density}
+                    onDensityChange={setDensity}
+                    condensedView={condensedView}
+                    onCondensedViewChange={setCondensedView}
+                    multiModeEnabled={multiModeEnabled}
+                    onToggleMultiMode={toggleMultiMode}
+                    hasDimensions={dimensions.length > 0}
+                    showPreviewSplit={showPreviewSplit}
+                    onTogglePreviewSplit={onTogglePreviewSplit}
+                    showIssuesOnly={showIssuesOnly ?? false}
+                    onToggleIssuesOnly={onToggleIssuesOnly}
+                    lintCount={lintViolations.length}
+                    recentlyTouchedCount={recentlyTouched.count}
+                    showRecentlyTouched={showRecentlyTouched}
+                    onToggleRecentlyTouched={() => setShowRecentlyTouched((v) => !v)}
+                    inspectMode={inspectMode}
+                    onToggleInspectMode={() => setInspectMode((v) => !v)}
+                    crossSetSearch={crossSetSearch}
+                    onToggleCrossSetSearch={() => setCrossSetSearch(!crossSetSearch)}
+                    hasMultipleSets={sets.length > 1}
+                    refFilter={refFilter}
+                    onRefFilterChange={setRefFilter}
+                    showDuplicates={showDuplicates}
+                    onToggleDuplicates={() => setShowDuplicates(!showDuplicates)}
+                    filterPresets={filterPresets}
+                    onApplyFilterPreset={applyFilterPreset}
+                    onDeleteFilterPreset={deleteFilterPreset}
+                    onSelectTokens={() => {
+                      setSelectMode(true);
+                      setShowBatchEditor(false);
+                    }}
+                    onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
+                    onFindReplace={handleOpenFindReplaceReview}
+                    onFoundationTemplates={onOpenStartHere ? () => onOpenStartHere("template-library") : undefined}
+                    onApplyVariables={handleApplyVariables}
+                    onApplyStyles={handleApplyStyles}
+                    applyingOrLoading={applying || varDiffLoading}
+                    tokensExist={tokens.length > 0}
+                    connected={connected}
+                    activeCount={viewOptionsActiveCount}
+                  />
                 )}
 
                 {toolbarStateChips.length > 0 && (
@@ -5229,13 +4288,9 @@ export function TokenList({
                       </span>
                     ))}
                     {toolbarStateChips.length > 4 && (
-                      <button
-                        type="button"
-                        onClick={() => setViewOptionsOpen(true)}
-                        className="rounded-full bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] leading-none text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                      >
+                      <span className="text-[9px] leading-none text-[var(--color-figma-text-tertiary)]">
                         +{toolbarStateChips.length - 4} more
-                      </button>
+                      </span>
                     )}
                     {(activeFilterSummary.length > 0 ||
                       hasStructuredFilters) && (
@@ -5324,20 +4379,7 @@ export function TokenList({
               {statsTotalTokens}
             </span>
             <span>token{statsTotalTokens !== 1 ? "s" : ""}</span>
-            <div className="flex-1 ml-1 h-1.5 rounded-full overflow-hidden flex gap-px min-w-0 max-w-[120px]">
-              {statsByType.map(([type, count]) => (
-                <div
-                  key={type}
-                  style={{
-                    width: `${(count / statsTotalTokens) * 100}%`,
-                    backgroundColor:
-                      TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK,
-                  }}
-                  title={`${type}: ${count}`}
-                  className="shrink-0"
-                />
-              ))}
-            </div>
+            <span className="flex-1" />
             <button
               onClick={() => setStatsBarOpen(false)}
               className="ml-auto p-1 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -5472,15 +4514,16 @@ export function TokenList({
         </InlineBanner>
       )}
       {/* Scrollable token content with virtual scroll */}
-      <div
-        ref={virtualListRef}
-        className={`flex-1 overflow-y-auto${operationLoading ? " opacity-50 pointer-events-none" : ""}`}
-        onScroll={(e) => {
-          const top = e.currentTarget.scrollTop;
-          virtualScrollTopRef.current = top;
-          setVirtualScrollTop(top);
-        }}
-      >
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={virtualListRef}
+          className={`h-full overflow-y-auto${operationLoading ? " opacity-50 pointer-events-none" : ""}`}
+          onScroll={(e) => {
+            const top = e.currentTarget.scrollTop;
+            virtualScrollTopRef.current = top;
+            setVirtualScrollTop(top);
+          }}
+        >
         <TokenTreeProvider
           sharedData={tokenTreeSharedData}
           groupState={tokenTreeGroupState}
@@ -6215,6 +5258,75 @@ export function TokenList({
             </div>
           )}
         </TokenTreeProvider>
+        </div>
+
+        {/* Review panel overlays — rendered inside the relative container so they overlay the token tree */}
+        {!showBatchEditor && varDiffPending && (
+          <ReviewPanelOverlay onClose={() => setVarDiffPending(null)}>
+            <VariableDiffReviewPanel
+              pending={varDiffPending}
+              onApply={() => {
+                doApplyVariables(varDiffPending.flat);
+                setVarDiffPending(null);
+              }}
+              onClose={() => setVarDiffPending(null)}
+            />
+          </ReviewPanelOverlay>
+        )}
+
+        {!showBatchEditor && promoteRows !== null && (
+          <ReviewPanelOverlay onClose={() => setPromoteRows(null)}>
+            <PromoteReviewPanel
+              rows={promoteRows}
+              busy={promoteBusy}
+              onRowsChange={setPromoteRows}
+              onConfirm={handleConfirmPromote}
+              onClose={() => setPromoteRows(null)}
+            />
+          </ReviewPanelOverlay>
+        )}
+
+        {!showBatchEditor && movingToken && (
+          <ReviewPanelOverlay onClose={() => setMovingToken(null)}>
+            <RelocateTokenReviewPanel
+              mode="move"
+              tokenPath={movingToken}
+              setName={setName}
+              sets={sets}
+              targetSet={moveTokenTargetSet}
+              onTargetSetChange={handleChangeMoveTokenTargetSet}
+              conflict={moveConflict}
+              conflictAction={moveConflictAction}
+              onConflictActionChange={setMoveConflictAction}
+              conflictNewPath={moveConflictNewPath}
+              onConflictNewPathChange={setMoveConflictNewPath}
+              sourceToken={allTokensFlat[movingToken] ?? null}
+              onConfirm={handleConfirmMoveToken}
+              onClose={() => setMovingToken(null)}
+            />
+          </ReviewPanelOverlay>
+        )}
+
+        {!showBatchEditor && copyingToken && (
+          <ReviewPanelOverlay onClose={() => setCopyingToken(null)}>
+            <RelocateTokenReviewPanel
+              mode="copy"
+              tokenPath={copyingToken}
+              setName={setName}
+              sets={sets}
+              targetSet={copyTokenTargetSet}
+              onTargetSetChange={handleChangeCopyTokenTargetSet}
+              conflict={copyConflict}
+              conflictAction={copyConflictAction}
+              onConflictActionChange={setCopyConflictAction}
+              conflictNewPath={copyConflictNewPath}
+              onConflictNewPathChange={setCopyConflictNewPath}
+              sourceToken={allTokensFlat[copyingToken] ?? null}
+              onConfirm={handleConfirmCopyToken}
+              onClose={() => setCopyingToken(null)}
+            />
+          </ReviewPanelOverlay>
+        )}
       </div>
 
       {/* Table create mode */}

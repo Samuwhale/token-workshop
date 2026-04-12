@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { describeError } from '../shared/utils';
 
-export type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'publish-all' | null;
+export type ConfirmAction = 'publish-all' | null;
 
 export type PublishAllStep = 'variables' | 'styles' | null;
 

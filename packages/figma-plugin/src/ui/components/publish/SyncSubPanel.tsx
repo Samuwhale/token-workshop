@@ -8,21 +8,11 @@ type SyncState = ReturnType<typeof useSyncEntity>;
 
 interface SyncSubPanelProps {
   sync: SyncState;
-  activeSet: string;
   diffFilter: string;
-  onRequestConfirm: (action: string) => void;
   onRevert?: () => void;
-
-  // Entity-specific text
-  description: string;
-  sectionLabel: string;
-  previewAction: string;
-  applyAction: string;
   inSyncMessage: string;
   notCheckedMessage: React.ReactNode;
   revertDescription: string;
-  locked?: boolean;
-  lockedMessage?: React.ReactNode;
   reviewOnly?: boolean;
   reviewOnlyMessage?: React.ReactNode;
 
@@ -165,86 +155,15 @@ function CategorySection({
   );
 }
 
-/* ── Review summary bar ────────────────────────────────────────────────── */
-
-function ReviewSummary({
-  pushCount,
-  pullCount,
-  skipCount,
-  syncCount,
-  syncing,
-  progress,
-  locked,
-  onPreview,
-  onApply,
-}: {
-  pushCount: number;
-  pullCount: number;
-  skipCount: number;
-  syncCount: number;
-  syncing: boolean;
-  progress: { current: number; total: number } | null;
-  locked: boolean;
-  onPreview: () => void;
-  onApply: () => void;
-}) {
-  const parts: string[] = [];
-  if (pushCount > 0) parts.push(`\u2191 ${pushCount} push`);
-  if (pullCount > 0) parts.push(`\u2193 ${pullCount} pull`);
-  if (skipCount > 0) parts.push(`${skipCount} skip`);
-
-  return (
-    <div className="px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2 sticky bottom-0">
-      {/* Summary line */}
-      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-        {syncCount === 0
-          ? 'Nothing to apply \u2014 all skipped'
-          : parts.join(' \u00b7 ')
-        }
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center justify-end gap-1.5">
-        <button
-          onClick={onPreview}
-          disabled={locked || syncCount === 0}
-          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-        >
-          Preview
-        </button>
-        <button
-          onClick={onApply}
-          disabled={locked || syncing || syncCount === 0}
-          className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-        >
-          {syncing
-            ? (progress
-              ? `Syncing ${progress.current} / ${progress.total}\u2026`
-              : 'Syncing\u2026')
-            : `Apply ${syncCount > 0 ? syncCount + ' change' + (syncCount !== 1 ? 's' : '') : ''}`}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ── SyncSubPanel ──────────────────────────────────────────────────────── */
 
 export function SyncSubPanel({
   sync,
-  activeSet,
   diffFilter,
-  onRequestConfirm,
   onRevert,
-  description,
-  sectionLabel,
-  previewAction,
-  applyAction,
   inSyncMessage,
   notCheckedMessage,
   revertDescription,
-  locked = false,
-  lockedMessage,
   reviewOnly = false,
   reviewOnlyMessage,
   scopeOverrides,
@@ -301,9 +220,6 @@ export function SyncSubPanel({
     return rows;
   }, [sync.rows, diffFilter, typeFilters]);
 
-  // Derived counts
-  const skipCount = sync.rows.length - sync.syncCount;
-
   function handleRevertConfirm() {
     setRevertPending(false);
     onRevert?.();
@@ -315,34 +231,11 @@ export function SyncSubPanel({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      <div className="p-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-        {description}
-      </div>
-
-      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between border-t border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">{sectionLabel}</span>
-        <button
-          onClick={sync.computeDiff}
-          disabled={locked || sync.loading || !activeSet}
-          className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-        >
-          {locked ? 'Locked' : sync.loading ? 'Checking\u2026' : sync.checked ? 'Re-check' : 'Compare'}
-        </button>
-      </div>
-
       {sync.error && (
-        <NoticeBanner severity="error" className="mx-3 mt-2">{sync.error}</NoticeBanner>
+        <NoticeBanner severity="error" className="mx-3 mt-3">{sync.error}</NoticeBanner>
       )}
 
-      {locked && (
-        <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-          <div className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5 leading-relaxed">
-            {lockedMessage ?? 'Run preflight first to unlock compare and apply for this sync target.'}
-          </div>
-        </div>
-      )}
-
-      {!locked && sync.rows.length > 0 && (() => {
+      {sync.rows.length > 0 && (() => {
         const localOnly = filteredRows.filter(r => r.cat === 'local-only');
         const figmaOnly = filteredRows.filter(r => r.cat === 'figma-only');
         const conflicts = filteredRows.filter(r => r.cat === 'conflict');
@@ -435,30 +328,17 @@ export function SyncSubPanel({
               reviewOnly={reviewOnly}
             />
 
-            {/* Review summary + apply/preview (sticky at bottom) */}
-            {reviewOnly ? (
-              <div className="px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)]">
-                {reviewOnlyMessage ?? 'Review these differences here, then apply them from the primary sync flow for this target.'}
+            {reviewOnly && reviewOnlyMessage ? (
+              <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                {reviewOnlyMessage}
               </div>
-            ) : (
-              <ReviewSummary
-                pushCount={sync.pushCount}
-                pullCount={sync.pullCount}
-                skipCount={skipCount}
-                syncCount={sync.syncCount}
-                syncing={sync.syncing}
-                progress={sync.progress}
-                locked={locked}
-                onPreview={() => onRequestConfirm(previewAction)}
-                onApply={() => onRequestConfirm(applyAction)}
-              />
-            )}
+            ) : null}
           </>
         );
       })()}
 
       {!sync.loading && !sync.error && (
-        sync.checked && sync.rows.length === 0 && !locked ? (
+        sync.checked && sync.rows.length === 0 ? (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
             <div className="flex items-center gap-1.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
@@ -507,7 +387,7 @@ export function SyncSubPanel({
               </div>
             )}
           </div>
-        ) : !sync.checked && sync.rows.length === 0 && !locked ? (
+        ) : !sync.checked && sync.rows.length === 0 ? (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
             {notCheckedMessage}
           </div>

@@ -1,4 +1,5 @@
 import type { ColorModifierOp } from '@tokenmanager/core';
+import { ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
 
 export const EDITOR_DRAFT_PREFIX = 'tm_editor_draft';
 
@@ -21,21 +22,15 @@ export function editorDraftKey(setName: string, tokenPath: string): string {
 }
 
 export function saveEditorDraft(setName: string, tokenPath: string, data: Omit<EditorDraftData, 'savedAt'>): void {
-  try {
-    sessionStorage.setItem(editorDraftKey(setName, tokenPath), JSON.stringify({ ...data, savedAt: Date.now() }));
-  } catch { /* quota exceeded – best-effort */ }
+  ssSetJson(editorDraftKey(setName, tokenPath), { ...data, savedAt: Date.now() });
 }
 
 export function loadEditorDraft(setName: string, tokenPath: string): EditorDraftData | null {
-  try {
-    const raw = sessionStorage.getItem(editorDraftKey(setName, tokenPath));
-    if (!raw) return null;
-    return JSON.parse(raw) as EditorDraftData;
-  } catch { return null; }
+  return ssGetJson<EditorDraftData | null>(editorDraftKey(setName, tokenPath), null);
 }
 
 export function clearEditorDraft(setName: string, tokenPath: string): void {
-  try { sessionStorage.removeItem(editorDraftKey(setName, tokenPath)); } catch { /* ignore */ }
+  ssRemove(editorDraftKey(setName, tokenPath));
 }
 
 export function formatDraftAge(savedAt: number): string {
