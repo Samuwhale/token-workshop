@@ -1539,3 +1539,9 @@
   - If a changes-only diff resolves before export starts, treat the zero-change state as a first-class CTA state in the footer instead of letting the action fall through to a generic export label.
   - Guard no-op export attempts before clearing preview state so users do not lose the last successful export just because the latest diff came back empty.
 ---
+- Areas explored: [packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts, packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts, packages/figma-plugin/src/ui/hooks/useThemeOptions.ts, packages/figma-plugin/src/ui/hooks/useThemeAutoFill.ts, packages/server/src/routes/themes.ts, packages/server/src/routes/generators.ts, packages/server/src/services/generator-service.ts, packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx, packages/figma-plugin/src/ui/hooks/useRecentOperations.ts, packages/server/src/routes/operations.ts]
+- Code-health themes: [bug prevention, duplicate logic removal, rollback/history consistency, dead-structure cleanup]
+- Found 3 items — written to backlog/inbox.jsonl
+- Considered but rejected: [ThemeAuthoringScreen prop-volume remains high, but the sharper verified issue is the stale rollback snapshot in `useThemeBulkOps`, not file size by itself; snapshot restore bookkeeping spans `manual-snapshot.ts` and `routes/snapshots.ts`, but the current duplication mostly reflects different responsibilities and did not surface a clear new failure mode.]
+- Notable: `useThemeBulkOps` explicitly comments that the queue prevents stale rollback snapshots, but `previousDimensions` is captured before the queued task runs, so rapid role edits can still roll back to an out-of-date pre-queue state if a later request fails.
+---

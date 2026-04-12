@@ -10,10 +10,11 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Violates walkthrough question 4: 'If they do the right thing, will they see progress toward completing the task?' The disabled condition at ExportFooter.tsx:227 only gates on (changesOnly && isGitRepo === false) but not on diffPaths.length === 0 when isGitRepo is true. The label ternary at lines 241-245 also falls through to a generic label when diffPaths.length is 0, hiding the zero-change state. The user sees an enabled, normal-looking Export button, clicks it, handleExport (useExportResults.ts:134-140) immediately sets an error and aborts. The non-git baseline path correctly disables the button and shows guidance; the git path should match."
-state: ready
+  - "Completed: Disabled zero-change export CTAs, surfaced 0-change button copy, and preserved prior export results on no-op changes-only attempts."
+state: done
 acceptance_criteria:
   - When changesOnly is true and diffPaths is a resolved empty array, the Export button is disabled or its label clearly shows 0 changes so the user never clicks into an immediate error
   - The button label reflects the 0-change state instead of falling through to the generic 'Export N Platforms' text
 source: ux-pass
 created_at: 2026-04-12T19:58:27.121Z
-updated_at: 2026-04-12T19:58:27.121Z
+updated_at: 2026-04-12T20:00:58.520Z
