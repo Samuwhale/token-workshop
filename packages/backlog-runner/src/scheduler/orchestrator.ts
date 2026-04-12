@@ -6,7 +6,6 @@ import { plannerBatchSize } from '../planner.js';
 import { isAuthFailure, isRateLimited } from '../providers/common.js';
 import { createCommandRunner, sleep as defaultSleep } from '../process.js';
 import { createFileBackedTaskStore } from '../store/task-store.js';
-import { isOrchestratorStatusLive } from '../orchestrator-status.js';
 import { fileExists, isPidAlive } from '../utils.js';
 import type {
   BacklogPassType,
@@ -120,19 +119,25 @@ function formatLiveOrchestratorMessage(config: BacklogRunnerConfig, status: Orch
 async function waitForOrchestratorExit(
   config: BacklogRunnerConfig,
   orchestratorId: string,
+  orchestratorPid: number,
   timeoutMs: number,
   sleep: (ms: number) => Promise<void>,
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const currentStatus = await readOrchestratorStatus(config);
-    if (!currentStatus) {
+    if (!isPidAlive(orchestratorPid)) {
       return true;
     }
-    if (currentStatus.orchestratorId !== orchestratorId) {
-      return !isOrchestratorStatusLive(currentStatus);
+    if (!currentStatus) {
+      await sleep(Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
+      continue;
     }
-    if (!isOrchestratorStatusLive(currentStatus) || !isPidAlive(currentStatus.pid)) {
+    if (currentStatus.orchestratorId !== orchestratorId) {
+      await sleep(Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
+      continue;
+    }
+    if (!isPidAlive(currentStatus.pid)) {
       return true;
     }
     await sleep(Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
@@ -154,7 +159,13 @@ async function takeOverLiveOrchestrator(
     logger.line('  Existing orchestrator already has shutdown requested — waiting for it to settle.');
   }
 
-  const stoppedGracefully = await waitForOrchestratorExit(config, status.orchestratorId, ORCHESTRATOR_TAKEOVER_GRACE_MS, sleep);
+  const stoppedGracefully = await waitForOrchestratorExit(
+    config,
+    status.orchestratorId,
+    status.pid,
+    ORCHESTRATOR_TAKEOVER_GRACE_MS,
+    sleep,
+  );
   if (!stoppedGracefully && isPidAlive(status.pid)) {
     logger.line(`  Existing orchestrator did not stop in time — sending SIGTERM to pid ${status.pid}`);
     try {
@@ -167,6 +178,7 @@ async function takeOverLiveOrchestrator(
   const stoppedAfterSignal = stoppedGracefully || await waitForOrchestratorExit(
     config,
     status.orchestratorId,
+    status.pid,
     ORCHESTRATOR_TAKEOVER_KILL_TIMEOUT_MS,
     sleep,
   );
@@ -217,7 +229,7 @@ async function ensureOrchestratorAvailable(
   const status = await readOrchestratorStatus(config);
   if (!status) return;
 
-  if (isOrchestratorStatusLive(status)) {
+  if (isPidAlive(status.pid)) {
     if (options.takeover) {
       await takeOverLiveOrchestrator(config, logger, status, options.sleep);
       return;

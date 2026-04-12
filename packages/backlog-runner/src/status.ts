@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ensureConfigReady } from './config.js';
-import { isOrchestratorStatusLive } from './orchestrator-status.js';
 import { createFileBackedTaskStore } from './store/task-store.js';
 import type { BacklogQueueCounts, BacklogRunnerConfig, OrchestratorRuntimeStatus } from './types.js';
+import { isPidAlive } from './utils.js';
 
 export interface BacklogRunnerStatus {
   counts: BacklogQueueCounts;
@@ -45,7 +45,7 @@ async function readOrchestratorStatus(config: BacklogRunnerConfig): Promise<Orch
   try {
     const content = await readFile(path.join(config.files.runtimeDir, 'orchestrator-status.json'), 'utf8');
     const status = JSON.parse(content) as OrchestratorRuntimeStatus;
-    return isOrchestratorStatusLive(status) ? status : null;
+    return isPidAlive(status.pid) ? status : null;
   } catch {
     return null;
   }

@@ -130,7 +130,7 @@
 - [x] Cap visible status pills at four with expandable overflow
 - [x] Standardize mode and option and context terminology to use option everywhere
 - [x] Rewrite remaining shell menu and match-copy strings to task language
-- [ ] Unify external-change reloading and SSE refresh across token, theme, resolver, and generator files
+- [x] Unify external-change reloading and SSE refresh across token, theme, resolver, and generator files
 - [ ] Block or rewrite theme, resolver, and generated-token dependencies during folder delete operations
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
