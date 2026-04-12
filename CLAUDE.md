@@ -12,7 +12,11 @@ This project is in **rapid, active development** and has not shipped to any user
 - Design and implementation decisions should optimize for correctness and quality, not migration paths
 - Do not add shims, re-exports, deprecation warnings, or compatibility layers
 - Do not write hacks or shortcut implementations
-- Do not spend time on broad test work unless the current task explicitly needs it
+
+## Tests
+
+- Do NOT write, expand, or refactor tests unless explicitly asked
+- When tests are needed: test behavior not internals, parameterize with `test.each()`, skip trivial logic
 
 ## UI Guidance
 

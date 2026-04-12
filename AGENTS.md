@@ -8,4 +8,7 @@
 - Do not keep backwards-compatible layers, shims, re-exports, or migration scaffolding.
 - Do not keep dead code, legacy code, or unused files around.
 - Prefer direct replacements over parallel old/new implementations.
-- Do not spend time on broad test work unless the task explicitly needs it.
+## Tests
+
+- Do NOT write, expand, or refactor tests unless explicitly asked.
+- When tests are needed: test behavior not internals, parameterize with `test.each()`, skip trivial logic.
