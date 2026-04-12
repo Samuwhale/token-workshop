@@ -65,8 +65,6 @@ interface ThemeAuthoringScreenProps {
   resolverAvailable: boolean;
   resolverAuthoringContext: ThemeResolverAuthoringContext | null;
   newlyCreatedDim: string | null;
-  draggingDimId: string | null;
-  dragOverDimId: string | null;
   draggingOpt: OptionDragTarget | null;
   dragOverOpt: OptionDragTarget | null;
   renameDim: string | null;
@@ -99,10 +97,7 @@ interface ThemeAuthoringScreenProps {
   openDeleteConfirm: (dimId: string) => void;
   handleDuplicateDimension: (dimId: string) => void;
   handleMoveDimension: (dimId: string, direction: "up" | "down") => void;
-  handleDimDragStart: (event: DragEvent<HTMLElement>, dimId: string) => void;
-  handleDimDragOver: (event: DragEvent<HTMLElement>, dimId: string) => void;
-  handleDimDrop: (dimId: string) => void;
-  handleDimDragEnd: () => void;
+  onSelectDimension: (dimId: string) => void;
   onSelectOption: (dimId: string, optionName: string) => void;
   openCreateDim: (seedName?: string) => void;
   closeCreateDim: () => void;
@@ -187,8 +182,6 @@ export const ThemeAuthoringScreen = forwardRef<
     resolverAvailable,
     resolverAuthoringContext,
     newlyCreatedDim,
-    draggingDimId,
-    dragOverDimId,
     draggingOpt,
     dragOverOpt,
     renameDim,
@@ -218,10 +211,7 @@ export const ThemeAuthoringScreen = forwardRef<
     openDeleteConfirm,
     handleDuplicateDimension,
     handleMoveDimension,
-    handleDimDragStart,
-    handleDimDragOver,
-    handleDimDrop,
-    handleDimDragEnd,
+    onSelectDimension,
     onSelectOption,
     openCreateDim,
     closeCreateDim,
@@ -606,8 +596,6 @@ export const ThemeAuthoringScreen = forwardRef<
                       renameOptionValue={renameOptionValue}
                       renameOptionError={renameOptionError}
                       newlyCreatedDim={newlyCreatedDim}
-                      draggingDimId={draggingDimId}
-                      dragOverDimId={dragOverDimId}
                       isDuplicatingDim={isDuplicatingDim}
                       copySourceOptions={copySourceOptions}
                       roleStates={roleStates}
@@ -634,14 +622,6 @@ export const ThemeAuthoringScreen = forwardRef<
                       onMoveDimension={(direction) =>
                         handleMoveDimension(dimension.id, direction)
                       }
-                      onDimDragStart={(event) =>
-                        handleDimDragStart(event, dimension.id)
-                      }
-                      onDimDragOver={(event) =>
-                        handleDimDragOver(event, dimension.id)
-                      }
-                      onDimDrop={() => handleDimDrop(dimension.id)}
-                      onDimDragEnd={handleDimDragEnd}
                       onSelectOption={(optionName) =>
                         onSelectOption(dimension.id, optionName)
                       }

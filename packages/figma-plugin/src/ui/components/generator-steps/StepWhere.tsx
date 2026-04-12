@@ -111,107 +111,86 @@ export function StepWhere({
   onTargetSetTemplateChange,
 }: StepWhereProps) {
   return (
-    <div className="p-4 flex flex-col gap-4 max-w-lg mx-auto">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-          {isEditing ? 'Token destination' : 'Where should the tokens live?'}
-        </h3>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-          Choose the token set, group path, and a name for this generator.
-        </p>
-      </div>
-
-      {/* Target group — most important field, shown first and prominently */}
-      <div>
-        <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">Target group</label>
-        <input
-          type="text"
-          value={targetGroup}
-          onChange={e => onTargetGroupChange(e.target.value)}
-          placeholder="e.g. colors.primary"
-          autoFocus
-          className={`w-full px-2.5 py-2 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[12px] font-mono focus-visible:border-[var(--color-figma-accent)] ${
-            !targetGroup.trim() ? 'border-[var(--color-figma-error)]/50' : 'border-[var(--color-figma-border)]'
-          }`}
-        />
-        {targetGroup.trim() && (
-          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Tokens will be created at <span className="font-mono text-[var(--color-figma-text)]">{targetGroup}.{'{'}<span className="text-[var(--color-figma-accent)]">step</span>{'}'}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Token set */}
-      {!isMultiBrand && (
+    <div className="px-4 py-3 flex flex-col gap-3">
+      {/* Target group + name — compact two-column at wider viewports */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
         <div>
-          <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">Token set</label>
-          <select
-            value={targetSet}
-            onChange={e => onTargetSetChange(e.target.value)}
-            className="w-full px-2.5 py-2 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-          >
-            {allSets.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">Token path</label>
+          <input
+            type="text"
+            value={targetGroup}
+            onChange={e => onTargetGroupChange(e.target.value)}
+            placeholder="e.g. colors.primary"
+            autoFocus
+            className={`w-full px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)] ${
+              !targetGroup.trim() ? 'border-[var(--color-figma-error)]/50' : 'border-[var(--color-figma-border)]'
+            }`}
+          />
+          {targetGroup.trim() && (
+            <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+              <span className="font-mono text-[var(--color-figma-text)]">{targetGroup}.<span className="text-[var(--color-figma-accent)]">{'{'}</span>step<span className="text-[var(--color-figma-accent)]">{'}'}</span></span>
+            </p>
+          )}
+        </div>
+        <div className="sm:w-40">
+          <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => onNameChange(e.target.value)}
+            placeholder="My generator"
+            className={`w-full px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${
+              !name.trim() ? 'border-[var(--color-figma-error)]/50' : 'border-[var(--color-figma-border)]'
+            }`}
+          />
+        </div>
+      </div>
+
+      {/* Token set + multi-brand — compact row */}
+      <div className="flex items-end gap-3">
+        {!isMultiBrand && (
+          <div className="flex-1 min-w-0">
+            <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">Set</label>
+            <select
+              value={targetSet}
+              onChange={e => onTargetSetChange(e.target.value)}
+              className="w-full px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+            >
+              {allSets.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
+        <button
+          onClick={onToggleMultiBrand}
+          className={`shrink-0 text-[10px] px-2.5 py-1.5 rounded border transition-colors ${
+            isMultiBrand
+              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+          }`}
+        >
+          {isMultiBrand ? 'Multi-brand on' : 'Multi-brand'}
+        </button>
+      </div>
+
+      {/* Multi-brand config — revealed when toggled */}
+      {isMultiBrand && inputTable && (
+        <div className="border border-[var(--color-figma-border)] rounded-lg p-3 bg-[var(--color-figma-bg-secondary)]">
+          <InputTableEditor table={inputTable} onChange={onInputTableChange} />
+          <div className="mt-3">
+            <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Set template</label>
+            <input
+              type="text"
+              value={targetSetTemplate}
+              onChange={e => onTargetSetTemplateChange(e.target.value)}
+              placeholder="brands/{brand}"
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
+            />
+            <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+              {'{brand}'} replaced per row
+            </p>
+          </div>
         </div>
       )}
-
-      {/* Generator name */}
-      <div>
-        <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">Generator name</label>
-        <input
-          type="text"
-          value={name}
-          onChange={e => onNameChange(e.target.value)}
-          placeholder="My generator"
-          className={`w-full px-2.5 py-2 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${
-            !name.trim() ? 'border-[var(--color-figma-error)]/50' : 'border-[var(--color-figma-border)]'
-          }`}
-        />
-        <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
-          A human-readable label to identify this generator in the graph.
-        </p>
-      </div>
-
-      {/* Multi-brand */}
-      <div className="border border-[var(--color-figma-border)] rounded-lg p-3 bg-[var(--color-figma-bg-secondary)]">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Multi-brand</span>
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-              Generate across multiple brands, each writing to its own token set
-            </span>
-          </div>
-          <button
-            onClick={onToggleMultiBrand}
-            className={`text-[10px] px-2.5 py-1 rounded border transition-colors ${
-              isMultiBrand
-                ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-            }`}
-          >
-            {isMultiBrand ? 'Enabled' : 'Off'}
-          </button>
-        </div>
-
-        {isMultiBrand && inputTable && (
-          <div className="mt-3 pt-3 border-t border-[var(--color-figma-border)]">
-            <InputTableEditor table={inputTable} onChange={onInputTableChange} />
-            <div className="mt-3">
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set template</label>
-              <input
-                type="text"
-                value={targetSetTemplate}
-                onChange={e => onTargetSetTemplateChange(e.target.value)}
-                placeholder="brands/{brand}"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
-              />
-              <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
-                {'{brand}'} is replaced per row — e.g. <span className="font-mono">brands/berry</span>
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

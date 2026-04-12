@@ -1,8 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { handleRouteError } from '../errors.js';
 import { snapshotSet } from '../services/operation-log.js';
-import type { ResolverFile, ThemeDimension, TokenGenerator } from '@tokenmanager/core';
-import type { RollbackStep } from '../services/operation-log.js';
+import type { ResolverFile, TokenGenerator } from '@tokenmanager/core';
 
 type SnapshotRouteContext = {
   resolverLock: {
@@ -26,51 +25,6 @@ async function captureCurrentGenerators(
   fastify: SnapshotRouteContext,
 ): Promise<Record<string, TokenGenerator>> {
   return fastify.generatorService.getAllById();
-}
-
-function buildSnapshotRestoreRollbackSteps({
-  dimensions,
-  resolvers,
-  generators,
-  snapshotResolvers,
-  snapshotGenerators,
-}: {
-  dimensions: ThemeDimension[];
-  resolvers: Record<string, ResolverFile>;
-  generators: Record<string, TokenGenerator>;
-  snapshotResolvers: Record<string, ResolverFile>;
-  snapshotGenerators: Record<string, TokenGenerator>;
-}): RollbackStep[] {
-  const steps: RollbackStep[] = [{ action: 'write-themes', dimensions }];
-
-  for (const [name, file] of Object.entries(resolvers)) {
-    steps.push({
-      action: 'write-resolver',
-      name,
-      file: structuredClone(file),
-    });
-  }
-
-  for (const name of Object.keys(snapshotResolvers)) {
-    if (!(name in resolvers)) {
-      steps.push({ action: 'delete-resolver', name });
-    }
-  }
-
-  for (const generator of Object.values(generators)) {
-    steps.push({
-      action: 'create-generator',
-      generator: structuredClone(generator),
-    });
-  }
-
-  for (const generatorId of Object.keys(snapshotGenerators)) {
-    if (!(generatorId in generators)) {
-      steps.push({ action: 'delete-generator', id: generatorId });
-    }
-  }
-
-  return steps;
 }
 
 export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
@@ -191,6 +145,12 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           fastify.dimensionsStore,
           fastify.resolverStore,
           fastify.generatorService,
+          {
+            setNames: currentSets,
+            dimensions: beforeDimensions,
+            resolvers: beforeResolvers,
+            generators: beforeGenerators,
+          },
         );
 
         // Snapshot after state
@@ -210,16 +170,11 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: allPaths,
           beforeSnapshot,
           afterSnapshot,
-          rollbackSteps: buildSnapshotRestoreRollbackSteps({
-            dimensions: beforeDimensions,
-            resolvers: beforeResolvers,
-            generators: beforeGenerators,
-            snapshotResolvers: snapshot.resolvers,
-            snapshotGenerators: snapshot.generators,
-          }),
+          rollbackSteps: result.rollbackSteps,
         });
 
-        return { ok: true, ...result, operationId: opEntry.id };
+        const { rollbackSteps: _rollbackSteps, ...restoreResult } = result;
+        return { ok: true, ...restoreResult, operationId: opEntry.id };
       });
     } catch (err) {
       return handleRouteError(reply, err);

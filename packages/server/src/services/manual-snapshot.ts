@@ -17,6 +17,7 @@ import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { setTokenAtPath } from "./token-tree-utils.js";
+import type { RollbackStep } from "./operation-log.js";
 
 export interface ManualSnapshotToken {
   $value: unknown;
@@ -29,30 +30,72 @@ type SnapshotTokenSets = Record<string, Record<string, ManualSnapshotToken>>;
 type SnapshotResolvers = Record<string, ResolverFile>;
 type SnapshotGenerators = Record<string, TokenGenerator>;
 
-interface RestoreJournal {
+type ManualSnapshotComparableState = Pick<
+  ManualSnapshotEntry,
+  "data" | "dimensions" | "resolvers" | "generators"
+>;
+
+interface RestoreWorkspaceState {
+  setNames: string[];
+  dimensions: ThemeDimension[];
+  resolvers: SnapshotResolvers;
+  generators: SnapshotGenerators;
+}
+
+interface RestorePlanStepBase {
+  stepId: string;
+}
+
+type RestorePlanStep =
+  | (RestorePlanStepBase & {
+      kind: "restore-set";
+      setName: string;
+      flatTokens: Record<string, ManualSnapshotToken>;
+    })
+  | (RestorePlanStepBase & {
+      kind: "restore-themes";
+      dimensions: ThemeDimension[];
+    })
+  | (RestorePlanStepBase & {
+      kind: "restore-resolver";
+      name: string;
+      file: ResolverFile;
+    })
+  | (RestorePlanStepBase & {
+      kind: "delete-resolver";
+      name: string;
+    })
+  | (RestorePlanStepBase & {
+      kind: "restore-generator";
+      generator: TokenGenerator;
+    })
+  | (RestorePlanStepBase & {
+      kind: "delete-generator";
+      id: string;
+    })
+  | (RestorePlanStepBase & {
+      kind: "delete-set";
+      setName: string;
+    });
+
+interface RestorePlan {
   snapshotId: string;
   snapshotLabel: string;
   data: SnapshotTokenSets;
   dimensions: ThemeDimension[];
   resolvers: SnapshotResolvers;
   generators: SnapshotGenerators;
-  completedSets: string[];
   deleteSetNames: string[];
-  completedSetDeletes: string[];
-  themesRestored: boolean;
-  completedResolvers: string[];
   deleteResolverNames: string[];
-  completedResolverDeletes: string[];
-  completedGenerators: string[];
   deleteGeneratorIds: string[];
-  completedGeneratorDeletes: string[];
-  failedSets?: Record<string, number>;
-  failedSetDeletes?: Record<string, number>;
-  failedThemes?: number;
-  failedResolvers?: Record<string, number>;
-  failedResolverDeletes?: Record<string, number>;
-  failedGenerators?: Record<string, number>;
-  failedGeneratorDeletes?: Record<string, number>;
+  rollbackSteps: RollbackStep[];
+  steps: RestorePlanStep[];
+}
+
+interface RestoreJournal
+  extends Omit<RestorePlan, "steps"> {
+  completedStepIds: string[];
+  failedStepAttempts: Record<string, number>;
 }
 
 export interface ManualSnapshotEntry {
@@ -100,6 +143,7 @@ export interface ManualSnapshotDiff {
 const MAX_SNAPSHOTS = 20;
 const MAX_RECOVERY_RETRIES = 3;
 const THEMES_WORKSPACE_ID = "$themes";
+const RESTORE_THEMES_STEP_ID = "restore-themes";
 
 function isRecord(
   value: unknown,
@@ -123,6 +167,46 @@ function cloneResolvers(resolvers: SnapshotResolvers): SnapshotResolvers {
 
 function cloneGenerators(generators: SnapshotGenerators): SnapshotGenerators {
   return structuredClone(generators);
+}
+
+function cloneRollbackSteps(steps: RollbackStep[]): RollbackStep[] {
+  return structuredClone(steps);
+}
+
+function buildRestoreSetStepId(setName: string): string {
+  return `restore-set:${setName}`;
+}
+
+function buildRestoreResolverStepId(name: string): string {
+  return `restore-resolver:${name}`;
+}
+
+function buildDeleteResolverStepId(name: string): string {
+  return `delete-resolver:${name}`;
+}
+
+function buildRestoreGeneratorStepId(id: string): string {
+  return `restore-generator:${id}`;
+}
+
+function buildDeleteGeneratorStepId(id: string): string {
+  return `delete-generator:${id}`;
+}
+
+function buildDeleteSetStepId(setName: string): string {
+  return `delete-set:${setName}`;
+}
+
+function addRestoreFailedAttempts(
+  target: Record<string, number>,
+  source: Record<string, number>,
+  toStepId: (key: string) => string,
+): void {
+  for (const [key, attempts] of Object.entries(source)) {
+    if (typeof attempts === "number" && attempts > 0) {
+      target[toStepId(key)] = attempts;
+    }
+  }
 }
 
 function normalizeSnapshotEntry(raw: unknown): ManualSnapshotEntry {
@@ -155,78 +239,210 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
     throw new Error("Restore journal must be an object");
   }
 
+  const snapshotId = typeof raw.snapshotId === "string" ? raw.snapshotId : "";
+  const snapshotLabel =
+    typeof raw.snapshotLabel === "string" ? raw.snapshotLabel : "Snapshot";
+  const data = isRecord(raw.data) ? (raw.data as SnapshotTokenSets) : {};
+  const dimensions = Array.isArray(raw.dimensions)
+    ? structuredClone(raw.dimensions as ThemeDimension[])
+    : [];
+  const resolvers = isRecord(raw.resolvers)
+    ? cloneResolvers(raw.resolvers as SnapshotResolvers)
+    : {};
+  const generators = isRecord(raw.generators)
+    ? cloneGenerators(raw.generators as SnapshotGenerators)
+    : {};
+  const deleteSetNames = Array.isArray(raw.deleteSetNames)
+    ? structuredClone(raw.deleteSetNames as string[])
+    : [];
+  const deleteResolverNames = Array.isArray(raw.deleteResolverNames)
+    ? structuredClone(raw.deleteResolverNames as string[])
+    : [];
+  const deleteGeneratorIds = Array.isArray(raw.deleteGeneratorIds)
+    ? structuredClone(raw.deleteGeneratorIds as string[])
+    : [];
+
+  if (Array.isArray(raw.completedStepIds) || isRecord(raw.failedStepAttempts)) {
+    return {
+      snapshotId,
+      snapshotLabel,
+      data,
+      dimensions,
+      resolvers,
+      generators,
+      deleteSetNames,
+      deleteResolverNames,
+      deleteGeneratorIds,
+      rollbackSteps: Array.isArray(raw.rollbackSteps)
+        ? cloneRollbackSteps(raw.rollbackSteps as RollbackStep[])
+        : [],
+      completedStepIds: Array.isArray(raw.completedStepIds)
+        ? structuredClone(raw.completedStepIds as string[])
+        : [],
+      failedStepAttempts: isRecord(raw.failedStepAttempts)
+        ? structuredClone(raw.failedStepAttempts as Record<string, number>)
+        : {},
+    };
+  }
+
+  const completedStepIds = new Set<string>();
+  for (const setName of Array.isArray(raw.completedSets)
+    ? (raw.completedSets as string[])
+    : []) {
+    completedStepIds.add(buildRestoreSetStepId(setName));
+  }
+  if (raw.themesRestored === true) {
+    completedStepIds.add(RESTORE_THEMES_STEP_ID);
+  }
+  for (const name of Array.isArray(raw.completedResolvers)
+    ? (raw.completedResolvers as string[])
+    : []) {
+    completedStepIds.add(buildRestoreResolverStepId(name));
+  }
+  for (const name of Array.isArray(raw.completedResolverDeletes)
+    ? (raw.completedResolverDeletes as string[])
+    : []) {
+    completedStepIds.add(buildDeleteResolverStepId(name));
+  }
+  for (const id of Array.isArray(raw.completedGenerators)
+    ? (raw.completedGenerators as string[])
+    : []) {
+    completedStepIds.add(buildRestoreGeneratorStepId(id));
+  }
+  for (const id of Array.isArray(raw.completedGeneratorDeletes)
+    ? (raw.completedGeneratorDeletes as string[])
+    : []) {
+    completedStepIds.add(buildDeleteGeneratorStepId(id));
+  }
   const completedSetDeletes = Array.isArray(raw.completedSetDeletes)
-    ? structuredClone(raw.completedSetDeletes as string[])
+    ? (raw.completedSetDeletes as string[])
     : Array.isArray(raw.completedDeletes)
-      ? structuredClone(raw.completedDeletes as string[])
+      ? (raw.completedDeletes as string[])
       : [];
+  for (const setName of completedSetDeletes) {
+    completedStepIds.add(buildDeleteSetStepId(setName));
+  }
+
+  const failedStepAttempts: Record<string, number> = {};
+  addRestoreFailedAttempts(
+    failedStepAttempts,
+    isRecord(raw.failedSets)
+      ? (raw.failedSets as Record<string, number>)
+      : {},
+    buildRestoreSetStepId,
+  );
+  addRestoreFailedAttempts(
+    failedStepAttempts,
+    isRecord(raw.failedSetDeletes)
+      ? (raw.failedSetDeletes as Record<string, number>)
+      : {},
+    buildDeleteSetStepId,
+  );
+  if (typeof raw.failedThemes === "number" && raw.failedThemes > 0) {
+    failedStepAttempts[RESTORE_THEMES_STEP_ID] = raw.failedThemes;
+  }
+  addRestoreFailedAttempts(
+    failedStepAttempts,
+    isRecord(raw.failedResolvers)
+      ? (raw.failedResolvers as Record<string, number>)
+      : {},
+    buildRestoreResolverStepId,
+  );
+  addRestoreFailedAttempts(
+    failedStepAttempts,
+    isRecord(raw.failedResolverDeletes)
+      ? (raw.failedResolverDeletes as Record<string, number>)
+      : {},
+    buildDeleteResolverStepId,
+  );
+  addRestoreFailedAttempts(
+    failedStepAttempts,
+    isRecord(raw.failedGenerators)
+      ? (raw.failedGenerators as Record<string, number>)
+      : {},
+    buildRestoreGeneratorStepId,
+  );
+  addRestoreFailedAttempts(
+    failedStepAttempts,
+    isRecord(raw.failedGeneratorDeletes)
+      ? (raw.failedGeneratorDeletes as Record<string, number>)
+      : {},
+    buildDeleteGeneratorStepId,
+  );
 
   return {
-    snapshotId: typeof raw.snapshotId === "string" ? raw.snapshotId : "",
-    snapshotLabel:
-      typeof raw.snapshotLabel === "string" ? raw.snapshotLabel : "Snapshot",
-    data: isRecord(raw.data) ? (raw.data as SnapshotTokenSets) : {},
-    dimensions: Array.isArray(raw.dimensions)
-      ? structuredClone(raw.dimensions as ThemeDimension[])
-      : [],
-    resolvers: isRecord(raw.resolvers)
-      ? cloneResolvers(raw.resolvers as SnapshotResolvers)
-      : {},
-    generators: isRecord(raw.generators)
-      ? cloneGenerators(raw.generators as SnapshotGenerators)
-      : {},
-    completedSets: Array.isArray(raw.completedSets)
-      ? structuredClone(raw.completedSets as string[])
-      : [],
-    deleteSetNames: Array.isArray(raw.deleteSetNames)
-      ? structuredClone(raw.deleteSetNames as string[])
-      : [],
-    completedSetDeletes,
-    themesRestored: raw.themesRestored === true,
-    completedResolvers: Array.isArray(raw.completedResolvers)
-      ? structuredClone(raw.completedResolvers as string[])
-      : [],
-    deleteResolverNames: Array.isArray(raw.deleteResolverNames)
-      ? structuredClone(raw.deleteResolverNames as string[])
-      : [],
-    completedResolverDeletes: Array.isArray(raw.completedResolverDeletes)
-      ? structuredClone(raw.completedResolverDeletes as string[])
-      : [],
-    completedGenerators: Array.isArray(raw.completedGenerators)
-      ? structuredClone(raw.completedGenerators as string[])
-      : [],
-    deleteGeneratorIds: Array.isArray(raw.deleteGeneratorIds)
-      ? structuredClone(raw.deleteGeneratorIds as string[])
-      : [],
-    completedGeneratorDeletes: Array.isArray(raw.completedGeneratorDeletes)
-      ? structuredClone(raw.completedGeneratorDeletes as string[])
-      : [],
-    failedSets: isRecord(raw.failedSets)
-      ? structuredClone(raw.failedSets as Record<string, number>)
-      : {},
-    failedSetDeletes: isRecord(raw.failedSetDeletes)
-      ? structuredClone(raw.failedSetDeletes as Record<string, number>)
-      : {},
-    failedThemes:
-      typeof raw.failedThemes === "number" ? raw.failedThemes : 0,
-    failedResolvers: isRecord(raw.failedResolvers)
-      ? structuredClone(raw.failedResolvers as Record<string, number>)
-      : {},
-    failedResolverDeletes: isRecord(raw.failedResolverDeletes)
-      ? structuredClone(raw.failedResolverDeletes as Record<string, number>)
-      : {},
-    failedGenerators: isRecord(raw.failedGenerators)
-      ? structuredClone(raw.failedGenerators as Record<string, number>)
-      : {},
-    failedGeneratorDeletes: isRecord(raw.failedGeneratorDeletes)
-      ? structuredClone(raw.failedGeneratorDeletes as Record<string, number>)
-      : {},
+    snapshotId,
+    snapshotLabel,
+    data,
+    dimensions,
+    resolvers,
+    generators,
+    deleteSetNames,
+    deleteResolverNames,
+    deleteGeneratorIds,
+    rollbackSteps: [],
+    completedStepIds: [...completedStepIds],
+    failedStepAttempts,
   };
 }
 
+function listTokenDiffs(
+  before: SnapshotTokenSets,
+  after: SnapshotTokenSets,
+): TokenDiff[] {
+  const sets = new Set([...Object.keys(before), ...Object.keys(after)]);
+  const diffs: TokenDiff[] = [];
+
+  for (const setName of sets) {
+    const beforeSet = before[setName] ?? {};
+    const afterSet = after[setName] ?? {};
+    const allPaths = new Set([
+      ...Object.keys(beforeSet),
+      ...Object.keys(afterSet),
+    ]);
+    for (const tokenPath of allPaths) {
+      const beforeToken = beforeSet[tokenPath];
+      const afterToken = afterSet[tokenPath];
+      if (!beforeToken && afterToken) {
+        diffs.push({
+          path: tokenPath,
+          set: setName,
+          status: "added",
+          after: afterToken,
+        });
+        continue;
+      }
+      if (beforeToken && !afterToken) {
+        diffs.push({
+          path: tokenPath,
+          set: setName,
+          status: "removed",
+          before: beforeToken,
+        });
+        continue;
+      }
+      if (
+        beforeToken &&
+        afterToken &&
+        stableStringify(beforeToken) !== stableStringify(afterToken)
+      ) {
+        diffs.push({
+          path: tokenPath,
+          set: setName,
+          status: "modified",
+          before: beforeToken,
+          after: afterToken,
+        });
+      }
+    }
+  }
+
+  return diffs;
+}
+
 function listWorkspaceDiffs(
-  before: Pick<ManualSnapshotEntry, "dimensions" | "resolvers" | "generators">,
-  after: Pick<ManualSnapshotEntry, "dimensions" | "resolvers" | "generators">,
+  before: Pick<ManualSnapshotComparableState, "dimensions" | "resolvers" | "generators">,
+  after: Pick<ManualSnapshotComparableState, "dimensions" | "resolvers" | "generators">,
 ): WorkspaceDiff[] {
   const diffs: WorkspaceDiff[] = [];
 
@@ -330,6 +546,63 @@ function listWorkspaceDiffs(
     }
     return left.label.localeCompare(right.label);
   });
+}
+
+function compareSnapshotStates(
+  before: ManualSnapshotComparableState,
+  after: ManualSnapshotComparableState,
+): ManualSnapshotDiff {
+  return {
+    diffs: listTokenDiffs(before.data, after.data),
+    workspaceDiffs: listWorkspaceDiffs(before, after),
+  };
+}
+
+function buildSnapshotRestoreRollbackSteps({
+  currentDimensions,
+  currentResolvers,
+  currentGenerators,
+  snapshotResolvers,
+  snapshotGenerators,
+}: {
+  currentDimensions: ThemeDimension[];
+  currentResolvers: SnapshotResolvers;
+  currentGenerators: SnapshotGenerators;
+  snapshotResolvers: SnapshotResolvers;
+  snapshotGenerators: SnapshotGenerators;
+}): RollbackStep[] {
+  const steps: RollbackStep[] = [
+    { action: "write-themes", dimensions: structuredClone(currentDimensions) },
+  ];
+
+  for (const [name, file] of Object.entries(currentResolvers)) {
+    steps.push({
+      action: "write-resolver",
+      name,
+      file: structuredClone(file),
+    });
+  }
+
+  for (const name of Object.keys(snapshotResolvers)) {
+    if (!(name in currentResolvers)) {
+      steps.push({ action: "delete-resolver", name });
+    }
+  }
+
+  for (const generator of Object.values(currentGenerators)) {
+    steps.push({
+      action: "create-generator",
+      generator: structuredClone(generator),
+    });
+  }
+
+  for (const generatorId of Object.keys(snapshotGenerators)) {
+    if (!(generatorId in currentGenerators)) {
+      steps.push({ action: "delete-generator", id: generatorId });
+    }
+  }
+
+  return steps;
 }
 
 export class ManualSnapshotStore {
@@ -536,6 +809,164 @@ export class ManualSnapshotStore {
     });
   }
 
+  private buildRestorePlan(
+    source: Omit<RestorePlan, "steps">,
+  ): RestorePlan {
+    const steps: RestorePlanStep[] = [];
+
+    for (const [setName, flatTokens] of Object.entries(source.data)) {
+      steps.push({
+        stepId: buildRestoreSetStepId(setName),
+        kind: "restore-set",
+        setName,
+        flatTokens,
+      });
+    }
+
+    steps.push({
+      stepId: RESTORE_THEMES_STEP_ID,
+      kind: "restore-themes",
+      dimensions: structuredClone(source.dimensions),
+    });
+
+    for (const [name, file] of Object.entries(source.resolvers)) {
+      steps.push({
+        stepId: buildRestoreResolverStepId(name),
+        kind: "restore-resolver",
+        name,
+        file,
+      });
+    }
+
+    for (const name of source.deleteResolverNames) {
+      steps.push({
+        stepId: buildDeleteResolverStepId(name),
+        kind: "delete-resolver",
+        name,
+      });
+    }
+
+    for (const generator of Object.values(source.generators)) {
+      steps.push({
+        stepId: buildRestoreGeneratorStepId(generator.id),
+        kind: "restore-generator",
+        generator,
+      });
+    }
+
+    for (const id of source.deleteGeneratorIds) {
+      steps.push({
+        stepId: buildDeleteGeneratorStepId(id),
+        kind: "delete-generator",
+        id,
+      });
+    }
+
+    for (const setName of source.deleteSetNames) {
+      steps.push({
+        stepId: buildDeleteSetStepId(setName),
+        kind: "delete-set",
+        setName,
+      });
+    }
+
+    return {
+      ...source,
+      rollbackSteps: cloneRollbackSteps(source.rollbackSteps),
+      steps,
+    };
+  }
+
+  private buildRestorePlanFromSnapshot(
+    snapshot: ManualSnapshotEntry,
+    currentWorkspaceState: RestoreWorkspaceState,
+  ): RestorePlan {
+    return this.buildRestorePlan({
+      snapshotId: snapshot.id,
+      snapshotLabel: snapshot.label,
+      data: snapshot.data,
+      dimensions: structuredClone(snapshot.dimensions),
+      resolvers: cloneResolvers(snapshot.resolvers),
+      generators: cloneGenerators(snapshot.generators),
+      deleteSetNames: currentWorkspaceState.setNames.filter(
+        (setName) => !(setName in snapshot.data),
+      ),
+      deleteResolverNames: Object.keys(currentWorkspaceState.resolvers).filter(
+        (name) => !(name in snapshot.resolvers),
+      ),
+      deleteGeneratorIds: Object.keys(currentWorkspaceState.generators).filter(
+        (id) => !(id in snapshot.generators),
+      ),
+      rollbackSteps: buildSnapshotRestoreRollbackSteps({
+        currentDimensions: currentWorkspaceState.dimensions,
+        currentResolvers: currentWorkspaceState.resolvers,
+        currentGenerators: currentWorkspaceState.generators,
+        snapshotResolvers: snapshot.resolvers,
+        snapshotGenerators: snapshot.generators,
+      }),
+    });
+  }
+
+  private buildRestorePlanFromJournal(
+    journal: RestoreJournal,
+  ): RestorePlan {
+    return this.buildRestorePlan({
+      snapshotId: journal.snapshotId,
+      snapshotLabel: journal.snapshotLabel,
+      data: journal.data,
+      dimensions: structuredClone(journal.dimensions),
+      resolvers: cloneResolvers(journal.resolvers),
+      generators: cloneGenerators(journal.generators),
+      deleteSetNames: structuredClone(journal.deleteSetNames),
+      deleteResolverNames: structuredClone(journal.deleteResolverNames),
+      deleteGeneratorIds: structuredClone(journal.deleteGeneratorIds),
+      rollbackSteps: cloneRollbackSteps(journal.rollbackSteps),
+    });
+  }
+
+  private createRestoreJournal(
+    plan: RestorePlan,
+  ): RestoreJournal {
+    return {
+      snapshotId: plan.snapshotId,
+      snapshotLabel: plan.snapshotLabel,
+      data: plan.data,
+      dimensions: structuredClone(plan.dimensions),
+      resolvers: cloneResolvers(plan.resolvers),
+      generators: cloneGenerators(plan.generators),
+      deleteSetNames: structuredClone(plan.deleteSetNames),
+      deleteResolverNames: structuredClone(plan.deleteResolverNames),
+      deleteGeneratorIds: structuredClone(plan.deleteGeneratorIds),
+      rollbackSteps: cloneRollbackSteps(plan.rollbackSteps),
+      completedStepIds: [],
+      failedStepAttempts: {},
+    };
+  }
+
+  private buildRestoreResult(plan: RestorePlan): {
+    restoredSets: string[];
+    deletedSets: string[];
+    restoredThemes: boolean;
+    restoredResolvers: string[];
+    deletedResolvers: string[];
+    restoredGenerators: string[];
+    deletedGenerators: string[];
+    rollbackSteps: RollbackStep[];
+  } {
+    return {
+      restoredSets: Object.keys(plan.data),
+      deletedSets: structuredClone(plan.deleteSetNames),
+      restoredThemes: true,
+      restoredResolvers: Object.keys(plan.resolvers),
+      deletedResolvers: structuredClone(plan.deleteResolverNames),
+      restoredGenerators: Object.values(plan.generators).map(
+        (generator) => generator.id,
+      ),
+      deletedGenerators: structuredClone(plan.deleteGeneratorIds),
+      rollbackSteps: cloneRollbackSteps(plan.rollbackSteps),
+    };
+  }
+
   async diffSnapshots(idA: string, idB: string): Promise<ManualSnapshotDiff> {
     await this.ensureLoaded();
     const snapshotA = this.snapshots.find((snapshot) => snapshot.id === idA);
@@ -547,51 +978,7 @@ export class ManualSnapshotStore {
       throw new NotFoundError(`Snapshot "${idB}" not found`);
     }
 
-    const sets = new Set([
-      ...Object.keys(snapshotA.data),
-      ...Object.keys(snapshotB.data),
-    ]);
-    const diffs: TokenDiff[] = [];
-
-    for (const setName of sets) {
-      const beforeSet = snapshotA.data[setName] ?? {};
-      const afterSet = snapshotB.data[setName] ?? {};
-      const allPaths = new Set([
-        ...Object.keys(beforeSet),
-        ...Object.keys(afterSet),
-      ]);
-      for (const tokenPath of allPaths) {
-        const before = beforeSet[tokenPath];
-        const after = afterSet[tokenPath];
-        if (!before && after) {
-          diffs.push({ path: tokenPath, set: setName, status: "added", after });
-        } else if (before && !after) {
-          diffs.push({
-            path: tokenPath,
-            set: setName,
-            status: "removed",
-            before,
-          });
-        } else if (
-          before &&
-          after &&
-          stableStringify(before) !== stableStringify(after)
-        ) {
-          diffs.push({
-            path: tokenPath,
-            set: setName,
-            status: "modified",
-            before,
-            after,
-          });
-        }
-      }
-    }
-
-    return {
-      diffs,
-      workspaceDiffs: listWorkspaceDiffs(snapshotA, snapshotB),
-    };
+    return compareSnapshotStates(snapshotA, snapshotB);
   }
 
   async diff(
@@ -614,51 +1001,7 @@ export class ManualSnapshotStore {
       generatorService,
     );
 
-    const sets = new Set([
-      ...Object.keys(snapshot.data),
-      ...Object.keys(current.data),
-    ]);
-    const diffs: TokenDiff[] = [];
-
-    for (const setName of sets) {
-      const savedSet = snapshot.data[setName] ?? {};
-      const currentSet = current.data[setName] ?? {};
-      const allPaths = new Set([
-        ...Object.keys(savedSet),
-        ...Object.keys(currentSet),
-      ]);
-      for (const tokenPath of allPaths) {
-        const before = savedSet[tokenPath];
-        const after = currentSet[tokenPath];
-        if (!before && after) {
-          diffs.push({ path: tokenPath, set: setName, status: "added", after });
-        } else if (before && !after) {
-          diffs.push({
-            path: tokenPath,
-            set: setName,
-            status: "removed",
-            before,
-          });
-        } else if (
-          before &&
-          after &&
-          stableStringify(before) !== stableStringify(after)
-        ) {
-          diffs.push({
-            path: tokenPath,
-            set: setName,
-            status: "modified",
-            before,
-            after,
-          });
-        }
-      }
-    }
-
-    return {
-      diffs,
-      workspaceDiffs: listWorkspaceDiffs(snapshot, current),
-    };
+    return compareSnapshotStates(snapshot, current);
   }
 
   private async restoreSet(
@@ -703,33 +1046,147 @@ export class ManualSnapshotStore {
     await generatorService.restore(generator);
   }
 
-  private async listSetsOutsideSnapshot(
+  private async captureRestoreWorkspaceState(
     tokenStore: TokenStore,
-    snapshotData: SnapshotTokenSets,
-  ): Promise<string[]> {
-    const snapshotSets = new Set(Object.keys(snapshotData));
-    const currentSets = await tokenStore.getSets();
-    return currentSets.filter((setName) => !snapshotSets.has(setName));
-  }
-
-  private async listResolversOutsideSnapshot(
+    dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    snapshotResolvers: SnapshotResolvers,
-  ): Promise<string[]> {
-    const currentResolvers = await this.captureCurrentResolvers(resolverStore);
-    return Object.keys(currentResolvers).filter(
-      (name) => !(name in snapshotResolvers),
-    );
+    generatorService: GeneratorService,
+  ): Promise<RestoreWorkspaceState> {
+    const [setNames, dimensions, resolvers, generators] = await Promise.all([
+      tokenStore.getSets(),
+      dimensionsStore.withLock(async (dims) => ({
+        dims,
+        result: structuredClone(dims),
+      })),
+      this.captureCurrentResolvers(resolverStore),
+      generatorService.getAllById(),
+    ]);
+
+    return {
+      setNames,
+      dimensions,
+      resolvers,
+      generators,
+    };
   }
 
-  private async listGeneratorsOutsideSnapshot(
+  private listPendingRestoreSteps(
+    plan: RestorePlan,
+    journal: RestoreJournal,
+  ): RestorePlanStep[] {
+    const completed = new Set(journal.completedStepIds);
+    return plan.steps.filter((step) => !completed.has(step.stepId));
+  }
+
+  private describeRestoreStep(step: RestorePlanStep): string {
+    switch (step.kind) {
+      case "restore-set":
+        return `restore set "${step.setName}"`;
+      case "restore-themes":
+        return "restore theme dimensions";
+      case "restore-resolver":
+        return `restore resolver "${step.name}"`;
+      case "delete-resolver":
+        return `delete resolver "${step.name}"`;
+      case "restore-generator":
+        return `restore generator "${step.generator.id}"`;
+      case "delete-generator":
+        return `delete generator "${step.id}"`;
+      case "delete-set":
+        return `delete set "${step.setName}"`;
+    }
+  }
+
+  private async executeRestoreStep(
+    step: RestorePlanStep,
+    tokenStore: TokenStore,
+    dimensionsStore: DimensionsStore,
+    resolverStore: ResolverStore,
     generatorService: GeneratorService,
-    snapshotGenerators: SnapshotGenerators,
-  ): Promise<string[]> {
-    const currentGenerators = await generatorService.getAllById();
-    return Object.keys(currentGenerators).filter(
-      (id) => !(id in snapshotGenerators),
-    );
+  ): Promise<void> {
+    switch (step.kind) {
+      case "restore-set":
+        await this.restoreSet(tokenStore, step.setName, step.flatTokens);
+        return;
+      case "restore-themes":
+        await resolverStore.lock.withLock(async () => {
+          await this.restoreThemes(dimensionsStore, step.dimensions);
+        });
+        return;
+      case "restore-resolver":
+        await resolverStore.lock.withLock(async () => {
+          await this.restoreResolver(resolverStore, step.name, step.file);
+        });
+        return;
+      case "delete-resolver":
+        await resolverStore.lock.withLock(async () => {
+          await resolverStore.delete(step.name);
+        });
+        return;
+      case "restore-generator":
+        await this.restoreGenerator(generatorService, step.generator);
+        return;
+      case "delete-generator":
+        await generatorService.delete(step.id);
+        return;
+      case "delete-set":
+        await tokenStore.deleteSet(step.setName);
+        return;
+    }
+  }
+
+  private async executeRestorePlan(
+    plan: RestorePlan,
+    journal: RestoreJournal,
+    tokenStore: TokenStore,
+    dimensionsStore: DimensionsStore,
+    resolverStore: ResolverStore,
+    generatorService: GeneratorService,
+    options: { recoveryMode: boolean },
+  ): Promise<boolean> {
+    let allResolved = true;
+
+    for (const step of this.listPendingRestoreSteps(plan, journal)) {
+      const retries = journal.failedStepAttempts[step.stepId] ?? 0;
+      const description = this.describeRestoreStep(step);
+
+      if (options.recoveryMode && retries >= MAX_RECOVERY_RETRIES) {
+        console.error(
+          `[ManualSnapshotStore] Restore step "${description}" has failed recovery ${retries} time(s) — quarantining. Manual intervention required.`,
+        );
+        journal.completedStepIds.push(step.stepId);
+        await this.writeRestoreJournal(journal);
+        continue;
+      }
+
+      try {
+        await this.executeRestoreStep(
+          step,
+          tokenStore,
+          dimensionsStore,
+          resolverStore,
+          generatorService,
+        );
+        journal.completedStepIds.push(step.stepId);
+        delete journal.failedStepAttempts[step.stepId];
+        await this.writeRestoreJournal(journal);
+      } catch (err) {
+        journal.failedStepAttempts[step.stepId] = retries + 1;
+        await this.writeRestoreJournal(journal);
+
+        if (!options.recoveryMode) {
+          throw err;
+        }
+
+        console.error(
+          `[ManualSnapshotStore] Recovery failed while trying to ${description} (attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
+          err,
+        );
+        allResolved = false;
+      }
+    }
+
+    return allResolved;
   }
 
   restore(
@@ -738,6 +1195,7 @@ export class ManualSnapshotStore {
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
     generatorService: GeneratorService,
+    currentWorkspaceState?: RestoreWorkspaceState,
   ): Promise<{
     restoredSets: string[];
     deletedSets: string[];
@@ -746,6 +1204,7 @@ export class ManualSnapshotStore {
     deletedResolvers: string[];
     restoredGenerators: string[];
     deletedGenerators: string[];
+    rollbackSteps: RollbackStep[];
   }> {
     return this.lock.withLock(async () => {
       await this.ensureLoaded();
@@ -754,97 +1213,31 @@ export class ManualSnapshotStore {
         throw new NotFoundError(`Snapshot "${id}" not found`);
       }
 
-      const [deleteSetNames, deleteResolverNames, deleteGeneratorIds] =
-        await Promise.all([
-          this.listSetsOutsideSnapshot(tokenStore, snapshot.data),
-          this.listResolversOutsideSnapshot(resolverStore, snapshot.resolvers),
-          this.listGeneratorsOutsideSnapshot(
-            generatorService,
-            snapshot.generators,
-          ),
-        ]);
-
-      const journal: RestoreJournal = {
-        snapshotId: snapshot.id,
-        snapshotLabel: snapshot.label,
-        data: snapshot.data,
-        dimensions: structuredClone(snapshot.dimensions),
-        resolvers: cloneResolvers(snapshot.resolvers),
-        generators: cloneGenerators(snapshot.generators),
-        completedSets: [],
-        deleteSetNames,
-        completedSetDeletes: [],
-        themesRestored: false,
-        completedResolvers: [],
-        deleteResolverNames,
-        completedResolverDeletes: [],
-        completedGenerators: [],
-        deleteGeneratorIds,
-        completedGeneratorDeletes: [],
-      };
+      const baseline =
+        currentWorkspaceState ??
+        (await this.captureRestoreWorkspaceState(
+          tokenStore,
+          dimensionsStore,
+          resolverStore,
+          generatorService,
+        ));
+      const plan = this.buildRestorePlanFromSnapshot(snapshot, baseline);
+      const journal = this.createRestoreJournal(plan);
       await this.writeRestoreJournal(journal);
 
-      const restoredSets: string[] = [];
-      for (const [setName, flatTokens] of Object.entries(snapshot.data)) {
-        await this.restoreSet(tokenStore, setName, flatTokens);
-        restoredSets.push(setName);
-        journal.completedSets.push(setName);
-        await this.writeRestoreJournal(journal);
-      }
-
-      await resolverStore.lock.withLock(async () => {
-        await this.restoreThemes(dimensionsStore, snapshot.dimensions);
-        journal.themesRestored = true;
-        await this.writeRestoreJournal(journal);
-
-        for (const [name, file] of Object.entries(snapshot.resolvers)) {
-          await this.restoreResolver(resolverStore, name, file);
-          journal.completedResolvers.push(name);
-          await this.writeRestoreJournal(journal);
-        }
-
-        for (const name of deleteResolverNames) {
-          await resolverStore.delete(name);
-          journal.completedResolverDeletes.push(name);
-          await this.writeRestoreJournal(journal);
-        }
-      });
-
-      const restoredGenerators: string[] = [];
-      for (const generator of Object.values(snapshot.generators)) {
-        await this.restoreGenerator(generatorService, generator);
-        restoredGenerators.push(generator.id);
-        journal.completedGenerators.push(generator.id);
-        await this.writeRestoreJournal(journal);
-      }
-
-      const deletedGenerators: string[] = [];
-      for (const generatorId of deleteGeneratorIds) {
-        await generatorService.delete(generatorId);
-        deletedGenerators.push(generatorId);
-        journal.completedGeneratorDeletes.push(generatorId);
-        await this.writeRestoreJournal(journal);
-      }
-
-      const deletedSets: string[] = [];
-      for (const setName of deleteSetNames) {
-        await tokenStore.deleteSet(setName);
-        deletedSets.push(setName);
-        journal.completedSetDeletes.push(setName);
-        await this.writeRestoreJournal(journal);
-      }
+      await this.executeRestorePlan(
+        plan,
+        journal,
+        tokenStore,
+        dimensionsStore,
+        resolverStore,
+        generatorService,
+        { recoveryMode: false },
+      );
 
       await this.deleteRestoreJournal();
 
-      return {
-        restoredSets,
-        deletedSets,
-        restoredThemes: true,
-        restoredResolvers: Object.keys(snapshot.resolvers),
-        deletedResolvers: deleteResolverNames,
-        restoredGenerators,
-        deletedGenerators,
-      };
+      return this.buildRestoreResult(plan);
     });
   }
 
@@ -862,34 +1255,9 @@ export class ManualSnapshotStore {
       return;
     }
 
-    const pendingSets = Object.keys(journal.data).filter(
-      (setName) => !journal.completedSets.includes(setName),
-    );
-    const pendingSetDeletes = journal.deleteSetNames.filter(
-      (setName) => !journal.completedSetDeletes.includes(setName),
-    );
-    const pendingResolvers = Object.keys(journal.resolvers).filter(
-      (name) => !journal.completedResolvers.includes(name),
-    );
-    const pendingResolverDeletes = journal.deleteResolverNames.filter(
-      (name) => !journal.completedResolverDeletes.includes(name),
-    );
-    const pendingGenerators = Object.keys(journal.generators).filter(
-      (id) => !journal.completedGenerators.includes(id),
-    );
-    const pendingGeneratorDeletes = journal.deleteGeneratorIds.filter(
-      (id) => !journal.completedGeneratorDeletes.includes(id),
-    );
+    const plan = this.buildRestorePlanFromJournal(journal);
 
-    if (
-      pendingSets.length === 0 &&
-      pendingSetDeletes.length === 0 &&
-      journal.themesRestored &&
-      pendingResolvers.length === 0 &&
-      pendingResolverDeletes.length === 0 &&
-      pendingGenerators.length === 0 &&
-      pendingGeneratorDeletes.length === 0
-    ) {
+    if (this.listPendingRestoreSteps(plan, journal).length === 0) {
       console.warn(
         `[ManualSnapshotStore] Stale restore journal for "${journal.snapshotLabel}" found; all restore steps are already complete — cleaning up`,
       );
@@ -901,208 +1269,15 @@ export class ManualSnapshotStore {
       `[ManualSnapshotStore] Recovering incomplete restore of snapshot "${journal.snapshotLabel}" (${journal.snapshotId})`,
     );
 
-    let allResolved = true;
-
-    for (const setName of pendingSets) {
-      const retries = journal.failedSets?.[setName] ?? 0;
-      if (retries >= MAX_RECOVERY_RETRIES) {
-        console.error(
-          `[ManualSnapshotStore] Set "${setName}" has failed recovery ${retries} time(s) — quarantining. Manual intervention required.`,
-        );
-        journal.completedSets.push(setName);
-        await this.writeRestoreJournal(journal);
-        continue;
-      }
-
-      try {
-        await this.restoreSet(tokenStore, setName, journal.data[setName]);
-        journal.completedSets.push(setName);
-        await this.writeRestoreJournal(journal);
-      } catch (err) {
-        console.error(
-          `[ManualSnapshotStore] Recovery failed for set "${setName}" (attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
-          err,
-        );
-        journal.failedSets = {
-          ...(journal.failedSets ?? {}),
-          [setName]: retries + 1,
-        };
-        await this.writeRestoreJournal(journal);
-        allResolved = false;
-      }
-    }
-
-    await resolverStore.lock.withLock(async () => {
-      if (!journal.themesRestored) {
-        const retries = journal.failedThemes ?? 0;
-        if (retries >= MAX_RECOVERY_RETRIES) {
-          console.error(
-            `[ManualSnapshotStore] Theme restore has failed ${retries} time(s) — quarantining. Manual intervention required.`,
-          );
-          journal.themesRestored = true;
-          await this.writeRestoreJournal(journal);
-        } else {
-          try {
-            await this.restoreThemes(dimensionsStore, journal.dimensions);
-            journal.themesRestored = true;
-            await this.writeRestoreJournal(journal);
-          } catch (err) {
-            console.error(
-              `[ManualSnapshotStore] Theme recovery failed (attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
-              err,
-            );
-            journal.failedThemes = retries + 1;
-            await this.writeRestoreJournal(journal);
-            allResolved = false;
-          }
-        }
-      }
-
-      for (const name of pendingResolvers) {
-        const retries = journal.failedResolvers?.[name] ?? 0;
-        if (retries >= MAX_RECOVERY_RETRIES) {
-          console.error(
-            `[ManualSnapshotStore] Resolver "${name}" has failed recovery ${retries} time(s) — quarantining. Manual intervention required.`,
-          );
-          journal.completedResolvers.push(name);
-          await this.writeRestoreJournal(journal);
-          continue;
-        }
-
-        try {
-          await this.restoreResolver(resolverStore, name, journal.resolvers[name]);
-          journal.completedResolvers.push(name);
-          await this.writeRestoreJournal(journal);
-        } catch (err) {
-          console.error(
-            `[ManualSnapshotStore] Recovery failed for resolver "${name}" (attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
-            err,
-          );
-          journal.failedResolvers = {
-            ...(journal.failedResolvers ?? {}),
-            [name]: retries + 1,
-          };
-          await this.writeRestoreJournal(journal);
-          allResolved = false;
-        }
-      }
-
-      for (const name of pendingResolverDeletes) {
-        const retries = journal.failedResolverDeletes?.[name] ?? 0;
-        if (retries >= MAX_RECOVERY_RETRIES) {
-          console.error(
-            `[ManualSnapshotStore] Resolver "${name}" has failed deletion ${retries} time(s) — quarantining. Manual intervention required.`,
-          );
-          journal.completedResolverDeletes.push(name);
-          await this.writeRestoreJournal(journal);
-          continue;
-        }
-
-        try {
-          await resolverStore.delete(name);
-          journal.completedResolverDeletes.push(name);
-          await this.writeRestoreJournal(journal);
-        } catch (err) {
-          console.error(
-            `[ManualSnapshotStore] Deleting resolver "${name}" during snapshot recovery failed (attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
-            err,
-          );
-          journal.failedResolverDeletes = {
-            ...(journal.failedResolverDeletes ?? {}),
-            [name]: retries + 1,
-          };
-          await this.writeRestoreJournal(journal);
-          allResolved = false;
-        }
-      }
-    });
-
-    for (const id of pendingGenerators) {
-      const retries = journal.failedGenerators?.[id] ?? 0;
-      if (retries >= MAX_RECOVERY_RETRIES) {
-        console.error(
-          `[ManualSnapshotStore] Generator "${id}" has failed recovery ${retries} time(s) — quarantining. Manual intervention required.`,
-        );
-        journal.completedGenerators.push(id);
-        await this.writeRestoreJournal(journal);
-        continue;
-      }
-
-      try {
-        await this.restoreGenerator(generatorService, journal.generators[id]);
-        journal.completedGenerators.push(id);
-        await this.writeRestoreJournal(journal);
-      } catch (err) {
-        console.error(
-          `[ManualSnapshotStore] Recovery failed for generator "${id}" (attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
-          err,
-        );
-        journal.failedGenerators = {
-          ...(journal.failedGenerators ?? {}),
-          [id]: retries + 1,
-        };
-        await this.writeRestoreJournal(journal);
-        allResolved = false;
-      }
-    }
-
-    for (const id of pendingGeneratorDeletes) {
-      const retries = journal.failedGeneratorDeletes?.[id] ?? 0;
-      if (retries >= MAX_RECOVERY_RETRIES) {
-        console.error(
-          `[ManualSnapshotStore] Generator "${id}" has failed deletion ${retries} time(s) — quarantining. Manual intervention required.`,
-        );
-        journal.completedGeneratorDeletes.push(id);
-        await this.writeRestoreJournal(journal);
-        continue;
-      }
-
-      try {
-        await generatorService.delete(id);
-        journal.completedGeneratorDeletes.push(id);
-        await this.writeRestoreJournal(journal);
-      } catch (err) {
-        console.error(
-          `[ManualSnapshotStore] Deleting generator "${id}" during snapshot recovery failed (attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
-          err,
-        );
-        journal.failedGeneratorDeletes = {
-          ...(journal.failedGeneratorDeletes ?? {}),
-          [id]: retries + 1,
-        };
-        await this.writeRestoreJournal(journal);
-        allResolved = false;
-      }
-    }
-
-    for (const setName of pendingSetDeletes) {
-      const retries = journal.failedSetDeletes?.[setName] ?? 0;
-      if (retries >= MAX_RECOVERY_RETRIES) {
-        console.error(
-          `[ManualSnapshotStore] Extra set "${setName}" has failed deletion ${retries} time(s) — quarantining. Manual intervention required.`,
-        );
-        journal.completedSetDeletes.push(setName);
-        await this.writeRestoreJournal(journal);
-        continue;
-      }
-
-      try {
-        await tokenStore.deleteSet(setName);
-        journal.completedSetDeletes.push(setName);
-        await this.writeRestoreJournal(journal);
-      } catch (err) {
-        console.error(
-          `[ManualSnapshotStore] Deleting extra set "${setName}" during snapshot recovery failed (attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
-          err,
-        );
-        journal.failedSetDeletes = {
-          ...(journal.failedSetDeletes ?? {}),
-          [setName]: retries + 1,
-        };
-        await this.writeRestoreJournal(journal);
-        allResolved = false;
-      }
-    }
+    const allResolved = await this.executeRestorePlan(
+      plan,
+      journal,
+      tokenStore,
+      dimensionsStore,
+      resolverStore,
+      generatorService,
+      { recoveryMode: true },
+    );
 
     if (allResolved) {
       await this.deleteRestoreJournal();

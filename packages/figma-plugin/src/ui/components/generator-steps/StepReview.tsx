@@ -89,8 +89,6 @@ export function StepReview({
 
   const newTokens = previewTokens.filter(pt => !existingOverwritePathSet.has(pt.path));
   const unchangedOverwriteTokens = previewTokens.filter(pt => existingOverwritePathSet.has(pt.path) && !overwritePaths.has(pt.path));
-  const hasPreview = previewTokens.length > 0;
-
   // Semantic patterns
   const suggestedPatterns = SEMANTIC_PATTERNS.filter(p => p.applicableTo.includes(selectedType));
   const showSemanticSection = !isEditing && (previewTokens.length > 0 || isMultiBrand) && !hasInterceptHandler;
@@ -107,17 +105,7 @@ export function StepReview({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 max-w-2xl mx-auto">
-
-      {/* Summary header */}
-      <div className="flex flex-col gap-1">
-        <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-          {isEditing ? 'Review changes' : 'Review & create'}
-        </h3>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          {name} → <span className="font-mono">{targetGroup}.*</span> in {isMultiBrand ? 'multi-brand' : targetSet}
-        </p>
-      </div>
+    <div className="px-4 py-3 flex flex-col gap-3">
 
       {/* Overwrite warning — new generator overwriting existing tokens */}
       {!isEditing && !isMultiBrand && existingOverwritePathSet.size > 0 && (
@@ -155,37 +143,6 @@ export function StepReview({
           </div>
         </div>
       )}
-
-      {/* Summary badges */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {hasPreview && newTokens.length > 0 && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-            {newTokens.length} new
-          </span>
-        )}
-        {overwrittenEntries.length > 0 && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14" /></svg>
-            {overwrittenEntries.length} modified
-          </span>
-        )}
-        {unchangedOverwriteTokens.length > 0 && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
-            {unchangedOverwriteTokens.length} unchanged
-          </span>
-        )}
-        {hasPreview && newTokens.length === 0 && overwrittenEntries.length === 0 && unchangedOverwriteTokens.length === 0 && (
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {previewTokens.length} token{previewTokens.length !== 1 ? 's' : ''} will be created (all new)
-          </span>
-        )}
-        {isMultiBrand && inputTable && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]">
-            {inputTable.rows.filter(r => r.brand.trim()).length} brand{inputTable.rows.filter(r => r.brand.trim()).length !== 1 ? 's' : ''}
-          </span>
-        )}
-      </div>
 
       {/* Modified tokens (diffs) */}
       {overwrittenEntries.length > 0 && (

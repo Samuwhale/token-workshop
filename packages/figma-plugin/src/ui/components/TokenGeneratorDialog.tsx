@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { ConfirmModal } from "./ConfirmModal";
-import { Collapsible } from "./Collapsible";
 import { EditorShell } from "./EditorShell";
 import type { TokenGenerator, GeneratorTemplate } from "../hooks/useGenerators";
 import {
@@ -102,17 +101,6 @@ export function TokenGeneratorDialog({
   });
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const previousPreviewCountRef = useRef(dialog.previewTokens.length);
-
-  useEffect(() => {
-    const hadPreview = previousPreviewCountRef.current > 0;
-    const hasPreview = dialog.previewTokens.length > 0;
-    if (dialog.showConfirmation || (hasPreview && !hadPreview)) {
-      setReviewOpen(true);
-    }
-    previousPreviewCountRef.current = dialog.previewTokens.length;
-  }, [dialog.previewTokens.length, dialog.showConfirmation]);
 
   const handleClose = useCallback(() => {
     if (dialog.isDirtyRef.current) {
@@ -355,42 +343,34 @@ export function TokenGeneratorDialog({
           {(dialog.previewTokens.length > 0 || dialog.showConfirmation) && (
             <>
               <div className="border-t border-[var(--color-figma-border)]" />
-              <div className="px-4 pt-3 pb-1">
-                <Collapsible
-                  open={reviewOpen}
-                  onToggle={() => setReviewOpen((v) => !v)}
-                  label={`Review & semantic aliases (${dialog.previewTokens.length} token${dialog.previewTokens.length !== 1 ? "s" : ""})`}
-                >
-                  <StepReview
-                    selectedType={dialog.selectedType}
-                    name={dialog.name}
-                    targetGroup={dialog.targetGroup}
-                    targetSet={dialog.targetSet}
-                    isEditing={dialog.isEditing}
-                    isMultiBrand={dialog.isMultiBrand}
-                    inputTable={dialog.inputTable}
-                    targetSetTemplate={dialog.targetSetTemplate}
-                    previewTokens={dialog.previewTokens}
-                    overwrittenEntries={dialog.overwrittenEntries}
-                    existingOverwritePathSet={dialog.existingOverwritePathSet}
-                    overwritePendingPaths={dialog.overwritePendingPaths}
-                    overwriteCheckLoading={dialog.overwriteCheckLoading}
-                    overwriteCheckError={dialog.overwriteCheckError}
-                    semanticEnabled={dialog.semanticEnabled}
-                    semanticPrefix={dialog.semanticPrefix}
-                    semanticMappings={dialog.semanticMappings}
-                    selectedSemanticPatternId={dialog.selectedSemanticPatternId}
-                    saveError={dialog.saveError}
-                    hasInterceptHandler={Boolean(onInterceptSemanticMapping)}
-                    onSemanticEnabledChange={dialog.setSemanticEnabled}
-                    onSemanticPrefixChange={dialog.setSemanticPrefix}
-                    onSemanticMappingsChange={dialog.setSemanticMappings}
-                    onSemanticPatternSelect={
-                      dialog.setSelectedSemanticPatternId
-                    }
-                  />
-                </Collapsible>
-              </div>
+              <StepReview
+                selectedType={dialog.selectedType}
+                name={dialog.name}
+                targetGroup={dialog.targetGroup}
+                targetSet={dialog.targetSet}
+                isEditing={dialog.isEditing}
+                isMultiBrand={dialog.isMultiBrand}
+                inputTable={dialog.inputTable}
+                targetSetTemplate={dialog.targetSetTemplate}
+                previewTokens={dialog.previewTokens}
+                overwrittenEntries={dialog.overwrittenEntries}
+                existingOverwritePathSet={dialog.existingOverwritePathSet}
+                overwritePendingPaths={dialog.overwritePendingPaths}
+                overwriteCheckLoading={dialog.overwriteCheckLoading}
+                overwriteCheckError={dialog.overwriteCheckError}
+                semanticEnabled={dialog.semanticEnabled}
+                semanticPrefix={dialog.semanticPrefix}
+                semanticMappings={dialog.semanticMappings}
+                selectedSemanticPatternId={dialog.selectedSemanticPatternId}
+                saveError={dialog.saveError}
+                hasInterceptHandler={Boolean(onInterceptSemanticMapping)}
+                onSemanticEnabledChange={dialog.setSemanticEnabled}
+                onSemanticPrefixChange={dialog.setSemanticPrefix}
+                onSemanticMappingsChange={dialog.setSemanticMappings}
+                onSemanticPatternSelect={
+                  dialog.setSelectedSemanticPatternId
+                }
+              />
             </>
           )}
         </EditorShell>

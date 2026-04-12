@@ -2,7 +2,7 @@
  * Step 2 — What: The creative workspace for configuring a generator.
  * Two-column layout: type + config (left), live preview (right).
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import type {
   GeneratorType,
   GeneratorConfig,
@@ -40,7 +40,7 @@ import { TypeThumbnail } from '../generators/TypeThumbnail';
 import { UnifiedSourceInput } from '../UnifiedSourceInput';
 import { Spinner } from '../Spinner';
 import { ValueDiff } from '../ValueDiff';
-import { Collapsible } from '../Collapsible';
+
 
 // ---------------------------------------------------------------------------
 // Props
@@ -89,10 +89,10 @@ export interface StepWhatProps {
 }
 
 // ---------------------------------------------------------------------------
-// Type card component (Phase 1B: intent-based visual cards)
+// Compact type selector — shows selected type with a dropdown to change
 // ---------------------------------------------------------------------------
 
-function TypeCard({
+function TypeDropdownItem({
   type,
   isSelected,
   isRecommended,
@@ -106,39 +106,114 @@ function TypeCard({
   return (
     <button
       type="button"
+      role="option"
+      aria-selected={isSelected}
       onClick={onSelect}
-      className={`w-full text-left p-2.5 rounded-lg border transition-all group relative ${
+      className={`w-full text-left px-2.5 py-2 flex items-center gap-2.5 transition-colors ${
         isSelected
-          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8 ring-1 ring-[var(--color-figma-accent)]/20'
-          : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)]'
+          ? 'bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]'
+          : 'hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
       }`}
     >
-      <div className="flex items-start gap-2.5">
-        {/* Thumbnail */}
-        <div className={`flex-none w-8 h-8 rounded flex items-center justify-center ${
-          isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'bg-[var(--color-figma-bg-secondary)]'
-        }`}>
-          <TypeThumbnail type={type} size={16} />
+      <div className="flex-none w-5 h-5 flex items-center justify-center">
+        <TypeThumbnail type={type} size={14} />
+      </div>
+      <span className="text-[10px] font-medium flex-1 min-w-0 truncate">
+        {TYPE_LABELS[type]}
+      </span>
+      {isRecommended && !isSelected && (
+        <span className="text-[9px] text-[var(--color-figma-accent)] shrink-0">rec.</span>
+      )}
+      {isSelected && (
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M2.5 6.5L5 9l4.5-6" /></svg>
+      )}
+    </button>
+  );
+}
+
+function TypeSelector({
+  selectedType,
+  recommendedType,
+  onTypeChange,
+}: {
+  selectedType: GeneratorType;
+  recommendedType: GeneratorType | undefined;
+  onTypeChange: (type: GeneratorType) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-colors ${
+          open
+            ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
+            : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40'
+        }`}
+      >
+        <div className="flex-none w-6 h-6 rounded flex items-center justify-center bg-[var(--color-figma-accent)]/10">
+          <TypeThumbnail type={selectedType} size={14} />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className={`text-[10px] font-semibold ${
-              isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)]'
-            }`}>
-              {TYPE_LABELS[type]}
-            </span>
-            {isRecommended && (
-              <span className="text-[10px] px-1 py-0.5 rounded-full bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-bold uppercase tracking-wider">
-                Recommended
-              </span>
-            )}
-          </div>
-          <p className="text-[9px] text-[var(--color-figma-text-secondary)] leading-snug mt-0.5">
-            {TYPE_DESCRIPTIONS[type]}
+        <div className="flex-1 min-w-0 text-left">
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+            {TYPE_LABELS[selectedType]}
+          </span>
+          <p className="text-[9px] text-[var(--color-figma-text-secondary)] leading-snug truncate">
+            {TYPE_DESCRIPTIONS[selectedType]}
           </p>
         </div>
-      </div>
-    </button>
+        <svg
+          width="10" height="10" viewBox="0 0 10 10" fill="currentColor"
+          className={`shrink-0 text-[var(--color-figma-text-secondary)] transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <path d="M2 3.5l3 4 3-4H2z" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1 max-h-[280px] overflow-y-auto"
+        >
+          {PRIMARY_TYPES.map(type => (
+            <TypeDropdownItem
+              key={type}
+              type={type}
+              isSelected={selectedType === type}
+              isRecommended={type === recommendedType}
+              onSelect={() => { onTypeChange(type); setOpen(false); }}
+            />
+          ))}
+          <div className="border-t border-[var(--color-figma-border)] my-1" />
+          <div className="px-2.5 py-1">
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase tracking-wider font-medium">Advanced</span>
+          </div>
+          {ADVANCED_TYPES.map(type => (
+            <TypeDropdownItem
+              key={type}
+              type={type}
+              isSelected={selectedType === type}
+              isRecommended={type === recommendedType}
+              onSelect={() => { onTypeChange(type); setOpen(false); }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -198,8 +273,6 @@ export function StepWhat({
   const typeExpectsColor = selectedType === 'colorRamp' || selectedType === 'accessibleColorPair' || selectedType === 'darkModeInversion';
   const typeExpectsDimension = selectedType === 'typeScale' || selectedType === 'spacingScale' || selectedType === 'borderRadiusScale';
 
-  const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
-
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="gen-dialog-grid gap-4">
@@ -207,50 +280,12 @@ export function StepWhat({
         {/* ---- LEFT: Config column ---- */}
         <div className="gen-dialog-config">
 
-          {/* Type selector — visual cards */}
-          <div>
-            <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-2">
-              Generator type
-              {recommendedType && selectedType !== recommendedType && (
-                <button
-                  type="button"
-                  onClick={() => onTypeChange(recommendedType)}
-                  className="ml-1.5 text-[var(--color-figma-accent)] hover:underline font-normal"
-                >
-                  Use recommended
-                </button>
-              )}
-            </label>
-            <div className="flex flex-col gap-1.5">
-              {PRIMARY_TYPES.map(type => (
-                <TypeCard
-                  key={type}
-                  type={type}
-                  isSelected={selectedType === type}
-                  isRecommended={type === recommendedType}
-                  onSelect={() => onTypeChange(type)}
-                />
-              ))}
-            </div>
-            <Collapsible
-              open={showAdvancedTypes}
-              onToggle={() => setShowAdvancedTypes(v => !v)}
-              className="mt-2"
-              label="Advanced generators"
-            >
-              <div className="flex flex-col gap-1.5 mt-1.5">
-                {ADVANCED_TYPES.map(type => (
-                  <TypeCard
-                    key={type}
-                    type={type}
-                    isSelected={selectedType === type}
-                    isRecommended={type === recommendedType}
-                    onSelect={() => onTypeChange(type)}
-                  />
-                ))}
-              </div>
-            </Collapsible>
-          </div>
+          {/* Type selector — compact dropdown */}
+          <TypeSelector
+            selectedType={selectedType}
+            recommendedType={recommendedType}
+            onTypeChange={onTypeChange}
+          />
 
           {/* Base value — unified source token / inline value input */}
           {typeNeedsValue && (

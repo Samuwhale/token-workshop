@@ -1637,3 +1637,11 @@
 - Considered but rejected: [RuntimeStateStore blocker/deferral persistence repeats prune calls heavily, but the read/write contract is still coherent and did not justify a backlog item on its own; Git workflow UI complexity did not clear the bar because the stronger verified issue is the server-side diff/parsing duplication underneath it.]
 - Notable: The strongest cross-cutting drift is in recovery and diff infrastructure: both manual snapshots and git-backed compare/restore flows currently reimplement the same traversal rules in parallel, so expanding either checkpoint scope or git diff semantics risks partial updates in the next change.
 ---
+## 2026-04-13 - Unify manual snapshot comparison and restore execution so restore and crash recovery stop drifting
+- Replaced duplicated snapshot diff walks with shared token/workspace comparison helpers, converted manual snapshot restore into a shared restore-plan executor with step-based journal progress, and routed snapshot restore undo metadata through the restore result so restore, recovery, and rollback use the same plan inputs.
+- Validation: `pnpm --filter @tokenmanager/server build` passed.
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L33, ~L237, ~L812, ~L1049, ~L1192; `packages/server/src/routes/snapshots.ts` ~L141
+- **Learnings for future iterations:**
+  - Durable restore workflows stay coherent when the journal tracks completion by explicit restore-step ids instead of per-artifact arrays; recovery can then reuse the live executor without hand-maintaining parallel loops.
+  - Snapshot undo metadata should come back from the restore plan itself, not be recomputed in the route, or new workspace artifact stages will update restore and recovery without updating rollback.
+---
