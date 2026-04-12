@@ -80,7 +80,7 @@
 - [x] [HIGH] Add a shared cross-workspace handoff contract with breadcrumbs and return paths
 - [x] [HIGH] Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
 - [x] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy
-- [ ] [HIGH] Redesign token tree rows for fast library scanning
+- [x] [HIGH] Redesign token tree rows for fast library scanning
 - [ ] [HIGH] Promote the token filter builder into the primary search discovery flow
 - [ ] [HIGH] Preserve hierarchy context in filtered token results
 - [x] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks

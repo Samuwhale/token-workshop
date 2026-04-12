@@ -4,6 +4,14 @@ import type { HasQualifierValue, ParsedQuery } from './tokenListUtils';
 
 export type FilterBuilderSection = 'type' | 'has' | 'path' | 'name' | 'value' | 'desc' | 'generator';
 
+export interface TokenSearchDiscoveryAction {
+  id: string;
+  label: string;
+  description: string;
+  emphasis?: 'builder' | 'query';
+  onSelect: () => void;
+}
+
 interface TokenSearchFilterChipsProps {
   isOpen?: boolean;
   selectedSection?: FilterBuilderSection | null;
@@ -73,6 +81,48 @@ function buildChips(parsedSearchQuery: ParsedQuery, selectedHasQualifiers: HasQu
 }
 
 const ADD_FILTER_SECTIONS: FilterBuilderSection[] = ['type', 'has', 'path', 'name', 'value', 'desc', 'generator'];
+
+export function TokenSearchDiscovery({
+  title = 'Suggested filters',
+  suggestions,
+}: {
+  title?: string;
+  suggestions: TokenSearchDiscoveryAction[];
+}) {
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div className="mt-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-2">
+      <div className="mb-1 flex items-center gap-1.5">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+          {title}
+        </span>
+        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+          Structured search without memorizing qualifiers
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((suggestion) => (
+          <button
+            key={suggestion.id}
+            type="button"
+            onClick={suggestion.onSelect}
+            className={`min-w-[120px] flex-1 rounded border px-2 py-1.5 text-left transition-colors ${
+              suggestion.emphasis === 'query'
+                ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'
+                : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
+            }`}
+          >
+            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">{suggestion.label}</div>
+            <div className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-tertiary)]">
+              {suggestion.description}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Inline filter chips displayed below the search input.

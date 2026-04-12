@@ -1745,3 +1745,11 @@
   - For dense token rows, keep one always-visible browse-summary slot and let active state expand the same badge rather than mounting a separate metadata strip; that preserves scanability without hiding provenance until hover.
   - Alias ownership should stay visible independently from resolved-value display, otherwise the "show resolved values" mode erases an important piece of token-library context.
 ---
+## 2026-04-13 - Promote the token filter builder into the primary search discovery flow
+- Replaced the icon-only filter affordance with a labeled `Filters` button, added an inline discovery strip under the token search box for empty and early plain-text queries, and wired those suggestions to either open the existing builder sections or rewrite the raw query into structured clauses like `name:`, `type:`, `value:`, and `generator:`.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/TokenList.tsx packages/figma-plugin/src/ui/components/TokenSearchFilterBuilder.tsx packages/figma-plugin/src/ui/hooks/useTokenSearch.ts packages/figma-plugin/src/ui/components/tokenListUtils.ts` passed with pre-existing `TokenList.tsx` unused-symbol warnings only. `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1486, ~L4141, ~L4337; `packages/figma-plugin/src/ui/components/TokenSearchFilterBuilder.tsx` ~L7, ~L85; `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` ~L418, ~L455, ~L530; `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L97, ~L215; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Keep structured-search discovery in the primary search lane: a small suggestion strip under the input is easier to find than an icon-only builder toggle, especially when the query is still empty.
+  - Query-to-filter conversions should rewrite the same raw search string instead of introducing separate draft state, otherwise manual qualifier editing and one-click builder actions drift apart.
+---

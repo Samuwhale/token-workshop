@@ -40,6 +40,8 @@ import {
   buildZoomBreadcrumb,
   QUERY_QUALIFIERS,
   replaceQueryToken,
+  getStructuredFilterDiscoveryTemplates,
+  isStructuredFilterDiscoveryQuery,
 } from "./tokenListUtils";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
@@ -94,8 +96,12 @@ import {
   RelocateTokenReviewPanel,
 } from "./ContextualReviewPanel";
 import { TokenListOverflowMenu } from "./TokenListOverflowMenu";
-import { TokenSearchFilterChips } from "./TokenSearchFilterBuilder";
+import {
+  TokenSearchDiscovery,
+  TokenSearchFilterChips,
+} from "./TokenSearchFilterBuilder";
 import type { FilterBuilderSection } from "./TokenSearchFilterBuilder";
+import type { TokenSearchDiscoveryAction } from "./TokenSearchFilterBuilder";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { InlineBanner } from "./InlineBanner";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
@@ -1276,6 +1282,7 @@ export function TokenList({
     addQueryQualifierValue,
     removeQueryQualifierValue,
     clearQueryQualifier,
+    replaceActiveQueryWithQualifierValue,
     removeQueryToken,
     filtersActive,
     activeFilterCount,
@@ -1474,6 +1481,137 @@ export function TokenList({
     filterBuilderOpen,
     getPreferredFilterBuilderSection,
     hasStructuredFilters,
+  ]);
+
+  const showSearchFilterDiscovery = useMemo(() => {
+    if (filterBuilderOpen) return false;
+    if (!isStructuredFilterDiscoveryQuery(searchQuery)) return false;
+    return !activeQueryToken.token.includes(":");
+  }, [activeQueryToken.token, filterBuilderOpen, searchQuery]);
+
+  const searchFilterDiscoverySuggestions = useMemo<
+    TokenSearchDiscoveryAction[]
+  >(() => {
+    if (!showSearchFilterDiscovery) return [];
+
+    const trimmedQuery = searchQuery.trim();
+    const queryLower = trimmedQuery.toLowerCase();
+    const queryTerms = trimmedQuery.split(/\s+/).filter(Boolean);
+    const canConvertCurrentQuery = queryTerms.length === 1;
+    const suggestions: TokenSearchDiscoveryAction[] = [];
+    const seen = new Set<string>();
+
+    const addSuggestion = (suggestion: TokenSearchDiscoveryAction) => {
+      if (seen.has(suggestion.id)) return;
+      seen.add(suggestion.id);
+      suggestions.push(suggestion);
+    };
+
+    if (trimmedQuery && canConvertCurrentQuery) {
+      addSuggestion({
+        id: `name:${queryLower}`,
+        label: `Name = ${trimmedQuery}`,
+        description: "Replace the current text search with a leaf-name filter.",
+        emphasis: "query",
+        onSelect: () =>
+          replaceActiveQueryWithQualifierValue("name", trimmedQuery),
+      });
+
+      addSuggestion({
+        id: `desc:${queryLower}`,
+        label: `Description = ${trimmedQuery}`,
+        description: "Turn this text into a description-only filter.",
+        emphasis: "query",
+        onSelect: () =>
+          replaceActiveQueryWithQualifierValue("desc", trimmedQuery),
+      });
+
+      if (trimmedQuery.includes(".")) {
+        addSuggestion({
+          id: `path:${queryLower}`,
+          label: `Path = ${trimmedQuery}`,
+          description: "Use the current path fragment as a structured path filter.",
+          emphasis: "query",
+          onSelect: () =>
+            replaceActiveQueryWithQualifierValue("path", trimmedQuery),
+        });
+      }
+
+      const looksLikeValue =
+        /^#[0-9a-fA-F]{3,8}$/.test(trimmedQuery) ||
+        /^\d+(\.\d+)?(px|rem|em|%)?$/.test(trimmedQuery);
+      if (looksLikeValue) {
+        addSuggestion({
+          id: `value:${queryLower}`,
+          label: `Value = ${trimmedQuery}`,
+          description: "Search within serialized token values.",
+          emphasis: "query",
+          onSelect: () =>
+            replaceActiveQueryWithQualifierValue("value", trimmedQuery),
+        });
+      }
+
+      const matchingType =
+        availableTypes.find((type) => type.toLowerCase() === queryLower) ??
+        availableTypes.find((type) => type.toLowerCase().startsWith(queryLower));
+      if (matchingType) {
+        addSuggestion({
+          id: `type:${matchingType.toLowerCase()}`,
+          label: `Type = ${matchingType}`,
+          description: "Replace the current text search with a type qualifier.",
+          emphasis: "query",
+          onSelect: () =>
+            replaceActiveQueryWithQualifierValue("type", matchingType),
+        });
+      }
+
+      const matchingGenerator = generatorNames.find((generatorName) =>
+        generatorName.toLowerCase().startsWith(queryLower),
+      );
+      if (matchingGenerator) {
+        addSuggestion({
+          id: `generator:${matchingGenerator.toLowerCase()}`,
+          label: `Generator = ${matchingGenerator}`,
+          description: "Jump straight to tokens produced by this generator.",
+          emphasis: "query",
+          onSelect: () =>
+            replaceActiveQueryWithQualifierValue("generator", matchingGenerator),
+        });
+      }
+    }
+
+    for (const template of getStructuredFilterDiscoveryTemplates(trimmedQuery)) {
+      addSuggestion({
+        id: template.id,
+        label: template.label,
+        description: template.description,
+        emphasis: template.mode === "toggle-qualifier" ? "query" : "builder",
+        onSelect: () => {
+          if (template.mode === "toggle-qualifier" && template.value) {
+            if (trimmedQuery && canConvertCurrentQuery) {
+              replaceActiveQueryWithQualifierValue(
+                template.qualifier,
+                template.value,
+              );
+            } else {
+              addQueryQualifierValue(template.qualifier, template.value);
+            }
+            return;
+          }
+          openFilterBuilderSection(template.qualifier);
+        },
+      });
+    }
+
+    return suggestions.slice(0, trimmedQuery ? 4 : 6);
+  }, [
+    addQueryQualifierValue,
+    availableTypes,
+    generatorNames,
+    openFilterBuilderSection,
+    replaceActiveQueryWithQualifierValue,
+    searchQuery,
+    showSearchFilterDiscovery,
   ]);
 
   // Sync displayedLeafNodesRef
@@ -4007,6 +4145,10 @@ export function TokenList({
                         </div>
                       )}
                   </div>
+                  <TokenSearchDiscovery
+                    title={searchQuery.trim() ? "Use this query as a filter" : "Start with a filter"}
+                    suggestions={searchFilterDiscoverySuggestions}
+                  />
                 </div>
               ) : (
                 <div className="flex-[999_1_0%]" />
@@ -4202,9 +4344,9 @@ export function TokenList({
                 {tokens.length > 0 && (
                   <button
                     onClick={toggleFilterBuilder}
-                    aria-label="Toggle filter builder"
-                    className={`inline-flex shrink-0 items-center justify-center rounded border px-1.5 py-1.5 transition-colors ${filterBuilderOpen || hasStructuredFilters ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"}`}
-                    title="Build filters"
+                    aria-label="Open structured filters"
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${filterBuilderOpen || hasStructuredFilters ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"}`}
+                    title="Open structured filters"
                   >
                     <svg
                       width="10"
@@ -4219,6 +4361,12 @@ export function TokenList({
                     >
                       <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
                     </svg>
+                    <span>Filters</span>
+                    {structuredFilterChips.length > 0 && (
+                      <span className="rounded-full bg-current/10 px-1 py-0.5 text-[9px] leading-none">
+                        {structuredFilterChips.length}
+                      </span>
+                    )}
                   </button>
                 )}
 

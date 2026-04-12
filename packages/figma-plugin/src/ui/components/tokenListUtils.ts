@@ -94,6 +94,18 @@ export interface QueryQualifierDefinition {
   valueHint?: string;
 }
 
+export type StructuredFilterKey = Exclude<QueryQualifierDefinition['key'], 'group'>;
+
+export interface FilterDiscoveryTemplate {
+  id: string;
+  label: string;
+  description: string;
+  qualifier: StructuredFilterKey;
+  mode: 'open-builder' | 'toggle-qualifier';
+  value?: string;
+  keywords: string[];
+}
+
 export interface QueryQualifierSuggestion {
   id: string;
   label: string;
@@ -199,6 +211,102 @@ export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'generator', qualifier: 'generator:', desc: 'Filter by generator name', example: 'generator:color-ramp', valueHint: 'Enter the generator name that produced the token.' },
   { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];
+
+const FILTER_DISCOVERY_TEMPLATES: FilterDiscoveryTemplate[] = [
+  {
+    id: 'type',
+    label: 'Type filters',
+    description: 'Browse by token type without typing type: clauses.',
+    qualifier: 'type',
+    mode: 'open-builder',
+    keywords: ['type', 'color', 'spacing', 'dimension', 'typography'],
+  },
+  {
+    id: 'has-alias',
+    label: 'Aliases',
+    description: 'Show reference tokens only.',
+    qualifier: 'has',
+    mode: 'toggle-qualifier',
+    value: 'alias',
+    keywords: ['alias', 'reference', 'ref'],
+  },
+  {
+    id: 'has-generated',
+    label: 'Generated',
+    description: 'Show generator-produced tokens.',
+    qualifier: 'has',
+    mode: 'toggle-qualifier',
+    value: 'generated',
+    keywords: ['generated', 'generator', 'derived'],
+  },
+  {
+    id: 'has-unused',
+    label: 'Unused',
+    description: 'Show tokens with no usage or alias dependents.',
+    qualifier: 'has',
+    mode: 'toggle-qualifier',
+    value: 'unused',
+    keywords: ['unused', 'orphan', 'cleanup'],
+  },
+  {
+    id: 'path',
+    label: 'Path filters',
+    description: 'Limit results to a group path like colors.brand.',
+    qualifier: 'path',
+    mode: 'open-builder',
+    keywords: ['path', 'group', 'folder', 'colors.brand'],
+  },
+  {
+    id: 'desc',
+    label: 'Descriptions',
+    description: 'Search within token descriptions.',
+    qualifier: 'desc',
+    mode: 'open-builder',
+    keywords: ['description', 'desc', 'notes', 'documentation'],
+  },
+  {
+    id: 'value',
+    label: 'Values',
+    description: 'Match a color, number, or string value.',
+    qualifier: 'value',
+    mode: 'open-builder',
+    keywords: ['value', 'hex', 'number', 'string'],
+  },
+];
+
+export function isStructuredFilterDiscoveryQuery(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed) return true;
+  if (hasStructuredQualifiers(trimmed)) return false;
+  const terms = trimmed.split(/\s+/).filter(Boolean);
+  return terms.length <= 2 && trimmed.length <= 32;
+}
+
+export function getStructuredFilterDiscoveryTemplates(raw: string): FilterDiscoveryTemplate[] {
+  const query = raw.trim().toLowerCase();
+  if (!query) return FILTER_DISCOVERY_TEMPLATES;
+
+  const scored = FILTER_DISCOVERY_TEMPLATES
+    .map((template) => {
+      const haystacks = [
+        template.label.toLowerCase(),
+        template.description.toLowerCase(),
+        ...(template.value ? [template.value.toLowerCase()] : []),
+        ...template.keywords.map((keyword) => keyword.toLowerCase()),
+      ];
+      let score = 0;
+      for (const haystack of haystacks) {
+        if (haystack.startsWith(query)) score = Math.max(score, 3);
+        else if (haystack.includes(query)) score = Math.max(score, 1);
+      }
+      if (template.value?.toLowerCase() === query) score = 4;
+      return { template, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score || left.template.label.localeCompare(right.template.label));
+
+  return scored.map((entry) => entry.template);
+}
 
 export function normalizeHasQualifier(value: string): HasQualifierValue | null {
   return (HAS_CANONICAL_MAP[value.toLowerCase()] as HasQualifierValue | undefined) ?? null;

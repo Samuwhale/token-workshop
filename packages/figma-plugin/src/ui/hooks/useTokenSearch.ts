@@ -15,6 +15,7 @@ import {
   findGroupByPath, parseStructuredQuery, QUERY_QUALIFIERS,
   getActiveQueryToken, getQualifierDefinitionForToken, getQueryQualifierValues,
   normalizeHasQualifier, removeQueryQualifierValues, setQueryQualifierValues,
+  replaceQueryToken,
 } from '../components/tokenListUtils';
 import { stableStringify } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
@@ -414,6 +415,22 @@ export function useTokenSearch({
     setSearchQuery(removeQueryQualifierValues(searchQuery, qualifier));
   }, [searchQuery, setSearchQuery]);
 
+  const replaceActiveQueryWithQualifierValue = useCallback((
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    value: string,
+  ) => {
+    const normalizedValue = value.trim().toLowerCase();
+    if (!normalizedValue) return;
+    const qualifierKey = qualifier === 'generator' ? 'generator' : qualifier;
+    setSearchQuery(
+      replaceQueryToken(
+        searchQuery,
+        activeQueryToken,
+        `${qualifierKey}:${normalizedValue}`,
+      ),
+    );
+  }, [activeQueryToken, searchQuery, setSearchQuery]);
+
   const removeQueryToken = useCallback((token: string) => {
     const next = searchQuery
       .split(/\s+/)
@@ -435,7 +452,7 @@ export function useTokenSearch({
     return chips;
   }, [parsedSearchQuery, selectedHasQualifiers]);
 
-  const searchTooltip = 'Search names, paths, and descriptions. Type qualifier prefixes like type: or has: for autocomplete, or use the + Filter button to add structured filters.';
+  const searchTooltip = 'Search names, paths, and descriptions. Use Filters for structured search, or type qualifier prefixes like type: and has: for autocomplete.';
 
   // displayedTokens: derived from search/filter state and component-level state
   const displayedTokens = useMemo(() => {
@@ -513,6 +530,7 @@ export function useTokenSearch({
     addQueryQualifierValue,
     removeQueryQualifierValue,
     clearQueryQualifier,
+    replaceActiveQueryWithQualifierValue,
     removeQueryToken,
     // Computed
     filtersActive,
