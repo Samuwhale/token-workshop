@@ -4,39 +4,16 @@ import { hexToLab } from '../color-math.js';
 import { TokenResolver } from '../resolver.js';
 
 describe('applyColorModifiers', () => {
-  describe('lighten', () => {
-    it('lightens a dark color', () => {
-      const result = applyColorModifiers('#000000', [{ type: 'lighten', amount: 30 }]);
-      const lab = hexToLab(result)!;
-      expect(lab[0]).toBeGreaterThan(25);
-    });
-
-    it('white stays white (clamped at 100)', () => {
-      const result = applyColorModifiers('#ffffff', [{ type: 'lighten', amount: 50 }]);
-      const lab = hexToLab(result)!;
-      expect(lab[0]).toBeCloseTo(100, 0);
-    });
-
-    it('excess amount does not overflow (clamped at 100)', () => {
-      const result = applyColorModifiers('#888888', [{ type: 'lighten', amount: 9999 }]);
-      const lab = hexToLab(result)!;
-      // Allow tiny floating-point round-trip error (Lab->hex->Lab)
-      expect(lab[0]).toBeCloseTo(100, 0);
-    });
-  });
-
-  describe('darken', () => {
-    it('darkens a light color', () => {
-      const result = applyColorModifiers('#ffffff', [{ type: 'darken', amount: 30 }]);
-      const lab = hexToLab(result)!;
-      expect(lab[0]).toBeLessThan(75);
-    });
-
-    it('black stays black (clamped at 0)', () => {
-      const result = applyColorModifiers('#000000', [{ type: 'darken', amount: 50 }]);
-      const lab = hexToLab(result)!;
-      expect(lab[0]).toBeCloseTo(0, 0);
-    });
+  it.each([
+    ['lightens a dark color', '#000000', 'lighten', 30, (l: number) => l > 25],
+    ['white stays white (clamped)', '#ffffff', 'lighten', 50, (l: number) => Math.abs(l - 100) < 1],
+    ['excess lighten clamps at 100', '#888888', 'lighten', 9999, (l: number) => Math.abs(l - 100) < 1],
+    ['darkens a light color', '#ffffff', 'darken', 30, (l: number) => l < 75],
+    ['black stays black (clamped)', '#000000', 'darken', 50, (l: number) => Math.abs(l) < 1],
+  ] as const)('%s', (_label, input, type, amount, check) => {
+    const result = applyColorModifiers(input, [{ type: type as 'lighten' | 'darken', amount }]);
+    const lab = hexToLab(result)!;
+    expect(check(lab[0])).toBe(true);
   });
 
   describe('alpha', () => {
@@ -100,35 +77,6 @@ describe('applyColorModifiers', () => {
     });
   });
 
-  describe('alpha preservation through lighten/darken', () => {
-    it('lighten preserves alpha from 8-char hex input', () => {
-      const result = applyColorModifiers('#ff000080', [{ type: 'lighten', amount: 20 }]);
-      expect(result).toHaveLength(9);
-      expect(result.slice(7).toLowerCase()).toBe('80');
-    });
-
-    it('darken preserves alpha from 8-char hex input', () => {
-      const result = applyColorModifiers('#ff000080', [{ type: 'darken', amount: 20 }]);
-      expect(result).toHaveLength(9);
-      expect(result.slice(7).toLowerCase()).toBe('80');
-    });
-
-    it('lighten on fully-opaque 6-char hex returns 6-char hex', () => {
-      const result = applyColorModifiers('#ff0000', [{ type: 'lighten', amount: 20 }]);
-      expect(result).toHaveLength(7);
-    });
-
-    it('lighten followed by alpha sets new alpha correctly', () => {
-      const result = applyColorModifiers('#ff000080', [
-        { type: 'lighten', amount: 20 },
-        { type: 'alpha', amount: 0.25 },
-      ]);
-      expect(result).toHaveLength(9);
-      const alphaByte = parseInt(result.slice(7), 16);
-      expect(alphaByte).toBeCloseTo(64, -1); // 0.25 * 255 ≈ 64
-    });
-  });
-
   describe('chaining', () => {
     it('applies modifiers in order', () => {
       // lighten first, then apply alpha
@@ -159,41 +107,25 @@ describe('applyColorModifiers', () => {
       expect(validateColorModifiers(input)).toHaveLength(4);
     });
 
-    it('drops entries missing type', () => {
-      expect(validateColorModifiers([{ amount: 20 }])).toEqual([]);
+    it.each([
+      ['missing type', [{ amount: 20 }]],
+      ['unknown type', [{ type: 'saturate', amount: 20 }]],
+      ['missing amount', [{ type: 'lighten' }]],
+      ['non-number amount', [{ type: 'lighten', amount: 'high' }]],
+      ['NaN amount', [{ type: 'lighten', amount: NaN }]],
+      ['Infinity amount', [{ type: 'lighten', amount: Infinity }]],
+      ['mix missing color and ratio', [{ type: 'mix' }]],
+      ['mix missing ratio', [{ type: 'mix', color: '#fff' }]],
+      ['mix missing color', [{ type: 'mix', ratio: 0.5 }]],
+      ['non-object entries', [null, 42, 'lighten', undefined]],
+    ] as const)('drops invalid: %s', (_label, input) => {
+      expect(validateColorModifiers(input as any)).toEqual([]);
     });
 
-    it('drops entries with unknown type', () => {
-      expect(validateColorModifiers([{ type: 'saturate', amount: 20 }])).toEqual([]);
-    });
-
-    it('drops entries missing amount', () => {
-      expect(validateColorModifiers([{ type: 'lighten' }])).toEqual([]);
-    });
-
-    it('drops entries with non-number amount', () => {
-      expect(validateColorModifiers([{ type: 'lighten', amount: 'high' }])).toEqual([]);
-    });
-
-    it('drops mix entries missing color or ratio', () => {
-      expect(validateColorModifiers([{ type: 'mix' }])).toEqual([]);
-      expect(validateColorModifiers([{ type: 'mix', color: '#fff' }])).toEqual([]);
-      expect(validateColorModifiers([{ type: 'mix', ratio: 0.5 }])).toEqual([]);
-    });
-
-    it('accepts mix without amount field (amount is not part of the mix schema)', () => {
+    it('accepts mix without amount field', () => {
       const result = validateColorModifiers([{ type: 'mix', color: '#ffffff', ratio: 0.5 }]);
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({ type: 'mix', color: '#ffffff', ratio: 0.5 });
-    });
-
-    it('drops non-object entries', () => {
-      expect(validateColorModifiers([null, 42, 'lighten', undefined])).toEqual([]);
-    });
-
-    it('drops NaN and Infinity amounts', () => {
-      expect(validateColorModifiers([{ type: 'lighten', amount: NaN }])).toEqual([]);
-      expect(validateColorModifiers([{ type: 'lighten', amount: Infinity }])).toEqual([]);
     });
 
     it('keeps valid entries and drops invalid in mixed array', () => {

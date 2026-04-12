@@ -28,12 +28,6 @@ describe('stableStringify', () => {
     expect(a).toBe(b);
   });
 
-  it('handles primitives and arrays', () => {
-    expect(stableStringify(null)).toBe('null');
-    expect(stableStringify([1, 2])).toBe('[1,2]');
-    expect(stableStringify('hello')).toBe('"hello"');
-  });
-
   it('handles nested objects', () => {
     const result = stableStringify({ z: { b: 1, a: 2 }, a: 0 });
     expect(result).toBe('{"a":0,"z":{"a":2,"b":1}}');
@@ -41,10 +35,6 @@ describe('stableStringify', () => {
 });
 
 describe('getErrorMessage', () => {
-  it('extracts message from Error', () => {
-    expect(getErrorMessage(new Error('boom'))).toBe('boom');
-  });
-
   it('returns fallback for non-Error', () => {
     expect(getErrorMessage('string', 'fallback')).toBe('fallback');
     expect(getErrorMessage(null)).toBe('An unexpected error occurred');

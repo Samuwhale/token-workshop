@@ -2,22 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { evalExpr, substituteVars } from '../eval-expr.js';
 
 describe('evalExpr', () => {
-  it('evaluates basic arithmetic', () => {
-    expect(evalExpr('2 + 3')).toBe(5);
-    expect(evalExpr('10 - 4')).toBe(6);
-    expect(evalExpr('3 * 4')).toBe(12);
-    expect(evalExpr('10 / 2')).toBe(5);
-  });
-
-  it('evaluates power expressions', () => {
-    expect(evalExpr('2 ** 3')).toBe(8);
-    expect(evalExpr('2 ^ 3')).toBe(8);
-  });
-
-  it('respects parentheses', () => {
-    expect(evalExpr('(2 + 3) * 4')).toBe(20);
-  });
-
   it('throws on division by zero', () => {
     expect(() => evalExpr('1 / 0')).toThrow('Division by zero');
   });

@@ -7,35 +7,21 @@ import type { ResolverFile } from '../types.js';
 // ---------------------------------------------------------------------------
 
 describe('validateDTCGValue', () => {
-  describe('null / undefined', () => {
-    it('rejects null', () => {
-      expect(validateDTCGValue(null, undefined, 'a.b')).toMatch(/null/);
-    });
-
-    it('rejects undefined', () => {
-      expect(validateDTCGValue(undefined, undefined, 'a.b')).toMatch(/undefined/);
-    });
-  });
-
-  describe('NaN / Infinity', () => {
-    it('rejects NaN', () => {
-      expect(validateDTCGValue(NaN, undefined, 'a.b')).toMatch(/NaN/);
-    });
-
-    it('rejects Infinity', () => {
-      expect(validateDTCGValue(Infinity, undefined, 'a.b')).toMatch(/non-finite/);
-    });
-
-    it('rejects -Infinity', () => {
-      expect(validateDTCGValue(-Infinity, undefined, 'a.b')).toMatch(/non-finite/);
+  describe('edge cases', () => {
+    it.each([
+      ['null', null, undefined, /null/],
+      ['undefined', undefined, undefined, /undefined/],
+      ['NaN', NaN, undefined, /NaN/],
+      ['Infinity', Infinity, undefined, /non-finite/],
+      ['-Infinity', -Infinity, undefined, /non-finite/],
+    ] as const)('rejects %s', (_label, value, type, pattern) => {
+      expect(validateDTCGValue(value, type, 'a.b')).toMatch(pattern);
     });
 
     it('accepts a valid finite number', () => {
       expect(validateDTCGValue(42, undefined, 'a.b')).toBeNull();
     });
-  });
 
-  describe('circular references', () => {
     it('rejects circular objects', () => {
       const circ: Record<string, unknown> = {};
       circ.self = circ;
@@ -56,130 +42,43 @@ describe('validateDTCGValue', () => {
     });
   });
 
-  describe('type: color', () => {
-    it('accepts a hex string', () => {
-      expect(validateDTCGValue('#ff0000', 'color', 'c.red')).toBeNull();
-    });
-
-    it('accepts an alias reference', () => {
-      expect(validateDTCGValue('{base.red}', 'color', 'c.red')).toBeNull();
-    });
-
-    it('rejects a number', () => {
-      expect(validateDTCGValue(16711680, 'color', 'c.red')).toMatch(/"color"/);
-    });
-
-    it('rejects an object', () => {
-      expect(validateDTCGValue({ r: 255, g: 0, b: 0 }, 'color', 'c.red')).toMatch(/"color"/);
-    });
-  });
-
-  describe('type: number', () => {
-    it('accepts a number', () => {
-      expect(validateDTCGValue(42, 'number', 'n.x')).toBeNull();
-    });
-
-    it('accepts a string (could be alias)', () => {
-      expect(validateDTCGValue('42', 'number', 'n.x')).toBeNull();
-    });
-
-    it('rejects a boolean', () => {
-      expect(validateDTCGValue(true, 'number', 'n.x')).toMatch(/"number"/);
+  describe('accepts valid values', () => {
+    it.each([
+      ['color: hex string', '#ff0000', 'color'],
+      ['color: alias reference', '{base.red}', 'color'],
+      ['number: numeric', 42, 'number'],
+      ['number: string (alias)', '42', 'number'],
+      ['boolean: true', true, 'boolean'],
+      ['boolean: false', false, 'boolean'],
+      ['cubicBezier: 4-element array', [0.25, 0.1, 0.25, 1], 'cubicBezier'],
+      ['dimension: {value, unit}', { value: 16, unit: 'px' }, 'dimension'],
+      ['dimension: CSS string', '16px', 'dimension'],
+      ['gradient: array of stops', [{ color: '#ff0000', position: 0 }, { color: '#0000ff', position: 1 }], 'gradient'],
+      ['typography: object', { fontFamily: 'Inter', fontSize: { value: 16, unit: 'px' }, fontWeight: 400, lineHeight: 1.5, letterSpacing: { value: 0, unit: 'px' } }, 'typography'],
+      ['typography: alias', '{base.type}', 'typography'],
+      ['unknown type: any value', { anything: true }, 'customType'],
+      ['undefined type: any value', [1, 2, 3], undefined],
+    ] as const)('%s', (_label, value, type) => {
+      expect(validateDTCGValue(value, type as string | undefined, 'x.y')).toBeNull();
     });
   });
 
-  describe('type: boolean', () => {
-    it('accepts true / false', () => {
-      expect(validateDTCGValue(true, 'boolean', 'f.flag')).toBeNull();
-      expect(validateDTCGValue(false, 'boolean', 'f.flag')).toBeNull();
-    });
-
-    it('rejects a number', () => {
-      expect(validateDTCGValue(1, 'boolean', 'f.flag')).toMatch(/"boolean"/);
-    });
-
-    it('rejects a string', () => {
-      expect(validateDTCGValue('true', 'boolean', 'f.flag')).toMatch(/"boolean"/);
-    });
-  });
-
-  describe('type: cubicBezier', () => {
-    it('accepts a 4-element number array', () => {
-      expect(validateDTCGValue([0.25, 0.1, 0.25, 1], 'cubicBezier', 'e.ease')).toBeNull();
-    });
-
-    it('rejects wrong length', () => {
-      expect(validateDTCGValue([0, 1, 2], 'cubicBezier', 'e.ease')).toMatch(/cubicBezier/);
-    });
-
-    it('rejects non-number elements', () => {
-      expect(validateDTCGValue([0, 'a', 1, 1], 'cubicBezier', 'e.ease')).toMatch(/cubicBezier/);
-    });
-
-    it('rejects NaN elements', () => {
-      expect(validateDTCGValue([0, NaN, 1, 1], 'cubicBezier', 'e.ease')).toMatch(/cubicBezier/);
-    });
-  });
-
-  describe('type: dimension', () => {
-    it('accepts {value, unit} object', () => {
-      expect(validateDTCGValue({ value: 16, unit: 'px' }, 'dimension', 'd.x')).toBeNull();
-    });
-
-    it('accepts a string (CSS shorthand or alias)', () => {
-      expect(validateDTCGValue('16px', 'dimension', 'd.x')).toBeNull();
-    });
-
-    it('rejects non-finite value', () => {
-      expect(validateDTCGValue({ value: NaN, unit: 'px' }, 'dimension', 'd.x')).toMatch(/finite/);
-    });
-
-    it('rejects missing unit', () => {
-      expect(validateDTCGValue({ value: 16 }, 'dimension', 'd.x')).toMatch(/unit/);
-    });
-
-    it('rejects null', () => {
-      expect(validateDTCGValue(null, 'dimension', 'd.x')).toBeTruthy();
-    });
-  });
-
-  describe('type: gradient', () => {
-    it('accepts an array of stops', () => {
-      expect(validateDTCGValue(
-        [{ color: '#ff0000', position: 0 }, { color: '#0000ff', position: 1 }],
-        'gradient', 'g.x',
-      )).toBeNull();
-    });
-
-    it('rejects a non-array', () => {
-      expect(validateDTCGValue({}, 'gradient', 'g.x')).toMatch(/gradient/);
-    });
-  });
-
-  describe('type: typography', () => {
-    it('accepts an object', () => {
-      expect(validateDTCGValue(
-        { fontFamily: 'Inter', fontSize: { value: 16, unit: 'px' }, fontWeight: 400, lineHeight: 1.5, letterSpacing: { value: 0, unit: 'px' } },
-        'typography', 't.body',
-      )).toBeNull();
-    });
-
-    it('rejects a string (unless alias)', () => {
-      expect(validateDTCGValue('Inter', 'typography', 't.body')).toMatch(/typography/);
-    });
-
-    it('accepts an alias reference', () => {
-      expect(validateDTCGValue('{base.type}', 'typography', 't.body')).toBeNull();
-    });
-  });
-
-  describe('unknown types', () => {
-    it('accepts any value when type is not in TOKEN_TYPE_VALUES', () => {
-      expect(validateDTCGValue({ anything: true }, 'customType', 'x.y')).toBeNull();
-    });
-
-    it('accepts any value when type is undefined', () => {
-      expect(validateDTCGValue([1, 2, 3], undefined, 'x.y')).toBeNull();
+  describe('rejects invalid typed values', () => {
+    it.each([
+      ['color: number', 16711680, 'color'],
+      ['color: object', { r: 255, g: 0, b: 0 }, 'color'],
+      ['number: boolean', true, 'number'],
+      ['boolean: number', 1, 'boolean'],
+      ['boolean: string', 'true', 'boolean'],
+      ['cubicBezier: wrong length', [0, 1, 2], 'cubicBezier'],
+      ['cubicBezier: non-number elements', [0, 'a', 1, 1], 'cubicBezier'],
+      ['cubicBezier: NaN elements', [0, NaN, 1, 1], 'cubicBezier'],
+      ['dimension: non-finite value', { value: NaN, unit: 'px' }, 'dimension'],
+      ['dimension: missing unit', { value: 16 }, 'dimension'],
+      ['gradient: non-array', {}, 'gradient'],
+      ['typography: plain string', 'Inter', 'typography'],
+    ] as const)('%s', (_label, value, type) => {
+      expect(validateDTCGValue(value, type, 'x.y')).toBeTruthy();
     });
   });
 });

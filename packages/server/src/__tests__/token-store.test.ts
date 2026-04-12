@@ -255,14 +255,11 @@ describe('TokenStore — token CRUD', () => {
     expect(token!.$value).toBe('#ff0000');
   });
 
-  it('getToken returns undefined for missing path', async () => {
-    const token = await store.getToken('base', 'color.missing');
-    expect(token).toBeUndefined();
-  });
-
-  it('getToken returns undefined for missing set', async () => {
-    const token = await store.getToken('ghost', 'color.red');
-    expect(token).toBeUndefined();
+  it.each([
+    ['missing path', 'base', 'color.missing'],
+    ['missing set', 'ghost', 'color.red'],
+  ])('getToken returns undefined for %s', async (_label, set, path) => {
+    expect(await store.getToken(set, path)).toBeUndefined();
   });
 
   it('createToken adds a new token', async () => {
@@ -298,14 +295,11 @@ describe('TokenStore — token CRUD', () => {
     expect(await store.getToken('base', 'color.red')).toBeUndefined();
   });
 
-  it('deleteToken returns false for missing token', async () => {
-    const deleted = await store.deleteToken('base', 'color.missing');
-    expect(deleted).toBe(false);
-  });
-
-  it('deleteToken returns false for missing set', async () => {
-    const deleted = await store.deleteToken('ghost', 'color.red');
-    expect(deleted).toBe(false);
+  it.each([
+    ['missing token', 'base', 'color.missing'],
+    ['missing set', 'ghost', 'color.red'],
+  ])('deleteToken returns false for %s', async (_label, set, path) => {
+    expect(await store.deleteToken(set, path)).toBe(false);
   });
 
   it('deleteTokens deletes multiple tokens in one save', async () => {
@@ -375,20 +369,18 @@ describe('TokenStore — circular reference detection', () => {
     ).rejects.toThrow(ConflictError);
   });
 
-  it('rejects a two-step cycle A → B → A', async () => {
+  it.each([
+    ['A → B → A', ['color.b'], 'color.a'],
+    ['A → B → C → A', ['color.b', 'color.c'], 'color.a'],
+  ])('rejects cycle: %s', async (_label, intermediates, loopBack) => {
     await store.createToken('base', 'color.a', { $value: '#ff0000', $type: 'color' });
-    await store.createToken('base', 'color.b', { $value: '{color.a}', $type: 'color' });
+    let prev = 'color.a';
+    for (const name of intermediates) {
+      await store.createToken('base', name, { $value: `{${prev}}`, $type: 'color' });
+      prev = name;
+    }
     await expect(
-      store.updateToken('base', 'color.a', { $value: '{color.b}' }),
-    ).rejects.toThrow(ConflictError);
-  });
-
-  it('rejects a three-step cycle A → B → C → A', async () => {
-    await store.createToken('base', 'color.a', { $value: '#ff0000', $type: 'color' });
-    await store.createToken('base', 'color.b', { $value: '{color.a}', $type: 'color' });
-    await store.createToken('base', 'color.c', { $value: '{color.b}', $type: 'color' });
-    await expect(
-      store.updateToken('base', 'color.a', { $value: '{color.c}' }),
+      store.updateToken('base', loopBack, { $value: `{${prev}}` }),
     ).rejects.toThrow(ConflictError);
   });
 

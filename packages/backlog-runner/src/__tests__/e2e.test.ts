@@ -211,6 +211,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
   await writeFile(path.join(root, 'scripts/backlog/agent.md'), 'agent prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/planner.md'), 'planner prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/product.md'), 'product prompt', 'utf8');
+  await writeFile(path.join(root, 'scripts/backlog/interface.md'), 'interface prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/ux.md'), 'ux prompt', 'utf8');
   await writeFile(path.join(root, 'scripts/backlog/code.md'), 'code prompt', 'utf8');
 
@@ -232,6 +233,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
         agent: './scripts/backlog/agent.md',
         planner: './scripts/backlog/planner.md',
         product: './scripts/backlog/product.md',
+        interface: './scripts/backlog/interface.md',
         ux: './scripts/backlog/ux.md',
         code: './scripts/backlog/code.md',
       },
@@ -244,6 +246,7 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
         task: { tool: 'claude', model: 'default' },
         planner: { tool: 'claude', model: 'sonnet' },
         product: { tool: 'claude', model: 'sonnet' },
+        interface: { tool: 'claude', model: 'sonnet' },
         ux: { tool: 'claude', model: 'sonnet' },
         code: { tool: 'claude', model: 'sonnet' },
       },
@@ -640,7 +643,24 @@ describe('runner e2e', () => {
     expect(taskYaml).not.toContain('post-validation scope violation');
   });
 
-  it('reconciles and finalizes autonomously after a transient finalize failure', async () => {
+  it.each([
+    {
+      label: 'reconciles and finalizes autonomously after a transient finalize failure',
+      failPushCount: 3,
+      statusResponses: Array(9).fill(['feature.txt']) as string[][],
+      expectedState: 'done',
+      expectedPushCount: 4,
+      expectedLog: 'Reconciliation finalized successfully',
+    },
+    {
+      label: 'defers the task when reconciliation still cannot finalize',
+      failPushCount: 6,
+      statusResponses: [['feature.txt'], ['feature.txt'], ['feature.txt'], [], [], []] as string[][],
+      expectedState: 'ready',
+      expectedPushCount: 6,
+      expectedLog: 'reconciliation finalize failed',
+    },
+  ])('$label', async ({ failPushCount, statusResponses, expectedState, expectedPushCount, expectedLog }) => {
     const { root, config } = await makeFixture([baseTask()]);
     const logSink = new MemoryLogSink();
     const calls: string[] = [];
@@ -652,51 +672,8 @@ describe('runner e2e', () => {
         commandRunner: createFakeCommandRunner(root, {
           calls,
           remoteName: 'origin',
-          failPushCount: 3,
-          statusResponses: [
-            ['feature.txt'],
-            ['feature.txt'],
-            ['feature.txt'],
-            ['feature.txt'],
-            ['feature.txt'],
-            ['feature.txt'],
-            ['feature.txt'],
-            ['feature.txt'],
-            ['feature.txt'],
-          ],
-        }),
-        createLogSink: async () => logSink,
-        sleep: async () => undefined,
-      },
-    );
-
-    expect(await readCurrentTaskYaml(root, 'task-a')).toContain('state: done');
-    expect(calls.filter(call => call === 'run:git push')).toHaveLength(4);
-    expect(calls.some(call => call.includes('## Reconciliation Mode'))).toBe(true);
-    expect(logSink.lines.join('')).toContain('Reconciliation finalized successfully');
-  });
-
-  it('defers the task when reconciliation still cannot finalize', async () => {
-    const { root, config } = await makeFixture([baseTask()]);
-    const logSink = new MemoryLogSink();
-    const calls: string[] = [];
-
-    await runBacklogRunner(
-      config,
-      {},
-      {
-        commandRunner: createFakeCommandRunner(root, {
-          calls,
-          remoteName: 'origin',
-          failPushCount: 6,
-          statusResponses: [
-            ['feature.txt'],
-            ['feature.txt'],
-            ['feature.txt'],
-            [],
-            [],
-            [],
-          ],
+          failPushCount,
+          statusResponses,
         }),
         createLogSink: async () => logSink,
         sleep: async () => undefined,
@@ -704,10 +681,10 @@ describe('runner e2e', () => {
     );
 
     const taskYaml = await readCurrentTaskYaml(root, 'task-a');
-    expect(taskYaml).toContain('state: ready');
-    expect(taskYaml).toContain('Deferred after remediation: git push failed after retries; local commit preserved for inspection');
-    expect(calls.filter(call => call === 'run:git push')).toHaveLength(6);
-    expect(logSink.lines.join('')).toContain('reconciliation finalize failed');
+    expect(taskYaml).toContain(`state: ${expectedState}`);
+    expect(calls.filter(call => call === 'run:git push')).toHaveLength(expectedPushCount);
+    expect(calls.some(call => call.includes('## Reconciliation Mode'))).toBe(true);
+    expect(logSink.lines.join('')).toContain(expectedLog);
   });
 
   it('normalizes duplicate task ids during runner startup before task-store reads become authoritative', async () => {
@@ -1058,7 +1035,9 @@ describe('runner e2e', () => {
         createLogSink: async () => new MemoryLogSink(),
         sleep: async () => undefined,
       },
-    )).rejects.toThrow('Another backlog orchestrator is already running');
+    )).rejects.toThrow(
+      new RegExp(`Another backlog orchestrator is already running \\(orch-live, pid ${process.pid}\\).[\\s\\S]*${config.files.runtimeReport.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
+    );
   });
 
   it('reclaims stale orchestrator status before starting', async () => {

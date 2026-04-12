@@ -47,6 +47,7 @@ async function makeFixture() {
         agent: './scripts/backlog/agent.md',
         planner: './scripts/backlog/planner.md',
         product: './scripts/backlog/product.md',
+        interface: './scripts/backlog/interface.md',
         ux: './scripts/backlog/ux.md',
         code: './scripts/backlog/code.md',
       },
@@ -59,6 +60,7 @@ async function makeFixture() {
         task: { tool: 'codex', model: 'default' },
         planner: { tool: 'codex', model: 'default' },
         product: { tool: 'codex', model: 'default' },
+        interface: { tool: 'claude', model: 'sonnet' },
         ux: { tool: 'codex', model: 'default' },
         code: { tool: 'codex', model: 'default' },
       },
@@ -188,11 +190,12 @@ describe('task store', () => {
     const storeB = createFileBackedTaskStore(config);
     const claimA = await claimNextRunnableTask(storeA, 'runner-a');
     const blockedClaim = await claimNextRunnableTask(storeB, 'runner-b');
-    const runtimeReportWhileBlocked = await readFile(config.files.runtimeReport, 'utf8');
 
     expect(claimA?.task.id).toBe('task-a');
     expect(blockedClaim).toBeNull();
-    expect(runtimeReportWhileBlocked).toContain('waiting on dependency: Task A');
+    const blockage = await storeB.getTaskBlockage('task-b');
+    expect(blockage).not.toBeNull();
+    expect(blockage!.reason).toMatch(/dependency/i);
 
     await storeA.completeClaim(claimA!, 'done');
     const claimB = await claimNextRunnableTask(storeB, 'runner-b');
@@ -282,11 +285,12 @@ describe('task store', () => {
     const storeB = createFileBackedTaskStore(config);
     const claimA = await claimNextRunnableTask(storeA, 'runner-a');
     const blockedClaim = await claimNextRunnableTask(storeB, 'runner-b');
-    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
 
     expect(claimA?.task.id).toBe('task-a');
     expect(blockedClaim).toBeNull();
-    expect(runtimeReport).toContain('waiting on active reservation: Task A');
+    const blockage = await storeB.getTaskBlockage('task-b');
+    expect(blockage).not.toBeNull();
+    expect(blockage!.reason).toMatch(/reservation/i);
   });
 
   it('skips conflicting tasks within the same batch claim', async () => {
@@ -393,14 +397,11 @@ describe('task store', () => {
 
     const reclaimedRuntime = await storeB.reapStaleRuntimeState();
     const reclaimed = await claimNextRunnableTask(storeB, 'runner-b');
-    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
 
     expect(reclaimedRuntime.deadRunnerLeases).toBe(1);
     expect(reclaimed?.task.id).toBe('task-a');
-    expect(runtimeReport).toContain('## Active Leases');
-    expect(runtimeReport).toContain('- None');
-    expect(runtimeReport).toContain('## Active Task Progress');
-    expect(runtimeReport).toContain('- None');
+    const blockage = await storeB.getTaskBlockage('task-a');
+    expect(blockage).toBeNull();
   });
 
   it('blocks deferred ready tasks until the runtime deferral expires', async () => {
@@ -416,16 +417,14 @@ describe('task store', () => {
     const countsWhileDeferred = await store.getQueueCounts();
     const blockage = await store.getTaskBlockage('task-a');
     const blockedClaim = await claimNextRunnableTask(store, 'runner-b');
-    const taskYaml = await readFile(path.join(config.files.taskSpecsDir, 'task-a.yaml'), 'utf8');
-    const runtimeReport = await readFile(config.files.runtimeReport, 'utf8');
 
     expect(countsWhileDeferred.ready).toBe(0);
     expect(countsWhileDeferred.blocked).toBe(1);
     expect(blockage?.reason).toBe('dirty workspace preflight: staged user-staged.txt');
     expect(blockage?.retryAt).toMatch(/\d{4}-\d{2}-\d{2}T/);
     expect(blockedClaim).toBeNull();
-    expect(taskYaml).toContain('Deferred: dirty workspace preflight: staged user-staged.txt');
-    expect(runtimeReport).toContain('retry after');
+    const spec = await store.getTaskSpec('task-a');
+    expect(spec?.statusNotes?.some(n => n.includes('Deferred'))).toBe(true);
 
     const db = new Database(config.files.stateDb);
     db.prepare('UPDATE deferrals SET retry_at = ? WHERE task_id = ?').run('2000-01-01T00:00:00.000Z', 'task-a');
