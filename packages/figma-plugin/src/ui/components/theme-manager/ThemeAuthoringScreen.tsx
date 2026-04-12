@@ -845,16 +845,6 @@ export const ThemeAuthoringScreen = forwardRef<
                         }
                       }}
                     >
-                      <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-                        <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                          Theme review tools
-                        </div>
-                        <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                          Keep authoring focused on axes, options, set roles,
-                          and preview. Open review or expert flows only when
-                          needed.
-                        </div>
-                      </div>
                       <div className="p-2">
                         <div className="mb-1 px-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                           Current context
