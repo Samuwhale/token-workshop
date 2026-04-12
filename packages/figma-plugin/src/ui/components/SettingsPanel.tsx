@@ -189,6 +189,7 @@ export interface SettingsPanelProps {
   onRestartGuidedSetup: () => void;
   /** Called after deleting workspace data so the caller can refresh into recovery. */
   onClearAllComplete?: () => void;
+  onOpenShortcuts?: () => void;
   // Close
   onClose: () => void;
 }
@@ -266,6 +267,7 @@ export function SettingsPanel({
   updateServerUrlAndConnect,
   onRestartGuidedSetup,
   onClearAllComplete,
+  onOpenShortcuts,
   onClose,
 }: SettingsPanelProps) {
   // --- Connection state (owned here, not lifted) ---
@@ -635,6 +637,27 @@ export function SettingsPanel({
             Adjust how TokenManager feels on this machine. Most changes apply
             right away.
           </p>
+
+          <Section title="Help">
+            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              Use help surfaces when you need a quick reminder, then return to
+              settings for the lower-frequency admin work.
+            </p>
+            <button
+              onClick={onOpenShortcuts}
+              className="flex w-full items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+            >
+              <span>Open keyboard shortcuts</span>
+              <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                ?
+              </span>
+            </button>
+            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              Shortcut search, navigation, and editing commands live there so
+              settings can stay focused on preferences, recovery, and server
+              configuration.
+            </p>
+          </Section>
 
           <Section title="Workspace behavior">
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">

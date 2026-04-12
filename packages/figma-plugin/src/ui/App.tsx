@@ -665,6 +665,9 @@ export function App() {
     () => resolveSecondarySurface(activeSecondarySurface),
     [activeSecondarySurface],
   );
+  const shellShortcutSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
+    (surface) => surface.access === "shell-shortcut",
+  );
   const shellMenuSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
     (surface) => surface.access === "shell-menu",
   );
@@ -1509,6 +1512,19 @@ export function App() {
     },
     [clearHandoff, dismissEphemeralOverlays, openSecondarySurface],
   );
+  const openSettingsHelpPanel = useCallback(
+    (panel: Extract<SecondarySurfaceId, "shortcuts">) => {
+      dismissEphemeralOverlays();
+      beginHandoff({
+        reason:
+          "Review the keyboard reference, then jump back into settings if you still need to adjust preferences or recovery tools.",
+        returnLabel: "Back to Settings",
+        returnSecondarySurfaceId: "settings",
+      });
+      openSecondarySurface(panel);
+    },
+    [beginHandoff, dismissEphemeralOverlays, openSecondarySurface],
+  );
   const toggleSecondarySurface = useCallback(
     (panel: SecondarySurfaceId) => {
       guardEditorAction(() => {
@@ -1850,6 +1866,7 @@ export function App() {
       },
       openPasteModal: () => setShowPasteModal(true),
       openImportPanel: () => openSecondaryPanel("import"),
+      openShortcutsPanelFromSettings: () => openSettingsHelpPanel("shortcuts"),
       openColorScaleGenerator: () => setShowColorScaleGen(true),
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
       toggleSetSwitcher: () => setShowSetSwitcher((visible) => !visible),
@@ -2607,7 +2624,7 @@ export function App() {
       case "sets":
         return [
           {
-            label: `${sets.length} set${sets.length === 1 ? "" : "s"}`,
+            label: `${sets.length} authoring set${sets.length === 1 ? "" : "s"}`,
             tone: "info",
           },
         ];
@@ -2859,6 +2876,21 @@ export function App() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
+            {shellShortcutSurfaces.map((surface) => (
+              <button
+                key={surface.id}
+                onClick={() => toggleSecondarySurface(surface.id)}
+                className={shellControlClass({
+                  active: activeSecondarySurface === surface.id,
+                  size: "md",
+                  shape: "rounded",
+                })}
+                aria-pressed={activeSecondarySurface === surface.id}
+                title={surface.transition.usage}
+              >
+                {surface.label}
+              </button>
+            ))}
             {showNotificationButton && notificationSurface && (
               <button
                 onClick={() => toggleSecondarySurface(notificationSurface.id)}
@@ -3011,10 +3043,11 @@ export function App() {
                     <div>
                       <div className="px-3 py-1.5">
                         <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                          Settings & shortcuts
+                          Settings
                         </div>
                         <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          Open settings or review keyboard shortcuts.
+                          Open preferences, recovery tools, and connection
+                          controls.
                         </div>
                       </div>
                       {shellMenuSurfaces.map((surface) => (
@@ -3031,9 +3064,7 @@ export function App() {
                         >
                           <span>{surface.label}</span>
                           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                            {surface.id === "shortcuts"
-                              ? adaptShortcut(SHORTCUT_KEYS.SHOW_SHORTCUTS)
-                              : adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}
+                            {adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}
                           </span>
                         </button>
                       ))}

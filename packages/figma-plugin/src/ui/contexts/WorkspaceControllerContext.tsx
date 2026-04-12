@@ -11,7 +11,11 @@ import type { ThemeManagerHandle } from "../components/ThemeManager";
 import type { PublishPanelHandle } from "../components/PublishPanel";
 import type { StartHereBranch } from "../components/WelcomePrompt";
 import type { LintViolation } from "../hooks/useLint";
-import type { ValidationIssue, ValidationSnapshot, ValidationSummary } from "../hooks/useValidationCache";
+import type {
+  ValidationIssue,
+  ValidationSnapshot,
+  ValidationSummary,
+} from "../hooks/useValidationCache";
 import type { OperationEntry } from "../hooks/useRecentOperations";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenNode } from "../hooks/useTokens";
@@ -19,7 +23,10 @@ import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { StarredTokensState } from "../hooks/useStarredTokens";
 import type { NotificationEntry } from "../hooks/useToastStack";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
-import type { ImportNextStepRecommendation, SurfaceTransition } from "../shared/navigationTypes";
+import type {
+  ImportNextStepRecommendation,
+  SurfaceTransition,
+} from "../shared/navigationTypes";
 import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
 
 export interface ShellWorkspaceController {
@@ -28,6 +35,7 @@ export interface ShellWorkspaceController {
   openCommandPaletteWithQuery: (query: string) => void;
   openPasteModal: () => void;
   openImportPanel: () => void;
+  openShortcutsPanelFromSettings: () => void;
   openColorScaleGenerator: () => void;
   toggleQuickApply: () => void;
   toggleSetSwitcher: () => void;
@@ -229,9 +237,8 @@ export interface WorkspaceControllerValue {
   setManager: SetManagerWorkspaceController;
 }
 
-const WorkspaceControllerContext = createContext<WorkspaceControllerValue | null>(
-  null,
-);
+const WorkspaceControllerContext =
+  createContext<WorkspaceControllerValue | null>(null);
 
 export function WorkspaceControllerProvider({
   children,

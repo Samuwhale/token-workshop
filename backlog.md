@@ -76,7 +76,7 @@
 - [x] [HIGH] Centralize generator write-route bookkeeping so step overrides and orphan cleanup become rollbackable server operations
 - [x] [HIGH] Integrate resolver dimension context into theme authoring so multi-mode token assignments are visible without navigating to the Advanced screen
 - [x] [HIGH] Unify manual snapshot comparison and restore execution so restore and crash recovery stop drifting
-- [ ] [HIGH] Differentiate workspace, section, and contextual-screen depth in the plugin shell
+- [x] [HIGH] Differentiate workspace, section, and contextual-screen depth in the plugin shell
 - [x] [HIGH] Add a shared cross-workspace handoff contract with breadcrumbs and return paths
 - [x] [HIGH] Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
 - [ ] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy

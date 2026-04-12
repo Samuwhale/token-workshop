@@ -823,7 +823,7 @@ export function SetSwitcher({
                 onClick={onManageSets}
                 className="rounded px-1.5 py-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                Open set manager
+                Manage set structure
               </button>
             )}
             <span className="opacity-60">↑↓ navigate · ↵ switch</span>
@@ -1163,7 +1163,7 @@ export function SetManager({
             Back
           </button>
           <span className="ml-1 text-[10px] font-medium text-[var(--color-figma-text)]">
-            Token set manager
+            Set structure manager
           </span>
           {onOpenQuickSwitch && (
             <button

@@ -161,6 +161,7 @@ export function PanelRouter(): ReactNode {
     ...shipController,
     onShowPasteModal: shell.openPasteModal,
     onShowImportPanel: shell.openImportPanel,
+    onOpenShortcutsPanelFromSettings: shell.openShortcutsPanelFromSettings,
     onShowColorScaleGen: shell.openColorScaleGenerator,
     onOpenStartHere: shell.openStartHere,
     onRestartGuidedSetup: shell.restartGuidedSetup,
@@ -549,7 +550,8 @@ export function PanelRouter(): ReactNode {
     onTokenTouched: (path: string) => {
       controller.recentlyTouched.recordTouch(path);
     },
-    onToggleStar: (path: string) => controller.starredTokens.toggleStar(path, activeSet),
+    onToggleStar: (path: string) =>
+      controller.starredTokens.toggleStar(path, activeSet),
     starredPaths: new Set(
       controller.starredTokens.tokens
         .filter((t) => t.setName === activeSet)
@@ -842,7 +844,9 @@ export function PanelRouter(): ReactNode {
       className="shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-row overflow-hidden"
       style={{ width: editorWidth }}
       data-surface-kind={controller.contextualEditorTransition.kind}
-      data-surface-presentation={controller.contextualEditorTransition.presentation}
+      data-surface-presentation={
+        controller.contextualEditorTransition.presentation
+      }
       data-tokens-library-surface-slot={
         TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id
       }
@@ -881,7 +885,9 @@ export function PanelRouter(): ReactNode {
       <div
         className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
         data-surface-kind={controller.contextualEditorTransition.kind}
-        data-surface-presentation={controller.contextualEditorTransition.presentation}
+        data-surface-presentation={
+          controller.contextualEditorTransition.presentation
+        }
         data-tokens-library-surface-slot={
           TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id
         }
@@ -934,14 +940,10 @@ export function PanelRouter(): ReactNode {
         reason: recommendation.rationale,
         returnSecondarySurfaceId: "import",
       });
-      navigateTo(
-        recommendation.target.topTab,
-        recommendation.target.subTab,
-        {
-          preserveSecondarySurface: options?.preserveSecondarySurface,
-          preserveHandoff: true,
-        },
-      );
+      navigateTo(recommendation.target.topTab, recommendation.target.subTab, {
+        preserveSecondarySurface: options?.preserveSecondarySurface,
+        preserveHandoff: true,
+      });
     },
     [beginHandoff, navigateTo, setActiveSet],
   );
@@ -987,7 +989,9 @@ export function PanelRouter(): ReactNode {
         metadataDescription={setManagerController.metadataDescription}
         setMetadataDescription={setManagerController.setMetadataDescription}
         metadataCollectionName={setManagerController.metadataCollectionName}
-        setMetadataCollectionName={setManagerController.setMetadataCollectionName}
+        setMetadataCollectionName={
+          setManagerController.setMetadataCollectionName
+        }
         metadataModeName={setManagerController.metadataModeName}
         setMetadataModeName={setManagerController.setMetadataModeName}
         onMetadataClose={setManagerController.onMetadataClose}
@@ -1072,6 +1076,7 @@ export function PanelRouter(): ReactNode {
         updateServerUrlAndConnect={updateServerUrlAndConnect}
         onRestartGuidedSetup={controller.onRestartGuidedSetup}
         onClearAllComplete={controller.onClearAllComplete}
+        onOpenShortcuts={controller.onOpenShortcutsPanelFromSettings}
         onClose={closeSecondarySurface}
       />
     ),
@@ -1263,7 +1268,9 @@ export function PanelRouter(): ReactNode {
             ref={controller.splitContainerRef}
             className="flex flex-col h-full overflow-hidden"
             data-surface-kind={controller.splitPreviewTransition.kind}
-            data-surface-presentation={controller.splitPreviewTransition.presentation}
+            data-surface-presentation={
+              controller.splitPreviewTransition.presentation
+            }
             data-tokens-library-surface-slot={
               TOKENS_LIBRARY_SURFACE_CONTRACT.splitPreview.id
             }
@@ -1356,7 +1363,9 @@ export function PanelRouter(): ReactNode {
           pendingTemplateId={controller.pendingGraphTemplate}
           onApplyTemplate={() => controller.setPendingGraphTemplate(null)}
           pendingGroupPath={controller.pendingGraphFromGroup?.groupPath ?? null}
-          pendingGroupTokenType={controller.pendingGraphFromGroup?.tokenType ?? null}
+          pendingGroupTokenType={
+            controller.pendingGraphFromGroup?.tokenType ?? null
+          }
           onClearPendingGroup={() => {
             controller.setPendingGraphFromGroup(null);
             controller.setPendingOpenPicker(false);

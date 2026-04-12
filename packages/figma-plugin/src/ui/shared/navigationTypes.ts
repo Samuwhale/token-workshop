@@ -132,10 +132,12 @@ export type UtilityActionId =
   | "paste-tokens"
   | "window-size";
 export type SecondarySurfaceAccess =
+  | "shell-shortcut"
   | "workspace-context"
   | "set-switcher"
   | "attention-bell"
-  | "shell-menu";
+  | "shell-menu"
+  | "settings-help";
 
 export interface WorkspaceRoute {
   topTab: TopTab;
@@ -596,18 +598,18 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
     id: "import",
     label: "Import",
     summaryTitle: "Import tokens",
-    access: "workspace-context",
+    access: "shell-shortcut",
     transition: secondaryTakeoverTransition(
       "Bring external tokens into the library.",
     ),
   },
   {
     id: "sets",
-    label: "Sets",
-    summaryTitle: "Token set manager",
+    label: "Set structure",
+    summaryTitle: "Set structure manager",
     access: "set-switcher",
     transition: secondaryTakeoverTransition(
-      "Rename, merge, split, reorder, and label sets.",
+      "Own token authoring structure here: rename, merge, split, reorder, and label sets.",
     ),
   },
   {
@@ -623,9 +625,9 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
     id: "shortcuts",
     label: "Shortcuts",
     summaryTitle: "Keyboard shortcuts",
-    access: "shell-menu",
+    access: "settings-help",
     transition: secondaryTakeoverTransition(
-      "Keep the keyboard shortcut list close while you work.",
+      "Open the keyboard reference when you need a quick reminder.",
     ),
   },
   {
@@ -940,10 +942,7 @@ export function resolveWorkspaceSummary(
     workspaceLabel: workspace.label,
     workspaceTitle,
     currentLabel,
-    currentTitle:
-      section?.summaryTitle ??
-      section?.label ??
-      workspaceTitle,
+    currentTitle: section?.summaryTitle ?? section?.label ?? workspaceTitle,
     currentDepthLabel: resolveWorkspaceCurrentDepthLabel(section),
   };
 }
