@@ -13,6 +13,13 @@ export type ThemeManagerView =
   | "coverage"
   | "compare"
   | "advanced";
+
+export interface ThemeRoleNavigationTarget {
+  dimId: string | null;
+  optionName: string | null;
+  preferredSetName?: string | null;
+}
+
 export type ThemeIssueKind =
   | "stale-set"
   | "empty-override"

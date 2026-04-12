@@ -4,12 +4,12 @@ import React, {
   useRef,
   useMemo,
   useCallback,
+  useImperativeHandle,
 } from "react";
 import { Spinner } from "./Spinner";
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { ResolverContentProps } from "./ResolverPanel";
-import { ResolverContent } from "./ResolverPanel";
 import {
   STATE_LABELS,
   STATE_DESCRIPTIONS,
@@ -20,7 +20,6 @@ import {
 } from "./themeManagerTypes";
 import { useThemeDragDrop } from "../hooks/useThemeDragDrop";
 import { useThemeBulkOps } from "../hooks/useThemeBulkOps";
-import { UnifiedComparePanel } from "./UnifiedComparePanel";
 import type { CompareMode } from "./UnifiedComparePanel";
 import type { TokenMapEntry } from "../../shared/types";
 import { useThemeAutoFill } from "../hooks/useThemeAutoFill";
@@ -31,9 +30,8 @@ import { useThemeCompare } from "../hooks/useThemeCompare";
 import {
   ThemeManagerModalsProvider,
   ThemeManagerModals,
+  useThemeManagerModalsValue,
 } from "./ThemeManagerContext";
-import type { ThemeManagerModalsState } from "./ThemeManagerContext";
-import { ThemeCoverageMatrix } from "./ThemeCoverageMatrix";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 import { adaptShortcut } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
@@ -43,14 +41,12 @@ import type {
   ThemeAuthoringStage,
   ThemeIssueSummary,
   ThemeManagerView,
+  ThemeRoleNavigationTarget,
   ThemeWorkspaceShellState,
 } from "../shared/themeWorkflow";
-
-interface ThemeRoleNavigationTarget {
-  dimId: string | null;
-  optionName: string | null;
-  preferredSetName?: string | null;
-}
+import { ThemeCoverageScreen } from "./theme-manager/ThemeCoverageScreen";
+import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
+import { ThemeAdvancedScreen } from "./theme-manager/ThemeAdvancedScreen";
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
@@ -107,6 +103,17 @@ interface ThemeManagerProps {
   /** Mirrors the current internal theme view so the shell can stay aligned with the active sub-screen. */
   onShellStateChange?: (state: ThemeWorkspaceShellState) => void;
 }
+
+interface ThemeManagerWorkspaceProps
+  extends Omit<ThemeManagerProps, "themeManagerHandle" | "onShellStateChange"> {
+  activeView: ThemeManagerView;
+  onActiveViewChange: (view: ThemeManagerView) => void;
+  showPreview: boolean;
+  onShowPreviewChange: (show: boolean) => void;
+}
+
+type ThemeManagerWorkspaceHandle = ThemeManagerHandle;
+
 export function ThemeManager({
   serverUrl,
   connected,
@@ -127,11 +134,82 @@ export function ThemeManager({
   onSetCreated,
   onShellStateChange,
 }: ThemeManagerProps) {
-  // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
-  const [previewSearch, setPreviewSearch] = useState("");
-  // The default flow stays in theme authoring; review and resolver tools are explicit secondary views.
   const [activeView, setActiveView] = useState<ThemeManagerView>("authoring");
+  const workspaceRef = useRef<ThemeManagerWorkspaceHandle | null>(null);
+
+  useEffect(() => {
+    onShellStateChange?.({ activeView, showPreview });
+  }, [activeView, onShellStateChange, showPreview]);
+
+  useEffect(() => {
+    if (!themeManagerHandle) return;
+    themeManagerHandle.current = workspaceRef.current;
+    return () => {
+      if (themeManagerHandle.current === workspaceRef.current) {
+        themeManagerHandle.current = null;
+      }
+    };
+  });
+
+  return (
+    <ThemeManagerWorkspace
+      ref={workspaceRef}
+      serverUrl={serverUrl}
+      connected={connected}
+      sets={sets}
+      onDimensionsChange={onDimensionsChange}
+      onNavigateToToken={onNavigateToToken}
+      onCreateToken={onCreateToken}
+      onPushUndo={onPushUndo}
+      resolverState={resolverState}
+      allTokensFlat={allTokensFlat}
+      pathToSet={pathToSet}
+      onGapsDetected={onGapsDetected}
+      onTokensCreated={onTokensCreated}
+      onGoToTokens={onGoToTokens}
+      onSuccess={onSuccess}
+      onGenerateForDimension={onGenerateForDimension}
+      onSetCreated={onSetCreated}
+      activeView={activeView}
+      onActiveViewChange={setActiveView}
+      showPreview={showPreview}
+      onShowPreviewChange={setShowPreview}
+    />
+  );
+}
+
+const ThemeManagerWorkspace = React.forwardRef<
+  ThemeManagerWorkspaceHandle,
+  ThemeManagerWorkspaceProps
+>(function ThemeManagerWorkspace(
+  {
+    serverUrl,
+    connected,
+    sets,
+    onDimensionsChange,
+    onNavigateToToken,
+    onCreateToken,
+    onPushUndo,
+    resolverState,
+    allTokensFlat = {},
+    pathToSet = {},
+    onGapsDetected,
+    onTokensCreated,
+    onGoToTokens,
+    onSuccess,
+    onGenerateForDimension,
+    onSetCreated,
+    activeView,
+    onActiveViewChange,
+    showPreview,
+    onShowPreviewChange,
+  }: ThemeManagerWorkspaceProps,
+  ref,
+) {
+  const setActiveView = onActiveViewChange;
+  const setShowPreview = onShowPreviewChange;
+  const [previewSearch, setPreviewSearch] = useState("");
   const [editingRoleTarget, setEditingRoleTarget] = useState<{
     dimId: string;
     optionName: string;
@@ -221,9 +299,6 @@ export function ThemeManager({
   useEffect(() => {
     onDimensionsChange?.(dimensions);
   }, [dimensions, onDimensionsChange]);
-  useEffect(() => {
-    onShellStateChange?.({ activeView, showPreview });
-  }, [activeView, onShellStateChange, showPreview]);
   useEffect(() => {
     fetchDimensions();
   }, [fetchDimensions]);
@@ -920,15 +995,15 @@ export function ThemeManager({
   // Populate imperative handle so parent (e.g. command palette) can trigger auto-fill
   const handleAutoFillAllRef = useRef(handleAutoFillAllOptions);
   handleAutoFillAllRef.current = handleAutoFillAllOptions;
-  useEffect(() => {
-    if (!themeManagerHandle) return;
-    themeManagerHandle.current = {
+  useImperativeHandle(
+    ref,
+    () => ({
       autoFillAllGaps: () => {
         const dimWithGaps = dimensions.find((dim) => {
           const dimCov = coverage[dim.id] ?? {};
           return Object.values(dimCov).some((opt) =>
             opt.uncovered.some(
-              (i) => i.missingRef && i.fillValue !== undefined,
+              (item) => item.missingRef && item.fillValue !== undefined,
             ),
           );
         });
@@ -945,21 +1020,18 @@ export function ThemeManager({
         returnToAuthoring();
       },
       switchToResolverMode: openAdvancedView,
-    };
-    return () => {
-      themeManagerHandle.current = null;
-    };
-  }, [
-    themeManagerHandle,
-    dimensions,
-    coverage,
-    focusAuthoringStage,
-    handleNavigateToCompare,
-    openAdvancedView,
-    openCreateDim,
-    returnToAuthoring,
-    setShowCompare,
-  ]);
+    }),
+    [
+      coverage,
+      dimensions,
+      focusAuthoringStage,
+      handleNavigateToCompare,
+      openAdvancedView,
+      openCreateDim,
+      returnToAuthoring,
+      setShowCompare,
+    ],
+  );
 
   // Tab strip scroll helpers
   const updateTabScroll = useCallback((dimId: string) => {
@@ -1507,48 +1579,26 @@ export function ThemeManager({
     }
   }, [activeView]);
 
-  const modalContextValue = useMemo<ThemeManagerModalsState>(
-    () => ({
-      dimensions,
-      autoFillPreview,
-      setAutoFillPreview,
-      autoFillStrategy,
-      setAutoFillStrategy,
-      executeAutoFillAll,
-      executeAutoFillAllOptions,
-      dimensionDeleteConfirm,
-      setDimensionDeleteConfirm: openDeleteConfirm,
-      closeDeleteConfirm,
-      executeDeleteDimension,
-      optionDeleteConfirm,
-      setOptionDeleteConfirm: (v) => setOptionDeleteConfirm(v),
-      executeDeleteOption,
-      createOverrideSet,
-      setCreateOverrideSet,
-      executeCreateOverrideSet,
-      isCreatingOverrideSet,
-    }),
-    [
-      dimensions,
-      autoFillPreview,
-      setAutoFillPreview,
-      autoFillStrategy,
-      setAutoFillStrategy,
-      executeAutoFillAll,
-      executeAutoFillAllOptions,
-      dimensionDeleteConfirm,
-      openDeleteConfirm,
-      closeDeleteConfirm,
-      executeDeleteDimension,
-      optionDeleteConfirm,
-      setOptionDeleteConfirm,
-      executeDeleteOption,
-      createOverrideSet,
-      setCreateOverrideSet,
-      executeCreateOverrideSet,
-      isCreatingOverrideSet,
-    ],
-  );
+  const modalContextValue = useThemeManagerModalsValue({
+    dimensions,
+    autoFillPreview,
+    setAutoFillPreview,
+    autoFillStrategy,
+    setAutoFillStrategy,
+    executeAutoFillAll,
+    executeAutoFillAllOptions,
+    dimensionDeleteConfirm,
+    setDimensionDeleteConfirm: openDeleteConfirm,
+    closeDeleteConfirm,
+    executeDeleteDimension,
+    optionDeleteConfirm,
+    setOptionDeleteConfirm,
+    executeDeleteOption,
+    createOverrideSet,
+    setCreateOverrideSet,
+    executeCreateOverrideSet,
+    isCreatingOverrideSet,
+  });
 
   if (!connected) {
     return (
@@ -1586,151 +1636,90 @@ export function ThemeManager({
         )}
 
         <>
-          {activeView === "coverage" && (
-            <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <div className="px-3 py-2.5 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                    {showAllCoverageAxes || !coverageFocusDimension
-                      ? "Coverage review"
-                      : `Coverage for ${coverageFocusDimension.name}`}
-                  </p>
-                  <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                    {showAllCoverageAxes || !coverageFocusDimension
-                      ? "Started from the current theme context and expanded to every axis. Focus any issue, then jump straight back into the matching role editor."
-                      : coveragePrimaryIssue
-                        ? `${coveragePrimaryIssue.dimensionName} -> ${coveragePrimaryIssue.optionName}: ${coveragePrimaryIssue.recommendedNextAction}`
-                        : coverageFocusOptionName
-                          ? `Review issue summaries for ${coverageFocusDimension.name} -> ${coverageFocusOptionName}, then jump straight back into that option's set roles.`
-                          : "Review issue summaries for the current axis, then jump back into authoring to fix the mapping."}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {dimensions.length > 1 && coverageFocusDimension && (
-                    <button
-                      onClick={() => setShowAllCoverageAxes((value) => !value)}
-                      className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-                    >
-                      {showAllCoverageAxes
-                        ? `Focus ${coverageFocusDimension.name}`
-                        : "Show all axes"}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => returnToAuthoring(coverageContext)}
-                    className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-                  >
-                    <svg
-                      width="9"
-                      height="9"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                    Back to set roles
-                  </button>
-                </div>
-              </div>
-              {!showAllCoverageAxes && coverageFocusDimension && (
-                <div className="px-3 pb-2 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-                    <span className="font-medium text-[var(--color-figma-text-secondary)]">
-                      Axis
-                    </span>
-                    <span>{coverageFocusDimension.name}</span>
-                  </span>
-                  {coverageFocusOptionName && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-                      <span className="font-medium text-[var(--color-figma-text-secondary)]">
-                        Option
-                      </span>
-                      <span>{coverageFocusOptionName}</span>
-                    </span>
-                  )}
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-                    <span className="font-medium text-[var(--color-figma-text-secondary)]">
-                      Issues
-                    </span>
-                    <span>{coverageFocusIssueCount}</span>
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-          {activeView === "compare" && (
-            <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <div className="px-3 py-2.5">
-                <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                  {compareFocusDimension
-                    ? `Compare from ${compareFocusDimension.name}`
-                    : "Compare in theme context"}
-                </p>
-                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                  {compareFocusDimension && compareFocusOptionName
-                    ? `Theme option comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this context.`
-                    : "Compare launches from the current axis or option so you can inspect alternatives without leaving theme authoring."}
-                </p>
-              </div>
-            </div>
-          )}
-          {activeView === "advanced" && resolverState && (
-            <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <div className="px-3 py-2.5 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                    Advanced theme logic
-                  </p>
-                  <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                    Use DTCG resolvers when you need explicit resolution order,
-                    modifier contexts, or cross-dimensional logic beyond
-                    light/dark style theme authoring.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setActiveView("authoring")}
-                  className="shrink-0 inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-                >
-                  <svg
-                    width="9"
-                    height="9"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                  Back to authoring
-                </button>
-              </div>
-              <div className="px-3 pb-2 flex items-center gap-2 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5">
-                  <span className="font-medium text-[var(--color-figma-text-secondary)]">
-                    Shortcut
-                  </span>
-                  <kbd className="rounded border border-[var(--color-figma-border)] px-1 font-mono leading-none">
-                    {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
-                  </kbd>
-                </span>
-              </div>
-            </div>
-          )}
-          <div
-            className={
-              activeView === "advanced"
-                ? "flex-1 overflow-hidden"
-                : "flex-1 overflow-y-auto"
-            }
-          >
+          {activeView === "coverage" ? (
+            <ThemeCoverageScreen
+              dimensions={coverageDimensions}
+              allDimensions={dimensions}
+              coverage={coverage}
+              missingOverrides={missingOverrides}
+              setTokenValues={setTokenValues}
+              issueEntries={coverageReviewIssues}
+              focusDimension={coverageFocusDimension}
+              focusOptionName={coverageFocusOptionName}
+              focusIssueCount={coverageFocusIssueCount}
+              primaryIssue={coveragePrimaryIssue}
+              showAllAxes={showAllCoverageAxes}
+              context={coverageContext}
+              onToggleShowAllAxes={() =>
+                setShowAllCoverageAxes((value) => !value)
+              }
+              onBack={returnToAuthoring}
+              onSelectIssue={(issue) => {
+                openCoverageView(
+                  {
+                    dimId: issue.dimensionId,
+                    optionName: issue.optionName,
+                    preferredSetName: issue.preferredSetName,
+                  },
+                  false,
+                );
+              }}
+              onSelectOption={(dimId, optionName, preferredSetName) => {
+                handleSelectOption(dimId, optionName);
+                returnToAuthoring({
+                  dimId,
+                  optionName,
+                  preferredSetName: preferredSetName ?? null,
+                });
+              }}
+            />
+          ) : activeView === "compare" ? (
+            <ThemeCompareScreen
+              compareFocusDimension={compareFocusDimension}
+              compareFocusOptionName={compareFocusOptionName}
+              mode={compareMode}
+              onModeChange={setCompareMode}
+              tokenPaths={compareTokenPaths}
+              onClearTokenPaths={() => setCompareTokenPaths(new Set())}
+              tokenPath={compareTokenPath}
+              onClearTokenPath={() => setCompareTokenPath("")}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
+              dimensions={dimensions}
+              sets={sets}
+              themeOptionsKey={compareThemeKey}
+              themeOptionsDefaultA={compareThemeDefaultA}
+              themeOptionsDefaultB={compareThemeDefaultB}
+              onEditToken={(setName, tokenPath) =>
+                onNavigateToToken?.(tokenPath, setName)
+              }
+              onCreateToken={(tokenPath, setName) =>
+                onCreateToken?.(tokenPath, setName)
+              }
+              onGoToTokens={onGoToTokens ?? (() => setActiveView("authoring"))}
+              serverUrl={serverUrl}
+              onTokensCreated={() => {
+                debouncedFetchDimensions();
+                onTokensCreated?.();
+              }}
+              onBack={() => {
+                returnToAuthoring({
+                  dimId: compareFocusDimension?.id ?? compareContext.dimId,
+                  optionName:
+                    compareFocusOptionName ?? compareContext.optionName,
+                  preferredSetName: null,
+                });
+              }}
+            />
+          ) : activeView === "advanced" && resolverState ? (
+            <ThemeAdvancedScreen
+              resolverState={resolverState}
+              onBack={() => setActiveView("authoring")}
+              onSuccess={onSuccess}
+            />
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto">
             {activeView === "authoring" &&
             dimensions.length === 0 &&
             !showCreateDim ? (
@@ -3831,84 +3820,6 @@ export function ThemeManager({
                   </>
                 )}
 
-                {/* Coverage tab view */}
-                {activeView === "coverage" && (
-                  <ThemeCoverageMatrix
-                    dimensions={coverageDimensions}
-                    coverage={coverage}
-                    missingOverrides={missingOverrides}
-                    setTokenValues={setTokenValues}
-                    issueEntries={coverageReviewIssues}
-                    onSelectIssue={(issue) => {
-                      openCoverageView(
-                        {
-                          dimId: issue.dimensionId,
-                          optionName: issue.optionName,
-                          preferredSetName: issue.preferredSetName,
-                        },
-                        false,
-                      );
-                    }}
-                    onSelectOption={(dimId, optionName, preferredSetName) => {
-                      handleSelectOption(dimId, optionName);
-                      returnToAuthoring({
-                        dimId,
-                        optionName,
-                        preferredSetName: preferredSetName ?? null,
-                      });
-                    }}
-                  />
-                )}
-
-                {/* Compare tab view */}
-                {activeView === "compare" && (
-                  <UnifiedComparePanel
-                    mode={compareMode}
-                    onModeChange={setCompareMode}
-                    tokenPaths={compareTokenPaths}
-                    onClearTokenPaths={() => setCompareTokenPaths(new Set())}
-                    tokenPath={compareTokenPath}
-                    onClearTokenPath={() => setCompareTokenPath("")}
-                    allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
-                    dimensions={dimensions}
-                    sets={sets}
-                    themeOptionsKey={compareThemeKey}
-                    themeOptionsDefaultA={compareThemeDefaultA}
-                    themeOptionsDefaultB={compareThemeDefaultB}
-                    onEditToken={(set, path) => onNavigateToToken?.(path, set)}
-                    onCreateToken={(path, set) => onCreateToken?.(path, set)}
-                    onGoToTokens={
-                      onGoToTokens ?? (() => setActiveView("authoring"))
-                    }
-                    serverUrl={serverUrl}
-                    onTokensCreated={() => {
-                      debouncedFetchDimensions();
-                      onTokensCreated?.();
-                    }}
-                    onBack={() => {
-                      returnToAuthoring({
-                        dimId:
-                          compareFocusDimension?.id ?? compareContext.dimId,
-                        optionName:
-                          compareFocusOptionName ?? compareContext.optionName,
-                        preferredSetName: null,
-                      });
-                    }}
-                    backLabel={
-                      compareFocusDimension
-                        ? `Back to ${compareFocusDimension.name}`
-                        : "Back to authoring"
-                    }
-                  />
-                )}
-
-                {activeView === "advanced" && resolverState && (
-                  <div className="h-full min-h-0 overflow-hidden">
-                    <ResolverContent {...resolverState} onSuccess={onSuccess} />
-                  </div>
-                )}
-
                 {/* Live Token Resolution Preview — only in theme authoring view */}
                 {activeView === "authoring" &&
                   showPreview &&
@@ -4114,10 +4025,12 @@ export function ThemeManager({
               </button>
             )}
           </div>
+          </>
+          )}
         </>
 
         <ThemeManagerModals />
       </div>
     </ThemeManagerModalsProvider>
   );
-}
+});

@@ -1385,3 +1385,12 @@
   - Structural set operations should share one dependency snapshot loader and then express route-specific policy as blocker filtering, so new dependency types fail closed instead of silently drifting across preflight and execution paths.
   - In fresh worktrees, build `packages/core` before validating `packages/server`; otherwise project references surface `TS6305` noise that can hide whether the route changes themselves type-check.
 ---
+## 2026-04-12 - Split ThemeManager's multi-view state graph into view-owned controllers instead of one 4k component
+- Split `ThemeManager` into a thin shell that now owns only `activeView`, preview visibility reporting, and the imperative workspace handle, while the heavy workspace logic moved behind an internal forwarded workspace component and dedicated coverage/compare/advanced screen modules.
+- Centralized cross-view navigation targeting via `ThemeRoleNavigationTarget`, swapped the inline modal context memo to `useThemeManagerModalsValue`, and replaced repeated coverage/compare/advanced header branches with dedicated screen components under `packages/figma-plugin/src/ui/components/theme-manager/`.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed. `pnpm --filter @tokenmanager/figma-plugin exec tsc --noEmit` still reports broad pre-existing workspace/typecheck issues outside this task, including missing `packages/core/dist` artifacts and unrelated UI typing failures.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L117, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L182, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1640, `packages/figma-plugin/src/ui/components/theme-manager/ThemeCoverageScreen.tsx` ~L30, `packages/figma-plugin/src/ui/components/theme-manager/ThemeCompareScreen.tsx` ~L29, `packages/figma-plugin/src/ui/components/theme-manager/ThemeAdvancedScreen.tsx` ~L12, `packages/figma-plugin/src/ui/shared/themeWorkflow.ts` ~L17
+- **Learnings for future iterations:**
+  - When a workspace shell only needs to mirror sub-view state and expose global commands, keep the shell component on active-view selection plus imperative wiring and push each secondary surface into its own screen module.
+  - A shared navigation target type is enough to let review screens jump back into authoring without storing duplicated header/chip logic in multiple `activeView` branches.
+---
