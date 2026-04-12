@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { flattenTokenGroup, type DTCGToken } from '@tokenmanager/core';
+import type { DTCGToken } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
-import { apiFetch } from '../shared/apiFetch';
+import {
+  buildVariablePublishFigmaMap,
+  getSyncRowsByCategory,
+  loadSyncSnapshot,
+  variablePublishDiffConfig,
+} from '../shared/syncWorkflow';
 import type {
+  PublishDiffRow,
+  PublishSyncEntry,
   PublishPreflightActionId,
   PublishPreflightCluster,
   PublishPreflightStage,
@@ -73,6 +80,26 @@ interface ClusterDraft {
   recommendedActionId?: PublishPreflightActionId;
 }
 
+type VariableSyncSnapshot = Awaited<ReturnType<typeof loadVariableSyncSnapshot>>;
+
+async function loadVariableSyncSnapshot(
+  serverUrl: string,
+  activeSet: string,
+  readFigmaTokens: () => Promise<any[]>,
+  collectionMap: Record<string, string>,
+  modeMap: Record<string, string>,
+) {
+  return loadSyncSnapshot<PublishSyncEntry, PublishSyncEntry, PublishDiffRow>({
+    serverUrl,
+    activeSet,
+    readFigmaTokens,
+    figmaTimeoutMs: READINESS_TIMEOUT_MS,
+    figmaTimeoutMessage: 'No response from Figma after 15 s — make sure the plugin is open and try again.',
+    ...variablePublishDiffConfig,
+    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, activeSet, collectionMap, modeMap),
+  });
+}
+
 export interface UseReadinessChecksReturn {
   readinessChecks: PublishPreflightCluster[];
   failingReadinessChecks: PublishPreflightCluster[];
@@ -120,32 +147,16 @@ export function useReadinessChecks({
     setReadinessError(null);
 
     try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('No response from Figma after 15 s — make sure the plugin is open and try again.')), READINESS_TIMEOUT_MS)
-      );
-      const figmaTokens = await Promise.race([readFigmaTokens(), timeoutPromise]);
-
-      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      const localTokens = flattenTokenGroup(data.tokens || {});
+      const snapshot = await loadVariableSyncSnapshot(serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap);
       const validationSnapshot = await refreshValidation();
       const activeValidationIssues =
         validationSnapshot?.issues.filter((issue) => issue.setName === activeSet && issue.severity === 'error') ?? [];
-      const localFlat = Array.from(localTokens, ([path, token]) => ({
-        path,
-        value: String(token.$value),
-        type: String(token.$type ?? 'string'),
-      }));
-
-      const figmaMap = new Map<string, any>(figmaTokens.map((token) => [token.path, token]));
-      const localPaths = new Set(localTokens.keys());
-
-      const missingInFigma = localFlat.filter((token) => !figmaMap.has(token.path));
-      const missingScopes = figmaTokens.filter((token) =>
-        !token.$scopes || token.$scopes.length === 0 || (token.$scopes.length === 1 && token.$scopes[0] === 'ALL_SCOPES')
+      const { localOnly: missingInFigma, figmaOnly: orphans } = getSyncRowsByCategory(snapshot.rows);
+      const missingScopes = Array.from(snapshot.figmaMap.values()).filter((token) =>
+        !token.scopes || token.scopes.length === 0 || (token.scopes.length === 1 && token.scopes[0] === 'ALL_SCOPES')
       );
-      const missingDescriptions = figmaTokens.filter((token) => !token.$description);
-      const orphans = figmaTokens.filter((token) => !localPaths.has(token.path));
-      const draftTokens = Array.from(localTokens.values()).filter((token) => getTokenLifecycle(token) === 'draft');
+      const missingDescriptions = Array.from(snapshot.figmaMap.values()).filter((token) => !token.description);
+      const draftTokens = Array.from(snapshot.localTokens.values()).filter((token) => getTokenLifecycle(token) === 'draft');
       const blockingValidationIssues = activeValidationIssues.filter((issue) => BLOCKING_VALIDATION_RULES.has(issue.rule));
 
       const drafts: ClusterDraft[] = [
@@ -259,23 +270,25 @@ export function useReadinessChecks({
         Promise.resolve().then(() => runReadinessChecksRef.current());
       }
     }
-  }, [activeSet, readFigmaTokens, refreshValidation, serverUrl, tokenChangeKey]);
+  }, [activeSet, collectionMap, modeMap, readFigmaTokens, refreshValidation, serverUrl, tokenChangeKey]);
 
   const triggerReadinessAction = useCallback(async (actionId: PublishPreflightActionId) => {
     if (!activeSet) return;
 
     try {
       if (actionId === 'push-missing-variables') {
-        const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-        const localTokens = flattenTokenGroup(data.tokens || {});
-        const figmaTokens = await readFigmaTokens();
-        const figmaPaths = new Set(figmaTokens.map((token) => token.path));
-        const tokens = Array.from(localTokens, ([path, token]) => ({
-          path,
-          $type: String(token.$type ?? 'string'),
-          $value: String(token.$value),
-          setName: activeSet,
-        })).filter((token) => !figmaPaths.has(token.path));
+        const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap);
+        const tokens = getSyncRowsByCategory(snapshot.rows).localOnly.map((row) => {
+          const local = snapshot.localMap.get(row.path);
+          const scopes = local?.scopes;
+          return {
+            path: row.path,
+            $type: row.localType ?? local?.type ?? 'string',
+            $value: row.localRaw ?? local?.raw ?? '',
+            $extensions: scopes?.length ? { 'com.figma.scopes': scopes } : undefined,
+            setName: activeSet,
+          };
+        });
 
         if (tokens.length === 0) return;
 
@@ -284,13 +297,9 @@ export function useReadinessChecks({
       }
 
       if (actionId === 'delete-orphan-variables') {
-        const figmaTokens = await readFigmaTokens();
-        const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-        const localTokens = flattenTokenGroup(data.tokens || {});
-        const localPaths = new Set<string>(localTokens.keys());
-        const orphanPaths = figmaTokens
-          .filter((token) => !localPaths.has(token.path))
-          .map((token) => token.path);
+        const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap);
+        const localPaths = new Set<string>(snapshot.localTokens.keys());
+        const orphanPaths = getSyncRowsByCategory(snapshot.rows).figmaOnly.map((row) => row.path);
 
         if (orphanPaths.length === 0) return;
 

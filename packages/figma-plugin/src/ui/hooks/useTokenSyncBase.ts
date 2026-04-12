@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { dispatchToast } from '../shared/toastBus';
-import { flattenTokenGroup, type DTCGToken } from '@tokenmanager/core';
+import type { DTCGToken } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError, createFetchSignal } from '../shared/apiFetch';
+import { loadSyncSnapshot, type DiffRowBase, type SyncDirection } from '../shared/syncWorkflow';
+
+export type { DiffRowBase } from '../shared/syncWorkflow';
 
 // ── Shared helpers ──
 
@@ -22,20 +25,9 @@ export const extractSyncApplyResult = (msg: any): {
   skipped: msg.skipped ?? [],
 });
 
-// ── Shared types ──
-
 export interface SyncProgress {
   current: number;
   total: number;
-}
-
-export interface DiffRowBase {
-  path: string;
-  cat: 'local-only' | 'figma-only' | 'conflict';
-  localType?: string;
-  figmaType?: string;
-  localScopes?: string[];
-  figmaScopes?: string[];
 }
 
 // ── Configuration callbacks ──
@@ -93,8 +85,8 @@ export interface TokenSyncConfig<TRow extends DiffRowBase> {
 
 export interface TokenSyncReturn<TRow extends DiffRowBase> {
   rows: TRow[];
-  dirs: Record<string, 'push' | 'pull' | 'skip'>;
-  setDirs: React.Dispatch<React.SetStateAction<Record<string, 'push' | 'pull' | 'skip'>>>;
+  dirs: Record<string, SyncDirection>;
+  setDirs: React.Dispatch<React.SetStateAction<Record<string, SyncDirection>>>;
   loading: boolean;
   syncing: boolean;
   progress: SyncProgress | null;
@@ -115,7 +107,7 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
   config: TokenSyncConfig<TRow>,
 ): TokenSyncReturn<TRow> {
   const [rows, setRows] = useState<TRow[]>([]);
-  const [dirs, setDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
+  const [dirs, setDirs] = useState<Record<string, SyncDirection>>({});
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,41 +156,24 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
     setError(null);
     setChecked(false);
     try {
-      const figmaTokens = await cfg.readFigmaTokens();
+      const snapshot = await loadSyncSnapshot({
+        serverUrl,
+        activeSet,
+        readFigmaTokens: cfg.readFigmaTokens,
+        signal: createFetchSignal(),
+        buildFigmaMap: cfg.buildFigmaMap,
+        buildLocalMap: cfg.buildLocalMap,
+        buildLocalOnlyRow: cfg.buildLocalOnlyRow,
+        buildFigmaOnlyRow: cfg.buildFigmaOnlyRow,
+        buildConflictRow: cfg.buildConflictRow,
+        isConflict: cfg.isConflict,
+      });
 
-      const data = await apiFetch<{ tokens?: Record<string, unknown> }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`,
-        { signal: createFetchSignal() },
-      );
-      const localTokens = flattenTokenGroup((data.tokens || {}) as import('@tokenmanager/core').DTCGGroup);
-
-      const figmaMap = cfg.buildFigmaMap(figmaTokens);
-      const localMap = cfg.buildLocalMap(localTokens);
-
-      const newRows: TRow[] = [];
-      for (const [path, local] of localMap) {
-        const figma = figmaMap.get(path);
-        if (!figma) {
-          newRows.push(cfg.buildLocalOnlyRow(path, local));
-        } else if (cfg.isConflict(local, figma)) {
-          newRows.push(cfg.buildConflictRow(path, local, figma));
-        }
-      }
-      for (const [path, figma] of figmaMap) {
-        if (!localMap.has(path)) {
-          newRows.push(cfg.buildFigmaOnlyRow(path, figma));
-        }
-      }
-
-      setRows(newRows);
-      rowsRef.current = newRows; // update ref immediately so applyDiff sees fresh data
+      setRows(snapshot.rows);
+      rowsRef.current = snapshot.rows; // update ref immediately so applyDiff sees fresh data
       setChecked(true);
-      const newDirs: Record<string, 'push' | 'pull' | 'skip'> = {};
-      for (const r of newRows) {
-        newDirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
-      }
-      setDirs(newDirs);
-      dirsRef.current = newDirs; // update ref immediately so applyDiff sees fresh data
+      setDirs(snapshot.dirs);
+      dirsRef.current = snapshot.dirs; // update ref immediately so applyDiff sees fresh data
     } catch (err) {
       setError(describeError(err, cfg.compareErrorLabel));
     } finally {

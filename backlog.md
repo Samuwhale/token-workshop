@@ -136,7 +136,7 @@
 - [x] Unify external-change reloading and SSE refresh across token, theme, resolver, and generator files
 - [x] Block or rewrite theme, resolver, and generated-token dependencies during folder delete operations
 - [x] Rename 'Audit' section tab inside Audit workspace to avoid tautological label
-- [ ] Finish decomposing App shell orchestration and the PanelRouter prop bag into workspace-owned controllers
+- [x] Finish decomposing App shell orchestration and the PanelRouter prop bag into workspace-owned controllers
 - [ ] Derive Sync preflight, compare rows, and preflight actions from one shared token-vs-Figma snapshot model
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

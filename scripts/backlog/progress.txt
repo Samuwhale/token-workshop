@@ -1310,3 +1310,12 @@
   - When a shell component is bloated mostly by prop plumbing, a typed controller context is a cleaner cut than pushing more state into the global navigation/editor providers.
   - Secondary surfaces such as set management belong in the router that owns workspace takeover logic; leaving one surface rendered beside the router keeps App-level orchestration sticky even after most panels are decomposed.
 ---
+## 2026-04-12 - Derive Sync preflight, compare rows, and preflight actions from one shared token-vs-Figma snapshot model
+- Extracted the publish diff builders and snapshot loader into `syncWorkflow.ts`, then switched variable/style compare to read rows and default directions from that shared snapshot instead of rebuilding the same local/Figma fetch-and-diff loop inside `useTokenSyncBase`.
+- Reworked preflight to derive missing variables, orphan variables, scope drift, and description gaps from the same variable snapshot model the compare step uses, and updated the preflight follow-up actions to rerun that snapshot instead of issuing separate ad hoc token/Figma queries.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/shared/syncWorkflow.ts packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts packages/figma-plugin/src/ui/components/PublishPanel.tsx` passed. `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/shared/syncWorkflow.ts` ~L49, `packages/figma-plugin/src/ui/shared/syncWorkflow.ts` ~L245, `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L152, `packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts` ~L83, `packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts` ~L143, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L20, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L123
+- **Learnings for future iterations:**
+  - Sync preflight and compare/apply should share one snapshot loader that fetches local tokens and the target Figma payload once per run, or the two stages will silently drift on what “missing”, “orphaned”, and “conflict” mean.
+  - Figma variable readbacks arrive as collection/mode trees, so any compare or preflight logic needs an explicit collection/mode selector that matches the publish target before flattening tokens into a path map.
+---
