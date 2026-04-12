@@ -1690,6 +1690,15 @@
   - Cross-surface handoffs need to remember both the underlying workspace route and the secondary surface id; storing only the visible panel label is not enough to reopen Notifications or Import in the right shell context.
   - Auto-jumps that keep the origin secondary surface open should hide the return affordance until that origin surface is dismissed, or the shell advertises a “return” action before the user has actually landed.
 ---
+## 2026-04-13 - [Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction]
+- Completed a research audit of the current token-library browse flow and wrote the deliverable in `scripts/backlog/research/token-library-browsing-inspection-ux.md`.
+- Findings: token rows hide type and alias metadata behind row-active state, generator ownership is only a glyph, detail metadata is concentrated in the contextual preview surface, search remains syntax-first despite builder support, filtered presentation still depends on manual expansion state, and deep-hierarchy shortcuts are present but not primary.
+- Queued four implementation follow-ups in `backlog/inbox.jsonl`: row-summary redesign, search-first filter discovery, context-preserving filtered results, and explicit branch-navigation shortcuts.
+- Files changed: `scripts/backlog/research/token-library-browsing-inspection-ux.md` ~L1; `backlog/inbox.jsonl` ~L1; `scripts/backlog/patterns.md` ~L214; `scripts/backlog/progress.txt` ~L1758
+- **Learnings for future iterations:**
+  - The declared token-library touch paths are partly stale: `TokenSearchInput.tsx`, `useTokenFilters.ts`, and `useTokenTree.ts` no longer exist; the live search and filtering surface now spans `TokenList.tsx`, `useTokenSearch.ts`, `tokenListUtils.ts`, and `TokenSearchFilterBuilder.tsx`.
+  - Search context loss is now mostly a presentation problem, not a data-shape problem: `filterTokenNodes(...)` already retains ancestor groups, but the rendered result tree still relies on the user's current expansion state and weak ancestry cues.
+---
 ## 2026-04-13 - [Add a shared cross-workspace handoff contract with breadcrumbs and return paths]
 - Stale review only. The shared handoff contract is already present in `NavigationContext`, the shell header already renders the visible return affordance, and the import, notification, Sync preflight, and Audit token flows already call `beginHandoff(...)` before their cross-workspace jumps.
 - Files changed: `scripts/backlog/progress.txt`

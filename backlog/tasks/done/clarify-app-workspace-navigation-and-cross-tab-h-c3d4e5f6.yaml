@@ -19,7 +19,8 @@ status_notes:
   - "Pain point 4: The relationship between workspaces is not communicated — a designer doesn't know that the typical workflow is Tokens → Themes → Apply → Sync, or that Audit can be used at any point. There's no visual or structural cue about how the pieces fit together."
   - "Goal: Research and propose a navigation model where the workspace structure, section hierarchy, and cross-workspace handoffs are self-explanatory to a designer who has never used the plugin before. The interplay between defining, theming, applying, syncing, and auditing should be discoverable from the navigation itself."
   - "Deferred after remediation: dirty workspace preflight: staged packages/core/src/generator-types.ts, packages/figma-plugin/src/ui/components/MetadataEditor.tsx, packages/figma-plugin/src/ui/components/TokenEditor.tsx, packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx, packages/figma-plugin/src/ui/components/TokenList.tsx, packages/figma-plugin/src/ui/components/TokenTreeNode.tsx, packages/figma-plugin/src/ui/components/generator-steps/StepReview.tsx, packages/figma-plugin/src/ui/components/generator-steps/StepWhat.tsx until 2026-04-12T23:03:57.770Z"
-state: ready
+  - "Completed: stale — already done."
+state: done
 acceptance_criteria:
   - Research deliverable maps the current routing model (internal tabs, workspace facade, section sub-tabs) and identifies where the abstraction leaks
   - Proposes a navigation hierarchy where the depth level (workspace vs. section vs. contextual screen) is always visually distinguishable
@@ -28,4 +29,4 @@ acceptance_criteria:
   - Identifies which secondary surfaces (Import, Sets, Notifications, Settings) should be promoted, demoted, or repositioned in the navigation hierarchy
 source: product-pass
 created_at: 2026-04-13T00:00:00.000Z
-updated_at: 2026-04-12T22:48:57.798Z
+updated_at: 2026-04-12T23:24:57.158Z

@@ -1,0 +1,21 @@
+id: redesign-token-tree-rows-for-fast-library-scanni-9d02847f
+title: Redesign token tree rows for fast library scanning
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenTreeNode.tsx
+  - packages/figma-plugin/src/ui/components/tokenListTypes.ts
+  - packages/figma-plugin/src/ui/components/TokenList.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: Research on token-library browsing found that `showSecondaryMeta` currently hides type and alias badges behind row-active state and generator ownership is only a glyph. Implement a denser but still single-lane summary row for large libraries."
+state: ready
+acceptance_criteria:
+  - Leaf rows always show token type without requiring row activation.
+  - Rows surface alias or generator ownership in a compact always-visible summary slot, with richer metadata still deferred to active/preview state.
+  - Row status treatment preserves one primary issue marker without hiding all secondary browse context.
+source: task-followup
+created_at: 2026-04-12T23:28:46.648Z
+updated_at: 2026-04-12T23:28:46.648Z

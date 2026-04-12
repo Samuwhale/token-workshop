@@ -80,7 +80,10 @@
 - [x] [HIGH] Add a shared cross-workspace handoff contract with breadcrumbs and return paths
 - [x] [HIGH] Surface the Tokens to Themes to Apply to Sync workflow relationship in shell and onboarding copy
 - [x] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy
-- [ ] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks
+- [ ] [HIGH] Redesign token tree rows for fast library scanning
+- [ ] [HIGH] Promote the token filter builder into the primary search discovery flow
+- [ ] [HIGH] Preserve hierarchy context in filtered token results
+- [x] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks
 - [ ] [HIGH] Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction
 - [ ] [HIGH] Improve token generation flows so designers can create and manage generators through intent-based discovery, clearer configuration, and visible output relationships
 - [ ] [HIGH] Simplify the token-theme interaction UX so designers can build and manage themes without learning set-role priority logic, coverage diagnostics, and resolver internals
@@ -178,6 +181,7 @@
 - [ ] Hide the Semantic layer section on generator cards when no aliases are configured
 - [ ] Centralize git-backed token diff extraction so commit, pull, push, working-tree, and restore paths share one parser
 - [ ] Split backlog-runner task execution into shared lifecycle phases so remediation and reconciliation stop reimplementing scheduler semantics
+- [ ] Add explicit branch navigation shortcuts for deep token hierarchies
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient
