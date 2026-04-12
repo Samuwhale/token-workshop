@@ -1239,3 +1239,10 @@
   - Whole-workspace snapshot restore needs a staged replay order: restore token sets first, then rewrite themes/resolvers/generators, and only then delete post-snapshot sets so dependent config never points at deleted sets during crash recovery.
   - Snapshot diff APIs need a second channel for non-token workspace artifacts; token-only “no changes” messaging becomes wrong as soon as themes, resolvers, or generators are part of the checkpoint contract.
 ---
+## 2026-04-12 - interface-pass
+- Areas explored: app shell navigation (navigationTypes.ts), token list toolbar and View options popover (TokenList.tsx), Sync workspace (SyncSubPanel.tsx, PublishPanel.tsx), Dependencies panel (TokenFlowPanel.tsx)
+- Interface themes: tautological labeling, naming collisions between toolbar controls and popover sections, explanatory chrome in popovers
+- Found 3 items — written to backlog/inbox.jsonl
+- Considered but rejected: "Figma Sync" section label inside Sync workspace (partially redundant with workspace label "Sync", but "Figma Sync" meaningfully distinguishes from "Handoff files" so the disambiguation earns its place); "Link to tokens" button label in selection toolbar (opaque but scoped to a contextually-triggered panel where users already have action context); permanent description paragraph in Dependencies panel (explains where inline traces moved, has some value for users transitioning from the old panel location)
+- Notable: The "Filters" naming collision is the strongest issue — the toolbar button and the View options section both read "Filters" but open entirely different filtering mechanisms, directly harming findability for users trying to narrow token results.
+---
