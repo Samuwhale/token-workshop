@@ -434,10 +434,17 @@ export interface ResizeMessage {
   height: number;
 }
 
+export interface OrphanVariableDeleteTarget {
+  path: string;
+  collectionName: string;
+  modeNames?: string[];
+}
+
 export interface DeleteOrphanVariablesMessage {
   type: 'delete-orphan-variables';
   knownPaths: string[];
   collectionMap?: Record<string, string>;
+  targets?: OrphanVariableDeleteTarget[];
   correlationId?: string;
 }
 

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DTCGToken } from '@tokenmanager/core';
+import type { OrphanVariableDeleteTarget } from '../../shared/types';
 import { describeError } from '../shared/utils';
 import {
   getSyncRowsByCategory,
@@ -15,11 +16,13 @@ import type {
   PublishPreflightStage,
 } from '../shared/syncWorkflow';
 import type { ValidationSnapshot } from './useValidationCache';
+import type { OrphanConfirmState } from './useOrphanCleanup';
 
 export const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
 
 const READINESS_TIMEOUT_MS = 15_000;
 const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
+const DEFAULT_VARIABLE_COLLECTION_NAME = 'TokenManager';
 
 function getTokenLifecycle(token: DTCGToken): 'draft' | 'published' | 'deprecated' {
   const rawLifecycle = (token.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
@@ -66,7 +69,7 @@ interface UseReadinessChecksParams {
   modeMap: Record<string, string>;
   tokenChangeKey?: number;
   readFigmaTokens: () => Promise<any[]>;
-  setOrphanConfirm: (val: { orphanPaths: string[]; localPaths: Set<string> } | null) => void;
+  setOrphanConfirm: (val: OrphanConfirmState | null) => void;
   refreshValidation: () => Promise<ValidationSnapshot | null>;
   resolverName?: string | null;
   resolverPublishMappings?: ResolverPublishSyncMapping[];
@@ -84,6 +87,81 @@ interface ClusterDraft {
 }
 
 type VariableSyncSnapshot = Awaited<ReturnType<typeof loadVariableSyncSnapshot>>;
+
+interface ResolverOrphanCleanupPlan {
+  orphanPaths: string[];
+  targets: OrphanVariableDeleteTarget[];
+}
+
+function parseResolverRowId(rowId: string): { mappingKey: string; path: string } | null {
+  const separatorIndex = rowId.indexOf('::');
+  if (separatorIndex === -1) return null;
+  return {
+    mappingKey: rowId.slice(0, separatorIndex),
+    path: rowId.slice(separatorIndex + 2),
+  };
+}
+
+function getResolverCollectionName(mapping: ResolverPublishSyncMapping): string {
+  return mapping.collectionName?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME;
+}
+
+function buildResolverOrphanCleanupPlan(
+  snapshot: VariableSyncSnapshot,
+  resolverPublishMappings: ResolverPublishSyncMapping[],
+): ResolverOrphanCleanupPlan {
+  const mappingByKey = new Map(resolverPublishMappings.map((mapping) => [mapping.key, mapping]));
+  const localPresenceByCollectionPath = new Set<string>();
+
+  for (const rowId of snapshot.localMap.keys()) {
+    const parsed = parseResolverRowId(rowId);
+    if (!parsed) continue;
+    const mapping = mappingByKey.get(parsed.mappingKey);
+    if (!mapping) continue;
+    localPresenceByCollectionPath.add(`${getResolverCollectionName(mapping)}\u0000${parsed.path}`);
+  }
+
+  const groupedTargets = new Map<string, { path: string; collectionName: string; modeNames: string[] }>();
+
+  for (const row of getSyncRowsByCategory(snapshot.rows).figmaOnly) {
+    const rowId = getDiffRowId(row);
+    const parsed = parseResolverRowId(rowId);
+    if (!parsed) continue;
+    const mapping = mappingByKey.get(parsed.mappingKey);
+    if (!mapping) continue;
+
+    const collectionName = getResolverCollectionName(mapping);
+    const collectionPathKey = `${collectionName}\u0000${row.path}`;
+    if (localPresenceByCollectionPath.has(collectionPathKey)) continue;
+
+    const existing = groupedTargets.get(collectionPathKey);
+    if (existing) {
+      if (!existing.modeNames.includes(mapping.modeName)) {
+        existing.modeNames.push(mapping.modeName);
+      }
+      continue;
+    }
+
+    groupedTargets.set(collectionPathKey, {
+      path: row.path,
+      collectionName,
+      modeNames: [mapping.modeName],
+    });
+  }
+
+  const targets = Array.from(groupedTargets.values()).map<OrphanVariableDeleteTarget>((target) => ({
+    path: target.path,
+    collectionName: target.collectionName,
+    modeNames: target.modeNames,
+  }));
+
+  const orphanPaths = targets.map((target) => {
+    const modeLabel = target.modeNames && target.modeNames.length > 0 ? ` / ${target.modeNames.join(', ')}` : '';
+    return `${target.path} (${target.collectionName}${modeLabel})`;
+  });
+
+  return { orphanPaths, targets };
+}
 
 async function loadVariableSyncSnapshot(
   serverUrl: string,
@@ -169,7 +247,11 @@ export function useReadinessChecks({
       const validationSnapshot = await refreshValidation();
       const activeValidationIssues =
         validationSnapshot?.issues.filter((issue) => issue.setName === activeSet && issue.severity === 'error') ?? [];
-      const { localOnly: missingInFigma, figmaOnly: orphans } = getSyncRowsByCategory(snapshot.rows);
+      const { localOnly: missingInFigma, figmaOnly: rawOrphans } = getSyncRowsByCategory(snapshot.rows);
+      const resolverOrphanPlan = compareMode === 'resolver-publish' && resolverPublishMappings
+        ? buildResolverOrphanCleanupPlan(snapshot, resolverPublishMappings)
+        : null;
+      const orphanCount = resolverOrphanPlan?.targets.length ?? rawOrphans.length;
       const missingScopes = Array.from(snapshot.figmaMap.values()).filter((token) =>
         !token.scopes || token.scopes.length === 0 || (token.scopes.length === 1 && token.scopes[0] === 'ALL_SCOPES')
       );
@@ -199,18 +281,18 @@ export function useReadinessChecks({
           id: 'orphans',
           label: 'Orphaned Figma variables',
           severity: 'blocking',
-          affectedCount: orphans.length || undefined,
-          detail: orphans.length > 0
+          affectedCount: orphanCount || undefined,
+          detail: orphanCount > 0
             ? compareMode === 'resolver-publish'
-              ? 'Some mapped Figma modes still contain variables that no longer exist in the resolver outputs. Review those target modes before syncing again.'
+              ? 'Some mapped Figma collections still contain variables that are absent from every saved resolver output targeting that collection. Delete those resolver-targeted orphans before syncing again.'
               : 'Figma still contains variables that no longer exist in this token set. Review or delete them before syncing again.'
             : undefined,
-          recommendedActionLabel: orphans.length > 0
+          recommendedActionLabel: orphanCount > 0
             ? compareMode === 'resolver-publish'
-              ? 'Review mapped mode differences'
-              : `Delete ${orphans.length} orphan variable${orphans.length === 1 ? '' : 's'}`
+              ? `Delete ${orphanCount} mapped orphan variable${orphanCount === 1 ? '' : 's'}`
+              : `Delete ${orphanCount} orphan variable${orphanCount === 1 ? '' : 's'}`
             : undefined,
-          recommendedActionId: orphans.length > 0 && compareMode !== 'resolver-publish' ? 'delete-orphan-variables' : undefined,
+          recommendedActionId: orphanCount > 0 ? 'delete-orphan-variables' : undefined,
         },
         {
           id: 'scopes',
@@ -352,6 +434,17 @@ export function useReadinessChecks({
           resolverPublishMappings,
         );
         const localPaths = new Set<string>(snapshot.localTokens.keys());
+        if (compareMode === 'resolver-publish' && resolverPublishMappings) {
+          const resolverOrphanPlan = buildResolverOrphanCleanupPlan(snapshot, resolverPublishMappings);
+          if (resolverOrphanPlan.targets.length === 0) return;
+          setOrphanConfirm({
+            orphanPaths: resolverOrphanPlan.orphanPaths,
+            localPaths,
+            targets: resolverOrphanPlan.targets,
+          });
+          return;
+        }
+
         const orphanPaths = getSyncRowsByCategory(snapshot.rows).figmaOnly.map((row) => row.path);
 
         if (orphanPaths.length === 0) return;
@@ -364,6 +457,7 @@ export function useReadinessChecks({
   }, [
     activeSet,
     collectionMap,
+    compareMode,
     modeMap,
     readFigmaTokens,
     resolverName,

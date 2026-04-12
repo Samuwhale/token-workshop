@@ -1,7 +1,14 @@
 import { VARIABLE_COLLECTION_NAME } from './constants.js';
 import { mapTokenTypeToVariableType, mapVariableTypeToTokenType, convertToFigmaValue, convertFromFigmaValue, findVariableInList } from './variableUtils.js';
 import { getErrorMessage } from '../shared/utils.js';
-import type { VariableSyncToken, ReadVariableCollection, ReadVariableMode, ReadVariableToken, VarSnapshot } from '../shared/types.js';
+import type {
+  OrphanVariableDeleteTarget,
+  VariableSyncToken,
+  ReadVariableCollection,
+  ReadVariableMode,
+  ReadVariableToken,
+  VarSnapshot,
+} from '../shared/types.js';
 
 export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, renames?: Array<{ oldPath: string; newPath: string }>, correlationId?: string) {
   // Rollback tracking — populated before any mutations occur
@@ -413,8 +420,78 @@ function toReadModeValue(
   };
 }
 
-export async function deleteOrphanVariables(knownPaths: string[], collectionMap: Record<string, string> = {}, correlationId?: string) {
+function getVariablePath(variable: Variable): string {
+  return variable.name.replace(/\//g, '.');
+}
+
+async function deleteResolverOrphanVariables(
+  targets: OrphanVariableDeleteTarget[],
+  correlationId?: string,
+) {
+  const uniqueTargets = new Map<string, OrphanVariableDeleteTarget>();
+  for (const target of targets) {
+    if (!target.path || !target.collectionName) continue;
+    uniqueTargets.set(`${target.collectionName}\u0000${target.path}`, target);
+  }
+
+  if (uniqueTargets.size === 0) {
+    figma.ui.postMessage({ type: 'orphans-deleted', count: 0, correlationId });
+    return;
+  }
+
+  const [allCollections, allVariables] = await Promise.all([
+    figma.variables.getLocalVariableCollectionsAsync(),
+    figma.variables.getLocalVariablesAsync(),
+  ]);
+  const collectionsByName = new Map<string, VariableCollection[]>();
+  for (const collection of allCollections) {
+    const existing = collectionsByName.get(collection.name);
+    if (existing) existing.push(collection);
+    else collectionsByName.set(collection.name, [collection]);
+  }
+  const variableById = new Map<string, Variable>(allVariables.map((variable) => [variable.id, variable]));
+  const toDelete = new Map<string, Variable>();
+
+  for (const target of uniqueTargets.values()) {
+    const collections = collectionsByName.get(target.collectionName);
+    if (!collections) continue;
+
+    for (const collection of collections) {
+      for (const varId of collection.variableIds) {
+        const variable = variableById.get(varId);
+        if (!variable) continue;
+        if (getVariablePath(variable) !== target.path) continue;
+        toDelete.set(variable.id, variable);
+      }
+    }
+  }
+
+  const failures: string[] = [];
+  let deleted = 0;
+  for (const variable of toDelete.values()) {
+    try {
+      variable.remove();
+      deleted++;
+    } catch (e) {
+      failures.push(`${variable.name}: ${getErrorMessage(e)}`);
+    }
+  }
+
+  figma.ui.postMessage({ type: 'orphans-deleted', count: deleted, failures, correlationId });
+}
+
+export async function deleteOrphanVariables(
+  knownPaths: string[],
+  collectionMap: Record<string, string> = {},
+  targets: OrphanVariableDeleteTarget[] = [],
+  correlationId?: string,
+) {
   try {
+    if (targets.length > 0) {
+      await deleteResolverOrphanVariables(targets, correlationId);
+      return;
+    }
+
     const knownSet = new Set(knownPaths);
     // All collection names managed by TokenManager: the default plus any custom-mapped names
     const managedNames = new Set([VARIABLE_COLLECTION_NAME, ...Object.values(collectionMap)]);
@@ -437,7 +514,7 @@ export async function deleteOrphanVariables(knownPaths: string[], collectionMap:
       for (const varId of collection.variableIds) {
         const variable = variableById.get(varId);
         if (!variable) continue;
-        const path = variable.name.replace(/\//g, '.');
+        const path = getVariablePath(variable);
         if (!knownSet.has(path)) {
           toDelete.push(variable);
         }

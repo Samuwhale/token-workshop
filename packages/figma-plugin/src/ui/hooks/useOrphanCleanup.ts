@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import type { OrphanVariableDeleteTarget } from '../../shared/types';
 import { describeError } from '../shared/utils';
 
 interface UseOrphanCleanupParams {
@@ -9,10 +10,16 @@ interface UseOrphanCleanupParams {
   setReadinessError: (msg: string | null) => void;
 }
 
+export interface OrphanConfirmState {
+  orphanPaths: string[];
+  localPaths: Set<string>;
+  targets?: OrphanVariableDeleteTarget[];
+}
+
 export interface UseOrphanCleanupReturn {
   orphansDeleting: boolean;
-  orphanConfirm: { orphanPaths: string[]; localPaths: Set<string> } | null;
-  setOrphanConfirm: React.Dispatch<React.SetStateAction<{ orphanPaths: string[]; localPaths: Set<string> } | null>>;
+  orphanConfirm: OrphanConfirmState | null;
+  setOrphanConfirm: React.Dispatch<React.SetStateAction<OrphanConfirmState | null>>;
   executeOrphanDeletion: () => Promise<void>;
 }
 
@@ -23,7 +30,7 @@ export function useOrphanCleanup({
 }: UseOrphanCleanupParams): UseOrphanCleanupReturn {
   const [orphansDeleting, setOrphansDeleting] = useState(false);
   const orphansPendingRef = useRef<Map<string, (result: { count: number; failures?: string[] }) => void>>(new Map());
-  const [orphanConfirm, setOrphanConfirm] = useState<{ orphanPaths: string[]; localPaths: Set<string> } | null>(null);
+  const [orphanConfirm, setOrphanConfirm] = useState<OrphanConfirmState | null>(null);
 
   // ── Orphan deletion message handler ──
   useEffect(() => {
@@ -43,7 +50,7 @@ export function useOrphanCleanup({
 
   const executeOrphanDeletion = useCallback(async () => {
     if (!orphanConfirm) return;
-    const { localPaths } = orphanConfirm;
+    const { localPaths, targets } = orphanConfirm;
     setOrphanConfirm(null);
     setOrphansDeleting(true);
     setReadinessError(null);
@@ -59,7 +66,15 @@ export function useOrphanCleanup({
           const cid = `orphans-${Date.now()}-${Math.random()}`;
           const timeout = setTimeout(() => { orphansPendingRef.current.delete(cid); reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
           orphansPendingRef.current.set(cid, (result) => { clearTimeout(timeout); resolve(result); });
-          parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap, correlationId: cid } }, '*');
+          parent.postMessage({
+            pluginMessage: {
+              type: 'delete-orphan-variables',
+              knownPaths: [...localPaths],
+              collectionMap,
+              ...(targets && targets.length > 0 ? { targets } : {}),
+              correlationId: cid,
+            },
+          }, '*');
         });
         break;
       } catch (err) {

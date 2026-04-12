@@ -1599,3 +1599,12 @@
   - In temp worktrees that use TypeScript project references, `TS6305` against `packages/core/dist` can mean the referenced package was never built in that workspace, even when the touched server files are valid.
   - Keeping orphaned-generator token discovery in `GeneratorService` lets route-level rollback bookkeeping reuse the same token list for mutation, snapshot capture, and restoration.
 ---
+## 2026-04-12 - Add resolver-targeted orphan cleanup for mapped publish modes
+- Added a resolver-aware orphan cleanup plan in publish preflight so mapped-mode cleanup only targets collection/path pairs that are absent from every saved resolver output for that collection, and wired the confirm flow to send those explicit deletion targets to the plugin.
+- Updated plugin orphan deletion handling to accept explicit resolver cleanup targets, delete only the matching collection/path variables, and keep the legacy active-set fallback for standard publish cleanup.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts` ~L91, `packages/figma-plugin/src/ui/hooks/useOrphanCleanup.ts` ~L13, `packages/figma-plugin/src/plugin/variableSync.ts` ~L423, `packages/figma-plugin/src/plugin/controller.ts` ~L438, `packages/figma-plugin/src/shared/types.ts` ~L437
+- **Learnings for future iterations:**
+  - Resolver-mode orphan cleanup should collapse per-mode diff rows into unique collection/path delete targets before it reaches the plugin, otherwise shared multi-mode variables get treated as deletable duplicates.
+  - When a publish workflow needs both legacy active-set cleanup and resolver-targeted cleanup, keep the shared message type broad enough to carry explicit targets while preserving the old fallback path for standard sync.
+---

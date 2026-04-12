@@ -437,7 +437,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'delete-orphan-variables':
       try {
-        await withSyncLock(() => deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {}, msg.correlationId));
+        await withSyncLock(() => deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {}, msg.targets ?? [], msg.correlationId));
       } catch (e) {
         reportError('delete-orphan-variables', e);
       }
