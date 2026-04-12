@@ -68,6 +68,15 @@ import {
 } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
+import {
+  useApplyWorkspaceController,
+  useEditorShellController,
+  useSetManagerWorkspaceController,
+  useShellWorkspaceController,
+  useShipWorkspaceController,
+  useThemeWorkspaceController,
+  useTokensWorkspaceController,
+} from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
 import type { LintViolation } from "../hooks/useLint";
 import type {
@@ -149,133 +158,34 @@ function resolveCreateLauncherPath(initialPath?: string): string {
 // Props interface
 // ---------------------------------------------------------------------------
 
-export interface PanelRouterProps {
-  useSidePanel: boolean;
-  contextualEditorTransition: SurfaceTransition;
-  splitPreviewTransition: SurfaceTransition;
-  showPreviewSplit: boolean;
-  setShowPreviewSplit: Dispatch<SetStateAction<boolean>>;
-  guardEditorAction: (fn: () => void) => void;
-  editorIsDirtyRef: MutableRefObject<boolean>;
-  editorCloseRef: MutableRefObject<() => void>;
-  displayedLeafNodesRef: MutableRefObject<TokenNode[]>;
-  tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
-  handleEditorNavigate: (direction: 1 | -1) => void;
-  handleEditorSave: (savedPath: string) => void;
-  handleEditorSaveAndCreateAnother: (
-    savedPath: string,
-    savedType: string,
-  ) => void;
-  handlePreviewEdit: () => void;
-  handlePreviewClose: () => void;
-  splitRatio: number;
-  splitValueNow: number;
-  splitContainerRef: RefObject<HTMLDivElement>;
-  handleSplitDragStart: (e: MouseEvent) => void;
-  handleSplitKeyDown: (e: KeyboardEvent) => void;
-
-  // Font data
-  availableFonts: string[];
-  fontWeightsByFamily: Record<string, number[]>;
-
-  // Token list display state
-  showIssuesOnly: boolean;
-  setShowIssuesOnly: Dispatch<SetStateAction<boolean>>;
-  lintViolations: LintViolation[];
-  /** Set-level cascade diff from useSetTabs — not in any context */
-  cascadeDiff: Record<string, { before: unknown; after: unknown }> | null;
-
-  // Validation
-  validationIssues: ValidationIssue[] | null;
-  validationSummary: ValidationSummary | null;
-  validationLoading: boolean;
-  validationError: string | null;
-  validationLastRefreshed: Date | null;
-  validationIsStale: boolean;
-  refreshValidation: () => Promise<ValidationSnapshot | null>;
-
-  // History / operations
-  recentOperations: OperationEntry[];
-  totalOperations: number;
-  hasMoreOperations: boolean;
-  loadMoreOperations: () => void;
-  handleRollback: (id: string) => void;
-  handleServerRedo: (opId?: string) => void;
-  undoDescriptions: string[];
-  redoableOpIds: Set<string>;
-  executeUndo: () => Promise<void>;
-  canUndo: boolean;
-
-  // Sync confirmation state (not the actual sync, which is in ConnectionContext)
-  setSyncGroupPending: (
-    v: { groupPath: string; tokenCount: number } | null,
-  ) => void;
-  setSyncGroupStylesPending: (
-    v: { groupPath: string; tokenCount: number } | null,
-  ) => void;
-  setGroupScopesPath: (path: string | null) => void;
-  setGroupScopesSelected: Dispatch<SetStateAction<string[]>>;
-  setGroupScopesError: (err: string | null) => void;
-  tokenChangeKey: number;
-
-  // Generator / graph state
-  pendingGraphTemplate: string | null;
-  setPendingGraphTemplate: (id: string | null) => void;
-  pendingGraphFromGroup: { groupPath: string; tokenType: string | null } | null;
-  setPendingGraphFromGroup: (
-    v: { groupPath: string; tokenType: string | null } | null,
-  ) => void;
-  focusGeneratorId: string | null;
-  setFocusGeneratorId: (id: string | null) => void;
-  pendingOpenPicker: boolean;
-  setPendingOpenPicker: (v: boolean) => void;
-
-  // Refs
-  themeManagerHandleRef: MutableRefObject<ThemeManagerHandle | null>;
-  publishPanelHandleRef: MutableRefObject<PublishPanelHandle | null>;
-  selectionInspectorHandleRef: MutableRefObject<SelectionInspectorHandle | null>;
-
-  // Token drag callbacks — notified by TokenList when a cross-set drag starts/ends
-  onTokenDragStart?: (paths: string[], fromSet: string) => void;
-  onTokenDragEnd?: () => void;
-
-  // Action callbacks
-  refreshAll: () => void;
-  pushUndo: (slot: UndoSlot) => void;
-  setErrorToast: (msg: string) => void;
-  setSuccessToast: (msg: string) => void;
-  handleNavigateToSet: (set: string, path: string) => void;
-  setFlowPanelInitialPath: (path: string | null) => void;
-  flowPanelInitialPath: string | null;
-  openCommandPaletteWithQuery: (query: string) => void;
-  handleNavigateToGenerator: (id: string) => void;
-  setThemeGapCount: (n: number) => void;
-  onThemeShellStateChange: (state: ThemeWorkspaceShellState) => void;
-  triggerCreateToken: number;
-  recentlyTouched: RecentlyTouchedState;
-  starredTokens: StarredTokensState;
-  onImportComplete: (
-    result: ImportCompletionResult,
-    destinationRecommendation: ImportNextStepRecommendation | null,
-  ) => void;
-  // Modal openers (for EmptyState + other panels that trigger global modals)
-  onShowPasteModal: () => void;
-  onShowImportPanel: () => void;
-  onShowColorScaleGen: () => void;
-  onOpenStartHere: (branch?: StartHereBranch) => void;
-
-  onRestartGuidedSetup: () => void;
-  /** Called after "Clear all data" — navigate away and refresh tokens */
-  onClearAllComplete?: () => void;
-  notificationHistory: NotificationEntry[];
-  clearNotificationHistory: () => void;
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function PanelRouter(p: PanelRouterProps): ReactNode {
+export function PanelRouter(): ReactNode {
+  const shell = useShellWorkspaceController();
+  const editorShell = useEditorShellController();
+  const tokensController = useTokensWorkspaceController();
+  const themeController = useThemeWorkspaceController();
+  const applyController = useApplyWorkspaceController();
+  const shipController = useShipWorkspaceController();
+  const setManagerController = useSetManagerWorkspaceController();
+  const controller = {
+    ...shell,
+    ...editorShell,
+    ...tokensController,
+    ...themeController,
+    ...applyController,
+    ...shipController,
+    onShowPasteModal: shell.openPasteModal,
+    onShowImportPanel: shell.openImportPanel,
+    onShowColorScaleGen: shell.openColorScaleGenerator,
+    onOpenStartHere: shell.openStartHere,
+    onRestartGuidedSetup: shell.restartGuidedSetup,
+    onClearAllComplete: shell.handleClearAllComplete,
+    onImportComplete: shell.handleImportComplete,
+    onOpenCommandPaletteWithQuery: shell.openCommandPaletteWithQuery,
+  };
   // Navigation and editor state from contexts (previously passed as props)
   const {
     activeTopTab,
@@ -392,18 +302,18 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
 
   useEffect(() => {
-    if (!p.showPreviewSplit) return;
+    if (!controller.showPreviewSplit) return;
     if (
       activeTokensContextualSurface === "compare" ||
       activeTokensContextualSurface === "token-editor" ||
       activeTokensContextualSurface === "generator-editor"
     ) {
-      p.setShowPreviewSplit(false);
+      controller.setShowPreviewSplit(false);
     }
   }, [
     activeTokensContextualSurface,
-    p.showPreviewSplit,
-    p.setShowPreviewSplit,
+    controller.showPreviewSplit,
+    controller.setShowPreviewSplit,
   ]);
 
   const editingTokenType = editingToken
@@ -443,7 +353,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   const openTokenEditor = useCallback(
     (options: { path: string; set: string; name?: string }) => {
-      p.setShowPreviewSplit(false);
+      controller.setShowPreviewSplit(false);
       setPreviewingToken(null);
       setHighlightedToken(options.path);
       if (options.set !== activeSet) {
@@ -460,7 +370,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     },
     [
       activeSet,
-      p.setShowPreviewSplit,
+      controller.setShowPreviewSplit,
       setActiveSet,
       setHighlightedToken,
       setPreviewingToken,
@@ -470,18 +380,18 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   const openGeneratorEditor = useCallback(
     (target: TokensLibraryGeneratorEditorTarget) => {
-      p.setShowPreviewSplit(false);
+      controller.setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "generator-editor",
         generator: target,
       });
     },
-    [p.setShowPreviewSplit, switchContextualSurface],
+    [controller.setShowPreviewSplit, switchContextualSurface],
   );
 
   const openGeneratedTokens = useCallback(
     (targetGroup: string, targetSet: string) => {
-      p.setShowPreviewSplit(false);
+      controller.setShowPreviewSplit(false);
       switchContextualSurface({ surface: null });
       setPendingHighlightForSet(targetGroup, targetSet);
       if (targetSet !== activeSet) {
@@ -492,7 +402,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     [
       activeSet,
       navigateTo,
-      p.setShowPreviewSplit,
+      controller.setShowPreviewSplit,
       setActiveSet,
       setPendingHighlightForSet,
       switchContextualSurface,
@@ -512,10 +422,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       setCreateFromEmpty(false);
     }
     setEditingToken(null);
-    p.refreshAll();
+    controller.refreshAll();
   }, [
     editingToken?.isCreate,
-    p.refreshAll,
+    controller.refreshAll,
     setCreateFromEmpty,
     setEditingToken,
   ]);
@@ -526,9 +436,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         persistLastCreateGroup(savedPath);
         setCreateFromEmpty(false);
       }
-      p.handleEditorSave(savedPath);
+      controller.handleEditorSave(savedPath);
     },
-    [editingToken?.isCreate, p.handleEditorSave, setCreateFromEmpty],
+    [editingToken?.isCreate, controller.handleEditorSave, setCreateFromEmpty],
   );
 
   const handleTokenEditorSaveAndCreateAnother = useCallback(
@@ -537,7 +447,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       persistLastCreateType(savedType);
       setCreateFromEmpty(false);
       setHighlightedToken(savedPath);
-      p.refreshAll();
+      controller.refreshAll();
       const segments = savedPath.split(".");
       const parentPrefix =
         segments.length > 1 ? `${segments.slice(0, -1).join(".")}.` : "";
@@ -552,7 +462,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     [
       activeSet,
       editingToken?.set,
-      p.refreshAll,
+      controller.refreshAll,
       setCreateFromEmpty,
       setEditingToken,
       setHighlightedToken,
@@ -568,14 +478,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       showTokensCompare
     )
       return;
-    p.setShowPreviewSplit(false);
+    controller.setShowPreviewSplit(false);
     openCreateLauncher();
   }, [
     createFromEmpty,
     editingGenerator,
     editingToken,
     openCreateLauncher,
-    p.setShowPreviewSplit,
+    controller.setShowPreviewSplit,
     previewingToken,
     showTokensCompare,
   ]);
@@ -584,8 +494,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // three TokenList render variants (side-panel, no-split, preview-split).
   const tokenListActions = {
     onEdit: (path: string, name?: string) =>
-      p.guardEditorAction(() => {
-        p.setShowPreviewSplit(false);
+      controller.guardEditorAction(() => {
+        controller.setShowPreviewSplit(false);
         switchContextualSurface({
           surface: "token-editor",
           token: { path, name, set: activeSet },
@@ -604,68 +514,68 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       initialType: string | undefined,
       initialValue: string | undefined,
     ) => {
-      p.setShowPreviewSplit(false);
+      controller.setShowPreviewSplit(false);
       openCreateLauncher({ initialPath, initialType, initialValue });
     },
-    onRefresh: p.refreshAll,
-    onPushUndo: p.pushUndo,
+    onRefresh: controller.refreshAll,
+    onPushUndo: controller.pushUndo,
     onTokenCreated: (path: string) => setHighlightedToken(path),
     onNavigateToAlias: handleNavigateToAlias,
     onNavigateBack: handleNavigateBack,
     navHistoryLength: navHistoryLength,
     onClearHighlight: () => setHighlightedToken(null),
     onSyncGroup: (groupPath: string, tokenCount: number) =>
-      p.setSyncGroupPending({ groupPath, tokenCount }),
+      controller.setSyncGroupPending({ groupPath, tokenCount }),
     onSyncGroupStyles: (groupPath: string, tokenCount: number) =>
-      p.setSyncGroupStylesPending({ groupPath, tokenCount }),
+      controller.setSyncGroupStylesPending({ groupPath, tokenCount }),
     onSetGroupScopes: (groupPath: string) => {
-      p.setGroupScopesPath(groupPath);
-      p.setGroupScopesSelected([]);
-      p.setGroupScopesError(null);
+      controller.setGroupScopesPath(groupPath);
+      controller.setGroupScopesSelected([]);
+      controller.setGroupScopesError(null);
     },
     onGenerateScaleFromGroup: (groupPath: string, tokenType: string | null) => {
-      p.setPendingGraphFromGroup({ groupPath, tokenType });
+      controller.setPendingGraphFromGroup({ groupPath, tokenType });
       navigateTo("define", "generators");
     },
-    onRefreshGenerators: p.refreshAll,
-    onToggleIssuesOnly: () => p.setShowIssuesOnly((v) => !v),
+    onRefreshGenerators: controller.refreshAll,
+    onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredSetCount,
-    onNavigateToSet: p.handleNavigateToSet,
+    onNavigateToSet: controller.handleNavigateToSet,
     onViewTokenHistory: (path: string) => {
       setHistoryFilterPath(path);
       navigateTo("ship", "history");
     },
     onEditGenerator: (generatorId: string) =>
-      p.guardEditorAction(() => {
+      controller.guardEditorAction(() => {
         openGeneratorEditor({
           mode: "edit",
           id: generatorId,
         });
       }),
     onOpenGeneratorEditor: (target: TokensLibraryGeneratorEditorTarget) =>
-      p.guardEditorAction(() => {
+      controller.guardEditorAction(() => {
         openGeneratorEditor(target);
       }),
-    onNavigateToGenerator: p.handleNavigateToGenerator,
+    onNavigateToGenerator: controller.handleNavigateToGenerator,
     onShowReferences: (path: string) => {
-      p.setFlowPanelInitialPath(path);
+      controller.setFlowPanelInitialPath(path);
       navigateTo("apply", "dependencies");
     },
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => {
-      p.displayedLeafNodesRef.current = nodes;
+      controller.displayedLeafNodesRef.current = nodes;
     },
     onTokenTouched: (path: string) => {
-      p.recentlyTouched.recordTouch(path);
+      controller.recentlyTouched.recordTouch(path);
     },
-    onToggleStar: (path: string) => p.starredTokens.toggleStar(path, activeSet),
+    onToggleStar: (path: string) => controller.starredTokens.toggleStar(path, activeSet),
     starredPaths: new Set(
-      p.starredTokens.tokens
+      controller.starredTokens.tokens
         .filter((t) => t.setName === activeSet)
         .map((t) => t.path),
     ),
-    onError: p.setErrorToast,
+    onError: controller.setErrorToast,
     onOpenCompare: (paths: Set<string>) => {
-      p.setShowPreviewSplit(false);
+      controller.setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "compare",
         mode: "tokens",
@@ -673,20 +583,20 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       });
     },
     onOpenCrossThemeCompare: (path: string) => {
-      p.setShowPreviewSplit(false);
+      controller.setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "compare",
         mode: "cross-theme",
         path,
       });
     },
-    onOpenCommandPaletteWithQuery: p.openCommandPaletteWithQuery,
-    onShowPasteModal: p.onShowPasteModal,
-    onOpenImportPanel: p.onShowImportPanel,
-    onOpenStartHere: p.onOpenStartHere,
-    onTogglePreviewSplit: () => p.setShowPreviewSplit((v) => !v),
-    onTokenDragStart: p.onTokenDragStart,
-    onTokenDragEnd: p.onTokenDragEnd,
+    onOpenCommandPaletteWithQuery: controller.openCommandPaletteWithQuery,
+    onShowPasteModal: controller.onShowPasteModal,
+    onOpenImportPanel: controller.onShowImportPanel,
+    onOpenStartHere: controller.onOpenStartHere,
+    onTogglePreviewSplit: () => controller.setShowPreviewSplit((v) => !v),
+    onTokenDragStart: controller.onTokenDragStart,
+    onTokenDragEnd: controller.onTokenDragEnd,
   };
 
   // Common TokenEditor props shared between side-panel and drawer variants
@@ -705,23 +615,23 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         initialValue: editingToken.initialValue,
         createPresentation: editingToken.createPresentation,
         onDirtyChange: (dirty: boolean) => {
-          p.editorIsDirtyRef.current = dirty;
+          controller.editorIsDirtyRef.current = dirty;
         },
-        closeRef: p.editorCloseRef,
+        closeRef: controller.editorCloseRef,
         onSaved: handleTokenEditorSaved,
         onSaveAndCreateAnother: handleTokenEditorSaveAndCreateAnother,
         dimensions,
         perSetFlat,
-        onRefresh: p.refreshAll,
-        availableFonts: p.availableFonts,
-        fontWeightsByFamily: p.fontWeightsByFamily,
+        onRefresh: controller.refreshAll,
+        availableFonts: controller.availableFonts,
+        fontWeightsByFamily: controller.fontWeightsByFamily,
         derivedTokenPaths,
         onShowReferences: (path: string) => {
-          p.setFlowPanelInitialPath(path);
+          controller.setFlowPanelInitialPath(path);
           navigateTo("apply", "dependencies");
         },
         onNavigateToToken: handleNavigateToAlias,
-        onNavigateToGenerator: p.handleNavigateToGenerator,
+        onNavigateToGenerator: controller.handleNavigateToGenerator,
         onOpenGeneratorEditor: openGeneratorEditor,
       }
     : null;
@@ -742,12 +652,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       themeOptionsDefaultA={tokensCompareDefaultA}
       themeOptionsDefaultB={tokensCompareDefaultB}
       onEditToken={(set, path) => {
-        p.guardEditorAction(() => {
+        controller.guardEditorAction(() => {
           openTokenEditor({ path, set });
         });
       }}
       onCreateToken={(path, set, type, value) => {
-        p.guardEditorAction(() => {
+        controller.guardEditorAction(() => {
           openCreateLauncher({
             initialPath: path,
             initialType: type,
@@ -758,7 +668,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       }}
       onGoToTokens={() => setShowTokensCompare(false)}
       serverUrl={serverUrl}
-      onTokensCreated={p.refreshAll}
+      onTokensCreated={controller.refreshAll}
       onBack={() => setShowTokensCompare(false)}
       backLabel="Back to tokens"
     />
@@ -803,22 +713,22 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           pathToSet,
           onClose: () => {
             setEditingGenerator(null);
-            p.refreshAll();
+            controller.refreshAll();
           },
           onSaved: (info?: GeneratorSaveSuccessInfo) => {
             setEditingGenerator(null);
-            p.refreshAll();
+            controller.refreshAll();
             if (info) {
               openGeneratedTokens(info.targetGroup, info.targetSet);
             }
           },
           getSuccessToastAction: getViewTokensToastAction,
-          onPushUndo: p.pushUndo,
+          onPushUndo: controller.pushUndo,
           presentation: "panel" as const,
           onDirtyChange: (dirty: boolean) => {
-            p.editorIsDirtyRef.current = dirty;
+            controller.editorIsDirtyRef.current = dirty;
           },
-          closeRef: p.editorCloseRef,
+          closeRef: controller.editorCloseRef,
         }
       : null;
 
@@ -839,7 +749,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         return {
           surface: "token-editor",
           content: <TokenEditor {...tokenEditorProps} />,
-          onDismiss: p.editorCloseRef.current,
+          onDismiss: controller.editorCloseRef.current,
           height: "65%",
         };
       }
@@ -852,7 +762,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         return {
           surface: "generator-editor",
           content: <TokenGeneratorDialog {...generatorEditorProps} />,
-          onDismiss: p.editorCloseRef.current,
+          onDismiss: controller.editorCloseRef.current,
           height: "72%",
         };
       }
@@ -875,20 +785,20 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               tokenUsageCounts={tokenUsageCounts}
               generators={generators}
               derivedTokenPaths={derivedTokenPaths}
-              lintViolations={p.lintViolations.filter(
+              lintViolations={controller.lintViolations.filter(
                 (violation) => violation.path === previewingToken.path,
               )}
               syncSnapshot={
                 Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined
               }
               serverUrl={serverUrl}
-              onEdit={p.handlePreviewEdit}
-              onClose={p.handlePreviewClose}
+              onEdit={controller.handlePreviewEdit}
+              onClose={controller.handlePreviewClose}
               onNavigateToAlias={handleNavigateToAlias}
-              onNavigateToGenerator={p.handleNavigateToGenerator}
+              onNavigateToGenerator={controller.handleNavigateToGenerator}
             />
           ),
-          onDismiss: p.handlePreviewClose,
+          onDismiss: controller.handlePreviewClose,
           height: "50%",
         };
       }
@@ -915,14 +825,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         data={{
           tokens,
           allTokensFlat: themedAllTokensFlat,
-          lintViolations: p.lintViolations,
+          lintViolations: controller.lintViolations,
           syncSnapshot:
             Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
           generators,
           generatorsByTargetGroup,
           derivedTokenPaths,
           tokenUsageCounts,
-          cascadeDiff: p.cascadeDiff ?? undefined,
+          cascadeDiff: controller.cascadeDiff ?? undefined,
           perSetFlat,
           collectionMap: setCollectionNames,
           modeMap: setModeNames,
@@ -932,13 +842,13 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           activeThemes,
         }}
         actions={tokenListActions}
-        recentlyTouched={p.recentlyTouched}
+        recentlyTouched={controller.recentlyTouched}
         defaultCreateOpen={createFromEmpty}
         highlightedToken={tokenListHighlightedPath}
-        showIssuesOnly={p.showIssuesOnly}
-        showPreviewSplit={p.showPreviewSplit}
+        showIssuesOnly={controller.showIssuesOnly}
+        showPreviewSplit={controller.showPreviewSplit}
         editingTokenPath={editingToken?.path}
-        compareHandle={p.tokenListCompareRef}
+        compareHandle={controller.tokenListCompareRef}
       />
     </div>
   );
@@ -949,8 +859,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     <div
       className="shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-row overflow-hidden"
       style={{ width: editorWidth }}
-      data-surface-kind={p.contextualEditorTransition.kind}
-      data-surface-presentation={p.contextualEditorTransition.presentation}
+      data-surface-kind={controller.contextualEditorTransition.kind}
+      data-surface-presentation={controller.contextualEditorTransition.presentation}
       data-tokens-library-surface-slot={
         TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id
       }
@@ -963,7 +873,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           !e.altKey
         ) {
           e.preventDefault();
-          p.handleEditorNavigate(e.key === "]" ? 1 : -1);
+          controller.handleEditorNavigate(e.key === "]" ? 1 : -1);
         }
       }}
     >
@@ -980,7 +890,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   );
 
   const renderNarrowTokensContextualSurface = () => {
-    if (p.useSidePanel || p.showPreviewSplit) return null;
+    if (controller.useSidePanel || controller.showPreviewSplit) return null;
 
     const surfaceState = getTokensContextualSurfaceRenderState();
     if (!surfaceState) return null;
@@ -988,8 +898,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     return (
       <div
         className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
-        data-surface-kind={p.contextualEditorTransition.kind}
-        data-surface-presentation={p.contextualEditorTransition.presentation}
+        data-surface-kind={controller.contextualEditorTransition.kind}
+        data-surface-presentation={controller.contextualEditorTransition.presentation}
         data-tokens-library-surface-slot={
           TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id
         }
@@ -1002,7 +912,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             !e.altKey
           ) {
             e.preventDefault();
-            p.handleEditorNavigate(e.key === "]" ? 1 : -1);
+            controller.handleEditorNavigate(e.key === "]" ? 1 : -1);
           }
         }}
       >
@@ -1054,6 +964,68 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   const SECONDARY_PANEL_MAP: Partial<
     Record<SecondarySurfaceId, SecondaryPanelRenderer>
   > = {
+    sets: () => (
+      <SetManager
+        sets={sets}
+        activeSet={activeSet}
+        onClose={closeSecondarySurface}
+        onOpenQuickSwitch={setManagerController.onOpenQuickSwitch}
+        onOpenGenerators={setManagerController.onOpenGenerators}
+        onRename={setManagerController.onRename}
+        onDuplicate={setManagerController.onDuplicate}
+        onDelete={setManagerController.onDelete}
+        onReorder={setManagerController.onReorder}
+        onReorderFull={setManagerController.onReorderFull}
+        onCreateSet={setManagerController.onCreateSet}
+        onEditInfo={setManagerController.onEditInfo}
+        onMerge={setManagerController.onMerge}
+        onSplit={setManagerController.onSplit}
+        setTokenCounts={setTokenCounts}
+        setDescriptions={setDescriptions}
+        dimensions={dimensions}
+        onBulkDelete={setManagerController.onBulkDelete}
+        onBulkDuplicate={setManagerController.onBulkDuplicate}
+        onBulkMoveToFolder={setManagerController.onBulkMoveToFolder}
+        renamingSet={setManagerController.renamingSet}
+        renameValue={setManagerController.renameValue}
+        setRenameValue={setManagerController.setRenameValue}
+        renameError={setManagerController.renameError}
+        setRenameError={setManagerController.setRenameError}
+        renameInputRef={setManagerController.renameInputRef}
+        onRenameConfirm={setManagerController.onRenameConfirm}
+        onRenameCancel={setManagerController.onRenameCancel}
+        editingMetadataSet={setManagerController.editingMetadataSet}
+        metadataDescription={setManagerController.metadataDescription}
+        setMetadataDescription={setManagerController.setMetadataDescription}
+        metadataCollectionName={setManagerController.metadataCollectionName}
+        setMetadataCollectionName={setManagerController.setMetadataCollectionName}
+        metadataModeName={setManagerController.metadataModeName}
+        setMetadataModeName={setManagerController.setMetadataModeName}
+        onMetadataClose={setManagerController.onMetadataClose}
+        onMetadataSave={setManagerController.onMetadataSave}
+        deletingSet={setManagerController.deletingSet}
+        onDeleteConfirm={setManagerController.onDeleteConfirm}
+        onDeleteCancel={setManagerController.onDeleteCancel}
+        mergingSet={setManagerController.mergingSet}
+        mergeTargetSet={setManagerController.mergeTargetSet}
+        mergeConflicts={setManagerController.mergeConflicts}
+        mergeResolutions={setManagerController.mergeResolutions}
+        mergeChecked={setManagerController.mergeChecked}
+        mergeLoading={setManagerController.mergeLoading}
+        onMergeTargetChange={setManagerController.onMergeTargetChange}
+        setMergeResolutions={setManagerController.setMergeResolutions}
+        onMergeCheckConflicts={setManagerController.onMergeCheckConflicts}
+        onMergeConfirm={setManagerController.onMergeConfirm}
+        onMergeClose={setManagerController.onMergeClose}
+        splittingSet={setManagerController.splittingSet}
+        splitPreview={setManagerController.splitPreview}
+        splitDeleteOriginal={setManagerController.splitDeleteOriginal}
+        splitLoading={setManagerController.splitLoading}
+        setSplitDeleteOriginal={setManagerController.setSplitDeleteOriginal}
+        onSplitConfirm={setManagerController.onSplitConfirm}
+        onSplitClose={setManagerController.onSplitClose}
+      />
+    ),
     import: () => (
       <ErrorBoundary panelName="Import" onReset={closeSecondarySurface}>
         <div className="flex h-full flex-col overflow-hidden">
@@ -1076,7 +1048,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               ).find(
                 (recommendation) => recommendation.target.kind === "workspace",
               );
-              p.onImportComplete(result, nextWorkspaceStep ?? null);
+              controller.onImportComplete(result, nextWorkspaceStep ?? null);
               if (nextWorkspaceStep) {
                 openImportNextStep(result, nextWorkspaceStep, {
                   preserveSecondarySurface: true,
@@ -1091,15 +1063,15 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             onOpenImportNextStep={(result, recommendation) =>
               openImportNextStep(result, recommendation)
             }
-            onPushUndo={p.pushUndo}
+            onPushUndo={controller.pushUndo}
           />
         </div>
       </ErrorBoundary>
     ),
     notifications: () => (
       <NotificationsPanel
-        history={p.notificationHistory}
-        onClear={p.clearNotificationHistory}
+        history={controller.notificationHistory}
+        onClear={controller.clearNotificationHistory}
       />
     ),
     shortcuts: () => <KeyboardShortcutsPanel />,
@@ -1109,14 +1081,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         connected={connected}
         checking={checking}
         updateServerUrlAndConnect={updateServerUrlAndConnect}
-        onRestartGuidedSetup={p.onRestartGuidedSetup}
-        onClearAllComplete={p.onClearAllComplete}
+        onRestartGuidedSetup={controller.onRestartGuidedSetup}
+        onClearAllComplete={controller.onClearAllComplete}
         onClose={closeSecondarySurface}
       />
     ),
   };
 
-  if (activeSecondarySurface && activeSecondarySurface !== "sets") {
+  if (activeSecondarySurface) {
     const secondaryRenderer = SECONDARY_PANEL_MAP[activeSecondarySurface];
     return secondaryRenderer ? secondaryRenderer() : null;
   }
@@ -1215,7 +1187,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             return (
               <button
                 key={branch}
-                onClick={() => p.onOpenStartHere(branch)}
+                onClick={() => controller.onOpenStartHere(branch)}
                 className={[
                   "rounded-lg border px-3 py-2.5 text-left transition-colors",
                   isRecommended
@@ -1244,7 +1216,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     );
 
     const wideContextualSurface =
-      !p.showPreviewSplit && p.useSidePanel
+      !controller.showPreviewSplit && controller.useSidePanel
         ? getTokensContextualSurfaceRenderState()
         : null;
 
@@ -1288,7 +1260,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             "Choose the exact start branch you want to open. Every onboarding path resolves through the same Start here flow.",
           )}
         {/* Main content: TokenList variants */}
-        {hasTokensLibrarySurface && !p.showPreviewSplit && (
+        {hasTokensLibrarySurface && !controller.showPreviewSplit && (
           <div className="flex h-full overflow-hidden">
             {renderTokensLibraryBody()}
             {wideContextualSurface
@@ -1297,19 +1269,19 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           </div>
         )}
         {/* Preview split view */}
-        {hasTokensLibrarySurface && p.showPreviewSplit && (
+        {hasTokensLibrarySurface && controller.showPreviewSplit && (
           <div
-            ref={p.splitContainerRef}
+            ref={controller.splitContainerRef}
             className="flex flex-col h-full overflow-hidden"
-            data-surface-kind={p.splitPreviewTransition.kind}
-            data-surface-presentation={p.splitPreviewTransition.presentation}
+            data-surface-kind={controller.splitPreviewTransition.kind}
+            data-surface-presentation={controller.splitPreviewTransition.presentation}
             data-tokens-library-surface-slot={
               TOKENS_LIBRARY_SURFACE_CONTRACT.splitPreview.id
             }
           >
             <div
               style={{
-                height: `${p.splitRatio * 100}%`,
+                height: `${controller.splitRatio * 100}%`,
                 flexShrink: 0,
                 overflow: "hidden",
               }}
@@ -1319,14 +1291,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             <div
               role="separator"
               aria-orientation="horizontal"
-              aria-valuenow={p.splitValueNow}
+              aria-valuenow={controller.splitValueNow}
               aria-valuemin={20}
               aria-valuemax={80}
               aria-label="Resize token list and preview"
               tabIndex={0}
               className="h-1 flex-shrink-0 cursor-row-resize bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
-              onMouseDown={p.handleSplitDragStart}
-              onKeyDown={p.handleSplitKeyDown}
+              onMouseDown={controller.handleSplitDragStart}
+              onKeyDown={controller.handleSplitKeyDown}
             />
             <div className="flex-1 min-h-0 overflow-hidden">
               <ErrorBoundary
@@ -1348,14 +1320,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   focusedToken={previewingToken}
                   pathToSet={pathToSet}
                   onClearFocus={() => setPreviewingToken(null)}
-                  lintViolations={p.lintViolations}
+                  lintViolations={controller.lintViolations}
                   syncSnapshot={
                     Object.keys(syncSnapshot).length > 0
                       ? syncSnapshot
                       : undefined
                   }
                   onEditToken={(path, name, set) => {
-                    p.guardEditorAction(() => {
+                    controller.guardEditorAction(() => {
                       openTokenEditor({ path, name, set: set ?? activeSet });
                     });
                   }}
@@ -1363,7 +1335,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   tokenUsageCounts={tokenUsageCounts}
                   generators={generators}
                   derivedTokenPaths={derivedTokenPaths}
-                  onNavigateToGenerator={p.handleNavigateToGenerator}
+                  onNavigateToGenerator={controller.handleNavigateToGenerator}
                 />
               </ErrorBoundary>
             </div>
@@ -1388,22 +1360,22 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           loading={generatorsLoading}
           connected={connected}
           onRefresh={() => {
-            p.refreshAll();
+            controller.refreshAll();
             refreshGenerators();
           }}
-          onPushUndo={p.pushUndo}
-          pendingTemplateId={p.pendingGraphTemplate}
-          onApplyTemplate={() => p.setPendingGraphTemplate(null)}
-          pendingGroupPath={p.pendingGraphFromGroup?.groupPath ?? null}
-          pendingGroupTokenType={p.pendingGraphFromGroup?.tokenType ?? null}
+          onPushUndo={controller.pushUndo}
+          pendingTemplateId={controller.pendingGraphTemplate}
+          onApplyTemplate={() => controller.setPendingGraphTemplate(null)}
+          pendingGroupPath={controller.pendingGraphFromGroup?.groupPath ?? null}
+          pendingGroupTokenType={controller.pendingGraphFromGroup?.tokenType ?? null}
           onClearPendingGroup={() => {
-            p.setPendingGraphFromGroup(null);
-            p.setPendingOpenPicker(false);
+            controller.setPendingGraphFromGroup(null);
+            controller.setPendingOpenPicker(false);
           }}
-          focusGeneratorId={p.focusGeneratorId}
-          onClearFocusGenerator={() => p.setFocusGeneratorId(null)}
+          focusGeneratorId={controller.focusGeneratorId}
+          onClearFocusGenerator={() => controller.setFocusGeneratorId(null)}
           onViewTokens={openGeneratedTokens}
-          openTemplatePicker={p.pendingOpenPicker}
+          openTemplatePicker={controller.pendingOpenPicker}
         />
       </ErrorBoundary>
     );
@@ -1424,28 +1396,28 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               onDimensionsChange={setDimensions}
               onNavigateToToken={(path, set) => {
                 navigateTo("define", "tokens");
-                p.handleNavigateToSet(set, path);
+                controller.handleNavigateToSet(set, path);
               }}
               onCreateToken={(tokenPath, set) => {
                 navigateTo("define", "tokens");
                 setEditingToken({ path: tokenPath, set, isCreate: true });
               }}
-              onPushUndo={p.pushUndo}
+              onPushUndo={controller.pushUndo}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
-              onGapsDetected={p.setThemeGapCount}
-              onShellStateChange={p.onThemeShellStateChange}
-              onTokensCreated={p.refreshAll}
+              onGapsDetected={controller.setThemeGapCount}
+              onShellStateChange={controller.onThemeShellStateChange}
+              onTokensCreated={controller.refreshAll}
               onSetCreated={(name) => {
                 addSetToState(name, 0);
                 setActiveSet(name);
               }}
               onGoToTokens={() => navigateTo("define", "tokens")}
-              themeManagerHandle={p.themeManagerHandleRef}
-              onSuccess={p.setSuccessToast}
+              themeManagerHandle={controller.themeManagerHandleRef}
+              onSuccess={controller.setSuccessToast}
               onGenerateForDimension={({ dimensionName: _name, targetSet }) => {
                 if (targetSet) setActiveSet(targetSet);
-                p.setPendingOpenPicker(true);
+                controller.setPendingOpenPicker(true);
                 navigateTo("define", "generators");
               }}
               resolverState={{
@@ -1499,11 +1471,11 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             setHighlightedToken(path);
             navigateTo("define", "tokens");
           }}
-          onPushUndo={p.pushUndo}
-          onToast={p.setSuccessToast}
+          onPushUndo={controller.pushUndo}
+          onToast={controller.setSuccessToast}
           onGoToTokens={() => navigateTo("define", "tokens")}
-          triggerCreateToken={p.triggerCreateToken}
-          selectionInspectorHandle={p.selectionInspectorHandleRef}
+          triggerCreateToken={controller.triggerCreateToken}
+          selectionInspectorHandle={controller.selectionInspectorHandleRef}
         />
       </ErrorBoundary>
     );
@@ -1565,7 +1537,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           allTokensFlat={themedAllTokensFlat}
           pathToSet={pathToSet}
           loading={tokensLoading}
-          initialPath={p.flowPanelInitialPath}
+          initialPath={controller.flowPanelInitialPath}
           onNavigateToToken={(path) => {
             const targetSet = pathToSet[path];
             navigateTo("define", "tokens");
@@ -1605,9 +1577,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           activeSet={activeSet}
           collectionMap={setCollectionNames}
           modeMap={setModeNames}
-          refreshValidation={p.refreshValidation}
-          tokenChangeKey={p.tokenChangeKey}
-          publishPanelHandle={p.publishPanelHandleRef}
+          refreshValidation={controller.refreshValidation}
+          tokenChangeKey={controller.tokenChangeKey}
+          publishPanelHandle={controller.publishPanelHandleRef}
         />
       </ErrorBoundary>
     );
@@ -1633,20 +1605,20 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         <HistoryPanel
           serverUrl={serverUrl}
           connected={connected}
-          onPushUndo={p.pushUndo}
-          onRefreshTokens={p.refreshAll}
+          onPushUndo={controller.pushUndo}
+          onRefreshTokens={controller.refreshAll}
           filterTokenPath={historyFilterPath}
           onClearFilter={() => setHistoryFilterPath(null)}
-          recentOperations={p.recentOperations}
-          totalOperations={p.totalOperations}
-          hasMoreOperations={p.hasMoreOperations}
-          onLoadMoreOperations={p.loadMoreOperations}
-          onRollback={p.handleRollback}
-          undoDescriptions={p.undoDescriptions}
-          redoableOpIds={p.redoableOpIds}
-          onServerRedo={p.handleServerRedo}
-          executeUndo={p.executeUndo}
-          canUndo={p.canUndo}
+          recentOperations={controller.recentOperations}
+          totalOperations={controller.totalOperations}
+          hasMoreOperations={controller.hasMoreOperations}
+          onLoadMoreOperations={controller.loadMoreOperations}
+          onRollback={controller.handleRollback}
+          undoDescriptions={controller.undoDescriptions}
+          redoableOpIds={controller.redoableOpIds}
+          onServerRedo={controller.handleServerRedo}
+          executeUndo={controller.executeUndo}
+          canUndo={controller.canUndo}
         />
       </ErrorBoundary>
     );
@@ -1663,7 +1635,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           connected={connected}
           activeSet={activeSet}
           generators={generators}
-          lintViolations={p.lintViolations}
+          lintViolations={controller.lintViolations}
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
           dimensions={dimensions}
@@ -1683,14 +1655,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             setPendingHighlight(path);
           }}
           onTriggerHeatmap={triggerHeatmapScan}
-          validationIssues={p.validationIssues}
-          validationSummary={p.validationSummary}
-          validationLoading={p.validationLoading}
-          validationError={p.validationError}
-          validationLastRefreshed={p.validationLastRefreshed}
-          validationIsStale={p.validationIsStale}
-          onRefreshValidation={p.refreshValidation}
-          onError={p.setErrorToast}
+          validationIssues={controller.validationIssues}
+          validationSummary={controller.validationSummary}
+          validationLoading={controller.validationLoading}
+          validationError={controller.validationError}
+          validationLastRefreshed={controller.validationLastRefreshed}
+          validationIsStale={controller.validationIsStale}
+          onRefreshValidation={controller.refreshValidation}
+          onError={controller.setErrorToast}
         />
       </ErrorBoundary>
     );

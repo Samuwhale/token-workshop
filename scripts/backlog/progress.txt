@@ -1302,3 +1302,11 @@
   - Single-token mutations need a shared helper even when the server route shape looks trivial, because path encoding, conflict handling, and post-save behavior drift quickly when each surface hand-rolls its own `POST`/`PATCH` calls.
   - Keeping wildcard token-path decoding behind one server helper makes later route changes safer, even if the current behavior is still just slash-to-dot reconstruction.
 ---
+## 2026-04-12 - Finish decomposing App shell orchestration and the PanelRouter prop bag into workspace-owned controllers
+- Added a dedicated workspace-controller provider, moved the set-manager secondary surface into `PanelRouter`, and shifted command-palette composition into a focused child so `App.tsx` now wires shell controllers instead of hand-passing the router and palette callback bags.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1812, `packages/figma-plugin/src/ui/App.tsx` ~L3337, `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts` ~L42, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L165, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L964, `packages/figma-plugin/src/ui/contexts/WorkspaceControllerContext.tsx` ~L26, `packages/figma-plugin/src/ui/components/AppCommandPalette.tsx` ~L15
+- **Learnings for future iterations:**
+  - When a shell component is bloated mostly by prop plumbing, a typed controller context is a cleaner cut than pushing more state into the global navigation/editor providers.
+  - Secondary surfaces such as set management belong in the router that owns workspace takeover logic; leaving one surface rendered beside the router keeps App-level orchestration sticky even after most panels are decomposed.
+---

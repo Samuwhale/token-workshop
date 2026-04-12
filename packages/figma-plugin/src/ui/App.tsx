@@ -20,9 +20,8 @@ import {
   type StartHereBranch,
 } from "./components/WelcomePrompt";
 import { ColorScaleGenerator } from "./components/ColorScaleGenerator";
-import { CommandPalette } from "./components/CommandPalette";
-import type { TokenEntry } from "./components/CommandPalette";
-import { SetSwitcher, SetManager } from "./components/SetSwitcher";
+import { AppCommandPalette } from "./components/AppCommandPalette";
+import { SetSwitcher } from "./components/SetSwitcher";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { computeHealthIssueCount } from "./components/HealthPanel";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -94,18 +93,16 @@ import { useSetTabs } from "./hooks/useSetTabs";
 import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
-import { usePinnedTokens } from "./hooks/usePinnedTokens";
 import { useAnalyticsState } from "./hooks/useAnalyticsState";
 import { useValidationCache } from "./hooks/useValidationCache";
 import { useGraphState } from "./hooks/useGraphState";
-import { useCommandPaletteCommands } from "./hooks/useCommandPaletteCommands";
 import { useSettingsListener } from "./components/SettingsPanel";
+import { WorkspaceControllerProvider } from "./contexts/WorkspaceControllerContext";
 import type { TokenMapEntry } from "../shared/types";
 import {
   KNOWN_CONTROLLER_MESSAGE_TYPES,
   PROPERTY_LABELS,
 } from "../shared/types";
-import { isAlias } from "../shared/resolveAlias";
 import { adaptShortcut, tokenPathToUrlSegment } from "./shared/utils";
 import { SHORTCUT_KEYS, matchesShortcut } from "./shared/shortcutRegistry";
 import { getMenuItems, handleMenuArrowKeys } from "./hooks/useMenuKeyboard";
@@ -414,7 +411,6 @@ export function App() {
     useState("");
   const recentlyTouched = useRecentlyTouched();
   const starredTokens = useStarredTokens();
-  const palettePinnedTokens = usePinnedTokens(activeSet);
   const initialFirstRun = !lsGet(STORAGE_KEYS.FIRST_RUN_DONE);
   const [startHereState, setStartHereState] = useState<{
     open: boolean;
@@ -1813,91 +1809,200 @@ export function App() {
     setPaletteDeleteConfirm({ paths: [path], label: `Delete "${path}"?` });
   }, []);
 
-  const { commands, activeSetPaletteTokens } = useCommandPaletteCommands({
-    showPreviewSplit,
-    setShowPreviewSplit,
-    lintViolations,
-    themeGapCount,
-    tokenListSelection,
-    setShowIssuesOnly,
-    setFlowPanelInitialPath,
-    setPaletteDeleteConfirm,
-    setShowPasteModal,
-    setShowColorScaleGen,
-    setShowQuickApply,
-    setShowSetSwitcher,
-    setPendingGraphTemplate,
-    refreshValidation,
-    jumpToNextIssue,
-    handlePaletteRename,
-    handlePaletteDuplicate,
-    handlePaletteMove,
-    handleOpenCrossThemeCompare,
-    tokenListCompareRef,
-    themeManagerHandleRef,
-    recentOperations,
-    handleRollback,
-    canRedo,
-    redoSlot,
-    executeRedo,
-    redoableItems,
-    handleServerRedo,
-  });
-
-  // All-sets flat token list for command palette "Search all sets" mode
-  const paletteTokens: TokenEntry[] = useMemo(() => {
-    return Object.entries(allTokensFlat).map(([path, entry]) => ({
-      path,
-      type: entry.$type,
-      value:
-        typeof entry.$value === "string"
-          ? entry.$value
-          : JSON.stringify(entry.$value),
-      set: pathToSet[path],
-      isAlias: isAlias(entry.$value),
-      generatorName: derivedTokenPaths.get(path)?.name,
-    }));
-  }, [allTokensFlat, pathToSet, derivedTokenPaths]);
-
-  // Pinned and recently-touched tokens for command palette quick-access sections
-  const pinnedPaletteTokens: TokenEntry[] = useMemo(() => {
-    return Array.from(palettePinnedTokens.paths)
-      .filter((path) => allTokensFlat[path])
-      .map((path) => {
-        const entry = allTokensFlat[path];
-        return {
-          path,
-          type: entry.$type,
-          value:
-            typeof entry.$value === "string"
-              ? entry.$value
-              : JSON.stringify(entry.$value),
-          set: pathToSet[path],
-          isAlias: isAlias(entry.$value),
-        };
-      });
-  }, [palettePinnedTokens.paths, allTokensFlat, pathToSet]);
-
-  const recentPaletteTokens: TokenEntry[] = useMemo(() => {
-    const MAX_RECENT = 10;
-    return Array.from(recentlyTouched.timestamps.entries())
-      .filter(([path]) => allTokensFlat[path])
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, MAX_RECENT)
-      .map(([path]) => {
-        const entry = allTokensFlat[path];
-        return {
-          path,
-          type: entry.$type,
-          value:
-            typeof entry.$value === "string"
-              ? entry.$value
-              : JSON.stringify(entry.$value),
-          set: pathToSet[path],
-          isAlias: isAlias(entry.$value),
-        };
-      });
-  }, [recentlyTouched.timestamps, allTokensFlat, pathToSet]);
+  const workspaceControllers = {
+    shell: {
+      showPreviewSplit,
+      setShowPreviewSplit,
+      openCommandPaletteWithQuery: (query: string) => {
+        setCommandPaletteInitialQuery(">" + (query ? ` ${query}` : ""));
+        setShowCommandPalette(true);
+      },
+      openPasteModal: () => setShowPasteModal(true),
+      openImportPanel: () => openSecondaryPanel("import"),
+      openColorScaleGenerator: () => setShowColorScaleGen(true),
+      toggleQuickApply: () => setShowQuickApply((visible) => !visible),
+      toggleSetSwitcher: () => setShowSetSwitcher((visible) => !visible),
+      openStartHere: (branch?: StartHereBranch) => openStartHere(branch),
+      restartGuidedSetup: () => {
+        closeSecondarySurface();
+        openStartHere("guided-setup");
+      },
+      handleClearAllComplete: () => {
+        closeSecondarySurface();
+        navigateTo("define", "tokens");
+        refreshTokens();
+        openStartHere("guided-setup", true);
+      },
+      handleImportComplete,
+      notificationHistory,
+      clearNotificationHistory,
+    },
+    editor: {
+      useSidePanel,
+      contextualEditorTransition,
+      splitPreviewTransition: CONTEXTUAL_PANEL_TRANSITIONS.splitPreview,
+      guardEditorAction,
+      editorIsDirtyRef,
+      editorCloseRef,
+      displayedLeafNodesRef,
+      tokenListCompareRef,
+      handleEditorNavigate,
+      handleEditorSave,
+      handleEditorSaveAndCreateAnother,
+      handlePreviewEdit,
+      handlePreviewClose,
+      splitRatio,
+      splitValueNow,
+      splitContainerRef,
+      handleSplitDragStart,
+      handleSplitKeyDown,
+      availableFonts,
+      fontWeightsByFamily,
+    },
+    tokens: {
+      showIssuesOnly,
+      setShowIssuesOnly,
+      lintViolations,
+      jumpToNextIssue,
+      cascadeDiff: cascadeDiff ?? null,
+      refreshAll,
+      pushUndo,
+      setErrorToast,
+      setSuccessToast,
+      handleNavigateToSet,
+      handleNavigateToGenerator,
+      flowPanelInitialPath,
+      setFlowPanelInitialPath,
+      pendingGraphTemplate,
+      setPendingGraphTemplate,
+      pendingGraphFromGroup,
+      setPendingGraphFromGroup,
+      focusGeneratorId,
+      setFocusGeneratorId,
+      pendingOpenPicker,
+      setPendingOpenPicker,
+      tokenListCompareRef,
+      tokenListSelection,
+      onTokenDragStart: (paths: string[], fromSet: string) =>
+        setTokenDragState({ paths, fromSet }),
+      onTokenDragEnd: () => setTokenDragState(null),
+      recentlyTouched,
+      starredTokens,
+      handleOpenCrossThemeCompare,
+      handlePaletteDuplicate,
+      handlePaletteRename,
+      handlePaletteMove,
+      requestPaletteDelete: (paths: string[], label: string) =>
+        setPaletteDeleteConfirm({ paths, label }),
+      handlePaletteDeleteToken,
+    },
+    themes: {
+      themeManagerHandleRef,
+      themeGapCount,
+      setThemeGapCount,
+      onThemeShellStateChange: setThemeShellState,
+    },
+    apply: {
+      selectionInspectorHandleRef,
+      triggerCreateToken,
+    },
+    ship: {
+      validationIssues,
+      validationSummary,
+      validationLoading,
+      validationError,
+      validationLastRefreshed,
+      validationIsStale,
+      refreshValidation,
+      recentOperations,
+      totalOperations,
+      hasMoreOperations,
+      loadMoreOperations,
+      handleRollback,
+      redoableItems,
+      handleServerRedo,
+      undoDescriptions,
+      redoableOpIds,
+      executeUndo,
+      canUndo,
+      canRedo,
+      redoSlot,
+      executeRedo,
+      setSyncGroupPending,
+      setSyncGroupStylesPending,
+      setGroupScopesPath,
+      setGroupScopesSelected,
+      setGroupScopesError,
+      tokenChangeKey,
+      publishPanelHandleRef,
+    },
+    setManager: {
+      onOpenQuickSwitch: () => {
+        closeSecondarySurface();
+        setShowSetSwitcher(true);
+      },
+      onOpenGenerators: (set: string) => {
+        guardEditorAction(() => {
+          setActiveSet(set);
+          navigateTo("define", "generators");
+          closeSecondarySurface();
+        });
+      },
+      onRename: startRename,
+      onDuplicate: handleDuplicateSet,
+      onDelete: startDelete,
+      onReorder: handleReorderSet,
+      onReorderFull: handleReorderSetFull,
+      onCreateSet: createSetByName,
+      onEditInfo: (set: string) => {
+        closeSecondarySurface();
+        openSetMetadata(set);
+      },
+      onMerge: sets.length > 1 ? openMergeDialog : undefined,
+      onSplit: openSplitDialog,
+      onBulkDelete: handleBulkDeleteSets,
+      onBulkDuplicate: handleBulkDuplicateSets,
+      onBulkMoveToFolder: handleBulkMoveToFolder,
+      renamingSet,
+      renameValue,
+      setRenameValue,
+      renameError,
+      setRenameError,
+      renameInputRef,
+      onRenameConfirm: handleRenameConfirm,
+      onRenameCancel: cancelRename,
+      editingMetadataSet,
+      metadataDescription,
+      setMetadataDescription,
+      metadataCollectionName,
+      setMetadataCollectionName,
+      metadataModeName,
+      setMetadataModeName,
+      onMetadataClose: closeSetMetadata,
+      onMetadataSave: handleSaveMetadata,
+      deletingSet,
+      onDeleteConfirm: handleDeleteSet,
+      onDeleteCancel: cancelDelete,
+      mergingSet,
+      mergeTargetSet,
+      mergeConflicts,
+      mergeResolutions,
+      mergeChecked,
+      mergeLoading,
+      onMergeTargetChange: changeMergeTarget,
+      setMergeResolutions,
+      onMergeCheckConflicts: handleCheckMergeConflicts,
+      onMergeConfirm: handleConfirmMerge,
+      onMergeClose: closeMergeDialog,
+      splittingSet,
+      splitPreview: splitPreview ?? [],
+      splitDeleteOriginal,
+      splitLoading,
+      setSplitDeleteOriginal,
+      onSplitConfirm: handleConfirmSplit,
+      onSplitClose: closeSplitDialog,
+    },
+  };
 
   const workspacePills = useMemo(() => {
     const pills: Array<{
@@ -3229,83 +3334,10 @@ export function App() {
           </div>
         )}
 
-      <ErrorBoundary>
-        <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {activeSecondarySurface === "sets" ? (
-              <SetManager
-                sets={sets}
-                activeSet={activeSet}
-                onClose={closeSecondarySurface}
-                onOpenQuickSwitch={() => {
-                  closeSecondarySurface();
-                  setShowSetSwitcher(true);
-                }}
-                onOpenGenerators={(set) => {
-                  guardEditorAction(() => {
-                    setActiveSet(set);
-                    navigateTo("define", "generators");
-                    closeSecondarySurface();
-                  });
-                }}
-                onRename={startRename}
-                onDuplicate={handleDuplicateSet}
-                onDelete={startDelete}
-                onReorder={handleReorderSet}
-                onReorderFull={handleReorderSetFull}
-                onCreateSet={createSetByName}
-                onEditInfo={(set) => {
-                  closeSecondarySurface();
-                  openSetMetadata(set);
-                }}
-                onMerge={sets.length > 1 ? openMergeDialog : undefined}
-                onSplit={openSplitDialog}
-                setTokenCounts={setTokenCounts}
-                setDescriptions={setDescriptions}
-                dimensions={dimensions}
-                onBulkDelete={handleBulkDeleteSets}
-                onBulkDuplicate={handleBulkDuplicateSets}
-                onBulkMoveToFolder={handleBulkMoveToFolder}
-                renamingSet={renamingSet}
-                renameValue={renameValue}
-                setRenameValue={setRenameValue}
-                renameError={renameError}
-                setRenameError={setRenameError}
-                renameInputRef={renameInputRef}
-                onRenameConfirm={handleRenameConfirm}
-                onRenameCancel={cancelRename}
-                editingMetadataSet={editingMetadataSet}
-                metadataDescription={metadataDescription}
-                setMetadataDescription={setMetadataDescription}
-                metadataCollectionName={metadataCollectionName}
-                setMetadataCollectionName={setMetadataCollectionName}
-                metadataModeName={metadataModeName}
-                setMetadataModeName={setMetadataModeName}
-                onMetadataClose={closeSetMetadata}
-                onMetadataSave={handleSaveMetadata}
-                deletingSet={deletingSet}
-                onDeleteConfirm={handleDeleteSet}
-                onDeleteCancel={cancelDelete}
-                mergingSet={mergingSet}
-                mergeTargetSet={mergeTargetSet}
-                mergeConflicts={mergeConflicts}
-                mergeResolutions={mergeResolutions}
-                mergeChecked={mergeChecked}
-                mergeLoading={mergeLoading}
-                onMergeTargetChange={changeMergeTarget}
-                setMergeResolutions={setMergeResolutions}
-                onMergeCheckConflicts={handleCheckMergeConflicts}
-                onMergeConfirm={handleConfirmMerge}
-                onMergeClose={closeMergeDialog}
-                splittingSet={splittingSet}
-                splitPreview={splitPreview}
-                splitDeleteOriginal={splitDeleteOriginal}
-                splitLoading={splitLoading}
-                setSplitDeleteOriginal={setSplitDeleteOriginal}
-                onSplitConfirm={handleConfirmSplit}
-                onSplitClose={closeSplitDialog}
-              />
-            ) : (
+      <WorkspaceControllerProvider value={workspaceControllers}>
+        <ErrorBoundary>
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
               <>
                 {showCollapsedTokenThemeBar && (
                   <button
@@ -3647,118 +3679,13 @@ export function App() {
                 )}
                 <div className="flex-1 overflow-y-auto">
                   {/* Panels — routed by (activeTopTab, activeSubTab) and activeSecondarySurface */}
-                  <PanelRouter
-                    useSidePanel={useSidePanel}
-                    contextualEditorTransition={contextualEditorTransition}
-                    splitPreviewTransition={
-                      CONTEXTUAL_PANEL_TRANSITIONS.splitPreview
-                    }
-                    showPreviewSplit={showPreviewSplit}
-                    setShowPreviewSplit={setShowPreviewSplit}
-                    guardEditorAction={guardEditorAction}
-                    editorIsDirtyRef={editorIsDirtyRef}
-                    editorCloseRef={editorCloseRef}
-                    displayedLeafNodesRef={displayedLeafNodesRef}
-                    tokenListCompareRef={tokenListCompareRef}
-                    handleEditorNavigate={handleEditorNavigate}
-                    handleEditorSave={handleEditorSave}
-                    handleEditorSaveAndCreateAnother={
-                      handleEditorSaveAndCreateAnother
-                    }
-                    handlePreviewEdit={handlePreviewEdit}
-                    handlePreviewClose={handlePreviewClose}
-                    splitRatio={splitRatio}
-                    splitValueNow={splitValueNow}
-                    splitContainerRef={splitContainerRef}
-                    handleSplitDragStart={handleSplitDragStart}
-                    handleSplitKeyDown={handleSplitKeyDown}
-                    availableFonts={availableFonts}
-                    fontWeightsByFamily={fontWeightsByFamily}
-                    showIssuesOnly={showIssuesOnly}
-                    setShowIssuesOnly={setShowIssuesOnly}
-                    lintViolations={lintViolations}
-                    cascadeDiff={cascadeDiff ?? null}
-                    validationIssues={validationIssues}
-                    validationSummary={validationSummary}
-                    validationLoading={validationLoading}
-                    validationError={validationError}
-                    validationLastRefreshed={validationLastRefreshed}
-                    validationIsStale={validationIsStale}
-                    refreshValidation={refreshValidation}
-                    recentOperations={recentOperations}
-                    totalOperations={totalOperations}
-                    hasMoreOperations={hasMoreOperations}
-                    loadMoreOperations={loadMoreOperations}
-                    handleRollback={handleRollback}
-                    handleServerRedo={handleServerRedo}
-                    undoDescriptions={undoDescriptions}
-                    redoableOpIds={redoableOpIds}
-                    executeUndo={executeUndo}
-                    canUndo={canUndo}
-                    setSyncGroupPending={setSyncGroupPending}
-                    setSyncGroupStylesPending={setSyncGroupStylesPending}
-                    setGroupScopesPath={setGroupScopesPath}
-                    setGroupScopesSelected={setGroupScopesSelected}
-                    setGroupScopesError={setGroupScopesError}
-                    tokenChangeKey={tokenChangeKey}
-                    pendingGraphTemplate={pendingGraphTemplate}
-                    setPendingGraphTemplate={setPendingGraphTemplate}
-                    pendingGraphFromGroup={pendingGraphFromGroup}
-                    setPendingGraphFromGroup={setPendingGraphFromGroup}
-                    focusGeneratorId={focusGeneratorId}
-                    setFocusGeneratorId={setFocusGeneratorId}
-                    pendingOpenPicker={pendingOpenPicker}
-                    setPendingOpenPicker={setPendingOpenPicker}
-                    themeManagerHandleRef={themeManagerHandleRef}
-                    publishPanelHandleRef={publishPanelHandleRef}
-                    selectionInspectorHandleRef={selectionInspectorHandleRef}
-                    onTokenDragStart={(paths, fromSet) =>
-                      setTokenDragState({ paths, fromSet })
-                    }
-                    onTokenDragEnd={() => setTokenDragState(null)}
-                    refreshAll={refreshAll}
-                    pushUndo={pushUndo}
-                    setErrorToast={setErrorToast}
-                    setSuccessToast={setSuccessToast}
-                    handleNavigateToSet={handleNavigateToSet}
-                    setFlowPanelInitialPath={setFlowPanelInitialPath}
-                    flowPanelInitialPath={flowPanelInitialPath}
-                    openCommandPaletteWithQuery={(query: string) => {
-                      setCommandPaletteInitialQuery(
-                        ">" + (query ? " " + query : ""),
-                      );
-                      setShowCommandPalette(true);
-                    }}
-                    handleNavigateToGenerator={handleNavigateToGenerator}
-                    setThemeGapCount={setThemeGapCount}
-                    onThemeShellStateChange={setThemeShellState}
-                    triggerCreateToken={triggerCreateToken}
-                    recentlyTouched={recentlyTouched}
-                    starredTokens={starredTokens}
-                    onImportComplete={handleImportComplete}
-                    onShowPasteModal={() => setShowPasteModal(true)}
-                    onShowImportPanel={() => openSecondaryPanel("import")}
-                    onShowColorScaleGen={() => setShowColorScaleGen(true)}
-                    onOpenStartHere={(branch) => openStartHere(branch)}
-                    onRestartGuidedSetup={() => {
-                      closeSecondarySurface();
-                      openStartHere("guided-setup");
-                    }}
-                    onClearAllComplete={() => {
-                      closeSecondarySurface();
-                      navigateTo("define", "tokens");
-                      refreshTokens();
-                      openStartHere("guided-setup", true);
-                    }}
-                    notificationHistory={notificationHistory}
-                    clearNotificationHistory={clearNotificationHistory}
-                  />
+                  <PanelRouter />
                 </div>
               </>
-            )}
+            </div>
           </div>
-        </div>
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </WorkspaceControllerProvider>
 
       {/* Command palette delete confirmation */}
       {paletteDeleteConfirm && (
@@ -3963,59 +3890,12 @@ export function App() {
 
       {/* Command Palette */}
       {showCommandPalette && (
-        <CommandPalette
-          initialQuery={commandPaletteInitialQuery}
-          commands={commands}
-          tokens={activeSetPaletteTokens}
-          allSetTokens={paletteTokens}
-          pinnedTokens={pinnedPaletteTokens}
-          recentTokens={recentPaletteTokens}
-          onGoToToken={(path) => {
-            const targetSet = pathToSet[path];
-            navigateTo("define", "tokens");
-            setEditingToken(null);
-            if (targetSet && targetSet !== activeSet) {
-              setActiveSet(targetSet);
-              setPendingHighlight(path);
-            } else {
-              setHighlightedToken(path);
-            }
-          }}
-          onGoToGroup={(groupPath) => {
-            navigateTo("define", "tokens");
-            setEditingToken(null);
-            setHighlightedToken(groupPath);
-          }}
-          onCopyTokenPath={(path) => {
-            navigator.clipboard.writeText(path).catch((err) => {
-              console.warn("[App] clipboard write failed for token path:", err);
-            });
-          }}
-          onCopyTokenRef={(path) => {
-            navigator.clipboard.writeText(`{${path}}`).catch((err) => {
-              console.warn("[App] clipboard write failed for token ref:", err);
-            });
-          }}
-          onCopyTokenValue={(value) => {
-            navigator.clipboard.writeText(value).catch((err) => {
-              console.warn(
-                "[App] clipboard write failed for token value:",
-                err,
-              );
-            });
-          }}
-          onCopyTokenCssVar={(path) => {
-            const cssVar = `var(--${path.replace(/\./g, "-")})`;
-            navigator.clipboard.writeText(cssVar).catch((err) => {
-              console.warn("[App] clipboard write failed for CSS var:", err);
-            });
-          }}
-          onDuplicateToken={handlePaletteDuplicate}
-          onRenameToken={handlePaletteRename}
-          onMoveToken={handlePaletteMove}
-          onDeleteToken={handlePaletteDeleteToken}
-          onClose={() => setShowCommandPalette(false)}
-        />
+        <WorkspaceControllerProvider value={workspaceControllers}>
+          <AppCommandPalette
+            initialQuery={commandPaletteInitialQuery}
+            onClose={() => setShowCommandPalette(false)}
+          />
+        </WorkspaceControllerProvider>
       )}
 
       {/* Quick Apply Picker */}

@@ -14,11 +14,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: The server reconstructs token paths from wildcard URL segments by turning `/` back into `.`, so callers have to encode each logical segment before writing. Several token-writing surfaces still bypass `tokenPathToUrlSegment`, and many others duplicate their own POST/PATCH conflict and save plumbing."
-state: ready
+  - "Completed: Added a shared single-token mutation helper, migrated the relevant UI create/update/upsert flows to it, centralized server wildcard path parsing, and validated with focused eslint/build checks."
+state: done
 acceptance_criteria:
   - All token create/update/upsert flows go through one shared token-mutation helper that always converts logical token paths into the encoded `/api/tokens/:set/*` form expected by the server.
   - Raw component-level writes such as ``${serverUrl}/api/tokens/${encodeURIComponent(set)}/${fullPath}`` are removed from the UI codebase so dotted segment names cannot be corrupted by route parsing.
   - Shared token-mutation code owns conflict/upsert behavior and the common post-save hooks (refresh, toast, undo integration where applicable) instead of reimplementing POST-then-PATCH and token body assembly in each surface.
 source: code-pass
 created_at: 2026-04-12T17:30:15.378Z
-updated_at: 2026-04-12T17:30:15.378Z
+updated_at: 2026-04-12T17:44:16.496Z
