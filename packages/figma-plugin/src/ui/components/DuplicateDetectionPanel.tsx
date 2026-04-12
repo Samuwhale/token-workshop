@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { apiFetch } from '../shared/apiFetch';
-import { tokenPathToUrlSegment } from '../shared/utils';
+import { createTokenBody, updateToken } from '../shared/tokenMutations';
 
 export interface DuplicateTokenCandidate {
   path: string;
@@ -118,11 +117,7 @@ export function DuplicateDetectionPanel({
   if (lintDuplicateGroups.length === 0) return null;
 
   const patchTokenToAlias = async (token: DuplicateTokenCandidate, canonicalPath: string) => {
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(token.setName)}/${tokenPathToUrlSegment(token.path)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ $value: `{${canonicalPath}}` }),
-    });
+    await updateToken(serverUrl, token.setName, token.path, createTokenBody({ $value: `{${canonicalPath}}` }));
   };
 
   const resolveGroup = async (group: DuplicateGroup, canonical: DuplicateTokenCandidate) => {

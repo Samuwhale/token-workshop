@@ -20,9 +20,9 @@ import type {
 } from "../../shared/types";
 import { resolveTokenValue } from "../../shared/resolveAlias";
 import type { UndoSlot } from "../hooks/useUndo";
-import { getErrorMessage, tokenPathToUrlSegment } from "../shared/utils";
-import { apiFetch } from "../shared/apiFetch";
+import { getErrorMessage } from "../shared/utils";
 import type { ApplyWorkflowStage } from "../shared/applyWorkflow";
+import { createTokenBody, upsertToken } from "../shared/tokenMutations";
 import { useInspectPreferencesContext } from "../contexts/InspectContext";
 import {
   summarizeApplyWorkflow,
@@ -690,20 +690,10 @@ export function SelectionInspector({
         let created = 0;
         try {
           for (const token of unboundTokens) {
-            const pathEncoded = tokenPathToUrlSegment(token.suggestedName);
-            const existing = tokenMap[token.suggestedName];
-            const method = existing ? "PATCH" : "POST";
-            await apiFetch(
-              `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`,
-              {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  $type: token.tokenType,
-                  $value: token.value,
-                }),
-              },
-            );
+            await upsertToken(serverUrl, activeSet, token.suggestedName, createTokenBody({
+              $type: token.tokenType,
+              $value: token.value,
+            }));
             created++;
           }
           let totalBound = 0;
@@ -757,7 +747,6 @@ export function SelectionInspector({
     activeSet,
     extractingUnbound,
     rootNodes,
-    tokenMap,
     serverUrl,
     onTokenCreated,
   ]);

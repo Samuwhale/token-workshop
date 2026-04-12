@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import { dispatchToast } from '../shared/toastBus';
 import type { ColorModifierOp } from '@tokenmanager/core';
-import { apiFetch } from '../shared/apiFetch';
-import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
+import { ApiError } from '../shared/apiFetch';
+import { getErrorMessage } from '../shared/utils';
+import {
+  applyTokenMutationSuccess,
+  createToken,
+  createTokenBody,
+  deleteToken,
+  fetchToken,
+  updateToken,
+} from '../shared/tokenMutations';
 import { clearEditorDraft } from './useTokenEditorUtils';
 import type { UndoSlot } from './useUndo';
 import { matchesShortcut } from '../shared/shortcutRegistry';
@@ -73,11 +80,9 @@ export function useTokenEditorSave({
   const [saveRetryArgs, setSaveRetryArgs] = useState<[boolean, boolean] | null>(null);
   const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => void>(() => {});
 
-  const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
-
   const handleDelete = async () => {
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { method: 'DELETE' });
+      await deleteToken(serverUrl, setName, tokenPath);
       onBack();
     } catch (err) {
       setError(getErrorMessage(err, 'Delete failed'));
@@ -96,7 +101,7 @@ export function useTokenEditorSave({
     try {
       if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
         try {
-          const checkData = await apiFetch<{ token?: any }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
+          const checkData = await fetchToken<{ token?: any }>(serverUrl, setName, tokenPath);
           const currentSnapshot = JSON.stringify(checkData.token ?? null);
           if (currentSnapshot !== initialServerSnapshotRef.current) {
             setShowConflictConfirm(true);
@@ -108,11 +113,6 @@ export function useTokenEditorSave({
         }
       }
 
-      const body: any = {
-        $type: tokenType,
-        $value: reference || value,
-      };
-      if (description) body.$description = description;
       const extensions: Record<string, any> = {};
       if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
       const tmExt: Record<string, any> = {};
@@ -137,60 +137,59 @@ export function useTokenEditorSave({
           return;
         }
       }
-      if (Object.keys(extensions).length > 0) body.$extensions = extensions;
+      const body = createTokenBody({
+        $type: tokenType,
+        $value: reference || value,
+        $description: description || undefined,
+        $extensions: Object.keys(extensions).length > 0 ? extensions : undefined,
+      });
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
-      const encodedTargetPath = tokenPathToUrlSegment(targetPath);
-      const method = isCreateMode ? 'POST' : 'PATCH';
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTargetPath}`, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const label = isCreateMode ? 'created' : 'saved';
-      dispatchToast(`Token "${targetPath}" ${label}`, 'success');
-      clearEditorDraft(setName, targetPath);
-
-      if (pushUndo) {
-        const encodedSavedPath = tokenPathToUrlSegment(targetPath);
-        if (isCreateMode) {
-          pushUndo({
-            description: `Created token "${targetPath}"`,
-            restore: async () => {
-              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedSavedPath}`, { method: 'DELETE' });
-            },
-          });
-        } else if (initialServerSnapshotRef.current !== null) {
-          const previousTokenJson = initialServerSnapshotRef.current;
-          const previousBody = JSON.parse(previousTokenJson);
-          pushUndo({
-            description: `Edited token "${targetPath}"`,
-            restore: async () => {
-              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedSavedPath}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(previousBody),
-              });
-            },
-            redo: async () => {
-              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedSavedPath}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-              });
-            },
-          });
-        }
+      if (isCreateMode) {
+        await createToken(serverUrl, setName, targetPath, body);
+      } else {
+        await updateToken(serverUrl, setName, targetPath, body);
       }
-
-      onSaved?.(targetPath);
+      await applyTokenMutationSuccess({
+        onAfterSave: () => {
+          clearEditorDraft(setName, targetPath);
+          if (pushUndo) {
+            if (isCreateMode) {
+              pushUndo({
+                description: `Created token "${targetPath}"`,
+                restore: async () => {
+                  await deleteToken(serverUrl, setName, targetPath);
+                },
+              });
+            } else if (initialServerSnapshotRef.current !== null) {
+              const previousTokenJson = initialServerSnapshotRef.current;
+              const previousBody = JSON.parse(previousTokenJson);
+              pushUndo({
+                description: `Edited token "${targetPath}"`,
+                restore: async () => {
+                  await updateToken(serverUrl, setName, targetPath, previousBody);
+                },
+                redo: async () => {
+                  await updateToken(serverUrl, setName, targetPath, body);
+                },
+              });
+            }
+          }
+          onSaved?.(targetPath);
+        },
+        successMessage: `Token "${targetPath}" ${isCreateMode ? 'created' : 'saved'}`,
+      });
       if (createAnother && isCreateMode && onSaveAndCreateAnother) {
         onSaveAndCreateAnother(targetPath, tokenType);
       } else {
         onBack();
       }
     } catch (err) {
-      setError(getErrorMessage(err));
+      if (isCreateMode && err instanceof ApiError && err.status === 409) {
+        setError(`Token "${editPath.trim()}" already exists`);
+      } else {
+        setError(getErrorMessage(err));
+      }
       setSaveRetryArgs([forceOverwrite, createAnother]);
     } finally {
       setSaving(false);

@@ -55,10 +55,9 @@ export function stableStringify(value: unknown): string {
   return '{' + parts.join(',') + '}';
 }
 
-/** Convert a dot-separated token path to a URL path segment by encoding each segment.
- * e.g. "color.brand.primary" → "color/brand/primary"
- * Handles segment names containing dots (e.g. "spacing.1.5" → "spacing/1.5") correctly
- * because each segment is individually encoded before joining with "/". */
+/** Convert a dot-separated token path into the wildcard route form expected by `/api/tokens/:set/*`.
+ * Each logical segment becomes one slash-delimited URL segment after `encodeURIComponent`.
+ * e.g. `color.brand.primary` → `color/brand/primary`. */
 export function tokenPathToUrlSegment(path: string): string {
   return path.split('.').map(encodeURIComponent).join('/');
 }

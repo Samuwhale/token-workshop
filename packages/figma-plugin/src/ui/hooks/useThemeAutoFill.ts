@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
-import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
+import { getErrorMessage } from '../shared/utils';
+import { createToken, createTokenBody } from '../shared/tokenMutations';
 import type { CoverageMap, CoverageToken, AutoFillPreview } from '../components/themeManagerTypes';
 
 export interface UseThemeAutoFillParams {
@@ -43,14 +44,10 @@ export function useThemeAutoFill({
     const fillKey = `${dimId}:${optionName}:${item.path}`;
     setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
     try {
-      const tokenPath = tokenPathToUrlSegment(item.missingRef);
-      const body: Record<string, unknown> = { $value: item.fillValue };
-      if (item.fillType) body.$type = item.fillType;
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPath}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      await createToken(serverUrl, targetSet, item.missingRef, createTokenBody({
+        $type: item.fillType,
+        $value: item.fillValue,
+      }));
       debouncedFetchDimensions();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill token'));

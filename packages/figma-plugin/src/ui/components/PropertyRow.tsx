@@ -1,14 +1,19 @@
 import { useState, useRef, useLayoutEffect, type ReactNode } from 'react';
-import { dispatchToast } from '../shared/toastBus';
 import { NoticeInlineAlert } from '../shared/noticeSystem';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import { isDimensionLike } from './generators/generatorShared';
 import { nodeParentPath } from './tokenListUtils';
-import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
+import { getErrorMessage } from '../shared/utils';
 import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import {
+  applyTokenMutationSuccess,
+  createToken,
+  createTokenBody,
+  isTokenMutationConflictError,
+  updateToken,
+} from '../shared/tokenMutations';
 import {
   getBindingForProperty,
   getCurrentValue,
@@ -255,25 +260,22 @@ export function PropertyRow({
     const tokenType = getTokenTypeForProperty(prop);
     const tokenValue = getTokenValueFromProp(prop, currentValue);
     const tokenPath = newTokenName.trim();
-    const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
 
     setCreating(true);
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${encodedTokenPath}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          $type: tokenType,
-          $value: tokenValue,
-          $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
-        }),
+      await createToken(serverUrl, activeSet, tokenPath, createTokenBody({
+        $type: tokenType,
+        $value: tokenValue,
+        $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
+      }));
+      await applyTokenMutationSuccess({
+        onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, tokenValue),
+        successMessage: `Token "${tokenPath}" created`,
       });
-      dispatchToast(`Token "${tokenPath}" created`, 'success');
-      onTokenCreated(tokenPath, prop, tokenType, tokenValue);
       setCreateError('');
       setConflictExists(false);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
+      if (isTokenMutationConflictError(err)) {
         setConflictExists(true);
         setCreateError('');
       } else {
@@ -291,21 +293,18 @@ export function PropertyRow({
     const tokenType = getTokenTypeForProperty(prop);
     const tokenValue = getTokenValueFromProp(prop, currentValue);
     const tokenPath = newTokenName.trim();
-    const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
 
     setCreating(true);
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${encodedTokenPath}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          $type: tokenType,
-          $value: tokenValue,
-          $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
-        }),
+      await updateToken(serverUrl, activeSet, tokenPath, createTokenBody({
+        $type: tokenType,
+        $value: tokenValue,
+        $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
+      }));
+      await applyTokenMutationSuccess({
+        onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, tokenValue),
+        successMessage: `Token "${tokenPath}" overwritten`,
       });
-      dispatchToast(`Token "${tokenPath}" overwritten`, 'success');
-      onTokenCreated(tokenPath, prop, tokenType, tokenValue);
       setCreateError('');
       setConflictExists(false);
     } catch (err) {

@@ -1,8 +1,9 @@
-import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
+import { getErrorMessage } from '../shared/utils';
 import { useState, useRef, useEffect } from 'react';
 import type { GeneratedTokenResult } from '../hooks/useGenerators';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import { ApiError } from '../shared/apiFetch';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
+import { createTokenBody, upsertToken } from '../shared/tokenMutations';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // ---------------------------------------------------------------------------
@@ -96,32 +97,13 @@ export function SemanticMappingDialog({
     try {
       for (const mapping of validMappings) {
         const fullPath = `${semanticPrefix.trim()}.${mapping.semantic}`;
-        const encodedFullPath = tokenPathToUrlSegment(fullPath);
         const tokenType = generatedTokens.find(t => String(t.stepName) === mapping.step)?.type ?? 'string';
-        const body = {
+        const body = createTokenBody({
           $type: tokenType,
           $value: `{${targetGroup}.${mapping.step}}`,
           $description: `Semantic reference for ${targetGroup}.${mapping.step}`,
-        };
-        // POST /api/tokens/:set/* creates the token; PATCH if it already exists (409)
-        try {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          });
-        } catch (postErr) {
-          if (postErr instanceof ApiError && postErr.status === 409) {
-            // Token already exists — overwrite via PATCH
-            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-            });
-          } else {
-            throw postErr;
-          }
-        }
+        });
+        await upsertToken(serverUrl, targetSet, fullPath, body, (err): err is ApiError => err instanceof ApiError && err.status === 409);
         created++;
       }
       setSaving(false);

@@ -1,8 +1,8 @@
-import { adaptShortcut, tokenPathToUrlSegment } from "../shared/utils";
+import { adaptShortcut } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { EditorShell } from "./EditorShell";
-import { apiFetch } from "../shared/apiFetch";
+import { createTokenBody, updateToken } from "../shared/tokenMutations";
 import { TokenHistorySection } from "./TokenHistorySection";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { MutableRefObject } from "react";
@@ -495,15 +495,10 @@ function ThemeValuesSection({
     setSavingKey(optionName);
     setSaveError(null);
     try {
-      const encodedPath = tokenPathToUrlSegment(tokenPath);
-      await apiFetch(
-        `${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ $type: tokenType, $value: finalValue }),
-        },
-      );
+      await updateToken(serverUrl, targetSet, tokenPath, createTokenBody({
+        $type: tokenType,
+        $value: finalValue,
+      }));
       setEdits((prev) => {
         const next = { ...prev };
         delete next[optionName];

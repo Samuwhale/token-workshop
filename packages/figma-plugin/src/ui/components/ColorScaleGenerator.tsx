@@ -3,7 +3,7 @@ import { swatchBgColor } from '../shared/colorUtils';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { hexToLab, labToHex } from '@tokenmanager/core';
 import { ColorPicker } from './ColorPicker';
-import { apiFetch } from '../shared/apiFetch';
+import { createToken, createTokenBody } from '../shared/tokenMutations';
 
 // ---------------------------------------------------------------------------
 // Scale generation
@@ -142,12 +142,10 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
     abortRef.current = controller;
     try {
       const results = await Promise.allSettled(scale.map(step =>
-        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${prefix}.${step.label}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $type: 'color', $value: step.hex }),
-          signal: controller.signal,
-        })
+        createToken(serverUrl, activeSet, `${prefix}.${step.label}`, createTokenBody({
+          $type: 'color',
+          $value: step.hex,
+        }), { signal: controller.signal })
       ));
       const failed = results.filter(r => r.status === 'rejected');
       if (failed.length > 0) {

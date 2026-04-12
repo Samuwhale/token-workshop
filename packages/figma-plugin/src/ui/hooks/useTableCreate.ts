@@ -3,8 +3,12 @@ import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
-import { tokenPathToUrlSegment } from '../shared/utils';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import { ApiError } from '../shared/apiFetch';
+import {
+  createToken,
+  createTokenBody,
+  deleteToken,
+} from '../shared/tokenMutations';
 
 export interface TableRow {
   id: string;
@@ -210,7 +214,7 @@ export function useTableCreate({
     setBusy(true);
     setCreateAllError('');
     const effectiveSet = setName || 'default';
-    const created: Array<{ path: string; encodedPath: string; type: string; value: unknown }> = [];
+    const created: Array<{ path: string; tokenPath: string; type: string; value: unknown }> = [];
 
     let batchAborted = false;
 
@@ -218,7 +222,6 @@ export function useTableCreate({
       const g = tableGroup.trim();
       const n = row.name.trim();
       const path = g ? `${g}.${n}` : n;
-      const encodedPath = tokenPathToUrlSegment(path);
       const parsedValue = row.value.trim()
         ? parseInlineValue(row.type, row.value.trim())
         : getDefaultValue(row.type);
@@ -230,12 +233,8 @@ export function useTableCreate({
       }
 
       try {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${encodedPath}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $type: row.type, $value: parsedValue }),
-        });
-        created.push({ path, encodedPath, type: row.type, value: parsedValue });
+        await createToken(serverUrl, effectiveSet, path, createTokenBody({ $type: row.type, $value: parsedValue }));
+        created.push({ path, tokenPath: path, type: row.type, value: parsedValue });
       } catch (err) {
         if (err instanceof ApiError) {
           setRowErrors(prev => ({ ...prev, [row.id]: err.message || `Failed (${err.status})` }));
@@ -263,17 +262,13 @@ export function useTableCreate({
           description: `Create ${created.length} token${created.length > 1 ? 's' : ''}`,
           restore: async () => {
             for (const c of created) {
-              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, { method: 'DELETE' });
+              await deleteToken(capturedUrl, capturedSet, c.tokenPath);
             }
             onRefresh();
           },
           redo: async () => {
             for (const c of created) {
-              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ $type: c.type, $value: c.value }),
-              });
+              await createToken(capturedUrl, capturedSet, c.tokenPath, createTokenBody({ $type: c.type, $value: c.value }));
             }
             onRefresh();
           },

@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
-import { apiFetch, ApiError } from '../shared/apiFetch';
-import { tokenPathToUrlSegment } from '../shared/utils';
+import { ApiError } from '../shared/apiFetch';
+import { createToken, createTokenBody } from '../shared/tokenMutations';
 import { findLeafByPath } from '../components/tokenListUtils';
 
 export interface UseTokenDuplicateParams {
@@ -47,11 +47,7 @@ export function useTokenDuplicate({
       const body: Record<string, unknown> = { $type: token.$type, $value: token.$value };
       if (tokenNode?.$description) body.$description = tokenNode.$description;
       if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(newPath)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      await createToken(serverUrl, setName, newPath, createTokenBody(body));
       onRefresh();
       onRecordTouch(newPath);
       onNewPath(newPath);

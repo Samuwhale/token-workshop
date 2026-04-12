@@ -1,8 +1,13 @@
 import { useCallback, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
-import { apiFetch, ApiError } from '../shared/apiFetch';
-import { tokenPathToUrlSegment } from '../shared/utils';
+import { ApiError } from '../shared/apiFetch';
+import {
+  applyTokenMutationSuccess,
+  createTokenBody,
+  fetchToken,
+  updateToken,
+} from '../shared/tokenMutations';
 
 export interface UseTokenSaveParams {
   connected: boolean;
@@ -66,13 +71,8 @@ export function useTokenSave({
           }
         : null;
     const nextSnapshot = { type, value: cloneUndoValue(newValue) };
-    const encodedPath = tokenPathToUrlSegment(path);
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $type: type, $value: newValue }),
-      });
+      await updateToken(serverUrl, setName, path, createTokenBody({ $type: type, $value: newValue }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
@@ -87,14 +87,10 @@ export function useTokenSave({
             onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
             return;
           }
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              $type: previousSnapshot.type,
-              $value: previousSnapshot.value,
-            }),
-          });
+          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
+            $type: previousSnapshot.type,
+            $value: previousSnapshot.value,
+          }));
           onRefresh();
         },
         redo: async () => {
@@ -102,32 +98,26 @@ export function useTokenSave({
             onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
             return;
           }
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              $type: nextSnapshot.type,
-              $value: nextSnapshot.value,
-            }),
-          });
+          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
+            $type: nextSnapshot.type,
+            $value: nextSnapshot.value,
+          }));
           onRefresh();
         },
       });
     }
-    onRefresh();
-    onRecordTouch(path);
+    await applyTokenMutationSuccess({
+      onRefresh,
+      onRecordTouch,
+      touchedPath: path,
+    });
   }, [connected, serverUrl, setName, allTokensFlat, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleDescriptionSave = useCallback(async (path: string, description: string) => {
     if (!connected) return;
-    const encodedPath = tokenPathToUrlSegment(path);
     const oldEntry = perSetFlat?.[setName]?.[path] ?? allTokensFlat[path];
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $description: description }),
-      });
+      await updateToken(serverUrl, setName, path, createTokenBody({ $description: description }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
@@ -143,11 +133,7 @@ export function useTokenSave({
             onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
             return;
           }
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $description: oldDesc }),
-          });
+          await updateToken(capturedUrl, capturedSet, path, createTokenBody({ $description: oldDesc as string }));
           onRefresh();
         },
         redo: async () => {
@@ -155,17 +141,16 @@ export function useTokenSave({
             onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
             return;
           }
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $description: description }),
-          });
+          await updateToken(capturedUrl, capturedSet, path, createTokenBody({ $description: description }));
           onRefresh();
         },
       });
     }
-    onRefresh();
-    onRecordTouch(path);
+    await applyTokenMutationSuccess({
+      onRefresh,
+      onRecordTouch,
+      touchedPath: path,
+    });
   }, [connected, serverUrl, setName, allTokensFlat, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleMultiModeInlineSave = useCallback(async (
@@ -189,13 +174,8 @@ export function useTokenSave({
           }
         : null;
     const nextSnapshot = { type, value: cloneUndoValue(newValue) };
-    const encodedPath = tokenPathToUrlSegment(path);
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $type: type, $value: newValue }),
-      });
+      await updateToken(serverUrl, targetSet, path, createTokenBody({ $type: type, $value: newValue }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
@@ -206,40 +186,33 @@ export function useTokenSave({
       onPushUndo({
         description: `Edit ${path} in ${targetSet}`,
         restore: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              $type: previousSnapshot.type,
-              $value: previousSnapshot.value,
-            }),
-          });
+          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
+            $type: previousSnapshot.type,
+            $value: previousSnapshot.value,
+          }));
           onRefresh();
         },
         redo: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              $type: nextSnapshot.type,
-              $value: nextSnapshot.value,
-            }),
-          });
+          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
+            $type: nextSnapshot.type,
+            $value: nextSnapshot.value,
+          }));
           onRefresh();
         },
       });
     }
-    onRefresh();
-    onRecordTouch(path);
+    await applyTokenMutationSuccess({
+      onRefresh,
+      onRecordTouch,
+      touchedPath: path,
+    });
   }, [connected, serverUrl, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleDetachFromGenerator = useCallback(async (path: string) => {
     if (!connected) return;
-    const encodedPath = tokenPathToUrlSegment(path);
-    const url = `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`;
     let tokenData: { token: Record<string, unknown> } | null = null;
     try {
-      const result = await apiFetch<{ token: Record<string, unknown> }>(url);
+      const result = await fetchToken<{ token: Record<string, unknown> }>(serverUrl, setName, path);
       tokenData = result;
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Detach failed: network error');
@@ -248,11 +221,9 @@ export function useTokenSave({
     const exts: Record<string, unknown> = { ...(tokenData?.token?.$extensions as Record<string, unknown>) };
     delete exts['com.tokenmanager.generator'];
     try {
-      await apiFetch(url, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $extensions: Object.keys(exts).length > 0 ? exts : undefined }),
-      });
+      await updateToken(serverUrl, setName, path, createTokenBody({
+        $extensions: Object.keys(exts).length > 0 ? exts : {},
+      }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Detach failed: network error');
       return;

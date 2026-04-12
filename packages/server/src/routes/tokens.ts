@@ -50,6 +50,10 @@ function isNonEmptyTrimmedString(v: unknown): v is string {
   return typeof v === 'string' && v.length > 0 && v === v.trim();
 }
 
+function wildcardParamToTokenPath(pathParam: string): string {
+  return pathParam.split('/').join('.');
+}
+
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
@@ -699,7 +703,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     if (!tokenSet) {
       return reply.status(404).send({ error: `Token set "${set}" not found` });
     }
-    const tokenPath = request.params['*'].split('/').join('.');
+    const tokenPath = wildcardParamToTokenPath(request.params['*']);
     if (!tokenPath) {
       return reply.status(400).send({ error: 'Token path is required' });
     }
@@ -718,7 +722,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     if (!tokenSet) {
       return reply.status(404).send({ error: `Token set "${set}" not found` });
     }
-    const groupPath = request.params['*'].split('/').join('.');
+    const groupPath = wildcardParamToTokenPath(request.params['*']);
     if (!groupPath) {
       return reply.status(400).send({ error: 'Group path is required' });
     }
@@ -917,7 +921,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/tokens/:set/* — get single token by path
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
     const { set } = request.params;
-    const tokenPath = request.params['*'].split('/').join('.');
+    const tokenPath = wildcardParamToTokenPath(request.params['*']);
     if (!tokenPath) {
       return reply.status(400).send({ error: 'Token path is required' });
     }
@@ -941,7 +945,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     '/tokens/:set/*',
     async (request, reply) => {
       const { set } = request.params;
-      const tokenPath = request.params['*'].split('/').join('.');
+      const tokenPath = wildcardParamToTokenPath(request.params['*']);
       if (!tokenPath) {
         return reply.status(400).send({ error: 'Token path is required' });
       }
@@ -1001,7 +1005,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     '/tokens/:set/*',
     async (request, reply) => {
       const { set } = request.params;
-      const tokenPath = request.params['*'].split('/').join('.');
+      const tokenPath = wildcardParamToTokenPath(request.params['*']);
       if (!tokenPath) {
         return reply.status(400).send({ error: 'Token path is required' });
       }
@@ -1127,7 +1131,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     '/tokens/:set/*',
     async (request, reply) => {
       const { set } = request.params;
-      const tokenPath = request.params['*'].split('/').join('.');
+      const tokenPath = wildcardParamToTokenPath(request.params['*']);
       if (!tokenPath) {
         return reply.status(400).send({ error: 'Token path is required' });
       }

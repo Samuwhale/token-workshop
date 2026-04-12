@@ -1,6 +1,10 @@
 import { useState, useCallback } from 'react';
-import { apiFetch, ApiError } from '../shared/apiFetch';
-import { tokenPathToUrlSegment } from '../shared/utils';
+import { ApiError } from '../shared/apiFetch';
+import {
+  createToken,
+  createTokenBody,
+  updateToken,
+} from '../shared/tokenMutations';
 
 export interface UseExtractToAliasParams {
   connected: boolean;
@@ -42,27 +46,22 @@ export function useExtractToAlias({
     if (extractMode === 'new') {
       if (!newPrimitivePath.trim()) { setExtractError('Enter a path for the new primitive token.'); return; }
       try {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${tokenPathToUrlSegment(newPrimitivePath.trim())}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $type: extractToken.$type, $value: extractToken.$value }),
-        });
+        await createToken(serverUrl, newPrimitiveSet, newPrimitivePath.trim(), createTokenBody({
+          $type: extractToken.$type,
+          $value: extractToken.$value,
+        }));
       } catch (err) {
         setExtractError(err instanceof ApiError ? err.message : 'Failed to create primitive token.');
         return;
       }
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(extractToken.path)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $value: `{${newPrimitivePath.trim()}}` }),
-      });
+      await updateToken(serverUrl, setName, extractToken.path, createTokenBody({
+        $value: `{${newPrimitivePath.trim()}}`,
+      }));
     } else {
       if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(extractToken.path)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $value: `{${existingAlias}}` }),
-      });
+      await updateToken(serverUrl, setName, extractToken.path, createTokenBody({
+        $value: `{${existingAlias}}`,
+      }));
     }
 
     setExtractToken(null);

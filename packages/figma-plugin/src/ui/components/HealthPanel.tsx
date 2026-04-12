@@ -14,12 +14,16 @@ import {
 } from "../shared/noticeSystem";
 import type { NoticeSeverity } from "../shared/noticeSystem";
 import { apiFetch } from "../shared/apiFetch";
-import { tokenPathToUrlSegment } from "../shared/utils";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { hexToLuminance } from "../shared/colorUtils";
 import { normalizeHex } from "@tokenmanager/core";
 import type { ThemeDimension } from "@tokenmanager/core";
 import { LINT_RULE_BY_ID } from "../shared/lintRules";
+import {
+  createTokenBody,
+  deleteToken,
+  updateToken,
+} from "../shared/tokenMutations";
 import { UnusedTokensPanel } from "./UnusedTokensPanel";
 import { DuplicateDetectionPanel } from "./DuplicateDetectionPanel";
 import { ContrastMatrixPanel } from "./ContrastMatrixPanel";
@@ -750,7 +754,6 @@ export function HealthPanel({
 
   const applyIssueFix = async (issue: ValidationIssue) => {
     const key = suppressKey(issue);
-    const tokenUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/${tokenPathToUrlSegment(issue.path)}`;
     const renameUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/tokens/rename`;
     setFixingKeys((prev) => {
       const next = new Set(prev);
@@ -759,23 +762,15 @@ export function HealthPanel({
     });
     try {
       if (issue.suggestedFix === "add-description") {
-        await apiFetch(tokenUrl, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ $description: "" }),
-        });
+        await updateToken(serverUrl, issue.setName, issue.path, createTokenBody({ $description: "" }));
       } else if (
         (issue.suggestedFix === "flatten-alias-chain" ||
           issue.suggestedFix === "extract-to-alias") &&
         issue.suggestion
       ) {
-        await apiFetch(tokenUrl, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ $value: issue.suggestion }),
-        });
+        await updateToken(serverUrl, issue.setName, issue.path, createTokenBody({ $value: issue.suggestion }));
       } else if (issue.suggestedFix === "delete-token") {
-        await apiFetch(tokenUrl, { method: "DELETE" });
+        await deleteToken(serverUrl, issue.setName, issue.path);
       } else if (issue.suggestedFix === "rename-token" && issue.suggestion) {
         await apiFetch(renameUrl, {
           method: "POST",
@@ -787,11 +782,7 @@ export function HealthPanel({
           }),
         });
       } else if (issue.suggestedFix === "fix-type" && issue.suggestion) {
-        await apiFetch(tokenUrl, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ $type: issue.suggestion }),
-        });
+        await updateToken(serverUrl, issue.setName, issue.path, createTokenBody({ $type: issue.suggestion }));
       }
       await runValidation();
     } catch {

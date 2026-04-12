@@ -8,7 +8,7 @@ import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenMapEntry } from "../../shared/types";
 import { NodeGraphCanvas } from "./nodeGraph/NodeGraphCanvas";
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from "./PanelHelpHint";
-import { apiFetch, ApiError } from "../shared/apiFetch";
+import { apiFetch } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
 import type { ToastAction } from "../shared/toastBus";
 import { TokenGeneratorDialog } from "./TokenGeneratorDialog";
@@ -22,6 +22,10 @@ import {
 import { SkeletonGeneratorCard } from "./Skeleton";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
+import {
+  createTokenBody,
+  upsertToken,
+} from "../shared/tokenMutations";
 
 // ---------------------------------------------------------------------------
 // SVG export
@@ -335,35 +339,15 @@ export function GraphPanel({
       for (const layer of selectedTemplate.semanticLayers) {
         for (const mapping of layer.mappings) {
           const fullPath = `${layer.prefix}.${mapping.semantic}`;
-          const tokenBody = {
+          const tokenBody = createTokenBody({
             $type: mapping.type,
             $value: `{${targetGroup}.${mapping.step}}`,
             $description: `Semantic alias for ${targetGroup}.${mapping.step}`,
-          };
+          });
           try {
-            await apiFetch(
-              `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(tokenBody),
-              },
-            );
-          } catch (postErr) {
-            if (postErr instanceof ApiError && postErr.status === 409) {
-              try {
-                await apiFetch(
-                  `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
-                  {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(tokenBody),
-                  },
-                );
-              } catch {
-                // best-effort — skip if update also fails
-              }
-            }
+            await upsertToken(serverUrl, activeSet, fullPath, tokenBody);
+          } catch {
+            // best-effort — skip if the semantic alias cannot be created or updated
           }
         }
       }

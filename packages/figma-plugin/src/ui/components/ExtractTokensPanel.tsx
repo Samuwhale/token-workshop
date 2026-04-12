@@ -8,8 +8,12 @@ import type {
   ShadowTokenValue,
 } from "../../shared/types";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
-import { getErrorMessage, tokenPathToUrlSegment } from "../shared/utils";
-import { apiFetch } from "../shared/apiFetch";
+import { getErrorMessage } from "../shared/utils";
+import {
+  createTokenBody,
+  updateToken,
+  upsertToken,
+} from "../shared/tokenMutations";
 
 interface ExtractTokensPanelProps {
   connected: boolean;
@@ -230,18 +234,13 @@ export function ExtractTokensPanel({
     const succeededItems: typeof toCreate = [];
 
     for (const item of toCreate) {
-      const pathEncoded = tokenPathToUrlSegment(item.name);
-      const existing = tokenMap[item.name];
-      const method = existing ? "PATCH" : "POST";
       try {
-        await apiFetch(
-          `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`,
-          {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ $type: item.tokenType, $value: item.value }),
-          },
-        );
+        const body = createTokenBody({ $type: item.tokenType, $value: item.value });
+        if (tokenMap[item.name]) {
+          await updateToken(serverUrl, activeSet, item.name, body);
+        } else {
+          await upsertToken(serverUrl, activeSet, item.name, body);
+        }
         created++;
         succeededItems.push(item);
       } catch (err) {

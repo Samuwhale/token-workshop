@@ -1,7 +1,8 @@
-import { getErrorMessage, tokenPathToUrlSegment, isAbortError } from '../shared/utils';
+import { getErrorMessage, isAbortError } from '../shared/utils';
 import { dispatchToast } from '../shared/toastBus';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
+import { createTokenBody, updateToken } from '../shared/tokenMutations';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { useFigmaMessage } from './useFigmaMessage';
@@ -198,12 +199,9 @@ export function useFigmaSync(
       for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
         const batch = tokenPaths.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async path => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPathToUrlSegment(path)}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),
-            signal,
-          });
+          await updateToken(serverUrl, activeSet, path, createTokenBody({
+            $extensions: { 'com.figma.scopes': groupScopesSelected },
+          }), { signal });
         }));
         done += batch.length;
         if (!signal.aborted) setGroupScopesProgress({ done, total });
