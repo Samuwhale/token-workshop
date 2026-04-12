@@ -1518,3 +1518,15 @@
   - Canvas cleanup flows stay coherent when every create-and-bind entry point feeds one shared draft shape and one modal, instead of each panel owning its own token-creation state.
   - Heatmap-style scan results need normalized value payloads, not just missing-property names, if the UI is expected to create tokens in place instead of redirecting the user to a separate authoring surface.
 ---
+## 2026-04-12 - ux-pass
+- Tasks explored: (1) Export changes-only flow in git and non-git contexts [ExportPanel.tsx, ExportFooter.tsx, PlatformExportConfig.tsx, useExportResults.ts, useDiffState.ts], (2) Theme coverage review → auto-fill gap remediation [ThemeCoverageScreen.tsx, ThemeAuthoringScreen.tsx, useThemeAutoFill.ts, ThemeManagerContext.tsx], (3) Figma Variables save-to-server with destination configuration [ExportPanel.tsx, useFigmaVariables.ts, FigmaVariablesPanel.tsx], (4) Token search and command palette navigation [useTokenSearch.ts, CommandPalette.tsx, TokenSearchFilterBuilder.tsx, useCommandPaletteCommands.ts, AppCommandPalette.tsx]
+- Walkthrough themes: feedback (enabled button leading to immediate error), handoffs (coverage→auto-fill round-trip), task load (save preview configuration)
+- Found 2 items — written to backlog/inbox.jsonl
+- Considered but rejected:
+  - Figma Variables "Review Save Plan" re-click clears all destination/merge/append configuration: real friction, but the modal is a confirmation step that the user intentionally opens; re-opening it to reconfigure is the expected action pattern, not an accidental data loss vector. Edge case.
+  - Figma Variables save has no per-collection progress feedback during multi-set save: save operations are typically fast (local server), and the modal stays open with spinner on failure. Not a primary task-flow breakdown for the expected scale of operations.
+  - Token search no-results state in command palette: already provides helpful filter suggestions, "Search all sets" button, and "see all filters" link. Well-designed recovery path.
+  - Theme auto-fill has no undo: real limitation, but the preview/confirmation modal with strategy choice provides sufficient pre-commit review. Missing undo is a product capability gap, not a task-flow usability issue in scope for this pass.
+  - Export button label says "Changes only — requires git" when non-git path actually requires a baseline, not git itself: misleading label, but the adjacent guidance text ("No baseline set — open Scope to configure") is correct and actionable. The button IS correctly disabled in this state. Interface-pass label issue, not a task-flow dead-end.
+- Notable: The export changes-only flow has an asymmetry: the non-git baseline path correctly disables the Export button and shows guidance when no changes exist, but the git path leaves the button enabled with a generic label when diffPaths resolves to an empty array, causing the user to click into an immediate error at useExportResults.ts:134-140.
+---

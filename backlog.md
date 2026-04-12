@@ -153,9 +153,11 @@
 - [x] GeneratorPipelineCard: semantic layer section uses same card styling as primary config, making optional feature visually equal to required output
 - [x] ThemeAuthoringScreen review-tools menu opens with a meta-description paragraph before its action list
 - [x] Split the Tokens library controller and tree context so row rendering no longer depends on one giant `TokenList` state graph
-- [ ] Add create-and-bind action to canvas analysis surface for hardcoded values that have no matching token
+- [x] Add create-and-bind action to canvas analysis surface for hardcoded values that have no matching token
 - [x] Remove 'When to use resolvers' guidance section from ResolverPanel empty state — it redirects users away after presenting three valid entry points
 - [ ] Align publish preflight and compare with resolver mode mappings
+- [ ] Export button stays enabled with changes-only active and zero changes in a git repo, leading to a click-then-error dead end
+- [ ] Coverage view offers no way to act on reviewed gaps, forcing a round-trip back to Authoring before auto-fill
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient
