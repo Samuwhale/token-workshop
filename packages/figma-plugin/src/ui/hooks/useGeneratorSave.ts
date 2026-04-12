@@ -9,6 +9,7 @@ import type {
   TokenGenerator,
   GeneratorType,
   GeneratorConfig,
+  GeneratorSemanticLayer,
   GeneratedTokenResult,
   InputTable,
 } from "./useGenerators";
@@ -101,14 +102,18 @@ export function useGeneratorSave({
   );
   const [overwriteCheckLoading, setOverwriteCheckLoading] = useState(false);
   const [overwriteCheckError, setOverwriteCheckError] = useState("");
-  const [semanticEnabled, setSemanticEnabled] = useState(false);
-  const [semanticPrefix, setSemanticPrefix] = useState("semantic");
+  const [semanticEnabled, setSemanticEnabled] = useState(
+    Boolean(existingGenerator?.semanticLayer?.mappings.length),
+  );
+  const [semanticPrefix, setSemanticPrefix] = useState(
+    existingGenerator?.semanticLayer?.prefix ?? "semantic",
+  );
   const [semanticMappings, setSemanticMappings] = useState<
     Array<{ semantic: string; step: string }>
-  >([]);
+  >(existingGenerator?.semanticLayer?.mappings ?? []);
   const [selectedSemanticPatternId, setSelectedSemanticPatternId] = useState<
     string | null
-  >(null);
+  >(existingGenerator?.semanticLayer?.patternId ?? null);
   const overwriteCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -197,6 +202,18 @@ export function useGeneratorSave({
           targetSet: targetSetAtSave,
           targetGroup: targetGroupAtSave,
           config,
+          semanticLayer:
+            semanticEnabledAtSave &&
+            semanticPrefixAtSave.trim() &&
+            semanticMappingsAtSave.some((mapping) => mapping.semantic.trim())
+              ? ({
+                  prefix: semanticPrefixAtSave.trim(),
+                  mappings: semanticMappingsAtSave.filter(
+                    (mapping) => mapping.semantic.trim() && mapping.step,
+                  ),
+                  patternId: selectedSemanticPatternId,
+                } satisfies GeneratorSemanticLayer)
+              : null,
           overrides:
             Object.keys(pendingOverrides).length > 0
               ? pendingOverrides
@@ -227,6 +244,7 @@ export function useGeneratorSave({
               targetSet: prevGen.targetSet,
               targetGroup: prevGen.targetGroup,
               config: prevGen.config,
+              semanticLayer: prevGen.semanticLayer ?? null,
               overrides: prevGen.overrides,
               inputTable: prevGen.inputTable,
               targetSetTemplate: prevGen.targetSetTemplate,
@@ -255,7 +273,7 @@ export function useGeneratorSave({
               description: `Created generator "${genName}"`,
               restore: async () => {
                 await apiFetch(
-                  `${serverUrl}/api/generators/${newId}?deleteTokens=false`,
+                  `${serverUrl}/api/generators/${newId}?deleteTokens=true`,
                   { method: "DELETE" },
                 );
               },
@@ -279,7 +297,16 @@ export function useGeneratorSave({
             }
           }
 
-          if (tokensForMapping.length > 0 && onInterceptSemanticMapping) {
+          const validMappings = semanticMappingsAtSave.filter(
+            (mapping) => mapping.semantic.trim() && mapping.step,
+          );
+
+          if (
+            tokensForMapping.length > 0 &&
+            onInterceptSemanticMapping &&
+            !semanticEnabledAtSave &&
+            validMappings.length === 0
+          ) {
             onInterceptSemanticMapping({
               tokens: tokensForMapping,
               targetGroup: targetGroupAtSave,
@@ -297,42 +324,6 @@ export function useGeneratorSave({
               targetSet: targetSetAtSave,
             });
             return;
-          }
-
-          // Create semantic alias tokens inline if the user opted in
-          if (tokensForMapping.length > 0 && semanticEnabledAtSave) {
-            const validMappings = semanticMappingsAtSave.filter(
-              (m) => m.semantic.trim() && m.step,
-            );
-            if (validMappings.length > 0) {
-              const batchTokens = validMappings.map((mapping) => ({
-                path: `${semanticPrefixAtSave.trim()}.${mapping.semantic}`,
-                $type:
-                  tokensForMapping.find(
-                    (t) => String(t.stepName) === mapping.step,
-                  )?.type ?? "string",
-                $value: `{${targetGroupAtSave}.${mapping.step}}`,
-                $description: `Semantic reference for ${targetGroupAtSave}.${mapping.step}`,
-              }));
-              try {
-                await apiFetch(
-                  `${serverUrl}/api/tokens/${encodeURIComponent(targetSetAtSave)}/batch`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      tokens: batchTokens,
-                      strategy: "overwrite",
-                    }),
-                  },
-                );
-              } catch (err) {
-                console.warn(
-                  "[useGeneratorSave] failed to create semantic tokens:",
-                  err,
-                );
-              }
-            }
           }
         }
 
@@ -371,6 +362,7 @@ export function useGeneratorSave({
       onInterceptSemanticMapping,
       getToastAction,
       pushUndo,
+      selectedSemanticPatternId,
     ],
   );
 
@@ -485,8 +477,13 @@ export function useGeneratorSave({
   const handleSave = useCallback(async () => {
     if (!validateBeforeSave()) return;
 
-    // Initialize semantic mapping state for new generators with eligible types
-    if (!isEditing && (previewTokens.length > 0 || isMultiBrand)) {
+    // Initialize semantic mapping state for new generators with eligible types.
+    if (
+      !isEditing &&
+      (previewTokens.length > 0 || isMultiBrand) &&
+      semanticMappings.length === 0 &&
+      !semanticEnabled
+    ) {
       const suggestedPatterns = SEMANTIC_PATTERNS.filter((p) =>
         p.applicableTo.includes(selectedType),
       );
@@ -516,15 +513,31 @@ export function useGeneratorSave({
     previewTokens,
     isMultiBrand,
     selectedType,
+    semanticEnabled,
+    semanticMappings.length,
   ]);
 
   const handleQuickSave = useCallback(async () => {
     if (!validateBeforeSave()) return;
-    await commitSave(false, "semantic", [], targetGroup.trim(), targetSet);
-  }, [validateBeforeSave, commitSave, targetGroup, targetSet]);
+    await commitSave(
+      semanticEnabled,
+      semanticPrefix,
+      semanticMappings,
+      targetGroup.trim(),
+      targetSet,
+    );
+  }, [
+    validateBeforeSave,
+    commitSave,
+    semanticEnabled,
+    semanticPrefix,
+    semanticMappings,
+    targetGroup,
+    targetSet,
+  ]);
 
   /** Step 2: Commit the save. Overwrites are already known (shown in review view).
-   *  Semantic tokens are created inline if the user opted in.
+   *  The server applies semantic aliases together with the generator run.
    */
   const handleConfirmSave = useCallback(async () => {
     await commitSave(

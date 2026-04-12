@@ -17,6 +17,7 @@ import type {
 import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { TokenGeneratorDialog } from "./TokenGeneratorDialog";
+import { SemanticMappingDialog } from "./SemanticMappingDialog";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
 import { VALUE_REQUIRED_TYPES } from "./generators/generatorUtils";
 import { OverrideRow, formatValue } from "./generators/generatorShared";
@@ -973,6 +974,11 @@ export function GeneratorPipelineCard({
   const [deleteTokensOnDelete, setDeleteTokensOnDelete] = useState(false);
   const [showQuickEdit, setShowQuickEdit] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showSemanticDialog, setShowSemanticDialog] = useState(false);
+  const [semanticDialogTokens, setSemanticDialogTokens] = useState<
+    GeneratedTokenResult[]
+  >([]);
+  const [semanticDialogLoading, setSemanticDialogLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewDiff, setPreviewDiff] = useState<DryRunDiff | null>(null);
@@ -990,6 +996,7 @@ export function GeneratorPipelineCard({
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const actionsMenuButtonRef = useRef<HTMLButtonElement>(null);
   const stepCount = getGeneratorStepCount(generator);
+  const semanticAliasCount = generator.semanticLayer?.mappings.length ?? 0;
   const typeLabel = getGeneratorTypeLabel(generator.type);
   const isEnabled = generator.enabled !== false;
   const hasError = !!generator.lastRunError;
@@ -1122,6 +1129,7 @@ export function GeneratorPipelineCard({
         targetSet: generator.targetSet,
         targetGroup: newTargetGroup,
         config: generator.config,
+        semanticLayer: generator.semanticLayer ?? null,
         overrides: generator.overrides,
       };
       await apiFetch(`${serverUrl}/api/generators`, {
@@ -1156,7 +1164,7 @@ export function GeneratorPipelineCard({
     }
   };
 
-  const fetchStepResults = async () => {
+  const fetchStepResults = async (): Promise<GeneratedTokenResult[]> => {
     setStepsLoading(true);
     setStepOverrideError(null);
     try {
@@ -1165,10 +1173,12 @@ export function GeneratorPipelineCard({
         results: GeneratedTokenResult[];
       }>(`${serverUrl}/api/generators/${generator.id}/steps`);
       setStepResults(data.results);
+      return data.results;
     } catch (err) {
-      setStepOverrideError(
-        err instanceof Error ? err.message : "Failed to load steps",
-      );
+      const message =
+        err instanceof Error ? err.message : "Failed to load steps";
+      setStepOverrideError(message);
+      throw new Error(message);
     } finally {
       setStepsLoading(false);
     }
@@ -1178,8 +1188,39 @@ export function GeneratorPipelineCard({
     const next = !showStepOverrides;
     setShowStepOverrides(next);
     if (next && !stepResults) {
-      fetchStepResults();
+      void fetchStepResults();
     }
+  };
+
+  const handleOpenSemanticDialog = async () => {
+    setSemanticDialogLoading(true);
+    setActionError(null);
+    try {
+      const results =
+        stepResults && stepResults.length > 0
+          ? stepResults
+          : await fetchStepResults();
+      setSemanticDialogTokens(results);
+      setShowSemanticDialog(true);
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Failed to load generator steps",
+      );
+    } finally {
+      setSemanticDialogLoading(false);
+    }
+  };
+
+  const handleSaveSemanticLayer = async (
+    semanticLayer: TokenGenerator["semanticLayer"] | null,
+  ) => {
+    setActionError(null);
+    await apiFetch(`${serverUrl}/api/generators/${generator.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ semanticLayer }),
+    });
+    onRefresh();
   };
 
   const handleStepPinChange = async (
@@ -1466,6 +1507,62 @@ export function GeneratorPipelineCard({
         <span className="text-[var(--color-figma-text-secondary)] tabular-nums">
           {stepCount} tokens
         </span>
+      </div>
+      <div className="mt-2 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                Semantic layer
+              </span>
+              {semanticAliasCount > 0 ? (
+                <span className="text-[9px] px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/20">
+                  {semanticAliasCount} alias
+                  {semanticAliasCount === 1 ? "" : "es"}
+                </span>
+              ) : (
+                <span className="text-[9px] px-1 py-px rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
+                  Not defined
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+              {semanticAliasCount > 0
+                ? `${generator.semanticLayer?.prefix}.* maps semantic roles onto ${generator.targetGroup}.*`
+                : "Attach semantic aliases so this scale and its role tokens stay in one generator workflow."}
+            </p>
+          </div>
+          <button
+            onClick={handleOpenSemanticDialog}
+            disabled={semanticDialogLoading}
+            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+          >
+            {semanticDialogLoading
+              ? "Loading…"
+              : semanticAliasCount > 0
+                ? "Edit layer"
+                : "Add layer"}
+          </button>
+        </div>
+        {semanticAliasCount > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {generator.semanticLayer?.mappings
+              .slice(0, 3)
+              .map((mapping) => (
+                <span
+                  key={mapping.semantic}
+                  className="text-[9px] px-1.5 py-px rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] font-mono"
+                >
+                  {generator.semanticLayer?.prefix}.{mapping.semantic}
+                </span>
+              ))}
+            {semanticAliasCount > 3 && (
+              <span className="text-[9px] px-1.5 py-px rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]">
+                +{semanticAliasCount - 3} more
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -1936,10 +2033,26 @@ export function GeneratorPipelineCard({
               className="rounded"
             />
             <span className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              Also delete generated tokens
+              {semanticAliasCount > 0
+                ? `Also delete generated scale tokens and ${semanticAliasCount} semantic alias${semanticAliasCount === 1 ? "" : "es"}`
+                : "Also delete generated tokens"}
             </span>
           </label>
         </ConfirmModal>
+      )}
+      {showSemanticDialog && (
+        <SemanticMappingDialog
+          serverUrl={serverUrl}
+          generatedTokens={semanticDialogTokens}
+          generatorType={generator.type}
+          targetGroup={generator.targetGroup}
+          targetSet={generator.targetSet}
+          initialPrefix={generator.semanticLayer?.prefix}
+          initialMappings={generator.semanticLayer?.mappings}
+          initialPatternId={generator.semanticLayer?.patternId ?? null}
+          onSaveLayer={handleSaveSemanticLayer}
+          onClose={() => setShowSemanticDialog(false)}
+        />
       )}
     </div>
   );

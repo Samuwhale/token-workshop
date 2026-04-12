@@ -288,6 +288,17 @@ export type GeneratorConfig =
   | DarkModeInversionConfig
   | ContrastCheckConfig;
 
+export interface SemanticTokenMapping {
+  semantic: string;
+  step: string;
+}
+
+export interface GeneratorSemanticLayer {
+  prefix: string;
+  mappings: SemanticTokenMapping[];
+  patternId?: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Generator definition
 // ---------------------------------------------------------------------------
@@ -316,6 +327,7 @@ export interface TokenGenerator {
    */
   targetGroup: string;
   config: GeneratorConfig;
+  semanticLayer?: GeneratorSemanticLayer;
   /**
    * Per-step value overrides. Key = step name.
    * locked: true  → value survives regeneration
@@ -584,4 +596,3 @@ export const DEFAULT_SHADOW_SCALE_CONFIG: ShadowScaleConfig = {
     { name: '2xl', offsetX: 0, offsetY: 25, blur: 50, spread: -12, opacity: 0.25 },
   ],
 };
-

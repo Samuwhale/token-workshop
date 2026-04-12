@@ -153,6 +153,8 @@ export type {
   ContrastCheckStep,
   ContrastCheckConfig,
   GeneratorConfig,
+  GeneratorSemanticLayer,
+  SemanticTokenMapping,
   TokenGenerator,
   GeneratedTokenResult,
   InputTableRow,

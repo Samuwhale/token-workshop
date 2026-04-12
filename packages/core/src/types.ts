@@ -208,6 +208,7 @@ export interface TokenManagerGeneratorExtension {
   generatorId: string;
   sourceToken: string;
   brand?: string;
+  outputKind?: "scale" | "semantic";
 }
 
 /** Typed `$extensions` object for tokens and groups. */

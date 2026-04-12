@@ -576,6 +576,34 @@ export function useGeneratorDialog({
     },
     [markDirty],
   );
+  const setSemanticEnabledDirty = useCallback(
+    (value: boolean) => {
+      markDirty();
+      setSemanticEnabled(value);
+    },
+    [markDirty, setSemanticEnabled],
+  );
+  const setSemanticPrefixDirty = useCallback(
+    (value: string) => {
+      markDirty();
+      setSemanticPrefix(value);
+    },
+    [markDirty, setSemanticPrefix],
+  );
+  const setSemanticMappingsDirty = useCallback(
+    (value: Array<{ semantic: string; step: string }>) => {
+      markDirty();
+      setSemanticMappings(value);
+    },
+    [markDirty, setSemanticMappings],
+  );
+  const setSelectedSemanticPatternIdDirty = useCallback(
+    (value: string | null) => {
+      markDirty();
+      setSelectedSemanticPatternId(value);
+    },
+    [markDirty, setSelectedSemanticPatternId],
+  );
 
   return {
     // Derived
@@ -641,9 +669,9 @@ export function useGeneratorDialog({
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
-    setSemanticEnabled,
-    setSemanticPrefix,
-    setSemanticMappings,
-    setSelectedSemanticPatternId,
+    setSemanticEnabled: setSemanticEnabledDirty,
+    setSemanticPrefix: setSemanticPrefixDirty,
+    setSemanticMappings: setSemanticMappingsDirty,
+    setSelectedSemanticPatternId: setSelectedSemanticPatternIdDirty,
   };
 }

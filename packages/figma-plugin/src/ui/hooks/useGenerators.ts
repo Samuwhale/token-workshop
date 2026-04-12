@@ -166,6 +166,17 @@ export interface InputTable {
   rows: InputTableRow[];
 }
 
+export interface SemanticTokenMapping {
+  semantic: string;
+  step: string;
+}
+
+export interface GeneratorSemanticLayer {
+  prefix: string;
+  mappings: SemanticTokenMapping[];
+  patternId?: string | null;
+}
+
 export interface TokenGenerator {
   id: string;
   type: GeneratorType;
@@ -175,6 +186,7 @@ export interface TokenGenerator {
   targetSet: string;
   targetGroup: string;
   config: GeneratorConfig;
+  semanticLayer?: GeneratorSemanticLayer;
   overrides?: Record<string, StepOverride>;
   inputTable?: InputTable;
   targetSetTemplate?: string;

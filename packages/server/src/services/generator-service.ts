@@ -5,6 +5,8 @@ import type {
   GeneratorType,
   GeneratorConfig,
   TokenGenerator,
+  GeneratorSemanticLayer,
+  SemanticTokenMapping,
   GeneratedTokenResult,
   TokenType,
   Token,
@@ -74,23 +76,32 @@ export type GeneratorCreateInput = Omit<
   | "config"
   | "overrides"
   | "inputTable"
+  | "semanticLayer"
 > & {
   type: unknown;
   config?: unknown;
   overrides?: unknown;
   inputTable?: unknown;
+  semanticLayer?: unknown;
 };
 
 export type GeneratorUpdateInput = Partial<
   Omit<
     TokenGenerator,
-    "id" | "createdAt" | "type" | "config" | "overrides" | "inputTable"
+    | "id"
+    | "createdAt"
+    | "type"
+    | "config"
+    | "overrides"
+    | "inputTable"
+    | "semanticLayer"
   >
 > & {
   type?: unknown;
   config?: unknown;
   overrides?: unknown;
   inputTable?: unknown;
+  semanticLayer?: unknown;
 };
 
 export type GeneratorPreviewInput = Pick<
@@ -207,6 +218,48 @@ function normalizeOverrides(
     }
   }
   return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+function normalizeSemanticTokenMapping(raw: unknown): SemanticTokenMapping {
+  if (!isObj(raw)) {
+    throw new BadRequestError("semanticLayer.mappings items must be objects");
+  }
+  if (typeof raw.semantic !== "string" || raw.semantic.trim() === "") {
+    throw new BadRequestError(
+      "semanticLayer.mappings[].semantic must be a non-empty string",
+    );
+  }
+  if (typeof raw.step !== "string" || raw.step.trim() === "") {
+    throw new BadRequestError(
+      "semanticLayer.mappings[].step must be a non-empty string",
+    );
+  }
+  return {
+    semantic: raw.semantic.trim(),
+    step: raw.step.trim(),
+  };
+}
+
+function normalizeSemanticLayer(raw: unknown): GeneratorSemanticLayer | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!isObj(raw)) {
+    throw new BadRequestError("semanticLayer must be an object");
+  }
+  if (typeof raw.prefix !== "string" || raw.prefix.trim() === "") {
+    throw new BadRequestError("semanticLayer.prefix must be a non-empty string");
+  }
+  if (!Array.isArray(raw.mappings)) {
+    throw new BadRequestError("semanticLayer.mappings must be an array");
+  }
+  const mappings = raw.mappings.map(normalizeSemanticTokenMapping);
+  if (mappings.length === 0) return undefined;
+  return {
+    prefix: raw.prefix.trim(),
+    mappings,
+    ...(typeof raw.patternId === "string" || raw.patternId === null
+      ? { patternId: raw.patternId ?? null }
+      : {}),
+  };
 }
 
 function normalizeLastRunError(
@@ -746,6 +799,7 @@ function normalizeStoredGenerator(raw: unknown): TokenGenerator {
   const type = normalizeGeneratorType(raw.type);
   const overrides = normalizeOverrides(raw.overrides);
   const inputTable = normalizeInputTable(raw.inputTable);
+  const semanticLayer = normalizeSemanticLayer(raw.semanticLayer);
   const lastRunError = normalizeLastRunError(raw.lastRunError);
   return {
     id: raw.id,
@@ -756,6 +810,7 @@ function normalizeStoredGenerator(raw: unknown): TokenGenerator {
     targetSet: raw.targetSet,
     targetGroup: raw.targetGroup,
     config: normalizeGeneratorConfig(type, raw.config),
+    ...(semanticLayer && { semanticLayer }),
     ...(overrides && { overrides }),
     ...(inputTable && { inputTable }),
     ...(raw.targetSetTemplate !== undefined && {
@@ -1625,6 +1680,100 @@ export class GeneratorService {
     }
   }
 
+  private buildGeneratorExtensions(
+    generator: TokenGenerator,
+    outputKind: "scale" | "semantic",
+    brand?: string,
+  ): Token["$extensions"] {
+    return {
+      "com.tokenmanager.generator": {
+        generatorId: generator.id,
+        sourceToken: generator.sourceToken ?? "",
+        ...(brand ? { brand } : {}),
+        outputKind,
+      },
+    };
+  }
+
+  private buildSemanticAliasResults(
+    generator: TokenGenerator,
+    results: GeneratedTokenResult[],
+  ): Array<
+    GeneratedTokenResult & {
+      sourceStep: string;
+    }
+  > {
+    const semanticLayer = generator.semanticLayer;
+    if (!semanticLayer || semanticLayer.mappings.length === 0) {
+      return [];
+    }
+
+    return semanticLayer.mappings.flatMap(
+      (mapping: SemanticTokenMapping) => {
+      const source = results.find(
+        (result) => String(result.stepName) === mapping.step,
+      );
+      if (!source) return [];
+      return [
+        {
+          stepName: mapping.semantic,
+          path: `${semanticLayer.prefix}.${mapping.semantic}`,
+          type: source.type,
+          value: `{${generator.targetGroup}.${mapping.step}}`,
+          sourceStep: mapping.step,
+        },
+      ];
+      },
+    );
+  }
+
+  private async syncSemanticLayer(
+    generator: TokenGenerator,
+    tokenStore: TokenStore,
+    effectiveTargetSet: string,
+    results: GeneratedTokenResult[],
+    brand?: string,
+  ): Promise<void> {
+    const semanticResults = this.buildSemanticAliasResults(generator, results);
+    const desiredPaths = new Set(semanticResults.map((result) => result.path));
+    const extensions = this.buildGeneratorExtensions(
+      generator,
+      "semantic",
+      brand,
+    );
+
+    for (const result of semanticResults) {
+      const token: Token = {
+        $type: result.type as TokenType,
+        $value: result.value as Token["$value"],
+        $description: `Semantic reference for ${generator.targetGroup}.${result.sourceStep}`,
+        $extensions: extensions,
+      };
+      const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
+      if (existing) {
+        await tokenStore.updateToken(effectiveTargetSet, result.path, token);
+      } else {
+        await tokenStore.createToken(effectiveTargetSet, result.path, token);
+      }
+    }
+
+    const flatTokens = await tokenStore.getFlatTokensForSet(effectiveTargetSet);
+    const staleSemanticPaths = Object.entries(flatTokens)
+      .filter(([path, token]) => {
+        const ext = token.$extensions?.["com.tokenmanager.generator"];
+        return (
+          ext?.generatorId === generator.id &&
+          ext.outputKind === "semantic" &&
+          !desiredPaths.has(path)
+        );
+      })
+      .map(([path]) => path);
+
+    if (staleSemanticPaths.length > 0) {
+      await tokenStore.deleteTokens(effectiveTargetSet, staleSemanticPaths);
+    }
+  }
+
   /** Original single-brand execution path. Writes to `effectiveTargetSet`. */
   private async executeSingleBrand(
     generator: TokenGenerator,
@@ -1645,35 +1794,38 @@ export class GeneratorService {
       await tokenStore.getFlatTokensForSet(effectiveTargetSet),
     ) as Record<string, Token>;
 
-    const extensions = {
-      "com.tokenmanager.generator": {
-        generatorId: generator.id,
-        sourceToken: generator.sourceToken ?? "",
-      },
-    };
+    const extensions = this.buildGeneratorExtensions(generator, "scale");
     let runError: unknown = undefined;
-    tokenStore.beginBatch();
     try {
-      for (const result of results) {
-        const token = {
-          $type: result.type as TokenType,
-          $value: result.value as Token["$value"],
-          $extensions: extensions,
-        };
-        const existing = await tokenStore.getToken(
-          effectiveTargetSet,
-          result.path,
-        );
-        if (existing) {
-          await tokenStore.updateToken(effectiveTargetSet, result.path, token);
-        } else {
-          await tokenStore.createToken(effectiveTargetSet, result.path, token);
+      tokenStore.beginBatch();
+      try {
+        for (const result of results) {
+          const token = {
+            $type: result.type as TokenType,
+            $value: result.value as Token["$value"],
+            $extensions: extensions,
+          };
+          const existing = await tokenStore.getToken(
+            effectiveTargetSet,
+            result.path,
+          );
+          if (existing) {
+            await tokenStore.updateToken(effectiveTargetSet, result.path, token);
+          } else {
+            await tokenStore.createToken(effectiveTargetSet, result.path, token);
+          }
         }
+      } finally {
+        tokenStore.endBatch();
       }
+      await this.syncSemanticLayer(
+        generator,
+        tokenStore,
+        effectiveTargetSet,
+        results,
+      );
     } catch (err) {
       runError = err;
-    } finally {
-      tokenStore.endBatch();
     }
 
     if (runError !== undefined) {
@@ -1759,13 +1911,11 @@ export class GeneratorService {
           sourceValue,
         );
 
-        const extensions = {
-          "com.tokenmanager.generator": {
-            generatorId: generator.id,
-            sourceToken: generator.sourceToken ?? "",
-            brand: row.brand,
-          },
-        };
+        const extensions = this.buildGeneratorExtensions(
+          generator,
+          "scale",
+          row.brand,
+        );
         tokenStore.beginBatch();
         try {
           for (const result of results) {
@@ -1795,6 +1945,13 @@ export class GeneratorService {
         } finally {
           tokenStore.endBatch();
         }
+        await this.syncSemanticLayer(
+          generator,
+          tokenStore,
+          effectiveTargetSet,
+          results,
+          row.brand,
+        );
         allResults.push(...results);
       }
       succeeded = true;
