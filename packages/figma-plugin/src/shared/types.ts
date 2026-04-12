@@ -812,7 +812,16 @@ export interface CanvasHeatmapResultMessage {
   green: number;
   yellow: number;
   red: number;
-  nodes: { id: string; name: string; type: string; status: string; boundCount: number; totalCheckable: number; missingProperties?: BindableProperty[] }[];
+  nodes: {
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    boundCount: number;
+    totalCheckable: number;
+    missingProperties?: BindableProperty[];
+    missingValueEntries?: { property: BindableProperty; value: ResolvedTokenValue }[];
+  }[];
 }
 
 export interface ComponentCoverageResultMessage {

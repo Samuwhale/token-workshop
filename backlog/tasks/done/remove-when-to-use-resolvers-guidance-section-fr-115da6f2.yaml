@@ -9,10 +9,11 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Minimalism and hierarchy: after presenting three concrete get-started actions (Convert from Themes, Create from scratch, Light/Dark preset), the empty state appends a 'When to use resolvers' explanatory section that ends by directing users back to a different tab. This defensive copy assumes users may be in the wrong place, weakens the signal of the action buttons above it, and adds navigational noise for users who have already decided to use resolvers. The 'How resolvers work' diagram above the actions already orients uncertain users; the follow-on guidance section is redundant."
-state: ready
+  - "Completed: Removed the trailing resolver guidance block so the empty state ends with the three get-started actions, and logged progress after a successful figma-plugin build."
+state: done
 acceptance_criteria:
   - The 'When to use resolvers' subsection (including both paragraphs and its divider) is removed from the empty state
   - The empty state ends with the three get-started action buttons — the 'Manage tab' redirect sentence does not appear in the panel
 source: interface-pass
 created_at: 2026-04-12T19:50:49.120Z
-updated_at: 2026-04-12T19:50:49.120Z
+updated_at: 2026-04-12T19:56:30.135Z

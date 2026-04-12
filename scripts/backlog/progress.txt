@@ -1509,3 +1509,12 @@
 - **Learnings for future iterations:**
   - In empty states that already provide clear entry actions, avoid trailing defensive guidance that redirects users to a different workflow surface after the primary call to action.
 ---
+## 2026-04-12 - Add create-and-bind action to canvas analysis surface for hardcoded values that have no matching token
+- Added one shared canvas create-and-bind dialog, opened from heatmap rows with unmatched hardcoded values and from rejected consistency suggestions, so users can create a token, choose the destination set/path, and bind it back without leaving Apply > Canvas.
+- Extended the heatmap scan payload with normalized missing-value entries so coverage rows can prefill token values directly from the canvas, and filtered consistency results locally after create-and-bind so resolved near-matches drop out immediately.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` ~L120, `packages/figma-plugin/src/ui/components/CanvasCreateTokenDialog.tsx` ~L11, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L13, `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L77, `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L114, `packages/figma-plugin/src/shared/types.ts` ~L807
+- **Learnings for future iterations:**
+  - Canvas cleanup flows stay coherent when every create-and-bind entry point feeds one shared draft shape and one modal, instead of each panel owning its own token-creation state.
+  - Heatmap-style scan results need normalized value payloads, not just missing-property names, if the UI is expected to create tokens in place instead of redirecting the user to a separate authoring surface.
+---

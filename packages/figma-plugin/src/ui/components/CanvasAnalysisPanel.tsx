@@ -1,11 +1,32 @@
-import { useEffect, useRef } from 'react';
-import type { TokenMapEntry, BindableProperty } from '../../shared/types';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import type {
+  TokenMapEntry,
+  BindableProperty,
+  ResolvedTokenValue,
+  ConsistencyMatch,
+  ConsistencySuggestion,
+} from '../../shared/types';
+import { PROPERTY_LABELS } from '../../shared/types';
 import { HeatmapPanel } from './HeatmapPanel';
-import type { HeatmapResult } from './HeatmapPanel';
+import type { HeatmapNode, HeatmapResult } from './HeatmapPanel';
 import { ConsistencyPanel } from './ConsistencyPanel';
 import { ComponentCoveragePanel } from './ComponentCoveragePanel';
 import { ScanScopeSelector } from './ScanScopeSelector';
 import { useHeatmapContext } from '../contexts/InspectContext';
+import { useConnectionContext } from '../contexts/ConnectionContext';
+import { useTokenSetsContext } from '../contexts/TokenDataContext';
+import { stableStringify } from '../shared/utils';
+import {
+  getCompatibleTokenTypes,
+  getTokenTypeForProperty,
+  isTokenScopeCompatible,
+  suggestTokenPath,
+} from './selectionInspectorUtils';
+import {
+  CanvasCreateTokenDialog,
+  type CanvasCreateDraft,
+  type CanvasCreateDraftOption,
+} from './CanvasCreateTokenDialog';
 
 type CanvasTab = 'coverage' | 'suggestions' | 'components';
 
@@ -56,6 +77,46 @@ interface CanvasAnalysisPanelProps {
   initialTab?: CanvasTab;
 }
 
+function buildConsistencyMatchKey(match: ConsistencyMatch): string {
+  return `${match.nodeId}::${match.property}::${stableStringify(match.actualValue)}`;
+}
+
+function formatCreatePreview(tokenType: string, value: ResolvedTokenValue): string {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (tokenType === 'dimension' && value && typeof value === 'object' && !Array.isArray(value) && 'value' in value && 'unit' in value) {
+    const dimension = value as { value: number; unit: string };
+    return `${dimension.value}${dimension.unit}`;
+  }
+  return stableStringify(value);
+}
+
+function normalizeConsistencyTokenValue(
+  suggestion: ConsistencySuggestion,
+  match: ConsistencyMatch,
+): ResolvedTokenValue | null {
+  if (suggestion.tokenType === 'color' && typeof match.actualValue === 'string') {
+    return match.actualValue;
+  }
+  if (suggestion.tokenType === 'dimension' && typeof match.actualValue === 'number') {
+    return {
+      value: Math.round(match.actualValue * 100) / 100,
+      unit: 'px',
+    };
+  }
+  if (
+    (suggestion.tokenType === 'number' || suggestion.tokenType === 'fontWeight') &&
+    typeof match.actualValue === 'number'
+  ) {
+    return match.actualValue;
+  }
+  if (suggestion.tokenType === 'fontFamily' && typeof match.actualValue === 'string') {
+    return match.actualValue;
+  }
+  return null;
+}
+
 export function CanvasAnalysisPanel({
   availableTokens,
   heatmapResult,
@@ -76,12 +137,16 @@ export function CanvasAnalysisPanel({
     components: componentsSectionRef,
   };
 
+  const { connected, serverUrl } = useConnectionContext();
+  const { activeSet, sets, refreshTokens } = useTokenSetsContext();
   const {
     heatmapScope,
     setHeatmapScope,
     triggerHeatmapScan,
     cancelHeatmapScan,
   } = useHeatmapContext();
+  const [createDraft, setCreateDraft] = useState<CanvasCreateDraft | null>(null);
+  const [resolvedConsistencyMatchKeys, setResolvedConsistencyMatchKeys] = useState<Set<string>>(new Set());
 
   const scrollToSection = (section: CanvasTab) => {
     sectionRefs[section].current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -96,6 +161,120 @@ export function CanvasAnalysisPanel({
     }, 0);
     return () => window.clearTimeout(timeoutId);
   }, [initialTab]);
+
+  const findExactMatchesForBindableValue = useCallback((
+    property: BindableProperty,
+    tokenValue: ResolvedTokenValue,
+  ) => {
+    const compatibleTypes = new Set(getCompatibleTokenTypes(property));
+    const targetValue = stableStringify(tokenValue);
+    return Object.entries(availableTokens)
+      .filter(([, entry]) => compatibleTypes.has(entry.$type))
+      .filter(([, entry]) => isTokenScopeCompatible(entry, property))
+      .filter(([, entry]) => stableStringify(entry.$value) === targetValue)
+      .map(([path]) => path);
+  }, [availableTokens]);
+
+  const buildHeatmapCreateOptions = useCallback((node: HeatmapNode): CanvasCreateDraftOption[] => {
+    return (node.missingValueEntries ?? [])
+      .filter((entry): entry is NonNullable<HeatmapNode['missingValueEntries']>[number] => entry.value !== null && entry.value !== undefined)
+      .map((entry) => {
+        const tokenType = getTokenTypeForProperty(entry.property);
+        return {
+          property: entry.property,
+          propertyLabel: PROPERTY_LABELS[entry.property] ?? entry.property,
+          tokenType,
+          tokenValue: entry.value,
+          previewValue: formatCreatePreview(tokenType, entry.value),
+          nodeIds: [node.id],
+          layerLabel: node.name,
+          suggestedPath: suggestTokenPath(entry.property, node.name),
+        };
+      })
+      .filter((option) => findExactMatchesForBindableValue(option.property as BindableProperty, option.tokenValue).length === 0);
+  }, [findExactMatchesForBindableValue]);
+
+  const canCreateHeatmapToken = useCallback((node: HeatmapNode) => {
+    return buildHeatmapCreateOptions(node).length > 0;
+  }, [buildHeatmapCreateOptions]);
+
+  const handleOpenHeatmapCreate = useCallback((node: HeatmapNode) => {
+    const options = buildHeatmapCreateOptions(node);
+    if (options.length === 0) {
+      return;
+    }
+    setCreateDraft({
+      source: 'heatmap',
+      title: `Create token for ${node.name}`,
+      description: 'Create a token from the canvas value and bind it back to this layer without leaving Canvas cleanup.',
+      options,
+    });
+  }, [buildHeatmapCreateOptions]);
+
+  const handleOpenConsistencyCreate = useCallback((request: {
+    suggestion: ConsistencySuggestion;
+    match: ConsistencyMatch;
+  }) => {
+    const tokenValue = normalizeConsistencyTokenValue(request.suggestion, request.match);
+    if (tokenValue === null) {
+      return;
+    }
+
+    setCreateDraft({
+      source: 'consistency',
+      title: `Create token for ${request.match.nodeName}`,
+      description: 'This near-match is not close enough. Create a new token from the actual canvas value and bind it back immediately.',
+      options: [
+        {
+          property: request.match.property,
+          propertyLabel: PROPERTY_LABELS[request.match.property as BindableProperty] ?? request.match.property,
+          tokenType: request.suggestion.tokenType,
+          tokenValue,
+          previewValue: formatCreatePreview(request.suggestion.tokenType, tokenValue),
+          nodeIds: [request.match.nodeId],
+          layerLabel: request.match.nodeName,
+          suggestedPath: isBindablePropertyName(request.match.property)
+            ? suggestTokenPath(request.match.property, request.match.nodeName)
+            : `${request.suggestion.tokenType}.${request.match.nodeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'layer'}`,
+          resolutionKeys: [buildConsistencyMatchKey(request.match)],
+        },
+      ],
+    });
+  }, []);
+
+  const handleCreateSuccess = useCallback(async (result: {
+    source: CanvasCreateDraft['source'];
+    tokenPath: string;
+    option: CanvasCreateDraftOption;
+  }) => {
+    refreshTokens();
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: 'apply-to-nodes',
+          nodeIds: result.option.nodeIds,
+          tokenPath: result.tokenPath,
+          tokenType: result.option.tokenType,
+          targetProperty: result.option.property,
+          resolvedValue: result.option.tokenValue,
+        },
+      },
+      '*',
+    );
+
+    if (result.source === 'heatmap') {
+      triggerHeatmapScan();
+      return;
+    }
+
+    if (result.option.resolutionKeys && result.option.resolutionKeys.length > 0) {
+      setResolvedConsistencyMatchKeys((prev) => {
+        const next = new Set(prev);
+        result.option.resolutionKeys?.forEach((key) => next.add(key));
+        return next;
+      });
+    }
+  }, [refreshTokens, triggerHeatmapScan]);
 
   return (
     <div className="flex flex-col h-full">
@@ -173,12 +352,16 @@ export function CanvasAnalysisPanel({
                     onSelectNodes={onSelectNodes}
                     onBatchBind={onBatchBind}
                     availableTokens={availableTokens}
+                    canCreateToken={canCreateHeatmapToken}
+                    onCreateToken={handleOpenHeatmapCreate}
                   />
                 )}
                 {section.id === 'suggestions' && (
                   <ConsistencyPanel
                     availableTokens={availableTokens}
                     onSelectNode={onSelectNode}
+                    onCreateToken={handleOpenConsistencyCreate}
+                    resolvedMatchKeys={resolvedConsistencyMatchKeys}
                     scope={heatmapScope}
                   />
                 )}
@@ -190,6 +373,22 @@ export function CanvasAnalysisPanel({
           ))}
         </div>
       </div>
+
+      {createDraft && (
+        <CanvasCreateTokenDialog
+          draft={createDraft}
+          connected={connected}
+          serverUrl={serverUrl}
+          activeSet={activeSet}
+          sets={sets}
+          onClose={() => setCreateDraft(null)}
+          onCreated={handleCreateSuccess}
+        />
+      )}
     </div>
   );
+}
+
+function isBindablePropertyName(value: string): value is BindableProperty {
+  return Object.prototype.hasOwnProperty.call(PROPERTY_LABELS, value);
 }

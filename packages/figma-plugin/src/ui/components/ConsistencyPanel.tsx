@@ -3,9 +3,12 @@ import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion, ScanScope 
 import { useUsageContext } from '../contexts/InspectContext';
 import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+import { stableStringify } from '../shared/utils';
 interface ConsistencyPanelProps {
   availableTokens: Record<string, TokenMapEntry>;
   onSelectNode: (nodeId: string) => void;
+  onCreateToken?: (request: { suggestion: ConsistencySuggestion; match: ConsistencyMatch }) => void;
+  resolvedMatchKeys?: Set<string>;
   scope: ScanScope;
 }
 type SuggestionCategory = 'color' | 'dimension' | 'typography' | 'other';
@@ -75,10 +78,16 @@ function SuggestionCard({
   suggestion,
   onSnap,
   onSelectNode,
+  onReject,
+  onCreateMatch,
+  rejected,
 }: {
   suggestion: ConsistencySuggestion;
   onSnap: (suggestion: ConsistencySuggestion) => void;
   onSelectNode: (nodeId: string) => void;
+  onReject: (suggestion: ConsistencySuggestion) => void;
+  onCreateMatch?: (suggestion: ConsistencySuggestion, match: ConsistencyMatch) => void;
+  rejected: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const isColor = suggestion.tokenType === 'color';
@@ -125,11 +134,29 @@ function SuggestionCard({
         >
           Snap all
         </button>
+        <button
+          onClick={() => {
+            setExpanded(true);
+            onReject(suggestion);
+          }}
+          className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+            rejected
+              ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+          }`}
+        >
+          Not close enough
+        </button>
       </div>
 
       {/* Expanded instance list */}
       {expanded && (
         <div className="border-t border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+          {rejected && (
+            <div className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
+              Create a new token from the actual canvas value for any layer below.
+            </div>
+          )}
           {uniqueMatches.map((match: ConsistencyMatch, idx: number) => (
             <div key={idx} className="flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]">
               <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-10 shrink-0">
@@ -142,6 +169,14 @@ function SuggestionCard({
               >
                 {match.nodeName}
               </button>
+              {rejected && onCreateMatch && (
+                <button
+                  onClick={() => onCreateMatch(suggestion, match)}
+                  className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Create token
+                </button>
+              )}
               <div className="flex items-center gap-1 shrink-0">
                 {isColor && <ColorSwatch hex={String(match.actualValue)} />}
                 <span className="text-[10px] text-amber-600 tabular-nums">
@@ -163,10 +198,25 @@ function SuggestionCard({
   );
 }
 
-export function ConsistencyPanel({ availableTokens, onSelectNode, scope }: ConsistencyPanelProps) {
+function getSuggestionKey(suggestion: ConsistencySuggestion): string {
+  return `${suggestion.tokenPath}::${suggestion.property}`;
+}
+
+function getMatchKey(match: ConsistencyMatch): string {
+  return `${match.nodeId}::${match.property}::${stableStringify(match.actualValue)}`;
+}
+
+export function ConsistencyPanel({
+  availableTokens,
+  onSelectNode,
+  onCreateToken,
+  resolvedMatchKeys = new Set<string>(),
+  scope,
+}: ConsistencyPanelProps) {
   const help = usePanelHelp('consistency');
   // Pending bulk snap: the suggestions array to confirm, or null when modal is closed
   const [snapConfirm, setSnapConfirm] = useState<ConsistencySuggestion[] | null>(null);
+  const [rejectedSuggestionKeys, setRejectedSuggestionKeys] = useState<Set<string>>(new Set());
 
   // Scan results and loading state are lifted to InspectContext so they survive
   // tab switches without requiring a re-scan.
@@ -241,8 +291,11 @@ export function ConsistencyPanel({ availableTokens, onSelectNode, scope }: Consi
     setSnapConfirm(null);
   }, [availableTokens, setSnappedKeys]);
 
-  const visibleSuggestions = suggestions?.filter(
-    s => !snappedKeys.has(`${s.tokenPath}::${s.property}`)
+  const visibleSuggestions = suggestions?.map((suggestion) => ({
+    ...suggestion,
+    matches: suggestion.matches.filter((match) => !resolvedMatchKeys.has(getMatchKey(match))),
+  })).filter(
+    suggestion => suggestion.matches.length > 0 && !snappedKeys.has(getSuggestionKey(suggestion))
   ) ?? null;
 
   // Group visible suggestions by category for display and per-category snap buttons
@@ -257,6 +310,11 @@ export function ConsistencyPanel({ availableTokens, onSelectNode, scope }: Consi
     }
     return groups;
   }, [visibleSuggestions]);
+
+  const handleRejectSuggestion = useCallback((suggestion: ConsistencySuggestion) => {
+    const suggestionKey = getSuggestionKey(suggestion);
+    setRejectedSuggestionKeys((prev) => new Set(prev).add(suggestionKey));
+  }, []);
 
   const hasMultipleCategories = groupedSuggestions ? groupedSuggestions.size > 1 : false;
 
@@ -415,10 +473,13 @@ export function ConsistencyPanel({ availableTokens, onSelectNode, scope }: Consi
                     </div>
                     {catSuggestions.map(suggestion => (
                       <SuggestionCard
-                        key={`${suggestion.tokenPath}::${suggestion.property}`}
+                        key={getSuggestionKey(suggestion)}
                         suggestion={suggestion}
                         onSnap={handleSnap}
                         onSelectNode={onSelectNode}
+                        onReject={handleRejectSuggestion}
+                        rejected={rejectedSuggestionKeys.has(getSuggestionKey(suggestion))}
+                        onCreateMatch={onCreateToken ? (nextSuggestion, match) => onCreateToken({ suggestion: nextSuggestion, match }) : undefined}
                       />
                     ))}
                   </div>
@@ -427,10 +488,13 @@ export function ConsistencyPanel({ availableTokens, onSelectNode, scope }: Consi
             ) : (
               visibleSuggestions.map(suggestion => (
                 <SuggestionCard
-                  key={`${suggestion.tokenPath}::${suggestion.property}`}
+                  key={getSuggestionKey(suggestion)}
                   suggestion={suggestion}
                   onSnap={handleSnap}
                   onSelectNode={onSelectNode}
+                  onReject={handleRejectSuggestion}
+                  rejected={rejectedSuggestionKeys.has(getSuggestionKey(suggestion))}
+                  onCreateMatch={onCreateToken ? (nextSuggestion, match) => onCreateToken({ suggestion: nextSuggestion, match }) : undefined}
                 />
               ))
             )}

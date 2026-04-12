@@ -1,9 +1,21 @@
 import { useState, useCallback } from 'react';
 import { Spinner } from './Spinner';
-import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry, type ScanScope } from '../../shared/types';
+import {
+  ALL_BINDABLE_PROPERTIES,
+  PROPERTY_LABELS,
+  type BindableProperty,
+  type TokenMapEntry,
+  type ScanScope,
+  type ResolvedTokenValue,
+} from '../../shared/types';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
-interface HeatmapNode {
+export interface HeatmapMissingValueEntry {
+  property: BindableProperty;
+  value: ResolvedTokenValue;
+}
+
+export interface HeatmapNode {
   id: string;
   name: string;
   type: string;
@@ -11,6 +23,7 @@ interface HeatmapNode {
   boundCount: number;
   totalCheckable: number;
   missingProperties?: BindableProperty[];
+  missingValueEntries?: HeatmapMissingValueEntry[];
 }
 
 export interface HeatmapResult {
@@ -32,6 +45,8 @@ interface HeatmapPanelProps {
   onSelectNodes: (ids: string[]) => void;
   availableTokens?: Record<string, TokenMapEntry>;
   onBatchBind?: (nodeIds: string[], tokenPath: string, property: BindableProperty) => void;
+  canCreateToken?: (node: HeatmapNode) => boolean;
+  onCreateToken?: (node: HeatmapNode) => void;
 }
 
 const STATUS_COLORS = {
@@ -80,7 +95,20 @@ interface QuickBindState {
 }
 
 
-export function HeatmapPanel({ result, loading, progress, error, scope, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
+export function HeatmapPanel({
+  result,
+  loading,
+  progress,
+  error,
+  scope,
+  onRescan,
+  onCancel,
+  onSelectNodes,
+  availableTokens,
+  onBatchBind,
+  canCreateToken,
+  onCreateToken,
+}: HeatmapPanelProps) {
   const help = usePanelHelp('heatmap');
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
@@ -425,6 +453,9 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onRescan
                       key={node.id}
                       node={node}
                       onSelect={() => onSelectNodes([node.id])}
+                      onCreate={canCreateToken?.(node) && onCreateToken
+                        ? () => onCreateToken(node)
+                        : undefined}
                       onBind={node.status !== 'green' && onBatchBind
                         ? () => {
                             onSelectNodes([node.id]);
@@ -455,6 +486,9 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onRescan
                   key={node.id}
                   node={node}
                   onSelect={() => onSelectNodes([node.id])}
+                  onCreate={canCreateToken?.(node) && onCreateToken
+                    ? () => onCreateToken(node)
+                    : undefined}
                   onBind={node.status !== 'green' && onBatchBind
                     ? () => {
                         onSelectNodes([node.id]);
@@ -533,13 +567,24 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onRescan
   );
 }
 
-function NodeRow({ node, onSelect, onBind }: { node: HeatmapNode; onSelect: () => void; onBind?: () => void }) {
+function NodeRow({
+  node,
+  onSelect,
+  onBind,
+  onCreate,
+}: {
+  node: HeatmapNode;
+  onSelect: () => void;
+  onBind?: () => void;
+  onCreate?: () => void;
+}) {
   const cfg = STATUS_COLORS[node.status];
   const typeLabel = NODE_TYPE_LABELS[node.type] ?? node.type;
+  const hasActions = Boolean(onBind || onCreate);
   return (
     <div
       role="group"
-      className="relative flex items-stretch border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+      className="flex items-stretch border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
     >
       <button
         onClick={onSelect}
@@ -552,22 +597,34 @@ function NodeRow({ node, onSelect, onBind }: { node: HeatmapNode; onSelect: () =
         {node.totalCheckable > 0 && (
           <span className={`text-[10px] shrink-0 ${cfg.text}`}>{node.boundCount}/{node.totalCheckable}</span>
         )}
-        {!onBind && (
+        {!hasActions && (
           <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-0 group-hover:opacity-60 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
             <path d="M1.5 5h7M5.5 2l3 3-3 3"/>
           </svg>
         )}
       </button>
-      {onBind && (
-        <div className="absolute right-2 top-0 bottom-0 flex items-center opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
-          <button
-            onClick={e => { e.stopPropagation(); onBind(); }}
-            className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] transition-colors"
-            aria-label={`Bind ${node.name} to a token`}
-            title="Quick bind to token"
-          >
-            Bind
-          </button>
+      {hasActions && (
+        <div className="flex items-center gap-1 pr-2 opacity-40 group-hover:opacity-100 transition-opacity">
+          {onCreate && (
+            <button
+              onClick={e => { e.stopPropagation(); onCreate(); }}
+              className="text-[9px] px-1.5 py-0.5 rounded font-medium border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              aria-label={`Create token for ${node.name}`}
+              title="Create token from this value"
+            >
+              Create
+            </button>
+          )}
+          {onBind && (
+            <button
+              onClick={e => { e.stopPropagation(); onBind(); }}
+              className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] transition-colors"
+              aria-label={`Bind ${node.name} to a token`}
+              title="Quick bind to token"
+            >
+              Bind
+            </button>
+          )}
         </div>
       )}
     </div>

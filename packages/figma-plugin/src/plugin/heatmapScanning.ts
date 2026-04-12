@@ -2,6 +2,7 @@ import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type BindableProperty, type Sc
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToSelection } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
+import { rgbToHex } from './colorUtils.js';
 
 // Scan component nodes for token coverage
 export async function scanComponentCoverage(correlationId?: string, signal?: { aborted: boolean }) {
@@ -110,6 +111,52 @@ const CHECKABLE_TO_BINDABLE: Record<string, BindableProperty> = {
   itemSpacing:   'itemSpacing',
 };
 
+function toDimensionValue(value: number): ResolvedTokenValue {
+  return {
+    value: Math.round(value * 100) / 100,
+    unit: 'px',
+  };
+}
+
+function readHeatmapTokenValue(node: SceneNode, property: BindableProperty): ResolvedTokenValue | null {
+  const record = node as unknown as Record<string, unknown>;
+
+  switch (property) {
+    case 'fill': {
+      if (!('fills' in node)) return null;
+      const fills = record['fills'];
+      if (Array.isArray(fills) && fills.length > 0 && fills[0].type === 'SOLID') {
+        return rgbToHex(fills[0].color as RGB, fills[0].opacity ?? 1);
+      }
+      return null;
+    }
+    case 'stroke': {
+      if (!('strokes' in node)) return null;
+      const strokes = record['strokes'];
+      if (Array.isArray(strokes) && strokes.length > 0 && strokes[0].type === 'SOLID') {
+        return rgbToHex(strokes[0].color as RGB, strokes[0].opacity ?? 1);
+      }
+      return null;
+    }
+    case 'opacity':
+      return typeof record['opacity'] === 'number' ? record['opacity'] as number : null;
+    case 'cornerRadius':
+      return typeof record['cornerRadius'] === 'number' ? toDimensionValue(record['cornerRadius'] as number) : null;
+    case 'paddingTop':
+      return typeof record['paddingTop'] === 'number' ? toDimensionValue(record['paddingTop'] as number) : null;
+    case 'paddingRight':
+      return typeof record['paddingRight'] === 'number' ? toDimensionValue(record['paddingRight'] as number) : null;
+    case 'paddingBottom':
+      return typeof record['paddingBottom'] === 'number' ? toDimensionValue(record['paddingBottom'] as number) : null;
+    case 'paddingLeft':
+      return typeof record['paddingLeft'] === 'number' ? toDimensionValue(record['paddingLeft'] as number) : null;
+    case 'itemSpacing':
+      return typeof record['itemSpacing'] === 'number' ? toDimensionValue(record['itemSpacing'] as number) : null;
+    default:
+      return null;
+  }
+}
+
 // Scan visual nodes for token/variable binding coverage
 export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { aborted: boolean }) {
   // Abort if the user navigates to a different page mid-scan (only relevant for
@@ -149,7 +196,16 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
     }
 
     type HeatmapStatus = 'green' | 'yellow' | 'red';
-    const result: { id: string; name: string; type: string; status: HeatmapStatus; boundCount: number; totalCheckable: number; missingProperties: BindableProperty[] }[] = [];
+    const result: {
+      id: string;
+      name: string;
+      type: string;
+      status: HeatmapStatus;
+      boundCount: number;
+      totalCheckable: number;
+      missingProperties: BindableProperty[];
+      missingValueEntries: { property: BindableProperty; value: ResolvedTokenValue }[];
+    }[] = [];
     let greenCount = 0, yellowCount = 0, redCount = 0;
 
     for (let i = 0; i < nodes.length; i++) {
@@ -208,6 +264,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
 
       // Collect bindable properties that have values but no binding (figma variable or plugin data).
       const missingProperties: BindableProperty[] = [];
+      const missingValueEntries: { property: BindableProperty; value: ResolvedTokenValue }[] = [];
       const seenBindable = new Set<BindableProperty>();
       for (const prop of CHECKABLE_FIGMA_PROPS) {
         if (!(prop in node)) continue;
@@ -222,9 +279,13 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
         if (pluginVal && pluginVal.trim()) continue;
         seenBindable.add(bindable);
         missingProperties.push(bindable);
+        const tokenValue = readHeatmapTokenValue(node, bindable);
+        if (tokenValue !== null) {
+          missingValueEntries.push({ property: bindable, value: tokenValue });
+        }
       }
 
-      result.push({ id: node.id, name: node.name, type: node.type, status, boundCount, totalCheckable, missingProperties });
+      result.push({ id: node.id, name: node.name, type: node.type, status, boundCount, totalCheckable, missingProperties, missingValueEntries });
 
       // Yield between batches to prevent freezing
       if ((i + 1) % BATCH_SIZE === 0) {
