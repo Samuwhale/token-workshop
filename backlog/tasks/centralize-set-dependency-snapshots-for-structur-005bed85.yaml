@@ -1,0 +1,21 @@
+id: centralize-set-dependency-snapshots-for-structur-005bed85
+title: Centralize set-dependency snapshots for structural set operations so preflight and execution stop drifting
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/routes/sets.ts
+  - packages/server/src/services/generator-service.ts
+  - packages/server/src/services/resolver-store.ts
+capabilities: []
+validation_profile: server
+status_notes:
+  - "Context: After the structural set operations moved server-side, `packages/server/src/routes/sets.ts` still rebuilds the same dependency inputs in multiple places (`buildSetImpact` for preflight, delete, split, and folder delete). That duplication is a correctness risk because future theme/resolver/generator dependency rules can land in one path and silently miss the others."
+state: ready
+acceptance_criteria:
+  - One shared server helper loads dimensions, resolver references, generator targets, and generated-token ownership once and returns consistent `SetPreflightImpact` data for one or more sets.
+  - "`/api/sets/:name/preflight`, `DELETE /api/sets/:name`, split with `deleteOriginal`, and folder delete all consume that shared dependency snapshot/blocker builder instead of hand-assembling impacts in each route."
+  - When a new dependency type is added, structural set operations pick it up through the shared snapshot path so blocker messages and affected-set summaries stay aligned across preflight and execution flows.
+source: code-pass
+created_at: 2026-04-12T18:18:23.116Z
+updated_at: 2026-04-12T18:18:23.116Z

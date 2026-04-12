@@ -1369,3 +1369,10 @@
 - **Learnings for future iterations:**
   - When two adjacent sections present the same dataset with different sorting/grouping logic, label the secondary surface by its organizing principle so users can distinguish it at a glance.
 ---
+## 2026-04-12 - code-pass
+- Areas explored: [packages/figma-plugin/src/ui/components/ThemeManager.tsx, packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx, packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts, packages/figma-plugin/src/ui/hooks/useThemeOptions.ts, packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts, packages/server/src/routes/sets.ts, packages/server/src/services/generator-service.ts, packages/server/src/services/resolver-store.ts]
+- Code-health themes: [structural decomposition, state-model cleanup, duplicate logic removal, contract clarity, bug prevention]
+- Found 2 items — written to backlog/inbox.jsonl
+- Considered but rejected: [ImportPanelContext follow-up decomposition did not clear the bar because the recent coherent-controller refactor already collapsed the earlier late-bound hook cycle, so a fresh item would mostly restate very recent work. History/snapshot code remains large, but the flows were recently reworked and the remaining complexity looked driven by real recovery scope rather than one new structural defect.]
+- Notable: The clearest server-side hazard is structural set dependency evaluation living in several route branches at once; the next new dependency type can easily update preflight but miss delete/split/folder-delete execution paths.
+---
