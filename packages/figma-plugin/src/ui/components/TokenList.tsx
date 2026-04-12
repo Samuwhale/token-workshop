@@ -1891,6 +1891,17 @@ export function TokenList({
     [setSelectMode, setSelectedPaths, setShowBatchEditor],
   );
 
+  const handleBatchEditorSelectionChange = useCallback(
+    (nextSelectedPaths: Set<string>) => {
+      setSelectedPaths(nextSelectedPaths);
+      if (nextSelectedPaths.size === 0) {
+        setShowBatchEditor(false);
+        setSelectMode(false);
+      }
+    },
+    [setSelectMode, setSelectedPaths, setShowBatchEditor],
+  );
+
   const handleOpenBulkWorkflowForVisibleTokens = useCallback(() => {
     if (crossSetSearch) {
       dispatchToast(
@@ -4134,6 +4145,7 @@ export function TokenList({
               serverUrl={serverUrl}
               connected={connected}
               onApply={onRefresh}
+              onSelectedPathsChange={handleBatchEditorSelectionChange}
               onPushUndo={onPushUndo}
               onRequestDelete={requestBulkDelete}
               selectionScope={activeBulkEditScope}

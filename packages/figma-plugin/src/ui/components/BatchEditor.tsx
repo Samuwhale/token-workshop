@@ -27,6 +27,7 @@ interface BatchEditorProps {
   serverUrl: string;
   connected: boolean;
   onApply: () => void;
+  onSelectedPathsChange?: (nextSelectedPaths: Set<string>) => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRequestDelete?: () => void;
   selectionScope?: {
@@ -177,6 +178,7 @@ export function BatchEditor({
   serverUrl,
   connected,
   onApply,
+  onSelectedPathsChange,
   onPushUndo,
   onRequestDelete,
   selectionScope = null,
@@ -601,6 +603,10 @@ export function BatchEditor({
     await apiFetch(`${serverUrl}/api/operations/${operationId}/rollback`, { method: 'POST' });
   };
 
+  const updateSelection = (nextSelectedPaths: Iterable<string>) => {
+    onSelectedPathsChange?.(new Set(nextSelectedPaths));
+  };
+
   const handleApply = async () => {
     if (!connected || applying || !hasOp) return;
     if (aliasConflict) {
@@ -868,6 +874,9 @@ export function BatchEditor({
           },
         });
       }
+      if (type === 'move') {
+        updateSelection([]);
+      }
       onApply();
       setFeedback({ ok: true, msg: `${pastVerb} ${count} token${count === 1 ? '' : 's'} to "${targetSet}"` });
       setTargetSet('');
@@ -886,6 +895,10 @@ export function BatchEditor({
     if (!connected || !canRename) return;
     const renames = renameChanges.map(({ from, to }) => ({ oldPath: from, newPath: to }));
     if (renames.length === 0) return;
+    const renamedPathMap = new Map(renameChanges.map(({ from, to }) => [from, to]));
+    const nextSelectedPaths = selectedEntries.map(({ path }) => (
+      renamedPathMap.get(path) ?? path
+    ));
 
     setRenaming(true);
     setFeedback(null);
@@ -909,6 +922,7 @@ export function BatchEditor({
           },
         });
       }
+      updateSelection(nextSelectedPaths);
       onApply();
       setFeedback({ ok: true, msg: `Renamed ${result.renamed} token${result.renamed === 1 ? '' : 's'}` });
       setFindText('');

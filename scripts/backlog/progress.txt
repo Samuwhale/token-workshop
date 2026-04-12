@@ -1442,3 +1442,10 @@
   - BatchEditor copy-to-set leaving selection intact: copy doesn't remove tokens from the source set, so selectedPaths remain valid. Not broken.
 - Notable: The BatchEditor stale selection after move/rename is the strongest finding — it's a clear asymmetry where TokenList's own batch-move handlers correctly clear selection but the BatchEditor's internal move/rename paths don't, leaving the user in a contradictory state where the selection count is positive but the working set is empty.
 ---
+## 2026-04-12 - BatchEditor move and rename operations leave stale selection, breaking subsequent batch actions
+- Added a parent-owned selection update callback for `BatchEditor` so batch move now clears selection/exit state after success, while batch rename remaps the current selection to the renamed paths before refreshing tokens.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed. `pnpm --filter @tokenmanager/figma-plugin exec tsc --noEmit --pretty false 2>&1 | rg "BatchEditor|TokenList"` still only reports the existing `packages/core/dist` bootstrap gap (`TS6305`).
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L22, `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L606, `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L877, `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L894, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1894, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4140
+- **Learnings for future iterations:**
+  - Batch operations that remove or rename selected entities should hand selection ownership back to the parent surface so the surrounding toolbar/editor state stays consistent with the refreshed data model.
+---
