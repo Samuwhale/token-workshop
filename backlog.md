@@ -71,6 +71,7 @@
 - [x] [HIGH] BatchEditor move and rename operations leave stale selection, breaking subsequent batch actions
 - [x] [HIGH] Centralize token structural mutation commands so rename/move/copy flows stop duplicating snapshots, rollback, and generator updates
 - [ ] [HIGH] Connect resolver contexts to publish configuration so theme dimension combinations map directly to Figma variable modes
+- [ ] [HIGH] Rename 'Review tools' to signal navigation to Coverage and Compare views in ThemeAuthoringScreen
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -153,6 +154,7 @@
 - [x] ThemeAuthoringScreen review-tools menu opens with a meta-description paragraph before its action list
 - [x] Split the Tokens library controller and tree context so row rendering no longer depends on one giant `TokenList` state graph
 - [ ] Add create-and-bind action to canvas analysis surface for hardcoded values that have no matching token
+- [ ] Remove 'When to use resolvers' guidance section from ResolverPanel empty state — it redirects users away after presenting three valid entry points
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

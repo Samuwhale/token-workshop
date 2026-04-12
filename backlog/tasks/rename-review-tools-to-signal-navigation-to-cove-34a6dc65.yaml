@@ -1,0 +1,18 @@
+id: rename-review-tools-to-signal-navigation-to-cove-34a6dc65
+title: Rename 'Review tools' to signal navigation to Coverage and Compare views in ThemeAuthoringScreen
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Findability and recognition over recall: the 'Review tools' label (with a filter/sliders icon) reads as an auxiliary utility menu, not as the sole navigation entry point to Coverage, Compare, and Advanced views. Users who need to run a coverage review or compare theme options will look for tab elements or prominently-labeled links, not a 'tools' dropdown. They must open the menu to discover it contains navigational destinations, then remember this on subsequent visits."
+state: ready
+acceptance_criteria:
+  - The menu trigger label no longer reads 'Review tools' — replaced with a label that signals the navigational destinations inside (e.g. 'Coverage & Compare', or a breadcrumb-style indicator)
+  - Users who want to run a coverage review can identify the entry point without opening the dropdown to discover it
+source: interface-pass
+created_at: 2026-04-12T19:50:49.085Z
+updated_at: 2026-04-12T19:50:49.085Z
