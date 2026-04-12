@@ -13,11 +13,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: `useReadinessChecks` and `useTokenSyncBase` both fetch and flatten the same token set plus Figma payload, then derive overlapping concepts with separate logic. The current split makes sync preflight and compare/apply easy to drift apart even though they are meant to describe the same publish state."
-state: ready
+  - "Completed: Shared the publish snapshot/diff pipeline across sync compare and preflight, including collection/mode-aware Figma variable flattening and snapshot-backed preflight actions."
+state: done
 acceptance_criteria:
   - Local-token loading, Figma-token loading, and diff classification are extracted into one shared snapshot/diff layer that both preflight and compare/apply consume.
   - Blocking preflight clusters such as missing variables, orphans, and scope drift are computed from the same snapshot data that compare/apply uses, instead of maintaining a separate fetch-and-filter implementation.
   - Preflight follow-up actions like `push-missing-variables` and `delete-orphan-variables` reuse the shared snapshot/diff model or explicitly rerun it, rather than rebuilding their own local/Figma token queries inline.
 source: code-pass
 created_at: 2026-04-12T17:30:15.412Z
-updated_at: 2026-04-12T17:30:15.412Z
+updated_at: 2026-04-12T17:53:34.957Z

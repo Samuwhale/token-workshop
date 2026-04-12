@@ -1,0 +1,25 @@
+id: unify-generator-scale-authoring-and-semantic-tok-02b5968b
+title: Unify generator-scale authoring and semantic token mapping into one token-system workflow instead of two disconnected features
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx
+  - packages/figma-plugin/src/ui/components/SemanticMappingDialog.tsx
+  - packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts
+  - packages/server/src/routes/generators.ts
+  - packages/server/src/services/generator-service.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: Generators produce raw scale steps (e.g. color.brand.100–900). SemanticMappingDialog creates alias tokens that reference those steps (e.g. color.interactive.default → color.brand.500). These are naturally stages of one job — defining a token system with both a scale layer and a semantic layer — but the product treats them as independent features with no workflow connection. Designers who create generators don't know semantic mapping exists; designers using semantic mapping don't know it can source from generators. The fix is to embed the semantic layer as an explicit optional step within the generator pipeline card rather than a separate dialog."
+state: ready
+acceptance_criteria:
+  - Generator pipeline card exposes a persistent 'Semantic layer' step or section that shows whether semantic aliases have been defined for the current generator's output
+  - Saving a generator with a semantic layer configured saves both the raw scale tokens and the semantic alias tokens as a unit
+  - Generator list view indicates which generators have a semantic layer attached
+  - Removing a generator offers to remove associated semantic alias tokens
+  - SemanticMappingDialog is not deleted — it becomes the editor opened from the generator's semantic-layer step rather than a standalone entry point
+source: product-pass
+created_at: 2026-04-12T17:59:22.557Z
+updated_at: 2026-04-12T17:59:22.557Z
