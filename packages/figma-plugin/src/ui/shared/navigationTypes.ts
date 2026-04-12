@@ -206,7 +206,10 @@ export interface ResolvedWorkspaceSummary {
   workspace: WorkspaceTab;
   section: WorkspaceSection | null;
   workspaceLabel: string;
+  workspaceTitle: string;
+  currentLabel: string;
   currentTitle: string;
+  currentDepthLabel: string;
 }
 
 export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
@@ -682,6 +685,21 @@ export const APP_SHELL_NAVIGATION: AppShellNavigation = {
   utilityMenu: UTILITY_MENU,
 };
 
+export function getSurfaceKindLabel(kind: SurfaceKind): string {
+  switch (kind) {
+    case "workspace-screen":
+      return "Workspace";
+    case "contextual-sub-screen":
+      return "Contextual screen";
+    case "secondary-takeover":
+      return "Secondary surface";
+    case "contextual-panel":
+      return "Contextual panel";
+    case "transient-overlay":
+      return "Overlay";
+  }
+}
+
 export const LARGE_INITIAL_IMPORT_TOKEN_THRESHOLD = 150;
 export const LARGE_INITIAL_IMPORT_SET_THRESHOLD = 4;
 
@@ -895,22 +913,38 @@ export function resolveWorkspaceSection(
   );
 }
 
+function resolveWorkspaceCurrentDepthLabel(
+  section: WorkspaceSection | null,
+): string {
+  if (!section) {
+    return "Workspace";
+  }
+
+  return section.transition?.kind === "contextual-sub-screen"
+    ? "Contextual screen"
+    : "Section";
+}
+
 export function resolveWorkspaceSummary(
   topTab: TopTab,
   subTab: SubTab,
 ): ResolvedWorkspaceSummary {
   const workspace = resolveWorkspace(topTab, subTab);
   const section = resolveWorkspaceSection(workspace, topTab, subTab);
+  const workspaceTitle = workspace.summaryTitle ?? workspace.label;
+  const currentLabel = section?.label ?? workspace.label;
 
   return {
     workspace,
     section,
     workspaceLabel: workspace.label,
+    workspaceTitle,
+    currentLabel,
     currentTitle:
       section?.summaryTitle ??
       section?.label ??
-      workspace.summaryTitle ??
-      workspace.label,
+      workspaceTitle,
+    currentDepthLabel: resolveWorkspaceCurrentDepthLabel(section),
   };
 }
 

@@ -44,6 +44,7 @@ import {
   AUDIT_WORKSPACE_GUIDE,
   CONTEXTUAL_PANEL_MIN_WIDTH,
   CONTEXTUAL_PANEL_TRANSITIONS,
+  getSurfaceKindLabel,
   getImportResultNextStepRecommendations,
   getMostRelevantImportDestinationSet,
   getWorkspaceWorkflowGuide,
@@ -714,6 +715,41 @@ export function App() {
     activeWorkspaceSummary.currentTitle,
     themeShellState.activeView,
     themeShellState.authoringMode,
+  ]);
+  const shellCurrentLabel = useMemo(() => {
+    if (activeSecondarySurfaceDef) {
+      return activeSecondarySurfaceDef.label;
+    }
+
+    if (activeWorkspace.id !== "themes") {
+      return activeWorkspaceSummary.currentLabel;
+    }
+
+    return shellCurrentTitle;
+  }, [
+    activeSecondarySurfaceDef,
+    activeWorkspace.id,
+    activeWorkspaceSummary.currentLabel,
+    shellCurrentTitle,
+  ]);
+  const shellCurrentDepthLabel = useMemo(() => {
+    if (activeSecondarySurfaceDef) {
+      return getSurfaceKindLabel(activeSecondarySurfaceDef.transition.kind);
+    }
+
+    if (activeWorkspace.id !== "themes") {
+      return activeWorkspaceSummary.currentDepthLabel;
+    }
+
+    return shellCurrentTitle === activeWorkspaceSummary.workspaceTitle
+      ? "Workspace"
+      : "Context";
+  }, [
+    activeSecondarySurfaceDef,
+    activeWorkspace.id,
+    activeWorkspaceSummary.currentDepthLabel,
+    activeWorkspaceSummary.workspaceTitle,
+    shellCurrentTitle,
   ]);
   const shellWorkspaceLabel = activeSecondarySurfaceDef
     ? null
@@ -3045,6 +3081,8 @@ export function App() {
 
         <WorkspaceSummaryHeader
           workspaceLabel={shellWorkspaceLabel}
+          currentLabel={shellCurrentLabel}
+          currentDepthLabel={shellCurrentDepthLabel}
           title={shellCurrentTitle}
           description={shellDescription}
           workflowSummary={shellWorkflowSummary}

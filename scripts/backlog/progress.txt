@@ -1705,3 +1705,12 @@
   - If the shell owns a canonical workspace flow, store the workspace order and one-line role copy in shared navigation metadata and render both shell chrome and onboarding/import guidance from that one source.
   - Audit-style review spaces need explicit copy that says they are cross-cutting rather than "step 5", otherwise users read the workspace rail as a strictly linear sequence.
 ---
+## 2026-04-13 - Differentiate workspace, section, and contextual-screen depth in the plugin shell
+- Extended the shared navigation summary contract with separate workspace titles, current breadcrumb labels, and depth labels, then used that metadata in the shell header so routes like `Audit / Dependencies` read as hierarchy instead of peer destinations.
+- Restyled the section rail into a lighter secondary navigation row with contextual markers, while keeping the top workspace rail as the primary destination switcher and preserving theme-specific context titles on top of the shared metadata.
+- Validation: `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L205, ~L688, ~L916; `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` ~L18, ~L63, ~L148; `packages/figma-plugin/src/ui/App.tsx` ~L694, ~L719, ~L3082; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Shell hierarchy stays maintainable when navigation metadata provides both breadcrumb labels and fuller screen titles; the shell can then compose headers without route-specific strings.
+  - Contextual sections benefit from a small in-rail marker instead of sharing the same visual treatment as top-level workspace tabs.
+---
