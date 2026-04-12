@@ -4800,11 +4800,6 @@ export function TokenList({
                           <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
                             Library options
                           </div>
-                          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                            Keep the main library flow focused on sets, theme
-                            mode, search, and creation. Advanced controls live
-                            here.
-                          </div>
                         </div>
 
                         <div className="max-h-[420px] space-y-4 overflow-y-auto p-3">

@@ -9,11 +9,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Findability and consistency: the token library toolbar has an 'Add filter' button that becomes 'Filters' when structured filters are active (L4609). The View options popover also contains a section labeled 'Filters' (L4914). These two 'Filters' entry points serve genuinely different mechanisms — the toolbar opens a structured query builder for composing search qualifiers, while the View options section holds sort order, quick browse toggles, and presets. Users trying to filter tokens encounter identical labels on controls that work differently, making it unclear which entry point does what. Renaming the popover section to 'Show' or 'Browse' would distinguish quick display modifiers from the structured filter builder."
-state: ready
+  - "Completed: Renamed the View options section heading to 'Browse' in TokenList.tsx and logged the change in backlog progress."
+state: done
 acceptance_criteria:
   - The 'Filters' section heading inside the View options popover (TokenList.tsx ~L4914) is renamed to a label that does not conflict with the toolbar 'Add filter'/'Filters' button
   - "The new label accurately describes the section's contents: sort order, quick-toggle browsing modifiers (Issues only, Recent, Selection only, Search all sets), Values shown, and filter presets"
   - The toolbar button label ('Add filter' / 'Filters') is unchanged
 source: interface-pass
 created_at: 2026-04-12T17:14:12.802Z
-updated_at: 2026-04-12T17:14:12.802Z
+updated_at: 2026-04-12T17:18:26.926Z

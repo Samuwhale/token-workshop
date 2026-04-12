@@ -1267,3 +1267,10 @@
 - **Learnings for future iterations:**
   - When a search builder and a display-options section both affect result narrowing, their labels need to describe the mechanism, not just the outcome, or users cannot distinguish where to start.
 ---
+## 2026-04-12 - Remove explanatory rationale from View options popover header — title alone is sufficient
+- Removed the explanatory paragraph from the View options popover header so the header now shows only the `Library options` title and leaves the existing content sections unchanged.
+- Validation: `git diff --check -- packages/figma-plugin/src/ui/components/TokenList.tsx` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4799
+- **Learnings for future iterations:**
+  - Popover headers should identify the surface, not explain the product rationale for why controls were moved there; persistent explanation text adds noise when the section labels already orient the user.
+---
