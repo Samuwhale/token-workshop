@@ -164,6 +164,8 @@
 - [x] Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
 - [x] Add resolver-targeted orphan cleanup for mapped publish modes
 - [ ] Add an explicit ownership contract for generated tokens: warn before manual edits and provide a detach-from-generator operation
+- [ ] Replace uppercase tracking-wide eyebrow labels with plain section headings across token preview, theme authoring, and command palette
+- [ ] Hide the Semantic layer section on generator cards when no aliases are configured
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient
