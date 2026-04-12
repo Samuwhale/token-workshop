@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 
-import { lstat, readdir, readFile, readlink } from 'node:fs/promises';
+import { lstat, readdir, readFile, readlink, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 const SHARED_DEPENDENCY_BOOTSTRAP_MARKER = '.backlog-shared-dependencies.json';
 const STALE_SHARED_INSTALL_STATE_CODE = 'BACKLOG_STALE_SHARED_INSTALL_STATE';
 const MAIN_REPO_INSTALL_REQUIRED_CODE = 'BACKLOG_MAIN_REPO_INSTALL_REQUIRED';
+const SHARED_INSTALL_REPAIR_COMMAND = 'pnpm backlog:doctor --repair';
 const SHARED_INSTALL_RECOVERY_INSTRUCTION =
-  'remove poisoned package-local node_modules links and rerun pnpm install from the main repo root.';
+  `run \`${SHARED_INSTALL_REPAIR_COMMAND}\` or remove poisoned package-local node_modules links and rerun pnpm install from the main repo root.`;
 
 const TEMP_BACKLOG_PATH_PATTERNS = [
   /(?:^|\/)tmp\/backlog-[^/]+(?:\/|$)/i,
@@ -75,7 +76,7 @@ async function inspectScopedDir(projectRoot, scopedDir) {
         continue;
       }
 
-      const target = path.resolve(path.dirname(entryPath), await readlink(entryPath));
+      const target = await resolveSymlinkTarget(entryPath);
       if (!isTempBacklogPath(target)) {
         continue;
       }
@@ -106,7 +107,7 @@ async function inspectNodeModulesRoot(projectRoot, nodeModulesRoot) {
     try {
       const stat = await lstat(entryPath);
       if (stat.isSymbolicLink()) {
-        const target = path.resolve(path.dirname(entryPath), await readlink(entryPath));
+        const target = await resolveSymlinkTarget(entryPath);
         if (isTempBacklogPath(target)) {
           issues.push({
             path: describePathOrRoot(normalizeForMatching(path.relative(projectRoot, entryPath))),
@@ -125,6 +126,16 @@ async function inspectNodeModulesRoot(projectRoot, nodeModulesRoot) {
   }
 
   return issues;
+}
+
+async function resolveSymlinkTarget(entryPath) {
+  const symlinkTarget = await readlink(entryPath);
+  if (path.isAbsolute(symlinkTarget)) {
+    return normalizeForMatching(path.normalize(symlinkTarget));
+  }
+
+  const physicalParentDir = await realpath(path.dirname(entryPath));
+  return normalizeForMatching(path.resolve(physicalParentDir, symlinkTarget));
 }
 
 async function inspectSharedInstallState(projectRoot, requiredNodeModules) {

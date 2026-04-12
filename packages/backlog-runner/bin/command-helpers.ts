@@ -7,7 +7,7 @@ export type CliCommandName = 'start' | 'doctor' | 'sync' | 'status';
 
 export type ParsedCliCommand =
   | { command: 'start'; configPath: string; overrides: RunOverrides; yes: boolean }
-  | { command: 'doctor'; configPath: string; overrides: RunOverrides }
+  | { command: 'doctor'; configPath: string; overrides: RunOverrides; repair: boolean }
   | { command: 'sync'; configPath: string }
   | { command: 'status'; configPath: string; verbose: boolean };
 
@@ -35,6 +35,7 @@ const DOCTOR_OPTIONS = {
   model: { type: 'string' },
   worktrees: { type: 'boolean' },
   'no-worktrees': { type: 'boolean' },
+  repair: { type: 'boolean' },
 } satisfies CliOptionSchema;
 
 const SYNC_OPTIONS = {
@@ -79,12 +80,13 @@ const COMMANDS: Record<CliCommandName, {
   },
   doctor: {
     summary: 'Check backlog runner setup and runtime prerequisites.',
-    usage: 'backlog-runner doctor [--tool TOOL] [--model MODEL] [--worktrees|--no-worktrees] [--config PATH]',
+    usage: 'backlog-runner doctor [--tool TOOL] [--model MODEL] [--worktrees|--no-worktrees] [--repair] [--config PATH]',
     options: [
       '  --tool TOOL         Global override for all runner roles (`claude` or `codex`).',
       '  --model MODEL       Global override for all runner roles.',
       '  --worktrees         Validate git worktree readiness.',
       '  --no-worktrees      Skip git worktree add/remove validation.',
+      '  --repair            Remove poisoned shared-install symlinks and rerun pnpm install from the main repo root before validation.',
       '  --config PATH       Use a specific backlog runner config file.',
       '  --help, -h          Show this help.',
     ],
@@ -92,6 +94,7 @@ const COMMANDS: Record<CliCommandName, {
       '  backlog-runner doctor',
       '  backlog-runner doctor --tool codex --model gpt-5.4',
       '  backlog-runner doctor --no-worktrees',
+      '  backlog-runner doctor --repair',
     ],
   },
   sync: {
@@ -289,6 +292,7 @@ export async function parseCliCommand(command: CliCommandName, args: string[], c
     return {
       command,
       configPath,
+      repair: values.repair === true,
       overrides: {
         tool: parseTool(values.tool as string | undefined),
         model: (values.model as string | undefined) || undefined,

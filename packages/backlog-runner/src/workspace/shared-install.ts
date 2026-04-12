@@ -1,12 +1,13 @@
-import { lstat, readdir, readlink } from 'node:fs/promises';
+import { lstat, readdir, readlink, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 export const SHARED_DEPENDENCY_BOOTSTRAP_MARKER = '.backlog-shared-dependencies.json';
 export const STALE_SHARED_INSTALL_STATE_CODE = 'BACKLOG_STALE_SHARED_INSTALL_STATE';
 export const MAIN_REPO_INSTALL_REQUIRED_CODE = 'BACKLOG_MAIN_REPO_INSTALL_REQUIRED';
+export const SHARED_INSTALL_REPAIR_COMMAND = 'pnpm backlog:doctor --repair';
 export const SHARED_INSTALL_RECOVERY_INSTRUCTION =
-  'remove poisoned package-local node_modules links and rerun pnpm install from the main repo root.';
+  `run \`${SHARED_INSTALL_REPAIR_COMMAND}\` or remove poisoned package-local node_modules links and rerun pnpm install from the main repo root.`;
 
 const TEMP_BACKLOG_PATH_PATTERNS = [
   /(?:^|\/)tmp\/backlog-[^/]+(?:\/|$)/i,
@@ -28,6 +29,11 @@ export type SharedInstallInspection = {
   missingNodeModules: string[];
   staleSymlinks: SharedInstallSymlinkIssue[];
   inspectedNodeModules: string[];
+};
+
+export type SharedInstallRepairResult = {
+  removedPaths: string[];
+  removedCount: number;
 };
 
 function normalizeForMatching(value: string): string {
@@ -54,6 +60,16 @@ async function isInspectableDirectory(targetPath: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function resolveSymlinkTarget(entryPath: string): Promise<string> {
+  const symlinkTarget = await readlink(entryPath);
+  if (path.isAbsolute(symlinkTarget)) {
+    return normalizeForMatching(path.normalize(symlinkTarget));
+  }
+
+  const physicalParentDir = await realpath(path.dirname(entryPath));
+  return normalizeForMatching(path.resolve(physicalParentDir, symlinkTarget));
 }
 
 function repoRelative(projectRoot: string, targetPath: string): string {
@@ -162,8 +178,7 @@ async function collectScopedSymlinkIssues(
         continue;
       }
 
-      const symlinkTarget = await readlink(scopedEntryPath);
-      const resolvedTarget = path.resolve(path.dirname(scopedEntryPath), symlinkTarget);
+      const resolvedTarget = await resolveSymlinkTarget(scopedEntryPath);
       if (!isTempBacklogPath(resolvedTarget)) {
         continue;
       }
@@ -197,8 +212,7 @@ async function inspectNodeModulesRoot(
     try {
       const stat = await lstat(entryPath);
       if (stat.isSymbolicLink()) {
-        const symlinkTarget = await readlink(entryPath);
-        const resolvedTarget = path.resolve(path.dirname(entryPath), symlinkTarget);
+        const resolvedTarget = await resolveSymlinkTarget(entryPath);
         if (isTempBacklogPath(resolvedTarget)) {
           issues.push({
             path: describePathOrRoot(repoRelative(projectRoot, entryPath)),
@@ -264,4 +278,36 @@ export function containsSharedInstallPolicyCode(reason: string | undefined): boo
   }
 
   return reason.includes(STALE_SHARED_INSTALL_STATE_CODE) || reason.includes(MAIN_REPO_INSTALL_REQUIRED_CODE);
+}
+
+export async function removePoisonedSharedInstallLinks(
+  projectRoot: string,
+  inspection: SharedInstallInspection,
+): Promise<SharedInstallRepairResult> {
+  const removedPaths: string[] = [];
+
+  for (const issue of inspection.staleSymlinks) {
+    const absolutePath = path.join(projectRoot, issue.path);
+    try {
+      const stat = await lstat(absolutePath);
+      if (!stat.isSymbolicLink()) {
+        continue;
+      }
+
+      const resolvedTarget = await resolveSymlinkTarget(absolutePath);
+      if (!isTempBacklogPath(resolvedTarget)) {
+        continue;
+      }
+
+      await rm(absolutePath, { force: true });
+      removedPaths.push(issue.path);
+    } catch {
+      // Ignore entries that disappear or no longer match stale install criteria.
+    }
+  }
+
+  return {
+    removedPaths,
+    removedCount: removedPaths.length,
+  };
 }

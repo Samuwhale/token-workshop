@@ -78,7 +78,7 @@ async function runSingleDiscoveryPass(
       context,
       prompt: await readPrompt(config.passes[passType].promptFile),
       cwd: session.cwd,
-      maxTurns: 12,
+      maxTurns: 50,
       schema: JSON_SCHEMA,
     });
 
@@ -202,7 +202,7 @@ export async function runPlannerWorker(
         context,
         prompt: await readPrompt(config.prompts.planner),
         cwd: session.cwd,
-        maxTurns: 12,
+        maxTurns: 50,
         schema: PLANNER_RESULT_SCHEMA,
       });
 
@@ -348,7 +348,7 @@ export async function runTaskWorker(
       context,
       prompt: await readPrompt(config.prompts.agent),
       cwd: session.cwd,
-      maxTurns: 40,
+      maxTurns: 50,
       schema: JSON_SCHEMA,
       onProgress: async event => {
         if (transcriptRecorder) {

@@ -11,7 +11,11 @@ import { lintBacklogQueue } from './queue-lint.js';
 import type { BacklogRunnerConfig, BacklogRunnerRole, CommandRunner, RunOverrides, ToolValidationResult } from './types.js';
 import { BACKLOG_RUNNER_ROLES } from './types.js';
 import { fileExists } from './utils.js';
-import { formatStaleSharedInstallState, inspectSharedInstallState } from './workspace/shared-install.js';
+import {
+  formatStaleSharedInstallState,
+  inspectSharedInstallState,
+  removePoisonedSharedInstallLinks,
+} from './workspace/shared-install.js';
 
 const VALIDATION_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
 const GIT_READINESS_TIMEOUT_MS = 2 * 60 * 1000;
@@ -23,6 +27,10 @@ function shellEscape(value: string): string {
 
 export type ValidateDependencies = {
   commandRunner?: CommandRunner;
+};
+
+export type ValidateOptions = {
+  repairSharedInstall?: boolean;
 };
 
 export async function validateCommandReadiness(
@@ -251,10 +259,73 @@ export async function validateSharedInstallReadiness(
   };
 }
 
+export async function repairSharedInstallReadiness(
+  config: BacklogRunnerConfig,
+  commandRunner: CommandRunner = createCommandRunner(),
+): Promise<{ ok: boolean; messages: string[] }> {
+  const inspection = await inspectSharedInstallState(config.projectRoot);
+  if (inspection.staleSymlinks.length === 0) {
+    return {
+      ok: true,
+      messages: ['  ✓ shared install repair skipped (no poisoned symlink targets found)'],
+    };
+  }
+
+  const repairResult = await removePoisonedSharedInstallLinks(config.projectRoot, inspection);
+  const messages = [
+    `  → removed ${repairResult.removedCount} poisoned symlink target${repairResult.removedCount === 1 ? '' : 's'}`,
+  ];
+
+  if (repairResult.removedCount === 0) {
+    return {
+      ok: false,
+      messages: [
+        ...messages,
+        '  ✗ shared install repair could not remove any poisoned symlink targets',
+      ],
+    };
+  }
+
+  const install = await commandRunner.run('pnpm', ['install', '--frozen-lockfile'], {
+    cwd: config.projectRoot,
+    timeoutMs: VALIDATION_COMMAND_TIMEOUT_MS,
+    ignoreFailure: true,
+  });
+  if (install.code !== 0) {
+    return {
+      ok: false,
+      messages: [
+        ...messages,
+        `  ✗ pnpm install --frozen-lockfile failed during shared install repair: ${summarizeCommandOutput(install.stdout, install.stderr)}`,
+      ],
+    };
+  }
+
+  const reinspection = await inspectSharedInstallState(config.projectRoot);
+  if (reinspection.staleSymlinks.length > 0) {
+    return {
+      ok: false,
+      messages: [
+        ...messages,
+        `  ✗ shared install repair left poisoned symlink targets behind: ${formatStaleSharedInstallState(reinspection)}`,
+      ],
+    };
+  }
+
+  return {
+    ok: true,
+    messages: [
+      ...messages,
+      '  ✓ shared install repair completed and pnpm install --frozen-lockfile succeeded',
+    ],
+  };
+}
+
 export async function validateBacklogRunner(
   config: BacklogRunnerConfig,
   overrides: RunOverrides = {},
   deps: ValidateDependencies = {},
+  options: ValidateOptions = {},
 ): Promise<ToolValidationResult> {
   await ensureConfigReady(config);
   const commandRunner = deps.commandRunner ?? createCommandRunner();
@@ -356,6 +427,14 @@ export async function validateBacklogRunner(
     ok = false;
   }
   messages.push(...gitReadiness.messages);
+
+  if (options.repairSharedInstall) {
+    const sharedInstallRepair = await repairSharedInstallReadiness(config, commandRunner);
+    if (!sharedInstallRepair.ok) {
+      ok = false;
+    }
+    messages.push(...sharedInstallRepair.messages);
+  }
 
   const sharedInstallReadiness = await validateSharedInstallReadiness(config);
   if (!sharedInstallReadiness.ok) {

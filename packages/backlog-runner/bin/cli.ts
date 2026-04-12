@@ -17,6 +17,7 @@ import { readBacklogRunnerStatus } from '../src/status.js';
 import { validateBacklogRunner } from '../src/validate.js';
 import type { BacklogRunnerConfig, BacklogSyncResult, RunOverrides, ToolValidationResult } from '../src/types.js';
 import type { BacklogRunnerStatus } from '../src/status.js';
+import type { ValidateOptions } from '../src/validate.js';
 
 type CliWriter = {
   write(chunk: string): void;
@@ -29,7 +30,7 @@ type CliDependencies = {
   loadConfig: (configPath: string) => Promise<BacklogRunnerConfig>;
   runBacklogRunner: (config: BacklogRunnerConfig, overrides: RunOverrides) => Promise<void>;
   syncBacklogRunner: (config: BacklogRunnerConfig) => Promise<BacklogSyncResult>;
-  validateBacklogRunner: (config: BacklogRunnerConfig, overrides: RunOverrides) => Promise<ToolValidationResult>;
+  validateBacklogRunner: (config: BacklogRunnerConfig, overrides: RunOverrides, options?: ValidateOptions) => Promise<ToolValidationResult>;
   readBacklogRunnerStatus: (config: BacklogRunnerConfig) => Promise<BacklogRunnerStatus>;
 };
 
@@ -51,7 +52,7 @@ const defaultDependencies: CliDependencies = {
   loadConfig: loadBacklogRunnerConfig,
   runBacklogRunner,
   syncBacklogRunner,
-  validateBacklogRunner,
+  validateBacklogRunner: (config, overrides, options) => validateBacklogRunner(config, overrides, {}, options),
   readBacklogRunnerStatus,
 };
 
@@ -176,7 +177,9 @@ export async function runCli(
     }
 
     if (parsed.command === 'doctor') {
-      const result = await deps.validateBacklogRunner(config, parsed.overrides);
+      const result = await deps.validateBacklogRunner(config, parsed.overrides, {
+        repairSharedInstall: parsed.repair,
+      });
       writeLine(stdout, 'Backlog runner doctor');
       writeLine(stdout);
       for (const message of result.messages) {
