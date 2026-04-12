@@ -113,6 +113,13 @@ export type GeneratorPreviewInput = Pick<
   overrides?: unknown;
 };
 
+export interface GeneratorSetDependencyMeta {
+  id: string;
+  name: string;
+  targetSet: string;
+  targetGroup: string;
+}
+
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -932,6 +939,15 @@ export class GeneratorService {
 
   async getAll(): Promise<TokenGenerator[]> {
     return Array.from(this.generators.values());
+  }
+
+  listSetDependencyMeta(): GeneratorSetDependencyMeta[] {
+    return Array.from(this.generators.values()).map((generator) => ({
+      id: generator.id,
+      name: generator.name,
+      targetSet: generator.targetSet,
+      targetGroup: generator.targetGroup,
+    }));
   }
 
   async getAllById(): Promise<Record<string, TokenGenerator>> {

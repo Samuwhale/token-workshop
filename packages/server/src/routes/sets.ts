@@ -118,6 +118,21 @@ interface SetStructuralPreflightResponse {
   splitPreview: SetSplitPreviewItem[];
 }
 
+interface LoadedSetDependencyData {
+  name: string;
+  tokens: TokenGroup;
+  metadata: SetMetadataState;
+}
+
+interface SetDependencySnapshot {
+  dimensions: ThemeDimension[];
+  resolvers: SetResolverMeta[];
+  generators: SetGeneratorMeta[];
+  allOwnedTokens: Array<{ setName: string; path: string; generatorId: string }>;
+  setsByName: Map<string, LoadedSetDependencyData>;
+  impactsBySet: Map<string, SetPreflightImpact>;
+}
+
 const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 const FOLDER_ITEM_SUFFIX = "/";
 const GENERATOR_EXTENSION_KEY = "com.tokenmanager.generator";
@@ -713,6 +728,86 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.generatorService.updateSetName(oldName, newName);
   };
 
+  const loadSetDependencySnapshot = async (
+    setNames: Iterable<string>,
+  ): Promise<SetDependencySnapshot> => {
+    const uniqueSetNames = [...new Set(setNames)];
+    const [dimensions, loadedSets] = await Promise.all([
+      fastify.dimensionsStore.load(),
+      Promise.all(
+        uniqueSetNames.map(async (setName) => {
+          const set = await fastify.tokenStore.getSet(setName);
+          if (!set) {
+            return null;
+          }
+          return {
+            name: setName,
+            tokens: set.tokens,
+            metadata: fastify.tokenStore.getSetMetadata(setName),
+          } satisfies LoadedSetDependencyData;
+        }),
+      ),
+    ]);
+
+    const snapshot: SetDependencySnapshot = {
+      dimensions,
+      resolvers: fastify.resolverStore
+        .listSetDependencyMeta()
+        .map((resolver) => ({
+          name: resolver.name,
+          referencedSets: resolver.referencedSets,
+        })),
+      generators: fastify.generatorService
+        .listSetDependencyMeta()
+        .map((generator) => ({
+          id: generator.id,
+          name: generator.name,
+          targetSet: generator.targetSet,
+          targetGroup: generator.targetGroup,
+        })),
+      allOwnedTokens: fastify.tokenStore.findTokensByGeneratorId("*"),
+      setsByName: new Map(),
+      impactsBySet: new Map(),
+    };
+
+    for (const loadedSet of loadedSets) {
+      if (!loadedSet) {
+        continue;
+      }
+      snapshot.setsByName.set(loadedSet.name, loadedSet);
+      snapshot.impactsBySet.set(
+        loadedSet.name,
+        buildSetImpact({
+          setName: loadedSet.name,
+          tokens: loadedSet.tokens,
+          metadata: loadedSet.metadata,
+          dimensions: snapshot.dimensions,
+          resolvers: snapshot.resolvers,
+          generators: snapshot.generators,
+          allOwnedTokens: snapshot.allOwnedTokens,
+        }),
+      );
+    }
+
+    return snapshot;
+  };
+
+  const buildRemovalBlockersForSetNames = (
+    snapshot: SetDependencySnapshot,
+    setNames: Iterable<string>,
+    ignoredCodes: ReadonlySet<SetPreflightBlockerCode> =
+      new Set<SetPreflightBlockerCode>(),
+  ): SetPreflightBlocker[] =>
+    [...new Set(setNames)].flatMap((setName) => {
+      const impact = snapshot.impactsBySet.get(setName);
+      if (!impact) {
+        return [];
+      }
+      return buildRemovalBlockers(impact).filter(
+        (blocker) => !ignoredCodes.has(blocker.code),
+      );
+    });
+
   // GET /api/sets — list all sets (with optional descriptions)
   fastify.get("/sets", async (_request, reply) => {
     try {
@@ -1233,46 +1328,16 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           const deletedSetNameSet = new Set(folderSetNames);
-          const generators = (await fastify.generatorService.getAll()).map(
-            (generator) => ({
-              id: generator.id,
-              name: generator.name,
-              targetSet: generator.targetSet,
-              targetGroup: generator.targetGroup,
-            }),
+          const dependencySnapshot =
+            await loadSetDependencySnapshot(folderSetNames);
+          const blockers = buildRemovalBlockersForSetNames(
+            dependencySnapshot,
+            folderSetNames,
+            new Set<SetPreflightBlockerCode>([
+              "theme-option-set",
+              "resolver-set-ref",
+            ]),
           );
-          const generatorById = new Map(
-            generators.map((generator) => [generator.id, generator]),
-          );
-          const allOwnedTokens = fastify.tokenStore.findTokensByGeneratorId("*");
-          const blockers = folderSetNames.flatMap((setName) => {
-            const generatedOwnership = buildGeneratedOwnershipImpacts(
-              setName,
-              allOwnedTokens,
-              generatorById,
-            );
-            const generatorTargets = buildGeneratorTargets(setName, generators);
-            return [
-              ...buildGeneratedOwnershipBlockers({
-                name: setName,
-                tokenCount: 0,
-                metadata: {},
-                themeOptions: [],
-                resolverRefs: [],
-                generatedOwnership,
-                generatorTargets: [],
-              }),
-              ...buildGeneratorTargetBlockers({
-                name: setName,
-                tokenCount: 0,
-                metadata: {},
-                themeOptions: [],
-                resolverRefs: [],
-                generatedOwnership: [],
-                generatorTargets,
-              }),
-            ];
-          });
           if (blockers.length > 0) {
             return reply.status(409).send({
               error:
@@ -1621,11 +1686,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         }
         sourceTokensForRollback = structuredClone(sourceSet.tokens);
 
-        const [existingSetNames, dimensions, generators] = await Promise.all([
-          fastify.tokenStore.getSets(),
-          fastify.dimensionsStore.load(),
-          fastify.generatorService.getAll(),
-        ]);
+        const existingSetNames = await fastify.tokenStore.getSets();
         const splitPreview = buildSplitPreview(
           name,
           sourceSet.tokens,
@@ -1638,24 +1699,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         if (deleteOriginal) {
-          const sourceImpact = buildSetImpact({
-            setName: name,
-            tokens: sourceSet.tokens,
-            metadata: fastify.tokenStore.getSetMetadata(name),
-            dimensions,
-            resolvers: fastify.resolverStore.list().map((resolver) => ({
-              name: resolver.name,
-              referencedSets: resolver.referencedSets,
-            })),
-            generators: generators.map((generator) => ({
-              id: generator.id,
-              name: generator.name,
-              targetSet: generator.targetSet,
-              targetGroup: generator.targetGroup,
-            })),
-            allOwnedTokens: fastify.tokenStore.findTokensByGeneratorId("*"),
-          });
-          const blockers = buildRemovalBlockers(sourceImpact);
+          const dependencySnapshot = await loadSetDependencySnapshot([name]);
+          const blockers = buildRemovalBlockersForSetNames(
+            dependencySnapshot,
+            [name],
+          );
           if (blockers.length > 0) {
             return reply.status(409).send({
               error:
@@ -1798,108 +1846,67 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           .send({ error: `Token set "${name}" not found` });
       }
 
-      const [
-        dimensions,
-        generatorsRaw,
-        allOwnedTokens,
-        splitSetNames,
-        targetSetData,
-      ] = await Promise.all([
-        fastify.dimensionsStore.load(),
-        fastify.generatorService.getAll(),
-        Promise.resolve(fastify.tokenStore.findTokensByGeneratorId("*")),
-        operation === "split"
-          ? fastify.tokenStore.getSets()
-          : Promise.resolve([] as string[]),
-        operation === "merge" && targetSet
-          ? fastify.tokenStore.getSet(targetSet)
-          : Promise.resolve(undefined),
-      ]);
-      if (operation === "merge" && targetSet && !targetSetData) {
-        return reply
-          .status(404)
-          .send({ error: `Token set "${targetSet}" not found` });
-      }
-
-      const generators: SetGeneratorMeta[] = generatorsRaw.map(
-        (generator: {
-          id: string;
-          name: string;
-          targetSet: string;
-          targetGroup: string;
-        }) => ({
-          id: generator.id,
-          name: generator.name,
-          targetSet: generator.targetSet,
-          targetGroup: generator.targetGroup,
-        }),
-      );
-      const resolvers: SetResolverMeta[] = fastify.resolverStore
-        .list()
-        .map((resolver) => ({
-          name: resolver.name,
-          referencedSets: resolver.referencedSets,
-        }));
-      const sourceImpact = buildSetImpact({
-        setName: name,
-        tokens: sourceSet.tokens,
-        metadata: fastify.tokenStore.getSetMetadata(name),
-        dimensions,
-        resolvers,
-        generators,
-        allOwnedTokens,
-      });
+      const splitSetNames =
+        operation === "split" ? await fastify.tokenStore.getSets() : [];
       const splitPreview =
         operation === "split"
           ? buildSplitPreview(name, sourceSet.tokens, splitSetNames)
           : [];
+      const dependencySetNames = [
+        name,
+        ...(operation === "merge" && targetSet ? [targetSet] : []),
+        ...(operation === "split"
+          ? splitPreview
+              .filter((entry) => entry.existing)
+              .map((entry) => entry.newName)
+          : []),
+      ];
+      const dependencySnapshot =
+        await loadSetDependencySnapshot(dependencySetNames);
+      const sourceImpact = dependencySnapshot.impactsBySet.get(name);
+      if (!sourceImpact) {
+        return reply
+          .status(404)
+          .send({ error: `Token set "${name}" not found` });
+      }
+      if (
+        operation === "merge" &&
+        targetSet &&
+        !dependencySnapshot.impactsBySet.has(targetSet)
+      ) {
+        return reply
+          .status(404)
+          .send({ error: `Token set "${targetSet}" not found` });
+      }
       const affectedSets: SetPreflightImpact[] = [sourceImpact];
-      if (operation === "merge" && targetSet && targetSetData) {
-        affectedSets.push(
-          buildSetImpact({
-            setName: targetSet,
-            tokens: targetSetData.tokens,
-            metadata: fastify.tokenStore.getSetMetadata(targetSet),
-            dimensions,
-            resolvers,
-            generators,
-            allOwnedTokens,
-          }),
-        );
+      if (operation === "merge" && targetSet) {
+        const targetImpact = dependencySnapshot.impactsBySet.get(targetSet);
+        if (targetImpact) {
+          affectedSets.push(targetImpact);
+        }
       }
       if (operation === "split") {
-        const existingDestinations = splitPreview.filter(
-          (entry) => entry.existing,
-        );
-        const existingDestinationImpacts = await Promise.all(
-          existingDestinations.map(async (entry) => {
-            const existingSet = await fastify.tokenStore.getSet(entry.newName);
-            if (!existingSet) return null;
-            return buildSetImpact({
-              setName: entry.newName,
-              tokens: existingSet.tokens,
-              metadata: fastify.tokenStore.getSetMetadata(entry.newName),
-              dimensions,
-              resolvers,
-              generators,
-              allOwnedTokens,
-            });
-          }),
-        );
         affectedSets.push(
-          ...existingDestinationImpacts.filter(
-            (impact): impact is SetPreflightImpact => impact !== null,
-          ),
+          ...splitPreview.flatMap((entry) => {
+            if (!entry.existing) {
+              return [];
+            }
+            const impact = dependencySnapshot.impactsBySet.get(entry.newName);
+            return impact ? [impact] : [];
+          }),
         );
       }
 
       const blockers =
         operation === "delete" || (operation === "split" && deleteOriginal)
-          ? buildRemovalBlockers(sourceImpact)
+          ? buildRemovalBlockersForSetNames(dependencySnapshot, [name])
           : [];
       const mergeConflicts =
-        operation === "merge" && targetSetData
-          ? buildMergeConflicts(sourceSet.tokens, targetSetData.tokens)
+        operation === "merge" && targetSet
+          ? buildMergeConflicts(
+              sourceSet.tokens,
+              dependencySnapshot.setsByName.get(targetSet)?.tokens ?? {},
+            )
           : [];
       const warnings = buildPreflightWarnings({
         operation,
@@ -1937,26 +1944,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
               .send({ error: `Token set "${name}" not found` });
           }
 
-          const sourceImpact = buildSetImpact({
-            setName: name,
-            tokens: set.tokens,
-            metadata: fastify.tokenStore.getSetMetadata(name),
-            dimensions: await fastify.dimensionsStore.load(),
-            resolvers: fastify.resolverStore.list().map((resolver) => ({
-              name: resolver.name,
-              referencedSets: resolver.referencedSets,
-            })),
-            generators: (await fastify.generatorService.getAll()).map(
-              (generator) => ({
-                id: generator.id,
-                name: generator.name,
-                targetSet: generator.targetSet,
-                targetGroup: generator.targetGroup,
-              }),
-            ),
-            allOwnedTokens: fastify.tokenStore.findTokensByGeneratorId("*"),
-          });
-          const blockers = buildRemovalBlockers(sourceImpact);
+          const dependencySnapshot = await loadSetDependencySnapshot([name]);
+          const blockers = buildRemovalBlockersForSetNames(
+            dependencySnapshot,
+            [name],
+          );
           if (blockers.length > 0) {
             const messages = blockers.map((blocker) => blocker.message);
             return reply.status(409).send({

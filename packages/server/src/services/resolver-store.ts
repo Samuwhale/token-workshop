@@ -127,6 +127,11 @@ export interface ResolverMeta {
   referencedSets: string[];
 }
 
+export interface ResolverSetDependencyMeta {
+  name: string;
+  referencedSets: string[];
+}
+
 export interface ResolverStoreChangeEvent {
   type: "changed" | "removed";
   name: string;
@@ -262,6 +267,13 @@ export class ResolverStore {
       });
     }
     return result;
+  }
+
+  listSetDependencyMeta(): ResolverSetDependencyMeta[] {
+    return Array.from(this.resolvers.entries()).map(([name, file]) => ({
+      name,
+      referencedSets: this.extractReferencedSets(file),
+    }));
   }
 
   get(name: string): ResolverFile | undefined {
