@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type {
   ExtractedTokenEntry,
   TokenMapEntry,
@@ -6,6 +6,7 @@ import type {
   BorderValue,
   TypographyValue,
   ShadowTokenValue,
+  BindableProperty,
 } from "../../shared/types";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import { getErrorMessage } from "../shared/utils";
@@ -23,6 +24,8 @@ interface ExtractTokensPanelProps {
   onTokenCreated: () => void;
   onClose: () => void;
   embedded?: boolean;
+  propertyFilter?: BindableProperty[];
+  propertyFilterLabel?: string;
 }
 
 function formatValuePreview(entry: ExtractedTokenEntry): string {
@@ -90,6 +93,8 @@ export function ExtractTokensPanel({
   onTokenCreated,
   onClose,
   embedded = false,
+  propertyFilter,
+  propertyFilterLabel,
 }: ExtractTokensPanelProps) {
   const [tokens, setTokens] = useState<ExtractedTokenEntry[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -109,6 +114,23 @@ export function ExtractTokensPanel({
   const listenerRef = useRef(false);
 
   const EXTRACT_TIMEOUT_MS = 8000;
+  const filteredPropertySet = useMemo(
+    () => (propertyFilter?.length ? new Set(propertyFilter) : null),
+    [propertyFilter],
+  );
+
+  const filterExtractedTokens = useCallback(
+    (entries: ExtractedTokenEntry[]) => {
+      if (!propertyFilter?.length) return entries;
+      if (!filteredPropertySet || filteredPropertySet.size === 0) return [];
+      return entries.filter((entry) => {
+        const property =
+          entry.property === "border" ? "stroke" : entry.property;
+        return filteredPropertySet.has(property);
+      });
+    },
+    [filteredPropertySet, propertyFilter],
+  );
 
   // Request extraction on mount; cancel loading after timeout if no response
   useEffect(() => {
@@ -136,7 +158,9 @@ export function ExtractTokensPanel({
     const handler = (event: MessageEvent) => {
       const msg = event.data?.pluginMessage;
       if (msg?.type === "extracted-tokens") {
-        const extracted = msg.tokens as ExtractedTokenEntry[];
+        const extracted = filterExtractedTokens(
+          msg.tokens as ExtractedTokenEntry[],
+        );
         setTokens(extracted);
         setLoading(false);
         setError("");
@@ -155,7 +179,7 @@ export function ExtractTokensPanel({
       window.removeEventListener("message", handler);
       listenerRef.current = false;
     };
-  }, []);
+  }, [filterExtractedTokens]);
 
   const [prefix, setPrefix] = useState("");
   const [bindToLayers, setBindToLayers] = useState(true);
@@ -448,7 +472,9 @@ export function ExtractTokensPanel({
       {tokens && tokens.length === 0 && (
         <div className="px-3 py-6 text-center">
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            No extractable properties found in the selection.
+            {propertyFilter?.length
+              ? `No ${propertyFilterLabel ?? "matching"} properties are ready to extract from this selection.`
+              : "No extractable properties found in the selection."}
           </p>
           <button
             onClick={onClose}
@@ -462,6 +488,14 @@ export function ExtractTokensPanel({
       {/* Token list */}
       {tokens && tokens.length > 0 && (
         <>
+          {propertyFilter?.length ? (
+            <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 shrink-0">
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Review these {propertyFilterLabel ?? "filtered"} properties before
+                creating or overwriting any tokens.
+              </p>
+            </div>
+          ) : null}
           {/* Select all */}
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
             <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] cursor-pointer">

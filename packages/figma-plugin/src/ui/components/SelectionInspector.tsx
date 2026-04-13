@@ -15,12 +15,9 @@ import type {
   SelectionNodeInfo,
   SyncCompleteMessage,
   TokenMapEntry,
-  ExtractedTokenEntry,
 } from "../../shared/types";
 import { resolveTokenValue } from "../../shared/resolveAlias";
 import type { UndoSlot } from "../hooks/useUndo";
-import { getErrorMessage } from "../shared/utils";
-import { createTokenBody, upsertToken } from "../shared/tokenMutations";
 import { useInspectPreferencesContext } from "../contexts/InspectContext";
 import {
   summarizeApplyWorkflow,
@@ -123,16 +120,6 @@ export function SelectionInspector({
   const [bindingErrors, setBindingErrors] = useState<
     Partial<Record<BindableProperty, string>>
   >({});
-
-  // Extract & Bind All Unbound fast-path state
-  const [extractingUnbound, setExtractingUnbound] = useState(false);
-  const [extractUnboundResult, setExtractUnboundResult] = useState<{
-    created: number;
-    bound: number;
-  } | null>(null);
-  const [extractUnboundError, setExtractUnboundError] = useState<string | null>(
-    null,
-  );
 
   // Persistent peer suggestion — survives until dismissed or selection changes
   const [peerSuggestion, setPeerSuggestion] = useState<{
@@ -715,101 +702,6 @@ export function SelectionInspector({
     }, 0);
   }, [hasSelection, rootNodes]);
 
-  // Fast-path: extract tokens for all unbound properties and bind them in one step
-  const handleExtractAllUnbound = useCallback(() => {
-    if (!connected || !activeSet || extractingUnbound) return;
-    const snapshot = rootNodes; // capture binding state at click time
-    setExtractingUnbound(true);
-    setExtractUnboundError(null);
-    setExtractUnboundResult(null);
-
-    let handled = false;
-    const handler = (event: MessageEvent) => {
-      const msg = event.data?.pluginMessage;
-      if (msg?.type !== "extracted-tokens") return;
-      if (handled) return;
-      handled = true;
-      clearTimeout(timeout);
-      window.removeEventListener("message", handler);
-
-      const extracted = msg.tokens as ExtractedTokenEntry[];
-      // Only create tokens for currently unbound properties
-      const unboundTokens = extracted.filter((token) => {
-        const prop = token.property as BindableProperty;
-        return !getBindingForProperty(snapshot, prop);
-      });
-
-      if (unboundTokens.length === 0) {
-        setExtractingUnbound(false);
-        setExtractUnboundResult({ created: 0, bound: 0 });
-        return;
-      }
-
-      (async () => {
-        let created = 0;
-        try {
-          for (const token of unboundTokens) {
-            await upsertToken(serverUrl, activeSet, token.suggestedName, createTokenBody({
-              $type: token.tokenType,
-              $value: token.value,
-            }));
-            created++;
-          }
-          let totalBound = 0;
-          for (const token of unboundTokens) {
-            const targetProperty =
-              token.property === "border" ? "stroke" : token.property;
-            const nodeIds = token.layerIds ?? [token.layerId];
-            parent.postMessage(
-              {
-                pluginMessage: {
-                  type: "apply-to-nodes",
-                  nodeIds,
-                  tokenPath: token.suggestedName,
-                  tokenType: token.tokenType,
-                  targetProperty,
-                  resolvedValue: token.value,
-                },
-              },
-              "*",
-            );
-            totalBound += nodeIds.length;
-          }
-          setExtractUnboundResult({ created, bound: totalBound });
-          onTokenCreated();
-        } catch (err) {
-          setExtractUnboundError(getErrorMessage(err));
-        } finally {
-          setExtractingUnbound(false);
-        }
-      })();
-    };
-
-    const timeout = setTimeout(() => {
-      if (!handled) {
-        handled = true;
-        window.removeEventListener("message", handler);
-        setExtractingUnbound(false);
-        setExtractUnboundError(
-          "No response from Figma — make sure a layer is selected and try again.",
-        );
-      }
-    }, 8000);
-
-    window.addEventListener("message", handler);
-    parent.postMessage(
-      { pluginMessage: { type: "extract-tokens-from-selection" } },
-      "*",
-    );
-  }, [
-    connected,
-    activeSet,
-    extractingUnbound,
-    rootNodes,
-    serverUrl,
-    onTokenCreated,
-  ]);
-
   // Suggestions panel collapse (persisted)
   const [showSuggestions, setShowSuggestions] = useState(
     () => lsGet("inspector-suggestions-open") !== "false",
@@ -817,7 +709,22 @@ export function SelectionInspector({
 
   // Maintenance action panels
   const [showExtractPanel, setShowExtractPanel] = useState(false);
+  const [extractFilterProperties, setExtractFilterProperties] = useState<
+    BindableProperty[]
+  >([]);
   const [showRemapPanel, setShowRemapPanel] = useState(false);
+
+  const openExtractPanel = useCallback(() => {
+    const unboundProperties = ALL_BINDABLE_PROPERTIES.filter((prop) => {
+      const binding = getBindingForProperty(rootNodes, prop);
+      if (binding) return false;
+      const value = getCurrentValue(rootNodes, prop);
+      return value !== undefined && value !== null;
+    });
+    setExtractFilterProperties(unboundProperties);
+    setShowExtractPanel(true);
+    setShowRemapPanel(false);
+  }, [rootNodes]);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [remapDraftRows, setRemapDraftRows] = useState<RemapBindingsRow[]>(
     () => buildRemapRowsFromPaths(undefined),
@@ -1224,27 +1131,22 @@ export function SelectionInspector({
         {/* Secondary action bar */}
         {(connected && activeSet && (unboundWithValueCount > 0 || totalBindings > 0)) && (
           <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--color-figma-border)] px-3 py-2">
-            {connected && activeSet && unboundWithValueCount > 0 && !extractingUnbound && !extractUnboundResult && !extractUnboundError && (
-              <button
-                onClick={handleExtractAllUnbound}
-                className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[9px] text-white transition-opacity hover:opacity-90"
-              >
-                Extract & bind {unboundWithValueCount} unbound
-              </button>
-            )}
-            {connected && activeSet && (
+            {connected && activeSet && unboundWithValueCount > 0 && (
               <button
                 onClick={() => {
-                  setShowExtractPanel((p) => !p);
-                  setShowRemapPanel(false);
+                  if (showExtractPanel) {
+                    setShowExtractPanel(false);
+                    return;
+                  }
+                  openExtractPanel();
                 }}
                 className={`rounded px-2 py-1 text-[9px] transition-colors ${
                   showExtractPanel
                     ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                    : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                    : "bg-[var(--color-figma-accent)] text-white hover:opacity-90"
                 }`}
               >
-                Extract
+                Extract {unboundWithValueCount} unbound
               </button>
             )}
             <button
@@ -1284,28 +1186,6 @@ export function SelectionInspector({
           </div>
         )}
 
-        {extractingUnbound && (
-          <div className="px-3 pb-2">
-            <InlineBanner variant="loading" className="border-0 bg-transparent px-0 py-0">
-              Extracting and binding unbound properties…
-            </InlineBanner>
-          </div>
-        )}
-        {extractUnboundResult && (
-          <div className="px-3 pb-2">
-            <InlineBanner variant="success" onDismiss={() => setExtractUnboundResult(null)} dismissMode="icon">
-              Created {extractUnboundResult.created}, bound {extractUnboundResult.bound}
-            </InlineBanner>
-          </div>
-        )}
-        {extractUnboundError && (
-          <div className="px-3 pb-2">
-            <InlineBanner variant="error" onDismiss={() => setExtractUnboundError(null)} dismissMode="icon">
-              <span title={extractUnboundError}>Extract failed</span>
-            </InlineBanner>
-          </div>
-        )}
-
         {showExtractPanel && (
           <div className="border-t border-[var(--color-figma-border)] p-3">
             <ExtractTokensPanel
@@ -1315,6 +1195,8 @@ export function SelectionInspector({
               tokenMap={tokenMap}
               onTokenCreated={onTokenCreated}
               onClose={() => setShowExtractPanel(false)}
+              propertyFilter={extractFilterProperties}
+              propertyFilterLabel="unbound"
               embedded
             />
           </div>

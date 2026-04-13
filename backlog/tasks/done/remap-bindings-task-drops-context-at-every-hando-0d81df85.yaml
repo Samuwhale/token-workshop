@@ -12,7 +12,8 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Violates cognitive-walkthrough questions 1-4 across the full sync→remap task: users cannot discover the correct next action from the sync warning (Q1-3), the from-field autocomplete undermines task completion by searching only current tokens when the user needs stale paths (Q2-3), pre-fill fragility forces context re-entry after accidental deselect (task load / Q7), and ambiguous 'No matches found' prevents users from confirming whether the task succeeded (Q4). The compounding effect is that every handoff in the flow loses context the user previously had."
-state: ready
+  - "Completed: Added a direct sync-to-remap handoff, preserved remap drafts across deselects, surfaced stale binding paths in autocomplete, and clarified invalid-row plus zero-match/success remap feedback."
+state: done
 acceptance_criteria:
   - Sync warning pill or result banner includes a direct action to open Remap with missing tokens pre-filled
   - Pre-filled missing-token rows survive at least one node deselect-reselect cycle without clearing
@@ -22,4 +23,4 @@ acceptance_criteria:
   - After a successful remap, rows reset or the panel offers a clear done/close action so users do not accidentally re-run the same mapping
 source: ux-pass
 created_at: 2026-04-13T04:23:39.693Z
-updated_at: 2026-04-13T04:23:39.693Z
+updated_at: 2026-04-13T04:34:10.832Z

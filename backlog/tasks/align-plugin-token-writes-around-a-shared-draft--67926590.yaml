@@ -1,0 +1,28 @@
+id: align-plugin-token-writes-around-a-shared-draft--67926590
+title: Align plugin token writes around a shared draft-normalization contract so create/update flows stop passing raw resolved values into `Partial<Token>`
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/shared/tokenMutations.ts
+  - packages/server/src/routes/tokens.ts
+  - packages/figma-plugin/src/ui/hooks/useTokenSave.ts
+  - packages/figma-plugin/src/ui/hooks/useTokenEditorSave.ts
+  - packages/figma-plugin/src/ui/components/CanvasCreateTokenDialog.tsx
+  - packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx
+  - packages/figma-plugin/src/ui/components/PropertyRow.tsx
+  - packages/figma-plugin/src/ui/components/SelectionInspector.tsx
+  - packages/figma-plugin/src/ui/hooks/useThemeAutoFill.ts
+  - packages/figma-plugin/src/ui/hooks/useTableCreate.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: `packages/server/src/routes/tokens.ts` already validates unknown request bodies at runtime, but the UI helper currently types those bodies as `Partial<Token>`. That mismatch leaks through every token-writing surface, forcing unsafe casts and duplicating conversion rules for resolved canvas values, theme autofill values, and inline editor saves."
+state: ready
+acceptance_criteria:
+  - "`tokenMutations.ts` exposes an explicit token-mutation request type that matches the `/api/tokens` route contract instead of pretending every UI payload is a `Partial<Token>`."
+  - Canvas/property/theme/table/editor write paths reuse shared normalization helpers for `$type`, `$value`, and default scopes instead of each constructing ad hoc bodies from `string | unknown | ResolvedTokenValue | null`.
+  - "`pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json` no longer reports the token-body type mismatches in the touched token-writing files."
+source: code-pass
+created_at: 2026-04-13T04:37:00.827Z
+updated_at: 2026-04-13T04:37:00.827Z
