@@ -21,11 +21,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: The current editors already have local presets and TokenRefInput controls, but they are uneven and often hidden behind customize disclosures. Research in scripts/backlog/research/token-generator-flow-audit.md recommends standardizing outcome presets across all 11 types."
-state: ready
+  - "Completed: Added shared starter preset restore/copy in StepWhat, exposed collapsed token-link affordances for hidden ref fields, and aligned default generator configs with the starter flow."
+state: done
 acceptance_criteria:
   - Every generator type has at least one named starter preset with when-to-use copy and a one-click restore path from the shared composer.
   - Token-ref-capable fields expose a visible link-token affordance before advanced customization is expanded, and linked fields show their bound token plus unlink control.
   - Advanced parameters remain available, but the default create flow starts from presets and outcome language instead of raw generator mechanics.
 source: task-followup
 created_at: 2026-04-12T23:57:39.842Z
-updated_at: 2026-04-12T23:57:39.842Z
+updated_at: 2026-04-13T03:31:39.098Z

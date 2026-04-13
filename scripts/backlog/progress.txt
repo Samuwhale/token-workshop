@@ -1951,3 +1951,11 @@
   - Starter presets land better when the shared composer owns the intent copy and restore action, while each generator editor keeps only the controls needed for deeper tuning.
   - If a field supports token references, the collapsed state should still expose the link path and linked-token badge so users do not have to open advanced customization just to bind or unbind a token.
 ---
+## 2026-04-13 - Clean up stale semantic generator outputs across set and brand moves
+- Unified generator stale-output ownership around one desired `(set, path)` inventory so runs now delete semantic aliases that fall out of scope after target-set moves, target-set-template changes, or removed brand rows. Preview analysis now receives multi-brand routing inputs and reports semantic alias deletions through the existing deleted-output conflict bucket before save.
+- Validation: `pnpm exec eslint packages/server/src/services/generator-service.ts packages/server/src/routes/generators.ts packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` passed with the existing Node module-type warning from `eslint.config.js`. `pnpm --filter @tokenmanager/server build` passed. `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L109, ~L1758, ~L1941, ~L2502, ~L2604, ~L2656, ~L2770; `packages/server/src/routes/generators.ts` ~L294; `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L78, ~L237, ~L310; `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L340; `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L484; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Preview deletions and persisted cleanup stay aligned when both consume the same cross-set desired-output inventory instead of letting semantic aliases clean themselves up inside only the current target set.
+  - Any generator cleanup that can delete from old sets must snapshot every set already owned by that generator before writing, or rollback will miss target-set and brand-template moves.
+---

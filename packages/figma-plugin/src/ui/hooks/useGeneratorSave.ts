@@ -348,6 +348,8 @@ export function useGeneratorSave({
         pendingOverrides,
         baseGeneratorId: existingGenerator?.id,
         detachedPaths: existingGenerator?.detachedPaths,
+        inputTable: isMultiBrand ? inputTable : undefined,
+        targetSetTemplate: isMultiBrand ? targetSetTemplate : undefined,
       });
       if (overwriteCheckRequestIdRef.current !== requestId) return false;
       setOverwritePendingPaths(
@@ -380,6 +382,7 @@ export function useGeneratorSave({
     config,
     existingGenerator,
     inlineValue,
+    inputTable,
     isMultiBrand,
     pendingOverrides,
     requestPreviewRefresh,
@@ -389,6 +392,7 @@ export function useGeneratorSave({
     sourceTokenPath,
     targetGroup,
     targetSet,
+    targetSetTemplate,
   ]);
 
   /** Step 1: Validate inputs and show the confirmation preview.

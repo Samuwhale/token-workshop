@@ -87,6 +87,8 @@ export interface GeneratorPreviewRequest {
   sourceValue?: unknown;
   baseGeneratorId?: string;
   detachedPaths?: string[];
+  inputTable?: InputTable;
+  targetSetTemplate?: string;
   signal?: AbortSignal;
 }
 
@@ -102,6 +104,8 @@ export async function requestGeneratorPreview({
   sourceValue,
   baseGeneratorId,
   detachedPaths,
+  inputTable,
+  targetSetTemplate,
   signal,
 }: GeneratorPreviewRequest): Promise<GeneratorPreviewResponse> {
   const body: Record<string, unknown> = {
@@ -113,6 +117,8 @@ export async function requestGeneratorPreview({
     sourceValue,
     baseGeneratorId,
     detachedPaths,
+    inputTable,
+    targetSetTemplate,
   };
 
   if (sourceTokenPath) {
@@ -140,6 +146,7 @@ interface UseGeneratorPreviewParams {
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   isMultiBrand: boolean;
   inputTable?: InputTable;
+  targetSetTemplate: string;
   existingGeneratorId?: string;
   detachedPaths?: string[];
   refreshNonce?: number;
@@ -188,6 +195,7 @@ export function useGeneratorPreview({
   pendingOverrides,
   isMultiBrand,
   inputTable,
+  targetSetTemplate,
   existingGeneratorId,
   detachedPaths,
   refreshNonce = 0,
@@ -238,6 +246,8 @@ export function useGeneratorPreview({
           sourceValue: isMultiBrand && firstBrandRow ? firstBrandRow.inputs[inputTable!.inputKey] : undefined,
           baseGeneratorId: existingGeneratorId,
           detachedPaths,
+          inputTable: isMultiBrand ? inputTable : undefined,
+          targetSetTemplate: isMultiBrand ? targetSetTemplate : undefined,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
@@ -267,6 +277,7 @@ export function useGeneratorPreview({
     sourceTokenPath,
     targetGroup,
     targetSet,
+    targetSetTemplate,
   ]);
 
   useEffect(() => {
@@ -341,6 +352,7 @@ export function useGeneratorPreview({
     serverUrl,
     targetGroup,
     targetSet,
+    targetSetTemplate,
   ]);
 
   useEffect(() => {

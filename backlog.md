@@ -194,7 +194,7 @@
 - [x] Centralize git-backed token diff extraction so commit, pull, push, working-tree, and restore paths share one parser
 - [ ] Split backlog-runner task execution into shared lifecycle phases so remediation and reconciliation stop reimplementing scheduler semantics
 - [x] Add explicit branch navigation shortcuts for deep token hierarchies
-- [ ] Add starter presets and inline token-ref guidance for all generator types
+- [x] Add starter presets and inline token-ref guidance for all generator types
 - [ ] Clean up stale semantic generator outputs across set and brand moves
 - [ ] Move raw theme matrix tools and compare behind an Advanced setup route
 - [ ] Replace truncation-first path rendering across authoring surfaces with narrow-width wrapping rules

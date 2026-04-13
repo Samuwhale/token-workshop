@@ -489,6 +489,7 @@ export function useGeneratorDialog({
     pendingOverrides,
     isMultiBrand,
     inputTable,
+    targetSetTemplate,
     existingGeneratorId: existingGenerator?.id,
     detachedPaths: existingGenerator?.detachedPaths,
     refreshNonce: previewRefreshNonce,

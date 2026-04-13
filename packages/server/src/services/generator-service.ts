@@ -108,7 +108,13 @@ export type GeneratorUpdateInput = Partial<
 
 export type GeneratorPreviewInput = Pick<
   TokenGenerator,
-  "sourceToken" | "inlineValue" | "targetGroup" | "targetSet"
+  | "sourceToken"
+  | "inlineValue"
+  | "targetGroup"
+  | "targetSet"
+  | "targetSetTemplate"
+  | "inputTable"
+  | "semanticLayer"
 > & {
   type: unknown;
   config?: unknown;
@@ -1749,11 +1755,16 @@ export class GeneratorService {
       : undefined;
     const detachedPaths =
       normalizeDetachedPaths(data.detachedPaths) ?? baseGenerator?.detachedPaths;
+    const inputTable = normalizeInputTable(data.inputTable);
+    const semanticLayer = normalizeSemanticLayer(data.semanticLayer);
     const normalizedData: GeneratorPreviewInput & {
       type: GeneratorType;
       config: GeneratorConfig;
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
+      inputTable?: InputTable;
+      targetSetTemplate?: string;
+      semanticLayer?: GeneratorSemanticLayer;
     } = {
       sourceToken: data.sourceToken,
       inlineValue: data.inlineValue,
@@ -1763,8 +1774,14 @@ export class GeneratorService {
       type,
       config: normalizeGeneratorConfig(type, data.config),
       overrides: normalizeOverrides(data.overrides),
+      ...(inputTable && { inputTable }),
+      ...(typeof data.targetSetTemplate === "string" && {
+        targetSetTemplate: data.targetSetTemplate,
+      }),
+      ...(semanticLayer && { semanticLayer }),
       ...(detachedPaths && { detachedPaths }),
     };
+    let analysisData = normalizedData;
     let tokens: GeneratedTokenResult[];
     if (sourceValue !== undefined) {
       // source value already resolved on the client; still resolve config tokenRefs on the server
@@ -1776,12 +1793,21 @@ export class GeneratorService {
         resolvedConfig !== normalizedData.config
           ? { ...normalizedData, config: resolvedConfig }
           : normalizedData;
+      analysisData = resolvedData;
       tokens = await this.computeResultsWithValue(resolvedData, sourceValue);
     } else {
+      const resolvedConfig = await this.resolveConfigTokenRefs(
+        normalizedData.config,
+        tokenStore,
+      );
+      analysisData =
+        resolvedConfig !== normalizedData.config
+          ? { ...normalizedData, config: resolvedConfig }
+          : normalizedData;
       tokens = await this.computeResults(normalizedData, tokenStore);
     }
     const analysis = await this.analyzePreviewResults(
-      normalizedData,
+      analysisData,
       tokens,
       tokenStore,
       baseGenerator,
@@ -1799,6 +1825,9 @@ export class GeneratorService {
       config: GeneratorConfig;
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
+      inputTable?: InputTable;
+      targetSetTemplate?: string;
+      semanticLayer?: GeneratorSemanticLayer;
     },
     preview: GeneratedTokenResult[],
     tokenStore: TokenStore,
@@ -1909,12 +1938,26 @@ export class GeneratorService {
 
     const deletedOutputs: GeneratorPreviewDeletedEntry[] = [];
     if (baseGenerator) {
+      const desiredOutputKeys = new Set(
+        (
+          await this.collectDesiredPreviewOutputs(
+            data,
+            preview,
+            baseGenerator,
+          )
+        ).map((output) => `${output.setName}::${output.path}`),
+      );
       const ownedTokens = tokenStore.findTokensByGeneratorId(baseGenerator.id);
       for (const owned of ownedTokens) {
         const token = await tokenStore.getToken(owned.setName, owned.path);
         const ext = token?.$extensions?.["com.tokenmanager.generator"];
-        if (!token || ext?.outputKind !== "scale") continue;
-        if (!previewPathSet.has(owned.path) || owned.setName !== targetSet) {
+        if (
+          !token ||
+          (ext?.outputKind !== "scale" && ext?.outputKind !== "semantic")
+        ) {
+          continue;
+        }
+        if (!desiredOutputKeys.has(`${owned.setName}::${owned.path}`)) {
           deletedOutputs.push({
             path: owned.path,
             setName: owned.setName,
@@ -2425,7 +2468,7 @@ export class GeneratorService {
   }
 
   private buildSemanticAliasResults(
-    generator: TokenGenerator,
+    generator: Pick<TokenGenerator, "targetGroup" | "semanticLayer">,
     results: GeneratedTokenResult[],
   ): Array<
     GeneratedTokenResult & {
@@ -2456,6 +2499,78 @@ export class GeneratorService {
     );
   }
 
+  private buildDesiredGeneratedOutputs(
+    generator: Pick<TokenGenerator, "targetGroup" | "semanticLayer">,
+    effectiveTargetSet: string,
+    results: GeneratedTokenResult[],
+  ): Array<{ setName: string; path: string }> {
+    return [
+      ...results.map((result) => ({
+        setName: effectiveTargetSet,
+        path: result.path,
+      })),
+      ...this.buildSemanticAliasResults(generator, results).map((result) => ({
+        setName: effectiveTargetSet,
+        path: result.path,
+      })),
+    ];
+  }
+
+  private getEffectiveTargetSet(
+    generator: Pick<TokenGenerator, "targetSet" | "targetSetTemplate">,
+    brand?: string,
+  ): string {
+    if (brand && generator.targetSetTemplate) {
+      return generator.targetSetTemplate.replace("{brand}", brand);
+    }
+    return generator.targetSet;
+  }
+
+  private async collectDesiredPreviewOutputs(
+    data: GeneratorPreviewInput & {
+      type: GeneratorType;
+      config: GeneratorConfig;
+      overrides?: Record<string, { value: unknown; locked: boolean }>;
+      detachedPaths?: string[];
+      inputTable?: InputTable;
+      targetSetTemplate?: string;
+      semanticLayer?: GeneratorSemanticLayer;
+    },
+    preview: GeneratedTokenResult[],
+    baseGenerator?: TokenGenerator,
+  ): Promise<Array<{ setName: string; path: string }>> {
+    const generatorShape = {
+      targetGroup: data.targetGroup,
+      semanticLayer: data.semanticLayer ?? baseGenerator?.semanticLayer,
+    };
+
+    if (data.inputTable?.rows.length) {
+      const desiredOutputs: Array<{ setName: string; path: string }> = [];
+      for (const row of data.inputTable.rows) {
+        const brand = row.brand.trim();
+        if (!brand) continue;
+        const sourceValue = row.inputs[data.inputTable.inputKey];
+        if (sourceValue === undefined) continue;
+        const effectiveTargetSet = this.getEffectiveTargetSet(data, brand);
+        const results = await this.computeResultsWithValue(data, sourceValue);
+        desiredOutputs.push(
+          ...this.buildDesiredGeneratedOutputs(
+            generatorShape,
+            effectiveTargetSet,
+            results,
+          ),
+        );
+      }
+      return desiredOutputs;
+    }
+
+    return this.buildDesiredGeneratedOutputs(
+      generatorShape,
+      data.targetSet,
+      preview,
+    );
+  }
+
   private async syncSemanticLayer(
     generator: TokenGenerator,
     tokenStore: TokenStore,
@@ -2464,7 +2579,6 @@ export class GeneratorService {
     brand?: string,
   ): Promise<void> {
     const semanticResults = this.buildSemanticAliasResults(generator, results);
-    const desiredPaths = new Set(semanticResults.map((result) => result.path));
     const extensions = this.buildGeneratorExtensions(
       generator,
       "semantic",
@@ -2485,25 +2599,9 @@ export class GeneratorService {
         await tokenStore.createToken(effectiveTargetSet, result.path, token);
       }
     }
-
-    const flatTokens = await tokenStore.getFlatTokensForSet(effectiveTargetSet);
-    const staleSemanticPaths = Object.entries(flatTokens)
-      .filter(([path, token]) => {
-        const ext = token.$extensions?.["com.tokenmanager.generator"];
-        return (
-          ext?.generatorId === generator.id &&
-          ext.outputKind === "semantic" &&
-          !desiredPaths.has(path)
-        );
-      })
-      .map(([path]) => path);
-
-    if (staleSemanticPaths.length > 0) {
-      await tokenStore.deleteTokens(effectiveTargetSet, staleSemanticPaths);
-    }
   }
 
-  private async cleanupStaleScaleOutputs(
+  private async cleanupStaleGeneratedOutputs(
     generator: TokenGenerator,
     tokenStore: Pick<
       TokenStore,
@@ -2521,7 +2619,12 @@ export class GeneratorService {
       if (desiredKeys.has(`${owned.setName}::${owned.path}`)) continue;
       const token = await tokenStore.getToken(owned.setName, owned.path);
       const ext = token?.$extensions?.["com.tokenmanager.generator"];
-      if (!token || ext?.outputKind !== "scale") continue;
+      if (
+        !token ||
+        (ext?.outputKind !== "scale" && ext?.outputKind !== "semantic")
+      ) {
+        continue;
+      }
       const existing = tokensToDeleteBySet.get(owned.setName);
       if (existing) {
         existing.push(owned.path);
@@ -2550,15 +2653,29 @@ export class GeneratorService {
 
     await this.clearNonLockedOverrides(generator);
 
-    // Capture pre-run state so a mid-loop failure can be fully rolled back.
-    // getFlatTokensForSet is a pure in-memory operation and will not throw.
-    const preSnapshot = structuredClone(
-      await tokenStore.getFlatTokensForSet(effectiveTargetSet),
-    ) as Record<string, Token>;
+    const snapshotSetNames = new Set([effectiveTargetSet]);
+    for (const owned of tokenStore.findTokensByGeneratorId(generator.id)) {
+      snapshotSetNames.add(owned.setName);
+    }
+
+    const preRunSnapshots = new Map<string, Record<string, Token>>();
+    for (const setName of snapshotSetNames) {
+      preRunSnapshots.set(
+        setName,
+        structuredClone(
+          await tokenStore.getFlatTokensForSet(setName),
+        ) as Record<string, Token>,
+      );
+    }
 
     const extensions = this.buildGeneratorExtensions(generator, "scale");
     let runError: unknown = undefined;
     try {
+      const desiredOutputs = this.buildDesiredGeneratedOutputs(
+        generator,
+        effectiveTargetSet,
+        results,
+      );
       tokenStore.beginBatch();
       try {
         for (const result of results) {
@@ -2586,47 +2703,54 @@ export class GeneratorService {
         effectiveTargetSet,
         results,
       );
-      await this.cleanupStaleScaleOutputs(generator, tokenStore, [
-        ...results.map((result) => ({
-          setName: effectiveTargetSet,
-          path: result.path,
-        })),
-      ]);
+      await this.cleanupStaleGeneratedOutputs(
+        generator,
+        tokenStore,
+        desiredOutputs,
+      );
     } catch (err) {
       runError = err;
     }
 
     if (runError !== undefined) {
       // Roll back: restore tokens that existed before + delete tokens created during the run.
-      const currentTokens =
-        await tokenStore.getFlatTokensForSet(effectiveTargetSet);
-      const restoreItems: Array<{ path: string; token: Token | null }> = [];
-      for (const [p, t] of Object.entries(preSnapshot)) {
-        restoreItems.push({ path: p, token: t });
-      }
-      for (const p of Object.keys(currentTokens)) {
-        if (!(p in preSnapshot)) {
-          restoreItems.push({ path: p, token: null });
-        }
-      }
-      if (restoreItems.length > 0) {
-        const [outcome] = await Promise.allSettled([
-          tokenStore.restoreSnapshot(effectiveTargetSet, restoreItems),
-        ]);
-        if (outcome.status === "rejected") {
-          const rollbackMsg =
-            outcome.reason instanceof Error
-              ? outcome.reason.message
-              : String(outcome.reason);
-          console.error(
-            `[GeneratorService] Rollback failed for set "${effectiveTargetSet}":`,
-            outcome.reason,
-          );
-          throw new Error(
-            `Generator run failed and rollback of set "${effectiveTargetSet}" also failed (${rollbackMsg}). Token state may be inconsistent.`,
-            { cause: outcome.reason },
-          );
-        }
+      const setNames = [...preRunSnapshots.keys()];
+      const rollbackResults = await Promise.allSettled(
+        setNames.map(async (setName) => {
+          const preSnapshot = preRunSnapshots.get(setName)!;
+          const currentTokens = await tokenStore.getFlatTokensForSet(setName);
+          const restoreItems: Array<{ path: string; token: Token | null }> = [];
+          for (const [p, t] of Object.entries(preSnapshot)) {
+            restoreItems.push({ path: p, token: t });
+          }
+          for (const p of Object.keys(currentTokens)) {
+            if (!(p in preSnapshot)) {
+              restoreItems.push({ path: p, token: null });
+            }
+          }
+          if (restoreItems.length > 0) {
+            await tokenStore.restoreSnapshot(setName, restoreItems);
+          }
+        }),
+      );
+      const rollbackFailures = rollbackResults
+        .map((result, index) => ({ result, setName: setNames[index] }))
+        .filter(({ result }) => result.status === "rejected");
+      if (rollbackFailures.length > 0) {
+        const rollbackSummary = rollbackFailures
+          .map(({ result, setName }) => {
+            const reason =
+              result.status === "rejected"
+                ? result.reason instanceof Error
+                  ? result.reason.message
+                  : String(result.reason)
+                : "";
+            return `${setName}: ${reason}`;
+          })
+          .join("; ");
+        throw new Error(
+          `Generator run failed and rollback also failed (${rollbackSummary}). Token state may be inconsistent.`,
+        );
       }
       throw runError;
     }
@@ -2644,6 +2768,9 @@ export class GeneratorService {
 
     // Determine all sets that will be written to so we can snapshot them before any writes.
     const affectedSets = new Set<string>();
+    for (const owned of tokenStore.findTokensByGeneratorId(generator.id)) {
+      affectedSets.add(owned.setName);
+    }
     for (const row of inputTable!.rows) {
       if (!row.brand.trim()) continue;
       const setName = targetSetTemplate
@@ -2679,9 +2806,13 @@ export class GeneratorService {
           generator,
           sourceValue,
         );
-        for (const result of results) {
-          desiredOutputs.push({ setName: effectiveTargetSet, path: result.path });
-        }
+        desiredOutputs.push(
+          ...this.buildDesiredGeneratedOutputs(
+            generator,
+            effectiveTargetSet,
+            results,
+          ),
+        );
 
         const extensions = this.buildGeneratorExtensions(
           generator,
@@ -2726,7 +2857,11 @@ export class GeneratorService {
         );
         allResults.push(...results);
       }
-      await this.cleanupStaleScaleOutputs(generator, tokenStore, desiredOutputs);
+      await this.cleanupStaleGeneratedOutputs(
+        generator,
+        tokenStore,
+        desiredOutputs,
+      );
       succeeded = true;
     } catch (err) {
       // Roll back all affected sets using allSettled so no set is skipped on failure.

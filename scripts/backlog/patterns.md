@@ -244,4 +244,5 @@ Add new patterns here when discovered — keep entries general and reusable, not
 ## 2026-04-13 - Surface overwrite and manual-edit conflicts during live preview
 - Moved generator preview risk classification onto the server and return one preview fingerprint plus conflict buckets (safe updates, overwrite risks, manual conflicts, deleted outputs, detached outputs) so live preview and pre-commit revalidation speak the same language.
 - When review depends on live store state, store the preview fingerprint at review-open time and force a refresh if pre-commit revalidation returns a different fingerprint instead of letting save silently use stale conflict data.
+- **Generated-output cleanup should use one cross-set desired-output inventory**: When a generator owns both primary outputs and semantic aliases, derive one desired `(set, path)` inventory for the whole run and use it for both live preview deletions and post-run cleanup. Per-set semantic cleanup misses target-set moves and removed brand rows, and rollback snapshots must include every previously owned set that inventory can delete from.
 ---
