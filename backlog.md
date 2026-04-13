@@ -189,7 +189,7 @@
 - [x] Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
 - [x] Add resolver-targeted orphan cleanup for mapped publish modes
 - [x] Add an explicit ownership contract for generated tokens: warn before manual edits and provide a detach-from-generator operation
-- [ ] Replace uppercase tracking-wide eyebrow labels with plain section headings across token preview, theme authoring, and command palette
+- [x] Replace uppercase tracking-wide eyebrow labels with plain section headings across token preview, theme authoring, and command palette
 - [ ] Hide the Semantic layer section on generator cards when no aliases are configured
 - [ ] Centralize git-backed token diff extraction so commit, pull, push, working-tree, and restore paths share one parser
 - [ ] Split backlog-runner task execution into shared lifecycle phases so remediation and reconciliation stop reimplementing scheduler semantics

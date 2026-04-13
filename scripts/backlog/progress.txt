@@ -1904,3 +1904,10 @@
   - Preview section labels stay consistent when one helper owns the shared secondary heading treatment instead of repeating ad hoc uppercase utility stacks across each template block.
   - Theme empty-state cleanup can already be complete even when a backlog item still names the old copy, so targeted `rg` checks are worth doing before editing the surface.
 ---
+## 2026-04-13 - Hide the Semantic layer section on generator cards when no aliases are configured
+- Hid the card-body semantic layer section unless the generator already has semantic aliases, and moved add/edit entry points into the existing overflow menu so unused cards keep their default read focused on primary generator details.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` passed with the existing Node module-type warning from `eslint.config.js`.
+- Files changed: `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L1628, ~L1895; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Optional generator capabilities should live behind the card actions menu until the feature is configured; once active, the card can promote a concise summary with inline edit affordances.
+---
