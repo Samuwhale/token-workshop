@@ -91,6 +91,7 @@ function buildWorkspaceValidationFollowup(
       'Fresh worktrees bootstrap dependency resolution reliably before validation reruns.',
       'Repo validation reruns no longer fail with missing-module workspace errors unrelated to completed task code.',
     ],
+    executionDomain: 'code_logic',
     validationProfile: 'backlog',
     context: `Task "${claim.task.title}" completed its scoped work, but validation surfaced a worktree/bootstrap issue instead of a task-local defect: ${reason}`,
     source: 'task-followup',
@@ -110,6 +111,7 @@ function buildUnrelatedValidationFollowup(
       `Validation errors in ${touchPaths.join(', ')} are resolved.`,
       'The unrelated validation failure no longer blocks repo validation.',
     ],
+    executionDomain: 'code_logic',
     context: `Task "${claim.task.title}" completed its scoped work, but validation surfaced an unrelated failure outside its touch_paths: ${reason}`,
     source: 'task-followup',
   };

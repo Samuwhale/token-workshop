@@ -7,6 +7,7 @@ import type {
   Dispatch,
 } from "react";
 
+
 interface OptionDragTarget {
   dimId: string;
   optionName: string;
@@ -18,9 +19,6 @@ export interface ThemeAuthoringContextValue {
   dimSearch: string;
   setDimSearch: (value: string) => void;
   dimSearchRef: RefObject<HTMLInputElement | null>;
-  secondaryToolsOpen: boolean;
-  setSecondaryToolsOpen: Dispatch<SetStateAction<boolean>>;
-  secondaryToolsRef: RefObject<HTMLDivElement | null>;
   dimensionRefs: MutableRefObject<Record<string, HTMLDivElement | null>>;
   setRoleRefs: MutableRefObject<Record<string, HTMLDivElement | null>>;
   tabScrollRefs: MutableRefObject<Record<string, HTMLDivElement | null>>;

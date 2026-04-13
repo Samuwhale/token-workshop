@@ -4,6 +4,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 import type {
   BacklogCandidateRecord,
+  BacklogExecutionDomain,
   BacklogTaskKind,
   BacklogTaskPriority,
   BacklogTaskSpec,
@@ -101,6 +102,43 @@ function inferCapabilities(touchPaths: string[]): string[] {
   return [...capabilities];
 }
 
+function normalizeExecutionDomain(value: unknown): BacklogExecutionDomain | undefined {
+  const normalized = normalizeWhitespace(String(value ?? '')).toLowerCase();
+  if (normalized === 'ui_ux' || normalized === 'code_logic') {
+    return normalized;
+  }
+  return undefined;
+}
+
+function isPluginUiTouchPath(touchPath: string): boolean {
+  return touchPath === 'packages/figma-plugin/src/ui'
+    || touchPath.startsWith('packages/figma-plugin/src/ui/');
+}
+
+export function inferExecutionDomain(
+  taskKind: BacklogTaskKind,
+  source: BacklogTaskSpec['source'],
+  touchPaths: string[],
+  explicitDomain?: BacklogExecutionDomain,
+): BacklogExecutionDomain | undefined {
+  if (taskKind === 'research') {
+    return undefined;
+  }
+  if (explicitDomain) {
+    return explicitDomain;
+  }
+  if (source === 'product-pass' || source === 'interface-pass' || source === 'ux-pass') {
+    return 'ui_ux';
+  }
+  if (source === 'code-pass') {
+    return 'code_logic';
+  }
+  if (touchPaths.length > 0 && touchPaths.every(isPluginUiTouchPath)) {
+    return 'ui_ux';
+  }
+  return 'code_logic';
+}
+
 function inferValidationProfile(
   touchPaths: string[],
   validationProfiles: Record<string, string>,
@@ -175,9 +213,18 @@ export function parseTaskSpec(raw: string, filePath: string): BacklogTaskSpec {
     throw new Error(`Task spec ${filePath} has invalid source: ${sourceValue || '<empty>'}`);
   }
   const source = sourceValue as BacklogTaskSpec['source'];
+  const executionDomain = inferExecutionDomain(
+    taskKind,
+    source,
+    touchPaths,
+    normalizeExecutionDomain(parsed.execution_domain),
+  );
 
   if (!id || !title || !validationProfile || !createdAt || !updatedAt) {
     throw new Error(`Task spec ${filePath} is missing required fields`);
+  }
+  if (taskKind === 'implementation' && !executionDomain) {
+    throw new Error(`Task spec ${filePath} is missing required execution_domain`);
   }
 
   return {
@@ -185,6 +232,7 @@ export function parseTaskSpec(raw: string, filePath: string): BacklogTaskSpec {
     title,
     priority,
     taskKind,
+    executionDomain,
     dependsOn,
     touchPaths,
     capabilities,
@@ -229,6 +277,7 @@ function serializeTaskSpec(task: BacklogTaskSpec): string {
     title: task.title,
     priority: task.priority,
     task_kind: task.taskKind,
+    execution_domain: task.taskKind === 'implementation' ? task.executionDomain : undefined,
     depends_on: task.dependsOn,
     touch_paths: task.touchPaths,
     capabilities: task.capabilities,
@@ -380,40 +429,128 @@ function normalizeCandidateSource(value: unknown): BacklogCandidateRecord['sourc
   return null;
 }
 
-export function parseCandidateRecord(line: string): BacklogCandidateRecord | null {
+type CandidateParseResult =
+  | { ok: true; candidate: BacklogCandidateRecord }
+  | { ok: false; reason: string };
+
+type CandidateMaterializationResult =
+  | { ok: true; task: BacklogTaskSpec }
+  | { ok: false; reason: string };
+
+export function parseCandidateRecordDetailed(line: string): CandidateParseResult {
   let parsed: Record<string, unknown> | null = null;
   try {
     parsed = JSON.parse(line) as Record<string, unknown>;
   } catch {
-    return null;
+    return { ok: false, reason: 'invalid JSON' };
   }
 
-  if (!parsed || typeof parsed !== 'object') return null;
+  if (!parsed || typeof parsed !== 'object') {
+    return { ok: false, reason: 'candidate entry must be a JSON object' };
+  }
 
   const title = normalizeWhitespace(String(parsed.title ?? ''));
   const priority = normalizePriority(parsed.priority ?? 'normal');
   const touchPaths = normalizePathArray(parsed.touch_paths);
   const acceptanceCriteria = normalizeStringArray(parsed.acceptance_criteria);
   const source = normalizeCandidateSource(parsed.source);
-  if (!title || !priority || !touchPaths || !acceptanceCriteria || !source) {
-    return null;
+  if (!title) {
+    return { ok: false, reason: 'missing title' };
+  }
+  if (!priority) {
+    return { ok: false, reason: 'invalid priority' };
+  }
+  if (!touchPaths) {
+    return { ok: false, reason: 'missing touch_paths' };
+  }
+  if (!acceptanceCriteria) {
+    return { ok: false, reason: 'missing acceptance_criteria' };
+  }
+  if (!source) {
+    return { ok: false, reason: 'invalid source' };
   }
 
   const validationProfile = normalizeWhitespace(String(parsed.validation_profile ?? '')) || undefined;
+  const executionDomain = normalizeExecutionDomain(parsed.execution_domain);
   const capabilities = Array.isArray(parsed.capabilities)
     ? [...new Set(parsed.capabilities.map(item => normalizeWhitespace(String(item)).toLowerCase()).filter(Boolean))]
     : undefined;
   const context = normalizeWhitespace(String(parsed.context ?? '')) || undefined;
 
   return {
-    title,
-    priority,
-    touchPaths,
-    acceptanceCriteria,
-    validationProfile,
-    capabilities: capabilities && capabilities.length > 0 ? capabilities : undefined,
-    context,
-    source,
+    ok: true,
+    candidate: {
+      title,
+      priority,
+      touchPaths,
+      acceptanceCriteria,
+      executionDomain,
+      validationProfile,
+      capabilities: capabilities && capabilities.length > 0 ? capabilities : undefined,
+      context,
+      source,
+    },
+  };
+}
+
+export function parseCandidateRecord(line: string): BacklogCandidateRecord | null {
+  const result = parseCandidateRecordDetailed(line);
+  return result.ok ? result.candidate : null;
+}
+
+export function createTaskFromCandidateDetailed(
+  candidate: BacklogCandidateRecord,
+  validationProfiles: Record<string, string>,
+  nowIso = new Date().toISOString(),
+): CandidateMaterializationResult {
+  const title = normalizeWhitespace(candidate.title);
+  const touchPaths = [...new Set(candidate.touchPaths.map(value => normalizeRepoPath(value)).filter(Boolean))];
+  const acceptanceCriteria = [...new Set(candidate.acceptanceCriteria.map(item => normalizeWhitespace(item)).filter(Boolean))];
+  if (!title) {
+    return { ok: false, reason: 'missing title after normalization' };
+  }
+  if (touchPaths.length === 0) {
+    return { ok: false, reason: 'candidate resolved to empty touch_paths' };
+  }
+  if (acceptanceCriteria.length === 0) {
+    return { ok: false, reason: 'candidate resolved to empty acceptance_criteria' };
+  }
+
+  const validationProfile = candidate.validationProfile
+    ? normalizeWhitespace(candidate.validationProfile)
+    : inferValidationProfile(touchPaths, validationProfiles);
+  if (!validationProfile) {
+    return { ok: false, reason: 'missing validation_profile' };
+  }
+  if (!validationProfiles[validationProfile]) {
+    return { ok: false, reason: `unknown validation profile "${validationProfile}"` };
+  }
+
+  const capabilities = candidate.capabilities && candidate.capabilities.length > 0
+    ? [...new Set(candidate.capabilities.map(item => normalizeWhitespace(item).toLowerCase()).filter(Boolean))]
+    : inferCapabilities(touchPaths);
+  const statusNotes = candidate.context ? [`Context: ${candidate.context}`] : [];
+  const executionDomain = inferExecutionDomain('implementation', candidate.source, touchPaths, candidate.executionDomain);
+
+  return {
+    ok: true,
+    task: {
+      id: createTaskId(title),
+      title,
+      priority: candidate.priority,
+      taskKind: 'implementation',
+      executionDomain,
+      dependsOn: [],
+      touchPaths,
+      capabilities,
+      validationProfile,
+      statusNotes,
+      state: 'ready',
+      acceptanceCriteria,
+      source: candidate.source,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    },
   };
 }
 
@@ -422,41 +559,8 @@ export function createTaskFromCandidate(
   validationProfiles: Record<string, string>,
   nowIso = new Date().toISOString(),
 ): BacklogTaskSpec | null {
-  const title = normalizeWhitespace(candidate.title);
-  const touchPaths = [...new Set(candidate.touchPaths.map(value => normalizeRepoPath(value)).filter(Boolean))];
-  const acceptanceCriteria = [...new Set(candidate.acceptanceCriteria.map(item => normalizeWhitespace(item)).filter(Boolean))];
-  if (!title || touchPaths.length === 0 || acceptanceCriteria.length === 0) {
-    return null;
-  }
-
-  const validationProfile = candidate.validationProfile
-    ? normalizeWhitespace(candidate.validationProfile)
-    : inferValidationProfile(touchPaths, validationProfiles);
-  if (!validationProfile || !validationProfiles[validationProfile]) {
-    return null;
-  }
-
-  const capabilities = candidate.capabilities && candidate.capabilities.length > 0
-    ? [...new Set(candidate.capabilities.map(item => normalizeWhitespace(item).toLowerCase()).filter(Boolean))]
-    : inferCapabilities(touchPaths);
-  const statusNotes = candidate.context ? [`Context: ${candidate.context}`] : [];
-
-  return {
-    id: createTaskId(title),
-    title,
-    priority: candidate.priority,
-    taskKind: 'implementation',
-    dependsOn: [],
-    touchPaths,
-    capabilities,
-    validationProfile,
-    statusNotes,
-    state: 'ready',
-    acceptanceCriteria,
-    source: candidate.source,
-    createdAt: nowIso,
-    updatedAt: nowIso,
-  };
+  const result = createTaskFromCandidateDetailed(candidate, validationProfiles, nowIso);
+  return result.ok ? result.task : null;
 }
 
 export function createTaskFromPlannerChild(
@@ -482,12 +586,17 @@ export function createTaskFromPlannerChild(
     ? [...new Set(child.capabilities.map(item => normalizeWhitespace(item).toLowerCase()).filter(Boolean))]
     : inferCapabilities(touchPaths);
   const statusNotes = child.context ? [`Context: ${normalizeWhitespace(child.context)}`] : [];
+  const executionDomain = inferExecutionDomain(child.taskKind, 'planner-pass', touchPaths, child.executionDomain);
+  if (child.taskKind === 'implementation' && !executionDomain) {
+    return null;
+  }
 
   return {
     id: createTaskId(title),
     title,
     priority: child.priority,
     taskKind: child.taskKind,
+    executionDomain,
     dependsOn: [],
     touchPaths,
     capabilities,

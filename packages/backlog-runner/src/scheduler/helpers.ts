@@ -11,6 +11,7 @@ import type {
   AgentRunRequest,
   BacklogDrainResult,
   BacklogRunnerConfig,
+  BacklogImplementationRunnerRole,
   BacklogRunnerRole,
   BacklogStore,
   BacklogTaskClaim,
@@ -38,6 +39,10 @@ export function getRunnerConfig(options: ResolvedRunOptions, role: BacklogRunner
   return options.runners[role];
 }
 
+export function implementationRunnerRole(claim: BacklogTaskClaim): BacklogImplementationRunnerRole {
+  return claim.task.executionDomain === 'ui_ux' ? 'taskUi' : 'taskCode';
+}
+
 export function logDrainResult(logger: RunnerLogger, label: string, result: BacklogDrainResult): void {
   if (!result.drained) return;
 
@@ -50,6 +55,9 @@ export function logDrainResult(logger: RunnerLogger, label: string, result: Back
   }
   if (result.ignoredInvalidLines > 0) {
     details.push(`${result.ignoredInvalidLines} invalid entr${result.ignoredInvalidLines === 1 ? 'y' : 'ies'} ignored`);
+  }
+  if (result.loggedRejects > 0) {
+    details.push(`${result.loggedRejects} reject log entr${result.loggedRejects === 1 ? 'y' : 'ies'} recorded`);
   }
   if (details.length === 0) return;
   logger.line(`  ${label}: ${details.join(' · ')}`);
@@ -86,6 +94,25 @@ export async function validateWorkspaceScope(
 ): Promise<{ ok: boolean; reason?: string }> {
   const modified = await changedFiles(commandRunner, cwd);
   const unexpected = scopeViolations(modified, allowedPaths);
+  if (unexpected.length > 0) {
+    return {
+      ok: false,
+      reason: `${label}: touched ${unexpected.slice(0, 8).join(', ')}`,
+    };
+  }
+  return { ok: true };
+}
+
+export async function validateWorkspaceScopeDelta(
+  commandRunner: CommandRunner,
+  cwd: string,
+  allowedPaths: string[],
+  baselineDirty: Set<string>,
+  label: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const current = await changedFiles(commandRunner, cwd);
+  const newlyModified = current.filter(file => !baselineDirty.has(file));
+  const unexpected = scopeViolations(newlyModified, allowedPaths);
   if (unexpected.length > 0) {
     return {
       ok: false,

@@ -16,12 +16,8 @@ interface WorkspacePrimaryAction {
 }
 
 interface WorkspaceSummaryHeaderProps {
-  workspaceLabel?: string | null;
-  currentLabel?: string | null;
-  currentDepthLabel?: string | null;
-  title: string;
-  description?: string | null;
-  workflowSummary?: ReactNode;
+  /** Title shown only for secondary surfaces (Import, Settings, etc.) */
+  title?: string | null;
   sections?: WorkspaceSection[];
   activeSectionId?: string | null;
   onSelectSection?: (section: WorkspaceSection) => void;
@@ -45,12 +41,7 @@ function describeHandoffOrigin(handoff: NavigationHandoff): string {
 }
 
 export function WorkspaceSummaryHeader({
-  workspaceLabel,
-  currentLabel,
-  currentDepthLabel,
   title,
-  description,
-  workflowSummary,
   sections,
   activeSectionId,
   onSelectSection,
@@ -62,10 +53,11 @@ export function WorkspaceSummaryHeader({
 }: WorkspaceSummaryHeaderProps) {
   const hasSections = Boolean(sections && sections.length > 1);
   const hasStatus = statusPills.length > 0;
-  const hasCurrentContext =
-    Boolean(currentLabel) && currentLabel !== workspaceLabel;
-  const hasDepthIndicator =
-    Boolean(currentDepthLabel) && currentDepthLabel !== "Workspace";
+  const hasContent = hasSections || hasStatus || Boolean(primaryAction) || Boolean(title);
+
+  if (!hasContent && !handoff && !contextualControls) {
+    return null;
+  }
 
   return (
     <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -93,99 +85,52 @@ export function WorkspaceSummaryHeader({
           </div>
         </div>
       )}
-      <div className="flex flex-col gap-2 px-3 py-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            {(workspaceLabel || currentLabel) && (
-              <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">
-                {workspaceLabel && (
-                  <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
-                    {workspaceLabel}
-                  </span>
-                )}
-                {hasCurrentContext && (
-                  <>
-                    <span aria-hidden="true" className="text-[11px]">
-                      /
-                    </span>
-                    <span className="rounded-full border border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/8 px-2 py-0.5 text-[9px] text-[var(--color-figma-text)]">
-                      {currentLabel}
-                    </span>
-                  </>
-                )}
-                {!workspaceLabel && currentLabel && (
-                  <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
-                    {currentLabel}
-                  </span>
-                )}
-                {hasDepthIndicator && (
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                    {currentDepthLabel}
-                  </span>
-                )}
-              </div>
+
+      {hasContent && (
+        <div className="flex items-center justify-between gap-3 px-3 py-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto">
+            {title && !hasSections && (
+              <span className="shrink-0 text-[11px] font-semibold text-[var(--color-figma-text)]">
+                {title}
+              </span>
             )}
-            <div className="truncate text-[13px] font-semibold text-[var(--color-figma-text)]">
-              {title}
-            </div>
-            {description ? (
-              <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                {description}
-              </p>
-            ) : null}
-          </div>
 
-          {primaryAction && (
-            <button
-              onClick={primaryAction.onClick}
-              disabled={primaryAction.disabled}
-              className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-[background-color,transform,opacity,box-shadow] duration-150 ease-out outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {primaryAction.label}
-            </button>
-          )}
-        </div>
-
-        {(hasSections || hasStatus) && (
-          <div className="flex items-center gap-3 overflow-x-auto pb-0.5">
             {hasSections && sections && onSelectSection && (
-              <div className="flex min-w-0 flex-1">
-                <div
-                  className="inline-flex shrink-0 items-center gap-1.5 overflow-x-auto"
-                  role="tablist"
-                  aria-label={`${workspaceLabel ?? currentLabel ?? title} sections`}
-                >
-                  {sections.map((section) => {
-                    const isActive = section.id === activeSectionId;
-                    const isContextual =
-                      section.transition?.kind === "contextual-sub-screen";
-                    return (
-                      <button
-                        key={`${section.topTab}:${section.subTab}`}
-                        role="tab"
-                        aria-selected={isActive}
-                        onClick={() => onSelectSection(section)}
-                        title={
-                          section.transition?.usage ??
-                          section.summaryTitle ??
-                          section.label
-                        }
-                        className={`inline-flex shrink-0 items-center gap-2 rounded-[10px] border px-2.5 py-1.5 text-[10px] font-medium outline-none transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px ${
-                          isActive
-                            ? "border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-text)] shadow-sm"
-                            : "border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)]"
-                        }`}
-                      >
-                        <span>{section.label}</span>
-                        {isContextual && (
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                            context
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div
+                className="inline-flex shrink-0 items-center gap-1.5"
+                role="tablist"
+                aria-label={`${title ?? "Workspace"} sections`}
+              >
+                {sections.map((section) => {
+                  const isActive = section.id === activeSectionId;
+                  const isContextual =
+                    section.transition?.kind === "contextual-sub-screen";
+                  return (
+                    <button
+                      key={`${section.topTab}:${section.subTab}`}
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => onSelectSection(section)}
+                      title={
+                        section.transition?.usage ??
+                        section.summaryTitle ??
+                        section.label
+                      }
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-[10px] border px-2.5 py-1.5 text-[10px] font-medium outline-none transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px ${
+                        isActive
+                          ? "border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-text)] shadow-sm"
+                          : "border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)]"
+                      }`}
+                    >
+                      <span>{section.label}</span>
+                      {isContextual && (
+                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                          context
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -202,14 +147,18 @@ export function WorkspaceSummaryHeader({
               </div>
             )}
           </div>
-        )}
 
-        {workflowSummary ? (
-          <div className="rounded-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
-            {workflowSummary}
-          </div>
-        ) : null}
-      </div>
+          {primaryAction && (
+            <button
+              onClick={primaryAction.onClick}
+              disabled={primaryAction.disabled}
+              className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-[background-color,transform,opacity,box-shadow] duration-150 ease-out outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {primaryAction.label}
+            </button>
+          )}
+        </div>
+      )}
 
       {contextualControls ? (
         <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">

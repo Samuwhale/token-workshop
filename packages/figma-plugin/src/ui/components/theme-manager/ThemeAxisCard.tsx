@@ -299,6 +299,21 @@ export function ThemeAxisCard({
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     <button
                       role="menuitem"
+                      onClick={() => { setAxisMenuOpen(false); onOpenCoverageView(undefined, true); }}
+                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                    >
+                      Review all issues
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => { setAxisMenuOpen(false); onOpenAdvancedSetup(); }}
+                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                    >
+                      Advanced setup
+                    </button>
+                    <div className="my-1 border-t border-[var(--color-figma-border)]" />
+                    <button
+                      role="menuitem"
                       onClick={() => { setAxisMenuOpen(false); onDeleteDimension(); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
                     >
@@ -320,6 +335,17 @@ export function ThemeAxisCard({
         optionRoleSummaries={optionRoleSummaries}
         onSelectOption={(dimId, optionName) => onSelectOption(optionName)}
         showAddOption={showAddOption}
+        onStartRenameOption={onStartRenameOption}
+        onMoveOption={onMoveOption}
+        onDuplicateOption={onDuplicateOption}
+        onDeleteOption={onDeleteOption}
+        canMoveLeft={option ? dimension.options.indexOf(option) > 0 : false}
+        canMoveRight={option ? dimension.options.indexOf(option) < dimension.options.length - 1 : false}
+        copySourceOptions={copySourceOptions}
+        onHandleCopyAssignmentsFrom={onHandleCopyAssignmentsFrom}
+        onOpenAdvancedSetup={onOpenAdvancedSetup}
+        onOpenCoverageView={() => onOpenCoverageView(undefined, false)}
+        disabledSetCount={disabledSets.length}
       />
 
       {(showAddOption || dimension.options.length === 0) && (
@@ -411,25 +437,14 @@ export function ThemeAxisCard({
           renameOption={renameOption}
           renameOptionValue={renameOptionValue}
           renameOptionError={renameOptionError}
-          copySourceOptions={copySourceOptions}
           setTokenCounts={setTokenCounts}
           fillableCount={multiOptionGaps ? 0 : totalDimensionFillable}
           onAutoFill={multiOptionGaps ? onAutoFillAllOptions : onAutoFillOption}
-          onStartRenameOption={onStartRenameOption}
           onRenameOptionValueChange={onRenameOptionValueChange}
           onExecuteRenameOption={onExecuteRenameOption}
           onCancelRenameOption={onCancelRenameOption}
-          onMoveOption={onMoveOption}
-          onDuplicateOption={onDuplicateOption}
-          onDeleteOption={onDeleteOption}
-          canMoveLeft={dimension.options.indexOf(option) > 0}
-          canMoveRight={
-            dimension.options.indexOf(option) < dimension.options.length - 1
-          }
           onOpenCoverageView={onOpenCoverageView}
-          onOpenAdvancedSetup={onOpenAdvancedSetup}
           onHandleSetState={onHandleSetState}
-          onHandleCopyAssignmentsFrom={onHandleCopyAssignmentsFrom}
         />
       )}
       </>}

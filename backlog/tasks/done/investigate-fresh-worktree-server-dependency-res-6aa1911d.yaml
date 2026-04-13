@@ -19,3 +19,4 @@ acceptance_criteria:
 source: task-followup
 created_at: 2026-04-09T16:04:55.298Z
 updated_at: 2026-04-09T17:08:31.541Z
+execution_domain: code_logic

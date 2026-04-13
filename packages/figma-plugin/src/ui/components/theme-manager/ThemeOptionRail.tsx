@@ -1,4 +1,5 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
+import { useEffect, useRef, useState } from "react";
 import { NoticeCountBadge } from "../../shared/noticeSystem";
 import type { ThemeOptionRoleSummary } from "../themeManagerTypes";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
@@ -10,6 +11,18 @@ interface ThemeOptionRailProps {
   optionRoleSummaries: Record<string, ThemeOptionRoleSummary>;
   onSelectOption: (dimId: string, optionName: string) => void;
   showAddOption: boolean;
+  // Variant action callbacks (rendered as ... menu at end of rail)
+  onStartRenameOption?: () => void;
+  onMoveOption?: (direction: "up" | "down") => void;
+  onDuplicateOption?: () => void;
+  onDeleteOption?: () => void;
+  canMoveLeft?: boolean;
+  canMoveRight?: boolean;
+  copySourceOptions?: string[];
+  onHandleCopyAssignmentsFrom?: (sourceOptionName: string) => void;
+  onOpenAdvancedSetup?: () => void;
+  onOpenCoverageView?: () => void;
+  disabledSetCount?: number;
 }
 
 export function ThemeOptionRail({
@@ -19,6 +32,17 @@ export function ThemeOptionRail({
   optionRoleSummaries,
   onSelectOption,
   showAddOption,
+  onStartRenameOption,
+  onMoveOption,
+  onDuplicateOption,
+  onDeleteOption,
+  canMoveLeft,
+  canMoveRight,
+  copySourceOptions,
+  onHandleCopyAssignmentsFrom,
+  onOpenAdvancedSetup,
+  onOpenCoverageView,
+  disabledSetCount,
 }: ThemeOptionRailProps) {
   const {
     dimSearch,
@@ -33,6 +57,27 @@ export function ThemeOptionRail({
     draggingOpt,
     dragOverOpt,
   } = useThemeAuthoringContext();
+
+  const [variantMenuOpen, setVariantMenuOpen] = useState(false);
+  const variantMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!variantMenuOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!variantMenuRef.current?.contains(event.target as Node)) {
+        setVariantMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setVariantMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [variantMenuOpen]);
 
   if (dimension.options.length === 0) return null;
 
@@ -133,6 +178,79 @@ export function ThemeOptionRail({
           >
             +
           </button>
+        )}
+        {/* Variant actions menu */}
+        {selectedOption && onStartRenameOption && (
+          <div className="relative shrink-0 ml-auto" ref={variantMenuRef}>
+            <button
+              onClick={() => setVariantMenuOpen((v) => !v)}
+              className="rounded p-1 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
+              title="Variant actions"
+              aria-label="Variant actions"
+              aria-expanded={variantMenuOpen}
+              aria-haspopup="menu"
+            >
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <circle cx="8" cy="3" r="1.5" />
+                <circle cx="8" cy="8" r="1.5" />
+                <circle cx="8" cy="13" r="1.5" />
+              </svg>
+            </button>
+            {variantMenuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full z-50 mt-1 w-[180px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
+              >
+                <button role="menuitem" onClick={() => { setVariantMenuOpen(false); onStartRenameOption(); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
+                  Rename
+                </button>
+                {onMoveOption && (
+                  <>
+                    <button role="menuitem" onClick={() => { setVariantMenuOpen(false); onMoveOption("up"); }} disabled={!canMoveLeft} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none">
+                      Move left
+                    </button>
+                    <button role="menuitem" onClick={() => { setVariantMenuOpen(false); onMoveOption("down"); }} disabled={!canMoveRight} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none">
+                      Move right
+                    </button>
+                  </>
+                )}
+                {onDuplicateOption && (
+                  <button role="menuitem" onClick={() => { setVariantMenuOpen(false); onDuplicateOption(); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
+                    Duplicate
+                  </button>
+                )}
+                {copySourceOptions && copySourceOptions.length > 0 && onHandleCopyAssignmentsFrom && (
+                  <>
+                    <div className="my-1 border-t border-[var(--color-figma-border)]" />
+                    {copySourceOptions.map((src) => (
+                      <button key={src} role="menuitem" onClick={() => { setVariantMenuOpen(false); onHandleCopyAssignmentsFrom(src); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
+                        Copy setup from {src}
+                      </button>
+                    ))}
+                  </>
+                )}
+                <div className="my-1 border-t border-[var(--color-figma-border)]" />
+                {onOpenAdvancedSetup && (
+                  <button role="menuitem" onClick={() => { setVariantMenuOpen(false); onOpenAdvancedSetup(); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
+                    {`Advanced setup${disabledSetCount ? ` (${disabledSetCount} unused)` : ""}`}
+                  </button>
+                )}
+                {onOpenCoverageView && (
+                  <button role="menuitem" onClick={() => { setVariantMenuOpen(false); onOpenCoverageView(); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
+                    Review issues
+                  </button>
+                )}
+                {onDeleteOption && (
+                  <>
+                    <div className="my-1 border-t border-[var(--color-figma-border)]" />
+                    <button role="menuitem" onClick={() => { setVariantMenuOpen(false); onDeleteOption(); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10">
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
       {tabScrollState[dimension.id]?.right && (

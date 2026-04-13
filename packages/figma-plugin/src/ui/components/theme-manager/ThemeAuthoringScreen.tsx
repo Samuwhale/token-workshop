@@ -25,7 +25,6 @@ import {
   ThemeAuthoringProvider,
   type ThemeAuthoringContextValue,
 } from "./ThemeAuthoringContext";
-import { ThemeAuthoringHeader } from "./ThemeAuthoringHeader";
 import { ThemeAxisBrowser } from "./ThemeAxisBrowser";
 import { ThemeAxisCard } from "./ThemeAxisCard";
 
@@ -226,11 +225,9 @@ export const ThemeAuthoringScreen = forwardRef<
     () => new Set(dimensions.map((d) => d.id)),
   );
   const [dimSearch, setDimSearch] = useState("");
-  const [secondaryToolsOpen, setSecondaryToolsOpen] = useState(false);
   const dimSearchRef = useRef<HTMLInputElement | null>(null);
   const dimensionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const setRoleRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const secondaryToolsRef = useRef<HTMLDivElement | null>(null);
   const tabScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [tabScrollState, setTabScrollState] = useState<
     Record<string, { left: boolean; right: boolean }>
@@ -297,31 +294,6 @@ export const ThemeAuthoringScreen = forwardRef<
     return () => cleanups.forEach((cleanup) => cleanup());
   }, [dimensions]);
 
-  useEffect(() => {
-    if (!secondaryToolsOpen) return;
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!secondaryToolsRef.current?.contains(event.target as Node)) {
-        setSecondaryToolsOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setSecondaryToolsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    requestAnimationFrame(() => {
-      secondaryToolsRef.current
-        ?.querySelector<HTMLElement>('[role="menuitem"]')
-        ?.focus();
-    });
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [secondaryToolsOpen]);
-
   const filteredDimensions = useMemo(() => {
     const query = dimSearch.trim().toLowerCase();
     if (!query) return dimensions;
@@ -357,9 +329,6 @@ export const ThemeAuthoringScreen = forwardRef<
       dimSearch,
       setDimSearch,
       dimSearchRef,
-      secondaryToolsOpen,
-      setSecondaryToolsOpen,
-      secondaryToolsRef,
       dimensionRefs,
       setRoleRefs,
       tabScrollRefs,
@@ -380,7 +349,6 @@ export const ThemeAuthoringScreen = forwardRef<
     [
       collapsedDisabled,
       dimSearch,
-      secondaryToolsOpen,
       tabScrollState,
       addOptionInputRefs,
       setShowAddOption,
@@ -444,24 +412,6 @@ export const ThemeAuthoringScreen = forwardRef<
         ) : (
           <ThemeAuthoringProvider value={authoringContextValue}>
             <div className="flex flex-col">
-              <ThemeAuthoringHeader
-                focusedDimension={focusedDimension}
-                onOpenCoverageView={() => onOpenCoverageView(null, true)}
-                onOpenAdvancedSetup={() =>
-                  onOpenAdvancedSetup(
-                    focusedDimension
-                      ? {
-                          dimId: focusedDimension.id,
-                          optionName:
-                            selectedOptions[focusedDimension.id] ??
-                            focusedDimension.options[0]?.name ??
-                            null,
-                          preferredSetName: null,
-                        }
-                      : null,
-                  )
-                }
-              />
               <ThemeAxisBrowser dimensionsCount={dimensions.length} />
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (
@@ -684,7 +634,7 @@ export const ThemeAuthoringScreen = forwardRef<
         )}
       </div>
 
-      <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+      <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
         {showCreateDim ? (
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
@@ -737,22 +687,8 @@ export const ThemeAuthoringScreen = forwardRef<
         ) : (
           <button
             onClick={() => openCreateDim()}
-            className="flex w-full items-center gap-1.5 rounded border border-dashed border-[var(--color-figma-border)] px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="flex w-full items-center justify-center rounded border border-dashed border-[var(--color-figma-border)] px-3 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="3" y="3" width="18" height="6" rx="1.5" />
-              <rect x="3" y="12" width="18" height="6" rx="1.5" opacity="0.5" />
-            </svg>
             Add theme family
           </button>
         )}

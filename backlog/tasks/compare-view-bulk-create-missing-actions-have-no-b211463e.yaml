@@ -1,0 +1,21 @@
+id: compare-view-bulk-create-missing-actions-have-no-b211463e
+title: Compare-view bulk 'create missing' actions have no confirmation, no undo, ephemeral feedback, and in set-diff mode the view stays stale after creation
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/CompareView.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Recovery principle violated: every other batch write surface (batch edit, move, copy, rename, delete, import, Figma variable save) registers undo. Compare bulk create is the sole exception. Task-load principle violated in SetDiffMode: after creation the diff view is stale (flatA/flatB fetched in useEffect with deps [setA, serverUrl] — neither changes after onTokensCreated), so the user cannot verify the action succeeded, and clicking the button again silently re-creates with strategy 'overwrite'. Feedback principle violated: success message auto-dismisses after 3 seconds with no persistent state change visible."
+state: ready
+acceptance_criteria:
+  - Bulk 'create missing' in all compare modes (cross-theme, theme-options, set-diff) shows a confirmation step with token count and target set before executing
+  - Successful bulk creation registers an undo slot consistent with every other batch write surface in the plugin
+  - SetDiffMode re-fetches diff data after bulk creation so the view reflects the new state and missing rows disappear
+  - Failure feedback identifies which tokens failed instead of showing only 'Failed'
+source: ux-pass
+created_at: 2026-04-13T06:38:53.954Z
+updated_at: 2026-04-13T06:38:53.954Z
+execution_domain: ui_ux

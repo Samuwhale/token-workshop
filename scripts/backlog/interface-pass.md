@@ -31,86 +31,6 @@ This pass is about whether users can **find and parse** the interface, not wheth
 
 Default to **whole-screen cleanup** over local polish. If a surface is structurally noisy, file the broader cleanup item instead of a list of smaller rename, spacing, or badge tweaks.
 
----
-
-## You Are Not The Other Passes
-
-- **You are NOT `product-pass`.** Missing capabilities, merged/removed surfaces, surface ownership changes, and larger workflow-model changes belong there.
-- **You are NOT `ux-pass`.** Task-flow breakdowns, handoff failures, progress feedback, and recovery issues inside a realistic task belong there.
-- **You are NOT `code-pass`.** Code-health or maintainability cleanup belongs there.
-
-Use these tie-breakers:
-
-- **Belongs here:** “The current navigation, labels, and grouping make it hard to tell where token authoring ends and preview/inspection begins.”
-- **Not here:** “These two surfaces should be merged into one canonical workflow owner.” That belongs to `product-pass`.
-- **Belongs here:** “A surface exposes too many equal-weight controls and status treatments, making the primary action hard to spot.”
-- **Not here:** “Users lose context after saving and cannot continue the task.” That belongs to `ux-pass`.
-
-When a screen is cluttered in several related ways, treat that as one interface problem. Do not split it into several small findings unless the fixes are truly independent.
-
----
-
-## Composition Guardrails
-
-- Never recommend eyebrow text, overlines, or decorative pre-heading labels.
-- Treat extra wrappers, nested cards, pills, badges, helper paragraphs, dividers, and secondary controls as suspect until they prove clear value.
-- Prefer simpler surfaces, clearer grouping, and stronger hierarchy over more explanatory chrome.
-- Favor labels users can parse quickly over internal or overloaded terminology.
-- Prefer progressive disclosure to dumping all controls at once.
-- Do not file microcopy-only or single-control tweaks when the surrounding screen still has a broader hierarchy or clutter problem.
-- Treat badge, chip, helper-text, and status-pill proliferation as a simplification signal. The likely fix is to remove or consolidate the surrounding screen chrome, not to rename each piece one by one.
-- Prefer one consolidated screen cleanup item over several narrow findings about the same surface.
-
----
-
-## Target Areas
-
-Pick **1–2 target surfaces per session** from areas like:
-
-- App-level navigation and panel structure
-- Token list chrome and information density
-- Editor layout and section hierarchy
-- Compare / publish / sync surfaces
-- Settings, maintenance, and advanced tool grouping
-- Empty states, shell summaries, and summary bars
-- Surface-level terminology and category models
-
----
-
-## Evaluation Method
-
-Inspect each surface through these lenses:
-
-1. **Findability** — can users identify where to go for a given kind of work?
-2. **Hierarchy** — is the primary action or information visually and structurally obvious?
-3. **Recognition over recall** — does the interface show needed context, or force users to remember it from elsewhere?
-4. **Consistency** — do similar concepts and controls read the same way across surfaces?
-5. **Minimalism** — is the interface carrying unnecessary chrome or explanation that weakens the signal?
-6. **Progressive disclosure** — is complexity staged, or dumped all at once?
-
----
-
-## Quality Bar
-
-Only write an item if it passes **all** of these checks:
-
-- **Durable** — still worth doing next week.
-- **Interface-level** — about findability, hierarchy, labels, grouping, or chrome discipline.
-- **Verified** — confirmed by reading real components and rendered structure in code.
-- **Non-redundant** — not already on the backlog.
-- **Consolidated** — related clutter/hierarchy issues merged into one item.
-- **Ownable** — one agent can implement it coherently.
-- **Specific** — the current clarity problem and completed state are clear.
-
-Additional bar for this pass:
-
-- The acceptance criteria should describe a calmer, more legible completed surface with clearer hierarchy or simpler disclosure.
-- Reject items whose completed state is only a renamed label, moved button, or one-off badge adjustment if the surface would still read as cluttered afterward.
-
-If nothing clears this bar, write 0 items.
-
----
-
 ## Workflow
 
 1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `interface-pass:` entries. Read the injected backlog digest. Choose a small number of surfaces to inspect deeply.
@@ -122,15 +42,16 @@ If nothing clears this bar, write 0 items.
 4. **Write findings** — for each item that clears the bar, append one JSON object per line to `backlog/inbox.jsonl`:
 
 ```json
-{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Include the violated interface principle here","source":"interface-pass"}
+{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"execution_domain":"ui_ux","validation_profile":"optional","capabilities":["optional"],"context":"Include the violated interface principle here","source":"interface-pass"}
 ```
 
 Rules:
+
 - `touch_paths` must name the real implementation surfaces.
 - `context` should identify the violated interface principle, such as hierarchy, findability, recognition over recall, consistency, or minimalism.
 - Titles and acceptance criteria should reference the affected screen or surface explicitly, not just one local widget inside it.
 
-5. **Document** — append to `scripts/backlog/progress.txt`:
+1. **Document** — append to `scripts/backlog/progress.txt`:
 
 ```text
 ## YYYY-MM-DD - interface-pass

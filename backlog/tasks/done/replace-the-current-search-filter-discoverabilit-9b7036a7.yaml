@@ -13,3 +13,4 @@ acceptance_criteria:
 source: manual
 created_at: 2026-04-08T20:14:30.289Z
 updated_at: 2026-04-08T20:14:30.289Z
+execution_domain: code_logic

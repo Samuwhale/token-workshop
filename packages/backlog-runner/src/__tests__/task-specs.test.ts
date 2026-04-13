@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { normalizeTaskSpecStore, readTaskSpecs, renderGeneratedBacklog, writeTaskSpec } from '../task-specs.js';
+import { inferExecutionDomain, normalizeTaskSpecStore, readTaskSpecs, renderGeneratedBacklog, writeTaskSpec } from '../task-specs.js';
 import type { BacklogTaskSpec } from '../types.js';
 
 const tempDirs: string[] = [];
@@ -13,6 +13,7 @@ function renderTaskYaml(task: BacklogTaskSpec): string {
     `title: ${task.title}`,
     `priority: ${task.priority}`,
     `task_kind: ${task.taskKind}`,
+    ...(task.taskKind === 'implementation' ? [`execution_domain: ${task.executionDomain}`] : []),
     'depends_on:',
     ...task.dependsOn.map(value => `  - ${value}`),
     'touch_paths:',
@@ -38,6 +39,7 @@ function taskSpec(overrides: Partial<BacklogTaskSpec> & Pick<BacklogTaskSpec, 'i
     title: overrides.title,
     priority: overrides.priority ?? 'normal',
     taskKind: overrides.taskKind ?? 'implementation',
+    executionDomain: overrides.taskKind === 'research' ? undefined : overrides.executionDomain ?? 'code_logic',
     dependsOn: overrides.dependsOn ?? [],
     touchPaths: overrides.touchPaths ?? ['feature.txt'],
     capabilities: overrides.capabilities ?? [],
@@ -188,5 +190,21 @@ describe('task specs', () => {
 
     expect((await readdir(taskDir)).filter(name => name.endsWith('.yaml'))).toEqual([]);
     expect((await readdir(path.join(taskDir, 'done'))).filter(name => name.endsWith('.yaml'))).toEqual(['task-a.yaml']);
+  });
+
+  it('infers ui_ux for implementation work confined to plugin ui surfaces', () => {
+    expect(inferExecutionDomain(
+      'implementation',
+      'manual',
+      ['packages/figma-plugin/src/ui/components/TokenList.tsx'],
+    )).toBe('ui_ux');
+  });
+
+  it('defaults ambiguous implementation work to code_logic', () => {
+    expect(inferExecutionDomain(
+      'implementation',
+      'manual',
+      ['packages/figma-plugin/src/ui/components/TokenList.tsx', 'packages/server/src/routes/tokens.ts'],
+    )).toBe('code_logic');
   });
 });

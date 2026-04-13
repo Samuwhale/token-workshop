@@ -238,6 +238,7 @@ ID: ${claim.task.id}
 Title: ${claim.task.title}
 Priority: ${claim.task.priority}
 Task kind: ${claim.task.taskKind}
+Execution domain: ${claim.task.executionDomain ?? 'n/a'}
 Validation profile: ${claim.task.validationProfile}
 
 Declared touch_paths (intended starting surface):
@@ -269,7 +270,7 @@ If this work reveals another backlog item or context that a later run should kee
 ${path.posix.normalize(path.relative(cwd, config.files.candidateQueue).split(path.sep).join('/'))}
 
 Schema:
-{"title":"Standalone backlog item title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context for the future run","source":"task-followup"}
+{"title":"Standalone backlog item title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"execution_domain":"ui_ux|code_logic","validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context for the future run","source":"task-followup"}
 
 ## Stop Rules
 - Do not modify backlog.md directly; it is generated from backlog/tasks.

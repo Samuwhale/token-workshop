@@ -1,14 +1,29 @@
 # TokenManager
 
-## Repository Rules
+## Development Status
 
-- Write clean code that is easy to read, maintain, and modify by LLMs and agents.
-- Do not take shortcuts or ship hacks.
-- This repo is in active development. Favor the simplest clean design over compatibility.
-- Do not keep backwards-compatible layers, shims, re-exports, or migration scaffolding.
-- Do not keep dead code, legacy code, or unused files around.
-- Prefer direct replacements over parallel old/new implementations.
+This project is in **rapid, active development** and has not shipped to any users. There is no existing userbase to consider.
+
+- Write clean code that is easy for future agents to read, modify, and maintain.
+- Backwards compatibility is NOT required
+- Legacy code patterns are NOT required — remove or replace them freely
+- Dead code is NOT required — delete it instead of leaving it behind
+- Breaking changes are welcome and expected
+- Design and implementation decisions should optimize for correctness and quality, not migration paths
+- Do not add shims, re-exports, deprecation warnings, or compatibility layers
+- Do not write hacks or shortcut implementations
+
 ## Tests
 
-- Do NOT write, expand, or refactor tests unless explicitly asked.
-- When tests are needed: test behavior not internals, parameterize with `test.each()`, skip trivial logic.
+- Do NOT write, expand, or refactor tests unless explicitly asked
+- When tests are needed: test behavior not internals, parameterize with `test.each()`, skip trivial logic
+
+## UI Guidance
+
+- Never use eyebrow text, overlines, or similar pre-heading label treatments
+- Be extremely wary of chrome and UI clutter, especially in the plugin interface
+- The plugin is run in small windows within figma, so space is constrained.
+- Remove or avoid any decorative controls, wrappers, labels, or helper surfaces that do not materially improve comprehension or task flow
+- Prefer fewer visible elements, clearer hierarchy, and more whitespace over dense control-heavy layouts
+- Do not add informational pills, chips, or badges just to restate nearby content
+- Only use pills or badges when they carry meaningful status, filtering, or interaction value that would otherwise be unclear

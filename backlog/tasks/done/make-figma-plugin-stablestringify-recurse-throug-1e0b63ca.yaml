@@ -17,3 +17,4 @@ acceptance_criteria:
 source: task-followup
 created_at: 2026-04-10T21:30:09.180Z
 updated_at: 2026-04-10T21:32:31.252Z
+execution_domain: ui_ux

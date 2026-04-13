@@ -106,6 +106,7 @@ function renderStatus(writer: CliWriter, status: BacklogRunnerStatus, verbose: b
   writeLine(writer, `  Backlog report: ${status.files.backlog}`);
   writeLine(writer, `  Runtime report: ${status.files.runtimeReport}`);
   writeLine(writer, `  Candidate queue: ${status.files.candidateQueue}`);
+  writeLine(writer, `  Candidate rejects: ${status.files.candidateRejectLog}`);
 
   if (!verbose) {
     return;

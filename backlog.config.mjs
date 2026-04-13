@@ -3,6 +3,7 @@ export default {
   files: {
     backlog: './backlog.md',
     candidateQueue: './backlog/inbox.jsonl',
+    candidateRejectLog: './.backlog-runner/candidate-rejections.jsonl',
     taskSpecsDir: './backlog/tasks',
     stop: './backlog-stop',
     runtimeReport: './.backlog-runner/runtime-report.md',
@@ -30,7 +31,11 @@ export default {
     backlog: 'pnpm --filter @tokenmanager/backlog-runner exec vitest run',
   },
   runners: {
-    task: {
+    taskUi: {
+      tool: 'claude',
+      model: 'claude-opus-4-6',
+    },
+    taskCode: {
       tool: 'codex',
       model: 'gpt-5.4',
     },
@@ -40,11 +45,11 @@ export default {
     },
     product: {
       tool: 'claude',
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
     },
     interface: {
       tool: 'claude',
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
     },
     ux: {
       tool: 'claude',

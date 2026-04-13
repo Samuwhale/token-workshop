@@ -19,3 +19,4 @@ acceptance_criteria:
 source: code-pass
 created_at: 2026-04-12T20:42:36.862Z
 updated_at: 2026-04-12T22:24:48.701Z
+execution_domain: code_logic

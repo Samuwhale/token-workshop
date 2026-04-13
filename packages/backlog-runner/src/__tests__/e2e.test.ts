@@ -43,6 +43,7 @@ function createFakeCommandRunner(
   } = {},
 ): CommandRunner {
   const stagedFiles = new Set(options.initialStagedFiles ?? []);
+  let dirtyFiles = [...(options.changedFiles ?? ['feature.txt'])];
   let remainingPushFailures = options.failPushCount ?? 0;
   const validationResponses = [...(options.validationResponses ?? [true])];
   const validationResults = [...(options.validationResults ?? [])];
@@ -69,6 +70,9 @@ function createFakeCommandRunner(
           priority: 'normal',
           touch_paths: ['backlog/inbox.jsonl', 'scripts/backlog/progress.txt'],
           acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
+          execution_domain: null,
+          validation_profile: null,
+          capabilities: null,
           context: 'Inspect the test item surface and emit concrete implementation follow-ups.',
         }],
         ...(options.plannerOutput ?? {}),
@@ -91,15 +95,19 @@ function createFakeCommandRunner(
         }
         await options.onAgentInput?.(runOptions?.input);
         const isRepairPrompt = runOptions?.input?.includes('## Workspace Repair Mode') || runOptions?.input?.includes('## Reconciliation Mode');
+        const isPlannerPrompt = runOptions?.input?.includes('planner prompt');
         if (isRepairPrompt && options.clearStagedFilesOnRepair) {
           stagedFiles.clear();
         }
+        dirtyFiles = isPlannerPrompt ? [] : [...(options.changedFiles ?? ['feature.txt'])];
 
-        await writeFile(
-          path.join(root, 'scripts/backlog/progress.txt'),
-          '# Backlog Progress Log\nStarted: today\n---\n## run\nbody\n---\n',
-          'utf8',
-        );
+        if (!isPlannerPrompt) {
+          await writeFile(
+            path.join(root, 'scripts/backlog/progress.txt'),
+            '# Backlog Progress Log\nStarted: today\n---\n## run\nbody\n---\n',
+            'utf8',
+          );
+        }
 
         const payload = buildAgentPayload(runOptions?.input);
         if (command === 'codex') {
@@ -140,7 +148,7 @@ function createFakeCommandRunner(
 
       if (command === 'git') {
         if (args[0] === 'status') {
-          const files = options.statusResponses?.shift() ?? options.changedFiles ?? ['feature.txt'];
+          const files = options.statusResponses?.shift() ?? dirtyFiles;
           return {
             code: 0,
             stdout: files.map(file => ` M ${file}`).join('\n'),
@@ -244,7 +252,8 @@ async function makeFixture(tasks: BacklogTaskSpec[]) {
         backlog: 'bash scripts/backlog/validate.sh',
       },
       runners: {
-        task: { tool: 'claude', model: 'default' },
+        taskUi: { tool: 'claude', model: 'default' },
+        taskCode: { tool: 'codex', model: 'default' },
         planner: { tool: 'claude', model: 'sonnet' },
         product: { tool: 'claude', model: 'sonnet' },
         interface: { tool: 'claude', model: 'sonnet' },
@@ -272,6 +281,7 @@ function baseTask(overrides: Partial<BacklogTaskSpec> = {}): BacklogTaskSpec {
     title: overrides.title ?? 'test item',
     priority: overrides.priority ?? 'normal',
     taskKind: overrides.taskKind ?? 'implementation',
+    executionDomain: overrides.taskKind === 'research' ? undefined : overrides.executionDomain ?? 'code_logic',
     dependsOn: overrides.dependsOn ?? [],
     touchPaths: overrides.touchPaths ?? ['feature.txt'],
     capabilities: overrides.capabilities ?? [],
@@ -350,6 +360,7 @@ describe('runner e2e', () => {
     const logSink = new MemoryLogSink();
     const calls: string[] = [];
     const events: string[] = [];
+    let sleepCalls = 0;
 
     await runBacklogRunner(
       config,
@@ -364,7 +375,12 @@ describe('runner e2e', () => {
           },
         }),
         createLogSink: async () => logSink,
-        sleep: async () => undefined,
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 1) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
       },
     );
 
@@ -378,7 +394,7 @@ describe('runner e2e', () => {
 
   it('writes Codex transcripts and surfaces live task progress before final completion', async () => {
     const { root, config } = await makeFixture([baseTask()]);
-    config.runners.task = { tool: 'codex', model: 'default' };
+    config.runners.taskCode = { tool: 'codex', model: 'default' };
     let runtimeReportAtCommit = '';
 
     await runBacklogRunner(
@@ -448,6 +464,9 @@ describe('runner e2e', () => {
             ['feature.txt'],
             ['feature.txt'],
           ],
+          onGitCommit: async () => {
+            await stopAfterFirstSleep(config.files.stop);
+          },
           validationResults: [
             {
               code: 1,
@@ -757,6 +776,7 @@ describe('runner e2e', () => {
       'title: archived test item',
       'priority: normal',
       'task_kind: implementation',
+      'execution_domain: code_logic',
       'depends_on:',
       'touch_paths:',
       '  - feature.txt',
@@ -804,9 +824,13 @@ describe('runner e2e', () => {
         commandRunner: createFakeCommandRunner(root, {
           statusResponses: [
             [],
-            ['scripts/backlog/progress.txt'],
-            ['scripts/backlog/progress.txt'],
+            [],
           ],
+          onAgentInput: async (input) => {
+            if (input?.includes('planner prompt')) {
+              await stopAfterFirstSleep(config.files.stop);
+            }
+          },
         }),
         createLogSink: async () => logSink,
         sleep: async () => undefined,
@@ -844,6 +868,7 @@ describe('runner e2e', () => {
               priority: 'normal',
               touch_paths: ['feature.txt'],
               acceptance_criteria: ['Recover failed task'],
+              execution_domain: 'code_logic',
               validation_profile: 'repo',
               capabilities: null,
               context: 'Retry the failed item.',
@@ -894,6 +919,9 @@ describe('runner e2e', () => {
               priority: 'normal',
               touch_paths: ['backlog/inbox.jsonl', 'scripts/backlog/progress.txt'],
               acceptance_criteria: ['Concrete follow-up implementation tasks are written to backlog/inbox.jsonl'],
+              execution_domain: null,
+              validation_profile: null,
+              capabilities: null,
               context: 'Inspect the planned task surface and emit concrete implementation follow-ups.',
             }],
           },
@@ -946,6 +974,7 @@ describe('runner e2e', () => {
               priority: 'normal',
               touch_paths: ['feature-failed.txt'],
               acceptance_criteria: ['Recover the failed task'],
+              execution_domain: 'code_logic',
               validation_profile: 'repo',
               capabilities: null,
               context: 'Retry the failed task without losing urgency.',
@@ -964,7 +993,7 @@ describe('runner e2e', () => {
     expect(await readFile(path.join(root, 'backlog/tasks', 'task-failed.yaml'), 'utf8')).toContain('state: superseded');
   });
 
-  it('uses the task runner for execution and the planner runner for refinement', async () => {
+  it('uses the taskCode runner for code execution and the planner runner for refinement', async () => {
     const { config, root } = await makeFixture([
       baseTask({ id: 'task-ready', title: 'Ready task', touchPaths: ['feature.txt'] }),
       baseTask({
@@ -975,9 +1004,10 @@ describe('runner e2e', () => {
         statusNotes: ['Imported from legacy backlog.md.', 'Planner could not infer touch_paths from the title; refine this task before execution.'],
       }),
     ]);
-    config.runners.task = { tool: 'claude', model: 'default' };
+    config.runners.taskCode = { tool: 'claude', model: 'default' };
     config.runners.planner = { tool: 'codex', model: 'default' };
     const calls: string[] = [];
+    let sleepCalls = 0;
 
     await runBacklogRunner(
       config,
@@ -988,13 +1018,54 @@ describe('runner e2e', () => {
           statusResponses: [['feature.txt']],
         }),
         createLogSink: async () => new MemoryLogSink(),
-        sleep: async () => undefined,
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 1) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
       },
     );
 
     expect(calls.some(call => call.includes('planner prompt'))).toBe(true);
     expect(calls.some(call => call.startsWith('run:codex exec'))).toBe(true);
     expect(calls.some(call => call.startsWith('run:claude --dangerously-skip-permissions'))).toBe(true);
+  });
+
+  it('uses the taskUi runner for ui execution', async () => {
+    const { config, root } = await makeFixture([
+      baseTask({
+        id: 'task-ui',
+        title: 'UI task',
+        executionDomain: 'ui_ux',
+        touchPaths: ['packages/figma-plugin/src/ui/components/TokenList.tsx'],
+      }),
+    ]);
+    config.runners.taskUi = { tool: 'claude', model: 'default' };
+    config.runners.taskCode = { tool: 'codex', model: 'default' };
+    const calls: string[] = [];
+    let sleepCalls = 0;
+
+    await runBacklogRunner(
+      config,
+      {},
+      {
+        commandRunner: createFakeCommandRunner(root, {
+          calls,
+          statusResponses: [['packages/figma-plugin/src/ui/components/TokenList.tsx']],
+        }),
+        createLogSink: async () => new MemoryLogSink(),
+        sleep: async () => {
+          sleepCalls += 1;
+          if (sleepCalls === 1) {
+            await stopAfterFirstSleep(config.files.stop);
+          }
+        },
+      },
+    );
+
+    expect(calls.some(call => call.startsWith('run:claude --dangerously-skip-permissions'))).toBe(true);
+    expect(calls.some(call => call.startsWith('run:codex exec'))).toBe(false);
   });
 
   it('uses each discovery pass runner configuration independently', async () => {

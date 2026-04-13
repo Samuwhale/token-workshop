@@ -6,10 +6,10 @@ import { RuntimeStateStore } from '../runtime-state.js';
 import { normalizeWhitespace } from '../utils.js';
 import {
   createTaskFromPlannerChild,
-  createTaskFromCandidate,
+  createTaskFromCandidateDetailed,
   normalizeRepoPath,
   normalizeTaskSpecStore,
-  parseCandidateRecord,
+  parseCandidateRecordDetailed,
   readTaskSpecs,
   renderGeneratedBacklog,
   taskPriorityRank,
@@ -47,6 +47,25 @@ type RuntimeSnapshot = {
   counts: BacklogQueueCounts;
 };
 
+type CandidateRejectLogEntry = {
+  recorded_at: string;
+  stage: 'parse' | 'materialize' | 'duplicate';
+  reason: string;
+  raw_line: string;
+  candidate?: {
+    title: string;
+    priority: string;
+    touch_paths: string[];
+    acceptance_criteria: string[];
+    validation_profile?: string;
+    execution_domain?: string;
+    capabilities?: string[];
+    context?: string;
+    source: string;
+  };
+  task_id?: string;
+};
+
 function plannerCandidateSort(a: BacklogTaskSpec, b: BacklogTaskSpec): number {
   const stateRank = (task: BacklogTaskSpec): number => (task.state === 'failed' ? 0 : 1);
   return stateRank(a) - stateRank(b) || taskSort(a, b);
@@ -64,6 +83,14 @@ async function atomicWrite(filePath: string, content: string): Promise<void> {
   const tempFile = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
   await writeFile(tempFile, content, 'utf8');
   await rename(tempFile, filePath);
+}
+
+async function appendCandidateRejectLog(filePath: string, entries: CandidateRejectLogEntry[]): Promise<void> {
+  if (entries.length === 0) {
+    return;
+  }
+  const payload = entries.map(entry => `${JSON.stringify(entry)}\n`).join('');
+  await appendFile(filePath, payload, 'utf8');
 }
 
 function reservationConflict(task: BacklogTaskSpec, reservation: TaskReservationSnapshot): boolean {
@@ -535,31 +562,76 @@ export class FileBackedTaskStore implements BacklogStore {
       try {
         queueContent = await readFile(this.config.files.candidateQueue, 'utf8');
       } catch {
-        return { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0 };
+        return { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0, loggedRejects: 0 };
       }
 
       if (!/\S/.test(queueContent)) {
-        return { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0 };
+        return { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0, loggedRejects: 0 };
       }
 
       const tasks = await this.loadTasks();
       let createdTasks = 0;
       let skippedDuplicates = 0;
       let ignoredInvalidLines = 0;
+      const rejectedEntries: CandidateRejectLogEntry[] = [];
+      const recordedAt = new Date().toISOString();
 
       for (const line of splitLines(queueContent).map(value => value.trim()).filter(Boolean)) {
-        const candidate = parseCandidateRecord(line);
-        if (!candidate) {
+        const parsed = parseCandidateRecordDetailed(line);
+        if (!parsed.ok) {
           ignoredInvalidLines += 1;
+          rejectedEntries.push({
+            recorded_at: recordedAt,
+            stage: 'parse',
+            reason: parsed.reason,
+            raw_line: line,
+          });
           continue;
         }
-        const task = createTaskFromCandidate(candidate, this.config.validationProfiles);
-        if (!task) {
+        const candidate = parsed.candidate;
+        const materialized = createTaskFromCandidateDetailed(candidate, this.config.validationProfiles);
+        if (!materialized.ok) {
           ignoredInvalidLines += 1;
+          rejectedEntries.push({
+            recorded_at: recordedAt,
+            stage: 'materialize',
+            reason: materialized.reason,
+            raw_line: line,
+            candidate: {
+              title: candidate.title,
+              priority: candidate.priority,
+              touch_paths: candidate.touchPaths,
+              acceptance_criteria: candidate.acceptanceCriteria,
+              validation_profile: candidate.validationProfile,
+              execution_domain: candidate.executionDomain,
+              capabilities: candidate.capabilities,
+              context: candidate.context,
+              source: candidate.source,
+            },
+          });
           continue;
         }
+        const task = materialized.task;
         if (this.taskExists(tasks, task)) {
           skippedDuplicates += 1;
+          rejectedEntries.push({
+            recorded_at: recordedAt,
+            stage: 'duplicate',
+            reason: `task "${task.id}" already exists`,
+            raw_line: line,
+            candidate: {
+              title: candidate.title,
+              priority: candidate.priority,
+              touch_paths: candidate.touchPaths,
+              acceptance_criteria: candidate.acceptanceCriteria,
+              validation_profile: candidate.validationProfile,
+              execution_domain: candidate.executionDomain,
+              capabilities: candidate.capabilities,
+              context: candidate.context,
+              source: candidate.source,
+            },
+            task_id: task.id,
+          });
           continue;
         }
         tasks.push(task);
@@ -567,9 +639,16 @@ export class FileBackedTaskStore implements BacklogStore {
         createdTasks += 1;
       }
 
+      await appendCandidateRejectLog(this.config.files.candidateRejectLog, rejectedEntries);
       await atomicWrite(this.config.files.candidateQueue, '');
       await this.refreshEverything(tasks.sort(taskSort));
-      return { drained: true, createdTasks, skippedDuplicates, ignoredInvalidLines };
+      return {
+        drained: true,
+        createdTasks,
+        skippedDuplicates,
+        ignoredInvalidLines,
+        loggedRejects: rejectedEntries.length,
+      };
     });
   }
 

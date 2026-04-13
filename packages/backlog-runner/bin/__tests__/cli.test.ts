@@ -45,7 +45,8 @@ function makeConfig(root: string): BacklogRunnerConfig {
       },
       validationCommand: 'bash scripts/backlog/validate.sh',
       runners: {
-        task: { tool: 'codex', model: 'default' },
+        taskUi: { tool: 'claude', model: 'opus' },
+        taskCode: { tool: 'codex', model: 'default' },
         planner: { tool: 'codex', model: 'default' },
         product: { tool: 'codex', model: 'default' },
         interface: { tool: 'claude', model: 'sonnet' },
@@ -77,6 +78,7 @@ function makeStatus(overrides: Partial<BacklogRunnerStatus> = {}): BacklogRunner
       backlog: '/tmp/backlog.md',
       runtimeReport: '/tmp/runtime-report.md',
       candidateQueue: '/tmp/inbox.jsonl',
+      candidateRejectLog: '/tmp/candidate-rejections.jsonl',
     },
     sections: {
       activeLeases: ['- Task A (task-a)'],
@@ -125,7 +127,7 @@ describe('cli', () => {
     const config = makeConfig(root);
     const loadConfig = vi.fn(async () => config);
     const syncBacklogRunner = vi.fn(async () => ({
-      candidates: { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0 },
+      candidates: { drained: false, createdTasks: 0, skippedDuplicates: 0, ignoredInvalidLines: 0, loggedRejects: 0 },
       counts: { ready: 0, blocked: 0, planned: 0, inProgress: 0, failed: 0, done: 0 },
     }));
 

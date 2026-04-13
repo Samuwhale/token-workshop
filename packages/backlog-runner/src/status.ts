@@ -12,6 +12,7 @@ export interface BacklogRunnerStatus {
     backlog: string;
     runtimeReport: string;
     candidateQueue: string;
+    candidateRejectLog: string;
   };
   sections: {
     activeLeases: string[];
@@ -69,6 +70,7 @@ export async function readBacklogRunnerStatus(config: BacklogRunnerConfig): Prom
         backlog: config.files.backlog,
         runtimeReport: config.files.runtimeReport,
         candidateQueue: config.files.candidateQueue,
+        candidateRejectLog: config.files.candidateRejectLog,
       },
       sections: {
         activeLeases: readMarkdownSection(runtimeReport, 'Active Leases'),

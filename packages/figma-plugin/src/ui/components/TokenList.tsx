@@ -40,8 +40,6 @@ import {
   buildZoomBranchNavigation,
   QUERY_QUALIFIERS,
   replaceQueryToken,
-  getStructuredFilterDiscoveryTemplates,
-  isStructuredFilterDiscoveryQuery,
 } from "./tokenListUtils";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
@@ -96,12 +94,7 @@ import {
   RelocateTokenReviewPanel,
 } from "./ContextualReviewPanel";
 import { TokenListOverflowMenu } from "./TokenListOverflowMenu";
-import {
-  TokenSearchDiscovery,
-  TokenSearchFilterChips,
-} from "./TokenSearchFilterBuilder";
 import type { FilterBuilderSection } from "./TokenSearchFilterBuilder";
-import type { TokenSearchDiscoveryAction } from "./TokenSearchFilterBuilder";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { InlineBanner } from "./InlineBanner";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
@@ -363,10 +356,6 @@ export function TokenList({
   const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
   const [applying, setApplying] = useState(false);
-  const [applyResult, setApplyResult] = useState<{
-    type: "variables" | "styles";
-    count: number;
-  } | null>(null);
   const [varDiffPending, setVarDiffPending] = useState<{
     added: number;
     modified: number;
@@ -398,9 +387,7 @@ export function TokenList({
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState("");
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
-  const [filterBuilderOpen, setFilterBuilderOpen] = useState(false);
-  const [activeFilterBuilderSection, setActiveFilterBuilderSection] =
-    useState<FilterBuilderSection | null>(null);
+  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
   const [createToolsMenuOpen, setCreateToolsMenuOpen] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] =
     useState<BulkEditScope | null>(null);
@@ -488,6 +475,7 @@ export function TokenList({
   const createToolsMenuContainerRef = useRef<HTMLDivElement>(null);
   const createToolsMenuButtonRef = useRef<HTMLButtonElement>(null);
   const createToolsMenuRef = useRef<HTMLDivElement>(null);
+  const filterPopoverRef = useRef<HTMLDivElement>(null);
   const batchEditorPanelRef = useRef<HTMLDivElement>(null);
   const virtualListRef = useRef<HTMLDivElement>(null);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
@@ -559,6 +547,22 @@ export function TokenList({
     };
   }, [createToolsMenuOpen]);
 
+  useEffect(() => {
+    if (!filterPopoverOpen) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (filterPopoverRef.current?.contains(event.target as Node)) return;
+      setFilterPopoverOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFilterPopoverOpen(false);
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [filterPopoverOpen]);
 
   // Sort order — persisted in localStorage per-set so each set remembers its own order
   const [sortOrder, setSortOrderState] = useState<SortOrder>("default");
@@ -1291,24 +1295,15 @@ export function TokenList({
     setTypeFilter,
     setRefFilter,
     setShowDuplicates,
-    toggleQueryQualifierValue,
     addQueryQualifierValue,
-    removeQueryQualifierValue,
-    clearQueryQualifier,
-    replaceActiveQueryWithQualifierValue,
     removeQueryToken,
     filtersActive,
     activeFilterCount,
     duplicateValuePaths,
     duplicateCounts,
     availableTypes,
-    qualifierTypeOptions,
-    generatorNames,
     qualifierHints,
     activeQueryToken,
-    parsedSearchQuery,
-    selectedTypeQualifiers,
-    selectedHasQualifiers,
     structuredFilterChips,
     searchHighlight,
     searchTooltip,
@@ -1474,183 +1469,14 @@ export function TokenList({
     };
   }, [activeFilterSummary, searchQuery, setName]);
 
-  const getPreferredFilterBuilderSection =
-    useCallback((): FilterBuilderSection => {
-      if (parsedSearchQuery.types.length > 0) return "type";
-      if (selectedHasQualifiers.length > 0) return "has";
-      if (parsedSearchQuery.paths.length > 0) return "path";
-      if (parsedSearchQuery.names.length > 0) return "name";
-      if (parsedSearchQuery.values.length > 0) return "value";
-      if (parsedSearchQuery.descs.length > 0) return "desc";
-      if (parsedSearchQuery.generators.length > 0) return "generator";
-      return "type";
-    }, [parsedSearchQuery, selectedHasQualifiers.length]);
-
-  const openFilterBuilderSection = useCallback(
-    (section: FilterBuilderSection) => {
-      setFilterBuilderOpen(true);
-      setActiveFilterBuilderSection(section);
+  const insertSearchQualifier = useCallback(
+    (qualifier: string) => {
+      const trimmed = searchQuery.trimEnd();
+      setSearchQuery(trimmed ? `${trimmed} ${qualifier}:` : `${qualifier}:`);
+      requestAnimationFrame(() => searchRef.current?.focus());
     },
-    [],
+    [searchQuery, setSearchQuery],
   );
-
-  const toggleFilterBuilder = useCallback(() => {
-    setFilterBuilderOpen((open) => {
-      const next = !open;
-      if (next) {
-        setActiveFilterBuilderSection(
-          (current) => current ?? getPreferredFilterBuilderSection(),
-        );
-      }
-      return next;
-    });
-  }, [getPreferredFilterBuilderSection]);
-
-  useEffect(() => {
-    if (!filterBuilderOpen && !hasStructuredFilters) {
-      setActiveFilterBuilderSection(null);
-      return;
-    }
-    if (activeFilterBuilderSection === null) {
-      setActiveFilterBuilderSection(getPreferredFilterBuilderSection());
-    }
-  }, [
-    activeFilterBuilderSection,
-    filterBuilderOpen,
-    getPreferredFilterBuilderSection,
-    hasStructuredFilters,
-  ]);
-
-  const showSearchFilterDiscovery = useMemo(() => {
-    if (filterBuilderOpen) return false;
-    if (!isStructuredFilterDiscoveryQuery(searchQuery)) return false;
-    return !activeQueryToken.token.includes(":");
-  }, [activeQueryToken.token, filterBuilderOpen, searchQuery]);
-
-  const searchFilterDiscoverySuggestions = useMemo<
-    TokenSearchDiscoveryAction[]
-  >(() => {
-    if (!showSearchFilterDiscovery) return [];
-
-    const trimmedQuery = searchQuery.trim();
-    const queryLower = trimmedQuery.toLowerCase();
-    const queryTerms = trimmedQuery.split(/\s+/).filter(Boolean);
-    const canConvertCurrentQuery = queryTerms.length === 1;
-    const suggestions: TokenSearchDiscoveryAction[] = [];
-    const seen = new Set<string>();
-
-    const addSuggestion = (suggestion: TokenSearchDiscoveryAction) => {
-      if (seen.has(suggestion.id)) return;
-      seen.add(suggestion.id);
-      suggestions.push(suggestion);
-    };
-
-    if (trimmedQuery && canConvertCurrentQuery) {
-      addSuggestion({
-        id: `name:${queryLower}`,
-        label: `Name = ${trimmedQuery}`,
-        description: "Replace the current text search with a leaf-name filter.",
-        emphasis: "query",
-        onSelect: () =>
-          replaceActiveQueryWithQualifierValue("name", trimmedQuery),
-      });
-
-      addSuggestion({
-        id: `desc:${queryLower}`,
-        label: `Description = ${trimmedQuery}`,
-        description: "Turn this text into a description-only filter.",
-        emphasis: "query",
-        onSelect: () =>
-          replaceActiveQueryWithQualifierValue("desc", trimmedQuery),
-      });
-
-      if (trimmedQuery.includes(".")) {
-        addSuggestion({
-          id: `path:${queryLower}`,
-          label: `Path = ${trimmedQuery}`,
-          description: "Use the current path fragment as a structured path filter.",
-          emphasis: "query",
-          onSelect: () =>
-            replaceActiveQueryWithQualifierValue("path", trimmedQuery),
-        });
-      }
-
-      const looksLikeValue =
-        /^#[0-9a-fA-F]{3,8}$/.test(trimmedQuery) ||
-        /^\d+(\.\d+)?(px|rem|em|%)?$/.test(trimmedQuery);
-      if (looksLikeValue) {
-        addSuggestion({
-          id: `value:${queryLower}`,
-          label: `Value = ${trimmedQuery}`,
-          description: "Search within serialized token values.",
-          emphasis: "query",
-          onSelect: () =>
-            replaceActiveQueryWithQualifierValue("value", trimmedQuery),
-        });
-      }
-
-      const matchingType =
-        availableTypes.find((type) => type.toLowerCase() === queryLower) ??
-        availableTypes.find((type) => type.toLowerCase().startsWith(queryLower));
-      if (matchingType) {
-        addSuggestion({
-          id: `type:${matchingType.toLowerCase()}`,
-          label: `Type = ${matchingType}`,
-          description: "Replace the current text search with a type qualifier.",
-          emphasis: "query",
-          onSelect: () =>
-            replaceActiveQueryWithQualifierValue("type", matchingType),
-        });
-      }
-
-      const matchingGenerator = generatorNames.find((generatorName) =>
-        generatorName.toLowerCase().startsWith(queryLower),
-      );
-      if (matchingGenerator) {
-        addSuggestion({
-          id: `generator:${matchingGenerator.toLowerCase()}`,
-          label: `Generator = ${matchingGenerator}`,
-          description: "Jump straight to tokens produced by this generator.",
-          emphasis: "query",
-          onSelect: () =>
-            replaceActiveQueryWithQualifierValue("generator", matchingGenerator),
-        });
-      }
-    }
-
-    for (const template of getStructuredFilterDiscoveryTemplates(trimmedQuery)) {
-      addSuggestion({
-        id: template.id,
-        label: template.label,
-        description: template.description,
-        emphasis: template.mode === "toggle-qualifier" ? "query" : "builder",
-        onSelect: () => {
-          if (template.mode === "toggle-qualifier" && template.value) {
-            if (trimmedQuery && canConvertCurrentQuery) {
-              replaceActiveQueryWithQualifierValue(
-                template.qualifier,
-                template.value,
-              );
-            } else {
-              addQueryQualifierValue(template.qualifier, template.value);
-            }
-            return;
-          }
-          openFilterBuilderSection(template.qualifier);
-        },
-      });
-    }
-
-    return suggestions.slice(0, trimmedQuery ? 4 : 6);
-  }, [
-    addQueryQualifierValue,
-    availableTypes,
-    generatorNames,
-    openFilterBuilderSection,
-    replaceActiveQueryWithQualifierValue,
-    searchQuery,
-    showSearchFilterDiscovery,
-  ]);
 
   // Sync displayedLeafNodesRef
   displayedLeafNodesRef.current = displayedLeafNodes;
@@ -1970,6 +1796,14 @@ export function TokenList({
     handleConfirmCopyToken,
     handleChangeCopyTokenTargetSet,
   } = tokenCrud;
+
+  // Convert delete errors to toasts
+  useEffect(() => {
+    if (deleteError) {
+      dispatchToast(`Delete failed: ${deleteError}`, "error");
+      setDeleteError(null);
+    }
+  }, [deleteError, setDeleteError]);
 
   const handleRegenerateGenerator = useCallback(
     async (generatorId: string) => {
@@ -2674,14 +2508,10 @@ export function TokenList({
     setCrossSetSearch(false);
     setInspectMode(false);
     setShowRecentlyTouched(false);
-    setFilterBuilderOpen(false);
-    setActiveFilterBuilderSection(null);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
   }, [
     onToggleIssuesOnly,
-    setActiveFilterBuilderSection,
     setCrossSetSearch,
-    setFilterBuilderOpen,
     setInspectMode,
     setRefFilter,
     setSearchQuery,
@@ -3052,10 +2882,9 @@ export function TokenList({
         },
         "*",
       );
-      setApplyResult({ type: "variables", count: flat.length });
-      setTimeout(() => setApplyResult(null), 3000);
+      dispatchToast(`Applied ${flat.length} variables`, "success");
     },
-    [collectionMap, modeMap, setApplyResult],
+    [collectionMap, modeMap],
   );
 
   const handleApplyVariables = async () => {
@@ -3112,7 +2941,7 @@ export function TokenList({
     const flat = resolveFlat(flattenTokens(tokens));
     try {
       const result = await sendStyleApply("apply-styles", { tokens: flat });
-      setApplyResult({ type: "styles", count: result.count });
+      dispatchToast(`Applied ${result.count} styles`, "success");
       if (result.failures.length > 0) {
         const failedPaths = result.failures.map((f) => f.path).join(", ");
         onError?.(
@@ -3123,7 +2952,6 @@ export function TokenList({
       onError?.(getErrorMessage(err, "Failed to apply styles"));
     } finally {
       setApplying(false);
-      setTimeout(() => setApplyResult(null), 3000);
     }
   };
 
@@ -3979,7 +3807,7 @@ export function TokenList({
       <div className="flex-shrink-0">
         {/* Select mode toolbar */}
         {selectMode && (
-          <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          <div className="flex items-center gap-1.5 px-1.5 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             <input
               type="checkbox"
               checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every((p) => selectedPaths.has(p))}
@@ -4082,113 +3910,103 @@ export function TokenList({
         )}
 
 
-        {/* Navigation back button — appears after alias navigation */}
-        {(navHistoryLength ?? 0) > 0 && !selectMode && (
-          <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <button
-              onClick={onNavigateBack}
-              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-              title="Go back to previous token (Alt+←)"
-              aria-label="Go back to previous token"
-            >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-            {(navHistoryLength ?? 0) > 1 && (
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                ({navHistoryLength})
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Library toolbar keeps creation inline and hides secondary controls until there is content to work with */}
+        {/* Compact toolbar — single row: [back?] [search (filter badge)] [+] [...] */}
         {!selectMode && viewMode === "tree" && (
-          <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <div className="flex flex-wrap items-center gap-2 px-2 py-2">
-              {tokens.length > 0 ? (
-                <div className="min-w-[180px] flex-[999_1_0%]">
-                  <div className="relative">
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 10 10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.2"
-                      className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]"
-                      aria-hidden="true"
-                    >
-                      <circle cx="4" cy="4" r="3" />
-                      <path d="M6.5 6.5L9 9" strokeLinecap="round" />
-                    </svg>
-                    <input
-                      ref={searchRef}
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
+          <div className="flex items-center gap-1 px-1.5 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            {(navHistoryLength ?? 0) > 0 && (
+              <button
+                onClick={onNavigateBack}
+                className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                title={`Go back to previous token (Alt+←)${(navHistoryLength ?? 0) > 1 ? ` — ${navHistoryLength} in history` : ""}`}
+                aria-label="Go back to previous token"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+
+            {tokens.length > 0 ? (
+              <div className="relative flex-1 min-w-0">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]"
+                  aria-hidden="true"
+                >
+                  <circle cx="4" cy="4" r="3" />
+                  <path d="M6.5 6.5L9 9" strokeLinecap="round" />
+                </svg>
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setHintIndex(0);
+                  }}
+                  onFocus={() => {
+                    setShowQualifierHints(true);
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowQualifierHints(false), 150);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      if (searchQuery) {
+                        setSearchQuery("");
                         setHintIndex(0);
-                      }}
-                      onFocus={() => {
-                        setShowQualifierHints(true);
-                      }}
-                      onBlur={() => {
-                        setTimeout(() => setShowQualifierHints(false), 150);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          e.preventDefault();
-                          if (searchQuery) {
-                            setSearchQuery("");
-                            setHintIndex(0);
-                          }
-                          searchRef.current?.blur();
-                          return;
-                        }
-                        if (!showQualifierHints || qualifierHints.length === 0)
-                          return;
-                        if (e.key === "ArrowDown") {
-                          e.preventDefault();
-                          setHintIndex((i) =>
-                            Math.min(i + 1, qualifierHints.length - 1),
-                          );
-                        } else if (e.key === "ArrowUp") {
-                          e.preventDefault();
-                          setHintIndex((i) => Math.max(i - 1, 0));
-                        } else if (
-                          e.key === "Tab" ||
-                          (e.key === "Enter" && qualifierHints.length > 0)
-                        ) {
-                          const hint = qualifierHints[hintIndex];
-                          if (!hint || hint.kind !== "replacement") return;
-                          e.preventDefault();
-                          setSearchQuery(
-                            replaceQueryToken(
-                              searchQuery,
-                              activeQueryToken,
-                              hint.replacement,
-                            ),
-                          );
-                          setHintIndex(0);
-                        }
-                      }}
-                      placeholder="Search names, paths, or descriptions"
-                      title={searchTooltip}
-                      className={`w-full rounded border bg-[var(--color-figma-bg)] py-1.5 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery ? "pr-6" : "pr-2"} ${structuredFilterChips.length > 0 ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
-                    />
+                      }
+                      searchRef.current?.blur();
+                      return;
+                    }
+                    if (!showQualifierHints || qualifierHints.length === 0)
+                      return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setHintIndex((i) =>
+                        Math.min(i + 1, qualifierHints.length - 1),
+                      );
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setHintIndex((i) => Math.max(i - 1, 0));
+                    } else if (
+                      e.key === "Tab" ||
+                      (e.key === "Enter" && qualifierHints.length > 0)
+                    ) {
+                      const hint = qualifierHints[hintIndex];
+                      if (!hint || hint.kind !== "replacement") return;
+                      e.preventDefault();
+                      setSearchQuery(
+                        replaceQueryToken(
+                          searchQuery,
+                          activeQueryToken,
+                          hint.replacement,
+                        ),
+                      );
+                      setHintIndex(0);
+                    }
+                  }}
+                  placeholder="Search names, paths, or descriptions"
+                  title={searchTooltip}
+                  className={`w-full rounded border bg-[var(--color-figma-bg)] py-1 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery || toolbarStateChips.length > 0 ? "pr-12" : "pr-2"} ${structuredFilterChips.length > 0 ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
+                />
+                {/* Active filter/view badge inside search */}
+                {toolbarStateChips.length > 0 && (
+                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setFilterPopoverOpen((v) => !v)}
+                      className="rounded-full bg-[var(--color-figma-accent)]/15 px-1.5 py-0.5 text-[9px] font-medium leading-none text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/25 transition-colors"
+                      title={`${toolbarStateChips.length} active filter${toolbarStateChips.length !== 1 ? "s" : ""} — click to manage`}
+                    >
+                      {toolbarStateChips.length}
+                    </button>
                     {searchQuery && (
                       <button
                         onClick={() => {
@@ -4196,432 +4014,220 @@ export function TokenList({
                           setHintIndex(0);
                           searchRef.current?.focus();
                         }}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                        className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
                         title="Clear search"
                         aria-label="Clear search"
                       >
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M18 6L6 18M6 6l12 12" />
                         </svg>
                       </button>
                     )}
-                    {showQualifierHints &&
-                      activeQueryToken.token.includes(":") &&
-                      qualifierHints.length > 0 && (
-                        <div
-                          ref={qualifierHintsRef}
-                          className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg"
-                        >
-                          {qualifierHints.map((hint, i) => (
-                            <button
-                              key={hint.id}
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                if (hint.kind !== "replacement") return;
-                                setSearchQuery(
-                                  replaceQueryToken(
-                                    searchQuery,
-                                    activeQueryToken,
-                                    hint.replacement,
-                                  ),
-                                );
-                                setHintIndex(0);
-                                searchRef.current?.focus();
-                              }}
-                              className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[10px] ${i === hintIndex ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"} ${hint.kind === "replacement" ? "" : "cursor-default"}`}
-                            >
-                              <span className="font-mono font-semibold text-[var(--color-figma-accent)]">
-                                {hint.label}
-                              </span>
-                              <span className="truncate">{hint.desc}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
                   </div>
-                  <TokenSearchDiscovery
-                    title={searchQuery.trim() ? "Use this query as a filter" : "Start with a filter"}
-                    suggestions={searchFilterDiscoverySuggestions}
-                  />
-                </div>
-              ) : (
-                <div className="flex-[999_1_0%]" />
-              )}
-
-              <div className="flex items-center gap-1.5">
-                <div
-                  className="relative shrink-0"
-                  ref={createToolsMenuContainerRef}
-                >
-                  <button
-                    ref={createToolsMenuButtonRef}
-                    onClick={() => setCreateToolsMenuOpen((open) => !open)}
-                    disabled={!connected}
-                    aria-expanded={createToolsMenuOpen}
-                    aria-haspopup="menu"
-                    className={`inline-flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${createToolsMenuOpen ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"} disabled:cursor-not-allowed disabled:opacity-40`}
-                    title="Open create menu"
-                  >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    <span>Create</span>
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 8 8"
-                      fill="currentColor"
-                      aria-hidden="true"
-                      className={`transition-transform ${createToolsMenuOpen ? "rotate-180" : ""}`}
-                    >
-                      <path d="M1 2l3 4 3-4H1z" />
-                    </svg>
-                  </button>
-
-                  {createToolsMenuOpen && (
-                    <div
-                      ref={createToolsMenuRef}
-                      className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
-                      role="menu"
-                    >
-                      <button
-                        role="menuitem"
-                        onClick={() =>
-                          runCreateToolsAction(() => onCreateNew?.())
-                        }
-                        disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                        title="Create a single token"
-                      >
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M12 5v14M5 12h14" />
-                        </svg>
-                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                          Single token
-                        </span>
-                      </button>
-                      <button
-                        role="menuitem"
-                        onClick={() => runCreateToolsAction(openTableCreate)}
-                        disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                        title="Create multiple tokens at once in a spreadsheet-like table"
-                      >
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M9 11H3" />
-                          <path d="M21 11h-6" />
-                          <path d="M12 8v6" />
-                          <path d="M4 6h4v10H4z" />
-                          <path d="M16 4h4v14h-4z" />
-                        </svg>
-                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                          Bulk create
-                        </span>
-                      </button>
-                      <button
-                        role="menuitem"
-                        onClick={() =>
-                          runCreateToolsAction(handleOpenNewGroupDialog)
-                        }
-                        disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                        title="Create an empty group to organize tokens"
-                      >
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M3 7h18" />
-                          <path d="M3 12h10" />
-                          <path d="M3 17h18" />
-                        </svg>
-                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                          New group
-                        </span>
-                      </button>
-                      <button
-                        role="menuitem"
-                        onClick={() =>
-                          runCreateToolsAction(() => onShowPasteModal?.())
-                        }
-                        disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                        title="Paste token JSON into the current workspace"
-                      >
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <rect x="8" y="2" width="8" height="4" rx="1" />
-                          <path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3" />
-                        </svg>
-                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                          Paste JSON
-                        </span>
-                      </button>
-                      <button
-                        role="menuitem"
-                        onClick={() =>
-                          runCreateToolsAction(() => onOpenImportPanel?.())
-                        }
-                        disabled={!connected}
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                        title="Import an existing token system"
-                      >
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M12 3v12" />
-                          <path d="M7 10l5 5 5-5" />
-                          <path d="M5 21h14" />
-                        </svg>
-                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                          Import
-                        </span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {tokens.length > 0 && (
-                  <button
-                    onClick={toggleFilterBuilder}
-                    aria-label="Open structured filters"
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-medium transition-colors ${filterBuilderOpen || hasStructuredFilters ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"}`}
-                    title="Open structured filters"
-                  >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-                    </svg>
-                    <span>Filters</span>
-                    {structuredFilterChips.length > 0 && (
-                      <span className="rounded-full bg-current/10 px-1 py-0.5 text-[9px] leading-none">
-                        {structuredFilterChips.length}
-                      </span>
-                    )}
-                  </button>
                 )}
-
-                {tokens.length > 0 && (
-                  <TokenListOverflowMenu
-                    sortOrder={sortOrder}
-                    onSortOrderChange={setSortOrder}
-                    onExpandAll={handleExpandAll}
-                    onCollapseAll={handleCollapseAll}
-                    hasGroups={tokens.some((n) => n.isGroup)}
-                    density={density}
-                    onDensityChange={setDensity}
-                    condensedView={condensedView}
-                    onCondensedViewChange={setCondensedView}
-                    multiModeEnabled={multiModeEnabled}
-                    onToggleMultiMode={toggleMultiMode}
-                    hasDimensions={dimensions.length > 0}
-                    showPreviewSplit={showPreviewSplit}
-                    onTogglePreviewSplit={onTogglePreviewSplit}
-                    canToggleSearchResultPresentation={
-                      canToggleSearchResultPresentation && !crossSetSearch
-                    }
-                    searchResultPresentation={searchResultPresentation}
-                    onSearchResultPresentationChange={
-                      setSearchResultPresentation
-                    }
-                    showIssuesOnly={showIssuesOnly ?? false}
-                    onToggleIssuesOnly={onToggleIssuesOnly}
-                    lintCount={lintViolations.length}
-                    recentlyTouchedCount={recentlyTouched.count}
-                    showRecentlyTouched={showRecentlyTouched}
-                    onToggleRecentlyTouched={() => setShowRecentlyTouched((v) => !v)}
-                    inspectMode={inspectMode}
-                    onToggleInspectMode={() => setInspectMode((v) => !v)}
-                    crossSetSearch={crossSetSearch}
-                    onToggleCrossSetSearch={() => setCrossSetSearch(!crossSetSearch)}
-                    hasMultipleSets={sets.length > 1}
-                    refFilter={refFilter}
-                    onRefFilterChange={setRefFilter}
-                    showDuplicates={showDuplicates}
-                    onToggleDuplicates={() => setShowDuplicates(!showDuplicates)}
-                    filterPresets={filterPresets}
-                    onApplyFilterPreset={applyFilterPreset}
-                    onDeleteFilterPreset={deleteFilterPreset}
-                    onSelectTokens={() => {
-                      setSelectMode(true);
-                      setShowBatchEditor(false);
+                {!toolbarStateChips.length && searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setHintIndex(0);
+                      searchRef.current?.focus();
                     }}
-                    onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
-                    onFindReplace={handleOpenFindReplaceReview}
-                    onFoundationTemplates={onOpenStartHere ? () => onOpenStartHere("template-library") : undefined}
-                    onApplyVariables={handleApplyVariables}
-                    onApplyStyles={handleApplyStyles}
-                    applyingOrLoading={applying || varDiffLoading}
-                    tokensExist={tokens.length > 0}
-                    connected={connected}
-                    activeCount={viewOptionsActiveCount}
-                  />
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
                 )}
-
-                {toolbarStateChips.length > 0 && (
-                  <div className="flex min-w-0 flex-wrap items-center gap-1">
-                    {toolbarStateChips.slice(0, 4).map((chip) => (
-                      <span
+                {/* Filter popover — lists active filters with dismiss */}
+                {filterPopoverOpen && toolbarStateChips.length > 0 && (
+                  <div ref={filterPopoverRef} className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl">
+                    {toolbarStateChips.map((chip) => (
+                      <div
                         key={chip.key}
-                        className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] leading-none ${
-                          chip.tone === "filter"
-                            ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                            : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]"
-                        }`}
+                        className="flex items-center gap-2 px-2.5 py-1 text-[10px]"
                       >
-                        <span className="truncate">{chip.label}</span>
+                        <span className={`flex-1 truncate ${chip.tone === "filter" ? "text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)]"}`}>
+                          {chip.label}
+                        </span>
                         {chip.removeToken && (
                           <button
                             type="button"
                             onClick={() => {
-                              if (chip.removeToken) {
-                                removeQueryToken(chip.removeToken);
-                              }
+                              removeQueryToken(chip.removeToken!);
                             }}
-                            className="rounded-full p-0.5 text-current/70 transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-current"
+                            className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                             title={`Remove ${chip.label}`}
-                            aria-label={`Remove ${chip.label}`}
                           >
-                            <svg
-                              width="7"
-                              height="7"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
+                            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M18 6L6 18M6 6l12 12" />
                             </svg>
                           </button>
                         )}
-                      </span>
+                      </div>
                     ))}
-                    {toolbarStateChips.length > 4 && (
-                      <span className="text-[9px] leading-none text-[var(--color-figma-text-tertiary)]">
-                        +{toolbarStateChips.length - 4} more
-                      </span>
-                    )}
-                    {(activeFilterSummary.length > 0 ||
-                      hasStructuredFilters) && (
-                      <button
-                        onClick={clearFilters}
-                        className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                      >
-                        Clear filters
-                      </button>
-                    )}
-                    {activeViewSummary.length > 0 && (
-                      <button
-                        onClick={clearViewModes}
-                        className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                      >
-                        Reset view
-                      </button>
-                    )}
+                    <div className="mt-1 border-t border-[var(--color-figma-border)] px-2.5 py-1 flex items-center gap-2">
+                      {(activeFilterSummary.length > 0 || hasStructuredFilters) && (
+                        <button
+                          onClick={() => { clearFilters(); setFilterPopoverOpen(false); }}
+                          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                      {activeViewSummary.length > 0 && (
+                        <button
+                          onClick={() => { clearViewModes(); setFilterPopoverOpen(false); }}
+                          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                        >
+                          Reset view
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
+                {showQualifierHints &&
+                  activeQueryToken.token.includes(":") &&
+                  qualifierHints.length > 0 && (
+                    <div
+                      ref={qualifierHintsRef}
+                      className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg"
+                    >
+                      {qualifierHints.map((hint, i) => (
+                        <button
+                          key={hint.id}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            if (hint.kind !== "replacement") return;
+                            setSearchQuery(
+                              replaceQueryToken(
+                                searchQuery,
+                                activeQueryToken,
+                                hint.replacement,
+                              ),
+                            );
+                            setHintIndex(0);
+                            searchRef.current?.focus();
+                          }}
+                          className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[10px] ${i === hintIndex ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"} ${hint.kind === "replacement" ? "" : "cursor-default"}`}
+                        >
+                          <span className="font-mono font-semibold text-[var(--color-figma-accent)]">
+                            {hint.label}
+                          </span>
+                          <span className="truncate">{hint.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
               </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+
+            <div
+              className="relative shrink-0"
+              ref={createToolsMenuContainerRef}
+            >
+              <button
+                ref={createToolsMenuButtonRef}
+                onClick={() => setCreateToolsMenuOpen((open) => !open)}
+                disabled={!connected}
+                aria-expanded={createToolsMenuOpen}
+                aria-haspopup="menu"
+                className={`inline-flex items-center justify-center rounded p-1 transition-colors ${createToolsMenuOpen ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"} disabled:cursor-not-allowed disabled:opacity-40`}
+                title="Create token, group, or import"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+
+              {createToolsMenuOpen && (
+                <div
+                  ref={createToolsMenuRef}
+                  className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
+                  role="menu"
+                >
+                  <button role="menuitem" onClick={() => runCreateToolsAction(() => onCreateNew?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+                    Single token
+                  </button>
+                  <button role="menuitem" onClick={() => runCreateToolsAction(openTableCreate)} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+                    Bulk create
+                  </button>
+                  <button role="menuitem" onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+                    New group
+                  </button>
+                  <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                  <button role="menuitem" onClick={() => runCreateToolsAction(() => onShowPasteModal?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+                    Paste JSON
+                  </button>
+                  <button role="menuitem" onClick={() => runCreateToolsAction(() => onOpenImportPanel?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+                    Import
+                  </button>
+                </div>
+              )}
             </div>
 
-            {filterBuilderOpen && (
-              <div className="px-2 pb-2">
-                <TokenSearchFilterChips
-                  isOpen={filterBuilderOpen}
-                  selectedSection={activeFilterBuilderSection}
-                  onSelectSection={openFilterBuilderSection}
-                  onOpenChange={(open) => {
-                    setFilterBuilderOpen(open);
-                    if (!open) {
-                      setActiveFilterBuilderSection(null);
-                    }
-                  }}
-                  parsedSearchQuery={parsedSearchQuery}
-                  selectedTypeQualifiers={selectedTypeQualifiers}
-                  selectedHasQualifiers={selectedHasQualifiers}
-                  qualifierTypeOptions={qualifierTypeOptions}
-                  generatorNames={generatorNames}
-                  onToggleQualifierValue={toggleQueryQualifierValue}
-                  onAddQualifierValue={addQueryQualifierValue}
-                  onRemoveQualifierValue={removeQueryQualifierValue}
-                  onClearQualifier={clearQueryQualifier}
-                />
-              </div>
+            {tokens.length > 0 && (
+              <TokenListOverflowMenu
+                sortOrder={sortOrder}
+                onSortOrderChange={setSortOrder}
+                onExpandAll={handleExpandAll}
+                onCollapseAll={handleCollapseAll}
+                hasGroups={tokens.some((n) => n.isGroup)}
+                density={density}
+                onDensityChange={setDensity}
+                condensedView={condensedView}
+                onCondensedViewChange={setCondensedView}
+                multiModeEnabled={multiModeEnabled}
+                onToggleMultiMode={toggleMultiMode}
+                hasDimensions={dimensions.length > 0}
+                showPreviewSplit={showPreviewSplit}
+                onTogglePreviewSplit={onTogglePreviewSplit}
+                canToggleSearchResultPresentation={
+                  canToggleSearchResultPresentation && !crossSetSearch
+                }
+                searchResultPresentation={searchResultPresentation}
+                onSearchResultPresentationChange={
+                  setSearchResultPresentation
+                }
+                showIssuesOnly={showIssuesOnly ?? false}
+                onToggleIssuesOnly={onToggleIssuesOnly}
+                lintCount={lintViolations.length}
+                recentlyTouchedCount={recentlyTouched.count}
+                showRecentlyTouched={showRecentlyTouched}
+                onToggleRecentlyTouched={() => setShowRecentlyTouched((v) => !v)}
+                inspectMode={inspectMode}
+                onToggleInspectMode={() => setInspectMode((v) => !v)}
+                crossSetSearch={crossSetSearch}
+                onToggleCrossSetSearch={() => setCrossSetSearch(!crossSetSearch)}
+                hasMultipleSets={sets.length > 1}
+                refFilter={refFilter}
+                onRefFilterChange={setRefFilter}
+                showDuplicates={showDuplicates}
+                onToggleDuplicates={() => setShowDuplicates(!showDuplicates)}
+                filterPresets={filterPresets}
+                onApplyFilterPreset={applyFilterPreset}
+                onDeleteFilterPreset={deleteFilterPreset}
+                onSelectTokens={() => {
+                  setSelectMode(true);
+                  setShowBatchEditor(false);
+                }}
+                onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
+                onFindReplace={handleOpenFindReplaceReview}
+                onFoundationTemplates={onOpenStartHere ? () => onOpenStartHere("template-library") : undefined}
+                onApplyVariables={handleApplyVariables}
+                onApplyStyles={handleApplyStyles}
+                applyingOrLoading={applying || varDiffLoading}
+                tokensExist={tokens.length > 0}
+                connected={connected}
+                activeCount={viewOptionsActiveCount}
+                onInsertSearchQualifier={insertSearchQualifier}
+                onClearFilters={(activeFilterSummary.length > 0 || hasStructuredFilters) ? clearFilters : undefined}
+                onResetView={activeViewSummary.length > 0 ? clearViewModes : undefined}
+              />
             )}
           </div>
         )}
@@ -4656,7 +4262,7 @@ export function TokenList({
           {staleGeneratorsForSet.length === 1 ? "is" : "are"} out of date
         </NoticeBanner>
       )}
-      {/* Token stats bar — opened from the command palette to avoid permanent toolbar clutter */}
+      {/* Token stats bar — compact single row with type breakdown */}
       {statsBarOpen && statsTotalTokens > 0 && (
         <div className="shrink-0 border-b border-[var(--color-figma-border)]">
           <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
@@ -4664,139 +4270,38 @@ export function TokenList({
               {statsTotalTokens}
             </span>
             <span>token{statsTotalTokens !== 1 ? "s" : ""}</span>
-            <span className="flex-1" />
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden flex gap-px">
+              {statsByType.map(([type, count]) => (
+                <div
+                  key={type}
+                  style={{
+                    width: `${(count / statsTotalTokens) * 100}%`,
+                    backgroundColor:
+                      TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK,
+                  }}
+                  title={`${type}: ${count}`}
+                />
+              ))}
+            </div>
             <button
               onClick={() => setStatsBarOpen(false)}
-              className="ml-auto p-1 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               aria-label="Hide token statistics"
               title="Hide token statistics"
             >
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 8 8"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                aria-hidden="true"
-              >
-                <path d="M1.5 1.5l5 5M6.5 1.5l-5 5" />
+              <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
           </div>
-          <div className="px-3 pb-2 flex flex-col gap-2">
-            {/* Type breakdown */}
-            <div>
-              <div className="h-2 rounded-full overflow-hidden flex gap-px mb-1.5">
-                {statsByType.map(([type, count]) => (
-                  <div
-                    key={type}
-                    style={{
-                      width: `${(count / statsTotalTokens) * 100}%`,
-                      backgroundColor:
-                        TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK,
-                    }}
-                    title={`${type}: ${count}`}
-                  />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                {statsByType.map(([type, count]) => (
-                  <span
-                    key={type}
-                    className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]"
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{
-                        backgroundColor:
-                          TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK,
-                      }}
-                      aria-hidden="true"
-                    />
-                    <span className="font-medium text-[var(--color-figma-text)]">
-                      {count}
-                    </span>
-                    {type}
-                  </span>
-                ))}
-              </div>
-            </div>
-            {/* Per-set breakdown (only when multiple sets) */}
-            {statsSetTotals.length > 1 && (
-              <div className="flex flex-col gap-0.5">
-                {statsSetTotals.map(({ name, total }) => (
-                  <div
-                    key={name}
-                    className="flex items-center gap-2 text-[10px]"
-                  >
-                    <span
-                      className="text-[var(--color-figma-text-secondary)] truncate flex-1"
-                      title={name}
-                    >
-                      {name}
-                    </span>
-                    <div className="h-1 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden w-16 shrink-0">
-                      <div
-                        className="h-full rounded-full bg-[var(--color-figma-accent)]"
-                        style={{
-                          width: `${Math.round((total / statsTotalTokens) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-[var(--color-figma-text)] font-medium w-6 text-right shrink-0">
-                      {total}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       )}
-      {/* Promote duplicates callout — shown when the duplicates filter is active */}
-      {showDuplicates && promotableDuplicateCount > 0 && (
-        <InlineBanner
-          variant="info"
-          layout="strip"
-          size="md"
-          action={{
-            label: "Promote all to aliases",
-            onClick: () => handleOpenPromoteReview(duplicateValuePaths),
-            className:
-              "bg-transparent text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)]",
-          }}
-        >
-          <span className="block text-[var(--color-figma-text-secondary)]">
-            {promotableDuplicateCount} token
-            {promotableDuplicateCount !== 1 ? "s" : ""} share duplicate values
-          </span>
-        </InlineBanner>
-      )}
-      {/* Operation loading banner */}
+      {/* Operation loading indicator */}
       {operationLoading && (
-        <InlineBanner variant="loading" layout="strip" size="md">
+        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)]">
+          <Spinner size="xs" />
           <span>{operationLoading}</span>
-        </InlineBanner>
-      )}
-      {/* Delete error banner */}
-      {deleteError && (
-        <NoticeBanner
-          severity="error"
-          onDismiss={() => setDeleteError(null)}
-          dismissLabel="Dismiss"
-        >
-          Delete failed: {deleteError}
-        </NoticeBanner>
-      )}
-      {applyResult && (
-        <InlineBanner variant="info" layout="strip" size="md">
-          <span>
-            Applied {applyResult.count}{" "}
-            {applyResult.type === "variables" ? "variables" : "styles"}
-          </span>
-        </InlineBanner>
+        </div>
       )}
       {/* Scrollable token content with virtual scroll */}
       <div className="relative flex-1 min-h-0">
@@ -5231,7 +4736,6 @@ export function TokenList({
                       icon: "value",
                       action: () => {
                         addQueryQualifierValue("value", q);
-                        openFilterBuilderSection("value");
                       },
                     });
                   }
@@ -5271,7 +4775,7 @@ export function TokenList({
                       suggestions.push({
                         label: `Open ${label} filter`,
                         icon: "hint",
-                        action: () => openFilterBuilderSection(sectionKey),
+                        action: () => insertSearchQualifier(sectionKey),
                       });
                     }
                   }

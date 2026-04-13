@@ -2197,3 +2197,18 @@
   - Dense section headers should rely on one compact status layer; if filter chips already carry the counts, keep supporting metadata to terse tertiary text instead of adding a second prose summary.
   - Collapsed containers in the plugin generally read better when the affordance itself does the explaining; placeholder copy after collapse adds chrome without adding state clarity.
 ---
+
+## 2026-04-13 - ux-pass
+- Tasks explored: (1) Create and save a generator via full dialog and quick popover [TokenGeneratorDialog.tsx, useGeneratorDialog.ts, useGeneratorSave.ts, useGeneratorPreview.ts, QuickGeneratorPopover.tsx, GraphPanel.tsx], (2) Publish tokens to Figma variables via preflight → compare → apply [PublishPanel.tsx, usePublishAll.ts, useSyncEntity.ts, SyncPreflightStep.tsx, SyncSubPanel.tsx, PublishModals.tsx, syncWorkflow.ts], (3) Edit and save a token with undo and dirty tracking [TokenEditor.tsx, useTokenEditorSave.ts, useTokenTypeParsing.ts], (4) Reconcile missing tokens across themes or sets using compare view [CompareView.tsx (CrossThemeMode, ThemeOptionsMode, SetDiffMode)], (5) Review theme coverage and auto-fill gaps [ThemeCoverageScreen.tsx, ThemeCoverageMatrix.tsx]
+- Walkthrough themes: recovery (undo registration across write surfaces), feedback (bulk creation result persistence), handoffs (compare → edit per-row navigation), task load (stale view after bulk mutation)
+- Found 1 item — written to backlog/inbox.jsonl
+- Considered but rejected:
+  - Publish "Sync now" button skips review modal: intentional power-user shortcut. Button only appears after compare has run and user has already reviewed diffs in the compare stage. Title tooltip explains behavior.
+  - Generator multi-brand preview shows only first brand: preview limitation but does not prevent the user from completing the task. Full preview for all brands shown in review step before save.
+  - CrossThemeMode has no per-row create buttons (only bulk "Create missing"): the view shows one token across all options, so the bulk action is the natural match. Single-override creation is possible by navigating to the target set from authoring. More of a feature request than a task-flow breakdown.
+  - CrossThemeMode bulk create cannot selectively include/exclude individual missing options: real selectivity gap, but the primary task (fill all missing overrides for one token) works end to end. Low severity because the action scope is narrow (one token path, only truly missing options).
+  - Token editor conflict detection modal on concurrent server changes: verified working — compares initial snapshot against server state at save time and shows overwrite/cancel choice. No task-flow issue.
+  - Publish stage auto-advance and stale-data reset: verified working — readiness checks gate compare, compare results invalidated when token data changes, stages auto-reset to preflight. Well-structured gating.
+  - Theme coverage auto-fill routes through the same preview and strategy confirmation used in authoring: confirmed in code and UI copy. No recovery gap.
+- Notable: CompareView's three bulk-create code paths (CrossThemeMode L522, ThemeOptionsMode L814, SetDiffMode L1224) are the only batch write surfaces in the entire plugin that do not register undo. SetDiffMode compounds the issue because its diff data is fetched in a useEffect with deps [setA, serverUrl] — after bulk creation, neither dep changes, so the view stays stale and the user cannot verify the action succeeded.
+---

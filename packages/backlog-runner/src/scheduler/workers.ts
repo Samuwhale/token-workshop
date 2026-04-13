@@ -30,11 +30,13 @@ import {
 import { PREFLIGHT_DEFERRAL_MS } from './constants.js';
 import {
   bookkeepingPaths,
+  changedFiles,
   classifyAgentError,
   diffForPaths,
   formatDuration,
   genericWorkerResult,
   getRunnerConfig,
+  implementationRunnerRole,
   logDrainResult,
   readPrompt,
   retryTime,
@@ -43,6 +45,7 @@ import {
   taskWorkerResult,
   validateStagedWorkspace,
   validateWorkspaceScope,
+  validateWorkspaceScopeDelta,
   verifyValidationPhase,
 } from './helpers.js';
 import {
@@ -75,6 +78,7 @@ async function runSingleDiscoveryPass(
 
   const session = await workspaceStrategy.setup();
   try {
+    const baselineDirty = new Set(await changedFiles(commandRunner, session.cwd));
     const context = await buildDiscoveryContext(config);
     const runner = getRunnerConfig(options, passType);
     const result = await runProvider(commandRunner, {
@@ -96,7 +100,7 @@ async function runSingleDiscoveryPass(
     logger.line(`  ✓ ${passType} pass: ${result.item}`);
     if (result.note) logger.line(`    ${result.note}`);
 
-    const workspaceCheck = await validateWorkspaceScope(
+    const workspaceCheck = await validateWorkspaceScopeDelta(
       commandRunner,
       session.cwd,
       [
@@ -104,6 +108,7 @@ async function runSingleDiscoveryPass(
         normalizePathForGit(path.relative(config.projectRoot, config.files.progress)),
         normalizePathForGit(path.relative(config.projectRoot, config.files.patterns)),
       ],
+      baselineDirty,
       'discovery pass touched non-planner files',
     );
     if (!workspaceCheck.ok) {
@@ -199,6 +204,7 @@ export async function runPlannerWorker(
 
     const session = await workspaceStrategy.setup();
     try {
+      const baselineDirty = new Set(await changedFiles(commandRunner, session.cwd));
       const context = await buildPlannerContext(config, plannerCandidates);
       const runner = getRunnerConfig(options, 'planner');
       const result = await runProvider(commandRunner, {
@@ -216,10 +222,11 @@ export async function runPlannerWorker(
         return genericWorkerResult('no_progress', startedAt, { note: result.note || 'planner reported failure' });
       }
 
-      const workspaceCheck = await validateWorkspaceScope(
+      const workspaceCheck = await validateWorkspaceScopeDelta(
         commandRunner,
         session.cwd,
         [],
+        baselineDirty,
         'planner pass touched repo files',
       );
       if (!workspaceCheck.ok) {
@@ -366,8 +373,11 @@ async function runTaskExecutionPhase(
     session,
     transcriptRecorder,
   } = phaseContext;
+  const executionRole = implementationRunnerRole(claim);
 
+  const executionRunner = getRunnerConfig(options, executionRole);
   logger.line(`  Running agent… (started ${new Date().toTimeString().slice(0, 8)})`);
+  logger.line(`  Execution domain: ${claim.task.executionDomain} via ${executionRole} (${executionRunner.tool}${executionRunner.model ? ` · ${executionRunner.model}` : ''})`);
   const context = await buildExecutionContext(
     config,
     session.cwd,
@@ -379,6 +389,7 @@ async function runTaskExecutionPhase(
     commandRunner,
     options,
     logger,
+    executionRole,
     label: 'task run',
     context,
     prompt: await readPrompt(config.prompts.agent),

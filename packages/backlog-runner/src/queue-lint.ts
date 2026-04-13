@@ -66,6 +66,14 @@ export function lintReadyTask(task: BacklogTaskSpec, config: BacklogRunnerConfig
     return issues;
   }
 
+  if (!task.executionDomain) {
+    issues.push({
+      taskId: task.id,
+      title: task.title,
+      reason: 'ready implementation task is missing execution_domain',
+    });
+  }
+
   return issues;
 }
 

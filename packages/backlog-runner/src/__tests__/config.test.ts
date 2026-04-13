@@ -40,7 +40,8 @@ describe('config', () => {
         },
         validationCommand: 'bash scripts/backlog/validate.sh',
         runners: {
-          task: { tool: 'codex', model: 'default' },
+          taskUi: { tool: 'claude', model: 'opus' },
+          taskCode: { tool: 'codex', model: 'default' },
           planner: { tool: 'codex', model: 'default' },
           product: { tool: 'codex', model: 'default' },
           interface: { tool: 'claude', model: 'sonnet' },
@@ -60,7 +61,8 @@ describe('config', () => {
     expect(config.prompts.agent).toBe(path.join(root, 'scripts/backlog/agent.md'));
     expect(config.prompts.planner).toBe(path.join(root, 'scripts/backlog/planner.md'));
     expect(config.defaults.workers).toBe(1);
-    expect(config.runners.task).toEqual({ tool: 'codex', model: 'default' });
+    expect(config.runners.taskUi).toEqual({ tool: 'claude', model: 'opus' });
+    expect(config.runners.taskCode).toEqual({ tool: 'codex', model: 'default' });
     expect(config.validationProfiles.repo).toBe('bash scripts/backlog/validate.sh');
   });
 
@@ -100,7 +102,8 @@ describe('config', () => {
         },
         validationCommand: 'bash scripts/backlog/validate.sh',
         runners: {
-          task: { tool: 'codex', model: 'default' },
+          taskUi: { tool: 'claude', model: 'opus' },
+          taskCode: { tool: 'codex', model: 'default' },
           planner: { tool: 'codex', model: 'sonnet' },
           product: { tool: 'claude', model: 'claudeDefault' },
           interface: { tool: 'claude', model: 'claudeDefault' },
@@ -124,7 +127,8 @@ describe('config', () => {
     });
 
     expect(options.workers).toBe(2);
-    expect(options.runners.task).toEqual({ tool: 'codex', model: 'gpt-5.5' });
+    expect(options.runners.taskUi).toEqual({ tool: 'codex', model: 'gpt-5.5' });
+    expect(options.runners.taskCode).toEqual({ tool: 'codex', model: 'gpt-5.5' });
     expect(options.runners.planner).toEqual({ tool: 'codex', model: 'gpt-5.5' });
     expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.5' });
     expect(options.worktrees).toBe(false);
@@ -152,7 +156,8 @@ describe('config', () => {
         },
         validationCommand: 'bash scripts/backlog/validate.sh',
         runners: {
-          task: { tool: 'codex', model: 'default' },
+          taskUi: { tool: 'claude', model: 'opus' },
+          taskCode: { tool: 'codex', model: 'default' },
           planner: { tool: 'claude', model: 'default' },
           product: { tool: 'codex', model: 'sonnet' },
           interface: { tool: 'claude', model: 'sonnet' },
@@ -171,7 +176,8 @@ describe('config', () => {
     const options = await resolveRunOptions(config);
 
     expect(options.workers).toBe(3);
-    expect(options.runners.task).toEqual({ tool: 'codex', model: 'gpt-5.4' });
+    expect(options.runners.taskUi).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
+    expect(options.runners.taskCode).toEqual({ tool: 'codex', model: 'gpt-5.4' });
     expect(options.runners.planner).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
     expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.4' });
     expect(options.runners.interface).toEqual({ tool: 'claude', model: 'claude-sonnet-4-6' });
@@ -200,7 +206,8 @@ describe('config', () => {
         },
         validationCommand: 'bash scripts/backlog/validate.sh',
         runners: {
-          task: { tool: 'codex', model: 'default' },
+          taskUi: { tool: 'claude', model: 'opus' },
+          taskCode: { tool: 'codex', model: 'default' },
           planner: { tool: 'claude', model: 'opus' },
           product: { tool: 'codex', model: 'default' },
           interface: { tool: 'claude', model: 'sonnet' },
@@ -216,11 +223,12 @@ describe('config', () => {
       model: 'default',
       runners: {
         planner: { tool: 'claude', model: 'opus' },
-        task: { tool: 'codex', model: 'gpt-5.4-mini' },
+        taskUi: { tool: 'codex', model: 'gpt-5.4-mini' },
       },
     });
 
-    expect(options.runners.task).toEqual({ tool: 'codex', model: 'gpt-5.4-mini' });
+    expect(options.runners.taskUi).toEqual({ tool: 'codex', model: 'gpt-5.4-mini' });
+    expect(options.runners.taskCode).toEqual({ tool: 'codex', model: 'gpt-5.4' });
     expect(options.runners.planner).toEqual({ tool: 'claude', model: 'claude-opus-4-6' });
     expect(options.runners.product).toEqual({ tool: 'codex', model: 'gpt-5.4' });
     expect(options.runners.interface).toEqual({ tool: 'codex', model: 'gpt-5.4' });

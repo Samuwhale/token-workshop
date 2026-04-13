@@ -3,9 +3,10 @@ import { stdin as input, stdout as output } from 'node:process';
 import type { BacklogRunnerConfig, BacklogRunnerRole, BacklogTool, RunOverrides } from '../src/types.js';
 
 const TOOLS: BacklogTool[] = ['claude', 'codex'];
-const RUNNER_ROLES: BacklogRunnerRole[] = ['task', 'planner', 'product', 'interface', 'ux', 'code'];
+const RUNNER_ROLES: BacklogRunnerRole[] = ['taskUi', 'taskCode', 'planner', 'product', 'interface', 'ux', 'code'];
 const MAX_INTERACTIVE_WORKERS = 8;
 const SUMMARY_DIVIDER = '----------------------------------------';
+const RUNNER_ROLE_WIDTH = 9;
 
 export interface InteractivePrompter {
   question(prompt: string): Promise<string>;
@@ -84,8 +85,10 @@ function workspaceModeLabel(worktrees: boolean): string {
 
 function roleLabel(role: BacklogRunnerRole): string {
   switch (role) {
-    case 'task':
-      return 'Task runner';
+    case 'taskUi':
+      return 'UI/UX implementation runner';
+    case 'taskCode':
+      return 'Code/logic implementation runner';
     case 'planner':
       return 'Planner runner';
     case 'product':
@@ -120,7 +123,7 @@ function renderRunnerSummaryLines(input: StartSummaryInput): string[] {
     'Runners:',
     ...RUNNER_ROLES.map(role => {
       const runner = effectiveRunnerSummary(input, role);
-      return `  ${role.padEnd(7, ' ')} ${runner.tool}${runner.model ? ` · ${runner.model}` : ''}`;
+      return `  ${role.padEnd(RUNNER_ROLE_WIDTH, ' ')} ${runner.tool}${runner.model ? ` · ${runner.model}` : ''}`;
     }),
   ];
 }

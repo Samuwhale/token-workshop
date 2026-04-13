@@ -4,12 +4,14 @@ import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension, TokenValue } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-import { stableStringify } from '../shared/utils';
+import { getErrorMessage, stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { swatchBgColor } from '../shared/colorUtils';
 import { resolveThemeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
 import { apiFetch } from '../shared/apiFetch';
+import { ConfirmModal } from './ConfirmModal';
+import { useTokensWorkspaceController } from '../contexts/WorkspaceControllerContext';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Shared primitives
@@ -41,6 +43,227 @@ function useCopyFeedback(onError?: () => void): [boolean, (text: string) => Prom
     );
   }, [onError]);
   return [copied, triggerCopy];
+}
+
+type CompareBulkCreateToken = {
+  path: string;
+  $type: string;
+  $value: unknown;
+};
+
+type CompareBulkCreateBatch = {
+  targetSet: string;
+  tokens: CompareBulkCreateToken[];
+};
+
+type CompareCreateStatus = {
+  kind: 'success' | 'error';
+  message: string;
+};
+
+type PendingCompareBulkCreate = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  batches: CompareBulkCreateBatch[];
+};
+
+type CompareBulkCreateResult = {
+  status: CompareCreateStatus;
+  createdCount: number;
+};
+
+function dedupeCompareBatchTokens(tokens: CompareBulkCreateToken[]): CompareBulkCreateToken[] {
+  const byPath = new Map<string, CompareBulkCreateToken>();
+  for (const token of tokens) {
+    byPath.set(token.path, token);
+  }
+  return Array.from(byPath.values());
+}
+
+function formatCompareTokenPathList(paths: string[], maxVisible = 3): string {
+  if (paths.length <= maxVisible) {
+    return paths.join(', ');
+  }
+  return `${paths.slice(0, maxVisible).join(', ')} +${paths.length - maxVisible} more`;
+}
+
+function countCompareBatchTokens(batches: CompareBulkCreateBatch[]): number {
+  return batches.reduce((sum, batch) => sum + batch.tokens.length, 0);
+}
+
+async function executeCompareBulkCreate(params: {
+  serverUrl: string;
+  batches: CompareBulkCreateBatch[];
+  undoDescription: string;
+  pushUndo: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
+  afterMutation?: () => void | Promise<void>;
+}): Promise<CompareBulkCreateResult> {
+  const { serverUrl, batches, undoDescription, pushUndo, afterMutation } = params;
+  const successes: Array<
+    CompareBulkCreateBatch & {
+      operationId?: string;
+      changedPaths: string[];
+    }
+  > = [];
+  const failures: Array<{
+    targetSet: string;
+    tokenPaths: string[];
+    message: string;
+  }> = [];
+
+  for (const batch of batches) {
+    try {
+      const result = await apiFetch<{
+        imported: number;
+        skipped: number;
+        changedPaths?: string[];
+        operationId?: string;
+      }>(`${serverUrl}/api/tokens/${encodeURIComponent(batch.targetSet)}/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens: batch.tokens, strategy: 'overwrite' }),
+      });
+      successes.push({
+        ...batch,
+        operationId: result.operationId,
+        changedPaths: result.changedPaths ?? batch.tokens.map(token => token.path),
+      });
+    } catch (err) {
+      failures.push({
+        targetSet: batch.targetSet,
+        tokenPaths: batch.tokens.map(token => token.path),
+        message: getErrorMessage(err, 'Failed to create tokens'),
+      });
+    }
+  }
+
+  const createdCount = successes.reduce((sum, batch) => sum + batch.tokens.length, 0);
+  if (createdCount > 0) {
+    const rollbackable = successes.filter(batch => batch.operationId);
+    if (rollbackable.length > 0) {
+      const batchesForRedo = successes.map(batch => ({
+        targetSet: batch.targetSet,
+        tokens: batch.tokens,
+      }));
+      pushUndo({
+        description: undoDescription,
+        restore: async () => {
+          for (let index = rollbackable.length - 1; index >= 0; index -= 1) {
+            const batch = rollbackable[index];
+            await apiFetch(
+              `${serverUrl}/api/operations/${encodeURIComponent(batch.operationId!)}/rollback`,
+              { method: 'POST' },
+            );
+          }
+          await afterMutation?.();
+        },
+        redo: async () => {
+          for (const batch of batchesForRedo) {
+            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(batch.targetSet)}/batch`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tokens: batch.tokens, strategy: 'overwrite' }),
+            });
+          }
+          await afterMutation?.();
+        },
+      });
+    }
+    await afterMutation?.();
+  }
+
+  if (failures.length === 0) {
+    const targetLabel = successes.length === 1
+      ? successes[0]?.targetSet ?? 'the target set'
+      : `${successes.length} sets`;
+    return {
+      createdCount,
+      status: {
+        kind: 'success',
+        message: `Created ${createdCount} missing token${createdCount === 1 ? '' : 's'} in ${targetLabel}. Undo available.`,
+      },
+    };
+  }
+
+  const failureSummary = failures
+    .map(failure => `${failure.targetSet}: ${formatCompareTokenPathList(failure.tokenPaths)} (${failure.message})`)
+    .join(' ');
+
+  if (createdCount > 0) {
+    return {
+      createdCount,
+      status: {
+        kind: 'error',
+        message: `Created ${createdCount} missing token${createdCount === 1 ? '' : 's'}, but failed for ${failureSummary} Undo can revert the created tokens.`,
+      },
+    };
+  }
+
+  return {
+    createdCount: 0,
+    status: {
+      kind: 'error',
+      message: `Failed to create missing tokens. ${failureSummary}`,
+    },
+  };
+}
+
+function CompareBulkCreateStatus({ status }: { status: CompareCreateStatus | null }) {
+  if (!status) return null;
+  return (
+    <span
+      className={`text-[10px] break-all ${
+        status.kind === 'error'
+          ? 'text-[var(--color-figma-error)]'
+          : 'text-[var(--color-figma-text-secondary)]'
+      }`}
+    >
+      {status.message}
+    </span>
+  );
+}
+
+function CompareBulkCreateConfirmModal({
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  pending: PendingCompareBulkCreate;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  return (
+    <ConfirmModal
+      title={pending.title}
+      description={pending.description}
+      confirmLabel={pending.confirmLabel}
+      wide={pending.batches.length > 1}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    >
+      <div className="mt-3 space-y-2">
+        {pending.batches.map(batch => (
+          <div
+            key={batch.targetSet}
+            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)] break-all">
+                {batch.targetSet}
+              </span>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
+                {batch.tokens.length} token{batch.tokens.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] break-all">
+              {formatCompareTokenPathList(batch.tokens.map(token => token.path), 5)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </ConfirmModal>
+  );
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -441,6 +664,7 @@ interface CrossThemeModeProps {
   onClose: () => void;
   serverUrl?: string;
   onTokensCreated?: () => void;
+  pushUndo: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
 }
 
 function CrossThemeMode({
@@ -451,10 +675,12 @@ function CrossThemeMode({
   onClose,
   serverUrl,
   onTokensCreated,
+  pushUndo,
 }: CrossThemeModeProps) {
   const [copied, triggerCopy] = useCopyFeedback();
   const [creatingMissing, setCreatingMissing] = useState(false);
-  const [createResult, setCreateResult] = useState<string | null>(null);
+  const [createStatus, setCreateStatus] = useState<CompareCreateStatus | null>(null);
+  const [pendingCreate, setPendingCreate] = useState<PendingCompareBulkCreate | null>(null);
 
   const themedSets = useMemo(() => {
     const sets = new Set<string>();
@@ -519,46 +745,65 @@ function CrossThemeMode({
 
   const missingResults = useMemo(() => results.filter(r => r.missing), [results]);
 
-  const handleCreateMissingOverrides = useCallback(async () => {
-    if (!serverUrl || missingResults.length === 0) return;
+  const createMissingPlan = useMemo((): PendingCompareBulkCreate | null => {
+    if (!serverUrl || missingResults.length === 0) return null;
     const baseEntry = allTokensFlat[tokenPath];
-    if (!baseEntry) return;
+    if (!baseEntry) return null;
 
-    const targetSets = new Set<string>();
+    const batchesBySet = new Map<string, CompareBulkCreateBatch>();
     for (const r of missingResults) {
       const dim = dimensions.find(d => d.id === r.dimId);
       const opt = dim?.options.find(o => o.name === r.optionName);
       if (!opt) continue;
       const enabled = Object.entries(opt.sets).filter(([, s]) => s === 'enabled').map(([n]) => n);
       const targetSet = enabled[0] ?? Object.entries(opt.sets).filter(([, s]) => s === 'source').map(([n]) => n)[0];
-      if (targetSet) targetSets.add(targetSet);
+      if (!targetSet) continue;
+      const existing = batchesBySet.get(targetSet);
+      const nextTokens = dedupeCompareBatchTokens([
+        ...(existing?.tokens ?? []),
+        { path: tokenPath, $type: baseEntry.$type, $value: baseEntry.$value },
+      ]);
+      batchesBySet.set(targetSet, { targetSet, tokens: nextTokens });
     }
 
-    if (targetSets.size === 0) return;
+    const batches = Array.from(batchesBySet.values());
+    if (batches.length === 0) return null;
+
+    const totalCount = countCompareBatchTokens(batches);
+    const targetLabel = batches.length === 1
+      ? `"${batches[0].targetSet}"`
+      : `${batches.length} target sets`;
+
+    return {
+      title: `Create ${totalCount} missing override${totalCount === 1 ? '' : 's'}?`,
+      description: `This will create ${totalCount} missing override token${totalCount === 1 ? '' : 's'} for "${tokenName}" in ${targetLabel}.`,
+      confirmLabel: `Create ${totalCount}`,
+      batches,
+    };
+  }, [serverUrl, missingResults, allTokensFlat, tokenPath, dimensions, tokenName]);
+
+  const handleConfirmCreateMissingOverrides = useCallback(async () => {
+    if (!serverUrl || !createMissingPlan) return;
 
     setCreatingMissing(true);
-    setCreateResult(null);
-    let totalCreated = 0;
+    setCreateStatus(null);
     try {
-      for (const set of targetSets) {
-        const tokens = [{ path: tokenPath, $type: baseEntry.$type, $value: baseEntry.$value }];
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/batch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tokens, strategy: 'overwrite' }),
-        });
-        totalCreated++;
-      }
-      setCreateResult(`Created in ${totalCreated} set${totalCreated !== 1 ? 's' : ''}`);
-      setTimeout(() => setCreateResult(null), 3000);
+      const result = await executeCompareBulkCreate({
+        serverUrl,
+        batches: createMissingPlan.batches,
+        undoDescription: `Create ${countCompareBatchTokens(createMissingPlan.batches)} missing override${countCompareBatchTokens(createMissingPlan.batches) === 1 ? '' : 's'} for ${tokenName}`,
+        pushUndo,
+        afterMutation: () => {
+          onTokensCreated?.();
+        },
+      });
+      setCreateStatus(result.status);
       onTokensCreated?.();
-    } catch {
-      setCreateResult('Failed');
-      setTimeout(() => setCreateResult(null), 3000);
     } finally {
       setCreatingMissing(false);
+      setPendingCreate(null);
     }
-  }, [serverUrl, missingResults, allTokensFlat, tokenPath, dimensions, onTokensCreated]);
+  }, [serverUrl, createMissingPlan, tokenName, pushUndo, onTokensCreated]);
 
   if (dimensions.length === 0) {
     return (
@@ -588,18 +833,18 @@ function CrossThemeMode({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">across themes</span>
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
-          {serverUrl && missingResults.length > 0 && (
+          {createMissingPlan && (
             <>
-              {createResult && (
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{createResult}</span>
-              )}
               <button
-                onClick={handleCreateMissingOverrides}
+                onClick={() => {
+                  setCreateStatus(null);
+                  setPendingCreate(createMissingPlan);
+                }}
                 disabled={creatingMissing}
-                title={`Create overrides for ${missingResults.length} missing option${missingResults.length !== 1 ? 's' : ''}`}
+                title={`Create overrides for ${countCompareBatchTokens(createMissingPlan.batches)} missing option${countCompareBatchTokens(createMissingPlan.batches) !== 1 ? 's' : ''}`}
                 className="text-[10px] px-2 py-0.5 rounded font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
               >
-                {creatingMissing ? 'Creating…' : `+ ${missingResults.length} missing`}
+                {creatingMissing ? 'Creating…' : `+ ${countCompareBatchTokens(createMissingPlan.batches)} missing`}
               </button>
             </>
           )}
@@ -668,6 +913,18 @@ function CrossThemeMode({
           </div>
         );
       })}
+      {createStatus && (
+        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
+          <CompareBulkCreateStatus status={createStatus} />
+        </div>
+      )}
+      {pendingCreate && (
+        <CompareBulkCreateConfirmModal
+          pending={pendingCreate}
+          onCancel={() => setPendingCreate(null)}
+          onConfirm={handleConfirmCreateMissingOverrides}
+        />
+      )}
     </div>
   );
 }

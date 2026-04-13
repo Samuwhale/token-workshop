@@ -29,59 +29,6 @@ You own the product-level questions:
 Think in terms of the best workflow model for a serious token-management product, not in terms of preserving the current surface map.
 Do not use this pass as a catch-all for general UX dissatisfaction when the real fix is still within an existing screen or flow.
 
----
-
-## You Are Not The Other Passes
-
-- **You are NOT `interface-pass`.** Navigation clarity, labels, hierarchy, decluttering, chrome reduction, and static findability belong there when the likely fix is presentation, grouping, or IA.
-- **You are NOT `ux-pass`.** Local task friction inside an existing workflow belongs there when the workflow model is probably correct but the task execution is confusing or hard.
-- **You are NOT `code-pass`.** Code-health cleanup, state-model cleanup, or maintainability work belongs there unless the real problem is product model or workflow ownership.
-
-Use these tie-breakers:
-
-- **Belongs here:** “Merge token creation entry points behind one canonical authoring flow and remove the parallel quick-create surface.”
-- **Not here:** “Rename three confusing labels in the existing creation form so users can parse the options faster.” That belongs to `interface-pass`.
-- **Belongs here:** “Move theme-scoped resolver editing into Theme Manager and remove the standalone Resolver panel.”
-- **Not here:** “The existing Resolver panel hides the primary action below noisy helper chrome.” That belongs to `interface-pass`.
-
-If a surface is cluttered, confusing, or overloaded but the workflow owner is probably still correct, do not file it here.
-
----
-
-## Target Areas
-
-Pick **1–2 target areas per session** from this list, in order of preference:
-
-1. **Consolidation & surface ownership** — overlapping flows, duplicate entry points, fragmented surfaces, or features that should be merged/removed.
-2. **Capability gaps** — missing high-value capabilities or missing product support for core power-user jobs.
-3. **Workflow-model friction** — workflows split across too many surfaces, with broken handoffs or weak next-step logic.
-4. **Discovery tied to product model** — users cannot find the right place to act because the product model or surface map is wrong, not because labels or hierarchy are weak.
-
-Prefer a few larger items over many narrow ones.
-
----
-
-## Quality Bar
-
-Only write an item if it passes **all** of these checks:
-
-- **Durable** — still worth doing next week.
-- **Product-level** — changes the product model, capability set, surface map, or workflow ownership.
-- **Verified** — confirmed by reading real code across the affected surfaces.
-- **Non-redundant** — not already covered by the backlog.
-- **Consolidated** — related findings merged into one coherent item.
-- **Ownable** — one agent can own it end to end.
-- **Specific** — the build target and success condition are clear.
-
-Additional bar for this pass:
-
-- Reject items whose credible fix is mostly decluttering, stronger hierarchy, better labels, calmer defaults, or a clearer in-place task flow.
-- Only file an item when the fix requires changing workflow ownership, merging/removing surfaces, or materially changing the product capability or routing model.
-
-If nothing clears this bar, write 0 items.
-
----
-
 ## Workflow
 
 1. **Explore broadly** — check `scripts/backlog/progress.txt` for recent `product-pass:` entries. Read the injected backlog digest. Then inspect the relevant UI and server code, especially cross-surface flows and ownership boundaries.
@@ -98,16 +45,17 @@ If nothing clears this bar, write 0 items.
 4. **Write findings** — for each item that clears the bar, append one JSON object per line to `backlog/inbox.jsonl`:
 
 ```json
-{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context","source":"product-pass"}
+{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"execution_domain":"ui_ux","validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context","source":"product-pass"}
 ```
 
 Rules:
+
 - `touch_paths` must name the real implementation surfaces.
 - `acceptance_criteria` must describe a concrete completed state.
 - Keep `context` short and product-relevant.
 - Do not emit microcopy-only, badge-only, or single-screen decluttering items from this pass.
 
-5. **Document** — append to `scripts/backlog/progress.txt`:
+1. **Document** — append to `scripts/backlog/progress.txt`:
 
 ```text
 ## YYYY-MM-DD - product-pass

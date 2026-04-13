@@ -36,7 +36,8 @@ function makeConfig(): BacklogRunnerConfig {
         backlog: 'pnpm --filter @tokenmanager/backlog-runner exec vitest run',
       },
       runners: {
-        task: { tool: 'codex', model: 'default' },
+        taskUi: { tool: 'claude', model: 'opus' },
+        taskCode: { tool: 'codex', model: 'default' },
         planner: { tool: 'codex', model: 'default' },
         product: { tool: 'codex', model: 'default' },
         interface: { tool: 'claude', model: 'sonnet' },
@@ -49,11 +50,17 @@ function makeConfig(): BacklogRunnerConfig {
 }
 
 function makeTask(overrides: Partial<BacklogTaskSpec> = {}): BacklogTaskSpec {
+  const hasExecutionDomainOverride = Object.prototype.hasOwnProperty.call(overrides, 'executionDomain');
   return {
     id: overrides.id ?? 'task-a',
     title: overrides.title ?? 'Implement a narrow change',
     priority: overrides.priority ?? 'normal',
     taskKind: overrides.taskKind ?? 'implementation',
+    executionDomain: overrides.taskKind === 'research'
+      ? undefined
+      : hasExecutionDomainOverride
+        ? overrides.executionDomain
+        : 'ui_ux',
     dependsOn: overrides.dependsOn ?? [],
     touchPaths: overrides.touchPaths ?? ['packages/figma-plugin/src/ui/components/TokenList.tsx'],
     capabilities: overrides.capabilities ?? [],
@@ -132,5 +139,13 @@ describe('queue lint', () => {
     }), config);
 
     expect(issues.map(issue => issue.reason)).toContain('ready task references unknown validation profile "unknown-profile"');
+  });
+
+  it('flags ready implementation tasks without an execution domain', () => {
+    const issues = lintReadyTask(makeTask({
+      executionDomain: undefined,
+    }), config);
+
+    expect(issues.map(issue => issue.reason)).toContain('ready implementation task is missing execution_domain');
   });
 });

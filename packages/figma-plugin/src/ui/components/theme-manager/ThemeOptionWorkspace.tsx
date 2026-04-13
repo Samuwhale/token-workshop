@@ -1,6 +1,5 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { NoticeFieldMessage } from "../../shared/noticeSystem";
+import { useEffect, useMemo, useState } from "react";
 import {
   summarizeThemeIssueHealth,
   type ThemeIssueSummary,
@@ -20,26 +19,17 @@ interface ThemeOptionWorkspaceProps {
   renameOption: { dimId: string; optionName: string } | null;
   renameOptionValue: string;
   renameOptionError: string | null;
-  copySourceOptions: string[];
   setTokenCounts: Record<string, number | null>;
   fillableCount: number;
   onAutoFill: () => void;
-  onStartRenameOption: () => void;
   onRenameOptionValueChange: (value: string) => void;
   onExecuteRenameOption: () => void;
   onCancelRenameOption: () => void;
-  onMoveOption: (direction: "up" | "down") => void;
-  onDuplicateOption: () => void;
-  onDeleteOption: () => void;
-  canMoveLeft: boolean;
-  canMoveRight: boolean;
   onOpenCoverageView: (
     target?: ThemeRoleNavigationTarget | null,
     allAxes?: boolean,
   ) => void;
-  onOpenAdvancedSetup: () => void;
   onHandleSetState: (setName: string, nextState: ThemeRoleState) => void;
-  onHandleCopyAssignmentsFrom: (sourceOptionName: string) => void;
 }
 
 export function ThemeOptionWorkspace({
@@ -53,48 +43,18 @@ export function ThemeOptionWorkspace({
   renameOption,
   renameOptionValue,
   renameOptionError,
-  copySourceOptions,
   setTokenCounts,
   fillableCount,
   onAutoFill,
-  onStartRenameOption,
   onRenameOptionValueChange,
   onExecuteRenameOption,
   onCancelRenameOption,
-  onMoveOption,
-  onDuplicateOption,
-  onDeleteOption,
-  canMoveLeft,
-  canMoveRight,
   onOpenCoverageView,
-  onOpenAdvancedSetup,
   onHandleSetState,
-  onHandleCopyAssignmentsFrom,
 }: ThemeOptionWorkspaceProps) {
   const { setRoleRefs } = useThemeAuthoringContext();
-  const [optionMenuOpen, setOptionMenuOpen] = useState(false);
   const [pendingSharedSet, setPendingSharedSet] = useState("");
   const [pendingVariantSet, setPendingVariantSet] = useState("");
-  const optionMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!optionMenuOpen) return;
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!optionMenuRef.current?.contains(event.target as Node)) {
-        setOptionMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOptionMenuOpen(false);
-    };
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [optionMenuOpen]);
-  const unusedSetCount = disabledSets.length;
   const sharedCandidates = sets.filter((setName) => !foundationSets.includes(setName));
   const variantCandidates = sets.filter((setName) => !overrideSets.includes(setName));
   const selectedOptionHealth = useMemo(
@@ -112,369 +72,201 @@ export function ThemeOptionWorkspace({
     setPendingVariantSet(variantCandidates[0] ?? "");
   }, [pendingVariantSet, variantCandidates]);
 
-  const renderAssignmentSection = ({
-    title,
-    description,
-    setNames,
-    addValue,
-    addOptions,
-    addLabel,
-    onAddValueChange,
-    onAdd,
-    onRemove,
-    emptyLabel,
-  }: {
-    title: string;
-    description: string;
-    setNames: string[];
-    addValue: string;
-    addOptions: string[];
-    addLabel: string;
-    onAddValueChange: (value: string) => void;
-    onAdd: () => void;
-    onRemove: (setName: string) => void;
-    emptyLabel: string;
-  }) => (
-    <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
-      <div className="flex flex-col gap-1">
-        <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-          {title}
-        </div>
-        <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-          {description}
-        </p>
-      </div>
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {setNames.length > 0 ? (
-          setNames.map((setName) => (
-            <div
+  const renderCompactAssignment = (
+    label: string,
+    setNames: string[],
+    addValue: string,
+    addOptions: string[],
+    onAddValueChange: (value: string) => void,
+    onAdd: () => void,
+    onRemove: (setName: string) => void,
+  ) => {
+    return (
+      <div className="flex items-start gap-2 px-3 py-1.5">
+        <span className="shrink-0 pt-0.5 text-[10px] font-semibold text-[var(--color-figma-text-secondary)] w-[70px]">
+          {label}
+        </span>
+        <div className="flex flex-1 flex-wrap items-center gap-1 min-w-0">
+          {setNames.map((setName) => (
+            <span
               key={setName}
-              className="inline-flex max-w-full items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1"
+              className="inline-flex items-center gap-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)]"
+              title={setTokenCounts[setName] != null ? `${setTokenCounts[setName]} tokens` : setName}
             >
-              <span
-                className="truncate text-[10px] font-medium text-[var(--color-figma-text)]"
-                title={setName}
-              >
-                {setName}
-              </span>
-              <span className="rounded-full bg-[var(--color-figma-bg)] px-1 py-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                {setTokenCounts[setName] === null
-                  ? "…"
-                  : `${setTokenCounts[setName] ?? 0}`}
-              </span>
+              <span className="truncate max-w-[100px]">{setName}</span>
               <button
                 type="button"
                 onClick={() => onRemove(setName)}
-                className="rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
+                className="rounded-full p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
                 aria-label={`Remove ${setName}`}
-                title={`Remove ${setName}`}
               >
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
+                <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
               </button>
-            </div>
-          ))
-        ) : (
-          <div className="rounded border border-dashed border-[var(--color-figma-border)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {emptyLabel}
-          </div>
-        )}
-      </div>
-
-      <div className="mt-3 flex items-center gap-2">
-        <select
-          value={addValue}
-          onChange={(event) => onAddValueChange(event.target.value)}
-          className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text)]"
-        >
-          <option value="">Choose a set…</option>
-          {addOptions.map((setName) => (
-            <option key={setName} value={setName}>
-              {setName}
-            </option>
+            </span>
           ))}
-        </select>
-        <button
-          type="button"
-          onClick={onAdd}
-          disabled={!addValue}
-          className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {addLabel}
-        </button>
-      </div>
-    </section>
-  );
-
-  return (
-    <div className="bg-[var(--color-figma-bg-secondary)]">
-      <div
-        ref={(element) => {
-          setRoleRefs.current[`${dimension.id}:${option.name}`] = element;
-        }}
-        className="border-t border-[var(--color-figma-border)]"
-      >
-        <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
-          {renameOption?.dimId === dimension.id &&
-          renameOption?.optionName === option.name ? (
-            <div className="flex flex-1 flex-col gap-1">
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={renameOptionValue}
-                  onChange={(event) =>
-                    onRenameOptionValueChange(event.target.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") onExecuteRenameOption();
-                    else if (event.key === "Escape") onCancelRenameOption();
-                  }}
-                  className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
-                    renameOptionError
-                      ? "border-[var(--color-figma-error)]"
-                      : "border-[var(--color-figma-border)]"
-                  }`}
-                  autoFocus
-                />
-                <button
-                  onClick={onExecuteRenameOption}
-                  disabled={!renameOptionValue.trim()}
-                  className="rounded bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={onCancelRenameOption}
-                  className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  Cancel
-                </button>
-              </div>
-              {renameOptionError && (
-                <NoticeFieldMessage severity="error">
-                  {renameOptionError}
-                </NoticeFieldMessage>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                  Variant
-                </div>
-                <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                  {option.name}
-                </span>
-              </div>
-              <div className="relative" ref={optionMenuRef}>
-                <button
-                  onClick={() => setOptionMenuOpen((v) => !v)}
-                  className="rounded p-1.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                  title="Variant actions"
-                  aria-label="Variant actions"
-                  aria-expanded={optionMenuOpen}
-                  aria-haspopup="menu"
-                >
-                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                    <circle cx="8" cy="3" r="1.5" />
-                    <circle cx="8" cy="8" r="1.5" />
-                    <circle cx="8" cy="13" r="1.5" />
-                  </svg>
-                </button>
-                {optionMenuOpen && (
-                  <div
-                    role="menu"
-                    className="absolute right-0 top-full z-50 mt-1 w-[180px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
-                  >
-                    <button
-                      role="menuitem"
-                      onClick={() => { setOptionMenuOpen(false); onStartRenameOption(); }}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                    >
-                      Rename
-                    </button>
-                    <button
-                      role="menuitem"
-                      onClick={() => { setOptionMenuOpen(false); onMoveOption("up"); }}
-                      disabled={!canMoveLeft}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
-                    >
-                      Move left
-                    </button>
-                    <button
-                      role="menuitem"
-                      onClick={() => { setOptionMenuOpen(false); onMoveOption("down"); }}
-                      disabled={!canMoveRight}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
-                    >
-                      Move right
-                    </button>
-                    <button
-                      role="menuitem"
-                      onClick={() => { setOptionMenuOpen(false); onDuplicateOption(); }}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                    >
-                      Duplicate
-                    </button>
-                    {copySourceOptions.length > 0 && (
-                      <>
-                        <div className="my-1 border-t border-[var(--color-figma-border)]" />
-                        {copySourceOptions.map((sourceOptionName) => (
-                          <button
-                            key={sourceOptionName}
-                            role="menuitem"
-                            onClick={() => { setOptionMenuOpen(false); onHandleCopyAssignmentsFrom(sourceOptionName); }}
-                            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                          >
-                            Copy setup from {sourceOptionName}
-                          </button>
-                        ))}
-                      </>
-                    )}
-                    <div className="my-1 border-t border-[var(--color-figma-border)]" />
-                    <button
-                      role="menuitem"
-                      onClick={() => { setOptionMenuOpen(false); onDeleteOption(); }}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
+          {!addValue && addOptions.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onAddValueChange(addOptions[0] ?? "")}
+              className="inline-flex items-center justify-center rounded-full border border-dashed border-[var(--color-figma-border)] p-0.5 text-[var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+              title={`Add ${label.toLowerCase()} set`}
+            >
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          )}
+          {addValue && (
+            <div className="flex items-center gap-1">
+              <select
+                value={addValue}
+                onChange={(event) => onAddValueChange(event.target.value)}
+                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[9px] text-[var(--color-figma-text)]"
+              >
+                {addOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => { onAdd(); }}
+                className="rounded bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)]"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                onClick={() => onAddValueChange("")}
+                className="rounded px-1 py-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+              >
+                Cancel
+              </button>
             </div>
           )}
         </div>
+      </div>
+    );
+  };
 
-        {fillableCount > 0 && (
-          <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 px-3 py-1.5">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              {fillableCount} token{fillableCount === 1 ? "" : "s"} can be auto-filled from source sets
-            </span>
-            <button
-              onClick={onAutoFill}
-              className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)]"
-            >
-              Auto-fill
-            </button>
-          </div>
-        )}
-
-        {selectedOptionHealth && (
-          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
-            <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/8 px-3 py-2">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
-                    Variant health
-                  </span>
-                  <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[var(--color-figma-warning)]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--color-figma-warning)]">
-                    {selectedOptionHealth.totalCount}
-                  </span>
-                </div>
-                <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                  {selectedOptionHealth.description}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  onOpenCoverageView(
-                    {
-                      dimId: dimension.id,
-                      optionName: option.name,
-                      preferredSetName: selectedOptionIssues[0]?.preferredSetName ?? null,
-                    },
-                    false,
-                  )
-                }
-                className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Review issues
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
-          <div className="mb-3 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2">
-            <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-              Variant setup
-            </div>
-            <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Choose which token sets are shared across the family and which ones are unique to{" "}
-              <strong>{option.name}</strong>.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {renderAssignmentSection({
-              title: "Shared tokens",
-              description:
-                "These sets provide the baseline tokens reused across every variant in this family.",
-              setNames: foundationSets,
-              addValue: pendingSharedSet,
-              addOptions: sharedCandidates,
-              addLabel: "Add shared set",
-              onAddValueChange: setPendingSharedSet,
-              onAdd: () => {
-                if (!pendingSharedSet) return;
-                onHandleSetState(pendingSharedSet, "source");
-                setPendingSharedSet("");
-              },
-              onRemove: (setName) => onHandleSetState(setName, "disabled"),
-              emptyLabel: "No shared token sets selected yet.",
-            })}
-
-            {renderAssignmentSection({
-              title: "Variant-specific tokens",
-              description:
-                "Optional sets here only affect this variant and override the shared tokens when both define the same path.",
-              setNames: overrideSets,
-              addValue: pendingVariantSet,
-              addOptions: variantCandidates,
-              addLabel: "Add variant set",
-              onAddValueChange: setPendingVariantSet,
-              onAdd: () => {
-                if (!pendingVariantSet) return;
-                onHandleSetState(pendingVariantSet, "enabled");
-                setPendingVariantSet("");
-              },
-              onRemove: (setName) => onHandleSetState(setName, "disabled"),
-              emptyLabel: "No variant-specific token sets assigned.",
-            })}
-
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2.5">
-              <div>
-                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                  Need direct role controls?
-                </div>
-                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                  Use advanced setup to review every assigned and unused set for this variant.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onOpenAdvancedSetup}
-                className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                {`Open advanced setup${unusedSetCount > 0 ? ` (${unusedSetCount} unused)` : ""}`}
-              </button>
-            </div>
-          </div>
+  return (
+    <div
+      ref={(element) => {
+        setRoleRefs.current[`${dimension.id}:${option.name}`] = element;
+      }}
+      className="bg-[var(--color-figma-bg)]"
+    >
+      {/* Rename inline input — only shown during rename */}
+      {renameOption?.dimId === dimension.id &&
+      renameOption?.optionName === option.name && (
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)]">
+          <input
+            type="text"
+            value={renameOptionValue}
+            onChange={(event) => onRenameOptionValueChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") onExecuteRenameOption();
+              else if (event.key === "Escape") onCancelRenameOption();
+            }}
+            className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
+              renameOptionError
+                ? "border-[var(--color-figma-error)]"
+                : "border-[var(--color-figma-border)]"
+            }`}
+            autoFocus
+          />
+          <button
+            onClick={onExecuteRenameOption}
+            disabled={!renameOptionValue.trim()}
+            className="rounded bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+          >
+            Save
+          </button>
+          <button
+            onClick={onCancelRenameOption}
+            className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          {renameOptionError && (
+            <span className="text-[9px] text-[var(--color-figma-error)]">{renameOptionError}</span>
+          )}
         </div>
+      )}
+
+      {/* Auto-fill banner */}
+      {fillableCount > 0 && (
+        <div className="flex items-center justify-between px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 text-[10px]">
+          <span className="text-[var(--color-figma-text-secondary)]">
+            {fillableCount} token{fillableCount === 1 ? "" : "s"} can be auto-filled
+          </span>
+          <button
+            onClick={onAutoFill}
+            className="shrink-0 rounded bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)]"
+          >
+            Auto-fill
+          </button>
+        </div>
+      )}
+
+      {/* Health warning — compact single line */}
+      {selectedOptionHealth && (
+        <div className="flex items-center gap-2 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-warning)]/5 text-[10px]">
+          <span className="inline-flex items-center justify-center rounded-full bg-[var(--color-figma-warning)]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--color-figma-warning)]">
+            {selectedOptionHealth.totalCount}
+          </span>
+          <span className="flex-1 truncate text-[var(--color-figma-text-secondary)]">
+            {selectedOptionHealth.description}
+          </span>
+          <button
+            type="button"
+            onClick={() =>
+              onOpenCoverageView(
+                {
+                  dimId: dimension.id,
+                  optionName: option.name,
+                  preferredSetName: selectedOptionIssues[0]?.preferredSetName ?? null,
+                },
+                false,
+              )
+            }
+            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+          >
+            Review
+          </button>
+        </div>
+      )}
+
+      {/* Compact assignment rows */}
+      <div className="border-b border-[var(--color-figma-border)] py-1">
+        {renderCompactAssignment(
+          "Shared",
+          foundationSets,
+          pendingSharedSet,
+          sharedCandidates,
+          setPendingSharedSet,
+          () => {
+            if (!pendingSharedSet) return;
+            onHandleSetState(pendingSharedSet, "source");
+            setPendingSharedSet("");
+          },
+          (setName) => onHandleSetState(setName, "disabled"),
+        )}
+        {renderCompactAssignment(
+          "Overrides",
+          overrideSets,
+          pendingVariantSet,
+          variantCandidates,
+          setPendingVariantSet,
+          () => {
+            if (!pendingVariantSet) return;
+            onHandleSetState(pendingVariantSet, "enabled");
+            setPendingVariantSet("");
+          },
+          (setName) => onHandleSetState(setName, "disabled"),
+        )}
       </div>
     </div>
   );

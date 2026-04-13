@@ -23,3 +23,4 @@ acceptance_criteria:
 source: planner-pass
 created_at: 2026-04-10T23:04:56.803Z
 updated_at: 2026-04-10T23:16:21.829Z
+execution_domain: code_logic

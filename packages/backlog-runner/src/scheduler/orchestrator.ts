@@ -542,7 +542,7 @@ export async function runBacklogRunner(
     logger.line('  Runners:');
     for (const role of BACKLOG_RUNNER_ROLES) {
       const runner = getRunnerConfig(options, role);
-      logger.line(`    ${role.padEnd(7, ' ')} ${runner.tool}${runner.model ? ` · ${runner.model}` : ''}`);
+      logger.line(`    ${role.padEnd(9, ' ')} ${runner.tool}${runner.model ? ` · ${runner.model}` : ''}`);
     }
     logger.line(`  Stop:         Ctrl+C  (or: touch ${config.files.stop})`);
     await updateStatus();

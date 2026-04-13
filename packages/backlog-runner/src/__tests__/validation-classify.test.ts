@@ -9,6 +9,7 @@ function makeClaim(overrides: Partial<BacklogTaskSpec> = {}): BacklogTaskClaim {
       title: overrides.title ?? 'Test task',
       priority: overrides.priority ?? 'normal',
       taskKind: overrides.taskKind ?? 'implementation',
+      executionDomain: overrides.taskKind === 'research' ? undefined : overrides.executionDomain ?? 'code_logic',
       dependsOn: overrides.dependsOn ?? [],
       touchPaths: overrides.touchPaths ?? ['packages/server/src/routes/sets.ts'],
       capabilities: overrides.capabilities ?? [],

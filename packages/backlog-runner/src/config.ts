@@ -43,6 +43,10 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
   const runtimeDir = resolvePath(baseDir, config.files.runtimeDir ?? '.backlog-runner');
   const locksDir = resolvePath(baseDir, config.files.locksDir ?? path.join(runtimeDir, 'locks'));
   const candidateQueue = resolvePath(baseDir, config.files.candidateQueue ?? path.join('backlog', 'inbox.jsonl'));
+  const candidateRejectLog = resolvePath(
+    baseDir,
+    config.files.candidateRejectLog ?? path.join(runtimeDir, 'candidate-rejections.jsonl'),
+  );
   const taskSpecsDir = resolvePath(baseDir, config.files.taskSpecsDir ?? path.join('backlog', 'tasks'));
   const stateDb = resolvePath(baseDir, config.files.stateDb ?? path.join(runtimeDir, 'state.sqlite'));
   const runtimeReport = resolvePath(baseDir, config.files.runtimeReport ?? path.join(runtimeDir, 'runtime-report.md'));
@@ -52,6 +56,7 @@ export function normalizeBacklogRunnerConfig(config: BacklogRunnerConfigInput, c
     files: {
       backlog: resolvePath(baseDir, config.files.backlog),
       candidateQueue,
+      candidateRejectLog,
       taskSpecsDir,
       stop: resolvePath(baseDir, config.files.stop),
       runtimeReport,
@@ -114,6 +119,7 @@ export async function ensureConfigReady(config: BacklogRunnerConfig): Promise<vo
   await mkdir(config.files.locksDir, { recursive: true });
   await mkdir(config.files.taskSpecsDir, { recursive: true });
   await mkdir(path.dirname(config.files.candidateQueue), { recursive: true });
+  await mkdir(path.dirname(config.files.candidateRejectLog), { recursive: true });
   await mkdir(path.dirname(config.files.runtimeReport), { recursive: true });
 }
 

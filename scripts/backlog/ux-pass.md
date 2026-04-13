@@ -39,23 +39,6 @@ Default to **full-flow cleanup** over one-step polish. If several confusing mome
 
 ---
 
-## You Are Not The Other Passes
-
-- **You are NOT `product-pass`.** Missing capabilities, merged/removed surfaces, workflow-model changes, and surface ownership questions belong there.
-- **You are NOT `interface-pass`.** IA, labels, hierarchy, decluttering, chrome reduction, and static scanability belong there unless they are inseparable from the task flow.
-- **You are NOT `code-pass`.** Maintainability or code-structure cleanup belongs there.
-
-Use these tie-breakers:
-
-- **Belongs here:** “The import flow drops users into a dead-end state after conflict resolution with no clear continuation path.”
-- **Not here:** “The import screen uses too many badges and wrappers, making the hierarchy hard to scan.” That belongs to `interface-pass`.
-- **Belongs here:** “Users cannot tell whether a long-running apply operation is advancing, blocked, or complete across the full task.”
-- **Not here:** “Two similar action groups use inconsistent labels for the same concept.” That belongs to `interface-pass` unless it directly breaks a multi-step task.
-
-If a workflow breaks down in several adjacent places, keep those issues together unless they clearly belong to different user goals.
-
----
-
 ## Evaluation Method
 
 For each chosen task, walk the action sequence step by step and ask:
@@ -67,49 +50,12 @@ For each chosen task, walk the action sequence step by step and ask:
 
 Then inspect the broader task:
 
-5. **Handoffs** — does context survive when the task crosses panels, dialogs, drawers, or routes?
-6. **Recovery** — can the user understand failures, back out safely, and resume the task?
-7. **Task load** — does the task force too much memory, repeated re-orientation, or unnecessary re-entry of context?
+1. **Handoffs** — does context survive when the task crosses panels, dialogs, drawers, or routes?
+2. **Recovery** — can the user understand failures, back out safely, and resume the task?
+3. **Task load** — does the task force too much memory, repeated re-orientation, or unnecessary re-entry of context?
 
 Prefer deeper analysis of a few tasks over shallow roaming.
 Prefer complete walkthroughs over isolated moments.
-
----
-
-## Target Tasks
-
-Choose **2–4 tasks per session** from areas like:
-
-- Token creation, editing, save, and validation
-- Token search, filtering, selection, and bulk actions
-- Theme setup, coverage review, and compare workflows
-- Import and conflict-resolution flows
-- Export / publish / sync flows
-- Audit, issue review, and remediation handoffs
-- Generator configuration and review flows
-
----
-
-## Quality Bar
-
-Only write an item if it passes **all** of these checks:
-
-- **Durable** — still worth doing next week.
-- **Task-level** — affects whether a user can discover, understand, complete, or recover within a real task.
-- **Verified** — confirmed by tracing real components, handlers, and state flows.
-- **Non-redundant** — not already on the backlog.
-- **Consolidated** — related breakdowns merged into one task-flow item.
-- **Ownable** — one agent can implement it cleanly.
-- **Specific** — the broken task and the “fixed” state are clear.
-
-Additional bar for this pass:
-
-- The acceptance criteria should describe a clearer end-to-end task with better orientation, continuation, feedback, or recovery.
-- Reject items that amount to a single-button tweak, microcopy tweak, or one isolated control change if the surrounding flow would remain confusing.
-
-If nothing clears this bar, write 0 items.
-
----
 
 ## Workflow
 
@@ -122,15 +68,16 @@ If nothing clears this bar, write 0 items.
 4. **Write findings** — for each item that clears the bar, append one JSON object per line to `backlog/inbox.jsonl`:
 
 ```json
-{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"validation_profile":"optional","capabilities":["optional"],"context":"Include the violated walkthrough or usability principle here","source":"ux-pass"}
+{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"execution_domain":"ui_ux","validation_profile":"optional","capabilities":["optional"],"context":"Include the violated walkthrough or usability principle here","source":"ux-pass"}
 ```
 
 Rules:
+
 - `touch_paths` must name the concrete task surfaces.
 - `context` should identify the violated task-flow principle, such as feedback, recovery, handoff clarity, or recognition over recall.
 - Titles and acceptance criteria should name the full task or handoff explicitly, not only the one step where confusion first appears.
 
-5. **Document** — append to `scripts/backlog/progress.txt`:
+1. **Document** — append to `scripts/backlog/progress.txt`:
 
 ```text
 ## YYYY-MM-DD - ux-pass

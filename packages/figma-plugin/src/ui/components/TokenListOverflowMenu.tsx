@@ -59,6 +59,11 @@ export interface TokenListOverflowMenuProps {
 
   connected: boolean;
   activeCount: number;
+
+  // Quick filters
+  onInsertSearchQualifier?: (qualifier: string) => void;
+  onClearFilters?: () => void;
+  onResetView?: () => void;
 }
 
 const MENU_SECTION_BORDER =
@@ -182,10 +187,10 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className={`inline-flex items-center justify-center rounded border px-1.5 py-1.5 transition-colors ${
+        className={`inline-flex items-center justify-center rounded p-1 transition-colors ${
           open || props.activeCount > 0
-            ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-            : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+            ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
         }`}
         title="More options"
       >
@@ -424,6 +429,53 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               disabled={props.applyingOrLoading || !props.tokensExist}
               onClick={() => runAndClose(props.onApplyStyles)}
             />
+
+            {/* ── Quick filters ── */}
+            {props.onInsertSearchQualifier && (
+              <>
+                <div className={MENU_SECTION_BORDER}>
+                  <MenuLabel>Quick filters</MenuLabel>
+                </div>
+                {(
+                  [
+                    ["type", "Type"],
+                    ["has", "State"],
+                    ["path", "Path"],
+                    ["name", "Name"],
+                    ["value", "Value"],
+                    ["desc", "Description"],
+                    ["generator", "Generator"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <MenuItem
+                    key={key}
+                    label={label}
+                    suffix={`${key}:`}
+                    onClick={() =>
+                      runAndClose(() => props.onInsertSearchQualifier!(key))
+                    }
+                  />
+                ))}
+              </>
+            )}
+
+            {/* ── Clear / Reset ── */}
+            {(props.onClearFilters || props.onResetView) && (
+              <div className={MENU_SECTION_BORDER}>
+                {props.onClearFilters && (
+                  <MenuItem
+                    label="Clear filters"
+                    onClick={() => runAndClose(props.onClearFilters!)}
+                  />
+                )}
+                {props.onResetView && (
+                  <MenuItem
+                    label="Reset view"
+                    onClick={() => runAndClose(props.onResetView!)}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

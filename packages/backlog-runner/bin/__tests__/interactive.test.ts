@@ -30,11 +30,12 @@ function makeConfig() {
       },
       validationCommand: 'bash scripts/backlog/validate.sh',
       runners: {
-        task: { tool: 'codex', model: 'gpt-5.4' },
+        taskUi: { tool: 'claude', model: 'claude-opus-4-6' },
+        taskCode: { tool: 'codex', model: 'gpt-5.4' },
         planner: { tool: 'claude', model: 'claude-opus-4-6' },
-        product: { tool: 'codex', model: 'gpt-5.4' },
-        interface: { tool: 'claude', model: 'claude-sonnet-4-6' },
-        ux: { tool: 'claude', model: 'claude-sonnet-4-6' },
+        product: { tool: 'claude', model: 'claude-opus-4-6' },
+        interface: { tool: 'claude', model: 'claude-opus-4-6' },
+        ux: { tool: 'claude', model: 'claude-opus-4-6' },
         code: { tool: 'codex', model: 'gpt-5.4' },
       },
       defaults: {
@@ -159,8 +160,10 @@ describe('interactive helpers', () => {
       '2',       // workers
       'y',       // discovery passes
       '2',       // mixed runner setup
-      '3',       // task: codex
-      'gpt-5.4', // task model
+      '2',       // taskUi: claude
+      'claude-opus-4-6', // taskUi model
+      '3',       // taskCode: codex
+      'gpt-5.4', // taskCode model
       '2',       // planner: claude
       'claude-opus-4-6', // planner model
       '',        // product: repo default tool
@@ -184,7 +187,8 @@ describe('interactive helpers', () => {
       worktrees: true,
       interactive: true,
       runners: {
-        task: { tool: 'codex', model: 'gpt-5.4' },
+        taskUi: { tool: 'claude', model: 'claude-opus-4-6' },
+        taskCode: { tool: 'codex', model: 'gpt-5.4' },
         planner: { tool: 'claude', model: 'claude-opus-4-6' },
         product: { tool: undefined, model: undefined },
         interface: { tool: undefined, model: undefined },

@@ -57,7 +57,8 @@ async function makeFixture() {
         backlog: 'pnpm --filter @tokenmanager/backlog-runner exec vitest run',
       },
       runners: {
-        task: { tool: 'codex', model: 'default' },
+        taskUi: { tool: 'claude', model: 'opus' },
+        taskCode: { tool: 'codex', model: 'default' },
         planner: { tool: 'codex', model: 'default' },
         product: { tool: 'codex', model: 'default' },
         interface: { tool: 'claude', model: 'sonnet' },
@@ -80,6 +81,7 @@ function taskSpec(overrides: Partial<BacklogTaskSpec> & Pick<BacklogTaskSpec, 'i
     title: overrides.title,
     priority: overrides.priority ?? 'normal',
     taskKind: overrides.taskKind ?? 'implementation',
+    executionDomain: overrides.taskKind === 'research' ? undefined : overrides.executionDomain ?? 'ui_ux',
     dependsOn: overrides.dependsOn ?? [],
     touchPaths: overrides.touchPaths ?? ['packages/figma-plugin/src/ui/App.tsx'],
     capabilities: overrides.capabilities ?? [],
@@ -230,6 +232,7 @@ describe('task store', () => {
       'title: Task A active',
       'priority: normal',
       'task_kind: implementation',
+      'execution_domain: code_logic',
       'depends_on:',
       'touch_paths:',
       '  - packages/core/src/a.ts',
@@ -251,6 +254,7 @@ describe('task store', () => {
       'title: Task A archived',
       'priority: normal',
       'task_kind: implementation',
+      'execution_domain: code_logic',
       'depends_on:',
       'touch_paths:',
       '  - packages/core/src/a.ts',
@@ -772,6 +776,7 @@ describe('task store', () => {
       + 'title: Invalid source\n'
       + 'priority: normal\n'
       + 'task_kind: implementation\n'
+      + 'execution_domain: code_logic\n'
       + 'depends_on: []\n'
       + 'touch_paths:\n'
       + '  - packages/core/src/index.ts\n'

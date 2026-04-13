@@ -1,4 +1,5 @@
 import type { RunnerLogger } from '../logger.js';
+import type { BacklogImplementationRunnerRole } from '../types.js';
 import { containsSharedInstallPolicyCode } from '../workspace/shared-install.js';
 import type {
   AgentResult,
@@ -20,6 +21,7 @@ export interface LifecycleAgentPhaseOptions {
   commandRunner: CommandRunner;
   options: ResolvedRunOptions;
   logger: RunnerLogger;
+  executionRole: BacklogImplementationRunnerRole;
   label: string;
   context: string;
   prompt: string;
@@ -38,6 +40,7 @@ export async function runLifecycleAgentPhase({
   commandRunner,
   options,
   logger,
+  executionRole,
   label,
   context,
   prompt,
@@ -51,7 +54,7 @@ export async function runLifecycleAgentPhase({
     commandRunner,
     options,
     logger,
-    role: 'task',
+    role: executionRole,
     label,
     context,
     prompt,

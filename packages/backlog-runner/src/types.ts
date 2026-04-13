@@ -1,11 +1,14 @@
 export type BacklogTool = 'claude' | 'codex';
 export const BACKLOG_DISCOVERY_PASSES = ['interface', 'ux', 'product', 'code'] as const;
 export type BacklogPassType = typeof BACKLOG_DISCOVERY_PASSES[number];
-export const BACKLOG_RUNNER_ROLES = ['task', 'planner', ...BACKLOG_DISCOVERY_PASSES] as const;
+export const BACKLOG_IMPLEMENTATION_RUNNER_ROLES = ['taskUi', 'taskCode'] as const;
+export type BacklogImplementationRunnerRole = typeof BACKLOG_IMPLEMENTATION_RUNNER_ROLES[number];
+export const BACKLOG_RUNNER_ROLES = [...BACKLOG_IMPLEMENTATION_RUNNER_ROLES, 'planner', ...BACKLOG_DISCOVERY_PASSES] as const;
 export type BacklogRunnerRole = typeof BACKLOG_RUNNER_ROLES[number];
 export type BacklogTaskPriority = 'high' | 'normal' | 'low';
 export type BacklogTaskState = 'planned' | 'ready' | 'done' | 'failed' | 'superseded';
 export type BacklogTaskKind = 'implementation' | 'research';
+export type BacklogExecutionDomain = 'ui_ux' | 'code_logic';
 export type BacklogWorkerResultKind =
   | 'completed'
   | 'failed'
@@ -19,6 +22,7 @@ export interface BacklogRunnerConfigInput {
   files: {
     backlog: string;
     candidateQueue: string;
+    candidateRejectLog?: string;
     taskSpecsDir?: string;
     stop: string;
     runtimeReport?: string;
@@ -57,6 +61,7 @@ export interface BacklogRunnerConfig {
   files: {
     backlog: string;
     candidateQueue: string;
+    candidateRejectLog: string;
     taskSpecsDir: string;
     stop: string;
     runtimeReport: string;
@@ -198,6 +203,7 @@ export interface BacklogTaskSpec {
   title: string;
   priority: BacklogTaskPriority;
   taskKind: BacklogTaskKind;
+  executionDomain?: BacklogExecutionDomain;
   dependsOn: string[];
   touchPaths: string[];
   capabilities: string[];
@@ -215,6 +221,7 @@ export interface BacklogCandidateRecord {
   priority: BacklogTaskPriority;
   touchPaths: string[];
   acceptanceCriteria: string[];
+  executionDomain?: BacklogExecutionDomain;
   validationProfile?: string;
   capabilities?: string[];
   context?: string;
@@ -227,6 +234,7 @@ export interface PlannerTaskChild {
   priority: BacklogTaskPriority;
   touchPaths: string[];
   acceptanceCriteria: string[];
+  executionDomain?: BacklogExecutionDomain;
   validationProfile?: string;
   capabilities?: string[];
   context?: string;
@@ -252,6 +260,7 @@ export interface BacklogDrainResult {
   createdTasks: number;
   skippedDuplicates: number;
   ignoredInvalidLines: number;
+  loggedRejects: number;
 }
 
 export interface BacklogSyncResult {

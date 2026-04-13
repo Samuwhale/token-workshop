@@ -71,7 +71,8 @@ async function makeRepo() {
       },
       validationCommand: 'bash scripts/backlog/validate.sh',
       runners: {
-        task: { tool: 'codex', model: 'default' },
+        taskUi: { tool: 'claude', model: 'opus' },
+        taskCode: { tool: 'codex', model: 'default' },
         planner: { tool: 'codex', model: 'default' },
         product: { tool: 'codex', model: 'default' },
         interface: { tool: 'claude', model: 'sonnet' },

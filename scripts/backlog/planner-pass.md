@@ -46,6 +46,7 @@ Return exactly one JSON object matching the requested schema.
   - `priority`
   - `touch_paths`
   - `acceptance_criteria`
+  - `execution_domain` (`ui_ux`, `code_logic`, or `null` for research)
 - Optional child fields:
   - `validation_profile`
   - `capabilities`
@@ -56,10 +57,12 @@ Return exactly one JSON object matching the requested schema.
 - For `research` children:
   - make the title describe the code area and the ambiguity to resolve
   - make acceptance criteria require concrete follow-up tasks to be written
+  - set `execution_domain` to `null`
   - use `context` to capture what the later research agent should inspect
 
 - For `implementation` children:
   - keep the task narrow enough for one execution agent
   - use concrete repo paths in `touch_paths` to describe the expected implementation surface
+  - set `execution_domain` to `ui_ux` for plugin UI workflow work and `code_logic` otherwise
   - write acceptance criteria that can be validated directly
   - for UX/UI parents, prefer a single child that owns the full screen or full workflow cleanup over several children for isolated labels, pills, or local controls
