@@ -14,6 +14,8 @@ export function ImportVariablesFooter() {
     varConflictDetailsExpanded,
     setVarConflictDetailsExpanded,
     checkingVarConflicts,
+    hasAmbiguousCollectionImport,
+    ambiguousCollectionImportCount,
     totalEnabledSets,
     totalEnabledTokens,
     importing,
@@ -37,6 +39,7 @@ export function ImportVariablesFooter() {
   const [showAllConflicts, setShowAllConflicts] = useState(false);
 
   const hasConflicts = varConflictPreview !== null && varConflictPreview.overwriteCount > 0;
+  const hasBlockingDestinationCollisions = hasAmbiguousCollectionImport;
   const visibleDetails = varConflictDetails
     ? showAllConflicts ? varConflictDetails : varConflictDetails.slice(0, MAX_VISIBLE_CONFLICTS)
     : null;
@@ -44,6 +47,15 @@ export function ImportVariablesFooter() {
     ? Math.max(0, varConflictDetails.length - MAX_VISIBLE_CONFLICTS)
     : 0;
   const recommendedConflictAction = reviewActionCopy.merge;
+  const importDisabledMessage = hasInvalidSetNames
+    ? 'Fix invalid set names above before importing'
+    : hasBlockingDestinationCollisions
+      ? ambiguousCollectionImportCount === 1
+        ? 'Resolve 1 duplicate destination path before importing'
+        : `Resolve ${ambiguousCollectionImportCount} duplicate destination paths before importing`
+      : totalEnabledSets === 0
+        ? 'Enable at least one mode above to import'
+        : null;
 
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
@@ -53,7 +65,7 @@ export function ImportVariablesFooter() {
           {checkingVarConflicts ? (
             <>
               <Spinner size="xs" className="text-[var(--color-figma-text-secondary)]" />
-              <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens…</span>
+              <span className="text-[var(--color-figma-text-secondary)]">Checking destination collisions…</span>
             </>
           ) : varConflictPreview && (
             <>
@@ -77,14 +89,25 @@ export function ImportVariablesFooter() {
                 </span>
               )}
               {varConflictPreview.newCount === 0 && varConflictPreview.overwriteCount === 0 && totalEnabledSets > 0 && (
-                <span className="text-[var(--color-figma-text-secondary)]">No tokens selected</span>
+                <span className="text-[var(--color-figma-text-secondary)]">No conflicts detected</span>
               )}
             </>
           )}
         </div>
       )}
 
-      {hasConflicts && varConflictPreview && !importing && (
+      {hasBlockingDestinationCollisions && !importing && (
+        <div className="rounded border border-[var(--color-figma-warning,#e8a100)]/40 bg-[var(--color-figma-warning,#f59e0b)]/10 px-2.5 py-2">
+          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            Duplicate destination paths block this import
+          </div>
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Two or more enabled modes target the same destination set and token path. Change one of those destination mappings or disable an overlapping mode before importing.
+          </div>
+        </div>
+      )}
+
+      {hasConflicts && varConflictPreview && !importing && !hasBlockingDestinationCollisions && (
         <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
@@ -120,30 +143,52 @@ export function ImportVariablesFooter() {
 
           {varConflictDetailsExpanded && (
             <div className="max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
-              {visibleDetails!.map(({ path, setName, existing, incoming }) => (
+              {visibleDetails!.map(({ path, setName, existing, incoming, kind, existingLabel, incomingLabel, note }) => (
                 <div key={`${setName}:${path}`} className="px-2 py-1.5 bg-[var(--color-figma-bg)]">
                   <div className="flex items-start justify-between gap-1 mb-0.5">
                     <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1 min-w-0" title={path}>
                       {path}
                     </span>
-                    {varConflictDetails.length > 1 && (
-                      <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)] ml-1">{setName}</span>
-                    )}
+                    <div className="flex items-center gap-1 shrink-0 ml-1">
+                      {kind === 'incoming-duplicate' && (
+                        <span className="rounded px-1 py-0.5 text-[8px] font-medium bg-[var(--color-figma-warning,#f59e0b)]/12 text-[var(--color-figma-warning,#e8a100)]">
+                          duplicate
+                        </span>
+                      )}
+                      {varConflictDetails.length > 1 && (
+                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{setName}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col gap-0.5 ml-1 text-[10px] font-mono">
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="text-[var(--color-figma-error,#e53935)] shrink-0 w-3">&minus;</span>
                       <span className="text-[var(--color-figma-text-secondary)] truncate flex items-center gap-1">
+                        {existingLabel && (
+                          <span className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
+                            {existingLabel}
+                          </span>
+                        )}
                         {renderConflictValue(existing.$type, existing.$value)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="text-[var(--color-figma-success,#16a34a)] shrink-0 w-3">+</span>
                       <span className="text-[var(--color-figma-text)] truncate flex items-center gap-1">
+                        {incomingLabel && (
+                          <span className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
+                            {incomingLabel}
+                          </span>
+                        )}
                         {renderConflictValue(incoming.$type, incoming.$value)}
                       </span>
                     </div>
                   </div>
+                  {note && (
+                    <div className="ml-4 mt-1 text-[9px] text-[var(--color-figma-text-secondary)]">
+                      {note}
+                    </div>
+                  )}
                 </div>
               ))}
               {hiddenCount > 0 && (
@@ -163,7 +208,7 @@ export function ImportVariablesFooter() {
       )}
 
       {/* Import button(s) */}
-      {varConflictPreview !== null && varConflictPreview.overwriteCount > 0 && !importing ? (
+      {varConflictPreview !== null && varConflictPreview.overwriteCount > 0 && !importing && !hasBlockingDestinationCollisions ? (
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-0.5">
             <button
@@ -212,21 +257,28 @@ export function ImportVariablesFooter() {
         <div className="flex flex-col gap-1">
           <button
             onClick={() => handleImportVariables('overwrite')}
-            disabled={totalEnabledSets === 0 || importing || hasInvalidSetNames}
-            title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
+            disabled={totalEnabledSets === 0 || importing || hasInvalidSetNames || hasBlockingDestinationCollisions}
+            title={importDisabledMessage ?? undefined}
             className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
           >
             {importing
               ? importProgress
                 ? `Importing set ${importProgress.done}/${importProgress.total}…`
                 : 'Importing…'
-              : `Import ${totalEnabledTokens} token${totalEnabledTokens !== 1 ? 's' : ''} into ${totalEnabledSets} set${totalEnabledSets !== 1 ? 's' : ''}`}
+              : hasBlockingDestinationCollisions
+                ? 'Resolve destination collisions to import'
+                : `Import ${totalEnabledTokens} token${totalEnabledTokens !== 1 ? 's' : ''} into ${totalEnabledSets} set${totalEnabledSets !== 1 ? 's' : ''}`}
           </button>
-          {!importing && totalEnabledSets === 0 && !hasInvalidSetNames && (
+          {!importing && totalEnabledSets === 0 && !hasInvalidSetNames && !hasBlockingDestinationCollisions && (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">Enable at least one mode above to import</p>
           )}
           {!importing && hasInvalidSetNames && (
             <p className="text-[10px] text-[var(--color-figma-error,#e53935)] text-center">Fix invalid set names above before importing</p>
+          )}
+          {!importing && hasBlockingDestinationCollisions && !hasInvalidSetNames && (
+            <p className="text-[10px] text-[var(--color-figma-error,#e53935)] text-center">
+              {importDisabledMessage}
+            </p>
           )}
         </div>
       )}

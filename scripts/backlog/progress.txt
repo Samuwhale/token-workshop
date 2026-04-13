@@ -2163,3 +2163,12 @@
   - Import undo should capture operation IDs, not preview path lists, so overwrite and merge flows can restore prior token state and retried partial batches can join the same rollback session.
   - Batch mutation routes should filter before/after snapshots to changed entries before recording history; otherwise skip-mode previews and no-op overwrites create misleading undo scope.
 ---
+## 2026-04-13 - Reject or consolidate duplicate destination-set mappings in collection imports before preview and apply
+- Consolidated collection imports into one destination-scoped write plan per set, counted preview conflicts against unique destination paths, and marked same-set/same-path collisions between enabled modes as blocking duplicate conflicts instead of letting later batches silently overwrite earlier ones.
+- Surfaced shared-destination and duplicate-path validation in the collection mapping UI, expanded the conflict review rows to label intra-import duplicates, and disabled import actions until ambiguous duplicate paths are resolved.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/ImportPanelContext.tsx packages/figma-plugin/src/ui/components/ImportVariablesView.tsx packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx` passed with existing hook-dependency warnings in `ImportPanelContext.tsx`; `pnpm exec tsc -p packages/figma-plugin/tsconfig.json --noEmit --pretty false 2>&1 | rg "ImportPanelContext|ImportVariablesView|ImportVariablesFooter|error TS"` showed only unrelated pre-existing errors in `graph-templates.ts`, `QuickGeneratorPopover.tsx`, `SelectionInspector.tsx`, and theme-manager refs.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx` ~L76, ~L406, ~L643, ~L768, ~L982, ~L1477; `packages/figma-plugin/src/ui/components/ImportVariablesView.tsx` ~L10, ~L66, ~L100, ~L126; `packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx` ~L17, ~L41, ~L99, ~L146, ~L211; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Collection imports need one destination-first aggregation step before both preview and apply; if preview iterates raw source modes, shared destinations hide intra-run overwrites.
+  - For blocking intra-import collisions, reuse the existing conflict review surface with explicit source labels instead of inventing a second warning-only list; that keeps server conflicts and duplicate incoming paths visible in one place.
+---

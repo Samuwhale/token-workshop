@@ -73,6 +73,17 @@ export interface ImportRollbackOperation {
   changedPaths: string[];
 }
 
+export interface VariableConflictDetail {
+  path: string;
+  setName: string;
+  existing: { $type: string; $value: unknown };
+  incoming: ImportToken;
+  kind: "existing" | "incoming-duplicate";
+  existingLabel?: string;
+  incomingLabel?: string;
+  note?: string;
+}
+
 export interface ImportCompletionResult {
   sourceType: ImportSourceKind;
   sourceFamily: SourceFamily;
@@ -84,6 +95,11 @@ export interface ImportCompletionResult {
   totalImportedCount: number;
   hadFailures: boolean;
   sourceCollectionCount?: number;
+}
+
+export interface CollectionModeDestinationStatus {
+  sharedDestinationCount: number;
+  ambiguousPathCount: number;
 }
 
 export interface ImportPanelContextValue {
@@ -184,17 +200,16 @@ export interface ImportPanelContextValue {
 
   // Variables conflict preview
   varConflictPreview: { newCount: number; overwriteCount: number } | null;
-  varConflictDetails:
-    | {
-        path: string;
-        setName: string;
-        existing: { $type: string; $value: unknown };
-        incoming: ImportToken;
-      }[]
-    | null;
+  varConflictDetails: VariableConflictDetail[] | null;
   varConflictDetailsExpanded: boolean;
   setVarConflictDetailsExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   checkingVarConflicts: boolean;
+  collectionModeDestinationStatus: Record<
+    string,
+    CollectionModeDestinationStatus
+  >;
+  hasAmbiguousCollectionImport: boolean;
+  ambiguousCollectionImportCount: number;
 
   // Derived values
   totalEnabledSets: number;
@@ -262,6 +277,21 @@ type ImportBatch = { setName: string; tokens: Record<string, unknown>[] };
 type ImportHistory = { operations: ImportRollbackOperation[] };
 type ImportStrategy = "overwrite" | "skip" | "merge";
 type ImportSource = ImportPanelContextValue["source"];
+type CollectionImportTokenSource = {
+  modeKey: string;
+  sourceLabel: string;
+  token: ImportToken;
+};
+type CollectionImportPlan = {
+  setName: string;
+  writeTokens: CollectionImportTokenSource[];
+  duplicateConflicts: {
+    path: string;
+    tokens: CollectionImportTokenSource[];
+  }[];
+  totalPathCount: number;
+  modeKeys: string[];
+};
 
 export const IMPORT_REVIEW_ACTION_COPY: Record<
   ImportReviewActionKey,
@@ -366,6 +396,122 @@ function toImportRollbackOperation(
   };
 }
 
+function buildCollectionImportSourceLabel(
+  collectionName: string,
+  modeName: string,
+): string {
+  return `${collectionName} / ${modeName}`;
+}
+
+function buildCollectionImportPlans(
+  collectionData: CollectionData[],
+  modeEnabled: Record<string, boolean>,
+  modeSetNames: Record<string, string>,
+): {
+  plans: CollectionImportPlan[];
+  modeStatus: Record<string, CollectionModeDestinationStatus>;
+  ambiguousPathCount: number;
+} {
+  const groupedPlans = new Map<
+    string,
+    {
+      setName: string;
+      pathSources: Map<string, CollectionImportTokenSource[]>;
+      modeKeys: Set<string>;
+    }
+  >();
+
+  for (const collection of collectionData) {
+    for (const mode of collection.modes) {
+      const key = modeKey(collection.name, mode.modeId);
+      if (!(modeEnabled[key] ?? true)) {
+        continue;
+      }
+
+      const setName = (
+        modeSetNames[key] ??
+        defaultSetName(collection.name, mode.modeName, collection.modes.length)
+      ).trim();
+      const sourceLabel = buildCollectionImportSourceLabel(
+        collection.name,
+        mode.modeName,
+      );
+      let plan = groupedPlans.get(setName);
+      if (!plan) {
+        plan = {
+          setName,
+          pathSources: new Map(),
+          modeKeys: new Set(),
+        };
+        groupedPlans.set(setName, plan);
+      }
+
+      plan.modeKeys.add(key);
+      for (const token of mode.tokens) {
+        const pathSources = plan.pathSources.get(token.path) ?? [];
+        pathSources.push({
+          modeKey: key,
+          sourceLabel,
+          token,
+        });
+        plan.pathSources.set(token.path, pathSources);
+      }
+    }
+  }
+
+  const modeStatus: Record<string, CollectionModeDestinationStatus> = {};
+  const plans: CollectionImportPlan[] = [];
+  let ambiguousPathCount = 0;
+
+  for (const plan of groupedPlans.values()) {
+    const modeKeys = [...plan.modeKeys];
+    for (const modeKeyValue of modeKeys) {
+      modeStatus[modeKeyValue] = {
+        sharedDestinationCount: modeKeys.length,
+        ambiguousPathCount: 0,
+      };
+    }
+
+    const writeTokens: CollectionImportTokenSource[] = [];
+    const duplicateConflicts: CollectionImportPlan["duplicateConflicts"] = [];
+
+    for (const [path, pathSources] of plan.pathSources) {
+      if (pathSources.length === 1) {
+        writeTokens.push(pathSources[0]);
+        continue;
+      }
+
+      ambiguousPathCount += 1;
+      duplicateConflicts.push({ path, tokens: pathSources });
+      const conflictingModes = new Set(
+        pathSources.map((source) => source.modeKey),
+      );
+      for (const modeKeyValue of conflictingModes) {
+        const currentStatus = modeStatus[modeKeyValue] ?? {
+          sharedDestinationCount: modeKeys.length,
+          ambiguousPathCount: 0,
+        };
+        currentStatus.ambiguousPathCount += 1;
+        modeStatus[modeKeyValue] = currentStatus;
+      }
+    }
+
+    plans.push({
+      setName: plan.setName,
+      writeTokens,
+      duplicateConflicts,
+      totalPathCount: plan.pathSources.size,
+      modeKeys,
+    });
+  }
+
+  return {
+    plans,
+    modeStatus,
+    ambiguousPathCount,
+  };
+}
+
 export function useImportPanel(): ImportPanelContextValue {
   const ctx = useContext(ImportPanelContext);
   if (!ctx)
@@ -409,13 +555,7 @@ export function ImportPanelProvider({
     overwriteCount: number;
   } | null>(null);
   const [varConflictDetails, setVarConflictDetails] = useState<
-    | {
-        path: string;
-        setName: string;
-        existing: ExistingTokenValue;
-        incoming: ImportToken;
-      }[]
-    | null
+    VariableConflictDetail[] | null
   >(null);
   const [varConflictDetailsExpanded, setVarConflictDetailsExpanded] =
     useState(false);
@@ -500,28 +640,21 @@ export function ImportPanelProvider({
     [src.tokens, src.selectedTokens],
   );
 
-  const collectionImportEntries = useMemo(
+  const {
+    plans: collectionImportPlans,
+    modeStatus: collectionModeDestinationStatus,
+    ambiguousPathCount: ambiguousCollectionImportCount,
+  } = useMemo(
     () =>
-      src.collectionData.flatMap((collection) =>
-        collection.modes
-          .filter(
-            (mode) => src.modeEnabled[modeKey(collection.name, mode.modeId)],
-          )
-          .map((mode) => ({
-            setName:
-              src.modeSetNames[modeKey(collection.name, mode.modeId)] ||
-              defaultSetName(
-                collection.name,
-                mode.modeName,
-                collection.modes.length,
-              ),
-            tokens: mode.tokens,
-          })),
+      buildCollectionImportPlans(
+        src.collectionData,
+        src.modeEnabled,
+        src.modeSetNames,
       ),
     [src.collectionData, src.modeEnabled, src.modeSetNames],
   );
 
-  const totalEnabledSets = collectionImportEntries.length;
+  const totalEnabledSets = collectionImportPlans.length;
   const enabledCollectionCount = useMemo(
     () =>
       src.collectionData.filter((collection) =>
@@ -533,12 +666,13 @@ export function ImportPanelProvider({
   );
   const totalEnabledTokens = useMemo(
     () =>
-      collectionImportEntries.reduce(
-        (count, entry) => count + entry.tokens.length,
+      collectionImportPlans.reduce(
+        (count, plan) => count + plan.totalPathCount,
         0,
       ),
-    [collectionImportEntries],
+    [collectionImportPlans],
   );
+  const hasAmbiguousCollectionImport = ambiguousCollectionImportCount > 0;
 
   const previewNewCount = useMemo(
     () =>
@@ -632,24 +766,10 @@ export function ImportPanelProvider({
   ]);
 
   useEffect(() => {
-    if (collectionImportEntries.length === 0) {
+    if (collectionImportPlans.length === 0) {
       varConflictFetchIdRef.current += 1;
       setVarConflictPreview(null);
       setVarConflictDetails(null);
-      setVarConflictDetailsExpanded(false);
-      setCheckingVarConflicts(false);
-      return;
-    }
-
-    const setsToCheck = collectionImportEntries.filter((entry) =>
-      setsHook.sets.includes(entry.setName),
-    );
-    if (setsToCheck.length === 0) {
-      setVarConflictPreview({
-        newCount: totalEnabledTokens,
-        overwriteCount: 0,
-      });
-      setVarConflictDetails([]);
       setVarConflictDetailsExpanded(false);
       setCheckingVarConflicts(false);
       return;
@@ -660,34 +780,67 @@ export function ImportPanelProvider({
 
     void (async () => {
       try {
+        let newCount = 0;
         let overwriteCount = 0;
-        const details: {
-          path: string;
-          setName: string;
-          existing: ExistingTokenValue;
-          incoming: ImportToken;
-        }[] = [];
+        const details: VariableConflictDetail[] = [];
 
-        for (const entry of setsToCheck) {
-          const existing = await fetchSetTokenMap(entry.setName);
-          if (fetchId !== varConflictFetchIdRef.current) return;
+        for (const plan of collectionImportPlans) {
+          for (const conflict of plan.duplicateConflicts) {
+            const [firstSource, lastSource] = [
+              conflict.tokens[0],
+              conflict.tokens[conflict.tokens.length - 1],
+            ];
+            if (!firstSource || !lastSource) {
+              continue;
+            }
 
-          for (const token of entry.tokens) {
-            const current = existing.get(token.path);
-            if (!current) continue;
             overwriteCount += 1;
             details.push({
-              path: token.path,
-              setName: entry.setName,
+              path: conflict.path,
+              setName: plan.setName,
+              existing: {
+                $type: firstSource.token.$type,
+                $value: firstSource.token.$value,
+              },
+              incoming: lastSource.token,
+              kind: "incoming-duplicate",
+              existingLabel: firstSource.sourceLabel,
+              incomingLabel: lastSource.sourceLabel,
+              note:
+                conflict.tokens.length === 2
+                  ? "Two enabled modes target this same path in the destination set."
+                  : `${conflict.tokens.length} enabled modes target this same path in the destination set.`,
+            });
+          }
+
+          const existing = setsHook.sets.includes(plan.setName)
+            ? await fetchSetTokenMap(plan.setName)
+            : new Map<string, ExistingTokenValue>();
+          if (fetchId !== varConflictFetchIdRef.current) return;
+
+          for (const source of plan.writeTokens) {
+            const current = existing.get(source.token.path);
+            if (!current) {
+              newCount += 1;
+              continue;
+            }
+
+            overwriteCount += 1;
+            details.push({
+              path: source.token.path,
+              setName: plan.setName,
               existing: current,
-              incoming: token,
+              incoming: source.token,
+              kind: "existing",
+              existingLabel: "Current token",
+              incomingLabel: source.sourceLabel,
             });
           }
         }
 
         if (fetchId !== varConflictFetchIdRef.current) return;
         setVarConflictPreview({
-          newCount: totalEnabledTokens - overwriteCount,
+          newCount,
           overwriteCount,
         });
         setVarConflictDetails(details);
@@ -703,12 +856,7 @@ export function ImportPanelProvider({
         }
       }
     })();
-  }, [
-    collectionImportEntries,
-    totalEnabledTokens,
-    setsHook.sets,
-    fetchSetTokenMap,
-  ]);
+  }, [collectionImportPlans, setsHook.sets, fetchSetTokenMap]);
 
   const importPayloadBatch = useCallback(
     async (
@@ -833,9 +981,19 @@ export function ImportPanelProvider({
 
   const handleImportVariables = useCallback(
     async (strategy: ImportStrategy = "overwrite") => {
+      if (hasAmbiguousCollectionImport) {
+        dispatchToast(
+          ambiguousCollectionImportCount === 1
+            ? "One destination set has duplicate token paths across enabled modes. Change the destination mapping or disable one mode before importing."
+            : `${ambiguousCollectionImportCount} destination token paths are duplicated across enabled modes. Change the destination mappings or disable conflicting modes before importing.`,
+          "error",
+        );
+        return;
+      }
+
       src.setError(null);
       setImporting(true);
-      setImportProgress({ done: 0, total: collectionImportEntries.length });
+      setImportProgress({ done: 0, total: collectionImportPlans.length });
       clearConflictState();
       clearFailedState();
       setFailedImportStrategy(strategy);
@@ -847,16 +1005,16 @@ export function ImportPanelProvider({
       const rollbackOperations: ImportRollbackOperation[] = [];
 
       try {
-        for (const entry of collectionImportEntries) {
+        for (const plan of collectionImportPlans) {
           try {
             const result = await importTokenBatch(
-              entry.setName,
-              entry.tokens,
+              plan.setName,
+              plan.writeTokens.map((source) => source.token),
               strategy,
             );
             importedTokens += result.imported;
             const rollbackOperation = toImportRollbackOperation(
-              entry.setName,
+              plan.setName,
               result,
             );
             if (rollbackOperation) {
@@ -864,11 +1022,13 @@ export function ImportPanelProvider({
             }
           } catch (err) {
             console.warn("[ImportPanel] failed to import token batch:", err);
-            failedPaths.push(...entry.tokens.map((token) => token.path));
+            failedPaths.push(
+              ...plan.writeTokens.map((source) => source.token.path),
+            );
             failedBatches.push({
-              setName: entry.setName,
-              tokens: entry.tokens.map((token) =>
-                buildImportPayload(token, src.source),
+              setName: plan.setName,
+              tokens: plan.writeTokens.map((source) =>
+                buildImportPayload(source.token, src.source),
               ),
             });
           }
@@ -876,7 +1036,7 @@ export function ImportPanelProvider({
           importedSets += 1;
           setImportProgress({
             done: importedSets,
-            total: collectionImportEntries.length,
+            total: collectionImportPlans.length,
           });
         }
 
@@ -893,8 +1053,8 @@ export function ImportPanelProvider({
         dispatchToast(toastMessage, failedCount > 0 ? "error" : "success");
         onImportedRef.current();
         publishImportCompletion({
-          destinationSets: collectionImportEntries.map(
-            (entry) => entry.setName,
+          destinationSets: collectionImportPlans.map(
+            (plan) => plan.setName,
           ),
           newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
           overwriteCount:
@@ -922,9 +1082,9 @@ export function ImportPanelProvider({
 
         setLastImportReviewSummary({
           destinationLabel:
-            collectionImportEntries.length === 1
-              ? `"${collectionImportEntries[0]?.setName ?? "Unknown set"}"`
-              : `${collectionImportEntries.length} sets`,
+            collectionImportPlans.length === 1
+              ? `"${collectionImportPlans[0]?.setName ?? "Unknown set"}"`
+              : `${collectionImportPlans.length} sets`,
           newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
           overwriteCount:
             strategy === "overwrite"
@@ -948,7 +1108,9 @@ export function ImportPanelProvider({
       }
     },
     [
-      collectionImportEntries,
+      ambiguousCollectionImportCount,
+      hasAmbiguousCollectionImport,
+      collectionImportPlans,
       clearConflictState,
       clearFailedState,
       importTokenBatch,
@@ -1314,7 +1476,9 @@ export function ImportPanelProvider({
   }, [setsHook.newSetInputVisible, setsHook.targetSet]);
 
   const destinationReady = usesCollectionDestination
-    ? totalEnabledSets > 0 && !hasInvalidModeSetNames
+    ? totalEnabledSets > 0 &&
+      !hasInvalidModeSetNames &&
+      !hasAmbiguousCollectionImport
     : hasValidSingleSetDestination;
 
   const canContinueToPreview =
@@ -1390,6 +1554,9 @@ export function ImportPanelProvider({
       varConflictDetailsExpanded,
       setVarConflictDetailsExpanded,
       checkingVarConflicts,
+      collectionModeDestinationStatus,
+      hasAmbiguousCollectionImport,
+      ambiguousCollectionImportCount,
       totalEnabledSets,
       totalEnabledTokens,
       previewNewCount,
@@ -1528,6 +1695,9 @@ export function ImportPanelProvider({
       varConflictDetailsExpanded,
       setVarConflictDetailsExpanded,
       checkingVarConflicts,
+      collectionModeDestinationStatus,
+      hasAmbiguousCollectionImport,
+      ambiguousCollectionImportCount,
       clearConflictState,
       failedImportGroups,
       previewNewCount,

@@ -7,6 +7,7 @@ export function ImportVariablesView() {
     collectionData,
     modeEnabled,
     modeSetNames,
+    collectionModeDestinationStatus,
     sets,
     source,
     handleBack,
@@ -62,6 +63,7 @@ export function ImportVariablesView() {
               const enabled = modeEnabled[key] ?? true;
               const setName = modeSetNames[key] ?? defaultSetName(col.name, mode.modeName, col.modes.length);
               const trimmedName = setName.trim();
+              const destinationStatus = collectionModeDestinationStatus[key];
               const setNameError = enabled
                 ? !trimmedName
                   ? 'Name cannot be empty'
@@ -69,6 +71,18 @@ export function ImportVariablesView() {
                     ? 'Use letters, numbers, - _ (/ for folders)'
                     : null
                 : null;
+              const duplicatePathError = enabled && !setNameError && (destinationStatus?.ambiguousPathCount ?? 0) > 0
+                ? destinationStatus?.ambiguousPathCount === 1
+                  ? 'Shares 1 token path with another enabled mode targeting this set'
+                  : `Shares ${destinationStatus?.ambiguousPathCount} token paths with other enabled modes targeting this set`
+                : null;
+              const inputError = setNameError ?? duplicatePathError;
+              const inputErrorDetail = setNameError
+                ? setNameError
+                : duplicatePathError
+                  ? `${duplicatePathError}. Change the destination name or disable one of the overlapping modes.`
+                  : null;
+              const isSharedDestination = enabled && !setNameError && (destinationStatus?.sharedDestinationCount ?? 1) > 1;
               return (
                 <div key={mode.modeId} className={`flex items-center gap-2 px-3 py-2 transition-colors ${enabled ? 'bg-[var(--color-figma-accent)]/5' : 'bg-transparent opacity-50'}`}>
                   <input
@@ -83,11 +97,16 @@ export function ImportVariablesView() {
                       <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                         {mode.tokens.length} token{mode.tokens.length !== 1 ? 's' : ''}
                       </span>
-                      {enabled && !setNameError && (sets.includes(setName) ? (
+                      {enabled && !inputError && (sets.includes(trimmedName) ? (
                         <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#e8a100)] font-medium">existing</span>
-                      ) : setName ? (
+                      ) : trimmedName ? (
                         <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-success,#22c55e)]/10 text-[var(--color-figma-success,#16a34a)] font-medium">new</span>
                       ) : null)}
+                      {isSharedDestination && (
+                        <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)] font-medium">
+                          combined
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -97,16 +116,21 @@ export function ImportVariablesView() {
                           value={setName}
                           disabled={!enabled}
                           onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
-                          className={`flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] focus-visible:outline-none disabled:opacity-50 font-mono ${setNameError ? 'border-[var(--color-figma-error,#e53935)] focus-visible:border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                          className={`flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] focus-visible:outline-none disabled:opacity-50 font-mono ${inputError ? 'border-[var(--color-figma-error,#e53935)] focus-visible:border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
                           placeholder="set-name"
                           aria-label="Set name for mode"
-                          aria-invalid={setNameError ? true : undefined}
-                          aria-describedby={setNameError ? `err-${key}` : undefined}
+                          aria-invalid={inputError ? true : undefined}
+                          aria-describedby={inputError ? `err-${key}` : undefined}
                         />
                       </div>
-                      {setNameError && (
+                      {inputErrorDetail && (
                         <p id={`err-${key}`} role="alert" className="text-[10px] text-[var(--color-figma-error,#e53935)] leading-tight pl-3">
-                          {setNameError}
+                          {inputErrorDetail}
+                        </p>
+                      )}
+                      {!inputError && isSharedDestination && (
+                        <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight pl-3">
+                          This destination will be written once with all enabled mode tokens combined.
                         </p>
                       )}
                     </div>
