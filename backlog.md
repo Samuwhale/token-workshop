@@ -103,7 +103,7 @@
 - [x] [HIGH] Remap bindings task drops context at every handoff: sync warning gives no signpost to Remap, pre-fill clears on deselect, from-field autocomplete cannot find stale paths, and ambiguous completion feedback leaves users unsure whether the remap worked
 - [x] [HIGH] Resolve the competing extraction models in Apply: remove or gate the silent 'Extract & bind' fast-path in favor of the review-first ExtractTokensPanel
 - [x] [HIGH] Align plugin token writes around a shared draft-normalization contract so create/update flows stop passing raw resolved values into `Partial<Token>`
-- [ ] [HIGH] Finish the plugin shared-contract cleanup so workflow components stop shadowing stage unions and stale prop shapes
+- [x] [HIGH] Finish the plugin shared-contract cleanup so workflow components stop shadowing stage unions and stale prop shapes
 - [ ] [HIGH] Make generator ownership lookup set-aware and centralize derived output-path calculation
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.

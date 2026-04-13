@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import type { ThemeDimension } from "@tokenmanager/core";
+import { createGeneratorOwnershipKey, type ThemeDimension } from "@tokenmanager/core";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
@@ -196,7 +196,8 @@ export function TokenDetailPreview({
       (generator) => generator.sourceToken === tokenPath,
     );
   }, [generatorsBySource, generators, tokenPath]);
-  const derivedGenerator = derivedTokenPaths?.get(tokenPath);
+  const derivedGenerator =
+    derivedTokenPaths?.get(createGeneratorOwnershipKey(tokenSet, tokenPath));
   const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
   const duplicateMatches = useMemo(() => {
     if (duplicateCount != null) return duplicateCount;

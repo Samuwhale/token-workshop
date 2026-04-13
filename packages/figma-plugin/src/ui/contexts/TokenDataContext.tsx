@@ -6,7 +6,7 @@
  *                          (slow-changing; only re-renders on user actions)
  *   TokenFlatMapContext  — flat token maps derived from the fetch cycle
  *                          (medium-frequency; re-fetched on tokenRevision bumps)
- *   GeneratorContext     — generator list and derived token paths
+ *   GeneratorContext     — generator list and set-aware ownership indexes
  *                          (independent polling; doesn't cause token-set re-renders)
  *
  * `TokenDataProvider` is a thin wrapper that stacks all three providers.

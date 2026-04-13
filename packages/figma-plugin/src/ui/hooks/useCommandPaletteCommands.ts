@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import type { Command, TokenEntry } from "../components/CommandPalette";
 import { GRAPH_TEMPLATES } from "../components/graph-templates";
 import { inferTypeFromValue } from "../components/tokenListHelpers";
@@ -614,7 +615,9 @@ export function useCommandPaletteCommands(): {
           : JSON.stringify(entry.$value),
       set: activeSet,
       isAlias: isAlias(entry.$value),
-      generatorName: derivedTokenPaths.get(path)?.name,
+      generatorName:
+        derivedTokenPaths.get(createGeneratorOwnershipKey(activeSet, path))
+          ?.name,
     }));
   }, [activeSet, derivedTokenPaths, perSetFlat]);
 

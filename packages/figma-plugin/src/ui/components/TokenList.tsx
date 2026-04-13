@@ -3498,6 +3498,7 @@ export function TokenList({
   const tokenTreeGroupState = useMemo<TokenTreeGroupStateContextType>(
     () => ({
       density,
+      setName,
       selectMode,
       expandedPaths,
       highlightedToken: highlightedToken ?? null,
@@ -3513,6 +3514,7 @@ export function TokenList({
     }),
     [
       density,
+      setName,
       selectMode,
       expandedPaths,
       highlightedToken,

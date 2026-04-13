@@ -24,6 +24,10 @@ import {
 } from "../../shared/types";
 import type { BindableProperty } from "../../shared/types";
 import {
+  createGeneratorOwnershipKey,
+  getGeneratorManagedOutputs,
+} from "@tokenmanager/core";
+import {
   isAlias,
   extractAliasPath,
   resolveTokenValue,
@@ -240,34 +244,9 @@ function formatGeneratorRunAt(lastRunAt?: string): string {
   return GENERATOR_RUN_AT_FORMATTER.format(date);
 }
 
-function getGeneratorStepNames(generator: TokenGenerator): string[] {
-  const config = generator.config as Record<string, unknown>;
-  if (Array.isArray(config.steps)) {
-    return config.steps.map((step) =>
-      typeof step === "object" && step !== null && "name" in step
-        ? String((step as { name: unknown }).name)
-        : String(step),
-    );
-  }
-  if (
-    typeof config.backgroundStep === "string" &&
-    typeof config.foregroundStep === "string"
-  ) {
-    return [config.backgroundStep, config.foregroundStep];
-  }
-  if (typeof config.stepName === "string") {
-    return [config.stepName];
-  }
-  return [];
-}
-
 function getGeneratorManagedPaths(generator: TokenGenerator): Set<string> {
-  const detachedPaths = new Set(generator.detachedPaths ?? []);
   return new Set(
-    getGeneratorStepNames(generator).flatMap((name) => {
-      const path = `${generator.targetGroup}.${String(name)}`;
-      return detachedPaths.has(path) ? [] : [path];
-    }),
+    getGeneratorManagedOutputs(generator).map((output) => output.path),
   );
 }
 
@@ -947,6 +926,7 @@ const TokenGroupNode = memo(
 
     const {
       density,
+      setName,
       selectMode,
       expandedPaths,
       highlightedToken,
@@ -1113,7 +1093,10 @@ const TokenGroupNode = memo(
 
     const isCategoryHeader = depth === 0;
     const leafCount = countLeaves(node);
-    const targetGenerator = generatorsByTargetGroup?.get(node.path) ?? null;
+    const targetGenerator =
+      generatorsByTargetGroup?.get(
+        createGeneratorOwnershipKey(setName, node.path),
+      ) ?? null;
     const managedGeneratorLeafCount = useMemo(() => {
       if (!targetGenerator) return 0;
       return countManagedGeneratorLeaves(
@@ -2428,7 +2411,9 @@ const TokenLeafNode = memo(
       ? String(node.$value).slice(1, -1)
       : null;
     const isFavorite = starredPaths?.has(node.path) ?? false;
-    const producingGenerator = derivedTokenPaths?.get(node.path) ?? null;
+    const producingGenerator =
+      derivedTokenPaths?.get(createGeneratorOwnershipKey(setName, node.path)) ??
+      null;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
     const showExpandedMeta = !renamingToken && isRowActive;

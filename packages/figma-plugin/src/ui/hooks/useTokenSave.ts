@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { createGeneratorOwnershipKey, getGeneratorManagedOutputs } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { ApiError } from '../shared/apiFetch';
@@ -29,27 +30,6 @@ function cloneUndoValue<T>(value: T): T {
   if (value === undefined || value === null) return value;
   if (typeof structuredClone === 'function') return structuredClone(value);
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function generatorManagesPath(generator: TokenGenerator, path: string): boolean {
-  const config = generator.config as Record<string, unknown>;
-  const stepNames = Array.isArray(config.steps)
-    ? config.steps.map((step) =>
-        typeof step === 'object' && step !== null && 'name' in step
-          ? String((step as { name: unknown }).name)
-          : String(step),
-      )
-    : typeof config.backgroundStep === 'string' &&
-        typeof config.foregroundStep === 'string'
-      ? [config.backgroundStep, config.foregroundStep]
-      : typeof config.stepName === 'string'
-        ? [config.stepName]
-        : [];
-  const detachedPaths = new Set(generator.detachedPaths ?? []);
-  return stepNames.some((stepName) => {
-    const managedPath = `${generator.targetGroup}.${stepName}`;
-    return managedPath === path && !detachedPaths.has(managedPath);
-  });
 }
 
 export function useTokenSave({
@@ -237,7 +217,10 @@ export function useTokenSave({
     if (!connected) return;
     try {
       const derivedGenerator = generators?.find((generator) =>
-        generatorManagesPath(generator, path),
+        getGeneratorManagedOutputs(generator).some(
+          (output) =>
+            output.key === createGeneratorOwnershipKey(setName, path),
+        ),
       );
       if (!derivedGenerator) {
         onError?.('Detach failed: generator ownership not found');

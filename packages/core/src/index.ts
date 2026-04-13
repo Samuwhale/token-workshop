@@ -150,6 +150,7 @@ export type { ValidationResult } from './validator.js';
 // Generator types & engine
 export type {
   GeneratorType,
+  GeneratorManagedOutput,
   ColorRampConfig,
   TypeScaleStep,
   TypeScaleConfig,
@@ -175,7 +176,14 @@ export type {
   InputTableRow,
   InputTable,
 } from './generator-types.js';
-export { validateStepName } from './generator-types.js';
+export {
+  createGeneratorOwnershipKey,
+  getGeneratorManagedOutputPaths,
+  getGeneratorManagedOutputs,
+  getGeneratorOutputSetNames,
+  getGeneratorStepNames,
+  validateStepName,
+} from './generator-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,

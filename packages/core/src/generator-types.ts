@@ -411,6 +411,13 @@ export interface InputTable {
   rows: InputTableRow[];
 }
 
+export interface GeneratorManagedOutput {
+  setName: string;
+  path: string;
+  stepName: string;
+  key: string;
+}
+
 // ---------------------------------------------------------------------------
 // Step name validation
 // ---------------------------------------------------------------------------
@@ -446,6 +453,97 @@ export function validateStepName(stepName: string): void {
       `Invalid step name "${s}": contains a slash`,
     );
   }
+}
+
+export function createGeneratorOwnershipKey(
+  setName: string,
+  path: string,
+): string {
+  return `${setName}\u0000${path}`;
+}
+
+export function getGeneratorStepNames(
+  config: GeneratorConfig | Record<string, unknown>,
+): string[] {
+  const configRecord = config as Record<string, unknown>;
+  if (Array.isArray(configRecord.steps)) {
+    return configRecord.steps.map((step) =>
+      typeof step === "object" && step !== null && "name" in step
+        ? String((step as { name: unknown }).name)
+        : String(step),
+    );
+  }
+  if (
+    typeof configRecord.backgroundStep === "string" &&
+    typeof configRecord.foregroundStep === "string"
+  ) {
+    return [configRecord.backgroundStep, configRecord.foregroundStep];
+  }
+  if (typeof configRecord.stepName === "string") {
+    return [configRecord.stepName];
+  }
+  return [];
+}
+
+export function getGeneratorOutputSetNames(
+  generator: Pick<TokenGenerator, "targetSet" | "targetSetTemplate" | "inputTable">,
+): string[] {
+  if (!generator.inputTable?.rows.length) {
+    return [generator.targetSet];
+  }
+  const setNames = new Set<string>();
+  for (const row of generator.inputTable.rows) {
+    const setName = generator.targetSetTemplate
+      ? generator.targetSetTemplate.replace("{brand}", row.brand)
+      : generator.targetSet;
+    setNames.add(setName);
+  }
+  return [...setNames];
+}
+
+export function getGeneratorManagedOutputs(
+  generator: Pick<
+    TokenGenerator,
+    | "config"
+    | "detachedPaths"
+    | "inputTable"
+    | "targetGroup"
+    | "targetSet"
+    | "targetSetTemplate"
+  >,
+): GeneratorManagedOutput[] {
+  const detachedPathSet = new Set(generator.detachedPaths ?? []);
+  const stepNames = getGeneratorStepNames(generator.config);
+  return getGeneratorOutputSetNames(generator).flatMap((setName) =>
+    stepNames.flatMap((stepName) => {
+      const path = `${generator.targetGroup}.${stepName}`;
+      if (detachedPathSet.has(path)) {
+        return [];
+      }
+      return [
+        {
+          setName,
+          path,
+          stepName,
+          key: createGeneratorOwnershipKey(setName, path),
+        },
+      ];
+    }),
+  );
+}
+
+export function getGeneratorManagedOutputPaths(
+  generator: Pick<
+    TokenGenerator,
+    | "config"
+    | "detachedPaths"
+    | "inputTable"
+    | "targetGroup"
+    | "targetSet"
+    | "targetSetTemplate"
+  >,
+): string[] {
+  return [...new Set(getGeneratorManagedOutputs(generator).map((output) => output.path))];
 }
 
 // ---------------------------------------------------------------------------

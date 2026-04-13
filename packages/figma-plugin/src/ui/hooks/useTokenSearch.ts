@@ -463,7 +463,7 @@ export function useTokenSearch({
       const zoomNode = findGroupByPath(sortedTokens, zoomRootPath);
       baseTokens = zoomNode?.children ?? [];
     }
-    let result = filtersActive ? filterTokenNodes(baseTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths) : baseTokens;
+    let result = filtersActive ? filterTokenNodes(baseTokens, setName, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths) : baseTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && boundTokenPaths.size > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
@@ -476,7 +476,7 @@ export function useTokenSearch({
       else result = [];
     }
     return result;
-  }, [sortedTokens, zoomRootPath, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedPaths, derivedTokenPaths, unusedTokenPaths]);
+  }, [sortedTokens, zoomRootPath, setName, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedPaths, derivedTokenPaths, unusedTokenPaths]);
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);

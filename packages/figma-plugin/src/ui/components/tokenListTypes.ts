@@ -334,6 +334,7 @@ export interface TokenTreeSharedDataContextType {
 
 export interface TokenTreeGroupStateContextType {
   density: Density;
+  setName: string;
   selectMode: boolean;
   expandedPaths: Set<string>;
   highlightedToken: string | null;

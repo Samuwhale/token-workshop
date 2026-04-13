@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import { CommandPalette, type TokenEntry } from "./CommandPalette";
 import { useCommandPaletteCommands } from "../hooks/useCommandPaletteCommands";
 import {
@@ -31,15 +32,17 @@ export function AppCommandPalette({
 
   const paletteTokens = useMemo<TokenEntry[]>(() => {
     return Object.entries(allTokensFlat).map(([path, entry]) => ({
+      set: pathToSet[path],
       path,
       type: entry.$type,
       value:
         typeof entry.$value === "string"
           ? entry.$value
           : JSON.stringify(entry.$value),
-      set: pathToSet[path],
       isAlias: isAlias(entry.$value),
-      generatorName: derivedTokenPaths.get(path)?.name,
+      generatorName: derivedTokenPaths.get(
+        createGeneratorOwnershipKey(pathToSet[path] ?? "", path),
+      )?.name,
     }));
   }, [allTokensFlat, derivedTokenPaths, pathToSet]);
 

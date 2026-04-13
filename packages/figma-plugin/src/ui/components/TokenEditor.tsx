@@ -8,7 +8,7 @@ import { apiFetch } from "../shared/apiFetch";
 import { TokenHistorySection } from "./TokenHistorySection";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { MutableRefObject } from "react";
-import { resolveRefValue } from "@tokenmanager/core";
+import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { ThemeDimension } from "@tokenmanager/core";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
@@ -1156,7 +1156,9 @@ export function TokenEditor({
     existingGeneratorsForToken,
     canBeGeneratorSource,
   } = generators$;
-  const producingGenerator = derivedTokenPaths?.get(tokenPath) ?? null;
+  const producingGenerator =
+    derivedTokenPaths?.get(createGeneratorOwnershipKey(setName, tokenPath)) ??
+    null;
   const [detachedFromGenerator, setDetachedFromGenerator] = useState(false);
   const [detachingGeneratorOwnership, setDetachingGeneratorOwnership] =
     useState(false);

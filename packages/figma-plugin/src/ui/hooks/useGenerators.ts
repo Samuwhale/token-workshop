@@ -1,4 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import {
+  createGeneratorOwnershipKey,
+  getGeneratorManagedOutputs,
+  getGeneratorOutputSetNames,
+} from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
@@ -262,45 +267,6 @@ export interface GeneratorTemplate {
   requiresSource: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Derived path helpers
-// ---------------------------------------------------------------------------
-
-function getStepNames(config: Record<string, unknown>): string[] {
-  // Most generators have a `steps` array — items are either primitives
-  // (colorRamp: number[]) or objects with a `name` field.
-  if (Array.isArray(config.steps)) {
-    return config.steps.map((s: unknown) =>
-      typeof s === 'object' && s !== null && 'name' in s
-        ? String((s as { name: unknown }).name)
-        : String(s),
-    );
-  }
-  // accessibleColorPair: two named step fields
-  if (typeof config.backgroundStep === 'string' && typeof config.foregroundStep === 'string') {
-    return [config.backgroundStep, config.foregroundStep];
-  }
-  // darkModeInversion: single step field
-  if (typeof config.stepName === 'string') {
-    return [config.stepName];
-  }
-  return [];
-}
-
-function computeDerivedPaths(generator: TokenGenerator): string[] {
-  const detachedPaths = new Set(generator.detachedPaths ?? []);
-  return getStepNames(
-    generator.config as unknown as Record<string, unknown>,
-  ).flatMap((name) => {
-    const path = `${generator.targetGroup}.${name}`;
-    return detachedPaths.has(path) ? [] : [path];
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
-
 interface UseGeneratorsResult {
   generators: TokenGenerator[];
   loading: boolean;
@@ -366,8 +332,11 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
   const generatorsByTargetGroup = useMemo(() => {
     const map = new Map<string, TokenGenerator>();
     for (const gen of generators) {
-      if (gen.targetGroup && computeDerivedPaths(gen).length > 0) {
-        map.set(gen.targetGroup, gen);
+      const outputSetNames = getGeneratorOutputSetNames(gen);
+      const hasManagedOutputs = getGeneratorManagedOutputs(gen).length > 0;
+      if (!gen.targetGroup || !hasManagedOutputs) continue;
+      for (const setName of outputSetNames) {
+        map.set(createGeneratorOwnershipKey(setName, gen.targetGroup), gen);
       }
     }
     return map;
@@ -376,8 +345,8 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
   const derivedTokenPaths = useMemo(() => {
     const map = new Map<string, TokenGenerator>();
     for (const gen of generators) {
-      for (const path of computeDerivedPaths(gen)) {
-        map.set(path, gen);
+      for (const output of getGeneratorManagedOutputs(gen)) {
+        map.set(output.key, gen);
       }
     }
     return map;

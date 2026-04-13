@@ -39,6 +39,7 @@ import {
   runDarkModeInversionGenerator,
   runContrastCheckGenerator,
   applyOverrides,
+  getGeneratorManagedOutputPaths,
   substituteVars,
   validateStepName,
 } from "@tokenmanager/core";
@@ -333,27 +334,6 @@ function validateFormulaSyntax(formula: string): string | undefined {
   } catch (err) {
     return `customScale formula syntax error: ${err instanceof Error ? err.message : String(err)}`;
   }
-}
-
-function getGeneratorStepNames(config: GeneratorConfig): string[] {
-  const configRecord = config as unknown as Record<string, unknown>;
-  if (Array.isArray(configRecord.steps)) {
-    return configRecord.steps.map((step) =>
-      typeof step === "object" && step !== null && "name" in step
-        ? String((step as { name: unknown }).name)
-        : String(step),
-    );
-  }
-  if (
-    typeof configRecord.backgroundStep === "string" &&
-    typeof configRecord.foregroundStep === "string"
-  ) {
-    return [configRecord.backgroundStep, configRecord.foregroundStep];
-  }
-  if (typeof configRecord.stepName === "string") {
-    return [configRecord.stepName];
-  }
-  return [];
 }
 
 function normalizeGeneratorType(rawType: unknown): GeneratorType {
@@ -1360,19 +1340,15 @@ export class GeneratorService {
   }
 
   getScaleOutputPaths(generator: TokenGenerator): string[] {
-    return getGeneratorStepNames(generator.config).map(
-      (name) => `${generator.targetGroup}.${name}`,
-    );
+    return getGeneratorManagedOutputPaths(generator);
   }
 
   private filterDetachedResults(
     generator: TokenGenerator,
     results: GeneratedTokenResult[],
   ): GeneratedTokenResult[] {
-    const detachedPaths = generator.detachedPaths;
-    if (!detachedPaths || detachedPaths.length === 0) return results;
-    const detachedPathSet = new Set(detachedPaths);
-    return results.filter((result) => !detachedPathSet.has(result.path));
+    const managedPathSet = new Set(getGeneratorManagedOutputPaths(generator));
+    return results.filter((result) => managedPathSet.has(result.path));
   }
 
   async detachOutputPaths(

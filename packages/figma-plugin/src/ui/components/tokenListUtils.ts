@@ -1,4 +1,5 @@
 import type { TokenNode } from '../hooks/useTokens';
+import { createGeneratorOwnershipKey } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { SortOrder } from './tokenListTypes';
@@ -141,7 +142,7 @@ export function getQualifierCompletions(
       break;
     }
     case 'has':
-      candidates = HAS_CANONICAL;
+      candidates = [...HAS_CANONICAL];
       break;
     case 'generator':
     case 'gen': {
@@ -452,6 +453,7 @@ export function filterByDuplicatePaths(nodes: TokenNode[], paths: Set<string>): 
 
 export function filterTokenNodes(
   nodes: TokenNode[],
+  setName: string,
   searchQuery: string,
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
@@ -465,7 +467,7 @@ export function filterTokenNodes(
     || parsed.generators.length > 0;
 
   if (hasQualifiers) {
-    return filterTokenNodesStructured(nodes, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+    return filterTokenNodesStructured(nodes, setName, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
   }
 
   // Fast path: plain text search (no qualifiers)
@@ -473,7 +475,7 @@ export function filterTokenNodes(
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filteredChildren = filterTokenNodes(node.children ?? [], searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+      const filteredChildren = filterTokenNodes(node.children ?? [], setName, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
       if (filteredChildren.length > 0) {
         result.push({ ...node, children: filteredChildren });
       }
@@ -491,6 +493,7 @@ export function filterTokenNodes(
 
 function filterTokenNodesStructured(
   nodes: TokenNode[],
+  setName: string,
   parsed: ParsedQuery,
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
@@ -502,9 +505,10 @@ function filterTokenNodesStructured(
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filtered = filterTokenNodesStructured(node.children ?? [], parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+      const filtered = filterTokenNodesStructured(node.children ?? [], setName, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
       if (filtered.length > 0) result.push({ ...node, children: filtered });
     } else {
+      const generatorKey = createGeneratorOwnershipKey(setName, node.path);
       // Free-text match (on path, name, or description)
       if (q && !node.path.toLowerCase().includes(q) && !node.name.toLowerCase().includes(q) && !(node.$description || '').toLowerCase().includes(q)) continue;
 
@@ -524,7 +528,7 @@ function filterTokenNodesStructured(
         if ((h === 'duplicate' || h === 'dup') && (!duplicateValuePaths || !duplicateValuePaths.has(node.path))) { hasMatch = false; break; }
         if ((h === 'description' || h === 'desc') && !node.$description) { hasMatch = false; break; }
         if ((h === 'extension' || h === 'ext') && (!node.$extensions || Object.keys(node.$extensions).length === 0)) { hasMatch = false; break; }
-        if ((h === 'generated' || h === 'gen') && !derivedTokenPaths?.has(node.path)) { hasMatch = false; break; }
+        if ((h === 'generated' || h === 'gen') && !derivedTokenPaths?.has(generatorKey)) { hasMatch = false; break; }
         if (h === 'unused' && (!unusedTokenPaths || !unusedTokenPaths.has(node.path))) { hasMatch = false; break; }
       }
       if (!hasMatch) continue;
@@ -561,7 +565,7 @@ function filterTokenNodesStructured(
 
       // generator: qualifier — match by generator name
       if (parsed.generators.length > 0) {
-        const gen = derivedTokenPaths?.get(node.path);
+        const gen = derivedTokenPaths?.get(generatorKey);
         if (!gen) continue;
         const gn = gen.name.toLowerCase();
         if (!parsed.generators.some(g => gn === g || gn.includes(g))) continue;
