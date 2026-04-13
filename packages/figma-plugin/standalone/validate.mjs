@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const HOST = '127.0.0.1';
 const PORT = 3201; // Use different port from dev harness
 const TIMEOUT_MS = 15_000;
 
@@ -31,7 +32,7 @@ const TIMEOUT_MS = 15_000;
 function findChromium() {
   // 1. Playwright-managed browsers (if `npx playwright install chromium` was run)
   try {
-    const out = execSync('npx playwright-core install --dry-run chromium 2>/dev/null', { encoding: 'utf-8' });
+    execSync('npx playwright-core install --dry-run chromium 2>/dev/null', { encoding: 'utf-8' });
     // The output includes the install path when already installed
   } catch { /* ignore */ }
 
@@ -82,7 +83,7 @@ const MIME = {
 function startServer() {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
-      const url = new URL(req.url, `http://localhost:${PORT}`);
+      const url = new URL(req.url, `http://${HOST}:${PORT}`);
       let filePath;
       if (url.pathname === '/favicon.ico') {
         res.writeHead(204); res.end(); return;
@@ -100,7 +101,7 @@ function startServer() {
       fs.createReadStream(filePath).pipe(res);
     });
     server.on('error', reject);
-    server.listen(PORT, () => resolve(server));
+    server.listen(PORT, HOST, () => resolve(server));
   });
 }
 
@@ -126,8 +127,12 @@ async function run() {
   try {
     server = await startServer();
   } catch (err) {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`Port ${PORT} already in use — skipping headless UI validation.`);
+    if (err.code === 'EADDRINUSE' || err.code === 'EPERM') {
+      console.log(
+        err.code === 'EADDRINUSE'
+          ? `Port ${PORT} already in use — skipping headless UI validation.`
+          : `Unable to bind ${HOST}:${PORT} in this environment — skipping headless UI validation.`
+      );
       process.exit(0);
     }
     throw err;
@@ -157,7 +162,7 @@ async function run() {
     // Navigate and wait for the page to load. We use 'load' rather than
     // 'networkidle' because the plugin UI polls the TokenManager server
     // (which isn't running here), so networkidle is never reached.
-    await page.goto(`http://localhost:${PORT}/`, {
+    await page.goto(`http://${HOST}:${PORT}/`, {
       waitUntil: 'load',
       timeout: TIMEOUT_MS,
     });

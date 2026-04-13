@@ -24,6 +24,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.resolve(__dirname, '..');
 
 const PORT = parseInt(process.argv.find((_, i, a) => a[i - 1] === '--port') ?? '3200', 10);
+const HOST = '127.0.0.1';
 
 const MIME = {
   '.html': 'text/html',
@@ -35,7 +36,7 @@ const MIME = {
 };
 
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://localhost:${PORT}`);
+  const url = new URL(req.url, `http://${HOST}:${PORT}`);
   let filePath;
 
   if (url.pathname === '/favicon.ico') {
@@ -63,9 +64,9 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
-server.listen(PORT, () => {
-  console.log(`\n  Standalone UI harness: http://localhost:${PORT}`);
-  console.log(`  Plugin UI (direct):   http://localhost:${PORT}/dist/ui.html`);
+server.listen(PORT, HOST, () => {
+  console.log(`\n  Standalone UI harness: http://${HOST}:${PORT}`);
+  console.log(`  Plugin UI (direct):   http://${HOST}:${PORT}/dist/ui.html`);
   console.log(`\n  The harness mocks Figma postMessage so the UI can boot.`);
   console.log(`  Make sure the local server is running on :9400 for token data.\n`);
 });

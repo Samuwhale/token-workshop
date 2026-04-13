@@ -132,27 +132,6 @@ function formatCount(
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function formatImportSource(
-  sourceType: ImportCompletionResult["sourceType"],
-): string {
-  switch (sourceType) {
-    case "variables":
-      return "Figma variables";
-    case "styles":
-      return "styles";
-    case "tokens-studio":
-      return "Tokens Studio";
-    case "tailwind":
-      return "Tailwind tokens";
-    case "json":
-      return "JSON";
-    case "css":
-      return "CSS";
-    default:
-      return "import source";
-  }
-}
-
 function getWorkspaceRouteLabel(topTab: TopTab, subTab: SubTab): string {
   const summary = resolveWorkspaceSummary(topTab, subTab);
   return summary.section?.label ?? summary.workspaceLabel;
