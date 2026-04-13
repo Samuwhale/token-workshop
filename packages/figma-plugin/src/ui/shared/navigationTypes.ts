@@ -395,7 +395,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
     surfaces: {
       compare: {
         label: "Compare",
-        usage: "Compare tokens or themes without leaving the library.",
+        usage: "Compare tokens or modes without leaving the library.",
       },
       "token-editor": {
         label: "Token editor",
@@ -824,7 +824,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "tokens",
-        "Open Tokens next to review the imported library before moving into Themes, Apply, or Sync.",
+        "Open Tokens next to review the imported library before moving into Modes, Apply, or Sync.",
       ),
     );
   }

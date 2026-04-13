@@ -242,7 +242,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Tokens workspace',         mac: SHORTCUT_KEYS.GO_TO_DEFINE },
   { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Apply workspace',          mac: SHORTCUT_KEYS.GO_TO_APPLY },
   { id: 'GO_TO_SHIP',            group: 'Navigation',      description: 'Go to Sync workspace',           mac: SHORTCUT_KEYS.GO_TO_SHIP },
-  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open DTCG Resolver (in Themes)',  mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
+  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open DTCG Resolver (in Modes)',   mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
   { id: 'QUICK_SWITCH_SET',      group: 'Navigation',      description: 'Quick-switch token set',         mac: SHORTCUT_KEYS.QUICK_SWITCH_SET },
 
   // ── Command Palette ──────────────────────────────────────────────────────

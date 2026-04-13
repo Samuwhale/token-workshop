@@ -4,7 +4,6 @@ import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import { apiFetch } from "../shared/apiFetch";
-import { TokenHistorySection } from "./TokenHistorySection";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { MutableRefObject } from "react";
 import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
@@ -12,46 +11,15 @@ import type { ThemeDimension } from "@tokenmanager/core";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
-import { ValueDiff, OriginalValuePreview } from "./ValueDiff";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
-import {
-  ColorEditor,
-  DimensionEditor,
-  TypographyEditor,
-  ShadowEditor,
-  BorderEditor,
-  GradientEditor,
-  NumberEditor,
-  DurationEditor,
-  FontFamilyEditor,
-  FontWeightEditor,
-  StrokeStyleEditor,
-  StringEditor,
-  BooleanEditor,
-  CompositionEditor,
-  AssetEditor,
-  FontStyleEditor,
-  TextDecorationEditor,
-  TextTransformEditor,
-  PercentageEditor,
-  LinkEditor,
-  LetterSpacingEditor,
-  LineHeightEditor,
-  CubicBezierEditor,
-  TransitionEditor,
-  CustomEditor,
-  VALUE_FORMAT_HINTS,
-} from "./ValueEditors";
 import { AliasPicker } from "./AliasPicker";
-import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
+import { isAlias } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
-import { TokenUsages } from "./TokenUsages";
 import { MetadataEditor, ModeValuesEditor } from "./MetadataEditor";
 import { PathAutocomplete } from "./PathAutocomplete";
 import { useNearbyTokenMatch } from "../hooks/useNearbyTokenMatch";
-import { TokenNudge } from "./TokenNudge";
 import { Collapsible } from "./Collapsible";
 
 // Hooks
@@ -68,12 +36,19 @@ import {
   saveEditorDraft,
   formatDraftAge,
 } from "../hooks/useTokenEditorUtils";
-import { useFocusTrap } from "../hooks/useFocusTrap";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
 import type { TokensLibraryGeneratorEditorTarget } from "../shared/navigationTypes";
 import { lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
+
+// Extracted sub-components
+import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
+import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
+import { SaveChangesDialog } from "./token-editor/SaveChangesDialog";
+import { TokenEditorValueSection } from "./token-editor/TokenEditorValueSection";
+import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
+import { TokenEditorInfoSection } from "./token-editor/TokenEditorInfoSection";
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`

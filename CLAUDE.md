@@ -1,5 +1,9 @@
 # TokenManager
 
+## Target user
+
+The target user of this app are mainly Figma UI designers, Figma UX designers, Figma Design System Creators/maintainers. These designers might work in conjunction with developers.
+
 ## Development Status
 
 This project is in **rapid, active development** and has not shipped to any users. There is no existing userbase to consider.

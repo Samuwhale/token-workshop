@@ -227,7 +227,7 @@ function getFallbackPostImportRecommendation(
     return createFallbackWorkspaceRecommendation(
       "define",
       "themes",
-      "Open Themes next. Imported variable collections usually need a quick theme-structure pass before you fine-tune individual tokens.",
+      "Open Modes next. Imported variable collections usually need a quick mode-structure pass before you fine-tune individual tokens.",
     );
   }
 

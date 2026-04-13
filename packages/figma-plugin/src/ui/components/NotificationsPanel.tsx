@@ -147,7 +147,7 @@ function inferWorkspaceAction(message: string): InboxAction {
     lower.includes("layer")
   ) {
     return {
-      label: "Open themes",
+      label: "Open modes",
       target: { kind: "workspace", topTab: "define", subTab: "themes" },
     };
   }

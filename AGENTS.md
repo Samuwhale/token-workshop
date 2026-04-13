@@ -1,5 +1,9 @@
 # TokenManager
 
+## Target user
+
+The target user of this app are mainly Figma UI designers, Figma UX designers, Figma Design System Creators/maintainers. These designers might work in conjunction with developers.
+
 ## Development Status
 
 This project is in **rapid, active development** and has not shipped to any users. There is no existing userbase to consider.
@@ -21,8 +25,8 @@ This project is in **rapid, active development** and has not shipped to any user
 ## UI Guidance
 
 - Never use eyebrow text, overlines, or similar pre-heading label treatments
-- Be extremely wary of chrome and UI clutter, especially in the plugin interface
-- The plugin is run in small windows within figma, so space is constrained.
+- Be extremely wary of chrome and UI clutter
+- The plugin is run in small window within figma, so space is constrained.
 - Remove or avoid any decorative controls, wrappers, labels, or helper surfaces that do not materially improve comprehension or task flow
 - Prefer fewer visible elements, clearer hierarchy, and more whitespace over dense control-heavy layouts
 - Do not add informational pills, chips, or badges just to restate nearby content

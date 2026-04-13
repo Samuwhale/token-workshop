@@ -379,7 +379,7 @@ export function ContrastMatrixPanel({
                   setContrastThemeFilter(null);
                 }}
                 className={`flex items-center gap-1.5 px-2 py-0.5 text-[9px] rounded border transition-colors ${contrastMultiTheme ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
-                title="Check contrast across multiple theme options simultaneously — shows worst-case ratio"
+                title="Check contrast across multiple mode variants simultaneously — shows worst-case ratio"
               >
                 <svg
                   width="9"

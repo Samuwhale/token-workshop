@@ -27,7 +27,7 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   "guided-setup": {
     title: "Guided setup",
     description:
-      "Build color, spacing, type, and theme foundations step by step.",
+      "Build color, spacing, type, and mode foundations step by step.",
   },
   "template-library": {
     title: "Foundation templates",
@@ -148,7 +148,7 @@ export function WelcomePrompt({
     <div className="flex flex-col gap-2.5">
       <ActionCard
         title="Guided setup"
-        description="Build color, spacing, type, and theme foundations step by step."
+        description="Build color, spacing, type, and mode foundations step by step."
         accent
         onClick={() => setBranch("guided-setup")}
         icon={

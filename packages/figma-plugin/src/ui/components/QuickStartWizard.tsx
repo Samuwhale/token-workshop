@@ -11,7 +11,8 @@ import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratorDialog';
 // Types
 // ---------------------------------------------------------------------------
 
-type WizardStep = 1 | 2 | 3;
+type TaskId = 'foundations' | 'semantics' | 'modes';
+type ChecklistView = 'list' | 'template-picker' | 'modes-inline';
 type PrereqPhase = 'connect' | 'create-set' | null;
 
 interface SemanticData {
@@ -36,13 +37,19 @@ interface QuickStartWizardProps {
 }
 
 // ---------------------------------------------------------------------------
-// Step labels
+// Task definitions
 // ---------------------------------------------------------------------------
 
-const STEPS: { step: WizardStep; label: string }[] = [
-  { step: 1, label: 'Foundations' },
-  { step: 2, label: 'Semantics' },
-  { step: 3, label: 'Modes' },
+interface TaskDef {
+  id: TaskId;
+  label: string;
+  description: string;
+}
+
+const TASKS: TaskDef[] = [
+  { id: 'foundations', label: 'Foundations', description: 'Generate a color, spacing, or type scale' },
+  { id: 'semantics', label: 'Semantics', description: 'Map aliases to your foundations' },
+  { id: 'modes', label: 'Modes', description: 'Add light and dark mode support' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -240,7 +247,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
           onClick={onDone}
           className="px-4 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
         >
-          Finish Setup
+          Done
         </button>
       </div>
     );
@@ -286,7 +293,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
           onClick={onSkip}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
         >
-          Skip
+          Back
         </button>
         <button
           onClick={handleCreate}
@@ -301,7 +308,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
 }
 
 // ---------------------------------------------------------------------------
-// Compact template picker for wizard step 1
+// Compact template picker for foundations task
 // ---------------------------------------------------------------------------
 
 function CompactTemplatePicker({ templates, connected, onSelect }: {
@@ -334,40 +341,49 @@ function CompactTemplatePicker({ templates, connected, onSelect }: {
 }
 
 // ---------------------------------------------------------------------------
-// Stepper Bar
+// Task Checklist
 // ---------------------------------------------------------------------------
 
-function StepperBar({ currentStep, completedSteps }: {
-  currentStep: WizardStep;
-  completedSteps: Set<WizardStep>;
+function TaskChecklist({ completedTasks, semanticData, connected, onSelect }: {
+  completedTasks: Set<TaskId>;
+  semanticData: SemanticData | null;
+  connected: boolean;
+  onSelect: (taskId: TaskId) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 px-4 py-3">
-      {STEPS.map(({ step, label }, i) => {
-        const isActive = step === currentStep;
-        const isCompleted = completedSteps.has(step);
+    <div className="flex flex-col">
+      {TASKS.map(task => {
+        const isCompleted = completedTasks.has(task.id);
+        const isDisabled = task.id === 'semantics' ? !semanticData : !connected;
+
         return (
-          <div key={step} className="flex items-center gap-1 flex-1 min-w-0">
-            {i > 0 && (
-              <div className={`w-4 h-px shrink-0 ${isCompleted || isActive ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'}`} />
-            )}
-            <div className={`flex items-center gap-1.5 min-w-0 ${isActive ? '' : 'opacity-50'}`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+          <button
+            key={task.id}
+            onClick={() => onSelect(task.id)}
+            disabled={isDisabled && !isCompleted}
+            className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed group"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0 ${
                 isCompleted
                   ? 'bg-[var(--color-figma-accent)] text-white'
-                  : isActive
-                    ? 'border-2 border-[var(--color-figma-accent)] text-[var(--color-figma-accent)]'
-                    : 'border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+                  : 'border-[1.5px] border-[var(--color-figma-border)]'
               }`}>
-                {isCompleted ? (
+                {isCompleted && (
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                ) : step}
+                )}
               </div>
-              <span className={`text-[10px] truncate ${isActive ? 'font-medium text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
-                {label}
-              </span>
+              <div className="flex-1 min-w-0">
+                <span className={`text-[11px] font-medium ${isCompleted ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{task.label}</span>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{task.description}</p>
+              </div>
+              {!isCompleted && !(isDisabled) && (
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <path d="M4.5 2.5L8 6l-3.5 3.5" />
+                </svg>
+              )}
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
@@ -375,7 +391,7 @@ function StepperBar({ currentStep, completedSteps }: {
 }
 
 // ---------------------------------------------------------------------------
-// Main Wizard
+// Main Component
 // ---------------------------------------------------------------------------
 
 export function QuickStartWizard({
@@ -391,8 +407,8 @@ export function QuickStartWizard({
   embedded = false,
   onBack,
 }: QuickStartWizardProps) {
-  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
-  const [completedSteps, setCompletedSteps] = useState<Set<WizardStep>>(new Set());
+  const [completedTasks, setCompletedTasks] = useState<Set<TaskId>>(new Set());
+  const [checklistView, setChecklistView] = useState<ChecklistView>('list');
 
   // Prereq phase state
   const [prereqPhase, setPrereqPhase] = useState<PrereqPhase>(() => {
@@ -412,18 +428,18 @@ export function QuickStartWizard({
     }
   }, [connected, prereqPhase]);
 
-  // Data passed from step 1 → step 2
+  // Data passed from foundations → semantics
   const [semanticData, setSemanticData] = useState<SemanticData | null>(null);
 
-  // Step 1: selected template for generator dialog
+  // Dialog overlay state
   const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(null);
+  const [showSemanticDialog, setShowSemanticDialog] = useState(false);
 
-  const markCompleted = useCallback((step: WizardStep) => {
-    setCompletedSteps(prev => new Set([...prev, step]));
-  }, []);
+  // Track whether semantic intercept fired during current generator session
+  const semanticInterceptFired = useRef(false);
 
-  const advanceTo = useCallback((step: WizardStep) => {
-    setCurrentStep(step);
+  const markCompleted = useCallback((task: TaskId) => {
+    setCompletedTasks(prev => new Set([...prev, task]));
   }, []);
 
   // Prereq: set created
@@ -433,46 +449,62 @@ export function QuickStartWizard({
     setPrereqPhase(null);
   }, [onSetCreated]);
 
-  // Step 1 handlers
-  const handleStep1InterceptSemantic = useCallback((data: SemanticData) => {
+  // Foundations handlers
+  const handleFoundationsInterceptSemantic = useCallback((data: SemanticData) => {
     setSemanticData(data);
+    semanticInterceptFired.current = true;
   }, []);
 
-  const handleStep1Complete = useCallback(() => {
+  const handleFoundationsSaved = useCallback(() => {
+    if (!semanticInterceptFired.current) {
+      setSemanticData(null);
+    }
+    semanticInterceptFired.current = false;
     setSelectedTemplate(null);
-    markCompleted(1);
-    // Skip step 2 if no semantic data to map
-    advanceTo(semanticData ? 2 : 3);
-  }, [semanticData, markCompleted, advanceTo]);
+    setChecklistView('list');
+    markCompleted('foundations');
+  }, [markCompleted]);
 
-  const handleStep1Skip = () => {
-    markCompleted(1);
-    advanceTo(3);
-  };
+  const handleTemplateBack = useCallback(() => {
+    setSelectedTemplate(null);
+  }, []);
 
-  // Step 2 handlers
-  const handleStep2Created = () => {
-    markCompleted(2);
-    advanceTo(3);
-  };
+  // Semantics handlers
+  const handleSemanticsCreated = useCallback(() => {
+    setShowSemanticDialog(false);
+    markCompleted('semantics');
+  }, [markCompleted]);
 
-  const handleStep2Skip = () => {
-    markCompleted(2);
-    advanceTo(3);
-  };
+  const handleSemanticsClose = useCallback(() => {
+    setShowSemanticDialog(false);
+  }, []);
 
-  // Step 3 handlers
-  const handleStep3Done = () => {
-    markCompleted(3);
-    onComplete();
-  };
+  // Modes handlers
+  const handleModesDone = useCallback(() => {
+    setChecklistView('list');
+    markCompleted('modes');
+  }, [markCompleted]);
 
-  const handleStep3Skip = () => {
-    markCompleted(3);
-    onComplete();
-  };
+  const handleModesBack = useCallback(() => {
+    setChecklistView('list');
+  }, []);
 
-  // -- Prereq phase rendering (inline within wizard shell, stepper visible above) --
+  // Task selection
+  const handleTaskSelect = useCallback((taskId: TaskId) => {
+    switch (taskId) {
+      case 'foundations':
+        setChecklistView('template-picker');
+        break;
+      case 'semantics':
+        setShowSemanticDialog(true);
+        break;
+      case 'modes':
+        setChecklistView('modes-inline');
+        break;
+    }
+  }, []);
+
+  // -- Prereq phase rendering --
 
   if (prereqPhase === 'connect' || prereqPhase === 'create-set') {
     const prereqContent = (
@@ -485,11 +517,6 @@ export function QuickStartWizard({
             </button>
           </div>
         )}
-
-        <div className="opacity-40 pointer-events-none">
-          <StepperBar currentStep={1} completedSteps={new Set()} />
-        </div>
-        <div className="border-t border-[var(--color-figma-border)]" />
 
         <div className="p-4">
           {prereqPhase === 'connect' && (
@@ -523,105 +550,148 @@ export function QuickStartWizard({
     );
   }
 
-  // -- Main wizard (prereqs complete) --
+  // -- Main checklist --
 
-  // If a template is selected in step 1, show TokenGeneratorDialog as overlay
-  if (selectedTemplate) {
-    return (
-      <TokenGeneratorDialog
-        serverUrl={serverUrl}
-        activeSet={effectiveActiveSet}
-        allSets={allSets}
-        template={selectedTemplate}
-        initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
-        onBack={() => setSelectedTemplate(null)}
-        onClose={onClose}
-        onInterceptSemanticMapping={handleStep1InterceptSemantic}
-        onSaved={() => {
-          handleStep1Complete();
-        }}
-      />
-    );
-  }
+  const hasCompletedAny = completedTasks.size > 0;
 
-  // Step 2: show SemanticMappingDialog as overlay
-  if (currentStep === 2 && semanticData) {
-    return (
-      <SemanticMappingDialog
-        serverUrl={serverUrl}
-        generatedTokens={semanticData.tokens}
-        generatorType={semanticData.generatorType}
-        targetGroup={semanticData.targetGroup}
-        targetSet={semanticData.targetSet}
-        onClose={handleStep2Skip}
-        onCreated={handleStep2Created}
-      />
-    );
-  }
+  const showBackButton = checklistView !== 'list';
+  const viewTitle = checklistView === 'template-picker'
+    ? 'Choose a template'
+    : checklistView === 'modes-inline'
+      ? 'Add modes'
+      : null;
 
-  // Main wizard shell
-  const wizardContent = (
+  const mainContent = (
     <>
       {!embedded && (
         <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-          <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Guided setup</div>
+          <div className="flex items-center gap-2">
+            {showBackButton && (
+              <button
+                onClick={() => setChecklistView('list')}
+                className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                aria-label="Back"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+            )}
+            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+              {viewTitle ?? 'Guided setup'}
+            </div>
+          </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
       )}
 
-      <StepperBar currentStep={currentStep} completedSteps={completedSteps} />
-      <div className="border-t border-[var(--color-figma-border)]" />
+      {embedded && showBackButton && (
+        <div className="px-4 py-2 border-b border-[var(--color-figma-border)] flex items-center gap-2">
+          <button
+            onClick={() => setChecklistView('list')}
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            aria-label="Back"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{viewTitle}</span>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
-          {currentStep === 1 && (
-            <>
-              <CompactTemplatePicker
-                templates={GRAPH_TEMPLATES}
-                connected={connected}
-                onSelect={setSelectedTemplate}
-              />
-              <div className="px-4 py-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+        {checklistView === 'list' && (
+          <>
+            <TaskChecklist
+              completedTasks={completedTasks}
+              semanticData={semanticData}
+              connected={connected}
+              onSelect={handleTaskSelect}
+            />
+            {hasCompletedAny && (
+              <div className="px-4 py-3">
                 <button
-                  onClick={handleStep1Skip}
-                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+                  onClick={onComplete}
+                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
                 >
-                  Skip for now
+                  Finish Setup
                 </button>
               </div>
-            </>
-          )}
+            )}
+          </>
+        )}
 
-          {currentStep === 3 && (
-            <div className="p-4 flex flex-col gap-3">
-              <div>
-                <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add modes</p>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                  Create a mode such as light and dark so your token system can switch across contexts.
-                </p>
-              </div>
-              <ThemeStep
-                serverUrl={serverUrl}
-                activeSet={effectiveActiveSet}
-                onDone={handleStep3Done}
-                onSkip={handleStep3Skip}
-              />
-            </div>
-          )}
+        {checklistView === 'template-picker' && (
+          <CompactTemplatePicker
+            templates={GRAPH_TEMPLATES}
+            connected={connected}
+            onSelect={(template) => {
+              semanticInterceptFired.current = false;
+              setSelectedTemplate(template);
+            }}
+          />
+        )}
+
+        {checklistView === 'modes-inline' && (
+          <div className="p-4 flex flex-col gap-3">
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              Create a mode such as light and dark so your token system can switch across contexts.
+            </p>
+            <ThemeStep
+              serverUrl={serverUrl}
+              activeSet={effectiveActiveSet}
+              onDone={handleModesDone}
+              onSkip={handleModesBack}
+            />
+          </div>
+        )}
       </div>
     </>
   );
 
-  if (embedded) {
-    return <div className="flex h-full min-h-0 flex-col">{wizardContent}</div>;
-  }
+  const shell = embedded
+    ? <div className="flex h-full min-h-0 flex-col">{mainContent}</div>
+    : (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
+          {mainContent}
+        </div>
+      </div>
+    );
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
-        {wizardContent}
-      </div>
-    </div>
+    <>
+      {shell}
+
+      {/* Dialog overlays — render on top via fixed positioning */}
+      {selectedTemplate && (
+        <TokenGeneratorDialog
+          serverUrl={serverUrl}
+          activeSet={effectiveActiveSet}
+          allSets={allSets}
+          template={selectedTemplate}
+          initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
+          onBack={handleTemplateBack}
+          onClose={onClose}
+          onInterceptSemanticMapping={handleFoundationsInterceptSemantic}
+          onSaved={handleFoundationsSaved}
+        />
+      )}
+
+      {showSemanticDialog && semanticData && (
+        <SemanticMappingDialog
+          serverUrl={serverUrl}
+          generatedTokens={semanticData.tokens}
+          generatorType={semanticData.generatorType}
+          targetGroup={semanticData.targetGroup}
+          targetSet={semanticData.targetSet}
+          onClose={handleSemanticsClose}
+          onCreated={handleSemanticsCreated}
+        />
+      )}
+    </>
   );
 }
