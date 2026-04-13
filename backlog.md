@@ -97,7 +97,7 @@
 - [x] [HIGH] Clarify resolver opt-in and hide resolver mismatch details from default theme authoring
 - [x] [HIGH] Consolidate ThemeManager state into workspace and diagnostics providers
 - [x] [HIGH] Introduce shared authoring-surface layout primitives for narrow Figma panels
-- [ ] [HIGH] Refactor canvas quick-create and token quick-create launcher onto the shared authoring contract
+- [x] [HIGH] Refactor canvas quick-create and token quick-create launcher onto the shared authoring contract
 - [ ] [HIGH] Rebuild BatchEditor for stacked compact layout below 360px
 - [ ] [HIGH] Align generator dialog steps and pipeline quick edit with one authoring form system
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone

@@ -1873,3 +1873,11 @@
   - Quick-create surfaces stay consistent when the intro copy, summary rows, and footer actions all ride the same authoring-shell spacing contract instead of mixing banner chrome with modal-local padding.
   - Stored values need explicit `break-words` or `break-all` treatment in narrow plugin panels because token JSON and references are longer than the panel width by default.
 ---
+## 2026-04-13 - Rebuild BatchEditor for stacked compact layout below 360px
+- Replaced BatchEditor's fixed label rail with compact per-operation cards so description, type change, transforms, value/alias edits, rename, move, and delete all stack cleanly in narrow panels. Moved type-change confirmation and every preview/help/error block into the operation section they belong to, and converted the action/footer rows to wrap or fill width instead of clipping at 240px.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/BatchEditor.tsx` passed. `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L184, ~L1055, ~L1250, ~L1711, ~L1787, ~L1848, ~L1915; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Batch-edit panels read more clearly in narrow plugin widths when each operation owns one bordered section with its own controls, preview, and conflict copy instead of sharing one global label rail.
+  - Preview rows in 240px panels need `flex-wrap` plus `break-all` on token values and alias refs, otherwise the form can restack correctly while the preview rows still overflow.
+---

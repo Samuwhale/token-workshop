@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { TokenValidator } from '@tokenmanager/core';
 import type { Token, TokenValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
@@ -164,10 +165,34 @@ const COMPOSITE_TOKEN_TYPES = new Set(Object.keys(COMPOSITE_SUB_PROPS_BY_TYPE));
 
 const PREVIEW_MAX = 8;
 
+function joinClasses(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(' ');
+}
+
 function formatBatchValue(v: unknown): string {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'object') return JSON.stringify(v);
   return String(v);
+}
+
+interface BatchSectionProps {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}
+
+function BatchSection({ label, children, className }: BatchSectionProps) {
+  return (
+    <div
+      className={joinClasses(
+        'space-y-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5',
+        className,
+      )}
+    >
+      <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{label}</div>
+      {children}
+    </div>
+  );
 }
 
 export function BatchEditor({
@@ -1013,8 +1038,7 @@ export function BatchEditor({
       </div>
       <div className="px-2 pb-2 space-y-1.5">
       {/* Description */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Description</span>
+      <BatchSection label="Description">
         <input
           ref={descriptionRef}
           type="text"
@@ -1023,24 +1047,94 @@ export function BatchEditor({
           onChange={e => setDescription(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
           placeholder="Set on all selected…"
-          className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
         />
-      </div>
+      </BatchSection>
 
       {/* Change $type */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Change type</span>
+      <BatchSection label="Change type">
         <select
           value={newType}
           onChange={e => { setNewType(e.target.value); setShowTypeConfirm(false); }}
-          className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
         >
           <option value="">— keep current —</option>
           {DTCG_TYPES.map(t => (
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
-      </div>
+        {newType !== '' && !showTypeConfirm && typeChangeInfo && typeChangeInfo.currentTypes.length > 0 && (
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+            {typeChangeInfo.currentTypes.join(', ')} → <span className="text-[var(--color-figma-text)] font-medium">{newType}</span>
+            {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
+            {typeChangeInfo.incompatible.length > 0 && (
+              <span className="text-[var(--color-figma-error,#ef4444)]">
+                {' '}— {typeChangeInfo.incompatible.length} with incompatible value{typeChangeInfo.incompatible.length === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+        )}
+        {showTypeConfirm && typeChangeInfo && (
+          <div className={`rounded border px-2 py-1.5 space-y-1 ${
+            typeChangeInfo.incompatible.length > 0
+              ? 'border-[var(--color-figma-error,#ef4444)] bg-[rgba(239,68,68,0.08)]'
+              : 'border-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning-bg,rgba(245,158,11,0.08))]'
+          }`}>
+            <p className="text-[10px] text-[var(--color-figma-text)] leading-snug">
+              Change type of <strong>{typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}</strong>{' '}
+              {typeChangeInfo.currentTypes.length > 0 && (
+                <>from <strong>{typeChangeInfo.currentTypes.join(', ')}</strong>{' '}</>
+              )}
+              to <strong>{newType}</strong>?
+            </p>
+            {typeChangeInfo.incompatible.length > 0 ? (
+              <div className="space-y-0.5">
+                <p className="text-[10px] text-[var(--color-figma-error,#ef4444)] leading-snug font-medium">
+                  {typeChangeInfo.incompatible.length} token{typeChangeInfo.incompatible.length === 1 ? ' has a' : 's have'} value{typeChangeInfo.incompatible.length === 1 ? '' : 's'} incompatible with {newType}:
+                </p>
+                {(expandedPreviews['typeIncompat'] ? typeChangeInfo.incompatible : typeChangeInfo.incompatible.slice(0, PREVIEW_MAX)).map(({ path, error }) => (
+                  <div key={path} className="flex items-start gap-1 text-[10px] leading-snug">
+                    <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px] shrink-0" title={path}>{path.split('.').pop()}</span>
+                    <span className="text-[var(--color-figma-error,#ef4444)] truncate" title={error}>
+                      {error.includes(':') ? error.split(':').slice(1).join(':').trim() : error}
+                    </span>
+                  </div>
+                ))}
+                {typeChangeInfo.incompatible.length > PREVIEW_MAX && (
+                  <button type="button" onClick={() => togglePreview('typeIncompat')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                    {expandedPreviews['typeIncompat'] ? 'Show less' : `and ${typeChangeInfo.incompatible.length - PREVIEW_MAX} more…`}
+                  </button>
+                )}
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+                  Proceeding will produce invalid tokens. Update their values afterward or cancel.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+                This may break alias references that depend on the current type.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              <button
+                onClick={handleApply}
+                className={`flex-1 min-w-[96px] px-2 py-0.5 rounded text-[10px] font-medium text-white hover:opacity-90 transition-opacity ${
+                  typeChangeInfo.incompatible.length > 0
+                    ? 'bg-[var(--color-figma-error,#ef4444)]'
+                    : 'bg-[var(--color-figma-accent)]'
+                }`}
+              >
+                {typeChangeInfo.incompatible.length > 0 ? 'Change Anyway' : 'Confirm'}
+              </button>
+              <button
+                onClick={() => setShowTypeConfirm(false)}
+                className="flex-1 min-w-[96px] px-2 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </BatchSection>
 
       {/* Figma variable scopes — when selected tokens have applicable scope options */}
       {availableScopes.length > 0 && (
@@ -1153,9 +1247,8 @@ export function BatchEditor({
 
       {/* Opacity — when any selected token is a color, or a composite color sub-prop is targeted */}
       {(hasColors || compositeSubPropKind === 'color') && (
-        <>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Opacity %</span>
+        <BatchSection label="Opacity %">
+          <div className="space-y-1">
             <input
               type="range"
               aria-label="Opacity"
@@ -1164,35 +1257,37 @@ export function BatchEditor({
               step="1"
               value={opacityPct === '' ? 0 : Math.min(100, Math.max(0, Math.round(parseFloat(opacityPct) || 0)))}
               onChange={e => setOpacityPct(e.target.value)}
-              className="flex-1 accent-[var(--color-figma-accent)]"
+              className="w-full accent-[var(--color-figma-accent)]"
             />
-            <input
-              type="number"
-              aria-label="Opacity value"
-              min="0"
-              max="100"
-              value={opacityPct}
-              onChange={e => setOpacityPct(e.target.value)}
-              onBlur={e => {
-                if (e.target.value === '') return;
-                const n = parseFloat(e.target.value);
-                if (!isNaN(n)) setOpacityPct(String(Math.min(100, Math.max(0, Math.round(n)))));
-              }}
-              placeholder="—"
-              className={`w-12 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] text-right ${
-                opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100)
-                  ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]'
-                  : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'
-              }`}
-            />
-            {opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100) && (
-              <span className="text-[10px] text-[var(--color-figma-error)]">0–100</span>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <input
+                type="number"
+                aria-label="Opacity value"
+                min="0"
+                max="100"
+                value={opacityPct}
+                onChange={e => setOpacityPct(e.target.value)}
+                onBlur={e => {
+                  if (e.target.value === '') return;
+                  const n = parseFloat(e.target.value);
+                  if (!isNaN(n)) setOpacityPct(String(Math.min(100, Math.max(0, Math.round(n)))));
+                }}
+                placeholder="—"
+                className={`w-16 h-6 px-1.5 rounded border bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] text-right ${
+                  opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100)
+                    ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]'
+                    : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'
+                }`}
+              />
+              {opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100) && (
+                <span className="text-[10px] text-[var(--color-figma-error)]">0–100</span>
+              )}
+            </div>
           </div>
           {opacityPreview && opacityPreview.length > 0 && (
-            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['opacity'] ? opacityPreview : opacityPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex items-center gap-1.5 text-[10px] leading-snug">
+                <div key={path} className="flex flex-wrap items-center gap-1.5 text-[10px] leading-snug">
                   <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
                   <span
                     className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]"
@@ -1205,7 +1300,7 @@ export function BatchEditor({
                     style={{ backgroundColor: String(to) }}
                     title={String(to)}
                   />
-                  <span className="text-[var(--color-figma-text)] font-mono font-medium shrink-0">{String(to)}</span>
+                  <span className="text-[var(--color-figma-text)] font-mono font-medium break-all">{String(to)}</span>
                 </div>
               ))}
               {opacityPreview.length > PREVIEW_MAX && (
@@ -1216,22 +1311,21 @@ export function BatchEditor({
             </div>
           )}
           {hasColors && !allColors && (
-            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
               Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
             </div>
           )}
-        </>
+        </BatchSection>
       )}
 
       {/* Color adjust — lighten/darken/saturate/desaturate/hue shift — when any selected token is color, or composite color sub-prop targeted */}
       {(hasColors || compositeSubPropKind === 'color') && (
-        <>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Color adjust</span>
+        <BatchSection label="Color adjust">
+          <div className="flex flex-wrap items-center gap-1.5">
             <select
               value={colorAdjustOp}
               onChange={e => setColorAdjustOp(e.target.value as ColorAdjustOp)}
-              className="h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] shrink-0"
+              className="min-w-0 flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             >
               <option value="lighten">Lighten</option>
               <option value="darken">Darken</option>
@@ -1247,7 +1341,7 @@ export function BatchEditor({
               onChange={e => setColorAdjustAmt(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
               placeholder={colorAdjustOp === 'hue' ? '°' : '%'}
-              className="w-16 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              className="w-20 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             />
             {colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt)) && (
               <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -1256,9 +1350,9 @@ export function BatchEditor({
             )}
           </div>
           {colorAdjustPreview && colorAdjustPreview.length > 0 && (
-            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['colorAdjust'] ? colorAdjustPreview : colorAdjustPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex items-center gap-1.5 text-[10px] leading-snug">
+                <div key={path} className="flex flex-wrap items-center gap-1.5 text-[10px] leading-snug">
                   <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
                   <span
                     className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]"
@@ -1271,7 +1365,7 @@ export function BatchEditor({
                     style={{ backgroundColor: String(to) }}
                     title={String(to)}
                   />
-                  <span className="text-[var(--color-figma-text)] font-mono font-medium shrink-0">{String(to)}</span>
+                  <span className="text-[var(--color-figma-text)] font-mono font-medium break-all">{String(to)}</span>
                 </div>
               ))}
               {colorAdjustPreview.length > PREVIEW_MAX && (
@@ -1282,19 +1376,17 @@ export function BatchEditor({
             </div>
           )}
           {hasColors && !allColors && colorAdjustAmt !== '' && (
-            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
               Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
             </div>
           )}
-        </>
+        </BatchSection>
       )}
 
       {/* Numeric transform — when any selected token is dimension/number, or composite numeric sub-prop targeted */}
       {(hasScalable || compositeSubPropKind === 'numeric') && (
-        <>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Transform</span>
-            {/* Operation selector */}
+        <BatchSection label="Transform">
+          <div className="flex flex-wrap items-center gap-1.5">
             <div className="flex rounded border border-[var(--color-figma-border)] overflow-hidden shrink-0">
               {([['multiply', '×'], ['divide', '÷'], ['add', '+'], ['subtract', '−']] as [NumericOpMode, string][]).map(([op, sym], i) => (
                 <button
@@ -1321,7 +1413,7 @@ export function BatchEditor({
               onChange={e => setScaleFactor(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
               placeholder={numericOpMode === 'add' || numericOpMode === 'subtract' ? 'e.g. 4' : 'e.g. 1.5'}
-              className={`w-24 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] ${
+              className={`min-w-[96px] flex-1 h-6 px-1.5 rounded border bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] ${
                 scaleFactor !== '' && !numericTransformActive
                   ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]'
                   : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'
@@ -1334,16 +1426,16 @@ export function BatchEditor({
             ) : null}
           </div>
           {scaleAliasCount > 0 && numericTransformActive && (
-            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               <span className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] leading-tight font-medium">
                 {scaleAliasCount === scalableCount
                   ? 'All numeric tokens use reference values and cannot be transformed:'
                   : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (reference values cannot be transformed):`}
               </span>
               {(expandedPreviews['skippedAlias'] ? skippedAliasTokens : skippedAliasTokens.slice(0, PREVIEW_MAX)).map(({ path, entry }) => (
-                <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
+                <div key={path} className="flex flex-wrap items-center gap-1 text-[10px] leading-snug">
                   <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] shrink-0 truncate max-w-[120px]" title={String(entry.$value)}>{String(entry.$value)}</span>
+                  <span className="text-[var(--color-figma-text-secondary)] break-all" title={String(entry.$value)}>{String(entry.$value)}</span>
                 </div>
               ))}
               {skippedAliasTokens.length > PREVIEW_MAX && (
@@ -1354,13 +1446,13 @@ export function BatchEditor({
             </div>
           )}
           {scalePreview && scalePreview.length > 0 && (
-            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['scale'] ? scalePreview : scalePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
+                <div key={path} className="flex flex-wrap items-center gap-1 text-[10px] leading-snug">
                   <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] shrink-0">{formatBatchValue(from)}</span>
+                  <span className="text-[var(--color-figma-text-secondary)] break-all">{formatBatchValue(from)}</span>
                   <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                  <span className="text-[var(--color-figma-text)] shrink-0 font-medium">{formatBatchValue(to)}</span>
+                  <span className="text-[var(--color-figma-text)] font-medium break-all">{formatBatchValue(to)}</span>
                 </div>
               ))}
               {scalePreview.length > PREVIEW_MAX && (
@@ -1371,22 +1463,21 @@ export function BatchEditor({
             </div>
           )}
           {hasScalable && !allScalable && (
-            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
               Applies to {scalableCount} numeric token{scalableCount === 1 ? '' : 's'} — {selectedEntries.length - scalableCount} non-numeric skipped
             </div>
           )}
-        </>
+        </BatchSection>
       )}
 
       {/* Composite sub-property targeting — lets color/numeric ops apply to a sub-property of composite tokens */}
       {hasComposite && (
-        <>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Sub-property</span>
+        <BatchSection label="Sub-property">
+          <div className="flex flex-wrap items-center gap-1.5">
             <select
               value={compositeSubPropKey}
               onChange={e => setCompositeSubPropKey(e.target.value)}
-              className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              className="min-w-0 flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
               aria-label="Composite sub-property to target"
             >
               <option value="">— target composite sub-property —</option>
@@ -1405,16 +1496,14 @@ export function BatchEditor({
                 type="button"
                 onClick={() => setCompositeSubPropKey('')}
                 aria-label="Clear sub-property selection"
-                className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+                className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
               >
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
-                  <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
+                Clear
               </button>
             )}
           </div>
           {compositeSubPropKey && compositeSubPropTargets.length > 0 && (
-            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
               {compositeSubPropKind === 'color'
                 ? <>Opacity &amp; color adjust will target <span className="font-mono text-[var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}</>
                 : <>Transform will target <span className="font-mono text-[var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}</>
@@ -1422,9 +1511,9 @@ export function BatchEditor({
             </div>
           )}
           {compositeSubPropPreview && compositeSubPropPreview.length > 0 && (
-            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['compositeSub'] ? compositeSubPropPreview : compositeSubPropPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to, arrayLen }) => (
-                <div key={path} className="flex items-center gap-1.5 text-[10px] leading-snug">
+                <div key={path} className="flex flex-wrap items-center gap-1.5 text-[10px] leading-snug">
                   <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
                   {arrayLen > 1 && <span className="text-[var(--color-figma-text-tertiary)] shrink-0 font-mono">[{arrayLen}]</span>}
                   {compositeSubPropKind === 'color' ? (
@@ -1432,13 +1521,13 @@ export function BatchEditor({
                       <span className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: String(from) }} title={String(from)} />
                       <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
                       <span className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: String(to) }} title={String(to)} />
-                      <span className="text-[var(--color-figma-text)] font-mono font-medium shrink-0">{String(to)}</span>
+                      <span className="text-[var(--color-figma-text)] font-mono font-medium break-all">{String(to)}</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-[var(--color-figma-text-secondary)] shrink-0">{formatBatchValue(from)}</span>
+                      <span className="text-[var(--color-figma-text-secondary)] break-all">{formatBatchValue(from)}</span>
                       <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                      <span className="text-[var(--color-figma-text)] shrink-0 font-medium">{formatBatchValue(to)}</span>
+                      <span className="text-[var(--color-figma-text)] font-medium break-all">{formatBatchValue(to)}</span>
                     </>
                   )}
                 </div>
@@ -1450,61 +1539,61 @@ export function BatchEditor({
               )}
             </div>
           )}
-        </>
+        </BatchSection>
       )}
 
       {/* Set value — direct $value overwrite for all selected tokens */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Set value</span>
-        <input
-          type="text"
-          aria-label="Set value on all selected tokens"
-          value={setValueInput}
-          onChange={e => setSetValueInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleApplyRef.current(); }}
-          placeholder={setValueMode === 'json' ? 'JSON value…' : 'e.g. 16px, #ff0000, true…'}
-          className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
-        />
-        <button
-          type="button"
-          onClick={() => setSetValueMode(v => v === 'literal' ? 'json' : 'literal')}
-          title={setValueMode === 'json' ? 'JSON parse mode — click to switch to auto-coerce' : 'Auto-coerce mode (numbers/booleans detected) — click to switch to JSON parse'}
-          className={`shrink-0 px-1.5 h-6 rounded border text-[10px] font-mono transition-colors ${
-            setValueMode === 'json'
-              ? 'bg-[var(--color-figma-accent)] text-white border-transparent'
-              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]'
-          }`}
-        >
-          {'{}'}
-        </button>
-      </div>
-      {setValueActive && (aliasActive || opacityActive || numericTransformActive || colorAdjustActive) && (
-        <div className="ml-[88px] text-[10px] text-[var(--color-figma-error)]">
-          Conflicts with other value operations — clear the conflicting field to apply
+      <BatchSection label="Set value">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <input
+            type="text"
+            aria-label="Set value on all selected tokens"
+            value={setValueInput}
+            onChange={e => setSetValueInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleApplyRef.current(); }}
+            placeholder={setValueMode === 'json' ? 'JSON value…' : 'e.g. 16px, #ff0000, true…'}
+            className="min-w-0 flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+          />
+          <button
+            type="button"
+            onClick={() => setSetValueMode(v => v === 'literal' ? 'json' : 'literal')}
+            title={setValueMode === 'json' ? 'JSON parse mode — click to switch to auto-coerce' : 'Auto-coerce mode (numbers/booleans detected) — click to switch to JSON parse'}
+            className={`shrink-0 px-1.5 h-6 rounded border text-[10px] font-mono transition-colors ${
+              setValueMode === 'json'
+                ? 'bg-[var(--color-figma-accent)] text-white border-transparent'
+                : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]'
+            }`}
+          >
+            {'{}'}
+          </button>
         </div>
-      )}
-      {setValuePreview && setValuePreview.length > 0 && (
-        <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
-          {(expandedPreviews['setValue'] ? setValuePreview : setValuePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-            <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
-              <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-              <span className="text-[var(--color-figma-text-secondary)] shrink-0 font-mono truncate max-w-[80px]" title={String(from)}>{formatBatchValue(from)}</span>
-              <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-              <span className="text-[var(--color-figma-text)] shrink-0 font-medium font-mono">{formatBatchValue(to)}</span>
-            </div>
-          ))}
-          {setValuePreview.length > PREVIEW_MAX && (
-            <button type="button" onClick={() => togglePreview('setValue')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
-              {expandedPreviews['setValue'] ? 'Show less' : `and ${setValuePreview.length - PREVIEW_MAX} more…`}
-            </button>
-          )}
-        </div>
-      )}
+        {setValueActive && (aliasActive || opacityActive || numericTransformActive || colorAdjustActive) && (
+          <div className="text-[10px] text-[var(--color-figma-error)]">
+            Conflicts with other value operations — clear the conflicting field to apply
+          </div>
+        )}
+        {setValuePreview && setValuePreview.length > 0 && (
+          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            {(expandedPreviews['setValue'] ? setValuePreview : setValuePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
+              <div key={path} className="flex flex-wrap items-center gap-1 text-[10px] leading-snug">
+                <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
+                <span className="text-[var(--color-figma-text-secondary)] font-mono break-all" title={String(from)}>{formatBatchValue(from)}</span>
+                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                <span className="text-[var(--color-figma-text)] font-medium font-mono break-all">{formatBatchValue(to)}</span>
+              </div>
+            ))}
+            {setValuePreview.length > PREVIEW_MAX && (
+              <button type="button" onClick={() => togglePreview('setValue')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                {expandedPreviews['setValue'] ? 'Show less' : `and ${setValuePreview.length - PREVIEW_MAX} more…`}
+              </button>
+            )}
+          </div>
+        )}
+      </BatchSection>
 
       {/* Set alias — batch-convert all selected tokens to a reference value */}
-      <div className="relative">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Set alias</span>
+      <BatchSection label="Set alias" className="relative">
+        <div className="flex flex-wrap items-center gap-1.5">
           <input
             ref={aliasInputRef}
             type="text"
@@ -1528,23 +1617,21 @@ export function BatchEditor({
               }
             }}
             placeholder="{color.brand.primary}"
-            className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
+            className="min-w-0 flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
           />
           {aliasInput && (
             <button
               type="button"
               onClick={() => { setAliasInput(''); setAliasRef(''); setShowAliasAutocomplete(false); }}
               aria-label="Clear alias"
-              className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+              className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
             >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
-                <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
+              Clear
             </button>
           )}
         </div>
         {showAliasAutocomplete && (
-          <div className="ml-[88px] relative">
+          <div className="relative">
             <AliasAutocomplete
               query={aliasInput.startsWith('{') ? aliasInput.slice(1).replace(/\}$/, '') : aliasInput}
               allTokensFlat={allTokensFlat}
@@ -1560,17 +1647,17 @@ export function BatchEditor({
         )}
         {aliasActive && !showAliasAutocomplete && (
           aliasConflict ? (
-            <div className="ml-[88px] text-[10px] text-[var(--color-figma-error)] leading-snug">
+            <div className="text-[10px] text-[var(--color-figma-error)] leading-snug">
               Alias cannot be combined with value transforms — disable one to apply
             </div>
           ) : aliasPreview && aliasPreview.length > 0 ? (
-            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['alias'] ? aliasPreview : aliasPreview.slice(0, PREVIEW_MAX)).map(({ path, from }) => (
-                <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
+                <div key={path} className="flex flex-wrap items-center gap-1 text-[10px] leading-snug">
                   <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] shrink-0 font-mono truncate max-w-[80px]" title={String(from)}>{formatBatchValue(from)}</span>
+                  <span className="text-[var(--color-figma-text-secondary)] font-mono break-all" title={String(from)}>{formatBatchValue(from)}</span>
                   <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                  <span className="text-[var(--color-figma-text)] shrink-0 font-medium font-mono">{aliasRef}</span>
+                  <span className="text-[var(--color-figma-text)] font-medium font-mono break-all">{aliasRef}</span>
                 </div>
               ))}
               {aliasPreview.length > PREVIEW_MAX && (
@@ -1580,106 +1667,31 @@ export function BatchEditor({
               )}
             </div>
           ) : (
-            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-              Will set <span className="font-mono text-[var(--color-figma-text)]">{aliasRef}</span> on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+              Will set <span className="font-mono text-[var(--color-figma-text)] break-all">{aliasRef}</span> on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
             </div>
           )
         )}
-      </div>
-
-      {/* Type-change inline preview (before confirmation) */}
-      {newType !== '' && !showTypeConfirm && typeChangeInfo && typeChangeInfo.currentTypes.length > 0 && (
-        <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-          {typeChangeInfo.currentTypes.join(', ')} → <span className="text-[var(--color-figma-text)] font-medium">{newType}</span>
-          {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
-          {typeChangeInfo.incompatible.length > 0 && (
-            <span className="text-[var(--color-figma-error,#ef4444)]">
-              {' '}— {typeChangeInfo.incompatible.length} with incompatible value{typeChangeInfo.incompatible.length === 1 ? '' : 's'}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Type-change confirmation banner */}
-      {showTypeConfirm && typeChangeInfo && (
-        <div className={`rounded border px-2 py-1.5 space-y-1 ${
-          typeChangeInfo.incompatible.length > 0
-            ? 'border-[var(--color-figma-error,#ef4444)] bg-[rgba(239,68,68,0.08)]'
-            : 'border-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning-bg,rgba(245,158,11,0.08))]'
-        }`}>
-          <p className="text-[10px] text-[var(--color-figma-text)] leading-snug">
-            Change type of <strong>{typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}</strong>{' '}
-            {typeChangeInfo.currentTypes.length > 0 && (
-              <>from <strong>{typeChangeInfo.currentTypes.join(', ')}</strong>{' '}</>
-            )}
-            to <strong>{newType}</strong>?
-          </p>
-          {typeChangeInfo.incompatible.length > 0 ? (
-            <div className="space-y-0.5">
-              <p className="text-[10px] text-[var(--color-figma-error,#ef4444)] leading-snug font-medium">
-                {typeChangeInfo.incompatible.length} token{typeChangeInfo.incompatible.length === 1 ? ' has a' : 's have'} value{typeChangeInfo.incompatible.length === 1 ? '' : 's'} incompatible with {newType}:
-              </p>
-              {(expandedPreviews['typeIncompat'] ? typeChangeInfo.incompatible : typeChangeInfo.incompatible.slice(0, PREVIEW_MAX)).map(({ path, error }) => (
-                <div key={path} className="flex items-start gap-1 text-[10px] leading-snug">
-                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px] shrink-0" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-error,#ef4444)] truncate" title={error}>
-                    {error.includes(':') ? error.split(':').slice(1).join(':').trim() : error}
-                  </span>
-                </div>
-              ))}
-              {typeChangeInfo.incompatible.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('typeIncompat')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
-                  {expandedPreviews['typeIncompat'] ? 'Show less' : `and ${typeChangeInfo.incompatible.length - PREVIEW_MAX} more…`}
-                </button>
-              )}
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-                Proceeding will produce invalid tokens. Update their values afterward or cancel.
-              </p>
-            </div>
-          ) : (
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-              This may break alias references that depend on the current type.
-            </p>
-          )}
-          <div className="flex gap-1.5 pt-0.5">
-            <button
-              onClick={handleApply}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium text-white hover:opacity-90 transition-opacity ${
-                typeChangeInfo.incompatible.length > 0
-                  ? 'bg-[var(--color-figma-error,#ef4444)]'
-                  : 'bg-[var(--color-figma-accent)]'
-              }`}
-            >
-              {typeChangeInfo.incompatible.length > 0 ? 'Change Anyway' : 'Confirm'}
-            </button>
-            <button
-              onClick={() => setShowTypeConfirm(false)}
-              className="px-2 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      </BatchSection>
 
       {/* Footer: feedback + Apply button */}
-      <div className="flex items-center justify-between pt-0.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
         {(applying || moving || renaming || aliasReplacing) ? (
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <span className="min-w-0 flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             {applying ? 'Applying…' : moving ? 'Moving…' : renaming ? 'Renaming…' : 'Replacing…'}
           </span>
         ) : feedback ? (
-          <span className={`text-[10px] ${feedback.ok ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
+          <span className={`min-w-0 flex-1 text-[10px] ${feedback.ok ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
             {feedback.msg}
           </span>
         ) : !hasOp ? (
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <span className="min-w-0 flex-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
             {!connected
               ? 'Not connected to server'
               : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColorTarget ? ', opacity or color adjust' : ''}${hasNumericTarget ? ', transform' : ''}${hasComposite ? ', sub-property' : ''}, value, or alias to apply`}
           </span>
         ) : (
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <span className="min-w-0 flex-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
             {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'} selected
           </span>
         )}
@@ -1687,7 +1699,7 @@ export function BatchEditor({
           onClick={handleApply}
           disabled={applying || !connected || !hasOp}
           title={!connected ? 'Not connected to server' : !hasOp ? 'Fill in at least one field above' : newType !== '' && !showTypeConfirm ? `Change type of ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to ${newType} — click to review` : `Apply changes to ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'}`}
-          className="px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {applying ? 'Applying…' : `Apply to ${selectedPaths.size}`}
         </button>
@@ -1696,217 +1708,221 @@ export function BatchEditor({
       {/* Divider */}
       <div className="border-t border-[var(--color-figma-border)] pt-1 space-y-1.5">
         {/* Find / Replace rename */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Find/replace</span>
-          <div className="flex-1 min-w-0 relative">
+        <BatchSection label="Find/replace">
+          <div className="space-y-1">
+            <div className="relative">
+              <input
+                ref={findTextRef}
+                type="text"
+                aria-label="Find in path"
+                value={findText}
+                onChange={e => setFindText(e.target.value)}
+                placeholder="find in path…"
+                className={`w-full h-6 pl-1.5 pr-7 rounded border bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] ${
+                  regexError
+                    ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]'
+                    : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'
+                }`}
+              />
+              <button
+                onClick={() => setUseRegex(v => !v)}
+                title={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
+                aria-label={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
+                className={`absolute right-0.5 top-0.5 h-5 w-6 rounded text-[10px] font-mono flex items-center justify-center transition-colors ${
+                  useRegex
+                    ? 'bg-[var(--color-figma-accent)] text-white'
+                    : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))]'
+                }`}
+              >
+                .*
+              </button>
+            </div>
             <input
-              ref={findTextRef}
               type="text"
-              aria-label="Find in path"
-              value={findText}
-              onChange={e => setFindText(e.target.value)}
-              placeholder="find in path…"
-              className={`w-full h-6 pl-1.5 pr-7 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] ${
-                regexError
-                  ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]'
-                  : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'
-              }`}
+              aria-label="Replace with"
+              value={replaceText}
+              onChange={e => setReplaceText(e.target.value)}
+              placeholder="replace with…"
+              className="w-full h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
             />
             <button
-              onClick={() => setUseRegex(v => !v)}
-              title={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
-              aria-label={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
-              className={`absolute right-0.5 top-0.5 h-5 w-6 rounded text-[10px] font-mono flex items-center justify-center transition-colors ${
-                useRegex
-                  ? 'bg-[var(--color-figma-accent)] text-white'
-                  : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))]'
-              }`}
+              onClick={handleRename}
+              disabled={!connected || !canRename}
+              title={!connected ? 'Not connected to server' : !findText ? 'Enter text to find in token paths' : regexError ? `Invalid regex: ${regexError}` : renamePreview === 0 ? 'No selected tokens match the find text' : `Rename ${renamePreview} token path${renamePreview === 1 ? '' : 's'}`}
+              className="w-full px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              .*
+              {renaming ? '…' : `Rename${renamePreview > 0 ? ` ${renamePreview}` : ''}`}
             </button>
           </div>
-          <input
-            type="text"
-            aria-label="Replace with"
-            value={replaceText}
-            onChange={e => setReplaceText(e.target.value)}
-            placeholder="replace with…"
-            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
-          />
-          <button
-            onClick={handleRename}
-            disabled={!connected || !canRename}
-            title={!connected ? 'Not connected to server' : !findText ? 'Enter text to find in token paths' : regexError ? `Invalid regex: ${regexError}` : renamePreview === 0 ? 'No selected tokens match the find text' : `Rename ${renamePreview} token path${renamePreview === 1 ? '' : 's'}`}
-            className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {renaming ? '…' : `Rename${renamePreview > 0 ? ` ${renamePreview}` : ''}`}
-          </button>
-        </div>
-        {regexError && useRegex && findText && (
-          <div className="ml-[88px] text-[10px] text-[var(--color-figma-error)]">
-            {regexError}
-          </div>
-        )}
-        {renameChanges.length > 0 && (
-          <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
-              {renameChanges.length} path{renameChanges.length === 1 ? '' : 's'} will change
-              {renamePreview > renameChanges.length && (
-                <span className="font-normal text-[var(--color-figma-text-tertiary)]"> ({renamePreview - renameChanges.length} unchanged)</span>
-              )}:
+          {regexError && useRegex && findText && (
+            <div className="text-[10px] text-[var(--color-figma-error)]">
+              {regexError}
             </div>
-            {(expandedPreviews['rename'] ? renameChanges : renameChanges.slice(0, PREVIEW_MAX)).map(({ from, to }) => (
-              <div key={from} className="text-[10px] leading-snug flex items-baseline gap-1">
-                <span className="text-[var(--color-figma-text-secondary)] truncate shrink" title={from}>{from}</span>
-                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                <span className="text-[var(--color-figma-text)] font-medium truncate shrink" title={to}>{to}</span>
+          )}
+          {renameChanges.length > 0 && (
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+              <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
+                {renameChanges.length} path{renameChanges.length === 1 ? '' : 's'} will change
+                {renamePreview > renameChanges.length && (
+                  <span className="font-normal text-[var(--color-figma-text-tertiary)]"> ({renamePreview - renameChanges.length} unchanged)</span>
+                )}:
               </div>
-            ))}
-            {renameChanges.length > PREVIEW_MAX && (
-              <button type="button" onClick={() => togglePreview('rename')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
-                {expandedPreviews['rename'] ? 'Show less' : `and ${renameChanges.length - PREVIEW_MAX} more…`}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Alias find/replace — rewrite {path} references in $value strings */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Alias replace</span>
-          <input
-            type="text"
-            aria-label="Find alias path"
-            value={aliasFindText}
-            onChange={e => setAliasFindText(e.target.value)}
-            placeholder="color.primary"
-            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
-          />
-          <input
-            type="text"
-            aria-label="Replace alias path with"
-            value={aliasReplaceText}
-            onChange={e => setAliasReplaceText(e.target.value)}
-            placeholder="brand.primary"
-            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
-          />
-          <button
-            onClick={handleAliasReplace}
-            disabled={!connected || aliasFindChanges.length === 0 || aliasReplacing}
-            title={
-              !connected ? 'Not connected to server'
-              : !aliasFindText ? 'Enter an alias path to find'
-              : aliasFindChanges.length === 0 ? `No selected tokens reference {${aliasFindText}}`
-              : `Rewrite ${aliasFindChanges.length} alias reference${aliasFindChanges.length === 1 ? '' : 's'}`
-            }
-            className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {aliasReplacing ? '…' : `Rewrite${aliasFindChanges.length > 0 ? ` ${aliasFindChanges.length}` : ''}`}
-          </button>
-        </div>
-        {aliasFindText && aliasFindChanges.length > 0 && (
-          <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
-              {aliasFindChanges.length} alias reference{aliasFindChanges.length === 1 ? '' : 's'} will change:
-            </div>
-            {(expandedPreviews['aliasFind'] ? aliasFindChanges : aliasFindChanges.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-              <div key={path} className="text-[10px] leading-snug flex items-baseline gap-1">
-                <span className="text-[var(--color-figma-text-tertiary)] truncate shrink-0 max-w-[80px]" title={path}>{path.split('.').pop()}</span>
-                <span className="text-[var(--color-figma-text-secondary)] font-mono truncate shrink" title={from}>{from}</span>
-                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                <span className="text-[var(--color-figma-text)] font-mono font-medium truncate shrink" title={to}>{to}</span>
-              </div>
-            ))}
-            {aliasFindChanges.length > PREVIEW_MAX && (
-              <button type="button" onClick={() => togglePreview('aliasFind')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
-                {expandedPreviews['aliasFind'] ? 'Show less' : `and ${aliasFindChanges.length - PREVIEW_MAX} more…`}
-              </button>
-            )}
-          </div>
-        )}
-        {aliasFindText && aliasFindChanges.length === 0 && (
-          <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
-            No selected tokens reference <span className="font-mono">{`{${aliasFindText}}`}</span>
-          </div>
-        )}
-
-        {/* Move to set — only when multiple sets exist */}
-        {otherSets.length > 0 && (<>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Move to set</span>
-            <select
-              value={targetSet}
-              onChange={e => setTargetSet(e.target.value)}
-              className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
-            >
-              <option value="">— choose set —</option>
-              {otherSets.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-            <button
-              onClick={handleCopy}
-              disabled={!connected || !canCopy || copying}
-              title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target set first' : `Copy ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}" (originals preserved)`}
-              className="shrink-0 px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {copying ? '…' : 'Copy'}
-            </button>
-            <button
-              onClick={handleMove}
-              disabled={!connected || !canMove || moving}
-              title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target set first' : `Move ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}"`}
-              className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {moving ? '…' : 'Move'}
-            </button>
-          </div>
-          {movePreview && movePreview.items.length > 0 && (
-            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
-              {(expandedPreviews['move'] ? movePreview.items : movePreview.items.slice(0, PREVIEW_MAX)).map(({ path, conflict }) => (
-                <div key={path} className="text-[10px] leading-snug space-y-0">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[var(--color-figma-text-secondary)] truncate" title={path}>{path}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                    <span className={`font-medium truncate ${conflict ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`} title={`${targetSet}: ${path}${conflict ? ' (already exists)' : ''}`}>
-                      {targetSet}: {path}
-                    </span>
-                    {conflict && (
-                      <span className="text-[var(--color-figma-warning,#f59e0b)] shrink-0 text-[10px]">conflict</span>
-                    )}
-                  </div>
+              {(expandedPreviews['rename'] ? renameChanges : renameChanges.slice(0, PREVIEW_MAX)).map(({ from, to }) => (
+                <div key={from} className="text-[10px] leading-snug flex flex-wrap items-baseline gap-1">
+                  <span className="text-[var(--color-figma-text-secondary)] truncate grow min-w-0" title={from}>{from}</span>
+                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span className="text-[var(--color-figma-text)] font-medium truncate grow min-w-0" title={to}>{to}</span>
                 </div>
               ))}
-              {movePreview.items.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('move')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
-                  {expandedPreviews['move'] ? 'Show less' : `and ${movePreview.items.length - PREVIEW_MAX} more…`}
+              {renameChanges.length > PREVIEW_MAX && (
+                <button type="button" onClick={() => togglePreview('rename')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                  {expandedPreviews['rename'] ? 'Show less' : `and ${renameChanges.length - PREVIEW_MAX} more…`}
                 </button>
-              )}
-              {movePreview.conflicts > 0 && (
-                <div className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] font-medium leading-snug pt-0.5">
-                  {movePreview.conflicts} token{movePreview.conflicts === 1 ? '' : 's'} already exist{movePreview.conflicts === 1 ? 's' : ''} in &quot;{targetSet}&quot; and will be overwritten
-                </div>
               )}
             </div>
           )}
+        </BatchSection>
+
+        {/* Alias find/replace — rewrite {path} references in $value strings */}
+        <BatchSection label="Alias replace">
+          <div className="space-y-1">
+            <input
+              type="text"
+              aria-label="Find alias path"
+              value={aliasFindText}
+              onChange={e => setAliasFindText(e.target.value)}
+              placeholder="color.primary"
+              className="w-full h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
+            />
+            <input
+              type="text"
+              aria-label="Replace alias path with"
+              value={aliasReplaceText}
+              onChange={e => setAliasReplaceText(e.target.value)}
+              placeholder="brand.primary"
+              className="w-full h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
+            />
+            <button
+              onClick={handleAliasReplace}
+              disabled={!connected || aliasFindChanges.length === 0 || aliasReplacing}
+              title={
+                !connected ? 'Not connected to server'
+                : !aliasFindText ? 'Enter an alias path to find'
+                : aliasFindChanges.length === 0 ? `No selected tokens reference {${aliasFindText}}`
+                : `Rewrite ${aliasFindChanges.length} alias reference${aliasFindChanges.length === 1 ? '' : 's'}`
+              }
+              className="w-full px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {aliasReplacing ? '…' : `Rewrite${aliasFindChanges.length > 0 ? ` ${aliasFindChanges.length}` : ''}`}
+            </button>
+          </div>
+          {aliasFindText && aliasFindChanges.length > 0 && (
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+              <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
+                {aliasFindChanges.length} alias reference{aliasFindChanges.length === 1 ? '' : 's'} will change:
+              </div>
+              {(expandedPreviews['aliasFind'] ? aliasFindChanges : aliasFindChanges.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
+                <div key={path} className="text-[10px] leading-snug flex flex-wrap items-baseline gap-1">
+                  <span className="text-[var(--color-figma-text-tertiary)] truncate shrink-0 max-w-[80px]" title={path}>{path.split('.').pop()}</span>
+                  <span className="text-[var(--color-figma-text-secondary)] font-mono break-all" title={from}>{from}</span>
+                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span className="text-[var(--color-figma-text)] font-mono font-medium break-all" title={to}>{to}</span>
+                </div>
+              ))}
+              {aliasFindChanges.length > PREVIEW_MAX && (
+                <button type="button" onClick={() => togglePreview('aliasFind')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                  {expandedPreviews['aliasFind'] ? 'Show less' : `and ${aliasFindChanges.length - PREVIEW_MAX} more…`}
+                </button>
+              )}
+            </div>
+          )}
+          {aliasFindText && aliasFindChanges.length === 0 && (
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+              No selected tokens reference <span className="font-mono">{`{${aliasFindText}}`}</span>
+            </div>
+          )}
+        </BatchSection>
+
+        {/* Move to set — only when multiple sets exist */}
+        {otherSets.length > 0 && (<>
+          <BatchSection label="Move to set">
+            <div className="space-y-1">
+              <select
+                value={targetSet}
+                onChange={e => setTargetSet(e.target.value)}
+                className="w-full h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              >
+                <option value="">— choose set —</option>
+                {otherSets.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={handleCopy}
+                  disabled={!connected || !canCopy || copying}
+                  title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target set first' : `Copy ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}" (originals preserved)`}
+                  className="flex-1 min-w-[88px] px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {copying ? '…' : 'Copy'}
+                </button>
+                <button
+                  onClick={handleMove}
+                  disabled={!connected || !canMove || moving}
+                  title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target set first' : `Move ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}"`}
+                  className="flex-1 min-w-[88px] px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {moving ? '…' : 'Move'}
+                </button>
+              </div>
+            </div>
+            {movePreview && movePreview.items.length > 0 && (
+              <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+                {(expandedPreviews['move'] ? movePreview.items : movePreview.items.slice(0, PREVIEW_MAX)).map(({ path, conflict }) => (
+                  <div key={path} className="text-[10px] leading-snug space-y-0">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[var(--color-figma-text-secondary)] truncate" title={path}>{path}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                      <span className={`font-medium break-all ${conflict ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`} title={`${targetSet}: ${path}${conflict ? ' (already exists)' : ''}`}>
+                        {targetSet}: {path}
+                      </span>
+                      {conflict && (
+                        <span className="text-[var(--color-figma-warning,#f59e0b)] shrink-0 text-[10px]">conflict</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {movePreview.items.length > PREVIEW_MAX && (
+                  <button type="button" onClick={() => togglePreview('move')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                    {expandedPreviews['move'] ? 'Show less' : `and ${movePreview.items.length - PREVIEW_MAX} more…`}
+                  </button>
+                )}
+                {movePreview.conflicts > 0 && (
+                  <div className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] font-medium leading-snug pt-0.5">
+                    {movePreview.conflicts} token{movePreview.conflicts === 1 ? '' : 's'} already exist{movePreview.conflicts === 1 ? 's' : ''} in &quot;{targetSet}&quot; and will be overwritten
+                  </div>
+                )}
+              </div>
+            )}
+          </BatchSection>
         </>)}
 
         {/* Delete selected — destructive action, separated visually */}
         {onRequestDelete && (
           <div className="border-t border-[var(--color-figma-border)] pt-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Delete</span>
+            <BatchSection label="Delete" className="border-[var(--color-figma-error,#ef4444)] bg-[rgba(239,68,68,0.04)]">
               <button
                 type="button"
                 onClick={onRequestDelete}
                 disabled={!connected || selectedPaths.size === 0}
                 title={!connected ? 'Not connected to server' : `Delete ${selectedPaths.size} selected token${selectedPaths.size === 1 ? '' : 's'}`}
-                className="px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-error,#ef4444)] text-[var(--color-figma-error,#ef4444)] hover:bg-[rgba(239,68,68,0.08)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-error,#ef4444)] text-[var(--color-figma-error,#ef4444)] hover:bg-[rgba(239,68,68,0.08)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Delete {selectedPaths.size} selected
               </button>
-            </div>
+            </BatchSection>
           </div>
         )}
       </div>
