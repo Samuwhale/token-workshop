@@ -554,12 +554,22 @@ export function QuickStartWizard({
 
   const hasCompletedAny = completedTasks.size > 0;
 
-  const showBackButton = checklistView !== 'list';
-  const viewTitle = checklistView === 'template-picker'
-    ? 'Choose a template'
-    : checklistView === 'modes-inline'
-      ? 'Add modes'
-      : null;
+  const showBackButton = checklistView !== 'list' || !!selectedTemplate || showSemanticDialog;
+  const viewTitle = selectedTemplate
+    ? selectedTemplate.label
+    : showSemanticDialog
+      ? 'Create semantic tokens'
+      : checklistView === 'template-picker'
+        ? 'Choose a template'
+        : checklistView === 'modes-inline'
+          ? 'Add modes'
+          : null;
+
+  const handleInlineBack = useCallback(() => {
+    if (showSemanticDialog) { handleSemanticsClose(); return; }
+    if (selectedTemplate) { handleTemplateBack(); return; }
+    setChecklistView('list');
+  }, [showSemanticDialog, selectedTemplate, handleSemanticsClose, handleTemplateBack]);
 
   const mainContent = (
     <>
@@ -568,7 +578,7 @@ export function QuickStartWizard({
           <div className="flex items-center gap-2">
             {showBackButton && (
               <button
-                onClick={() => setChecklistView('list')}
+                onClick={handleInlineBack}
                 className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 aria-label="Back"
               >
@@ -590,7 +600,7 @@ export function QuickStartWizard({
       {embedded && showBackButton && (
         <div className="px-4 py-2 border-b border-[var(--color-figma-border)] flex items-center gap-2">
           <button
-            onClick={() => setChecklistView('list')}
+            onClick={handleInlineBack}
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
             aria-label="Back"
           >
@@ -602,53 +612,82 @@ export function QuickStartWizard({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
-        {checklistView === 'list' && (
-          <>
-            <TaskChecklist
-              completedTasks={completedTasks}
-              semanticData={semanticData}
-              connected={connected}
-              onSelect={handleTaskSelect}
-            />
-            {hasCompletedAny && (
-              <div className="px-4 py-3">
-                <button
-                  onClick={onComplete}
-                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
-                >
-                  Finish Setup
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {checklistView === 'template-picker' && (
-          <CompactTemplatePicker
-            templates={GRAPH_TEMPLATES}
-            connected={connected}
-            onSelect={(template) => {
-              semanticInterceptFired.current = false;
-              setSelectedTemplate(template);
-            }}
+      {selectedTemplate ? (
+        <div className="flex-1 min-h-0">
+          <TokenGeneratorDialog
+            presentation="panel"
+            serverUrl={serverUrl}
+            activeSet={effectiveActiveSet}
+            allSets={allSets}
+            template={selectedTemplate}
+            initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
+            onClose={onClose}
+            onInterceptSemanticMapping={handleFoundationsInterceptSemantic}
+            onSaved={handleFoundationsSaved}
           />
-        )}
+        </div>
+      ) : showSemanticDialog && semanticData ? (
+        <div className="flex-1 min-h-0">
+          <SemanticMappingDialog
+            presentation="panel"
+            serverUrl={serverUrl}
+            generatedTokens={semanticData.tokens}
+            generatorType={semanticData.generatorType}
+            targetGroup={semanticData.targetGroup}
+            targetSet={semanticData.targetSet}
+            onClose={handleSemanticsClose}
+            onCreated={handleSemanticsCreated}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          {checklistView === 'list' && (
+            <>
+              <TaskChecklist
+                completedTasks={completedTasks}
+                semanticData={semanticData}
+                connected={connected}
+                onSelect={handleTaskSelect}
+              />
+              {hasCompletedAny && (
+                <div className="px-4 py-3">
+                  <button
+                    onClick={onComplete}
+                    className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                  >
+                    Finish Setup
+                  </button>
+                </div>
+              )}
+            </>
+          )}
 
-        {checklistView === 'modes-inline' && (
-          <div className="p-4 flex flex-col gap-3">
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Create a mode such as light and dark so your token system can switch across contexts.
-            </p>
-            <ThemeStep
-              serverUrl={serverUrl}
-              activeSet={effectiveActiveSet}
-              onDone={handleModesDone}
-              onSkip={handleModesBack}
+          {checklistView === 'template-picker' && (
+            <CompactTemplatePicker
+              templates={GRAPH_TEMPLATES}
+              connected={connected}
+              onSelect={(template) => {
+                semanticInterceptFired.current = false;
+                setSelectedTemplate(template);
+              }}
             />
-          </div>
-        )}
-      </div>
+          )}
+
+          {checklistView === 'modes-inline' && (
+            <div className="p-4 flex flex-col gap-3">
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                Create a mode such as light and dark so your token system can switch across contexts.
+              </p>
+              <ThemeStep
+                serverUrl={serverUrl}
+                activeSet={effectiveActiveSet}
+                onDone={handleModesDone}
+                onSkip={handleModesBack}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 
@@ -662,36 +701,5 @@ export function QuickStartWizard({
       </div>
     );
 
-  return (
-    <>
-      {shell}
-
-      {/* Dialog overlays — render on top via fixed positioning */}
-      {selectedTemplate && (
-        <TokenGeneratorDialog
-          serverUrl={serverUrl}
-          activeSet={effectiveActiveSet}
-          allSets={allSets}
-          template={selectedTemplate}
-          initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
-          onBack={handleTemplateBack}
-          onClose={onClose}
-          onInterceptSemanticMapping={handleFoundationsInterceptSemantic}
-          onSaved={handleFoundationsSaved}
-        />
-      )}
-
-      {showSemanticDialog && semanticData && (
-        <SemanticMappingDialog
-          serverUrl={serverUrl}
-          generatedTokens={semanticData.tokens}
-          generatorType={semanticData.generatorType}
-          targetGroup={semanticData.targetGroup}
-          targetSet={semanticData.targetSet}
-          onClose={handleSemanticsClose}
-          onCreated={handleSemanticsCreated}
-        />
-      )}
-    </>
-  );
+  return shell;
 }

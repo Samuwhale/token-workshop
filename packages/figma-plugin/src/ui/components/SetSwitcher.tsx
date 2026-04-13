@@ -1175,139 +1175,166 @@ export function SetManager({
           )}
         </div>
 
-        <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-          <div className="flex items-center gap-2">
-            <svg
-              aria-hidden="true"
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              className="shrink-0 text-[var(--color-figma-text-secondary)]"
-            >
-              <circle cx="6" cy="6" r="4" />
-              <path d="M9 9l3 3" />
-            </svg>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter sets…"
-              aria-label="Filter token sets"
-              className="flex-1 bg-transparent text-[12px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)]"
-            />
-            {!creatingSet && onCreateSet && (
-              <button
-                onClick={() => setCreatingSet(true)}
-                className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
-              >
-                New set
-              </button>
-            )}
-          </div>
-          <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-            <span>
-              {sets.length} set{sets.length !== 1 ? "s" : ""}
-            </span>
-            <span>·</span>
-            <span>Active: {activeSet}</span>
-            <span>·</span>
-            <span>
-              Own all structural set work here: naming, folders, ordering, Figma
-              routing, merges, splits, and bulk actions.
-            </span>
-          </div>
-          {creatingSet && onCreateSet && (
-            <div className="mt-2 flex flex-col gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+        {mergingSet &&
+          onMergeClose &&
+          onMergeTargetChange &&
+          setMergeResolutions &&
+          onMergeCheckConflicts &&
+          onMergeConfirm ? (
+          <SetMergeInline
+            sets={sets}
+            mergingSet={mergingSet}
+            preflight={mergePreflight.data}
+            preflightLoading={mergePreflight.loading}
+            preflightError={mergePreflight.error}
+            mergeTargetSet={mergeTargetSet}
+            mergeConflicts={mergeConflicts}
+            mergeResolutions={mergeResolutions}
+            mergeChecked={mergeChecked}
+            mergeLoading={mergeLoading}
+            onTargetChange={onMergeTargetChange}
+            onSetResolutions={setMergeResolutions}
+            onCheckConflicts={onMergeCheckConflicts}
+            onConfirm={onMergeConfirm}
+            onClose={onMergeClose}
+          />
+        ) : (
+          <>
+            <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
               <div className="flex items-center gap-2">
+                <svg
+                  aria-hidden="true"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  className="shrink-0 text-[var(--color-figma-text-secondary)]"
+                >
+                  <circle cx="6" cy="6" r="4" />
+                  <path d="M9 9l3 3" />
+                </svg>
                 <input
-                  ref={newSetInputRef}
                   type="text"
-                  value={newSetName}
-                  onChange={(e) => {
-                    setNewSetName(e.target.value);
-                    setNewSetError("");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleCreateSubmit();
-                    }
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      cancelCreate();
-                    }
-                  }}
-                  placeholder="Set name (e.g. primitives or brand/colors)"
-                  className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                  disabled={createPending}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Filter sets…"
+                  aria-label="Filter token sets"
+                  className="flex-1 bg-transparent text-[12px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)]"
                 />
-                <button
-                  onClick={handleCreateSubmit}
-                  disabled={createPending || !newSetName.trim()}
-                  className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-                >
-                  {createPending ? "Creating…" : "Create"}
-                </button>
-                <button
-                  onClick={cancelCreate}
-                  className="rounded px-2 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  Cancel
-                </button>
+                {!creatingSet && onCreateSet && (
+                  <button
+                    onClick={() => setCreatingSet(true)}
+                    className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+                  >
+                    New set
+                  </button>
+                )}
               </div>
-              {newSetError && (
-                <div className="text-[10px] text-red-500">{newSetError}</div>
+              <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <span>
+                  {sets.length} set{sets.length !== 1 ? "s" : ""}
+                </span>
+                <span>·</span>
+                <span>Active: {activeSet}</span>
+                <span>·</span>
+                <span>
+                  Own all structural set work here: naming, folders, ordering, Figma
+                  routing, merges, splits, and bulk actions.
+                </span>
+              </div>
+              {creatingSet && onCreateSet && (
+                <div className="mt-2 flex flex-col gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={newSetInputRef}
+                      type="text"
+                      value={newSetName}
+                      onChange={(e) => {
+                        setNewSetName(e.target.value);
+                        setNewSetError("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleCreateSubmit();
+                        }
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          cancelCreate();
+                        }
+                      }}
+                      placeholder="Set name (e.g. primitives or brand/colors)"
+                      className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                      disabled={createPending}
+                    />
+                    <button
+                      onClick={handleCreateSubmit}
+                      disabled={createPending || !newSetName.trim()}
+                      className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                    >
+                      {createPending ? "Creating…" : "Create"}
+                    </button>
+                    <button
+                      onClick={cancelCreate}
+                      className="rounded px-2 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {newSetError && (
+                    <div className="text-[10px] text-red-500">{newSetError}</div>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
 
-        <ManageView
-          filtered={filtered}
-          sets={sets}
-          activeSet={activeSet}
-          query={query}
-          topContent={
-            <SetMappingManager
-              rows={metadataManagerRows}
-              visibleRows={visibleMetadataRows}
-              dirtyCount={metadataManagerDirtyCount}
-              saving={metadataManagerSaving}
-              onFieldChange={updateMetadataManagerField}
-              onResetRow={(setName) => resetMetadataManager(setName)}
-              onResetAll={() => resetMetadataManager()}
-              onSaveRow={(setName) => saveMetadataManager([setName])}
-              onSaveAll={() => saveMetadataManager()}
+            <ManageView
+              filtered={filtered}
+              sets={sets}
+              activeSet={activeSet}
+              query={query}
+              topContent={
+                <SetMappingManager
+                  rows={metadataManagerRows}
+                  visibleRows={visibleMetadataRows}
+                  dirtyCount={metadataManagerDirtyCount}
+                  saving={metadataManagerSaving}
+                  onFieldChange={updateMetadataManagerField}
+                  onResetRow={(setName) => resetMetadataManager(setName)}
+                  onResetAll={() => resetMetadataManager()}
+                  onSaveRow={(setName) => saveMetadataManager([setName])}
+                  onSaveAll={() => saveMetadataManager()}
+                />
+              }
+              setTokenCounts={setTokenCounts}
+              setDescriptions={setDescriptions}
+              setThemeLabels={setThemeLabels}
+              onOpenGenerators={onOpenGenerators}
+              onRename={onRename}
+              onDuplicate={onDuplicate}
+              onDelete={onDelete}
+              onReorder={onReorder}
+              onReorderFull={onReorderFull}
+              onEditInfo={onEditInfo}
+              onMerge={onMerge}
+              onSplit={onSplit}
+              onBulkDelete={onBulkDelete}
+              onBulkDuplicate={onBulkDuplicate}
+              onBulkMoveToFolder={onBulkMoveToFolder}
+              renamingSet={renamingSet}
+              renameValue={renameValue}
+              setRenameValue={setRenameValue}
+              renameError={renameError}
+              setRenameError={setRenameError}
+              renameInputRef={renameInputRef}
+              onRenameConfirm={onRenameConfirm}
+              onRenameCancel={onRenameCancel}
             />
-          }
-          setTokenCounts={setTokenCounts}
-          setDescriptions={setDescriptions}
-          setThemeLabels={setThemeLabels}
-          onOpenGenerators={onOpenGenerators}
-          onRename={onRename}
-          onDuplicate={onDuplicate}
-          onDelete={onDelete}
-          onReorder={onReorder}
-          onReorderFull={onReorderFull}
-          onEditInfo={onEditInfo}
-          onMerge={onMerge}
-          onSplit={onSplit}
-          onBulkDelete={onBulkDelete}
-          onBulkDuplicate={onBulkDuplicate}
-          onBulkMoveToFolder={onBulkMoveToFolder}
-          renamingSet={renamingSet}
-          renameValue={renameValue}
-          setRenameValue={setRenameValue}
-          renameError={renameError}
-          setRenameError={setRenameError}
-          renameInputRef={renameInputRef}
-          onRenameConfirm={onRenameConfirm}
-          onRenameCancel={onRenameCancel}
-        />
+          </>
+        )}
       </div>
       {editingMetadataSet && (
         <SetMetadataDialog
@@ -1332,30 +1359,6 @@ export function SetManager({
           onCancel={onDeleteCancel}
         />
       )}
-      {mergingSet &&
-        onMergeClose &&
-        onMergeTargetChange &&
-        setMergeResolutions &&
-        onMergeCheckConflicts &&
-        onMergeConfirm && (
-          <SetMergeDialog
-            sets={sets}
-            mergingSet={mergingSet}
-            preflight={mergePreflight.data}
-            preflightLoading={mergePreflight.loading}
-            preflightError={mergePreflight.error}
-            mergeTargetSet={mergeTargetSet}
-            mergeConflicts={mergeConflicts}
-            mergeResolutions={mergeResolutions}
-            mergeChecked={mergeChecked}
-            mergeLoading={mergeLoading}
-            onTargetChange={onMergeTargetChange}
-            onSetResolutions={setMergeResolutions}
-            onCheckConflicts={onMergeCheckConflicts}
-            onConfirm={onMergeConfirm}
-            onClose={onMergeClose}
-          />
-        )}
       {splittingSet &&
         onSplitClose &&
         setSplitDeleteOriginal &&
@@ -2888,7 +2891,8 @@ function SetDeleteDialog({
   );
 }
 
-function SetMergeDialog({
+/** Merge flow rendered inline within SetManager (no modal overlay). */
+function SetMergeInline({
   sets,
   mergingSet,
   preflight,
@@ -2936,159 +2940,142 @@ function SetMergeDialog({
     preflightLoading ||
     (preflight?.blockers.length ?? 0) > 0;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
-        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-            Merge "{mergingSet}" into…
-          </span>
-          <button
-            onClick={onClose}
-            className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="flex flex-col gap-3 overflow-y-auto p-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Target set
-            </label>
-            <select
-              value={mergeTargetSet}
-              onChange={(e) => onTargetChange(e.target.value)}
-              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-            >
-              {sets
-                .filter((set) => set !== mergingSet)
-                .map((set) => (
-                  <option key={set} value={set}>
-                    {set}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <StructuralPreflightSummary
-            preflight={preflight}
-            loading={preflightLoading}
-            error={preflightError}
-            sourceSetName={mergingSet}
-            targetSetName={mergeTargetSet}
-          />
-          {!mergeChecked && (
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Tokens from{" "}
-              <span className="font-mono font-medium">{mergingSet}</span> will
-              be added to{" "}
-              <span className="font-mono font-medium">{mergeTargetSet}</span>.
-              Conflicts where both sets have the same path but different values
-              will be shown for resolution.
-            </p>
-          )}
-          {mergeChecked && mergeConflicts.length === 0 && (
-            <p className="text-[10px] text-green-500">
-              No conflicts — all tokens can be merged cleanly.
-            </p>
-          )}
-          {mergeChecked && mergeConflicts.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Resolve {mergeConflicts.length} conflict
-                {mergeConflicts.length !== 1 ? "s" : ""} before merging.
-              </p>
-              <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
-                {mergeConflicts.map((conflict) => (
-                  <div
-                    key={conflict.path}
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2"
-                  >
-                    <div className="break-all font-mono text-[10px] text-[var(--color-figma-text)]">
-                      {conflict.path}
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <label
-                        className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === "source" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"}`}
-                      >
-                        <input
-                          type="radio"
-                          name={`merge-${conflict.path}`}
-                          checked={mergeResolutions[conflict.path] === "source"}
-                          onChange={() =>
-                            onSetResolutions((prev) => ({
-                              ...prev,
-                              [conflict.path]: "source",
-                            }))
-                          }
-                          className="sr-only"
-                        />
-                        <div className="font-medium">Use source</div>
-                        <div className="mt-0.5 break-all opacity-80">
-                          {String(conflict.sourceValue)}
-                        </div>
-                      </label>
-                      <label
-                        className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === "target" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"}`}
-                      >
-                        <input
-                          type="radio"
-                          name={`merge-${conflict.path}`}
-                          checked={mergeResolutions[conflict.path] === "target"}
-                          onChange={() =>
-                            onSetResolutions((prev) => ({
-                              ...prev,
-                              [conflict.path]: "target",
-                            }))
-                          }
-                          className="sr-only"
-                        />
-                        <div className="font-medium">Keep target</div>
-                        <div className="mt-0.5 break-all opacity-80">
-                          {String(conflict.targetValue)}
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            Cancel
-          </button>
-          {!mergeChecked ? (
-            <button
-              onClick={onCheckConflicts}
-              disabled={mergeLoading || !mergeTargetSet || hasBlockingPreflight}
-              className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-            >
-              {mergeLoading ? "Checking…" : "Check conflicts"}
-            </button>
-          ) : (
-            <button
-              onClick={onConfirm}
-              disabled={mergeLoading || hasBlockingPreflight}
-              className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-            >
-              {mergeLoading ? "Merging…" : "Merge"}
-            </button>
-          )}
-        </div>
+    <>
+      <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+        <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+          Merge &ldquo;{mergingSet}&rdquo; into&hellip;
+        </span>
       </div>
-    </div>
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Target set
+          </label>
+          <select
+            value={mergeTargetSet}
+            onChange={(e) => onTargetChange(e.target.value)}
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          >
+            {sets
+              .filter((set) => set !== mergingSet)
+              .map((set) => (
+                <option key={set} value={set}>
+                  {set}
+                </option>
+              ))}
+          </select>
+        </div>
+        <StructuralPreflightSummary
+          preflight={preflight}
+          loading={preflightLoading}
+          error={preflightError}
+          sourceSetName={mergingSet}
+          targetSetName={mergeTargetSet}
+        />
+        {!mergeChecked && (
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Tokens from{" "}
+            <span className="font-mono font-medium">{mergingSet}</span> will
+            be added to{" "}
+            <span className="font-mono font-medium">{mergeTargetSet}</span>.
+            Conflicts where both sets have the same path but different values
+            will be shown for resolution.
+          </p>
+        )}
+        {mergeChecked && mergeConflicts.length === 0 && (
+          <p className="text-[10px] text-green-500">
+            No conflicts — all tokens can be merged cleanly.
+          </p>
+        )}
+        {mergeChecked && mergeConflicts.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              Resolve {mergeConflicts.length} conflict
+              {mergeConflicts.length !== 1 ? "s" : ""} before merging.
+            </p>
+            <div className="flex flex-col gap-2 overflow-y-auto">
+              {mergeConflicts.map((conflict) => (
+                <div
+                  key={conflict.path}
+                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2"
+                >
+                  <div className="break-all font-mono text-[10px] text-[var(--color-figma-text)]">
+                    {conflict.path}
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <label
+                      className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === "source" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`merge-${conflict.path}`}
+                        checked={mergeResolutions[conflict.path] === "source"}
+                        onChange={() =>
+                          onSetResolutions((prev) => ({
+                            ...prev,
+                            [conflict.path]: "source",
+                          }))
+                        }
+                        className="sr-only"
+                      />
+                      <div className="font-medium">Use source</div>
+                      <div className="mt-0.5 break-all opacity-80">
+                        {String(conflict.sourceValue)}
+                      </div>
+                    </label>
+                    <label
+                      className={`rounded border px-2 py-1 text-[10px] ${mergeResolutions[conflict.path] === "target" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`merge-${conflict.path}`}
+                        checked={mergeResolutions[conflict.path] === "target"}
+                        onChange={() =>
+                          onSetResolutions((prev) => ({
+                            ...prev,
+                            [conflict.path]: "target",
+                          }))
+                        }
+                        className="sr-only"
+                      />
+                      <div className="font-medium">Keep target</div>
+                      <div className="mt-0.5 break-all opacity-80">
+                        {String(conflict.targetValue)}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
+        <button
+          onClick={onClose}
+          className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          Cancel
+        </button>
+        {!mergeChecked ? (
+          <button
+            onClick={onCheckConflicts}
+            disabled={mergeLoading || !mergeTargetSet || hasBlockingPreflight}
+            className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          >
+            {mergeLoading ? "Checking…" : "Check conflicts"}
+          </button>
+        ) : (
+          <button
+            onClick={onConfirm}
+            disabled={mergeLoading || hasBlockingPreflight}
+            className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          >
+            {mergeLoading ? "Merging…" : "Merge"}
+          </button>
+        )}
+      </div>
+    </>
   );
 }
 
