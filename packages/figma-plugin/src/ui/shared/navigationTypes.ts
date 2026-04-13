@@ -223,9 +223,9 @@ export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
   },
   {
     id: "themes",
-    label: "Themes",
+    label: "Modes",
     stepNumber: 2,
-    role: "Define modes, assign base and variant token sets, review coverage.",
+    role: "Define modes, assign shared and override token sets, review coverage.",
   },
   {
     id: "apply",
@@ -476,12 +476,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
   {
     id: "themes",
-    label: "Themes",
-    summaryTitle: "Theme authoring",
+    label: "Modes",
+    summaryTitle: "Mode configuration",
     topTab: "define",
     subTab: "themes",
     transition: workspaceTransition(
-      "Build and manage theme structure and values.",
+      "Define modes, assign token sets, and review coverage.",
     ),
   },
   {

@@ -2684,11 +2684,8 @@ const TokenLeafNode = memo(
     return (
       <div ref={nodeRef}>
         <div
-          className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass}`}
+          className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}
-          style={{
-            paddingLeft: `${computePaddingLeft(depth, condensedView, 20)}px`,
-          }}
           tabIndex={rovingFocusPath === node.path ? 0 : -1}
           data-token-path={node.path}
           data-node-name={node.name}
@@ -2758,6 +2755,10 @@ const TokenLeafNode = memo(
           onContextMenu={handleContextMenu}
           onKeyDown={handleRowKeyDown}
         >
+          <div
+            className="flex items-center gap-2 flex-1 min-w-0 pr-2"
+            style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 20)}px` }}
+          >
           <DepthBar depth={depth} />
           {/* Drag reorder indicator line */}
           {reorderPos && (
@@ -2896,7 +2897,7 @@ const TokenLeafNode = memo(
             }
             style={selectMode ? { cursor: "pointer" } : undefined}
           >
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
               <CondensedAncestorBreadcrumb
                 nodePath={node.path}
                 nodeName={node.name}
@@ -3015,29 +3016,6 @@ const TokenLeafNode = memo(
               )}
             </div>
           </div>
-
-          {/* Multi-mode value columns — per-theme-option resolved values */}
-          {multiModeValues && multiModeValues.length > 0 && (
-            <div className="flex items-center shrink-0 ml-auto">
-              {multiModeValues.map((mv) => (
-                <MultiModeCell
-                  key={mv.optionName}
-                  tokenPath={node.path}
-                  tokenType={node.$type}
-                  value={mv.resolved}
-                  targetSet={mv.targetSet}
-                  optionName={mv.optionName}
-                  onSave={onMultiModeInlineSave}
-                  isTabPending={
-                    pendingTabEdit?.path === node.path &&
-                    pendingTabEdit?.columnId === mv.optionName
-                  }
-                  onTabActivated={clearPendingTabEdit}
-                  onTab={(dir) => onTabToNext(node.path, mv.optionName, dir)}
-                />
-              ))}
-            </div>
-          )}
 
           {/* Value text (hidden when multi-mode columns are shown) */}
           {!(multiModeValues && multiModeValues.length > 0) &&
@@ -3332,11 +3310,6 @@ const TokenLeafNode = memo(
                 >
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
                 </svg>
-                {isRowActive && (
-                  <span className="max-w-[72px] truncate">
-                    {tokenStatus.label}
-                  </span>
-                )}
               </button>
             ) : (
               <span
@@ -3379,11 +3352,6 @@ const TokenLeafNode = memo(
                     <rect x="9" y="9" width="10" height="10" rx="2" />
                     <path d="M5 15V7a2 2 0 0 1 2-2h8" />
                   </svg>
-                )}
-                {isRowActive && (
-                  <span className="max-w-[72px] truncate">
-                    {tokenStatus.label}
-                  </span>
                 )}
               </span>
             ))}
@@ -3935,6 +3903,30 @@ const TokenLeafNode = memo(
           {/* Complex type hover preview card */}
           {hoverPreviewVisible && node.$type && !isBrokenAlias && (
             <ComplexTypePreviewCard type={node.$type} value={displayValue} />
+          )}
+          </div>
+
+          {/* Multi-mode value columns — per-theme-option resolved values */}
+          {multiModeValues && multiModeValues.length > 0 && (
+            <div className="flex items-center shrink-0">
+              {multiModeValues.map((mv) => (
+                <MultiModeCell
+                  key={mv.optionName}
+                  tokenPath={node.path}
+                  tokenType={node.$type}
+                  value={mv.resolved}
+                  targetSet={mv.targetSet}
+                  optionName={mv.optionName}
+                  onSave={onMultiModeInlineSave}
+                  isTabPending={
+                    pendingTabEdit?.path === node.path &&
+                    pendingTabEdit?.columnId === mv.optionName
+                  }
+                  onTabActivated={clearPendingTabEdit}
+                  onTab={(dir) => onTabToNext(node.path, mv.optionName, dir)}
+                />
+              ))}
+            </div>
           )}
         </div>
 
