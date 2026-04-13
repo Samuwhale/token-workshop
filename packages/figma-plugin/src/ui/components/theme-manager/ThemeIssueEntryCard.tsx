@@ -23,60 +23,40 @@ export function ThemeIssueEntryCard({
         : "bg-[var(--color-figma-warning)]";
   const issueCountLabel = `${issue.count} ${issue.count === 1 ? "issue" : "issues"}`;
 
+  const canViewTokens =
+    onViewTokens &&
+    (issue.kind === "missing-override" || issue.kind === "coverage-gap");
+
   return (
-    <div className="flex items-start gap-2.5 py-2.5">
+    <div
+      className={`flex items-center gap-2 py-2 ${canViewTokens ? "cursor-pointer hover:bg-[var(--color-figma-bg-hover)]" : ""}`}
+      onClick={canViewTokens ? () => onViewTokens(issue) : undefined}
+      title={canViewTokens ? "View affected tokens" : undefined}
+    >
       <span
         aria-hidden="true"
-        className={`mt-1 h-2 w-2 shrink-0 rounded-full ${accentClass}`}
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${accentClass}`}
       />
       <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
-                {issue.title}
-              </span>
-              <span
-                className={
-                  issue.kind === "missing-override"
-                    ? "text-[10px] text-[var(--color-figma-accent)]"
-                    : issueSeverity === "error"
-                      ? "text-[10px] text-[var(--color-figma-error)]"
-                      : "text-[10px] text-[var(--color-figma-warning)]"
-                }
-              >
-                {issueCountLabel}
-              </span>
-            </div>
-            <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              <span className="text-[var(--color-figma-text)]">
-                {issue.dimensionName} / {issue.optionName}
-              </span>
-              <span className="mx-1 text-[var(--color-figma-text-tertiary)]">·</span>
-              <span>{issue.summary}</span>
-            </div>
-          </div>
-          <span className="flex shrink-0 items-center gap-2">
-            {onViewTokens && (issue.kind === "missing-override" || issue.kind === "coverage-gap") && (
-              <button
-                type="button"
-                onClick={() => onViewTokens(issue)}
-                className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-              >
-                View tokens
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onAction}
-              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-              title={issue.recommendedNextAction}
-            >
-              {actionLabel ?? issue.actionLabel}
-            </button>
-          </span>
-        </div>
+        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+          {issue.dimensionName} / {issue.optionName}
+        </span>
+        <span className="mx-1 text-[10px] text-[var(--color-figma-text-tertiary)]">·</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          {issue.summary}
+        </span>
       </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAction();
+        }}
+        className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+        title={issue.recommendedNextAction}
+      >
+        {actionLabel ?? issue.actionLabel}
+      </button>
     </div>
   );
 }

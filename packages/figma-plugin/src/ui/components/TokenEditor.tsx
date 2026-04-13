@@ -840,7 +840,7 @@ export function TokenEditor({
             <polyline points="12 6 12 12 16 14" />
           </svg>
           <span className="flex-1 text-amber-800 dark:text-amber-200 truncate">
-            Unsaved draft from {formatDraftAge(pendingDraft.savedAt)}
+            Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
           </span>
           <button
             type="button"
@@ -960,10 +960,7 @@ export function TokenEditor({
               )
             ) : (
               <>
-                {isCreateMode ? "Create token" : "Save changes"}{" "}
-                <span className="ml-1 opacity-60 text-[10px]">
-                  {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)}
-                </span>
+                {isCreateMode ? "Create" : "Save"}
               </>
             )}
           </button>
@@ -1011,48 +1008,40 @@ export function TokenEditor({
         )}
 
         {activeProducingGenerator && !isCreateMode && (
-          <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[var(--color-figma-text)]">
-                  This token is managed by{" "}
-                  <span className="font-medium">{activeProducingGenerator.name}</span>.
-                  Manual value changes here will be overwritten on the next recipe run.
-                </p>
-                <p className="mt-1">
-                  Edit the recipe to change the managed output, or detach this token first to make it independently editable.
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                {(onOpenGeneratorEditor || onNavigateToGenerator) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onOpenGeneratorEditor) {
-                        openGeneratorEditor({
-                          mode: "edit",
-                          id: activeProducingGenerator.id,
-                        });
-                        return;
-                      }
-                      onNavigateToGenerator?.(activeProducingGenerator.id);
-                    }}
-                    className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    Edit generator
-                  </button>
-                )}
+          <div className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[10px]">
+            <span className="min-w-0 flex-1 truncate text-[var(--color-figma-text)]">
+              Managed by <span className="font-medium">{activeProducingGenerator.name}</span> — edits overwritten on re-run
+            </span>
+            <div className="flex shrink-0 items-center gap-1">
+              {(onOpenGeneratorEditor || onNavigateToGenerator) && (
                 <button
                   type="button"
                   onClick={() => {
-                    void handleDetachGeneratorOwnership();
+                    if (onOpenGeneratorEditor) {
+                      openGeneratorEditor({
+                        mode: "edit",
+                        id: activeProducingGenerator.id,
+                      });
+                      return;
+                    }
+                    onNavigateToGenerator?.(activeProducingGenerator.id);
                   }}
-                  disabled={detachingGeneratorOwnership}
-                  className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                  className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
                 >
-                  {detachingGeneratorOwnership ? "Detaching…" : "Detach token"}
+                  Edit
                 </button>
-              </div>
+              )}
+              <span className="text-[var(--color-figma-border)]">·</span>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleDetachGeneratorOwnership();
+                }}
+                disabled={detachingGeneratorOwnership}
+                className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+              >
+                {detachingGeneratorOwnership ? "Detaching…" : "Detach"}
+              </button>
             </div>
           </div>
         )}
@@ -1337,7 +1326,7 @@ export function TokenEditor({
         <Collapsible
           open={detailsOpen}
           onToggle={toggleDetails}
-          label={<span>Details</span>}
+          label={<span>Metadata</span>}
         >
           <div className="mt-2 flex flex-col gap-3">
             <div className="flex flex-col gap-1">

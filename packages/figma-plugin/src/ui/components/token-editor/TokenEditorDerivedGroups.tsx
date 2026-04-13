@@ -1,6 +1,10 @@
 import type { TokenGenerator } from "../../hooks/useGenerators";
 import type { TokensLibraryGeneratorEditorTarget } from "../../shared/navigationTypes";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
+import {
+  getQuickGeneratorTypeForToken,
+  getQuickGeneratorActionLabel,
+} from "../token-tree/tokenTreeNodeShared";
 
 export interface TokenEditorDerivedGroupsProps {
   tokenPath: string;
@@ -19,6 +23,14 @@ export function TokenEditorDerivedGroups({
   existingGeneratorsForToken,
   openGeneratorEditor,
 }: TokenEditorDerivedGroupsProps) {
+  const quickType = getQuickGeneratorTypeForToken(
+    tokenPath,
+    tokenName ?? tokenPath.split(".").pop() ?? "",
+    tokenType,
+    value,
+  );
+  const quickLabel = quickType ? getQuickGeneratorActionLabel(quickType) : null;
+
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
       <button
@@ -29,6 +41,9 @@ export function TokenEditorDerivedGroups({
             sourceTokenName: tokenName,
             sourceTokenType: tokenType,
             sourceTokenValue: value,
+            ...(quickType
+              ? { initialDraft: { selectedType: quickType } }
+              : {}),
           });
         }}
         className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -52,7 +67,7 @@ export function TokenEditorDerivedGroups({
           </svg>
           {existingGeneratorsForToken.length > 0
             ? `Derived groups (${existingGeneratorsForToken.length})`
-            : "Derived groups"}
+            : (quickLabel ?? "Derived groups")}
         </span>
         {existingGeneratorsForToken.length === 0 ? (
           <span className="text-[10px] text-[var(--color-figma-accent)]">

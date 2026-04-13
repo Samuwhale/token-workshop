@@ -1,111 +1,184 @@
 export default {
-  projectRoot: '.',
-  files: {
-    backlog: './backlog.md',
-    candidateQueue: './backlog/inbox.jsonl',
-    candidateRejectLog: './.backlog-runner/candidate-rejections.jsonl',
-    taskSpecsDir: './backlog/tasks',
-    stop: './backlog-stop',
-    runtimeReport: './.backlog-runner/runtime-report.md',
-    patterns: './scripts/backlog/patterns.md',
-    progress: './scripts/backlog/progress.txt',
-    stateDb: './.backlog-runner/state.sqlite',
-    models: './scripts/backlog/models.json',
-    runnerLogDir: './.backlog-runner/logs',
-    runtimeDir: './.backlog-runner',
-  },
-  prompts: {
-    agent: './scripts/backlog/agent.md',
-    planner: './scripts/backlog/planner.md',
-  },
-  validationCommand: 'bash scripts/backlog/validate.sh',
-  validationProfiles: {
-    repo: 'bash scripts/backlog/validate.sh',
-    core: 'pnpm --filter @tokenmanager/core build',
-    server: 'pnpm --filter @tokenmanager/server build',
-    plugin: 'pnpm preview:build',
-    backlog: 'pnpm --filter backlog-runner exec vitest run',
-  },
-  heuristics: {
-    backlogRuntimePaths: [
-      'backlog/',
-      '.backlog-runner/',
-      'scripts/backlog/',
-      'packages/backlog-runner/',
-    ],
-    uiPathPrefixes: [
-      'packages/figma-plugin/src/ui',
-    ],
-    validationProfileRules: [
-      { profile: 'core', pathPrefixes: ['packages/core'] },
-      { profile: 'server', pathPrefixes: ['packages/server'] },
-      { profile: 'plugin', pathPrefixes: ['packages/figma-plugin'] },
+  "preset": "balanced",
+  "validation": {
+    "default": "bash scripts/backlog/validate.sh",
+    "profiles": {
+      "core": "pnpm --filter @tokenmanager/core build",
+      "server": "pnpm --filter @tokenmanager/server build",
+      "plugin": "pnpm preview:build",
+      "backlog": "pnpm --filter backlog-runner build"
+    },
+    "routing": [
       {
-        profile: 'backlog',
-        pathPrefixes: [
-          'packages/backlog-runner',
-          'scripts/backlog',
-          'backlog.config.mjs',
-          'README.md',
-        ],
+        "profile": "core",
+        "pathPrefixes": [
+          "packages/core"
+        ]
       },
+      {
+        "profile": "server",
+        "pathPrefixes": [
+          "packages/server"
+        ]
+      },
+      {
+        "profile": "plugin",
+        "pathPrefixes": [
+          "packages/figma-plugin"
+        ]
+      },
+      {
+        "profile": "backlog",
+        "pathPrefixes": [
+          "packages/backlog-runner",
+          "scripts/backlog",
+          "backlog.config.mjs",
+          "README.md"
+        ]
+      }
+    ]
+  },
+  "classification": {
+    "backlogRuntimePaths": [
+      "packages/backlog-runner/"
     ],
+    "uiPathPrefixes": [
+      "packages/figma-plugin/src/ui",
+      "packages/figma-plugin/standalone"
+    ]
   },
-  workspaceBootstrap: {
-    installCommand: 'pnpm install --frozen-lockfile',
-    repairCommand: 'pnpm backlog:doctor --repair',
+  "workspaceBootstrap": {
+    "installCommand": "pnpm install --frozen-lockfile",
+    "repairCommand": "pnpm backlog:doctor --repair"
   },
-  runners: {
-    taskUi: {
-      tool: 'claude',
-      model: 'claude-opus-4-6',
-    },
-    taskCode: {
-      tool: 'codex',
-      model: 'gpt-5.4',
-    },
-    planner: {
-      tool: 'codex',
-      model: 'gpt-5.4',
-    },
+  "workspace": {
+    "workers": 2,
+    "useWorktrees": true
   },
-  defaults: {
-    workers: 2,
-    passes: true,
-    worktrees: true,
-  },
-  passes: {
-    'product-pass': {
-      kind: 'discovery',
-      promptFile: './scripts/backlog/passes/product-pass.md',
-      runner: {
-        tool: 'codex',
-        model: 'gpt-5.4',
+  "discovery": {
+    "enabled": true,
+    "promptDir": "./scripts/backlog/passes",
+    "passes": {
+      "workspace-config": {
+        "description": "Audit repo-level workspace, build, lint, and TypeScript configuration for clarity and maintainability.",
+        "runner": {
+          "tool": "codex",
+          "model": "gpt-5.4"
+        },
+        "heuristics": {
+          "includePaths": [
+            "package.json",
+            "pnpm-workspace.yaml",
+            "turbo.json",
+            "tsconfig.json",
+            "tsconfig.*",
+            "eslint.config.*",
+            "packages/*/package.json",
+            "scripts/**"
+          ],
+          "excludePaths": [
+            "node_modules/**",
+            ".git/**",
+            ".turbo/**",
+            ".backlog-runner/**",
+            "backlog/**"
+          ],
+          "capabilities": [
+            "read",
+            "search",
+            "repo-config",
+            "task-proposal"
+          ]
+        }
       },
-    },
-    'interface-pass': {
-      kind: 'discovery',
-      promptFile: './scripts/backlog/passes/interface-pass.md',
-      runner: {
-        tool: 'claude',
-        model: 'claude-opus-4-6',
+      "plugin-ui-surface": {
+        "description": "Inspect the Figma plugin UI code paths for maintainability, constrained-window UX, and clean feature ownership.",
+        "runner": {
+          "tool": "codex",
+          "model": "gpt-5.4"
+        },
+        "heuristics": {
+          "includePaths": [
+            "packages/**",
+            "demo/**"
+          ],
+          "excludePaths": [
+            "packages/backlog-runner/**",
+            "node_modules/**",
+            ".git/**",
+            ".turbo/**",
+            ".backlog-runner/**",
+            "backlog/**"
+          ],
+          "capabilities": [
+            "read",
+            "search",
+            "ui-review",
+            "task-proposal"
+          ]
+        }
       },
-    },
-    'ux-pass': {
-      kind: 'discovery',
-      promptFile: './scripts/backlog/passes/ux-pass.md',
-      runner: {
-        tool: 'claude',
-        model: 'claude-opus-4-6',
+      "preview-dev-flow": {
+        "description": "Review the local preview and standalone harness flow so agents and operators can run the repo reliably.",
+        "runner": {
+          "tool": "codex",
+          "model": "gpt-5.4"
+        },
+        "heuristics": {
+          "includePaths": [
+            "README.md",
+            "package.json",
+            "scripts/**",
+            "demo/**",
+            "packages/**",
+            ".playwright-mcp/**"
+          ],
+          "excludePaths": [
+            "packages/backlog-runner/**",
+            "node_modules/**",
+            ".git/**",
+            ".turbo/**",
+            ".backlog-runner/**",
+            "backlog/**"
+          ],
+          "capabilities": [
+            "read",
+            "search",
+            "dev-workflow",
+            "task-proposal"
+          ]
+        }
       },
-    },
-    'code-pass': {
-      kind: 'discovery',
-      promptFile: './scripts/backlog/passes/code-pass.md',
-      runner: {
-        tool: 'codex',
-        model: 'gpt-5.4',
-      },
-    },
-  },
+      "docs-and-prompts": {
+        "description": "Check operator-facing docs and prompt/config files for drift, ambiguity, and repo-local ownership.",
+        "runner": {
+          "tool": "claude",
+          "model": "opus"
+        },
+        "heuristics": {
+          "includePaths": [
+            "AGENTS.md",
+            "README.md",
+            "docs/**",
+            ".claude/**",
+            "tasks/**"
+          ],
+          "excludePaths": [
+            "node_modules/**",
+            ".git/**",
+            ".turbo/**",
+            ".backlog-runner/state.sqlite",
+            "backlog/**"
+          ],
+          "capabilities": [
+            "read",
+            "search",
+            "docs-review",
+            "prompt-review",
+            "task-proposal"
+          ]
+        }
+      }
+    }
+  }
 };

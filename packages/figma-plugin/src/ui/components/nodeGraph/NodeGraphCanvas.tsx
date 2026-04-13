@@ -71,20 +71,11 @@ function DetailPopover({
         overflow: 'auto',
       }}
     >
-      {/* Source */}
-      <div className="mb-1.5">
-        <span className="text-[var(--color-figma-text-tertiary)]">Source: </span>
-        <span className="font-mono text-[var(--color-figma-text-secondary)] break-all">
-          {generator.sourceToken || 'standalone'}
-        </span>
-      </div>
-
-      {/* Target */}
-      <div className="mb-1.5">
-        <span className="text-[var(--color-figma-text-tertiary)]">Target: </span>
-        <span className="font-mono text-[var(--color-figma-text-secondary)] break-all">
-          {generator.targetGroup}.* {generator.targetSet ? `\u2192 ${generator.targetSet}` : ''}
-        </span>
+      {/* Source → Target */}
+      <div className="mb-1.5 font-mono text-[var(--color-figma-text-secondary)] break-all">
+        {generator.sourceToken || 'standalone'}
+        <span className="mx-1 text-[var(--color-figma-text-tertiary)]">&rarr;</span>
+        {generator.targetGroup}.*{generator.targetSet ? ` (${generator.targetSet})` : ''}
       </div>
 
       {/* Last run */}

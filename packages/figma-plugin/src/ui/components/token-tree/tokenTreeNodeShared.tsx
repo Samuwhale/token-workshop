@@ -184,6 +184,7 @@ export function GeneratorSummaryRow({
   onRun,
   onEdit,
   onDetach,
+  onNavigateToSourceToken,
 }: {
   depth: number;
   condensedView: boolean;
@@ -194,6 +195,7 @@ export function GeneratorSummaryRow({
   onRun?: () => Promise<void> | void;
   onEdit?: () => void;
   onDetach?: () => Promise<void> | void;
+  onNavigateToSourceToken?: (path: string) => void;
 }) {
   const sourceLabel = generator.sourceToken || "standalone";
   const typeLabel = getGeneratorTypeLabel(generator.type);
@@ -223,9 +225,22 @@ export function GeneratorSummaryRow({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span>
               Source{" "}
-              <span className="font-mono text-[var(--color-figma-text)]">
-                {sourceLabel}
-              </span>
+              {generator.sourceToken && onNavigateToSourceToken ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onNavigateToSourceToken(generator.sourceToken!)
+                  }
+                  className="font-mono text-[var(--color-figma-accent)] hover:underline"
+                  title={`Navigate to ${generator.sourceToken}`}
+                >
+                  {sourceLabel}
+                </button>
+              ) : (
+                <span className="font-mono text-[var(--color-figma-text)]">
+                  {sourceLabel}
+                </span>
+              )}
             </span>
             <span>
               Type{" "}
@@ -369,6 +384,8 @@ export type TokenRowBrowseMeta =
       expandedLabel: string;
       title: string;
       toneClass: string;
+      interactive?: boolean;
+      onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
     };
 
 function getCompactPathLabel(path: string): string {
@@ -438,6 +455,19 @@ export function TokenRowBrowseMetaBadge({
         disabled={!meta.interactive}
         title={meta.title}
         className={`${className} ${meta.interactive ? "transition-colors hover:border-current/40 hover:bg-[var(--color-figma-bg-hover)]" : "cursor-default"}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  if (meta.kind === "generator" && meta.interactive && meta.onClick) {
+    return (
+      <button
+        type="button"
+        onClick={meta.onClick}
+        title={meta.title}
+        className={`${className} transition-colors hover:border-current/40 hover:bg-[var(--color-figma-bg-hover)]`}
       >
         {content}
       </button>

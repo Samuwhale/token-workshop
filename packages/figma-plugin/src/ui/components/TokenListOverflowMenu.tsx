@@ -225,10 +225,10 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             <MenuItem
               label={
                 props.sortOrder === "default"
-                  ? "Sort: Default"
+                  ? "Default order"
                   : props.sortOrder === "alpha-asc"
-                    ? "Sort: A to Z"
-                    : "Sort: By type"
+                    ? "A to Z"
+                    : "By type"
               }
               onClick={() =>
                 runAndClose(() => {
@@ -255,7 +255,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               </>
             )}
             <MenuItem
-              label={`Density: ${props.density === "compact" ? "Compact" : "Comfortable"}`}
+              label={props.density === "compact" ? "Compact rows" : "Comfortable rows"}
               onClick={() =>
                 runAndClose(() =>
                   props.onDensityChange(
@@ -298,8 +298,8 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               <MenuItem
                 label={
                   props.searchResultPresentation === "grouped"
-                    ? "Search results: Grouped"
-                    : "Search results: Flat"
+                    ? "Group results"
+                    : "Flatten results"
                 }
                 checked={props.searchResultPresentation === "flat"}
                 onClick={() =>
@@ -339,7 +339,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               />
             )}
             <MenuItem
-              label="Selection only"
+              label="Selected layers only"
               checked={props.inspectMode}
               onClick={() => runAndClose(props.onToggleInspectMode)}
             />
@@ -353,10 +353,10 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             <MenuItem
               label={
                 props.refFilter === "all"
-                  ? "Values: All"
+                  ? "All values"
                   : props.refFilter === "aliases"
-                    ? "Values: References"
-                    : "Values: Direct"
+                    ? "Aliases only"
+                    : "Direct values only"
               }
               onClick={() =>
                 runAndClose(() => {

@@ -185,10 +185,7 @@ export function ThemePreviewScreen({
         <div className="flex items-start justify-between gap-3 px-3 py-2.5">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              Theme preview
-            </p>
-            <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Resolved token values for the selected theme combination.
+              Preview
             </p>
           </div>
           <button
@@ -225,7 +222,7 @@ export function ThemePreviewScreen({
             }`}
             title="Group tokens by prefix"
           >
-            Group
+            Group by prefix
           </button>
         </div>
       </div>
@@ -251,24 +248,9 @@ export function ThemePreviewScreen({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {previewTokens.length === 0 ? (
           <div className="px-3 py-6 text-center text-[10px] italic text-[var(--color-figma-text-tertiary)]">
-            {Object.keys(setTokenValues).length === 0
-              ? "No token data available"
-              : dimensions.every((dimension) => {
-                    const option = dimension.options.find(
-                      (item: ThemeOption) =>
-                        item.name === selectedOptions[dimension.id],
-                    );
-                    return (
-                      !option ||
-                      Object.values(option.sets).every(
-                        (status) => status === "disabled",
-                      )
-                    );
-                  })
-                ? "Connect shared or variant-specific token sources to see resolved tokens"
-                : previewSearch
-                ? "No matching tokens"
-                : "Connect shared or variant-specific token sources to see the resolved theme"}
+            {previewSearch
+              ? `No matches for "${previewSearch}"`
+              : "No token sources connected"}
           </div>
         ) : groups ? (
           <table className="w-full text-[10px]">

@@ -140,16 +140,15 @@ export function TokenEditorInfoSection({
 
           {dependencySnapshot?.hasCycles && (
             <div className="rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
-              Circular aliases are part of this token's trace. Use the
-              advanced graph if you need to inspect the full loop.
+              Circular reference detected in this token's chain.
             </div>
           )}
 
           {/* Outgoing: walk the full reference chain inline */}
           {referenceTrace.length > 0 && (
             <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60">
-                Reference trace
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">
+                References this token uses &rarr;
               </span>
               {referenceTrace.slice(0, 8).map((node) => {
                 const resolvedColor =
@@ -244,10 +243,10 @@ export function TokenEditorInfoSection({
                 disabled={
                   dependentsLoading ? false : dependentTrace.length === 0
                 }
-                className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
+                className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
               >
                 {dependentsLoading ? (
-                  <span>Dependent impact…</span>
+                  <span>&larr; Loading dependents…</span>
                 ) : (
                   <>
                     <svg
@@ -260,9 +259,7 @@ export function TokenEditorInfoSection({
                     >
                       <path d="M2 1l4 3-4 3V1z" />
                     </svg>
-                    Direct{" "}
-                    {dependencySnapshot?.directDependents.length ?? 0} ·
-                    Downstream {dependentTrace.length}
+                    &larr; Tokens that use this ({dependentTrace.length})
                   </>
                 )}
               </button>

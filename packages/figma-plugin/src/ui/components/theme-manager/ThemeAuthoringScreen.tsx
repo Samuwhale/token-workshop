@@ -505,9 +505,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 Create a theme family
               </p>
               <p className="max-w-[240px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Define a family like color mode or brand, then add variants and
-                connect the shared and variant-specific token sets each variant
-                should use.
+                Add variants and connect the token sets each variant should use.
               </p>
             </div>
 
@@ -553,8 +551,8 @@ export const ThemeAuthoringScreen = forwardRef<
                       </p>
                       <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                         {focusedDimension && focusedOption
-                          ? `Editing ${focusedDimension.name} / ${focusedOption.name}. Start with shared token sets used across every variant, then add variant-specific sets only where this variant should differ.`
-                          : "Build theme families, add variants, and connect token sources without dropping into advanced role logic."}
+                          ? `Editing ${focusedDimension.name} / ${focusedOption.name}. Shared sets apply everywhere, variant sets override where this variant differs.`
+                          : "Define families, add variants, and connect token sets."}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
@@ -601,9 +599,9 @@ export const ThemeAuthoringScreen = forwardRef<
                   </div>
                   {focusedDimension && focusedOptionSummary && (
                     <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      {`${focusedDimension.options.length} variant${focusedDimension.options.length === 1 ? "" : "s"} in ${focusedDimension.name}. ${focusedOptionSummary.baseCount} shared set${focusedOptionSummary.baseCount === 1 ? "" : "s"} and ${focusedOptionSummary.overrideCount} variant-specific set${focusedOptionSummary.overrideCount === 1 ? "" : "s"} are active for ${focusedOption.name}.`}
+                      {`${focusedDimension.options.length} variant${focusedDimension.options.length === 1 ? "" : "s"} · ${focusedOptionSummary.baseCount} shared · ${focusedOptionSummary.overrideCount} variant-specific`}
                       {focusedOptionSummary.excludedCount > 0 &&
-                        ` ${focusedOptionSummary.excludedCount} other set${focusedOptionSummary.excludedCount === 1 ? " is" : "s are"} hidden until Advanced setup.`}
+                        ` · ${focusedOptionSummary.excludedCount} excluded`}
                     </div>
                   )}
                 </div>
@@ -698,10 +696,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 autoFocus
               />
               <p className="text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">
-                Each theme family has variants — e.g.{" "}
-                <span className="font-medium">Color mode:</span> light, dark
-                &nbsp;·&nbsp; <span className="font-medium">Brand:</span>{" "}
-                default, premium
+                Each family has variants, e.g. Light/Dark or Default/Premium.
               </p>
             </div>
             {createDimError && (

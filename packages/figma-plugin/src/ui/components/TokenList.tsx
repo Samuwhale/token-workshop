@@ -3050,6 +3050,9 @@ export function TokenList({
       onEditGenerator,
       onRegenerateGenerator: handleRegenerateGenerator,
       onDetachGeneratorGroup: handleDetachGeneratorGroup,
+      onNavigateToToken: onNavigateToAlias
+        ? (path: string) => onNavigateToAlias(path)
+        : undefined,
       onRovingFocus: setRovingFocusPath,
     }),
     [
@@ -3072,6 +3075,7 @@ export function TokenList({
       onEditGenerator,
       handleRegenerateGenerator,
       handleDetachGeneratorGroup,
+      onNavigateToAlias,
       setRovingFocusPath,
     ],
   );

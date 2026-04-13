@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AliasAutocomplete } from '../AliasAutocomplete';
+import { Collapsible } from '../Collapsible';
 import { ModeValueEditor } from './ModeValueEditor';
 
 // Token types that have a compact inline editor
@@ -66,6 +67,16 @@ export function ModeValuesEditor({
   const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
   // Track which rows the user has toggled to alias input mode
   const [aliasInputKeys, setAliasInputKeys] = useState<Set<string>>(new Set());
+  // Track which dimensions are collapsed (only used when 2+ dimensions)
+  const [collapsedDims, setCollapsedDims] = useState<Set<string>>(new Set());
+  const toggleDimCollapsed = useCallback((dimId: string) => {
+    setCollapsedDims(prev => {
+      const next = new Set(prev);
+      if (next.has(dimId)) next.delete(dimId);
+      else next.add(dimId);
+      return next;
+    });
+  }, []);
 
   const setCount = Object.values(modeValues).reduce(
     (acc, opts) => acc + Object.values(opts).filter(v => v !== '' && v !== undefined && v !== null).length,
@@ -123,14 +134,15 @@ export function ModeValuesEditor({
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        {dimensions.map(dim => (
-          <div key={dim.id} className="flex flex-col">
-            {dimensions.length > 1 && (
-              <div className="mb-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                {dim.name}
-              </div>
-            )}
-            <div className="divide-y divide-[var(--color-figma-border)]/50 rounded-md border border-[var(--color-figma-border)]/65 overflow-hidden">
+        {dimensions.map(dim => {
+          const dimOverrideCount = Object.values(modeValues[dim.id] ?? {}).filter(
+            v => v !== '' && v !== undefined && v !== null,
+          ).length;
+          const isCollapsible = dimensions.length > 1;
+          const isOpen = !collapsedDims.has(dim.id);
+
+          const optionsContent = (
+            <div className={`divide-y divide-[var(--color-figma-border)]/50 rounded-md border border-[var(--color-figma-border)]/65 overflow-hidden ${isCollapsible ? 'mt-1' : ''}`}>
               {dim.options.map(option => {
                 const modeVal = modeValues[dim.id]?.[option.name] ?? '';
                 const modeValStr = typeof modeVal === 'string' ? modeVal : '';
@@ -253,8 +265,32 @@ export function ModeValuesEditor({
                 );
               })}
             </div>
-          </div>
-        ))}
+          );
+
+          if (!isCollapsible) {
+            return <div key={dim.id} className="flex flex-col">{optionsContent}</div>;
+          }
+
+          return (
+            <Collapsible
+              key={dim.id}
+              open={isOpen}
+              onToggle={() => toggleDimCollapsed(dim.id)}
+              label={
+                <span className="inline-flex items-center gap-1.5">
+                  {dim.name}
+                  {dimOverrideCount > 0 && (
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      {dimOverrideCount}
+                    </span>
+                  )}
+                </span>
+              }
+            >
+              {optionsContent}
+            </Collapsible>
+          );
+        })}
       </div>
     </div>
   );

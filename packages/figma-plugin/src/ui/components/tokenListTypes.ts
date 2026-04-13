@@ -384,6 +384,8 @@ export interface TokenTreeGroupActionsContextType {
     generatorId: string,
     groupPath: string,
   ) => Promise<void>;
+  /** Navigate to a token by path (used for generator source token navigation) */
+  onNavigateToToken?: (path: string) => void;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
 }

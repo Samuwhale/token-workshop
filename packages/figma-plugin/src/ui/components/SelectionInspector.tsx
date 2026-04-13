@@ -1027,7 +1027,7 @@ export function SelectionInspector({
                     }
                   >
                     <div className="relative group/groupheader px-2 py-1 flex items-center">
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide flex-1">
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-semibold flex-1">
                         {group.label}
                       </span>
                       {boundPropsInGroup.length > 0 && (

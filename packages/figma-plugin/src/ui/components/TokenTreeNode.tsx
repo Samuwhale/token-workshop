@@ -470,6 +470,7 @@ const TokenGroupNode = memo(
       onEditGenerator,
       onRegenerateGenerator,
       onDetachGeneratorGroup,
+      onNavigateToToken,
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
 
@@ -1222,6 +1223,7 @@ const TokenGroupNode = memo(
                   }
                 : undefined
             }
+            onNavigateToSourceToken={onNavigateToToken}
           />
         )}
 
@@ -1870,10 +1872,25 @@ const TokenLeafNode = memo(
             producingGenerator.sourceToken
               ? `Source: ${producingGenerator.sourceToken}`
               : null,
+            producingGenerator.isStale
+              ? "Source changed — re-run to update"
+              : null,
           ]
             .filter(Boolean)
             .join("\n"),
-          toneClass: "text-[var(--color-figma-text-tertiary)]",
+          toneClass: producingGenerator.isStale
+            ? "text-amber-600"
+            : "text-[var(--color-figma-text-tertiary)]",
+          interactive: Boolean(onOpenGeneratorEditor),
+          onClick: onOpenGeneratorEditor
+            ? (e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                onOpenGeneratorEditor({
+                  mode: "edit",
+                  id: producingGenerator.id,
+                });
+              }
+            : undefined,
         }
       : null;
     const primaryBrowseMeta = aliasRowMeta ?? generatorRowMeta;
@@ -2783,15 +2800,20 @@ const TokenLeafNode = memo(
             ))}
           {/* Mode variant indicator — shown when columns are hidden but token varies across modes */}
           {modeVariantPaths?.has(node.path) && !multiModeValues && (
-            <span
-              className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)] cursor-default"
-              title="This token has different values across modes"
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(node.path, node.name);
+              }}
+              className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+              title="Has theme overrides — click to edit"
             >
               <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor" aria-hidden="true">
                 <path d="M3 0L5.6 3L3 6L0.4 3Z" />
               </svg>
               modes
-            </span>
+            </button>
           )}
           {tokenStatus &&
             (tokenStatus.kind === "lint" ? (

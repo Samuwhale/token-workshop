@@ -67,8 +67,8 @@ export function ThemeCoverageScreen({
     : null;
   const autoFillDescription = autoFillAction
     ? autoFillAction.mode === "single-option" && autoFillAction.optionName
-      ? `${autoFillLabel} in ${autoFillAction.optionName}. Auto-fill uses the same preview and confirmation as authoring.`
-      : `${autoFillLabel} across ${autoFillAction.optionCount} options in ${autoFillAction.dimensionName}. Auto-fill uses the same preview and confirmation as authoring.`
+      ? `${autoFillLabel} in ${autoFillAction.optionName}`
+      : `${autoFillLabel} across ${autoFillAction.optionCount} options in ${autoFillAction.dimensionName}`
     : null;
   const reviewGroups = groupThemeIssuesForReview(issueEntries);
 
@@ -79,19 +79,19 @@ export function ThemeCoverageScreen({
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
               {showAllAxes || !focusDimension
-                ? "Review issues"
-                : `Review ${focusDimension.name}`}
+                ? "Coverage"
+                : `Coverage · ${focusDimension.name}`}
             </p>
             <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
               {autoFillDescription
                 ? autoFillDescription
                 : showAllAxes || !focusDimension
-                ? "Review grouped issues, then jump straight back into the affected variant."
+                ? "Fix missing overrides in variants."
                 : primaryIssue
-                  ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} / ${primaryIssue.optionName}. ${primaryIssue.recommendedNextAction}`
+                  ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} / ${primaryIssue.optionName}`
                   : focusOptionName
-                    ? `${focusedIssueLabel} in ${focusDimension.name} / ${focusOptionName}. Review the grouped issues, then jump back into that variant.`
-                    : `${focusedIssueLabel} in ${focusDimension.name}. Review the grouped issues, then jump back into authoring to fix the variant.`}
+                    ? `${focusedIssueLabel} in ${focusDimension.name} / ${focusOptionName}`
+                    : `${focusedIssueLabel} in ${focusDimension.name}`}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">

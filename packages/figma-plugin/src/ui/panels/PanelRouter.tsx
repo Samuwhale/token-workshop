@@ -1290,11 +1290,17 @@ export function PanelRouter(): ReactNode {
               sets={sets}
               onDimensionsChange={setDimensions}
               onNavigateToToken={(path, set) => {
-                navigateTo("define", "tokens");
+                beginHandoff({
+                  reason: "View or edit this token, then return to Themes",
+                });
+                navigateTo("define", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(set, path);
               }}
               onCreateToken={(tokenPath, set) => {
-                navigateTo("define", "tokens");
+                beginHandoff({
+                  reason: "Create this token, then return to Themes",
+                });
+                navigateTo("define", "tokens", { preserveHandoff: true });
                 setEditingToken({ path: tokenPath, set, isCreate: true });
               }}
               onPushUndo={controller.pushUndo}
@@ -1307,9 +1313,17 @@ export function PanelRouter(): ReactNode {
                 addSetToState(name, 0);
                 setActiveSet(name);
               }}
-              onGoToTokens={() => navigateTo("define", "tokens")}
+              onGoToTokens={() => {
+                beginHandoff({
+                  reason: "Browse tokens, then return to Themes",
+                });
+                navigateTo("define", "tokens", { preserveHandoff: true });
+              }}
               onNavigateToTokenSet={(setName) => {
-                navigateTo("define", "tokens");
+                beginHandoff({
+                  reason: "View this token set, then return to Themes",
+                });
+                navigateTo("define", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(setName, "");
               }}
               themeManagerHandle={controller.themeManagerHandleRef}
@@ -1317,7 +1331,12 @@ export function PanelRouter(): ReactNode {
               onGenerateForDimension={({ dimensionName: _name, targetSet }) => {
                 if (targetSet) setActiveSet(targetSet);
                 controller.setPendingOpenPicker(true);
-                navigateTo("define", "generators");
+                beginHandoff({
+                  reason: "Create a generator, then return to Themes",
+                });
+                navigateTo("define", "generators", {
+                  preserveHandoff: true,
+                });
               }}
               resolverState={{
                 serverUrl,
