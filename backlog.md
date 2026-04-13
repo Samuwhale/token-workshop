@@ -82,7 +82,11 @@
 - [x] [HIGH] Reposition Import, Sets, Notifications, Shortcuts, and Settings within a clearer secondary-navigation hierarchy
 - [x] [HIGH] Redesign token tree rows for fast library scanning
 - [x] [HIGH] Promote the token filter builder into the primary search discovery flow
-- [ ] [HIGH] Preserve hierarchy context in filtered token results
+- [x] [HIGH] Preserve hierarchy context in filtered token results
+- [ ] [HIGH] Unify generator entrypoints behind an intent-first composer
+- [ ] [HIGH] Move semantic alias planning into a dedicated pre-review step
+- [ ] [HIGH] Expose generator dependency and status metadata for dashboard surfaces
+- [ ] [HIGH] Surface overwrite and manual-edit conflicts during live preview
 - [x] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks
 - [x] [HIGH] Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction
 - [ ] [HIGH] Improve token generation flows so designers can create and manage generators through intent-based discovery, clearer configuration, and visible output relationships
@@ -182,6 +186,7 @@
 - [ ] Centralize git-backed token diff extraction so commit, pull, push, working-tree, and restore paths share one parser
 - [ ] Split backlog-runner task execution into shared lifecycle phases so remediation and reconciliation stop reimplementing scheduler semantics
 - [ ] Add explicit branch navigation shortcuts for deep token hierarchies
+- [ ] Add starter presets and inline token-ref guidance for all generator types
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

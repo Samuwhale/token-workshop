@@ -1,0 +1,22 @@
+id: expose-generator-dependency-and-status-metadata--6d093500
+title: Expose generator dependency and status metadata for dashboard surfaces
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/services/generator-service.ts
+  - packages/figma-plugin/src/ui/hooks/useGenerators.ts
+  - packages/figma-plugin/src/ui/components/GraphPanel.tsx
+  - packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The server already computes dependency order and blockedBy errors, but the client only surfaces stale/error badges and simple lookup maps. Research in scripts/backlog/research/token-generator-flow-audit.md recommends turning the generator list into an operational dashboard."
+state: ready
+acceptance_criteria:
+  - Generator API payloads expose upstream/downstream relationships, blocked-by metadata, stale reason, and last-run summary without forcing the client to infer them from raw token paths alone.
+  - GraphPanel list and graph views surface dependency chips or counts, blocked-state context, and quick rerun or retry actions at the dashboard level.
+  - GeneratorPipelineCard identifies upstream blockers and affected dependents inline when a generator is stale, failed, or blocked.
+source: task-followup
+created_at: 2026-04-12T23:57:39.920Z
+updated_at: 2026-04-12T23:57:39.920Z

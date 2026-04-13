@@ -1,0 +1,31 @@
+id: add-starter-presets-and-inline-token-ref-guidanc-1e228912
+title: Add starter presets and inline token-ref guidance for all generator types
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/generator-steps/StepWhat.tsx
+  - packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/SpacingScaleGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/BorderRadiusGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/OpacityScaleGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/ZIndexGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/ShadowScaleGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/CustomScaleGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/AccessiblePairGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/DarkModeInversionGenerator.tsx
+  - packages/figma-plugin/src/ui/components/generators/ContrastCheckGenerator.tsx
+  - packages/figma-plugin/src/ui/components/graph-templates.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The current editors already have local presets and TokenRefInput controls, but they are uneven and often hidden behind customize disclosures. Research in scripts/backlog/research/token-generator-flow-audit.md recommends standardizing outcome presets across all 11 types."
+state: ready
+acceptance_criteria:
+  - Every generator type has at least one named starter preset with when-to-use copy and a one-click restore path from the shared composer.
+  - Token-ref-capable fields expose a visible link-token affordance before advanced customization is expanded, and linked fields show their bound token plus unlink control.
+  - Advanced parameters remain available, but the default create flow starts from presets and outcome language instead of raw generator mechanics.
+source: task-followup
+created_at: 2026-04-12T23:57:39.842Z
+updated_at: 2026-04-12T23:57:39.842Z

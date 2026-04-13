@@ -8,7 +8,6 @@
 - **Learnings for future iterations:**
   - If a route belongs conceptually to a different user job than its implementation bucket, keep the internal route as-is and add a separate workspace-mapping layer instead of forcing the router to mirror the shell.
   - Header status is easier to scan when it is summarized per active workspace; avoid per-tab dots and counters unless they directly affect navigation choice.
----
 ## 2026-04-08 - Onboarding and empty-state entry points are fragmented and compete with each other
 - Replaced the separate welcome prompt, empty-state action list, quick-start modal, and guided-setup launcher with one canonical `Start here` flow rooted in `WelcomePrompt`, centered on the question `How do you want to begin?` and three branches: import, templates, or manual.
 - Moved guided setup and quick-start templates under the template branch, rewrote the copy around system foundations / semantics / themes, and rewired App, empty states, command palette, settings, and token-list template entry points to deep-link into the same unified flow instead of opening parallel top-level modals.
@@ -1761,4 +1760,12 @@
 - **Learnings for future iterations:**
   - When filtered trees should override stale expansion state, snapshot the user-owned expansion set at filter entry, auto-expand only the filtered ancestor paths, and restore the snapshot when the filter session ends instead of permanently mutating the browse state.
   - If you offer a flat search-results mode on top of a hierarchical tree, keep it as an explicit secondary presentation and add inline ancestry labels on each result row so flattening does not remove location context.
+---
+## 2026-04-13 - Improve token generation flows so designers can create and manage generators through intent-based discovery, clearer configuration, and visible output relationships
+- Added a research audit at `scripts/backlog/research/token-generator-flow-audit.md` documenting the current generator entry points, the still-fragmented StepWhat/StepWhere/StepReview flow, the late semantic-alias planning model, the shallow generator dashboard, and the preview-to-save conflict gap. The audit also records a per-generator friction matrix for all 11 generator types plus a recommended implementation order.
+- Queued five concrete follow-up backlog items in `backlog/inbox.jsonl` covering intent-first entrypoint unification, starter presets plus token-ref discoverability, semantic planning as a first-class step, dependency-aware dashboard metadata, and live preview conflict surfacing.
+- Files changed: `scripts/backlog/research/token-generator-flow-audit.md` ~L1; `backlog/inbox.jsonl` ~L1; `scripts/backlog/progress.txt` ~L1773
+- **Learnings for future iterations:**
+  - The repo already contains most of the raw ingredients for a goal-first generator flow: outcome-rich templates, live preview diffing, semantic pattern metadata, and server-side dependency ordering. The main problem is that those capabilities are split across optional side flows instead of composing one default path.
+  - Declared touch paths for generator research can go stale quickly in this feature area. In the current codebase, generator steps live under `packages/figma-plugin/src/ui/components/generator-steps/`, and draft ownership lives in `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts`.
 ---

@@ -12,11 +12,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: `filterTokenNodes(...)` already preserves ancestor nodes, but presentation still depends on manual expansion state and viewport breadcrumbs. Use the existing tree model instead of replacing it with a separate search list."
-state: ready
+  - "Completed: Auto-expanded filtered ancestor chains, added explicit grouped-vs-flat search result presentation, and surfaced inline ancestry context for flat rows."
+state: done
 acceptance_criteria:
   - Active search automatically reveals matching ancestor chains so results are not hidden behind stale expansion state.
   - Filtered results render with visible ancestor context, either through grouped result sections, per-row ancestry chips, or both.
   - The filtered experience keeps grouped hierarchy as the default presentation, with any flat-results mode treated as an explicit secondary toggle.
 source: task-followup
 created_at: 2026-04-12T23:28:46.735Z
-updated_at: 2026-04-12T23:28:46.735Z
+updated_at: 2026-04-12T23:52:04.061Z

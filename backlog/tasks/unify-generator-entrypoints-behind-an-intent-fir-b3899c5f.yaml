@@ -1,0 +1,24 @@
+id: unify-generator-entrypoints-behind-an-intent-fir-b3899c5f
+title: Unify generator entrypoints behind an intent-first composer
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx
+  - packages/figma-plugin/src/ui/components/QuickGeneratorPopover.tsx
+  - packages/figma-plugin/src/ui/components/GraphPanel.tsx
+  - packages/figma-plugin/src/ui/components/QuickStartWizard.tsx
+  - packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts
+  - packages/figma-plugin/src/ui/components/graph-templates.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: Research in scripts/backlog/research/token-generator-flow-audit.md found that discovery is split across GraphPanel templates, QuickGeneratorPopover, and QuickStartWizard overlays. The repo already has useful outcome metadata in graph-templates.ts; the main change is to make that model the default entry surface."
+state: ready
+acceptance_criteria:
+  - New generator flows from GraphPanel, token quick actions, and guided setup all begin from the same goal-first intent picker instead of pre-committing a generator type.
+  - Intent cards can reach all 11 generator types and show source requirements, when-to-use copy, and the starter preset that will seed the draft.
+  - Selecting an intent seeds the shared generator composer with the mapped type, preset config, naming defaults, and semantic starter data without routing through a type dropdown first.
+source: task-followup
+created_at: 2026-04-12T23:57:39.808Z
+updated_at: 2026-04-12T23:57:39.808Z
