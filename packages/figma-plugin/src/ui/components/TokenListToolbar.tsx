@@ -131,29 +131,10 @@ export function TokenListToolbar({
     action();
   }, []);
 
-  // --- Filter popover state (internal) ---
-  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
-  const filterPopoverRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!filterPopoverOpen) return;
-    const onMouseDown = (event: MouseEvent) => {
-      if (filterPopoverRef.current?.contains(event.target as Node)) return;
-      setFilterPopoverOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setFilterPopoverOpen(false);
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [filterPopoverOpen]);
 
   return (
-    <div className="flex items-center gap-1 px-1.5 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+      <div className="flex items-center gap-1 px-1.5 py-1">
       {(navHistoryLength ?? 0) > 0 && (
         <button
           onClick={onNavigateBack}
@@ -240,38 +221,9 @@ export function TokenListToolbar({
             }}
             placeholder="Search names, paths, or descriptions"
             title={searchTooltip}
-            className={`w-full rounded border bg-[var(--color-figma-bg)] py-1 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery || toolbarStateChips.length > 0 ? "pr-12" : "pr-2"} ${structuredFilterChips.length > 0 ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
+            className={`w-full rounded border bg-[var(--color-figma-bg)] py-1 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery ? "pr-8" : "pr-2"} ${structuredFilterChips.length > 0 ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
           />
-          {/* Active filter/view badge inside search */}
-          {toolbarStateChips.length > 0 && (
-            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setFilterPopoverOpen((v) => !v)}
-                className="rounded-full bg-[var(--color-figma-accent)]/15 px-1.5 py-0.5 text-[9px] font-medium leading-none text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/25 transition-colors"
-                title={`${toolbarStateChips.length} active filter${toolbarStateChips.length !== 1 ? "s" : ""} — click to manage`}
-              >
-                {toolbarStateChips.length}
-              </button>
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setHintIndex(0);
-                    searchRef.current?.focus();
-                  }}
-                  className="min-h-[24px] min-w-[24px] flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-                  title="Clear search"
-                  aria-label="Clear search"
-                >
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          )}
-          {!toolbarStateChips.length && searchQuery && (
+          {searchQuery && (
             <button
               onClick={() => {
                 setSearchQuery("");
@@ -286,53 +238,6 @@ export function TokenListToolbar({
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
-          )}
-          {/* Filter popover — lists active filters with dismiss */}
-          {filterPopoverOpen && toolbarStateChips.length > 0 && (
-            <div ref={filterPopoverRef} role="dialog" aria-label="Active filters" className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl">
-              {toolbarStateChips.map((chip) => (
-                <div
-                  key={chip.key}
-                  className="flex items-center gap-2 px-2.5 py-1 text-[10px]"
-                >
-                  <span className={`flex-1 truncate ${chip.tone === "filter" ? "text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)]"}`}>
-                    {chip.label}
-                  </span>
-                  {chip.removeToken && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        removeQueryToken(chip.removeToken!);
-                      }}
-                      className="shrink-0 rounded p-0.5 min-h-[24px] min-w-[24px] flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                      title={`Remove ${chip.label}`}
-                    >
-                      <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M18 6L6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              ))}
-              <div className="mt-1 border-t border-[var(--color-figma-border)] px-2.5 py-1 flex items-center gap-2">
-                {(activeFilterSummary.length > 0 || hasStructuredFilters) && (
-                  <button
-                    onClick={() => { clearFilters(); setFilterPopoverOpen(false); }}
-                    className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Clear filters
-                  </button>
-                )}
-                {activeViewSummary.length > 0 && (
-                  <button
-                    onClick={() => { clearViewModes(); setFilterPopoverOpen(false); }}
-                    className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Reset view
-                  </button>
-                )}
-              </div>
-            </div>
           )}
           {showQualifierHints &&
             activeQueryToken.token.includes(":") &&
@@ -422,6 +327,52 @@ export function TokenListToolbar({
       </div>
 
       {overflowMenuProps && <TokenListOverflowMenu {...overflowMenuProps} />}
+      </div>
+
+      {toolbarStateChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 px-2 pb-1.5">
+          {toolbarStateChips.map((chip) => (
+            <span
+              key={chip.key}
+              className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] ${
+                chip.tone === "filter"
+                  ? "border-[var(--color-figma-accent)]/25 text-[var(--color-figma-accent)]"
+                  : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"
+              }`}
+            >
+              {chip.label}
+              {chip.removeToken && (
+                <button
+                  type="button"
+                  onClick={() => removeQueryToken(chip.removeToken!)}
+                  className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                  title={`Remove ${chip.label}`}
+                >
+                  <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </span>
+          ))}
+          {(activeFilterSummary.length > 0 || hasStructuredFilters) && (
+            <button
+              onClick={clearFilters}
+              className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+            >
+              Clear filters
+            </button>
+          )}
+          {activeViewSummary.length > 0 && (
+            <button
+              onClick={clearViewModes}
+              className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+            >
+              Reset view
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

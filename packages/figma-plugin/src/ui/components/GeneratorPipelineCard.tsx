@@ -461,10 +461,10 @@ export function GeneratorPipelineCard({
     <>
       <div
         ref={isFocused ? (focusRef as React.LegacyRef<HTMLDivElement>) : undefined}
-        className={`rounded-lg border bg-[var(--color-figma-bg)] px-3 py-2 transition-[border-color,box-shadow] ${
+        className={`border-b border-[var(--color-figma-border)] px-1 py-2 transition-colors${
           isFocused
-            ? "border-[var(--color-figma-accent)] shadow-[0_0_0_1px_rgba(59,130,246,0.25)]"
-            : "border-[var(--color-figma-border)]"
+            ? " bg-[var(--color-figma-accent)]/[0.06]"
+            : ""
         }`}
       >
         <div className="flex items-start gap-3">

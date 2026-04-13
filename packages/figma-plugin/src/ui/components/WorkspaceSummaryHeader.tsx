@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import type { WorkspaceSection } from "../shared/navigationTypes";
 import type { NavigationHandoff } from "../contexts/NavigationContext";
 import type { NoticeSeverity } from "../shared/noticeSystem";
-import { NoticePill } from "../shared/noticeSystem";
 
 interface WorkspacePill {
   label: string;
@@ -62,27 +61,16 @@ export function WorkspaceSummaryHeader({
   return (
     <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
       {handoff && onReturnHandoff && (
-        <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 px-3 py-2">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-figma-accent)]/80">
-                Handoff
-              </div>
-              <div className="mt-1 text-[11px] font-medium text-[var(--color-figma-text)]">
-                From {describeHandoffOrigin(handoff)}
-              </div>
-              <div className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                {handoff.reason}
-              </div>
-            </div>
-            <button
-              onClick={onReturnHandoff}
-              className="shrink-0 rounded-full border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-bg)] px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/8"
-            >
-              <span aria-hidden="true">&larr; </span>
-              {handoff.returnLabel}
-            </button>
-          </div>
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--color-figma-border)] px-3 py-1.5">
+          <span className="min-w-0 truncate text-[10px] text-[var(--color-figma-text-secondary)]" title={handoff.reason}>
+            From {describeHandoffOrigin(handoff)}
+          </span>
+          <button
+            onClick={onReturnHandoff}
+            className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            &larr; {handoff.returnLabel}
+          </button>
         </div>
       )}
 
@@ -103,8 +91,6 @@ export function WorkspaceSummaryHeader({
               >
                 {sections.map((section) => {
                   const isActive = section.id === activeSectionId;
-                  const isContextual =
-                    section.transition?.kind === "contextual-sub-screen";
                   return (
                     <button
                       key={`${section.topTab}:${section.subTab}`}
@@ -123,11 +109,6 @@ export function WorkspaceSummaryHeader({
                       }`}
                     >
                       <span>{section.label}</span>
-                      {isContextual && (
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                          context
-                        </span>
-                      )}
                     </button>
                   );
                 })}
@@ -135,14 +116,11 @@ export function WorkspaceSummaryHeader({
             )}
 
             {hasStatus && (
-              <div className="inline-flex min-w-0 flex-wrap items-center gap-1.5">
+              <div className="inline-flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
                 {statusPills.map((pill, index) => (
-                  <NoticePill
-                    key={`${pill.label}-${index}`}
-                    severity={pill.tone}
-                  >
+                  <span key={`${pill.label}-${index}`}>
                     {pill.label}
-                  </NoticePill>
+                  </span>
                 ))}
               </div>
             )}

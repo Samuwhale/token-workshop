@@ -980,7 +980,7 @@ export function PublishPanel({
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="mx-auto flex max-w-[1080px] flex-col">
           <div ref={preflightRef}>
-            <WorkflowStageCard
+            <WorkflowStage
               title="Preflight"
               expanded={selectedStage === 'preflight'}
               onSelect={() => setSelectedStage('preflight')}
@@ -1007,11 +1007,11 @@ export function PublishPanel({
                 actionHandlers={preflightActionHandlers}
                 actionBusyId={orphansDeleting ? 'delete-orphan-variables' : preflightActionBusyId}
               />
-            </WorkflowStageCard>
+            </WorkflowStage>
           </div>
 
           <div ref={compareRef}>
-            <WorkflowStageCard
+            <WorkflowStage
               title="Compare"
               expanded={canProceedToCompare && selectedStage === 'compare'}
               onSelect={() => {
@@ -1081,11 +1081,11 @@ export function PublishPanel({
                   )}
                 </div>
               </div>
-            </WorkflowStageCard>
+            </WorkflowStage>
           </div>
 
           <div ref={applyRef}>
-            <WorkflowStageCard
+            <WorkflowStage
               title="Apply"
               expanded={canProceedToCompare && selectedStage === 'apply'}
               onSelect={() => {
@@ -1142,10 +1142,10 @@ export function PublishPanel({
                   <NoticeBanner severity="error">Sync failed: {publishAllError}</NoticeBanner>
                 )}
               </div>
-            </WorkflowStageCard>
+            </WorkflowStage>
           </div>
 
-          <DisclosureCard
+          <DisclosureSection
             title="Advanced routing"
             summary={activeResolver && savedResolverPublishCount > 0
               ? `${savedResolverPublishCount} resolver mode mapping${savedResolverPublishCount === 1 ? '' : 's'}`
@@ -1169,7 +1169,7 @@ export function PublishPanel({
               onSave={() => void saveResolverPublishMappings()}
               onSync={() => void syncResolverPublishModes()}
             />
-          </DisclosureCard>
+          </DisclosureSection>
         </div>
       </div>
     </div>
@@ -1593,7 +1593,7 @@ function stageStatusTextClass(severity: NoticeSeverity): string {
   return 'text-[var(--color-figma-text-secondary)]';
 }
 
-function WorkflowStageCard({
+function WorkflowStage({
   title,
   statusLabel,
   statusSeverity,
@@ -1648,7 +1648,7 @@ function WorkflowStageCard({
   );
 }
 
-function DisclosureCard({
+function DisclosureSection({
   title,
   summary,
   statusLabel,

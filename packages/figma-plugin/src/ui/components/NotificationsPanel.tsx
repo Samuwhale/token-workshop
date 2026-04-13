@@ -50,7 +50,6 @@ interface InboxItem {
   variant: NotificationEntry["variant"];
   scopeLabel: string;
   statusLabel: string;
-  isSticky: boolean;
   action: InboxAction | null;
 }
 
@@ -80,14 +79,6 @@ function timeAgo(ts: number): string {
 
 function normalizeMessage(message: string): string {
   return message.trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-function pluralize(
-  count: number,
-  singular: string,
-  plural = `${singular}s`,
-): string {
-  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function extractQuotedStrings(message: string): string[] {
@@ -264,25 +255,16 @@ function buildInboxItem(
     variant: entry.variant,
     scopeLabel,
     statusLabel,
-    isSticky: severity === "blocker",
     action,
   };
 }
 
-function severityTone(item: InboxItem): string {
+function severityStripe(item: InboxItem): string {
   if (item.severity === "blocker")
-    return "border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/[0.08]";
+    return "border-l-2 border-l-[var(--color-figma-error)]";
   if (item.severity === "attention")
-    return "border-amber-500/30 bg-amber-500/[0.08]";
-  return "border-green-500/25 bg-green-500/[0.08]";
-}
-
-function severityBadgeTone(item: InboxItem): string {
-  if (item.severity === "blocker")
-    return "text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/[0.12]";
-  if (item.severity === "attention")
-    return "text-amber-600 bg-amber-500/[0.12]";
-  return "text-green-600 bg-green-500/[0.12]";
+    return "border-l-2 border-l-amber-500";
+  return "border-l-2 border-l-green-500";
 }
 
 function filterMatches(filter: InboxFilter, item: InboxItem): boolean {
@@ -339,8 +321,6 @@ export function NotificationsPanel({
     [filter, inbox],
   );
 
-  const stickyBlockers = visibleItems.filter((item) => item.isSticky);
-  const remainingItems = visibleItems.filter((item) => !item.isSticky);
   const counts = useMemo(
     () => ({
       all: inbox.length,
@@ -390,12 +370,8 @@ export function NotificationsPanel({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">
-              Notifications inbox
+              Notifications
             </h2>
-            <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Review recent issues and confirmations, then jump back to the
-              right token or area.
-            </p>
           </div>
           {history.length > 0 && (
             <button
@@ -429,11 +405,6 @@ export function NotificationsPanel({
                 );
               })}
             </div>
-            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-              <span>{pluralize(counts.blocker, "blocker")}</span>
-              <span>{pluralize(counts.attention, "attention item")}</span>
-              <span>{pluralize(counts.success, "resolved item")}</span>
-            </div>
           </>
         )}
       </div>
@@ -455,33 +426,14 @@ export function NotificationsPanel({
           }}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto">
-          {stickyBlockers.length > 0 && (
-            <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/95 px-3 py-2 backdrop-blur-sm">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-error)]">
-                Sticky blockers
-              </div>
-              <div className="space-y-2">
-                {stickyBlockers.map((item) => (
-                  <NotificationCard
-                    key={item.dedupeKey}
-                    item={item}
-                    onOpen={openAction}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2 px-3 py-3">
-            {remainingItems.map((item) => (
-              <NotificationCard
-                key={item.dedupeKey}
-                item={item}
-                onOpen={openAction}
-              />
-            ))}
-          </div>
+        <div className="flex-1 overflow-y-auto px-3">
+          {visibleItems.map((item) => (
+            <NotificationCard
+              key={item.dedupeKey}
+              item={item}
+              onOpen={openAction}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -496,38 +448,25 @@ function NotificationCard({
   onOpen: (action: InboxAction | null) => void;
 }) {
   return (
-    <div className={`rounded-lg border px-3 py-2.5 ${severityTone(item)}`}>
+    <div className={`border-b border-[var(--color-figma-border)] py-2 pl-2.5 ${severityStripe(item)}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+          <div className="flex items-baseline gap-2">
+            <span className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
               {item.title}
-            </div>
-            <span
-              className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] ${severityBadgeTone(item)}`}
-            >
-              {item.statusLabel}
-            </span>
-            <span className="rounded-full bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
-              {item.scopeLabel}
             </span>
             {item.occurrences > 1 && (
-              <span className="rounded-full bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+              <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
                 {item.occurrences}x
               </span>
             )}
+            <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]" title={formatTime(item.latestTimestamp)}>
+              {timeAgo(item.latestTimestamp)}
+            </span>
           </div>
-          <div className="mt-1 text-[11px] leading-relaxed break-words text-[var(--color-figma-text)]">
+          <p className="mt-0.5 text-[10px] leading-relaxed break-words text-[var(--color-figma-text-secondary)]">
             {item.summary}
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            <span title={formatTime(item.latestTimestamp)}>
-              Latest {timeAgo(item.latestTimestamp)}
-            </span>
-            <span title={formatTime(item.firstTimestamp)}>
-              First seen {timeAgo(item.firstTimestamp)}
-            </span>
-          </div>
+          </p>
         </div>
         {item.action && (
           <button
