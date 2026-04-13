@@ -1,4 +1,4 @@
-type ShellControlSize = 'sm' | 'md';
+type ShellControlSize = 'xs' | 'sm' | 'md';
 type ShellControlShape = 'rounded' | 'pill';
 
 interface ShellControlOptions {
@@ -13,7 +13,7 @@ function joinClasses(...parts: Array<string | false | null | undefined>): string
 }
 
 const BASE_CONTROL_CLASS = [
-  'relative inline-flex items-center justify-center gap-2 border font-medium',
+  'relative inline-flex items-center justify-center gap-1.5 border font-medium',
   'transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out',
   'outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30',
   'active:translate-y-px',
@@ -21,8 +21,9 @@ const BASE_CONTROL_CLASS = [
 ].join(' ');
 
 const SIZE_CLASS: Record<ShellControlSize, string> = {
-  sm: 'min-h-[28px] px-2.5 py-1 text-[10px]',
-  md: 'min-h-[32px] px-3 py-1.5 text-[11px]',
+  xs: 'min-h-[20px] px-1.5 py-0.5 text-[10px]',
+  sm: 'min-h-[24px] px-2 py-0.5 text-[10px]',
+  md: 'min-h-[28px] px-2.5 py-1 text-[11px]',
 };
 
 const SHAPE_CLASS: Record<ShellControlShape, string> = {

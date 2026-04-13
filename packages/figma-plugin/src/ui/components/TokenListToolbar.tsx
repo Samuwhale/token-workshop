@@ -134,7 +134,7 @@ export function TokenListToolbar({
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-      <div className="flex items-center gap-1 px-1.5 py-1">
+      <div className="flex items-center gap-1 px-1.5 py-0.5">
       {(navHistoryLength ?? 0) > 0 && (
         <button
           onClick={onNavigateBack}
@@ -331,7 +331,7 @@ export function TokenListToolbar({
       </div>
 
       {toolbarStateChips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1 px-2 pb-1.5">
+        <div className="flex flex-wrap items-center gap-1 px-1.5 pb-1">
           {toolbarStateChips.map((chip) => (
             <span
               key={chip.key}

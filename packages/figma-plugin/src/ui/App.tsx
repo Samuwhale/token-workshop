@@ -3,7 +3,6 @@ import type { TokenListImperativeHandle } from "./components/tokenListTypes";
 import type { ThemeManagerHandle } from "./components/ThemeManager";
 import type { PublishPanelHandle } from "./components/PublishPanel";
 import { ToastStack } from "./components/ToastStack";
-import { WorkspaceSummaryHeader } from "./components/WorkspaceSummaryHeader";
 import { ThemeStageModelControls } from "./components/ThemeStageModelControls";
 import { SyncWorkflowControls } from "./components/publish/SyncWorkflowControls";
 import { useToastStack } from "./hooks/useToastStack";
@@ -2705,11 +2704,11 @@ export function App() {
 
   return (
     <div className="relative flex flex-col h-screen">
-      {/* Workspace shell */}
+      {/* Workspace shell — single compact row */}
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-        <div className="flex items-start justify-between gap-3 px-3 py-2.5">
+        <div className="flex items-center gap-1 px-2 py-1">
           <div
-            className="min-w-0 flex flex-1 items-center gap-1 overflow-x-auto rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-1"
+            className="flex shrink-0 items-center gap-0.5"
             role="tablist"
             aria-label="Workspaces"
           >
@@ -2728,7 +2727,7 @@ export function App() {
                   }
                   className={shellControlClass({
                     active: isActive,
-                    size: "md",
+                    size: "sm",
                     shape: "rounded",
                   })}
                 >
@@ -2738,14 +2737,74 @@ export function App() {
             })}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          {shellSections && shellSections.length > 1 && (
+            <>
+              <div className="mx-0.5 h-3.5 w-px shrink-0 bg-[var(--color-figma-border)]" aria-hidden="true" />
+              <div
+                className="flex shrink-0 items-center gap-0.5"
+                role="tablist"
+                aria-label={`${shellCurrentTitle ?? "Workspace"} sections`}
+              >
+                {shellSections.map((section) => {
+                  const isActive = section.id === shellActiveSectionId;
+                  return (
+                    <button
+                      key={`${section.topTab}:${section.subTab}`}
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() =>
+                        guardEditorAction(() => {
+                          clearHandoff();
+                          navigateTo(section.topTab, section.subTab);
+                          if (section.subTab === "canvas-analysis") triggerHeatmapScan();
+                        })
+                      }
+                      title={section.transition?.usage ?? section.summaryTitle ?? section.label}
+                      className={shellControlClass({
+                        active: isActive,
+                        size: "xs",
+                        shape: "rounded",
+                      })}
+                    >
+                      {section.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {shellCurrentTitle && !shellSections?.length && (
+            <span className="ml-1 shrink-0 text-[10px] font-semibold text-[var(--color-figma-text)]">
+              {shellCurrentTitle}
+            </span>
+          )}
+
+          {workspaceHeaderStatusPills.length > 0 && (
+            <div className="ml-1 inline-flex min-w-0 items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+              {workspaceHeaderStatusPills.map((pill, index) => (
+                <span key={`${pill.label}-${index}`}>{pill.label}</span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex shrink-0 items-center gap-1 ml-auto">
+            {shellPrimaryAction && (
+              <button
+                onClick={shellPrimaryAction.onClick}
+                disabled={shellPrimaryAction.disabled}
+                className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-[background-color,transform,opacity,box-shadow] duration-150 ease-out outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {shellPrimaryAction.label}
+              </button>
+            )}
             {shellShortcutSurfaces.map((surface) => (
               <button
                 key={surface.id}
                 onClick={() => toggleSecondarySurface(surface.id)}
                 className={shellControlClass({
                   active: activeSecondarySurface === surface.id,
-                  size: "md",
+                  size: "xs",
                   shape: "rounded",
                 })}
                 aria-pressed={activeSecondarySurface === surface.id}
@@ -2759,16 +2818,16 @@ export function App() {
                 onClick={() => toggleSecondarySurface(notificationSurface.id)}
                 className={`${shellControlClass({
                   active: activeSecondarySurface === notificationSurface.id,
-                  size: "md",
+                  size: "xs",
                   shape: "rounded",
-                })} h-9 w-9 min-h-0 px-0 py-0`}
+                })} h-6 w-6 min-h-0 px-0 py-0`}
                 aria-label={`Open notifications (${notificationCount})`}
                 aria-pressed={activeSecondarySurface === notificationSurface.id}
                 title={notificationSurface.transition.usage}
               >
                 <svg
-                  width="15"
-                  height="15"
+                  width="12"
+                  height="12"
                   viewBox="0 0 16 16"
                   fill="none"
                   stroke="currentColor"
@@ -2780,7 +2839,7 @@ export function App() {
                   <path d="M8 2.5a3 3 0 0 0-3 3v1.1c0 .8-.23 1.58-.67 2.23L3.2 10.5h9.6l-1.13-1.67A4 4 0 0 1 11 6.6V5.5a3 3 0 0 0-3-3Z" />
                   <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
                 </svg>
-                <span className="absolute right-0.5 top-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-1 text-[9px] font-semibold leading-4 text-white">
+                <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-0.5 text-[8px] font-semibold leading-3.5 text-white">
                   {notificationCount > 99 ? "99+" : notificationCount}
                 </span>
               </button>
@@ -2791,16 +2850,16 @@ export function App() {
                 onClick={() => setMenuOpen((v) => !v)}
                 className={`${shellControlClass({
                   active: shellMenuActive,
-                  size: "md",
+                  size: "xs",
                   shape: "rounded",
-                })} h-9 w-9 min-h-0 px-0 py-0`}
+                })} h-6 w-6 min-h-0 px-0 py-0`}
                 aria-label="Open app menu"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
                 <svg
-                  width="15"
-                  height="15"
+                  width="13"
+                  height="13"
                   viewBox="0 0 16 16"
                   fill="none"
                   stroke="currentColor"
@@ -2814,7 +2873,7 @@ export function App() {
                 </svg>
                 {utilitiesAttention && (
                   <span
-                    className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`}
+                    className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`}
                     aria-hidden="true"
                   />
                 )}
@@ -2973,23 +3032,27 @@ export function App() {
           </div>
         </div>
 
-        <WorkspaceSummaryHeader
-          title={shellCurrentTitle}
-          sections={shellSections}
-          activeSectionId={shellActiveSectionId}
-          onSelectSection={(section) => {
-            guardEditorAction(() => {
-              clearHandoff();
-              navigateTo(section.topTab, section.subTab);
-              if (section.subTab === "canvas-analysis") triggerHeatmapScan();
-            });
-          }}
-          statusPills={workspaceHeaderStatusPills}
-          primaryAction={shellPrimaryAction}
-          contextualControls={shellContextualControls}
-          handoff={visibleHandoff}
-          onReturnHandoff={returnFromHandoff}
-        />
+        {/* Handoff return bar — thin conditional row */}
+        {visibleHandoff && returnFromHandoff && (
+          <div className="flex items-center justify-between gap-3 border-t border-[var(--color-figma-border)] px-2 py-0.5">
+            <span className="min-w-0 truncate text-[10px] text-[var(--color-figma-text-secondary)]" title={visibleHandoff.reason}>
+              From {visibleHandoff.origin.secondarySurfaceLabel ?? (visibleHandoff.origin.sectionLabel ? `${visibleHandoff.origin.workspaceLabel} · ${visibleHandoff.origin.sectionLabel}` : visibleHandoff.origin.workspaceLabel)}
+            </span>
+            <button
+              onClick={returnFromHandoff}
+              className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              &larr; {visibleHandoff.returnLabel}
+            </button>
+          </div>
+        )}
+
+        {/* Contextual controls — thin conditional row */}
+        {shellContextualControls && (
+          <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+            {shellContextualControls}
+          </div>
+        )}
       </div>
 
       {activeSecondarySurface === null && postImportBanner?.visible && (
@@ -3022,17 +3085,14 @@ export function App() {
           <div
             className={`border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] ${tokenDragState ? "bg-[var(--color-figma-accent)]/[0.03]" : ""}`}
           >
-            <div className="relative flex items-center gap-2 px-2 py-1.5">
+            <div className="relative flex items-center gap-1.5 px-1.5 py-0.5">
               <button
                 onClick={() => setShowSetSwitcher(true)}
-                className={`${shellControlClass({ size: "sm", shape: "rounded" })} shrink-0 justify-start text-left`}
+                className={`${shellControlClass({ size: "xs", shape: "rounded" })} shrink-0 justify-start text-left`}
                 aria-label="Open set switcher"
               >
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-[10px] ${shellMetaTextClass(false)}`}>
-                    Set
-                  </span>
-                  <span className="max-w-[180px] truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                <div className="flex items-center gap-1">
+                  <span className="max-w-[180px] truncate text-[10px] font-medium text-[var(--color-figma-text)]">
                     {activeSet}
                   </span>
                   <svg
@@ -3090,7 +3150,7 @@ export function App() {
                           if (themeStatus) parts.push(`theme: ${themeStatus}`);
                           return parts.join("\n");
                         })()}
-                        className={`${shellControlClass({ active: isActive, size: "sm", shape: "rounded" })} flex shrink-0 justify-start gap-1.5 ${
+                        className={`${shellControlClass({ active: isActive, size: "xs", shape: "rounded" })} flex shrink-0 justify-start gap-1 ${
                           isTokenDragSource ? "opacity-40" : ""
                         } ${
                           isTokenDropTarget
@@ -3137,7 +3197,7 @@ export function App() {
                     />
                     <button
                       onClick={() => scrollSetTabs("left")}
-                      className={`${shellControlClass({ size: "sm", shape: "rounded" })} absolute left-0 top-1/2 z-[2] h-6 w-5 min-h-0 -translate-y-1/2 px-0 py-0`}
+                      className={`${shellControlClass({ size: "xs", shape: "rounded" })} absolute left-0 top-1/2 z-[2] h-5 w-4 min-h-0 -translate-y-1/2 px-0 py-0`}
                       aria-label="Scroll sets left"
                     >
                       <svg
@@ -3159,7 +3219,7 @@ export function App() {
                     />
                     <button
                       onClick={() => scrollSetTabs("right")}
-                      className={`${shellControlClass({ size: "sm", shape: "rounded" })} absolute right-0 top-1/2 z-[2] h-6 w-5 min-h-0 -translate-y-1/2 px-0 py-0`}
+                      className={`${shellControlClass({ size: "xs", shape: "rounded" })} absolute right-0 top-1/2 z-[2] h-5 w-4 min-h-0 -translate-y-1/2 px-0 py-0`}
                       aria-label="Scroll sets right"
                     >
                       <svg
@@ -3192,11 +3252,11 @@ export function App() {
                 {showCollapsedTokenThemeBar && (
                   <button
                     onClick={() => setDimBarExpanded(true)}
-                    className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-left"
+                    className="flex shrink-0 items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-left"
                   >
                     <svg
-                      width="10"
-                      height="10"
+                      width="9"
+                      height="9"
                       viewBox="0 0 10 10"
                       fill="none"
                       stroke="currentColor"
@@ -3207,15 +3267,12 @@ export function App() {
                       <circle cx="3.5" cy="5" r="2.5" />
                       <circle cx="6.5" cy="5" r="2.5" />
                     </svg>
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                      Themes
-                    </span>
                     <span className="truncate text-[10px] text-[var(--color-figma-text)]">
                       {tokenThemeSelectionSummary}
                     </span>
                     <svg
-                      width="8"
-                      height="8"
+                      width="7"
+                      height="7"
                       viewBox="0 0 8 8"
                       fill="none"
                       className="shrink-0 text-[var(--color-figma-text-tertiary)]"
@@ -3234,12 +3291,12 @@ export function App() {
                 {showExpandedTokenThemeBar && (
                   <div
                     ref={dimDropdownRef}
-                    className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1"
+                    className="flex shrink-0 flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5"
                   >
                     <span className="flex shrink-0 items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
                       <svg
-                        width="10"
-                        height="10"
+                        width="9"
+                        height="9"
                         viewBox="0 0 10 10"
                         fill="none"
                         stroke="currentColor"
@@ -3250,7 +3307,6 @@ export function App() {
                         <circle cx="3.5" cy="5" r="2.5" />
                         <circle cx="6.5" cy="5" r="2.5" />
                       </svg>
-                      Themes
                     </span>
                     {themesError ? (
                       <span className="flex items-center gap-1 text-[10px] text-[var(--color-figma-danger)]">

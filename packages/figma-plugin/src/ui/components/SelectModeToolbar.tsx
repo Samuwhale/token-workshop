@@ -46,7 +46,7 @@ export function SelectModeToolbar({
   onLinkToTokens,
 }: SelectModeToolbarProps) {
   return (
-    <div className="flex items-center gap-1.5 px-1.5 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+    <div className="flex items-center gap-1.5 px-1.5 py-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
       <input
         type="checkbox"
         checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every((p) => selectedPaths.has(p))}
