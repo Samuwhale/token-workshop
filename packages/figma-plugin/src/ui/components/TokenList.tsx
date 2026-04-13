@@ -57,8 +57,6 @@ import type {
 } from "./tokenListTypes";
 import { VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from "./tokenListTypes";
 import {
-  validateJsonRefs,
-  inferTypeFromValue,
   highlightMatch,
 } from "./tokenListHelpers";
 import { TokenTreeNode } from "./TokenTreeNode";
@@ -82,6 +80,8 @@ import { useTokenExpansion } from "../hooks/useTokenExpansion";
 import { useTokenVirtualScroll } from "../hooks/useTokenVirtualScroll";
 import { useTokenSearch } from "../hooks/useTokenSearch";
 import { useTokenSelection } from "../hooks/useTokenSelection";
+import { useJsonEditor } from "../hooks/useJsonEditor";
+import { JsonEditorView } from "./JsonEditorView";
 import { dispatchToast } from "../shared/toastBus";
 import { NoticeBanner, NoticeFieldMessage } from "../shared/noticeSystem";
 import {
@@ -91,9 +91,11 @@ import {
   RelocateTokenReviewPanel,
 } from "./ContextualReviewPanel";
 import { TokenListOverflowMenu } from "./TokenListOverflowMenu";
+import { SelectModeToolbar } from "./SelectModeToolbar";
+import { TableCreateForm } from "./TableCreateForm";
+import { WhereIsOverlay } from "./WhereIsOverlay";
 import type { FilterBuilderSection } from "./TokenSearchFilterBuilder";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
-import { InlineBanner } from "./InlineBanner";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
@@ -138,139 +140,6 @@ type VisibleTokenRow = {
 };
 
 type BatchEditorFocusTarget = "find-path";
-
-function SelectModeOverflowMenu({
-  selectedPaths,
-  displayedLeafNodes: _displayedLeafNodes,
-  sets,
-  setName: _setName,
-  operationLoading,
-  copyFeedback,
-  copyCssFeedback,
-  copyAliasFeedback,
-  onCopyJson,
-  onCopyCssVar,
-  onCopyDtcgRef,
-  onMoveToGroup,
-  onMoveToSet,
-  onCopyToSet,
-  onCompare,
-  onLinkToTokens,
-}: {
-  selectedPaths: Set<string>;
-  displayedLeafNodes: TokenNode[];
-  sets: string[];
-  setName: string;
-  operationLoading: string | null;
-  copyFeedback: boolean;
-  copyCssFeedback: boolean;
-  copyAliasFeedback: boolean;
-  onCopyJson: () => void;
-  onCopyCssVar: () => void;
-  onCopyDtcgRef: () => void;
-  onMoveToGroup: () => void;
-  onMoveToSet: () => void;
-  onCopyToSet: () => void;
-  onCompare?: () => void;
-  onLinkToTokens: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
-
-  const menuItemClass =
-    "w-full flex items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-not-allowed disabled:opacity-40";
-  const sectionBorder = "border-t border-[var(--color-figma-border)] mt-1 pt-1";
-  const sectionLabel =
-    "px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--color-figma-text-tertiary)]";
-
-  return (
-    <div className="relative shrink-0" ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        className={`inline-flex items-center justify-center rounded px-1.5 py-1 transition-colors ${
-          open
-            ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-        }`}
-        title="More actions"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <circle cx="12" cy="5" r="2" />
-          <circle cx="12" cy="12" r="2" />
-          <circle cx="12" cy="19" r="2" />
-        </svg>
-      </button>
-
-      {open && (
-        <div
-          className="absolute right-0 top-full z-50 mt-1 w-[180px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
-          role="menu"
-        >
-          <div className={sectionLabel}>Copy</div>
-          <button type="button" role="menuitem" onClick={() => { onCopyJson(); setOpen(false); }} className={menuItemClass}>
-            <span aria-live="polite">{copyFeedback ? "Copied!" : "Copy JSON"}</span>
-          </button>
-          <button type="button" role="menuitem" onClick={() => { onCopyCssVar(); setOpen(false); }} className={menuItemClass}>
-            <span aria-live="polite">{copyCssFeedback ? "Copied!" : "Copy CSS var"}</span>
-          </button>
-          <button type="button" role="menuitem" onClick={() => { onCopyDtcgRef(); setOpen(false); }} className={menuItemClass}>
-            <span aria-live="polite" className="font-mono">{copyAliasFeedback ? "Copied!" : "Copy {ref}"}</span>
-          </button>
-
-          <div className={sectionBorder}>
-            <div className={sectionLabel}>Organize</div>
-          </div>
-          <button type="button" role="menuitem" onClick={() => { onMoveToGroup(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
-            Move to group...
-          </button>
-          {sets.length > 1 && (
-            <>
-              <button type="button" role="menuitem" onClick={() => { onMoveToSet(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
-                Move to set...
-              </button>
-              <button type="button" role="menuitem" onClick={() => { onCopyToSet(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
-                Copy to set...
-              </button>
-            </>
-          )}
-
-          <div className={sectionBorder}>
-            <div className={sectionLabel}>Analyze</div>
-          </div>
-          {onCompare && (
-            <button type="button" role="menuitem" onClick={() => { onCompare(); setOpen(false); }} className={menuItemClass}>
-              Compare {selectedPaths.size}
-            </button>
-          )}
-          <button type="button" role="menuitem" onClick={() => { onLinkToTokens(); setOpen(false); }} className={menuItemClass}>
-            Link to tokens
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function dispatchTokenListViewChanged(setName: string): void {
   window.dispatchEvent(
@@ -978,53 +847,25 @@ export function TokenList({
   }, [dimensions, perSetFlat, tokens]);
 
   // JSON editor state
-  const [jsonText, setJsonText] = useState("");
-  const [jsonDirty, setJsonDirty] = useState(false);
-  const [jsonError, setJsonError] = useState<string | null>(null);
-  const [jsonSaving, setJsonSaving] = useState(false);
-  const [jsonBrokenRefs, setJsonBrokenRefs] = useState<string[]>([]);
-  const jsonTextareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Load raw JSON when entering JSON view (or when setName changes in JSON view)
-  useEffect(() => {
-    if (viewMode !== "json" || !connected || !serverUrl || !setName) return;
-    if (jsonDirty) return; // don't clobber unsaved edits
-    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
-      .then((data) => {
-        const text = JSON.stringify(data, null, 2);
-        setJsonText(text);
-        setJsonError(null);
-        setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
-      })
-      .catch(() => setJsonError("Failed to load JSON"));
-  }, [viewMode, setName, connected, serverUrl, jsonDirty, allTokensFlat]);
-
-  // Sync from list view → JSON when tokens change externally (not dirty)
-  useEffect(() => {
-    if (
-      viewMode !== "json" ||
-      jsonDirty ||
-      !connected ||
-      !serverUrl ||
-      !setName
-    )
-      return;
-    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
-      .then((data) => {
-        const text = JSON.stringify(data, null, 2);
-        setJsonText(text);
-        setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
-      })
-      .catch((err) => console.warn("[TokenList] fetch raw JSON failed:", err));
-  }, [
-    tokens,
-    viewMode,
+  const {
+    jsonText,
     jsonDirty,
+    jsonError,
+    jsonSaving,
+    jsonBrokenRefs,
+    jsonTextareaRef,
+    handleJsonChange,
+    handleJsonSave,
+    handleJsonRevert,
+  } = useJsonEditor({
+    viewMode,
     connected,
     serverUrl,
     setName,
     allTokensFlat,
-  ]);
+    tokens,
+    onRefresh,
+  });
 
   const boundTokenPaths = useMemo(() => {
     const paths = new Set<string>();
@@ -1231,6 +1072,12 @@ export function TokenList({
     setWhereIsLoading: _setWhereIsLoading,
     whereIsAbortRef,
   } = tokenWhereIs;
+
+  const handleCloseWhereIs = useCallback(() => {
+    setWhereIsPath(null);
+    setWhereIsResults(null);
+    whereIsAbortRef.current?.abort();
+  }, [setWhereIsPath, setWhereIsResults, whereIsAbortRef]);
 
   // Phase 2: useTokenExpansion
   const tokenExpansion = useTokenExpansion({
@@ -1661,6 +1508,17 @@ export function TokenList({
     setSelectMode(false);
     setSelectedPaths(new Set());
   };
+
+  const handleExitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedPaths(new Set());
+    setShowBatchEditor(false);
+  }, [setSelectMode, setSelectedPaths, setShowBatchEditor]);
+
+  const handleToggleBatchEditor = useCallback(() => {
+    setShowBatchEditor((v) => !v);
+  }, [setShowBatchEditor]);
+
 
   const openBulkEditorForPaths = useCallback(
     (paths: Set<string>, scope: BulkEditScope) => {
@@ -3780,87 +3638,49 @@ export function TokenList({
       <div className="flex-shrink-0">
         {/* Select mode toolbar */}
         {selectMode && (
-          <div className="flex items-center gap-1.5 px-1.5 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <input
-              type="checkbox"
-              checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every((p) => selectedPaths.has(p))}
-              ref={(el) => {
-                if (el) el.indeterminate = selectedPaths.size > 0 && selectedPaths.size < displayedLeafPaths.size;
-              }}
-              onChange={handleSelectAll}
-              aria-label="Toggle select all"
-              className="shrink-0 accent-[var(--color-figma-accent)]"
-            />
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
-              {selectedPaths.size} of {displayedLeafPaths.size} selected
-            </span>
-            {selectedPaths.size > 0 && (
-              <>
-                <button
-                  onClick={() => setShowBatchEditor((v) => !v)}
-                  className={`shrink-0 px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? "bg-[var(--color-figma-accent)] text-white" : "bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"}`}
-                >
-                  Edit {selectedPaths.size}
-                </button>
-                <button
-                  onClick={requestBulkDelete}
-                  disabled={!!operationLoading}
-                  className="shrink-0 px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  Delete
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => {
-                setSelectMode(false);
-                setSelectedPaths(new Set());
-                setShowBatchEditor(false);
-              }}
-              className="shrink-0 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              Done
-            </button>
-            {selectedPaths.size > 0 && (
-              <SelectModeOverflowMenu
-                selectedPaths={selectedPaths}
-                displayedLeafNodes={displayedLeafNodes}
-                sets={sets}
-                setName={setName}
-                operationLoading={operationLoading}
-                copyFeedback={copyFeedback}
-                copyCssFeedback={copyCssFeedback}
-                copyAliasFeedback={copyAliasFeedback}
-                onCopyJson={() => {
-                  const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
-                  copyTokensAsJson(nodes);
-                }}
-                onCopyCssVar={() => {
-                  const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
-                  copyTokensAsCssVar(nodes);
-                }}
-                onCopyDtcgRef={() => {
-                  const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
-                  copyTokensAsDtcgRef(nodes);
-                }}
-                onMoveToGroup={() => {
-                  setMoveToGroupTarget("");
-                  setMoveToGroupError("");
-                  setShowMoveToGroup(true);
-                }}
-                onMoveToSet={() => {
-                  setBatchMoveToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
-                  setShowBatchMoveToSet(true);
-                }}
-                onCopyToSet={() => {
-                  setBatchCopyToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
-                  setShowBatchCopyToSet(true);
-                }}
-                onCompare={selectedPaths.size >= 2 && onOpenCompare ? () => onOpenCompare(selectedPaths) : undefined}
-                onLinkToTokens={() => handleOpenPromoteReview()}
-              />
-            )}
-          </div>
+          <SelectModeToolbar
+            selectedPaths={selectedPaths}
+            displayedLeafPaths={displayedLeafPaths}
+            displayedLeafNodes={displayedLeafNodes}
+            sets={sets}
+            setName={setName}
+            operationLoading={operationLoading}
+            showBatchEditor={showBatchEditor}
+            copyFeedback={copyFeedback}
+            copyCssFeedback={copyCssFeedback}
+            copyAliasFeedback={copyAliasFeedback}
+            onSelectAll={handleSelectAll}
+            onToggleBatchEditor={handleToggleBatchEditor}
+            onRequestBulkDelete={requestBulkDelete}
+            onExitSelectMode={handleExitSelectMode}
+            onCopyJson={() => {
+              const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
+              copyTokensAsJson(nodes);
+            }}
+            onCopyCssVar={() => {
+              const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
+              copyTokensAsCssVar(nodes);
+            }}
+            onCopyDtcgRef={() => {
+              const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
+              copyTokensAsDtcgRef(nodes);
+            }}
+            onMoveToGroup={() => {
+              setMoveToGroupTarget("");
+              setMoveToGroupError("");
+              setShowMoveToGroup(true);
+            }}
+            onMoveToSet={() => {
+              setBatchMoveToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
+              setShowBatchMoveToSet(true);
+            }}
+            onCopyToSet={() => {
+              setBatchCopyToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
+              setShowBatchCopyToSet(true);
+            }}
+            onCompare={selectedPaths.size >= 2 && onOpenCompare ? () => onOpenCompare(selectedPaths) : undefined}
+            onLinkToTokens={() => handleOpenPromoteReview()}
+          />
         )}
 
         {/* Batch editor panel */}
@@ -4456,162 +4276,19 @@ export function TokenList({
               }
             />
           ) : viewMode === "json" ? (
-            /* JSON editor — raw DTCG JSON, works for both empty and non-empty sets */
-            <div className="h-full flex flex-col">
-              <textarea
-                ref={jsonTextareaRef}
-                value={jsonText}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setJsonText(val);
-                  setJsonDirty(true);
-                  try {
-                    JSON.parse(val);
-                    setJsonError(null);
-                    setJsonBrokenRefs(validateJsonRefs(val, allTokensFlat));
-                  } catch (err) {
-                    setJsonError(getErrorMessage(err, "Invalid JSON"));
-                    setJsonBrokenRefs([]);
-                  }
-                }}
-                onKeyDown={async (e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-                    e.preventDefault();
-                    if (
-                      jsonError ||
-                      jsonSaving ||
-                      !connected ||
-                      !jsonText.trim()
-                    )
-                      return;
-                    setJsonSaving(true);
-                    try {
-                      const parsed = JSON.parse(jsonText);
-                      await apiFetch(
-                        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}`,
-                        {
-                          method: "PUT",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(parsed),
-                        },
-                      );
-                      setJsonDirty(false);
-                      onRefresh();
-                    } catch (err) {
-                      setJsonError(
-                        err instanceof ApiError
-                          ? err.message
-                          : "Invalid JSON — cannot save",
-                      );
-                    } finally {
-                      setJsonSaving(false);
-                    }
-                  }
-                }}
-                placeholder={
-                  '{\n  "color": {\n    "primary": {\n      "$value": "#3b82f6",\n      "$type": "color"\n    }\n  }\n}'
-                }
-                spellCheck={false}
-                className="flex-1 p-3 font-mono text-[10px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none resize-none leading-relaxed placeholder:text-[var(--color-figma-text-tertiary)]"
-                style={{ minHeight: 0 }}
-              />
-              <div className="shrink-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col gap-1">
-                {jsonError && (
-                  <NoticeFieldMessage severity="error" className="font-mono">
-                    {jsonError}
-                  </NoticeFieldMessage>
-                )}
-                {jsonBrokenRefs.length > 0 && !jsonError && (
-                  <NoticeFieldMessage severity="warning">
-                    <span className="flex flex-wrap gap-1 items-center">
-                      <span className="font-medium shrink-0">Broken refs:</span>
-                      {jsonBrokenRefs.map((r) => (
-                        <span
-                          key={r}
-                          className="font-mono bg-[var(--color-figma-warning)]/10 rounded px-1"
-                        >
-                          {"{" + r + "}"}
-                        </span>
-                      ))}
-                    </span>
-                  </NoticeFieldMessage>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                    {tokens.length === 0
-                      ? "Paste DTCG JSON to import tokens"
-                      : jsonDirty
-                        ? "Unsaved changes"
-                        : "Up to date"}
-                  </span>
-                  <div className="flex gap-1">
-                    {jsonDirty && tokens.length > 0 && (
-                      <button
-                        onClick={() => {
-                          setJsonDirty(false);
-                          apiFetch(
-                            `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`,
-                          )
-                            .then((data) => {
-                              const text = JSON.stringify(data, null, 2);
-                              setJsonText(text);
-                              setJsonError(null);
-                              setJsonBrokenRefs(
-                                validateJsonRefs(text, allTokensFlat),
-                              );
-                            })
-                            .catch((err) =>
-                              console.warn(
-                                "[TokenList] reload raw JSON failed:",
-                                err,
-                              ),
-                            );
-                        }}
-                        className="px-2 py-0.5 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        Revert
-                      </button>
-                    )}
-                    <button
-                      onClick={async () => {
-                        if (jsonError || !jsonText.trim()) return;
-                        setJsonSaving(true);
-                        try {
-                          const parsed = JSON.parse(jsonText);
-                          await apiFetch(
-                            `${serverUrl}/api/tokens/${encodeURIComponent(setName)}`,
-                            {
-                              method: "PUT",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify(parsed),
-                            },
-                          );
-                          setJsonDirty(false);
-                          onRefresh();
-                        } catch (err) {
-                          setJsonError(
-                            err instanceof ApiError
-                              ? err.message
-                              : "Invalid JSON — cannot save",
-                          );
-                        } finally {
-                          setJsonSaving(false);
-                        }
-                      }}
-                      disabled={
-                        !!jsonError ||
-                        jsonSaving ||
-                        !connected ||
-                        !jsonText.trim()
-                      }
-                      className="px-2 py-0.5 rounded text-[10px] transition-colors bg-[var(--color-figma-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
-                    >
-                      {jsonSaving ? "Saving…" : "Save"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <JsonEditorView
+              jsonText={jsonText}
+              jsonDirty={jsonDirty}
+              jsonError={jsonError}
+              jsonSaving={jsonSaving}
+              jsonBrokenRefs={jsonBrokenRefs}
+              jsonTextareaRef={jsonTextareaRef}
+              connected={connected}
+              hasTokens={tokens.length > 0}
+              onChange={handleJsonChange}
+              onSave={handleJsonSave}
+              onRevert={handleJsonRevert}
+            />
           ) : tokens.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 px-5 py-8 text-center">
               <FeedbackPlaceholder
@@ -5157,433 +4834,41 @@ export function TokenList({
 
       {/* Table create mode */}
       {showTableCreate && (
-        <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="flex flex-col gap-2">
-            {/* Draft recovery banner */}
-            {tableCreateHasDraft && (
-              <InlineBanner
-                variant="info"
-                size="md"
-                className="border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)]"
-                action={{
-                  label: "Restore",
-                  onClick: restoreTableDraft,
-                  className:
-                    "bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]",
-                }}
-                onDismiss={dismissTableDraft}
-                dismissLabel="Discard"
-                dismissMode="text"
-                dismissClassName="border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                <span className="block text-[var(--color-figma-text)]">
-                  You have unsaved bulk-create data. Restore it?
-                </span>
-              </InlineBanner>
-            )}
-            {/* Active set indicator */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="shrink-0 text-[var(--color-figma-text-secondary)]"
-              >
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              </svg>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Bulk create in:
-              </span>
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">
-                {setName}
-              </span>
-            </div>
-            {/* Group picker */}
-            <div>
-              <label
-                className="block text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5"
-                htmlFor="table-create-group"
-              >
-                Group
-              </label>
-              <input
-                id="table-create-group"
-                type="text"
-                list="table-create-groups-list"
-                placeholder="Root (none)"
-                value={tableGroup}
-                onChange={(e) => setTableGroup(e.target.value)}
-                aria-label="Token group for bulk create"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-              />
-              <datalist id="table-create-groups-list">
-                {allGroupPaths.map((g) => (
-                  <option key={g} value={g} />
-                ))}
-              </datalist>
-            </div>
-            {/* Smart name suggestions for table create */}
-            {tableSuggestions.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">
-                  Suggest:
-                </span>
-                {tableSuggestions.map((s) => {
-                  const leafName = s.value.includes(".")
-                    ? s.value.slice(s.value.lastIndexOf(".") + 1)
-                    : s.value;
-                  return (
-                    <button
-                      key={s.value}
-                      type="button"
-                      title={s.source}
-                      onClick={() => {
-                        // Fill the next empty row, or add a new row
-                        const emptyRow = tableRows.find((r) => !r.name.trim());
-                        if (emptyRow) {
-                          updateTableRow(emptyRow.id, "name", leafName);
-                        } else {
-                          addTableRow();
-                          // We need to set it after the row is added
-                          requestAnimationFrame(() => {
-                            const inputs =
-                              document.querySelectorAll<HTMLInputElement>(
-                                "[data-table-name-input]",
-                              );
-                            const last = inputs[inputs.length - 1];
-                            if (last) {
-                              last.value = leafName;
-                              last.dispatchEvent(
-                                new Event("input", { bubbles: true }),
-                              );
-                            }
-                          });
-                        }
-                      }}
-                      className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
-                    >
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {/* Token rows */}
-            <div>
-              {/* Column headers */}
-              <div
-                className="grid gap-1 mb-1 px-0.5"
-                style={{
-                  gridTemplateColumns: "minmax(0,1fr) 76px minmax(0,1fr) 18px",
-                }}
-              >
-                <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">
-                  Name
-                </span>
-                <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">
-                  Type
-                </span>
-                <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">
-                  Value
-                </span>
-                <span />
-              </div>
-              {tableRows.map((row, idx) => (
-                <div key={row.id} className="mb-1">
-                  <div
-                    className="grid gap-1 items-center"
-                    style={{
-                      gridTemplateColumns:
-                        "minmax(0,1fr) 76px minmax(0,1fr) 18px",
-                    }}
-                  >
-                    <input
-                      type="text"
-                      placeholder="name"
-                      value={row.name}
-                      onChange={(e) =>
-                        updateTableRow(row.id, "name", e.target.value)
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
-                          handleCreateAll();
-                      }}
-                      data-table-name-input="true"
-                      aria-label={`Token ${idx + 1} name`}
-                      autoFocus={idx === 0}
-                      className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
-                    />
-                    <select
-                      value={row.type}
-                      onChange={(e) =>
-                        updateTableRow(row.id, "type", e.target.value)
-                      }
-                      aria-label={`Token ${idx + 1} type`}
-                      className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-                    >
-                      <option value="color">Color</option>
-                      <option value="dimension">Dimension</option>
-                      <option value="number">Number</option>
-                      <option value="string">String</option>
-                      <option value="boolean">Boolean</option>
-                      <option value="duration">Duration</option>
-                      <option value="fontFamily">Font Family</option>
-                      <option value="fontWeight">Font Weight</option>
-                      <option value="typography">Typography</option>
-                      <option value="shadow">Shadow</option>
-                      <option value="border">Border</option>
-                      <option value="gradient">Gradient</option>
-                      <option value="strokeStyle">Stroke Style</option>
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="value"
-                      value={row.value}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        updateTableRow(row.id, "value", val);
-                        const inferred = inferTypeFromValue(val);
-                        if (inferred) updateTableRow(row.id, "type", inferred);
-                      }}
-                      onKeyDown={(e) => {
-                        if (
-                          e.key === "Tab" &&
-                          !e.shiftKey &&
-                          idx === tableRows.length - 1
-                        ) {
-                          e.preventDefault();
-                          addTableRow();
-                          requestAnimationFrame(() => {
-                            const inputs =
-                              document.querySelectorAll<HTMLInputElement>(
-                                "[data-table-name-input]",
-                              );
-                            inputs[inputs.length - 1]?.focus();
-                          });
-                        }
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
-                          handleCreateAll();
-                      }}
-                      aria-label={`Token ${idx + 1} value`}
-                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeTableRow(row.id)}
-                      tabIndex={-1}
-                      aria-label={`Remove row ${idx + 1}`}
-                      className="w-[18px] h-[18px] flex items-center justify-center rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 8 8"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M1 1l6 6M7 1L1 7"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          fill="none"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                  {rowErrors[row.id] && (
-                    <NoticeFieldMessage severity="error" className="pl-0.5">
-                      {rowErrors[row.id]}
-                    </NoticeFieldMessage>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addTableRow()}
-                className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] text-[10px] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
-              >
-                + Add Row
-              </button>
-            </div>
-            {createAllError && (
-              <NoticeFieldMessage severity="error">
-                {createAllError}
-              </NoticeFieldMessage>
-            )}
-            <div className="flex gap-1.5">
-              <button
-                onClick={handleCreateAll}
-                disabled={
-                  tableCreateBusy ||
-                  !connected ||
-                  tableRows.every((r) => !r.name.trim())
-                }
-                title={
-                  tableRows.every((r) => !r.name.trim())
-                    ? "Enter at least one token name"
-                    : "Create all tokens (Ctrl+Enter)"
-                }
-                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-              >
-                {tableCreateBusy
-                  ? "Creating…"
-                  : `Create ${tableRows.filter((r) => r.name.trim()).length > 0 ? tableRows.filter((r) => r.name.trim()).length + " " : ""}Token${tableRows.filter((r) => r.name.trim()).length !== 1 ? "s" : ""}`}
-              </button>
-              <button
-                onClick={closeTableCreate}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <TableCreateForm
+          setName={setName}
+          tableGroup={tableGroup}
+          onSetTableGroup={setTableGroup}
+          tableRows={tableRows}
+          rowErrors={rowErrors}
+          createAllError={createAllError}
+          busy={tableCreateBusy}
+          hasDraft={tableCreateHasDraft}
+          connected={connected}
+          allGroupPaths={allGroupPaths}
+          tableSuggestions={tableSuggestions}
+          onAddRow={addTableRow}
+          onRemoveRow={removeTableRow}
+          onUpdateRow={updateTableRow}
+          onClose={closeTableCreate}
+          onRestoreDraft={restoreTableDraft}
+          onDismissDraft={dismissTableDraft}
+          onCreateAll={handleCreateAll}
+        />
       )}
 
       <TokenListModalsProvider value={modalContextValue}>
         <TokenListModals />
       </TokenListModalsProvider>
 
-      {/* "Find in all sets" overlay — shows all set definitions for a specific token path */}
+      {/* "Find in all sets" overlay */}
       {whereIsPath !== null && (
-        <div className="absolute inset-0 z-40 flex flex-col bg-[var(--color-figma-bg)]">
-          {/* Header */}
-          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
-            <button
-              onClick={() => {
-                setWhereIsPath(null);
-                setWhereIsResults(null);
-                whereIsAbortRef.current?.abort();
-              }}
-              className="flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
-              title="Close"
-            >
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 8 8"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  d="M1 1l6 6M7 1L1 7"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  fill="none"
-                />
-              </svg>
-            </button>
-            <span
-              className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate"
-              title={whereIsPath}
-            >
-              {whereIsPath}
-            </span>
-            {!whereIsLoading && whereIsResults !== null && (
-              <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                {whereIsResults.length} set
-                {whereIsResults.length !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto">
-            {whereIsLoading ? (
-              <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-                Searching…
-              </div>
-            ) : whereIsResults !== null && whereIsResults.length === 0 ? (
-              <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-                Token not found in any set
-              </div>
-            ) : whereIsResults !== null ? (
-              <div>
-                {whereIsResults.map((def, i) => {
-                  const isColor =
-                    def.$type === "color" && typeof def.$value === "string";
-                  const colorHex = isColor
-                    ? (def.$value as string).slice(0, 7)
-                    : null;
-                  const valueLabel = def.isAlias
-                    ? String(def.$value)
-                    : typeof def.$value === "string"
-                      ? def.$value
-                      : JSON.stringify(def.$value);
-                  return (
-                    <div
-                      key={def.setName}
-                      className="flex items-center gap-2 px-2 py-2 border-b border-[var(--color-figma-border)]/50 hover:bg-[var(--color-figma-bg-hover)] group"
-                    >
-                      {/* Color swatch */}
-                      {colorHex ? (
-                        <span
-                          className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
-                          style={{ background: colorHex }}
-                        />
-                      ) : (
-                        <span className="shrink-0 w-3 h-3" />
-                      )}
-                      {/* Set name + value */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
-                            {def.setName}
-                          </span>
-                          {i === 0 && (
-                            <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] shrink-0">
-                              base
-                            </span>
-                          )}
-                          {def.isDifferentFromFirst && (
-                            <span className="text-[8px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 shrink-0">
-                              override
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          className="font-mono text-[10px] text-[var(--color-figma-text-secondary)] truncate"
-                          title={valueLabel}
-                        >
-                          {valueLabel}
-                          {def.$description && (
-                            <span className="ml-1 text-[var(--color-figma-text-tertiary)] not-italic">
-                              {def.$description}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Type badge */}
-                      <span
-                        className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[def.$type] ?? "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"}`}
-                      >
-                        {def.$type}
-                      </span>
-                      {/* Navigate button */}
-                      <button
-                        className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
-                        onClick={() =>
-                          onNavigateToSet?.(def.setName, whereIsPath)
-                        }
-                        title={`Go to ${def.setName}`}
-                      >
-                        Go
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        </div>
+        <WhereIsOverlay
+          whereIsPath={whereIsPath}
+          whereIsResults={whereIsResults}
+          whereIsLoading={whereIsLoading}
+          onClose={handleCloseWhereIs}
+          onNavigateToSet={onNavigateToSet}
+        />
       )}
     </div>
   );
