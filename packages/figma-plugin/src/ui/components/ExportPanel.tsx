@@ -8,11 +8,13 @@ import { usePlatformConfig } from '../hooks/usePlatformConfig';
 import { useExportResults } from '../hooks/useExportResults';
 import { useFigmaVariables } from '../hooks/useFigmaVariables';
 import { useTokenSetsContext } from '../contexts/TokenDataContext';
+import { useTokensWorkspaceController } from '../contexts/WorkspaceControllerContext';
 import { PlatformExportConfig } from './PlatformExportConfig';
 import { FigmaVariablesPanel } from './FigmaVariablesPanel';
 import { ExportFooter } from './ExportFooter';
 import { ExportPreviewModal } from './ExportPreviewModal';
 import { GitWorkflowPanel } from './publish/GitWorkflowPanel';
+import { Spinner } from './Spinner';
 import { FieldMessage } from '../shared/FieldMessage';
 import { fieldBorderClass } from '../shared/editorClasses';
 import { InlineBanner } from './InlineBanner';
@@ -30,7 +32,8 @@ function sanitizeDestinationSetName(value: string): string {
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const help = usePanelHelp('export');
-  const { sets, addSetToState } = useTokenSetsContext();
+  const { sets, addSetToState, refreshTokens } = useTokenSetsContext();
+  const { pushUndo } = useTokensWorkspaceController();
   const [mode, setMode] = useState<ExportMode>('platforms');
   const [showRepo, setShowRepo] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +65,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     serverUrl,
     sets,
     addSetToState,
+    refreshTokens,
+    pushUndo,
     setError,
   });
 
@@ -367,29 +372,36 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       {/* Save to server preview confirmation */}
       {figmaVariables.savePhase === 'preview' && (() => {
         const previewRows = figmaVariables.savePreviewRows;
+        const saveRun = figmaVariables.saveRun;
         const hasValidationIssues = previewRows.some(item => item.destinationError || item.appendPathError);
         const previewReady = previewRows.length === figmaVariables.savePreviewItems.length;
+        const savedCount = previewRows.filter(item => saveRun.itemStatuses[item.itemKey] === 'saved').length;
+        const failedCount = previewRows.filter(item => saveRun.itemStatuses[item.itemKey] === 'failed').length;
+        const currentSaveItem = saveRun.currentItemKey
+          ? previewRows.find(item => item.itemKey === saveRun.currentItemKey) ?? null
+          : null;
         const confirmDisabled =
-          figmaVariables.savePreviewRefreshing || !previewReady || hasValidationIssues;
+          saveRun.active || figmaVariables.savePreviewRefreshing || !previewReady || hasValidationIssues;
         return (
           <ConfirmModal
             title="Save to Token Server"
             confirmLabel={
-              !previewReady || figmaVariables.savePreviewRefreshing
+              saveRun.active
+                ? `Saving ${Math.min(saveRun.completedCount + 1, saveRun.totalCount)} / ${saveRun.totalCount}`
+                : !previewReady || figmaVariables.savePreviewRefreshing
                 ? 'Refreshing preview...'
                 : hasValidationIssues
                   ? 'Resolve issues first'
+                  : saveRun.error && savedCount > 0
+                    ? 'Retry Remaining Saves'
                   : 'Confirm & Save'
             }
             confirmDisabled={confirmDisabled}
             wide
             onConfirm={figmaVariables.handleConfirmSave}
             onCancel={() => {
-              figmaVariables.setSavePhase('idle');
-              figmaVariables.setSavePreviewItems([]);
-              figmaVariables.setSaveDestinationMap({});
-              figmaVariables.setSaveMergeStrategies({});
-              figmaVariables.setSaveAppendPaths({});
+              if (saveRun.active) return;
+              figmaVariables.resetSavePreview();
             }}
           >
             <div className="mt-3">
@@ -400,8 +412,46 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                   {previewRows.filter(item => !item.destinationExists).length} new &middot;{' '}
                   {previewRows.filter(item => item.destinationExists).length} existing
+                  {savedCount > 0 && ` · ${savedCount} saved`}
+                  {failedCount > 0 && ` · ${failedCount} failed`}
                 </span>
               </div>
+              {saveRun.active && (
+                <div className="mb-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
+                  <div className="flex items-center justify-between gap-2 text-[10px]">
+                    <span className="font-medium text-[var(--color-figma-text)]">
+                      Writing {Math.min(saveRun.completedCount + 1, saveRun.totalCount)} / {saveRun.totalCount}
+                    </span>
+                    <span className="truncate text-[var(--color-figma-text-secondary)]">
+                      {currentSaveItem
+                        ? `${currentSaveItem.collectionName}${currentSaveItem.modeName ? ` · ${currentSaveItem.modeName}` : ''}`
+                        : 'Preparing save'}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 rounded-full bg-[var(--color-figma-bg)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--color-figma-accent)] transition-all"
+                      style={{
+                        width: `${saveRun.totalCount === 0
+                          ? 0
+                          : Math.round(((saveRun.completedCount + (saveRun.currentItemKey ? 1 : 0)) / saveRun.totalCount) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              {!saveRun.active && saveRun.error && (
+                <div className="mb-2">
+                  <InlineBanner variant="error">
+                    <span className="block">
+                      {savedCount > 0
+                        ? `Saved ${savedCount} of ${previewRows.length} destination sets before the failure below. Saved rows have refreshed counts and each successful write can be undone.`
+                        : 'Save failed before any destination set finished.'}
+                    </span>
+                    <span className="mt-1 block">{saveRun.error}</span>
+                  </InlineBanner>
+                </div>
+              )}
               <datalist id="figma-save-destination-options">
                 {sets.map(setName => (
                   <option key={setName} value={setName} />
@@ -414,12 +464,15 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   </div>
                 )}
                 {previewRows.map(item => {
+                  const itemStatus = saveRun.itemStatuses[item.itemKey] ?? 'pending';
                   return (
                     <div
                       key={item.itemKey}
                       className={`px-2.5 py-2 rounded-md border ${
-                        item.destinationError || item.appendPathError
+                        itemStatus === 'failed' || item.destinationError || item.appendPathError
                           ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5'
+                          : itemStatus === 'saved'
+                            ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5'
                           : 'border-[var(--color-figma-border)]'
                       }`}
                     >
@@ -441,6 +494,22 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             }`}>
                               {item.actionLabel}
                             </span>
+                            {itemStatus === 'saving' && (
+                              <span className="inline-flex items-center gap-1 rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
+                                <Spinner size="sm" />
+                                Saving
+                              </span>
+                            )}
+                            {itemStatus === 'saved' && (
+                              <span className="px-1.5 py-0.5 rounded text-[8px] font-medium uppercase bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                                Saved
+                              </span>
+                            )}
+                            {itemStatus === 'failed' && (
+                              <span className="px-1.5 py-0.5 rounded text-[8px] font-medium uppercase bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]">
+                                Failed
+                              </span>
+                            )}
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
@@ -452,6 +521,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/15 text-[8px] font-medium text-[var(--color-figma-warning,#b45309)]">
                               {item.diff.changedCount} changed
                             </span>
+                            {item.diff.skippedCount > 0 && (
+                              <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] font-medium text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
+                                {item.diff.skippedCount} skipped
+                              </span>
+                            )}
                             <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] font-medium text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
                               {item.diff.unchangedCount} unchanged
                             </span>
@@ -476,8 +550,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                               const value = sanitizeDestinationSetName(e.target.value);
                               figmaVariables.setSaveDestinationMap(prev => ({ ...prev, [item.itemKey]: value }));
                             }}
+                            disabled={saveRun.active}
                             list="figma-save-destination-options"
-                            className={`mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[10px] font-mono text-[var(--color-figma-text)] ${fieldBorderClass(!!item.destinationError)}`}
+                            className={`mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[10px] font-mono text-[var(--color-figma-text)] disabled:opacity-60 ${fieldBorderClass(!!item.destinationError)}`}
                             spellCheck={false}
                             aria-label={`Destination set for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
                           />
@@ -505,7 +580,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                                 [item.itemKey]: e.target.value as 'overwrite' | 'merge' | 'skip',
                               }));
                             }}
-                            disabled={!item.destinationExists}
+                            disabled={saveRun.active || !item.destinationExists}
                             className="mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] disabled:opacity-50"
                             aria-label={`Merge behavior for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
                           >
@@ -528,8 +603,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             onChange={e => {
                               figmaVariables.setSaveAppendPaths(prev => ({ ...prev, [item.itemKey]: e.target.value }));
                             }}
+                            disabled={saveRun.active}
                             placeholder="brand.colors"
-                            className={`mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[10px] font-mono text-[var(--color-figma-text)] ${fieldBorderClass(!!item.appendPathError)}`}
+                            className={`mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[10px] font-mono text-[var(--color-figma-text)] disabled:opacity-60 ${fieldBorderClass(!!item.appendPathError)}`}
                             spellCheck={false}
                             aria-label={`Append path for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
                           />

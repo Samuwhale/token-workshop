@@ -830,7 +830,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           strategy,
         );
         const after = await snapshotPaths(fastify.tokenStore, set, paths);
-        await fastify.operationLog.record({
+        const operationId = await fastify.operationLog.record({
           type: 'batch-upsert',
           description: `Batch upsert ${tokens.length} tokens in ${set}`,
           setName: set,
@@ -839,7 +839,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           afterSnapshot: after,
           ...(!setExistedBefore ? { rollbackSteps: [{ action: 'delete-set' as const, name: set }] } : {}),
         });
-        return { ok: true, ...result };
+        return { ok: true, ...result, operationId };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch upsert tokens');
       }

@@ -1,0 +1,21 @@
+id: figma-variable-save-to-server-flow-has-no-undo-n-15952f3a
+title: Figma variable save-to-server flow has no undo, no per-item progress, and partial failure leaves stale preview with committed partial writes
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts
+  - packages/figma-plugin/src/ui/components/ExportPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Violates recovery and feedback principles: the save loop writes to N destination sets sequentially with no undo, no per-item progress, and stops on first failure — already-committed sets have no rollback while the preview returns with stale diff counts showing 'N new' for tokens that now exist. Every other batch write surface in the plugin registers pushUndo; this one does not. A user who saves 3 collections and gets an error on the 3rd cannot undo the first 2, cannot tell from the preview which succeeded, and sees wrong diff counts if they retry."
+state: ready
+acceptance_criteria:
+  - Each destination-set write registers an undo entry so the user can revert a multi-collection save
+  - If one destination fails mid-save, the user sees which collections succeeded and which failed, and the preview diff counts refresh for already-written items before retry
+  - A per-item progress indicator shows which collection is being written during multi-set saves
+  - The overall save flow matches the recovery contract of other batch write operations (batch edit, move, copy, rename, delete) which all register undo
+source: ux-pass
+created_at: 2026-04-13T05:22:29.767Z
+updated_at: 2026-04-13T05:22:29.767Z

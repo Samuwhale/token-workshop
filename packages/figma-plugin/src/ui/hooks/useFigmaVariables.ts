@@ -4,6 +4,7 @@ import type { ReadVariableCollection, ReadVariableToken } from '../../shared/typ
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage } from '../shared/utils';
+import type { UndoSlot } from './useUndo';
 
 export interface ExportedModeValue {
   resolvedValue: any;
@@ -32,6 +33,7 @@ export interface SavePreviewDiff {
   totalCount: number;
   newCount: number;
   changedCount: number;
+  skippedCount: number;
   unchangedCount: number;
 }
 
@@ -61,6 +63,16 @@ export interface SavePreviewRow extends SavePreviewItem {
 }
 
 export type SavePhase = 'idle' | 'preview-loading' | 'preview';
+export type SaveExecutionStatus = 'pending' | 'saving' | 'saved' | 'failed';
+
+export interface SaveRunState {
+  active: boolean;
+  totalCount: number;
+  completedCount: number;
+  currentItemKey: string | null;
+  itemStatuses: Record<string, SaveExecutionStatus>;
+  error: string | null;
+}
 
 interface TokenPayload {
   path: string;
@@ -89,6 +101,8 @@ interface UseFigmaVariablesOptions {
   serverUrl: string;
   sets: string[];
   addSetToState: (name: string, count: number) => void;
+  refreshTokens: () => void;
+  pushUndo?: (slot: UndoSlot) => void;
   setError: Dispatch<SetStateAction<string | null>>;
 }
 
@@ -110,6 +124,7 @@ export interface FigmaVariablesState {
   setSavePreviewItems: Dispatch<SetStateAction<SavePreviewItem[]>>;
   savePreviewRows: SavePreviewRow[];
   savePreviewRefreshing: boolean;
+  saveRun: SaveRunState;
   saveDestinationMap: Record<string, string>;
   setSaveDestinationMap: Dispatch<SetStateAction<Record<string, string>>>;
   slugRenames: Record<string, string>;
@@ -123,8 +138,18 @@ export interface FigmaVariablesState {
   handleCopyAll: () => Promise<void>;
   handlePreviewSave: () => Promise<void>;
   handleConfirmSave: () => Promise<void>;
+  resetSavePreview: () => void;
   formatModeValue: (modeVal: ExportedModeValue) => string;
 }
+
+const IDLE_SAVE_RUN: SaveRunState = {
+  active: false,
+  totalCount: 0,
+  completedCount: 0,
+  currentItemKey: null,
+  itemStatuses: {},
+  error: null,
+};
 
 function toExportedCollections(readCollections: ReadVariableCollection[]): ExportedCollection[] {
   return readCollections.map((collection) => {
@@ -287,6 +312,41 @@ function areTokensEquivalent(
   );
 }
 
+function areTokensEquivalentForStrategy(
+  incoming: TokenPayload,
+  existing: ExistingTokenSnapshot | undefined,
+  strategy: SaveMergeStrategy,
+): boolean {
+  if (!existing) return false;
+  if (strategy === 'merge') {
+    return (
+      incoming.$type === existing.$type &&
+      areJsonValuesEqual(incoming.$value, existing.$value)
+    );
+  }
+  return areTokensEquivalent(incoming, existing);
+}
+
+function toExistingTokenSnapshot(token: TokenPayload): ExistingTokenSnapshot {
+  return {
+    $type: token.$type,
+    $value: token.$value,
+    $description: token.$description,
+    $extensions: token.$extensions,
+  };
+}
+
+function applyTokensToExistingMap(
+  existingTokens: Map<string, ExistingTokenSnapshot>,
+  tokens: TokenPayload[],
+): Map<string, ExistingTokenSnapshot> {
+  const next = new Map(existingTokens);
+  for (const token of tokens) {
+    next.set(token.path, toExistingTokenSnapshot(token));
+  }
+  return next;
+}
+
 function buildTokenPayloads(
   collection: ExportedCollection,
   modeName: string | null,
@@ -354,9 +414,11 @@ function buildExistingTokenMap(
 function summarizeDiff(
   incomingTokens: TokenPayload[],
   existingTokens: Map<string, ExistingTokenSnapshot>,
+  strategy: SaveMergeStrategy,
 ): SavePreviewDiff {
   let newCount = 0;
   let changedCount = 0;
+  let skippedCount = 0;
   let unchangedCount = 0;
 
   for (const token of incomingTokens) {
@@ -365,10 +427,16 @@ function summarizeDiff(
       newCount++;
       continue;
     }
-    if (areTokensEquivalent(token, existing)) {
+    if (areTokensEquivalentForStrategy(token, existing, strategy)) {
       unchangedCount++;
       continue;
     }
+
+    if (strategy === 'skip') {
+      skippedCount++;
+      continue;
+    }
+
     changedCount++;
   }
 
@@ -376,6 +444,7 @@ function summarizeDiff(
     totalCount: incomingTokens.length,
     newCount,
     changedCount,
+    skippedCount,
     unchangedCount,
   };
 }
@@ -404,18 +473,24 @@ function buildSavePreviewRows(
     const existingTokens = destinationExists
       ? (existingSetMaps.get(effectiveDestination) ?? new Map<string, ExistingTokenSnapshot>())
       : new Map<string, ExistingTokenSnapshot>();
+    const incomingTokens = appendPathError
+      ? []
+      : buildTokenPayloads(
+          collection,
+          item.modeName ?? null,
+          normalizeAppendPath(effectiveAppendPath),
+        );
+    const baseDiff = appendPathError
+      ? item.diff
+      : summarizeDiff(incomingTokens, existingTokens, 'overwrite');
+    const defaultMergeStrategy: SaveMergeStrategy =
+      destinationExists && baseDiff.changedCount > 0 ? 'merge' : 'overwrite';
+    const effectiveMergeStrategy: SaveMergeStrategy = destinationExists
+      ? (saveMergeStrategies[item.itemKey] ?? defaultMergeStrategy)
+      : 'overwrite';
     const diff = appendPathError
       ? item.diff
-      : summarizeDiff(
-          buildTokenPayloads(
-            collection,
-            item.modeName ?? null,
-            normalizeAppendPath(effectiveAppendPath),
-          ),
-          existingTokens,
-        );
-    const defaultMergeStrategy: SaveMergeStrategy =
-      destinationExists && diff.changedCount > 0 ? 'merge' : 'overwrite';
+      : summarizeDiff(incomingTokens, existingTokens, effectiveMergeStrategy);
 
     return {
       ...item,
@@ -424,9 +499,7 @@ function buildSavePreviewRows(
       destinationTokenCount: existingTokens.size,
       diff,
       effectiveDestination,
-      effectiveMergeStrategy: destinationExists
-        ? (saveMergeStrategies[item.itemKey] ?? defaultMergeStrategy)
-        : 'overwrite',
+      effectiveMergeStrategy,
       effectiveAppendPath,
       destinationChanged: effectiveDestination !== item.destinationSet,
       actionLabel: destinationExists ? 'Existing set' : 'New set',
@@ -465,6 +538,8 @@ export function useFigmaVariables({
   serverUrl,
   sets,
   addSetToState,
+  refreshTokens,
+  pushUndo,
   setError,
 }: UseFigmaVariablesOptions): FigmaVariablesState {
   const [figmaLoading, setFigmaLoading] = useState(false);
@@ -480,6 +555,7 @@ export function useFigmaVariables({
   const [savePreviewItems, setSavePreviewItems] = useState<SavePreviewItem[]>([]);
   const [savePreviewRows, setSavePreviewRows] = useState<SavePreviewRow[]>([]);
   const [savePreviewRefreshing, setSavePreviewRefreshing] = useState(false);
+  const [saveRun, setSaveRun] = useState<SaveRunState>(IDLE_SAVE_RUN);
   const [saveDestinationMap, setSaveDestinationMap] = useState<Record<string, string>>({});
   const [saveMergeStrategies, setSaveMergeStrategies] = useState<Record<string, SaveMergeStrategy>>({});
   const [saveAppendPaths, setSaveAppendPaths] = useState<Record<string, string>>({});
@@ -487,6 +563,18 @@ export function useFigmaVariables({
     new Map(),
   );
   const savePreviewRequestIdRef = useRef(0);
+
+  const resetSavePreview = () => {
+    setSavePhase('idle');
+    setSavePreviewItems([]);
+    setSavePreviewRows([]);
+    setSavePreviewRefreshing(false);
+    setSaveDestinationMap({});
+    setSaveMergeStrategies({});
+    setSaveAppendPaths({});
+    savePreviewDestinationCacheRef.current = new Map();
+    setSaveRun(IDLE_SAVE_RUN);
+  };
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {
@@ -728,6 +816,7 @@ export function useFigmaVariables({
     setError(null);
     setSavePreviewRows([]);
     setSavePreviewRefreshing(false);
+    setSaveRun(IDLE_SAVE_RUN);
     setSaveDestinationMap({});
     setSaveMergeStrategies({});
     setSaveAppendPaths({});
@@ -769,9 +858,12 @@ export function useFigmaVariables({
         const destinationExists = existingSetNames.has(plan.destinationSet);
         const existingTokens = existingSetMaps.get(plan.destinationSet) ?? new Map();
         const incomingTokens = buildTokenPayloads(collection, plan.modeName, '');
-        const diff = summarizeDiff(incomingTokens, existingTokens);
         const mergeStrategy: SaveMergeStrategy =
-          destinationExists && diff.changedCount > 0 ? 'merge' : 'overwrite';
+          destinationExists
+            && summarizeDiff(incomingTokens, existingTokens, 'overwrite').changedCount > 0
+            ? 'merge'
+            : 'overwrite';
+        const diff = summarizeDiff(incomingTokens, existingTokens, mergeStrategy);
 
         return {
           collectionName: plan.collectionName,
@@ -813,6 +905,7 @@ export function useFigmaVariables({
     if (!connected) return;
 
     let totalVarsSaved = 0;
+    let failedItemKey: string | null = null;
     try {
       if (savePreviewRefreshing || savePreviewRows.length !== savePreviewItems.length) {
         throw new Error('Wait for the save preview to finish refreshing');
@@ -820,8 +913,23 @@ export function useFigmaVariables({
 
       const collectionsByName = new Map(figmaCollections.map(collection => [collection.name, collection]));
       const destinationUsage = new Map<string, string>();
+      const nextKnownSetNames = new Set(sets);
+      const initialStatuses = Object.fromEntries(
+        savePreviewRows.map(item => [item.itemKey, 'pending' as const]),
+      );
+      const undoGroupKey = `figma-variable-save-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-      for (const previewItem of savePreviewRows) {
+      setSaveRun({
+        active: true,
+        totalCount: savePreviewRows.length,
+        completedCount: 0,
+        currentItemKey: null,
+        itemStatuses: initialStatuses,
+        error: null,
+      });
+
+      for (const [index, previewItem] of savePreviewRows.entries()) {
+        failedItemKey = previewItem.itemKey;
         if (previewItem.destinationError || previewItem.appendPathError) {
           throw new Error(`Resolve validation issues for "${previewItem.collectionName}" before saving`);
         }
@@ -841,25 +949,18 @@ export function useFigmaVariables({
         }
         destinationUsage.set(setName, previewItem.itemKey);
 
+        setSaveRun(prev => ({
+          ...prev,
+          currentItemKey: previewItem.itemKey,
+          itemStatuses: { ...prev.itemStatuses, [previewItem.itemKey]: 'saving' },
+        }));
+
         const appendPath = normalizeAppendPath(previewItem.effectiveAppendPath);
         const mergeStrategy = previewItem.effectiveMergeStrategy;
         const incomingTokens = buildTokenPayloads(collection, previewItem.modeName ?? null, appendPath);
 
-        let isNewSet = true;
-        await apiFetch(`${serverUrl}/api/sets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: setName }),
-        }).catch((err) => {
-          if (err instanceof ApiError && err.status === 409) {
-            isNewSet = false;
-            return;
-          }
-          throw new Error(`Failed to create set "${setName}": ${err instanceof Error ? err.message : String(err)}`);
-        });
-
         let existingTokens = new Map<string, ExistingTokenSnapshot>();
-        if (!isNewSet) {
+        if (previewItem.destinationExists) {
           try {
             const data = await apiFetch<{ tokens?: DTCGGroup }>(
               `${serverUrl}/api/tokens/${encodeURIComponent(setName)}`,
@@ -871,47 +972,101 @@ export function useFigmaVariables({
                 `Failed to inspect destination "${setName}": ${err instanceof Error ? err.message : String(err)}`,
               );
             }
-            isNewSet = true;
           }
         }
 
         const tokensToWrite = incomingTokens.filter((token) => {
           const existing = existingTokens.get(token.path);
           if (!existing) return true;
-          if (areTokensEquivalent(token, existing)) return false;
-          return mergeStrategy !== 'skip';
+          if (mergeStrategy === 'skip') return false;
+          return !areTokensEquivalentForStrategy(token, existing, mergeStrategy);
         });
 
         if (tokensToWrite.length === 0) {
-          if (isNewSet) addSetToState(setName, 0);
+          setSaveRun(prev => ({
+            ...prev,
+            completedCount: prev.completedCount + 1,
+            currentItemKey: null,
+            itemStatuses: { ...prev.itemStatuses, [previewItem.itemKey]: 'saved' },
+          }));
           continue;
         }
 
-        const strategy = mergeStrategy === 'skip' ? 'overwrite' : mergeStrategy;
-        const result = await apiFetch<{ imported: number; skipped: number }>(
+        const result = await apiFetch<{ imported: number; skipped: number; operationId?: string }>(
           `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tokens: tokensToWrite, strategy }),
+            body: JSON.stringify({ tokens: tokensToWrite, strategy: mergeStrategy }),
           },
         ).catch((err) => {
           throw new Error(`Failed to save tokens for "${setName}": ${err instanceof Error ? err.message : String(err)}`);
         });
 
-        if (isNewSet) addSetToState(setName, tokensToWrite.length);
+        if (!previewItem.destinationExists) {
+          nextKnownSetNames.add(setName);
+          addSetToState(setName, result.imported);
+        }
+        if (pushUndo && result.operationId) {
+          const opId = result.operationId;
+          const url = serverUrl;
+          pushUndo({
+            description: `Saved "${setName}" from Figma variables`,
+            groupKey: undoGroupKey,
+            groupSummary: (count) => `Saved ${count} Figma variable collection${count === 1 ? '' : 's'}`,
+            restore: async () => {
+              await apiFetch(`${url}/api/operations/${encodeURIComponent(opId)}/rollback`, { method: 'POST' });
+              refreshTokens();
+            },
+          });
+        }
+        savePreviewDestinationCacheRef.current.set(
+          setName,
+          applyTokensToExistingMap(
+            existingTokens,
+            mergeStrategy === 'skip' ? tokensToWrite : incomingTokens,
+          ),
+        );
+        setSavePreviewRows(
+          buildSavePreviewRows(
+            savePreviewItems,
+            collectionsByName,
+            nextKnownSetNames,
+            savePreviewDestinationCacheRef.current,
+            saveDestinationMap,
+            saveMergeStrategies,
+            saveAppendPaths,
+          ),
+        );
         totalVarsSaved += result.imported;
+        setSaveRun(prev => ({
+          ...prev,
+          completedCount: index + 1,
+          currentItemKey: null,
+          itemStatuses: { ...prev.itemStatuses, [previewItem.itemKey]: 'saved' },
+        }));
+        failedItemKey = null;
       }
 
       dispatchToast(`Saved ${totalVarsSaved} variable${totalVarsSaved !== 1 ? 's' : ''} to server`, 'success');
-      setSavePhase('idle');
-      setSavePreviewItems([]);
-      setSaveDestinationMap({});
-      setSaveMergeStrategies({});
-      setSaveAppendPaths({});
+      resetSavePreview();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      dispatchToast(message, 'error');
+      setSaveRun(prev => ({
+        ...prev,
+        active: false,
+        currentItemKey: null,
+        itemStatuses: failedItemKey
+          ? { ...prev.itemStatuses, [failedItemKey]: 'failed' }
+          : prev.itemStatuses,
+        error: message,
+      }));
+      dispatchToast(
+        totalVarsSaved > 0
+          ? `Saved ${totalVarsSaved} variable${totalVarsSaved !== 1 ? 's' : ''} before error — ${message}`
+          : message,
+        'error',
+      );
       setSavePhase('preview');
     }
   };
@@ -940,6 +1095,7 @@ export function useFigmaVariables({
     setSavePreviewItems,
     savePreviewRows,
     savePreviewRefreshing,
+    saveRun,
     saveDestinationMap,
     setSaveDestinationMap,
     slugRenames: saveDestinationMap,
@@ -953,6 +1109,7 @@ export function useFigmaVariables({
     handleCopyAll,
     handlePreviewSave,
     handleConfirmSave,
+    resetSavePreview,
     formatModeValue,
   };
 }

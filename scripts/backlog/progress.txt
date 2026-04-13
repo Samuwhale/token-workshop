@@ -2112,3 +2112,26 @@
   - Toolbar controls that already expose clear inline text should sit on one shared action row; adding uppercase labels above each control makes the strip read like a form without improving orientation.
   - Bulk action buttons in compact utility panels do not need a separate section title when each button label already names the target scope.
 ---
+
+## 2026-04-13 - ux-pass
+- Tasks explored: (1) Save Figma variables as tokens [useFigmaVariables.ts, ExportPanel.tsx, ConfirmModal.tsx], (2) Batch token operations — select, edit, move, copy, rename, delete [TokenList.tsx, BatchEditor.tsx, useTokenSelection.ts, useTokenDelete.ts, TokenListModals.tsx], (3) Set merge and split [SetSwitcher.tsx, useSetMergeSplit.ts, sets.ts], (4) Theme axis/option authoring [ThemeAuthoringScreen.tsx, ThemeAxisCard.tsx, useThemeDimensionsCrud.ts, useThemeOptions.ts, useThemeBulkOps.ts]
+- Walkthrough themes: recovery (undo registration), feedback (per-item progress in sequential writes), handoffs (partial failure → stale preview), task load
+- Found 1 item — written to backlog/inbox.jsonl
+- Considered but rejected:
+  - Batch copy not clearing selection vs batch move clearing selection: intentionally different — copy keeps source tokens selected in current set, move clears because tokens no longer exist here. Correct behavior.
+  - Batch editor closing without exiting select mode: toolbar still shows select mode indicator and selection count. User has clear visual signal they're still in select mode. Minor friction, not a task-flow breakdown.
+  - Theme authoring axis with zero options being non-functional: UI shows "First variant" placeholder text encouraging immediate option creation, and the axis card auto-expands with input focused. Guided enough for the current state.
+  - No preview of final token paths in Figma variable save (append path applied but paths not shown): real but secondary to the recovery gap — users can infer dot-path prefix behavior from the placeholder text and the existing token tree after save. Would become more valuable if undo is added.
+  - Generic error messages in batch editor ("Error — check server connection"): applies to all batch operations uniformly; low severity because server connection issues are the dominant failure mode in this architecture.
+- Notable: The Figma variable save flow is the only major write surface in the plugin that does not register undo. Every other batch operation (batch edit, move, copy, rename, delete, set merge, set split) registers an undo entry. The compounding effect of no undo + partial failure + stale preview on retry makes this the clearest recovery gap found across the four traced tasks.
+---
+## 2026-04-13 - Figma variable save-to-server flow has no undo, no per-item progress, and partial failure leaves stale preview with committed partial writes
+- Added save-run state to `useFigmaVariables` so preview rows recompute against strategy-aware diff counts, successful destination writes update the local preview cache immediately, partial failures leave saved/failed row status behind, and each successful batch write pushes an undo entry backed by the server operation log instead of a separate client-side set-create step.
+- Updated the export preview modal to show live per-item save progress, saved/failed badges, refreshed diff counts after partial success, skipped-conflict counts for `skip` mode, and locked mapping inputs while a multi-set save is in flight.
+- Returned `operationId` from the server batch upsert route so the client can register undo for each destination-set write.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts packages/figma-plugin/src/ui/components/ExportPanel.tsx packages/server/src/routes/tokens.ts` passed; `pnpm exec tsc -p packages/server/tsconfig.json --noEmit` passed; `pnpm exec tsc -p packages/figma-plugin/tsconfig.json --noEmit` still fails on unrelated pre-existing errors in `graph-templates.ts`, `QuickGeneratorPopover.tsx`, `SelectionInspector.tsx`, and theme-manager refs.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts` ~L32, ~L414, ~L452, ~L567, ~L813, ~L904; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L35, ~L373, ~L419, ~L497, ~L546; `packages/server/src/routes/tokens.ts` ~L833; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - For sequential multi-target saves, keep an execution-status map in the hook rather than trying to infer progress from modal-local busy state; that lets the UI survive partial failure with row-level recovery context intact.
+  - If the server batch route already creates missing sets atomically and records rollback steps, the client should not pre-create sets in a separate request; that breaks undo granularity and can leave empty sets behind on failure.
+---
