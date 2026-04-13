@@ -1,7 +1,8 @@
-import { adaptShortcut } from "../shared/utils";
+import { adaptShortcut, stableStringify } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
+import { QUICK_CREATE_SURFACE_CLASSES } from "./quickCreateSurface";
 import { createTokenBody, updateToken } from "../shared/tokenMutations";
 import { apiFetch } from "../shared/apiFetch";
 import { TokenHistorySection } from "./TokenHistorySection";
@@ -1366,6 +1367,9 @@ export function TokenEditor({
     );
   }
 
+  const quickCreateStoredValue = aliasMode && reference ? reference : stableStringify(value);
+  const quickCreateValueLabel = aliasMode && reference ? "Reference" : "Stored";
+
   const headerTitle = (
     <>
       {isCreateMode ? (
@@ -1431,8 +1435,8 @@ export function TokenEditor({
         <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
           {isCreateMode
             ? createPresentation === "launcher"
-              ? "quick create"
-              : "new token"
+              ? "Quick create"
+              : "New token"
             : `in ${setName}`}
         </div>
       )}
@@ -1602,29 +1606,6 @@ export function TokenEditor({
           </button>
         </div>
       )}
-
-      {isCreateMode && createPresentation === "launcher" && (
-        <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                Start with the essentials
-              </div>
-              <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Set the path, type, and value here. Open the full editor when
-                you need metadata, lifecycle, or inheritance controls.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCreatePresentation("editor")}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)]"
-            >
-              Open full editor
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 
@@ -1674,7 +1655,7 @@ export function TokenEditor({
             onClick={() => setCreatePresentation("editor")}
             className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-default`}
           >
-            Full editor
+            Open full editor
           </button>
         )}
         {isCreateMode && onSaveAndCreateAnother && (
@@ -1774,6 +1755,43 @@ export function TokenEditor({
               </button>
             )}
           </div>
+        )}
+
+        {isCreateMode && createPresentation === "launcher" && (
+          <section className={QUICK_CREATE_SURFACE_CLASSES.section}>
+            <div className={QUICK_CREATE_SURFACE_CLASSES.titleBlock}>
+              <h3 className={QUICK_CREATE_SURFACE_CLASSES.title}>Start with the essentials</h3>
+              <p className={QUICK_CREATE_SURFACE_CLASSES.description}>
+                Set the path, type, and value here. Open the full editor when
+                you need metadata, lifecycle, or inheritance controls.
+              </p>
+            </div>
+            <div className={QUICK_CREATE_SURFACE_CLASSES.summaryCard}>
+              <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Set</span>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryValue}>{setName}</span>
+              </div>
+              <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Type</span>
+                <span
+                  className={`${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"} inline-flex shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide`}
+                >
+                  {tokenType}
+                </span>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryValue}>
+                  {aliasMode ? "Alias token" : "Direct value"}
+                </span>
+              </div>
+              <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>
+                  {quickCreateValueLabel}
+                </span>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryMono}>
+                  {quickCreateStoredValue}
+                </span>
+              </div>
+            </div>
+          </section>
         )}
 
         {activeProducingGenerator && !isCreateMode && (

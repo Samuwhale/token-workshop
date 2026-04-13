@@ -12,11 +12,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: Research audit: scripts/backlog/research/authoring-surface-layout-consistency-audit.md recommends making EditorShell the structural base for a shared authoring preset instead of leaving each surface to invent its own spacing and footer rules."
-state: ready
+  - "Completed: Added an EditorShell authoring preset with shared body/footer/split-layout classes, migrated token and generator surfaces onto it, and validated with focused eslint plus figma-plugin build."
+state: done
 acceptance_criteria:
   - A shared authoring shell contract defines header/body/footer spacing, typography, field sizing, and footer action behavior for create/edit/configure surfaces
   - All authoring surfaces can opt into the same 240px minimum, 320px target, and 600px split-view layout bands without duplicating class strings
   - EditorShell-based surfaces stop hand-rolling authoring-specific header/footer density values
 source: task-followup
 created_at: 2026-04-13T01:13:56.444Z
-updated_at: 2026-04-13T01:13:56.444Z
+updated_at: 2026-04-13T02:12:09.839Z

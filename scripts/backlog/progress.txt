@@ -1865,3 +1865,11 @@
   - Shared shell adoption lands more cleanly when `EditorShell` owns the chrome mode and surfaces consume named interior slot classes for body stacks, footer actions, and split layouts instead of retyping class strings.
   - Container-scoped `320px` and `600px` authoring bands are a better fit for Figma panels than viewport media queries because the same surface can live in a narrow plugin panel or a wider modal host.
 ---
+## 2026-04-13 - Refactor canvas quick-create and token quick-create launcher onto the shared authoring contract
+- Rebuilt canvas quick-create on the shared authoring shell density with a responsive max-width modal, shared footer action bands, and summary rows that wrap long layer/value content instead of widening the panel. Moved TokenEditor’s launcher intro into the authoring body stack, added the same summary treatment for set/type/stored value, and kept the full-editor affordance in the shared footer instead of a separate banner action.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/CanvasCreateTokenDialog.tsx packages/figma-plugin/src/ui/components/TokenEditor.tsx packages/figma-plugin/src/ui/components/quickCreateSurface.ts` passed with the pre-existing `react-hooks/exhaustive-deps` warning in `packages/figma-plugin/src/ui/components/TokenEditor.tsx:1121`. `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/quickCreateSurface.ts` ~L1; `packages/figma-plugin/src/ui/components/CanvasCreateTokenDialog.tsx` ~L3, ~L119, ~L173; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1370, ~L1435, ~L1612, ~L1760; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Quick-create surfaces stay consistent when the intro copy, summary rows, and footer actions all ride the same authoring-shell spacing contract instead of mixing banner chrome with modal-local padding.
+  - Stored values need explicit `break-words` or `break-all` treatment in narrow plugin panels because token JSON and references are longer than the panel width by default.
+---

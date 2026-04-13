@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ResolvedTokenValue } from '../../shared/types';
-import { ALL_BINDABLE_PROPERTIES } from '../../shared/types';
+import { ALL_BINDABLE_PROPERTIES, TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Spinner } from './Spinner';
 import { createTokenBody, upsertToken } from '../shared/tokenMutations';
 import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage, stableStringify, SET_NAME_RE } from '../shared/utils';
 import { getDefaultScopesForProperty } from './selectionInspectorUtils';
+import { AUTHORING_SURFACE_CLASSES } from './EditorShell';
+import { QUICK_CREATE_SURFACE_CLASSES } from './quickCreateSurface';
 
 export interface CanvasCreateDraftOption {
   property: string;
@@ -121,6 +123,10 @@ export function CanvasCreateTokenDialog({
       ? selectedOption.layerLabel
       : `${layerCount} layers from ${selectedOption.layerLabel}`;
   }, [selectedOption]);
+  const storedValueSummary = useMemo(() => {
+    if (!selectedOption) return '';
+    return stableStringify(selectedOption.tokenValue);
+  }, [selectedOption]);
 
   const handleCreate = async () => {
     if (!selectedOption || creating) return;
@@ -166,7 +172,7 @@ export function CanvasCreateTokenDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !creating) {
           onClose();
@@ -178,54 +184,73 @@ export function CanvasCreateTokenDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="canvas-create-token-title"
-        className="w-[360px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
+        className="tm-authoring-surface flex max-h-full w-full max-w-[360px] min-w-0 flex-col overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
       >
-        <div className="px-4 pt-4 pb-3">
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <h3 id="canvas-create-token-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                {draft.title}
-              </h3>
-              <p className="mt-1 text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                {draft.description}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              disabled={creating}
-              className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-40"
-              aria-label="Close"
+        <div className="tm-authoring-surface__header flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <h3
+              id="canvas-create-token-title"
+              className="text-[12px] font-semibold text-[var(--color-figma-text)]"
             >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" />
-              </svg>
-            </button>
+              {draft.title}
+            </h3>
+            <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              {draft.description}
+            </p>
           </div>
+          <button
+            onClick={onClose}
+            disabled={creating}
+            className="rounded p-1 text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-40"
+            aria-label="Close"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" />
+            </svg>
+          </button>
+        </div>
 
-          <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-              {dialogSummary}
-            </div>
-            {selectedOption && (
-              <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                <span>{selectedOption.propertyLabel}</span>
-                <span>·</span>
-                <span className="font-mono text-[var(--color-figma-text)]">
-                  {selectedOption.previewValue}
-                </span>
-                <span className="rounded bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] uppercase tracking-wide">
-                  {selectedOption.tokenType}
-                </span>
+        <div className={`${AUTHORING_SURFACE_CLASSES.bodyStack} min-h-0 flex-1 overflow-y-auto`}>
+          <section className={QUICK_CREATE_SURFACE_CLASSES.section}>
+            <div className={QUICK_CREATE_SURFACE_CLASSES.summaryCard}>
+              <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Layers</span>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryValue}>{dialogSummary}</span>
               </div>
-            )}
-          </div>
+              {selectedOption && (
+                <>
+                  <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
+                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Property</span>
+                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryValue}>
+                      {selectedOption.propertyLabel}
+                    </span>
+                    <span
+                      className={`${TOKEN_TYPE_BADGE_CLASS[selectedOption.tokenType] ?? 'token-type-string'} inline-flex shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide`}
+                    >
+                      {selectedOption.tokenType}
+                    </span>
+                  </div>
+                  <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
+                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Preview</span>
+                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryMono}>
+                      {selectedOption.previewValue}
+                    </span>
+                  </div>
+                  <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
+                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Stored</span>
+                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryMono}>
+                      {storedValueSummary}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
 
-          <div className="mt-3 flex flex-col gap-2.5">
+          <section className={QUICK_CREATE_SURFACE_CLASSES.section}>
             {hasMultipleOptions && (
-              <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                  Property
-                </span>
+              <label className={QUICK_CREATE_SURFACE_CLASSES.fieldStack}>
+                <span className={QUICK_CREATE_SURFACE_CLASSES.fieldLabel}>Property</span>
                 <select
                   value={String(selectedIndex)}
                   onChange={(event) => setSelectedIndex(Number(event.target.value))}
@@ -240,10 +265,8 @@ export function CanvasCreateTokenDialog({
               </label>
             )}
 
-            <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Target set
-              </span>
+            <label className={QUICK_CREATE_SURFACE_CLASSES.fieldStack}>
+              <span className={QUICK_CREATE_SURFACE_CLASSES.fieldLabel}>Target set</span>
               {hasMultipleSets ? (
                 <select
                   value={targetSet}
@@ -257,16 +280,14 @@ export function CanvasCreateTokenDialog({
                   ))}
                 </select>
               ) : (
-                <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)]">
+                <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] break-words">
                   {targetSet}
                 </div>
               )}
             </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Token path
-              </span>
+            <label className={QUICK_CREATE_SURFACE_CLASSES.fieldStack}>
+              <span className={QUICK_CREATE_SURFACE_CLASSES.fieldLabel}>Token path</span>
               <input
                 value={tokenPath}
                 onChange={(event) => {
@@ -277,37 +298,36 @@ export function CanvasCreateTokenDialog({
                 className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               />
             </label>
-          </div>
-
-          {selectedOption && (
-            <p className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-              Stored value: <span className="font-mono">{stableStringify(selectedOption.tokenValue)}</span>
-            </p>
-          )}
+          </section>
         </div>
 
-        {error && (
-          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words">
-            {error}
-          </p>
-        )}
-
-        <div className="flex gap-2 px-4 pb-4">
-          <button
-            onClick={onClose}
-            disabled={creating}
-            className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreate}
-            disabled={!selectedOption || !tokenPath.trim() || creating}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-          >
-            {creating && <Spinner size="sm" className="text-white" />}
-            {creating ? 'Creating…' : 'Create & bind'}
-          </button>
+        <div className="tm-authoring-surface__footer">
+          <div className={AUTHORING_SURFACE_CLASSES.footer}>
+            {error && (
+              <p className="text-[10px] text-[var(--color-figma-error)] break-words">
+                {error}
+              </p>
+            )}
+            <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+              <button
+                onClick={onClose}
+                disabled={creating}
+                className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50`}
+              >
+                Cancel
+              </button>
+              <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
+                <button
+                  onClick={handleCreate}
+                  disabled={!selectedOption || !tokenPath.trim() || creating}
+                  className="flex w-full items-center justify-center gap-1.5 rounded bg-[var(--color-figma-accent)] px-3 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >
+                  {creating && <Spinner size="sm" className="text-white" />}
+                  {creating ? 'Creating…' : 'Create & bind'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
