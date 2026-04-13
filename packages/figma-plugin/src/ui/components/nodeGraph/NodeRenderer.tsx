@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { GraphNode } from './nodeGraphTypes';
 import {
   NODE_WIDTH,

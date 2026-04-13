@@ -29,16 +29,23 @@ interface DetailPopoverProps {
   nodeScreenX: number;
   nodeScreenY: number;
   nodeWidth: number;
+  containerWidth: number;
+  containerHeight: number;
   onRun: (id: string) => void;
   onEdit: (id: string) => void;
   onViewTokens: (targetGroup: string, targetSet: string) => void;
 }
+
+const POPOVER_W = 224; // w-56
+const POPOVER_MAX_H = 240;
 
 function DetailPopover({
   generator,
   nodeScreenX,
   nodeScreenY,
   nodeWidth,
+  containerWidth,
+  containerHeight,
   onRun,
   onEdit,
   onViewTokens,
@@ -46,13 +53,21 @@ function DetailPopover({
   const lastRun = formatRelativeTime(generator.lastRunAt);
   const hasError = !!generator.lastRunError;
 
+  // Position to the right of the node; flip left if it would overflow
+  const rightEdge = nodeScreenX + nodeWidth + 8 + POPOVER_W;
+  const left = rightEdge <= containerWidth
+    ? nodeScreenX + nodeWidth + 8
+    : nodeScreenX - POPOVER_W - 8;
+  // Clamp vertically to stay within container
+  const top = Math.max(4, Math.min(nodeScreenY, containerHeight - POPOVER_MAX_H - 4));
+
   return (
     <div
       className="absolute z-50 w-56 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg p-2.5 text-[10px]"
       style={{
-        left: nodeScreenX + nodeWidth + 8,
-        top: nodeScreenY,
-        maxHeight: 240,
+        left,
+        top,
+        maxHeight: POPOVER_MAX_H,
         overflow: 'auto',
       }}
     >
@@ -118,7 +133,6 @@ function DetailPopover({
 export interface NodeGraphCanvasProps {
   generators: TokenGenerator[];
   activeSet: string;
-  onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   searchQuery?: string;
   onEditGenerator?: (generatorId: string) => void;
@@ -517,6 +531,8 @@ export function NodeGraphCanvas({
           nodeScreenX={popoverPos.x}
           nodeScreenY={popoverPos.y}
           nodeWidth={popoverPos.width}
+          containerWidth={containerSize.w}
+          containerHeight={containerSize.h}
           onRun={onRunGenerator}
           onEdit={onEditGenerator}
           onViewTokens={onViewTokens}

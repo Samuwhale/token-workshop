@@ -829,7 +829,6 @@ export function GraphPanel({
           <NodeGraphCanvas
             generators={filteredGenerators}
             activeSet={activeSet}
-            onRefresh={onRefresh}
             onPushUndo={onPushUndo}
             searchQuery={searchQuery}
             onEditGenerator={handleGraphEdit}

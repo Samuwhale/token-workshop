@@ -176,21 +176,6 @@ function computeDepths(generators: TokenGenerator[]): Map<string, number> {
   const depths = new Map<string, number>();
   const byId = new Map(generators.map(g => [g.id, g]));
 
-  // Build adjacency: upstream → downstream
-  const downstreamOf = new Map<string, string[]>();
-  for (const gen of generators) {
-    if (!gen.sourceToken) continue;
-    for (const other of generators) {
-      if (other.id === gen.id) continue;
-      if (gen.sourceToken.startsWith(other.targetGroup + '.')) {
-        const list = downstreamOf.get(other.id) ?? [];
-        list.push(gen.id);
-        downstreamOf.set(other.id, list);
-        break;
-      }
-    }
-  }
-
   function getDepth(id: string): number {
     if (depths.has(id)) return depths.get(id)!;
     const gen = byId.get(id)!;
