@@ -29,8 +29,9 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
   return (
     <div className={AUTHORING.generatorSection}>
       <div className={AUTHORING.generatorFieldStack}>
-        <label className={AUTHORING.generatorSummaryLabel}>Input column name</label>
+        <label htmlFor="step-where-input-column" className={AUTHORING.generatorSummaryLabel}>Input column name</label>
         <input
+          id="step-where-input-column"
           value={table.inputKey}
           onChange={e => updateInputKey(e.target.value)}
           placeholder="brandColor"
@@ -121,8 +122,9 @@ export function StepWhere({
 
       <div className={`${AUTHORING.generatorSectionCard} ${AUTHORING.generatorFieldGrid}`}>
         <div className={AUTHORING.generatorFieldStack}>
-          <label className={AUTHORING.generatorSummaryLabel}>Output path</label>
+          <label htmlFor="step-where-target-group" className={AUTHORING.generatorSummaryLabel}>Output path</label>
           <input
+            id="step-where-target-group"
             type="text"
             value={targetGroup}
             onChange={e => onTargetGroupChange(e.target.value)}
@@ -139,8 +141,9 @@ export function StepWhere({
           )}
         </div>
         <div className={AUTHORING.generatorFieldStack}>
-          <label className={AUTHORING.generatorSummaryLabel}>Recipe name</label>
+          <label htmlFor="step-where-recipe-name" className={AUTHORING.generatorSummaryLabel}>Recipe name</label>
           <input
+            id="step-where-recipe-name"
             type="text"
             value={name}
             onChange={e => onNameChange(e.target.value)}
@@ -156,8 +159,9 @@ export function StepWhere({
         <div className={AUTHORING.generatorFieldGrid}>
           {!isMultiBrand && (
             <div className={AUTHORING.generatorFieldStack}>
-              <label className={AUTHORING.generatorSummaryLabel}>Token set</label>
+              <label htmlFor="step-where-target-set" className={AUTHORING.generatorSummaryLabel}>Token set</label>
               <select
+                id="step-where-target-set"
                 value={targetSet}
                 onChange={e => onTargetSetChange(e.target.value)}
                 className={AUTHORING.generatorControl}
@@ -198,8 +202,9 @@ export function StepWhere({
           </div>
           <InputTableEditor table={inputTable} onChange={onInputTableChange} />
           <div className={AUTHORING.generatorFieldStack}>
-            <label className={AUTHORING.generatorSummaryLabel}>Set template</label>
+            <label htmlFor="step-where-set-template" className={AUTHORING.generatorSummaryLabel}>Set template</label>
             <input
+              id="step-where-set-template"
               type="text"
               value={targetSetTemplate}
               onChange={e => onTargetSetTemplateChange(e.target.value)}
