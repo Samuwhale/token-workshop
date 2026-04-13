@@ -745,8 +745,8 @@ export function TokenList({
     lsSet(STORAGE_KEYS.CONDENSED_VIEW, v ? "1" : "0");
   }, []);
 
-  // Multi-mode column view — show resolved values per theme option side-by-side
-  // Auto-enable when themes (dimensions) exist unless user explicitly opted out
+  // Multi-mode column view — show resolved values per mode variant side-by-side
+  // Auto-enable when modes (dimensions) exist unless user explicitly opted out
   const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
     const stored = lsGet("tm_multi_mode");
     if (stored !== null) return stored === "1";
@@ -2972,7 +2972,7 @@ export function TokenList({
         );
       if (thmImpacts)
         parts.push(
-          `affect ${thmImpacts.length} theme option${thmImpacts.length !== 1 ? "s" : ""}`,
+          `affect ${thmImpacts.length} mode variant${thmImpacts.length !== 1 ? "s" : ""}`,
         );
       return {
         title: `Delete "${name}"?`,
@@ -3002,7 +3002,7 @@ export function TokenList({
         );
       if (thmImpacts)
         parts.push(
-          `affect ${thmImpacts.length} theme option${thmImpacts.length !== 1 ? "s" : ""}`,
+          `affect ${thmImpacts.length} mode variant${thmImpacts.length !== 1 ? "s" : ""}`,
         );
       return {
         title: `Delete group "${deleteConfirm.name}"?`,
@@ -3026,7 +3026,7 @@ export function TokenList({
       );
     if (thmImpacts)
       parts.push(
-        `affect ${thmImpacts.length} theme option${thmImpacts.length !== 1 ? "s" : ""}`,
+        `affect ${thmImpacts.length} mode variant${thmImpacts.length !== 1 ? "s" : ""}`,
       );
     return {
       title: `Delete ${paths.length} token${paths.length !== 1 ? "s" : ""}?`,

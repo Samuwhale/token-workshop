@@ -1038,7 +1038,7 @@ export function SettingsPanel({
           <Section title="Guided setup" defaultOpen={false}>
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
               Run setup again to reconnect the server, rebuild foundations, or
-              reset theme work from a clean start.
+              reset mode configuration from a clean start.
             </p>
             <button
               onClick={onRestartGuidedSetup}
@@ -1239,7 +1239,7 @@ export function SettingsPanel({
                   </svg>
                   <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                     Restoring this backup reloads the plugin immediately.
-                    Unsaved token or theme edits, selection state, and expanded
+                    Unsaved token or mode edits, selection state, and expanded
                     panel state will be lost when the reload happens.
                   </p>
                 </div>

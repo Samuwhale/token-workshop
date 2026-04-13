@@ -2702,7 +2702,7 @@ export function App() {
     const activeEntries = dimensions
       .map((dimension) => activeThemes[dimension.id])
       .filter(Boolean);
-    return activeEntries.join(" · ") || "No theme applied";
+    return activeEntries.join(" · ") || "No mode applied";
   }, [activeThemes, dimensions]);
   const showExpandedTokenThemeBar =
     isTokenWorkspacePrimarySurface &&
@@ -3496,8 +3496,8 @@ export function App() {
                         <button
                           onClick={() => navigateTo("define", "themes")}
                           className="ml-auto px-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)]"
-                          title="Manage theme axes"
-                          aria-label="Manage theme axes"
+                          title="Manage modes"
+                          aria-label="Manage modes"
                         >
                           <svg
                             width="10"
@@ -3518,8 +3518,8 @@ export function App() {
                           <button
                             onClick={() => setDimBarExpanded(false)}
                             className="px-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text)]"
-                            title="Collapse theme controls"
-                            aria-label="Collapse theme controls"
+                            title="Collapse mode controls"
+                            aria-label="Collapse mode controls"
                           >
                             <svg
                               width="8"

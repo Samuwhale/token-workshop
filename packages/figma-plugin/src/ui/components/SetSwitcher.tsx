@@ -311,7 +311,7 @@ function SetPreflightCard({
           {impact.themeOptions.length > 0 && (
             <div className="flex flex-col gap-1">
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Theme options ({impact.themeOptions.length})
+                Mode variants ({impact.themeOptions.length})
               </div>
               <div className="flex flex-col gap-1">
                 {impact.themeOptions.map((themeImpact) => (
@@ -630,8 +630,8 @@ function ThemeBadges({ labels }: { labels: SetThemeLabel[] }) {
           }`}
           title={
             label.status === "enabled"
-              ? `Theme override: ${label.option}`
-              : `Theme base: ${label.option}`
+              ? `Mode override: ${label.option}`
+              : `Mode shared: ${label.option}`
           }
         >
           {label.option}

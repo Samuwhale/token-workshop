@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
+import { QuickModeCreator } from './QuickModeCreator';
 
 export const FIGMA_SCOPES: Record<string, { label: string; value: string; description: string }[]> = {
   color: [
@@ -392,8 +393,10 @@ export interface ModeValuesEditorProps {
   value: any;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
-  /** Navigate to the Themes workspace to configure modes */
+  /** Navigate to the Modes workspace to configure modes */
   onNavigateToThemes?: () => void;
+  /** Quick-create a mode inline without leaving the token editor */
+  onQuickCreateMode?: (modeName: string, variantNames: string[]) => Promise<void>;
 }
 
 export function ModeValuesEditor({
@@ -407,10 +410,27 @@ export function ModeValuesEditor({
   allTokensFlat = {},
   pathToSet = {},
   onNavigateToThemes,
+  onQuickCreateMode,
 }: ModeValuesEditorProps) {
   const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
   const setCount = Object.values(modeValues).filter(v => v !== '' && v !== undefined && v !== null).length;
   const hasTokens = Object.keys(allTokensFlat).length > 0;
+
+  if (dimensions.length === 0) {
+    if (!onQuickCreateMode) return null;
+    return (
+      <div className="rounded-lg border border-[var(--color-figma-border)] overflow-hidden">
+        <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            Values by mode
+          </span>
+        </div>
+        <div className="px-3 py-2">
+          <QuickModeCreator onCreateMode={onQuickCreateMode} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-[var(--color-figma-border)] overflow-hidden">
@@ -428,7 +448,7 @@ export function ModeValuesEditor({
               onClick={onNavigateToThemes}
               className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
             >
-              Configure
+              Edit modes
             </button>
           )}
         </span>

@@ -448,8 +448,10 @@ interface TokenEditorProps {
   onNavigateToGenerator?: (generatorId: string) => void;
   /** Open the shared Tokens > Library generator editor contextual surface. */
   onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
-  /** Navigate to Themes workspace to configure modes */
+  /** Navigate to Modes workspace to configure modes */
   onNavigateToThemes?: () => void;
+  /** Quick-create a mode inline without leaving the token editor */
+  onQuickCreateMode?: (modeName: string, variantNames: string[]) => Promise<void>;
   /** Push an undo slot after a successful token save or create */
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
@@ -560,6 +562,7 @@ export function TokenEditor({
   onNavigateToGenerator,
   onOpenGeneratorEditor,
   onNavigateToThemes,
+  onQuickCreateMode,
   pushUndo,
 }: TokenEditorProps) {
   // 1. Fields hook — all editable state
@@ -1903,23 +1906,22 @@ export function TokenEditor({
           />
         )}
 
-        {/* Per-mode values — shown prominently when theme dimensions exist */}
-        {dimensions.length > 0 && (
-          <ModeValuesEditor
-            dimensions={dimensions}
-            modeValues={modeValues}
-            onModeValuesChange={setModeValues}
-            tokenType={tokenType}
-            aliasMode={aliasMode}
-            reference={reference}
-            value={value}
-            allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
-            onNavigateToThemes={onNavigateToThemes}
-          />
-        )}
+        {/* Per-mode values — always shown; QuickModeCreator when no modes exist */}
+        <ModeValuesEditor
+          dimensions={dimensions}
+          modeValues={modeValues}
+          onModeValuesChange={setModeValues}
+          tokenType={tokenType}
+          aliasMode={aliasMode}
+          reference={reference}
+          value={value}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onNavigateToThemes={onNavigateToThemes}
+          onQuickCreateMode={onQuickCreateMode}
+        />
 
-        {/* Details — Modifiers, Extends, Metadata, Scopes, Lifecycle, Theme values */}
+        {/* Details — Modifiers, Extends, Metadata, Scopes, Lifecycle, Mode values */}
         {showAdvancedCreateFields && (
           <Collapsible
             open={detailsOpen}

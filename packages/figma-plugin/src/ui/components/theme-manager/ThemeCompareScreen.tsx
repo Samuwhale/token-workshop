@@ -56,11 +56,11 @@ export function ThemeCompareScreen({
           <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
             {compareFocusDimension
               ? `Compare from ${compareFocusDimension.name}`
-              : "Compare in theme context"}
+              : "Compare in mode context"}
           </p>
           <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
             {compareFocusDimension && compareFocusOptionName
-              ? `Theme option comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this context.`
+              ? `Mode comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this context.`
               : "Compare launches from Advanced setup so you can inspect alternatives without reopening the simple authoring flow."}
           </p>
         </div>

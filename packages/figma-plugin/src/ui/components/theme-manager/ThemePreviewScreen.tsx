@@ -113,7 +113,7 @@ export function ThemePreviewScreen({
         <div className="flex items-start justify-between gap-3 px-3 py-2.5">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              Theme preview
+              Mode preview
             </p>
             <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
               Review the resolved token combination without crowding the role
@@ -142,7 +142,7 @@ export function ThemePreviewScreen({
         </div>
         <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
           <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {activeSelectionLabel || "No active theme option selection"}
+            {activeSelectionLabel || "No active mode variant selection"}
           </div>
         </div>
       </div>

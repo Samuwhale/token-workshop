@@ -134,7 +134,7 @@ function CreateOverrideSetModal({
       setNameError('Use only letters, numbers, dashes, underscores, or / for folders');
       return;
     }
-    if (!optionName) { setNameError('Select a theme option'); return; }
+    if (!optionName) { setNameError('Select a mode variant'); return; }
     setNameError('');
     await onExecute({ newName: trimmed, optionName, startEmpty });
   };
@@ -166,10 +166,10 @@ function CreateOverrideSetModal({
           <FieldMessage error={nameError} />
         </div>
 
-        {/* Theme option selector */}
+        {/* Mode variant selector */}
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-            Link to theme option (as Override)
+            Link to mode variant (as Override)
           </label>
           {dim ? (
             <select

@@ -14,7 +14,7 @@ function getBannerDescription(context: ThemeResolverAuthoringContext): string {
     if (context.autoSelected && context.resolverCount > 1) {
       return "Showing the closest resolver match because no resolver is currently selected.";
     }
-    return "The current theme families and selected variants align with this resolver.";
+    return "The current modes and selected variants align with this resolver.";
   }
 
   const reviewTargets: string[] = [];

@@ -600,6 +600,50 @@ export function PanelRouter(): ReactNode {
         onNavigateToGenerator: controller.handleNavigateToGenerator,
         onOpenGeneratorEditor: openGeneratorEditor,
         onNavigateToThemes: () => navigateTo("define", "themes"),
+        onQuickCreateMode: async (modeName: string, variantNames: string[]) => {
+          const dimId = modeName
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+          // Create the dimension
+          const dimRes = await fetch(`${serverUrl}/api/themes/dimensions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: dimId, name: modeName }),
+          });
+          if (!dimRes.ok) {
+            const err = await dimRes.json().catch(() => ({ error: "Failed" }));
+            throw new Error(err.error || "Failed to create mode");
+          }
+          // Create each option, auto-assigning current active set as "source"
+          const autoSets: Record<string, string> = {};
+          for (const s of sets) {
+            autoSets[s] = "source";
+          }
+          for (const variantName of variantNames) {
+            const optRes = await fetch(
+              `${serverUrl}/api/themes/dimensions/${dimId}/options`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: variantName, sets: autoSets }),
+              },
+            );
+            if (!optRes.ok) {
+              const err = await optRes.json().catch(() => ({ error: "Failed" }));
+              throw new Error(
+                err.error || `Failed to create variant "${variantName}"`,
+              );
+            }
+          }
+          // Refresh dimensions so the token editor picks up the new modes
+          const dimsRes = await fetch(`${serverUrl}/api/themes`);
+          if (dimsRes.ok) {
+            const data = await dimsRes.json();
+            setDimensions(data.dimensions ?? []);
+          }
+        },
       }
     : null;
 
@@ -1292,7 +1336,7 @@ export function PanelRouter(): ReactNode {
       <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Themes"
+            panelName="Modes"
             onReset={() => navigateTo("define", "tokens")}
           >
             <ThemeManager

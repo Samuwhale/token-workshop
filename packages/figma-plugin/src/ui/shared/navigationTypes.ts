@@ -83,7 +83,7 @@ export const TOP_TABS: {
     label: "Define",
     subTabs: [
       { id: "tokens", label: "Tokens" },
-      { id: "themes", label: "Themes" },
+      { id: "themes", label: "Modes" },
       { id: "generators", label: "Generators" },
     ],
   },
@@ -794,7 +794,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "themes",
-        "Open Themes next. Multiple imported variable collections usually need theme structure before you fine-tune individual tokens.",
+        "Open Modes next. Multiple imported variable collections usually need mode structure before you fine-tune individual tokens.",
       ),
     );
   }

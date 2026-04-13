@@ -253,7 +253,7 @@ export function ThemeOptionWorkspace({
       {/* Compact assignment rows */}
       <div className="border-b border-[var(--color-figma-border)] py-1">
         {renderCompactAssignment(
-          "Base",
+          "Shared",
           foundationSets,
           pendingSharedSet,
           sharedCandidates,

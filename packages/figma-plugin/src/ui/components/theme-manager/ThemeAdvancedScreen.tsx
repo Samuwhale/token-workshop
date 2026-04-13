@@ -251,8 +251,8 @@ function ThemeAdvancedSetupScreen({
               Stay in simple authoring
             </p>
             <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Use the default theme workflow for base sets, variant-specific
-              sets, coverage review, and preview.
+              Use the default mode workflow for shared sets, override sets,
+              coverage review, and preview.
             </p>
           </div>
           <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-2.5 py-2">
@@ -413,7 +413,7 @@ function ThemeResolverScreen({
     <>
       <AdvancedScreenHeader
         title="Advanced resolver setup"
-        description="Keep everyday light/dark, brand, and density authoring in theme families. Move here only when publish output needs custom resolution order, modifier defaults, or contexts that do not map cleanly to those families."
+        description="Keep everyday light/dark, brand, and density authoring in modes. Move here only when publish output needs custom resolution order, modifier defaults, or contexts that do not map cleanly to those modes."
         backLabel="Back to advanced setup"
         onBack={onBack}
       />

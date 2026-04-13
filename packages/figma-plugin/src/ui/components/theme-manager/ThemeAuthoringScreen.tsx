@@ -623,14 +623,14 @@ export const ThemeAuthoringScreen = forwardRef<
                 })}
                 {dimSearch && filteredDimensions.length === 0 && (
                   <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No families or variants matching &ldquo;{dimSearch}&rdquo;
+                    No modes matching &ldquo;{dimSearch}&rdquo;
                   </div>
                 )}
                 {dimSearch &&
                   filteredDimensions.length > 0 &&
                   filteredDimensions.length < dimensions.length && (
                     <div className="px-3 py-1 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      Showing {filteredDimensions.length} of {dimensions.length} families
+                      Showing {filteredDimensions.length} of {dimensions.length} modes
                     </div>
                   )}
               </div>

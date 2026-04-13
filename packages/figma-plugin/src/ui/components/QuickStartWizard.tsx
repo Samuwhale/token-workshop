@@ -42,7 +42,7 @@ interface QuickStartWizardProps {
 const STEPS: { step: WizardStep; label: string }[] = [
   { step: 1, label: 'Foundations' },
   { step: 2, label: 'Semantics' },
-  { step: 3, label: 'Themes' },
+  { step: 3, label: 'Modes' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -231,7 +231,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
         </div>
         <div>
-          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Theme axis created</p>
+          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Mode created</p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
             "{dimName}" with "{lightName}" and "{darkName}" options
           </p>
@@ -596,9 +596,9 @@ export function QuickStartWizard({
           {currentStep === 3 && (
             <div className="p-4 flex flex-col gap-3">
               <div>
-                <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add theme modes</p>
+                <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add modes</p>
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                  Create a theme axis such as light and dark so your token system can switch across contexts.
+                  Create a mode such as light and dark so your token system can switch across contexts.
                 </p>
               </div>
               <ThemeStep

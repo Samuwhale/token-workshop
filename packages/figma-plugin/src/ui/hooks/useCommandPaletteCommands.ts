@@ -285,9 +285,9 @@ export function useCommandPaletteCommands(): {
         ? [
             {
               id: "autofill-theme-gaps",
-              label: "Auto-fill theme gaps",
+              label: "Auto-fill mode gaps",
               description: `Fill ${themes.themeGapCount} missing token value${themes.themeGapCount !== 1 ? "s" : ""} from source sets`,
-              category: "Themes" as const,
+              category: "Modes" as const,
               handler: () => {
                 navigateTo("define", "themes");
                 setTimeout(() => {
@@ -359,9 +359,9 @@ export function useCommandPaletteCommands(): {
         ? [
             {
               id: "compare-theme-options",
-              label: "Compare theme options…",
-              description: "Open a side-by-side diff across theme options",
-              category: "Themes" as const,
+              label: "Compare mode variants…",
+              description: "Open a side-by-side diff across mode variants",
+              category: "Modes" as const,
               handler: () => {
                 themes.themeManagerHandleRef.current?.navigateToCompare(
                   "theme-options",
@@ -377,7 +377,7 @@ export function useCommandPaletteCommands(): {
           id: `compare-dim-${dimension.id}`,
           label: `Compare ${dimension.name}: ${dimension.options[0].name} vs ${dimension.options[1].name}`,
           description: `See token differences across ${dimension.name} options`,
-          category: "Themes" as const,
+          category: "Modes" as const,
           handler: () => {
             themes.themeManagerHandleRef.current?.navigateToCompare(
               "theme-options",
@@ -485,10 +485,10 @@ export function useCommandPaletteCommands(): {
         ? [
             {
               id: "compare-across-themes",
-              label: `Compare across themes: ${highlightedToken}`,
+              label: `Compare across modes: ${highlightedToken}`,
               description:
-                "See how this token’s value varies across all theme options",
-              category: "Themes" as const,
+                "See how this token’s value varies across all mode variants",
+              category: "Modes" as const,
               handler: () =>
                 tokens.handleOpenCrossThemeCompare(highlightedToken),
             },
@@ -498,10 +498,10 @@ export function useCommandPaletteCommands(): {
         ? [
             {
               id: "compare-across-themes-pick",
-              label: "Compare token across themes…",
+              label: "Compare token across modes…",
               description:
-                "Focus a token first, then run this command to compare its values across theme options",
-              category: "Themes" as const,
+                "Focus a token first, then run this command to compare its values across mode variants",
+              category: "Modes" as const,
               handler: () => {
                 themes.themeManagerHandleRef.current?.navigateToCompare(
                   "cross-theme",
