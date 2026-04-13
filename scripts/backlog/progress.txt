@@ -2181,3 +2181,19 @@
   - Large workflow providers should split along the user-facing stages they coordinate; nested memoized contexts are easier to reason about than one provider that mixes source intake, destination mapping, conflict review, and result recovery.
   - For view components that still need multiple import slices, keep the split at the call site instead of rebuilding an aggregate hook; the root shell can compose the stage decisions without reintroducing the monolithic contract.
 ---
+## 2026-04-13 - interface-pass
+- Areas explored: HealthPanel.tsx (audit report section header, collapsed state, summary card), CompareView.tsx (mode selector, empty states, TokenValuesMode), ExportPanel.tsx (mode toggle, description text, repo section), ConsistencyPanel.tsx (category headers, scan results layout), SetSwitcher.tsx (dialog components)
+- Interface themes: minimalism (redundant count information between description prose and filter buttons), chrome discipline (collapsed-state placeholder copy that explains visible affordances)
+- Found 1 item — written to backlog/inbox.jsonl
+- Considered but rejected: CompareView mode selector 'Compare:' label — functional but small cosmetic issue; 2 of 4 modes show external prerequisite instructions but this is a task-flow observation not a navigation clarity gap. ConsistencyPanel uppercase+tracking-wide category headers — the grouping labels carry genuine content but violate CLAUDE.md visual treatment guidance; the screen is otherwise clean and this is a cosmetic fix below the consolidated-screen-cleanup quality bar. ExportPanel mode description paragraphs — useful clarification for the 'Figma Variables' mode label ambiguity; earns its place. SetSwitcher dialogs — complex but no clear hierarchy or findability issue identified from the visible JSX.
+- Notable: HealthPanel's audit report section is the only panel section in the codebase that states the same severity counts in two separate UI layers simultaneously (description prose and filter button labels), making the header the most information-dense section header in the plugin while conveying less unique information than its length suggests.
+---
+## 2026-04-13 - HealthPanel audit report section header restates severity counts already shown by filter buttons and adds unnecessary collapsed-state placeholder copy
+- Compressed the audit report header into a single control row by removing the duplicate summary paragraph, keeping the stale/success pills next to the title, and moving the last-validated timestamp into small tertiary text beside the severity filters and Tools action.
+- Removed the collapsed-state placeholder so the section body stays empty when the audit report is closed.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/HealthPanel.tsx` passed with pre-existing unused-variable warnings in `HealthPanel.tsx` at lines 781, 966, 990, 993, 1000, 1006, 1031, 1044, and 1051.
+- Files changed: `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L1412, ~L1437, ~L1792; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Dense section headers should rely on one compact status layer; if filter chips already carry the counts, keep supporting metadata to terse tertiary text instead of adding a second prose summary.
+  - Collapsed containers in the plugin generally read better when the affordance itself does the explaining; placeholder copy after collapse adds chrome without adding state clarity.
+---

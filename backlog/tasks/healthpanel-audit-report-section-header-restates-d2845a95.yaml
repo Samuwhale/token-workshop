@@ -1,0 +1,20 @@
+id: healthpanel-audit-report-section-header-restates-d2845a95
+title: HealthPanel audit report section header restates severity counts already shown by filter buttons and adds unnecessary collapsed-state placeholder copy
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/HealthPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Minimalism and hierarchy: the description paragraph at lines 1438-1444 states 'N error, N warning, N info' in prose — the exact counts already visible in the 'error (N)', 'warning (N)', 'info (N)' filter buttons. The redundant layer weakens the signal of both. The 'Report collapsed' placeholder at line 1806 adds explanatory chrome that describes what the existing chevron already communicates, contributing noise to a section header that is already the most control-dense in the panel."
+state: ready
+acceptance_criteria:
+  - "Audit report section header contains: expand chevron, title, stale/success pill, severity filter buttons (all / error(N) / warning(N) / info(N)), and Tools — no separate description paragraph restating the same N error / N warning / N info counts"
+  - If a 'last validated' timestamp is kept, it appears as small tertiary text alongside the filter buttons or inside the Tools drawer, not as a full prose sentence in the header
+  - When the section is collapsed the body area shows nothing — no 'Report collapsed. Expand to inspect…' placeholder copy
+  - Section header reads as a single compact row at all states; no competing text blocks carrying duplicate count information
+source: interface-pass
+created_at: 2026-04-13T06:23:58.893Z
+updated_at: 2026-04-13T06:23:58.893Z

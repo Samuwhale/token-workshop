@@ -1404,12 +1404,12 @@ export function HealthPanel({
                 className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2"
               >
                 <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                  <div className="flex flex-wrap items-start justify-between gap-2 px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
                     <button
                       onClick={() =>
                         setValidationReportExpanded((current) => !current)
                       }
-                      className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
                       aria-expanded={validationReportExpanded}
                     >
                       <svg
@@ -1417,34 +1417,29 @@ export function HealthPanel({
                         height="8"
                         viewBox="0 0 8 8"
                         fill="currentColor"
-                        className={`mt-1 shrink-0 transition-transform ${validationReportExpanded ? "rotate-90" : ""}`}
+                        className={`shrink-0 transition-transform ${validationReportExpanded ? "rotate-90" : ""}`}
                         aria-hidden="true"
                       >
                         <path d="M2 1l4 3-4 3V1z" />
                       </svg>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                            Audit report
-                          </span>
-                          {validationIsStale && (
-                            <NoticePill severity="stale">Stale</NoticePill>
-                          )}
-                          {(activeIssues?.length ?? 0) === 0 ? (
-                            <NoticePill severity="success">All clear</NoticePill>
-                          ) : null}
-                        </div>
-                        <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                          {(activeIssues?.length ?? 0) === 0
-                            ? "No validation issues in the current audit."
-                            : `${severityCounts?.error ?? 0} error${severityCounts?.error === 1 ? "" : "s"}, ${severityCounts?.warning ?? 0} warning${severityCounts?.warning === 1 ? "" : "s"}, ${severityCounts?.info ?? 0} info.`}
-                          {lastRefreshed
-                            ? ` Updated ${formatValidatedAt(lastRefreshed)}.`
-                            : ""}
-                        </p>
+                      <div className="flex min-w-0 flex-1 items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                          Audit report
+                        </span>
+                        {validationIsStale && (
+                          <NoticePill severity="stale">Stale</NoticePill>
+                        )}
+                        {(activeIssues?.length ?? 0) === 0 ? (
+                          <NoticePill severity="success">All clear</NoticePill>
+                        ) : null}
                       </div>
                     </button>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      {lastRefreshed ? (
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                          Updated {formatValidatedAt(lastRefreshed)}
+                        </span>
+                      ) : null}
                       {(["all", "error", "warning", "info"] as const).map((f) => {
                         const filterSeverity: NoticeSeverity =
                           f === "all" ? "info" : f;
@@ -1801,11 +1796,7 @@ export function HealthPanel({
                       );
                     })}
                   </div>
-                ) : (
-                  <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Report collapsed. Expand to inspect grouped issues and actions.
-                  </div>
-                )}
+                ) : null}
               </div>
             )}
 
