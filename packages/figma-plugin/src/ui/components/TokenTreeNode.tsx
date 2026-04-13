@@ -734,7 +734,7 @@ function MultiModeCell({
   return (
     <div
       ref={cellRef}
-      className="w-[80px] shrink-0 px-1 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
+      className="w-[48px] shrink-0 px-0.5 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
       title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ""}`}
     >
       {!value ? (
@@ -744,7 +744,7 @@ function MultiModeCell({
       ) : isColor ? (
         <>
           <span
-            className={`w-5 h-5 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]" : ""}`}
+            className={`w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]" : ""}`}
             style={{ backgroundColor: value.$value as string }}
             onClick={
               canEdit
@@ -1047,9 +1047,9 @@ const TokenGroupNode = memo(
             className: "text-[var(--color-figma-text-tertiary)] opacity-60",
           }
         : {
-            label: `${leafCount} token${leafCount === 1 ? "" : "s"}`,
+            label: `${leafCount}`,
             title: `${leafCount} token${leafCount === 1 ? "" : "s"} in this group`,
-            className: "text-[var(--color-figma-text-secondary)]",
+            className: "text-[var(--color-figma-text-tertiary)]",
           };
 
     // Build a stable map of child path → filtered lint violations so we don't create
@@ -1133,7 +1133,7 @@ const TokenGroupNode = memo(
           data-group-path={node.path}
           data-node-name={node.name}
           onFocus={() => onGroupRovingFocus(node.path)}
-          className={`relative flex items-center gap-1 px-2 ${pyClass} cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group token-row-hover bg-[var(--color-figma-bg)] ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
+          className={`relative flex items-center gap-1 px-1.5 ${pyClass} cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group token-row-hover bg-[var(--color-figma-bg)] ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
           data-roving-focus={groupRovingFocusPath === node.path || undefined}
           style={{
             paddingLeft: `${computePaddingLeft(depth, condensedView, 8)}px`,
@@ -1290,11 +1290,10 @@ const TokenGroupNode = memo(
             themeCoverageSummary &&
             themeCoverageSummary.total > 0 && (
               <span
-                className={`ml-1 shrink-0 text-[10px] ${themeCoverageSummary.themed === themeCoverageSummary.total ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-text-tertiary)]"}`}
+                className={`shrink-0 text-[9px] ${themeCoverageSummary.themed === themeCoverageSummary.total ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-text-tertiary)]"}`}
                 title={`${themeCoverageSummary.themed} of ${themeCoverageSummary.total} tokens have themed overrides`}
               >
-                {themeCoverageSummary.themed}/{themeCoverageSummary.total}{" "}
-                themed
+                {themeCoverageSummary.themed}/{themeCoverageSummary.total}
               </span>
             )}
           {!renamingGroup &&
@@ -1319,9 +1318,10 @@ const TokenGroupNode = memo(
                       ? `${managedGeneratorLeafCount} managed token${managedGeneratorLeafCount === 1 ? "" : "s"} — edit ${targetGenerator.name}`
                       : `${managedGeneratorLeafCount} managed token${managedGeneratorLeafCount === 1 ? "" : "s"}`
                   }
-                  className={`inline-flex items-center px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} font-medium shrink-0 ml-0.5 bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-secondary)]${canEdit ? ` ${INTERACTIVE_BADGE_HIT_AREA_CLASS} cursor-pointer hover:bg-[var(--color-figma-accent)]/20 hover:text-[var(--color-figma-accent)]` : ""}`}
+                  className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} font-medium shrink-0 bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-tertiary)]${canEdit ? ` ${INTERACTIVE_BADGE_HIT_AREA_CLASS} cursor-pointer hover:bg-[var(--color-figma-accent)]/20 hover:text-[var(--color-figma-accent)]` : ""}`}
                 >
-                  {managedGeneratorLeafCount} managed
+                  <GeneratorGlyph size={6} className="shrink-0" />
+                  {managedGeneratorLeafCount}
                 </Tag>
               );
             })()}
@@ -2734,8 +2734,8 @@ const TokenLeafNode = memo(
           onKeyDown={handleRowKeyDown}
         >
           <div
-            className="flex items-center gap-2 flex-1 min-w-0 pr-2"
-            style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 20)}px` }}
+            className="flex items-center gap-1.5 flex-1 min-w-0 pr-1"
+            style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 14)}px` }}
           >
           <DepthBar depth={depth} />
           {/* Drag reorder indicator line */}
@@ -2842,7 +2842,7 @@ const TokenLeafNode = memo(
             ]
               .filter(Boolean)
               .join("\n")}
-            className={`flex-1 min-w-0${!selectMode ? " cursor-pointer" : ""}`}
+            className={`shrink min-w-0${!selectMode ? " cursor-pointer" : ""}`}
             onClick={(e) => {
               if (selectMode || e.ctrlKey || e.metaKey) {
                 e.stopPropagation();
@@ -2875,7 +2875,7 @@ const TokenLeafNode = memo(
             }
             style={selectMode ? { cursor: "pointer" } : undefined}
           >
-            <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+            <div className="flex items-center gap-1 min-w-0 overflow-hidden">
               <CondensedAncestorBreadcrumb
                 nodePath={node.path}
                 nodeName={node.name}
@@ -2956,7 +2956,7 @@ const TokenLeafNode = memo(
                     </span>
                   )}
                   <span
-                    className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-figma-text)]"
+                    className="min-w-0 shrink truncate text-[11px] text-[var(--color-figma-text)]"
                     title={formatDisplayPath(node.path, node.name)}
                   >
                     {highlightMatch(
@@ -2975,7 +2975,7 @@ const TokenLeafNode = memo(
                     onFilterByType?.(node.$type!);
                   }}
                   title={`Filter by type: ${node.$type}`}
-                  className={`inline-flex items-center justify-center px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} font-medium ${INTERACTIVE_BADGE_HIT_AREA_CLASS} ${TOKEN_TYPE_BADGE_CLASS[node.$type ?? ""] ?? "token-type-string"} cursor-pointer transition-opacity hover:opacity-70 hover:ring-1 hover:ring-current/40`}
+                  className={`inline-flex items-center justify-center px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} font-medium ${INTERACTIVE_BADGE_HIT_AREA_CLASS} ${TOKEN_TYPE_BADGE_CLASS[node.$type ?? ""] ?? "token-type-string"} cursor-pointer transition-opacity hover:ring-1 hover:ring-current/40 ${isRowActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                 >
                   {node.$type}
                 </button>
@@ -3273,15 +3273,15 @@ const TokenLeafNode = memo(
                   else onEdit(node.path, node.name);
                 }}
                 title={tokenStatus.title}
-                className={`ml-1 shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 ${BADGE_TEXT_CLASS} font-medium ${tokenStatus.toneClass} ${tokenStatus.kind === "lint" ? "bg-current/10" : ""}`}
+                className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass} ${isRowActive ? "opacity-100" : "opacity-60 group-hover:opacity-100"}`}
               >
                 <svg
-                  width="10"
-                  height="10"
+                  width="8"
+                  height="8"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   aria-hidden="true"
@@ -3291,13 +3291,13 @@ const TokenLeafNode = memo(
               </button>
             ) : (
               <span
-                className={`ml-1 shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 ${BADGE_TEXT_CLASS} font-medium ${tokenStatus.toneClass} ${tokenStatus.kind === "applied" ? "bg-[var(--color-figma-success)]/10" : tokenStatus.kind === "sync" ? "bg-[var(--color-figma-warning)]/10" : "bg-[var(--color-figma-accent)]/10"}`}
+                className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass}`}
                 title={tokenStatus.title}
               >
                 {tokenStatus.kind === "applied" ? (
                   <svg
-                    width="10"
-                    height="10"
+                    width="8"
+                    height="8"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -3312,13 +3312,13 @@ const TokenLeafNode = memo(
                   </svg>
                 ) : tokenStatus.kind === "sync" ? (
                   <span
-                    className="h-2 w-2 rounded-full bg-current"
+                    className="h-1.5 w-1.5 rounded-full bg-current"
                     aria-hidden="true"
                   />
                 ) : (
                   <svg
-                    width="10"
-                    height="10"
+                    width="8"
+                    height="8"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"

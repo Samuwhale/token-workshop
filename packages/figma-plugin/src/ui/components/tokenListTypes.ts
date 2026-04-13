@@ -50,7 +50,7 @@ export const DENSITY_PY_CLASS: Record<Density, string> = {
 // ---------------------------------------------------------------------------
 
 /** Single source of truth for indentation per nesting level (px) */
-export const INDENT_PER_LEVEL = 16;
+export const INDENT_PER_LEVEL = 12;
 
 /** Maximum depth shown as distinct indent levels when condensed view is on */
 export const CONDENSED_MAX_DEPTH = 3;

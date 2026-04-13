@@ -4159,7 +4159,7 @@ export function TokenList({
               {multiModeData.results.map((r) => (
                 <div
                   key={r.optionName}
-                  className="w-[80px] shrink-0 px-1 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate border-l border-[var(--color-figma-border)]"
+                  className="w-[48px] shrink-0 px-0.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate border-l border-[var(--color-figma-border)]"
                   title={r.optionName}
                 >
                   {r.optionName}
