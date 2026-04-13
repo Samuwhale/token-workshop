@@ -14,6 +14,7 @@ import type {
   ContrastCheckConfig,
   GeneratedTokenResult,
 } from "../hooks/useGenerators";
+import { getGeneratorDashboardStatus } from "../hooks/useGenerators";
 import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { TokenGeneratorDialog } from "./TokenGeneratorDialog";
@@ -69,6 +70,60 @@ export function getGeneratorStepCount(generator: TokenGenerator): number {
   const steps = cfg.steps;
   if (Array.isArray(steps)) return steps.length;
   return 0;
+}
+
+function formatRelativeTimestamp(value?: string): string | null {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return null;
+  const diffMs = Date.now() - time;
+  const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
+  if (diffMinutes < 1) return "just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+function DependencyChips({
+  label,
+  dependencies,
+  tone = "neutral",
+}: {
+  label: string;
+  dependencies: NonNullable<TokenGenerator["upstreamGenerators"]>;
+  tone?: "neutral" | "warning" | "danger";
+}) {
+  if (dependencies.length === 0) return null;
+
+  const toneClass =
+    tone === "danger"
+      ? "border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/8 text-[var(--color-figma-error)]"
+      : tone === "warning"
+        ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-700 dark:text-yellow-300"
+        : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]";
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">
+        {label}
+      </span>
+      {dependencies.slice(0, 3).map((dependency) => (
+        <span
+          key={dependency.id}
+          className={`text-[9px] px-1.5 py-px rounded-full border ${toneClass}`}
+        >
+          {dependency.name}
+        </span>
+      ))}
+      {dependencies.length > 3 && (
+        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+          +{dependencies.length - 3} more
+        </span>
+      )}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -998,10 +1053,25 @@ export function GeneratorPipelineCard({
   const stepCount = getGeneratorStepCount(generator);
   const semanticAliasCount = generator.semanticLayer?.mappings.length ?? 0;
   const typeLabel = getGeneratorTypeLabel(generator.type);
+  const status = getGeneratorDashboardStatus(generator);
   const isEnabled = generator.enabled !== false;
-  const hasError = !!generator.lastRunError;
-  const isStale = !!generator.isStale && !hasError;
+  const hasError = status === "failed" || status === "blocked";
+  const isStale = status === "stale";
+  const isBlocked = status === "blocked";
   const overrideCount = Object.keys(generator.overrides ?? {}).length;
+  const upstreamGenerators = generator.upstreamGenerators ?? [];
+  const downstreamGenerators = generator.downstreamGenerators ?? [];
+  const blockedByGenerators = generator.blockedByGenerators ?? [];
+  const lastRunContext =
+    generator.lastRunSummary?.message ??
+    generator.staleReason ??
+    (status === "neverRun"
+      ? "Run this generator to create its managed outputs."
+      : undefined);
+  const lastRunTimeLabel = formatRelativeTimestamp(generator.lastRunSummary?.at);
+  const showDependencyAttention =
+    (isStale || hasError) &&
+    (blockedByGenerators.length > 0 || downstreamGenerators.length > 0);
   const hasSecondaryActionOpen =
     !!previewDiff || showStepOverrides || showQuickEdit || showClonePanel;
   const getViewTokensToastAction = React.useCallback(
@@ -1299,7 +1369,7 @@ export function GeneratorPipelineCard({
       ref={
         isFocused ? (focusRef as React.LegacyRef<HTMLDivElement>) : undefined
       }
-      className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${!isEnabled ? "opacity-60 border-[var(--color-figma-border)] border-dashed" : hasError ? "border-[var(--color-figma-error)]" : isStale ? "border-yellow-400/70" : isFocused ? "border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40" : "border-[var(--color-figma-border)]"}`}
+      className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${!isEnabled ? "opacity-60 border-[var(--color-figma-border)] border-dashed" : isBlocked ? "border-amber-400/70" : hasError ? "border-[var(--color-figma-error)]" : isStale ? "border-yellow-400/70" : isFocused ? "border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40" : "border-[var(--color-figma-border)]"}`}
     >
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
@@ -1337,11 +1407,29 @@ export function GeneratorPipelineCard({
             Needs re-run
           </span>
         )}
+        {isEnabled && isBlocked && (
+          <span className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded px-1.5 py-px leading-none">
+            <svg
+              width="9"
+              height="9"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 8a6 6 0 0 0-12 0v3a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2Z" />
+            </svg>
+            Blocked
+          </span>
+        )}
         {hasError && (
           <span
-            title={`Auto-run failed: ${generator.lastRunError!.message}`}
-            className="shrink-0 text-[var(--color-figma-error)]"
-            aria-label="Generator auto-run error"
+            title={generator.lastRunError?.message ?? generator.lastRunSummary?.label}
+            className={`shrink-0 ${isBlocked ? "text-amber-700" : "text-[var(--color-figma-error)]"}`}
+            aria-label={isBlocked ? "Generator blocked by upstream failure" : "Generator auto-run error"}
           >
             <svg
               width="12"
@@ -1405,8 +1493,11 @@ export function GeneratorPipelineCard({
         </button>
       </div>
       {hasError && (
-        <div className="mb-2 text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 rounded px-2 py-1 border border-[var(--color-figma-error)]/20 break-words">
-          Auto-run failed: {generator.lastRunError!.message}
+        <div
+          className={`mb-2 text-[10px] rounded px-2 py-1 border break-words ${isBlocked ? "text-amber-700 bg-amber-50 border-amber-200" : "text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border-[var(--color-figma-error)]/20"}`}
+        >
+          {isBlocked ? "Blocked by upstream failure" : "Auto-run failed"}
+          {generator.lastRunError?.message ? `: ${generator.lastRunError.message}` : ""}
         </div>
       )}
       {actionError && (
@@ -1508,6 +1599,56 @@ export function GeneratorPipelineCard({
           {stepCount} tokens
         </span>
       </div>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+        {upstreamGenerators.length > 0 && (
+          <span className="px-1.5 py-px rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
+            {upstreamGenerators.length} upstream
+          </span>
+        )}
+        {downstreamGenerators.length > 0 && (
+          <span className="px-1.5 py-px rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
+            {downstreamGenerators.length} dependent
+            {downstreamGenerators.length === 1 ? "" : "s"}
+          </span>
+        )}
+        {generator.lastRunSummary && (
+          <span className="text-[var(--color-figma-text-tertiary)]">
+            {generator.lastRunSummary.label}
+            {lastRunTimeLabel ? ` · ${lastRunTimeLabel}` : ""}
+          </span>
+        )}
+      </div>
+      {(upstreamGenerators.length > 0 || downstreamGenerators.length > 0) && (
+        <div className="mt-2 flex flex-col gap-1">
+          <DependencyChips label="Upstream" dependencies={upstreamGenerators} />
+          <DependencyChips
+            label="Dependents"
+            dependencies={downstreamGenerators}
+          />
+        </div>
+      )}
+      {showDependencyAttention && (
+        <div className="mt-2 rounded border border-yellow-400/30 bg-yellow-400/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          {blockedByGenerators.length > 0 && (
+            <DependencyChips
+              label="Blocked by"
+              dependencies={blockedByGenerators}
+              tone={isBlocked ? "warning" : "neutral"}
+            />
+          )}
+          {lastRunContext && (
+            <p className={blockedByGenerators.length > 0 ? "mt-1" : ""}>
+              {lastRunContext}
+            </p>
+          )}
+          {downstreamGenerators.length > 0 && (
+            <p className="mt-1">
+              A retry here affects {downstreamGenerators.length} downstream
+              generator{downstreamGenerators.length === 1 ? "" : "s"}.
+            </p>
+          )}
+        </div>
+      )}
       <div className="mt-2 flex items-start justify-between gap-3 border-t border-[var(--color-figma-border)]/60 pt-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -1570,11 +1711,13 @@ export function GeneratorPipelineCard({
             onClick={handleRerun}
             disabled={running || previewLoading}
             className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              isStale
+              isBlocked
+                ? "border-amber-400/60 bg-amber-400/10 text-amber-700 hover:bg-amber-400/15"
+                : isStale
                 ? "border-yellow-400/60 bg-yellow-400/10 text-yellow-700 hover:bg-yellow-400/15"
                 : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/30 hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/6"
             }`}
-            title="Run generator now"
+            title={isBlocked ? "Retry this blocked generator" : "Run generator now"}
           >
             {running ? (
               <svg
@@ -1607,7 +1750,7 @@ export function GeneratorPipelineCard({
                 <path d="M21 3v5h-5" />
               </svg>
             )}
-            {running ? "Running…" : "Re-run"}
+            {running ? "Running…" : isBlocked ? "Retry" : "Re-run"}
           </button>
           <button
             onClick={handleViewTokens}

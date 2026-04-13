@@ -332,7 +332,13 @@ export function NodeRenderer({
           fontSize="8" fill="var(--color-figma-text-tertiary)"
           style={{ userSelect: 'none', pointerEvents: 'none' }}
         >
-          {node.generatorType} {node.stepCount ? `\u00b7 ${node.stepCount} steps` : ''}
+          {node.status === 'blocked'
+            ? `blocked by ${(node.blockedBy ?? []).slice(0, 1).join(', ') || 'upstream'}`
+            : `${node.generatorType}${node.stepCount ? ` \u00b7 ${node.stepCount} steps` : ''}${
+                (node.upstreamCount ?? 0) > 0 || (node.downstreamCount ?? 0) > 0
+                  ? ` \u00b7 ${node.upstreamCount ?? 0}\u2191 ${node.downstreamCount ?? 0}\u2193`
+                  : ''
+              }`}
         </text>
       )}
       {node.kind === 'output' && (

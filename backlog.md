@@ -84,7 +84,7 @@
 - [x] [HIGH] Promote the token filter builder into the primary search discovery flow
 - [x] [HIGH] Preserve hierarchy context in filtered token results
 - [x] [HIGH] Unify generator entrypoints behind an intent-first composer
-- [ ] [HIGH] Move semantic alias planning into a dedicated pre-review step
+- [x] [HIGH] Move semantic alias planning into a dedicated pre-review step
 - [ ] [HIGH] Expose generator dependency and status metadata for dashboard surfaces
 - [ ] [HIGH] Surface overwrite and manual-edit conflicts during live preview
 - [x] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks

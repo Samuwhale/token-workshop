@@ -7,7 +7,6 @@ import {
   type RollbackStep,
   type SnapshotEntry,
 } from '../services/operation-log.js';
-import { stableStringify } from '../services/stable-stringify.js';
 import type {
   GeneratorCreateInput,
   DetachedGeneratorResult,
@@ -199,16 +198,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/generators — list all generators
   fastify.get('/generators', async (_request, reply) => {
     try {
-      const generators = await fastify.generatorService.getAll();
-      // Compute isStale: source token's current value differs from the value at last run.
-      // Only set for generators that have run at least once and have a sourceToken.
-      return await Promise.all(generators.map(async (gen) => {
-        if (!gen.sourceToken || gen.lastRunAt === undefined) return gen;
-        const resolved = await fastify.tokenStore.resolveToken(gen.sourceToken).catch(() => undefined);
-        if (!resolved) return gen;
-        const isStale = stableStringify(resolved.$value) !== stableStringify(gen.lastRunSourceValue);
-        return { ...gen, isStale };
-      }));
+      return await fastify.generatorService.getDashboardItems(fastify.tokenStore);
     } catch (err) {
       return handleRouteError(reply, err);
     }

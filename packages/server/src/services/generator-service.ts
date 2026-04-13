@@ -134,9 +134,84 @@ export interface DetachedGeneratorResult {
   detachedCount: number;
 }
 
+export type GeneratorDashboardStatus =
+  | "upToDate"
+  | "stale"
+  | "failed"
+  | "blocked"
+  | "neverRun"
+  | "paused";
+
+export interface GeneratorDashboardDependency {
+  id: string;
+  name: string;
+  targetSet: string;
+  targetGroup: string;
+  status: GeneratorDashboardStatus;
+}
+
+export interface GeneratorLastRunSummary {
+  status: GeneratorDashboardStatus;
+  label: string;
+  at?: string;
+  message?: string;
+}
+
+export interface GeneratorDashboardItem extends TokenGenerator {
+  isStale?: boolean;
+  staleReason?: string;
+  upstreamGenerators: GeneratorDashboardDependency[];
+  downstreamGenerators: GeneratorDashboardDependency[];
+  blockedByGenerators: GeneratorDashboardDependency[];
+  lastRunSummary: GeneratorLastRunSummary;
+}
+
 export type GeneratorPathRenameUpdate =
   | ({ scope: "token" } & TokenPathRename)
   | ({ scope: "group" } & TokenPathRename);
+
+function getGeneratorDashboardStatus(
+  generator: TokenGenerator,
+  isStale: boolean,
+): GeneratorDashboardStatus {
+  if (generator.enabled === false) return "paused";
+  if (generator.lastRunError?.blockedBy) return "blocked";
+  if (generator.lastRunError) return "failed";
+  if (isStale) return "stale";
+  if (!generator.lastRunAt) return "neverRun";
+  return "upToDate";
+}
+
+function getGeneratorStatusLabel(status: GeneratorDashboardStatus): string {
+  switch (status) {
+    case "paused":
+      return "Paused";
+    case "blocked":
+      return "Blocked by upstream";
+    case "failed":
+      return "Run failed";
+    case "stale":
+      return "Needs re-run";
+    case "neverRun":
+      return "Never run";
+    case "upToDate":
+    default:
+      return "Up to date";
+  }
+}
+
+function buildGeneratorDependency(
+  generator: TokenGenerator,
+  status: GeneratorDashboardStatus,
+): GeneratorDashboardDependency {
+  return {
+    id: generator.id,
+    name: generator.name,
+    targetSet: generator.targetSet,
+    targetGroup: generator.targetGroup,
+    status,
+  };
+}
 
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -1000,6 +1075,139 @@ export class GeneratorService {
 
   async getAll(): Promise<TokenGenerator[]> {
     return Array.from(this.generators.values());
+  }
+
+  async getDashboardItems(
+    tokenStore: Pick<TokenStore, "resolveToken">,
+  ): Promise<GeneratorDashboardItem[]> {
+    const generators = Array.from(this.generators.values());
+    const upstreamIdsByGenerator = new Map<string, string[]>();
+    const downstreamIdsByGenerator = new Map<string, string[]>();
+
+    for (const generator of generators) {
+      upstreamIdsByGenerator.set(generator.id, []);
+      downstreamIdsByGenerator.set(generator.id, []);
+    }
+
+    for (const downstream of generators) {
+      if (!downstream.sourceToken) continue;
+      for (const upstream of generators) {
+        if (upstream.id === downstream.id) continue;
+        if (!downstream.sourceToken.startsWith(`${upstream.targetGroup}.`)) {
+          continue;
+        }
+        upstreamIdsByGenerator.get(downstream.id)?.push(upstream.id);
+        downstreamIdsByGenerator.get(upstream.id)?.push(downstream.id);
+      }
+    }
+
+    const staleEntries = await Promise.all(
+      generators.map(async (generator) => {
+        if (!generator.sourceToken) {
+          return { id: generator.id, isStale: false, staleReason: undefined };
+        }
+        if (!generator.lastRunAt) {
+          return { id: generator.id, isStale: false, staleReason: undefined };
+        }
+
+        const resolved = await tokenStore.resolveToken(generator.sourceToken).catch(
+          () => undefined,
+        );
+        if (!resolved) {
+          return {
+            id: generator.id,
+            isStale: true,
+            staleReason: `Source token "${generator.sourceToken}" no longer resolves.`,
+          };
+        }
+
+        const isStale =
+          stableStringify(resolved.$value) !==
+          stableStringify(generator.lastRunSourceValue);
+        return {
+          id: generator.id,
+          isStale,
+          staleReason: isStale
+            ? `Source token "${generator.sourceToken}" changed since the last successful run.`
+            : undefined,
+        };
+      }),
+    );
+
+    const staleById = new Map(
+      staleEntries.map((entry) => [entry.id, entry] as const),
+    );
+    const statusById = new Map<string, GeneratorDashboardStatus>();
+
+    for (const generator of generators) {
+      const staleEntry = staleById.get(generator.id);
+      statusById.set(
+        generator.id,
+        getGeneratorDashboardStatus(generator, staleEntry?.isStale ?? false),
+      );
+    }
+
+    const dependencyById = new Map<string, GeneratorDashboardDependency>();
+    for (const generator of generators) {
+      dependencyById.set(
+        generator.id,
+        buildGeneratorDependency(
+          generator,
+          statusById.get(generator.id) ?? "upToDate",
+        ),
+      );
+    }
+
+    return generators.map((generator) => {
+      const staleEntry = staleById.get(generator.id);
+      const status = statusById.get(generator.id) ?? "upToDate";
+      const upstreamGenerators = (upstreamIdsByGenerator.get(generator.id) ?? [])
+        .map((id) => dependencyById.get(id))
+        .filter(
+          (
+            dependency,
+          ): dependency is GeneratorDashboardDependency => dependency !== undefined,
+        );
+      const downstreamGenerators = (
+        downstreamIdsByGenerator.get(generator.id) ?? []
+      )
+        .map((id) => dependencyById.get(id))
+        .filter(
+          (
+            dependency,
+          ): dependency is GeneratorDashboardDependency => dependency !== undefined,
+        );
+
+      const blockedByName = generator.lastRunError?.blockedBy?.trim();
+      const blockedByGenerators =
+        status === "blocked"
+          ? upstreamGenerators.filter((dependency) =>
+              blockedByName
+                ? dependency.name === blockedByName
+                : dependency.status === "failed" || dependency.status === "blocked",
+            )
+          : [];
+
+      const summaryMessage =
+        generator.lastRunError?.message ??
+        staleEntry?.staleReason ??
+        (!generator.lastRunAt ? "Run this generator to create outputs." : undefined);
+
+      return {
+        ...generator,
+        isStale: staleEntry?.isStale,
+        staleReason: staleEntry?.staleReason,
+        upstreamGenerators,
+        downstreamGenerators,
+        blockedByGenerators,
+        lastRunSummary: {
+          status,
+          label: getGeneratorStatusLabel(status),
+          at: generator.lastRunError?.at ?? generator.lastRunAt,
+          message: summaryMessage,
+        },
+      };
+    });
   }
 
   listSetDependencyMeta(): GeneratorSetDependencyMeta[] {

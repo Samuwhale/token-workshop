@@ -19,6 +19,29 @@ export type GeneratorType =
   | 'darkModeInversion'
   | 'contrastCheck';
 
+export type GeneratorDashboardStatus =
+  | 'upToDate'
+  | 'stale'
+  | 'failed'
+  | 'blocked'
+  | 'neverRun'
+  | 'paused';
+
+export interface GeneratorDependency {
+  id: string;
+  name: string;
+  targetSet: string;
+  targetGroup: string;
+  status: GeneratorDashboardStatus;
+}
+
+export interface GeneratorLastRunSummary {
+  status: GeneratorDashboardStatus;
+  label: string;
+  at?: string;
+  message?: string;
+}
+
 export interface ColorRampConfig {
   steps: number[];
   lightEnd: number;
@@ -213,6 +236,11 @@ export interface TokenGenerator {
      *  Contains the name of the upstream generator whose failure caused this skip. */
     blockedBy?: string;
   };
+  upstreamGenerators?: GeneratorDependency[];
+  downstreamGenerators?: GeneratorDependency[];
+  blockedByGenerators?: GeneratorDependency[];
+  staleReason?: string;
+  lastRunSummary?: GeneratorLastRunSummary;
 }
 
 export interface GeneratedTokenResult {
@@ -280,6 +308,18 @@ interface UseGeneratorsResult {
   generatorsBySource: Map<string, TokenGenerator[]>;
   generatorsByTargetGroup: Map<string, TokenGenerator>;
   derivedTokenPaths: Map<string, TokenGenerator>;
+}
+
+export function getGeneratorDashboardStatus(
+  generator: TokenGenerator,
+): GeneratorDashboardStatus {
+  if (generator.lastRunSummary?.status) return generator.lastRunSummary.status;
+  if (generator.enabled === false) return 'paused';
+  if (generator.lastRunError?.blockedBy) return 'blocked';
+  if (generator.lastRunError) return 'failed';
+  if (generator.isStale) return 'stale';
+  if (!generator.lastRunAt) return 'neverRun';
+  return 'upToDate';
 }
 
 export function useGenerators(serverUrl: string, connected: boolean): UseGeneratorsResult {

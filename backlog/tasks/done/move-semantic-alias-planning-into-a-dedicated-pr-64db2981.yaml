@@ -14,11 +14,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: Research in scripts/backlog/research/token-generator-flow-audit.md found that StepWhere only reveals semantic aliases after preview output exists and useGeneratorSave still initializes mappings at save time. TemplatePicker already contains reusable semantic preview content that can seed the new planning step."
-state: ready
+  - "Completed: Added a dedicated semantic planning step before review, removed save-time semantic seeding, tightened review into confirmation-only UI, and logged the work."
+state: done
 acceptance_criteria:
   - Semantic alias setup no longer first appears during save preparation or as a card-level secondary action; new-generator flows show a dedicated semantic planning step before final review.
   - The planner can suggest patterns from the chosen intent/preset and preview alias outputs with skip, suggested, and custom states.
   - The final review surface becomes confirmation-focused and does not introduce semantic decisions for the first time.
 source: task-followup
 created_at: 2026-04-12T23:57:39.880Z
-updated_at: 2026-04-12T23:57:39.880Z
+updated_at: 2026-04-13T00:30:37.963Z

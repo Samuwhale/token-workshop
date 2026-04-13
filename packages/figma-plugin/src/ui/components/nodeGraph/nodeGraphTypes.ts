@@ -1,4 +1,8 @@
-import type { TokenGenerator } from '../../hooks/useGenerators';
+import type {
+  GeneratorDashboardStatus,
+  TokenGenerator,
+} from '../../hooks/useGenerators';
+import { getGeneratorDashboardStatus } from '../../hooks/useGenerators';
 import { TYPE_LABELS } from '../generators/generatorUtils';
 
 // ---------------------------------------------------------------------------
@@ -40,6 +44,10 @@ export interface GraphNode {
   generatorId?: string;
   generatorType?: string;
   stepCount?: number;
+  status?: GeneratorDashboardStatus;
+  upstreamCount?: number;
+  downstreamCount?: number;
+  blockedBy?: string[];
   // Output nodes
   targetGroup?: string;
   targetSet?: string;
@@ -262,6 +270,10 @@ export function generatorsToGraph(generators: TokenGenerator[]): NodeGraphState 
       generatorId: gen.id,
       generatorType: gen.type,
       stepCount,
+      status: getGeneratorDashboardStatus(gen),
+      upstreamCount: gen.upstreamGenerators?.length ?? 0,
+      downstreamCount: gen.downstreamGenerators?.length ?? 0,
+      blockedBy: gen.blockedByGenerators?.map((dependency) => dependency.name) ?? [],
     });
 
     // Output node

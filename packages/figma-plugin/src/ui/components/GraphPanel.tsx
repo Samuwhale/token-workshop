@@ -4,6 +4,7 @@ import type {
   GeneratorTemplate,
   GeneratorType,
 } from "../hooks/useGenerators";
+import { getGeneratorDashboardStatus } from "../hooks/useGenerators";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenMapEntry } from "../../shared/types";
 import { NodeGraphCanvas } from "./nodeGraph/NodeGraphCanvas";
@@ -181,8 +182,9 @@ export function GraphPanel({
   const [highlightedGeneratorId, setHighlightedGeneratorId] = useState<
     string | null
   >(null);
-  const [runningAll, setRunningAll] = useState(false);
-  const [runningStale, setRunningStale] = useState(false);
+  const [runningAction, setRunningAction] = useState<
+    "all" | "stale" | "failed" | "blocked" | null
+  >(null);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [justApplied, setJustApplied] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
@@ -250,71 +252,134 @@ export function GraphPanel({
     if (onClearPendingGroup) onClearPendingGroup();
   };
 
-  const handleRunAll = async () => {
-    setRunningAll(true);
-    let successCount = 0;
-    let totalTokens = 0;
-    const errors: string[] = [];
-    for (const gen of setGenerators) {
-      try {
-        const res = await apiFetch<{ count: number }>(
-          `${serverUrl}/api/generators/${gen.id}/run`,
-          { method: "POST" },
-        );
-        successCount++;
-        totalTokens += res.count ?? 0;
-      } catch {
-        errors.push(gen.name);
-      }
-    }
-    setRunningAll(false);
-    if (errors.length === 0) {
-      dispatchToast(
-        `Ran ${successCount} generator${successCount !== 1 ? "s" : ""}${totalTokens > 0 ? ` — ${totalTokens} token${totalTokens !== 1 ? "s" : ""} updated` : ""}`,
-        "success",
-      );
-    } else {
-      dispatchToast(
-        `${errors.length} generator${errors.length !== 1 ? "s" : ""} failed: ${errors.join(", ")}`,
-        "error",
-      );
-    }
-    onRefresh();
-  };
+  const runGenerators = useCallback(
+    async (
+      action: "all" | "stale" | "failed" | "blocked",
+      selectedGenerators: TokenGenerator[],
+    ) => {
+      if (selectedGenerators.length === 0) return;
+      setRunningAction(action);
+      let successCount = 0;
+      let totalTokens = 0;
+      const errors: string[] = [];
 
-  const staleGenerators = setGenerators.filter((g) => g.isStale);
+      const generatorsToRun = [...selectedGenerators].sort(
+        (a, b) =>
+          (a.upstreamGenerators?.length ?? 0) - (b.upstreamGenerators?.length ?? 0),
+      );
+
+      for (const gen of generatorsToRun) {
+        try {
+          const res = await apiFetch<{ count: number }>(
+            `${serverUrl}/api/generators/${gen.id}/run`,
+            { method: "POST" },
+          );
+          successCount++;
+          totalTokens += res.count ?? 0;
+        } catch {
+          errors.push(gen.name);
+        }
+      }
+
+      setRunningAction(null);
+
+      const actionLabel =
+        action === "all"
+          ? "Ran"
+          : action === "stale"
+            ? "Re-ran"
+            : "Retried";
+      const groupLabel =
+        action === "all"
+          ? "generator"
+          : action === "stale"
+            ? "stale generator"
+            : action === "failed"
+              ? "failed generator"
+              : "blocked generator";
+
+      if (errors.length === 0) {
+        dispatchToast(
+          `${actionLabel} ${successCount} ${groupLabel}${successCount !== 1 ? "s" : ""}${totalTokens > 0 ? ` — ${totalTokens} token${totalTokens !== 1 ? "s" : ""} updated` : ""}`,
+          "success",
+        );
+      } else {
+        dispatchToast(
+          `${errors.length} ${groupLabel}${errors.length !== 1 ? "s" : ""} failed: ${errors.join(", ")}`,
+          "error",
+        );
+      }
+      onRefresh();
+    },
+    [onRefresh, serverUrl],
+  );
+
+  const staleGenerators = setGenerators.filter(
+    (generator) => getGeneratorDashboardStatus(generator) === "stale",
+  );
+  const failedGenerators = setGenerators.filter(
+    (generator) => getGeneratorDashboardStatus(generator) === "failed",
+  );
+  const blockedGenerators = setGenerators.filter(
+    (generator) => getGeneratorDashboardStatus(generator) === "blocked",
+  );
+  const attentionGenerators = setGenerators.filter((generator) => {
+    const status = getGeneratorDashboardStatus(generator);
+    return status === "stale" || status === "failed" || status === "blocked";
+  });
+
+  const handleRunAll = async () => {
+    await runGenerators("all", setGenerators);
+  };
 
   const handleRunStale = async () => {
-    setRunningStale(true);
-    let successCount = 0;
-    let totalTokens = 0;
-    const errors: string[] = [];
-    for (const gen of staleGenerators) {
-      try {
-        const res = await apiFetch<{ count: number }>(
-          `${serverUrl}/api/generators/${gen.id}/run`,
-          { method: "POST" },
-        );
-        successCount++;
-        totalTokens += res.count ?? 0;
-      } catch {
-        errors.push(gen.name);
-      }
-    }
-    setRunningStale(false);
-    if (errors.length === 0) {
-      dispatchToast(
-        `Re-ran ${successCount} stale generator${successCount !== 1 ? "s" : ""}${totalTokens > 0 ? ` — ${totalTokens} token${totalTokens !== 1 ? "s" : ""} updated` : ""}`,
-        "success",
-      );
-    } else {
-      dispatchToast(
-        `${errors.length} generator${errors.length !== 1 ? "s" : ""} failed: ${errors.join(", ")}`,
-        "error",
-      );
-    }
-    onRefresh();
+    await runGenerators("stale", staleGenerators);
   };
+
+  const handleRetryFailed = async () => {
+    await runGenerators("failed", failedGenerators);
+  };
+
+  const handleRetryBlocked = async () => {
+    await runGenerators("blocked", blockedGenerators);
+  };
+
+  const linkedGeneratorCount = useMemo(
+    () =>
+      setGenerators.filter(
+        (generator) =>
+          (generator.upstreamGenerators?.length ?? 0) > 0 ||
+          (generator.downstreamGenerators?.length ?? 0) > 0,
+      ).length,
+    [setGenerators],
+  );
+  const dependencyEdgeCount = useMemo(
+    () =>
+      setGenerators.reduce(
+        (count, generator) => count + (generator.upstreamGenerators?.length ?? 0),
+        0,
+      ),
+    [setGenerators],
+  );
+  const downstreamImpactCount = useMemo(
+    () =>
+      setGenerators.reduce(
+        (count, generator) => count + (generator.downstreamGenerators?.length ?? 0),
+        0,
+      ),
+    [setGenerators],
+  );
+  const blockedBySummary = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          blockedGenerators.flatMap((generator) =>
+            (generator.blockedByGenerators ?? []).map((dependency) => dependency.name),
+          ),
+        ),
+      ),
+    [blockedGenerators],
+  );
 
   const generatorTemplate = useMemo<GeneratorTemplate | undefined>(() => {
     if (!selectedTemplate) return undefined;
@@ -337,6 +402,12 @@ export function GraphPanel({
       g.name.toLowerCase().includes(q) ||
       (g.sourceToken ?? "").toLowerCase().includes(q) ||
       g.targetGroup.toLowerCase().includes(q) ||
+      (g.upstreamGenerators ?? []).some((dependency) =>
+        dependency.name.toLowerCase().includes(q),
+      ) ||
+      (g.downstreamGenerators ?? []).some((dependency) =>
+        dependency.name.toLowerCase().includes(q),
+      ) ||
       getGeneratorTypeLabel(g.type).toLowerCase().includes(q)
     );
   });
@@ -471,7 +542,7 @@ export function GraphPanel({
                 aria-haspopup="menu"
                 aria-expanded={actionsMenuOpen}
               >
-                {runningAll || runningStale ? (
+                {runningAction ? (
                   <svg
                     width="12"
                     height="12"
@@ -503,15 +574,15 @@ export function GraphPanel({
                     <circle cx="12" cy="19" r="1" />
                   </svg>
                 )}
-                {staleGenerators.length > 0 && !actionsMenuOpen && (
+                {attentionGenerators.length > 0 && !actionsMenuOpen && (
                   <span className="absolute -top-1 -right-1 min-w-[12px] h-[12px] px-[2px] flex items-center justify-center rounded-full bg-yellow-400 border border-[var(--color-figma-bg)] text-yellow-900 text-[7px] font-bold leading-none pointer-events-none">
-                    {staleGenerators.length}
+                    {attentionGenerators.length}
                   </span>
                 )}
               </button>
               {actionsMenuOpen && (
                 <div
-                  className="absolute right-0 top-full mt-1 w-48 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-0.5 text-[11px]"
+                  className="absolute right-0 top-full mt-1 w-52 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-0.5 text-[11px]"
                   role="menu"
                 >
                   {staleGenerators.length > 0 && (
@@ -521,7 +592,7 @@ export function GraphPanel({
                         setActionsMenuOpen(false);
                         handleRunStale();
                       }}
-                      disabled={runningStale || runningAll}
+                      disabled={runningAction !== null}
                       className="w-full text-left px-3 py-2 flex items-center gap-2 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       <svg
@@ -541,13 +612,67 @@ export function GraphPanel({
                       Re-run stale ({staleGenerators.length})
                     </button>
                   )}
+                  {failedGenerators.length > 0 && (
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setActionsMenuOpen(false);
+                        handleRetryFailed();
+                      }}
+                      disabled={runningAction !== null}
+                      className="w-full text-left px-3 py-2 flex items-center gap-2 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      Retry failed ({failedGenerators.length})
+                    </button>
+                  )}
+                  {blockedGenerators.length > 0 && (
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setActionsMenuOpen(false);
+                        handleRetryBlocked();
+                      }}
+                      disabled={runningAction !== null}
+                      className="w-full text-left px-3 py-2 flex items-center gap-2 text-amber-700 dark:text-amber-400 hover:bg-amber-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M18 8a6 6 0 0 0-12 0v3a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2Z" />
+                      </svg>
+                      Retry blocked ({blockedGenerators.length})
+                    </button>
+                  )}
                   <button
                     role="menuitem"
                     onClick={() => {
                       setActionsMenuOpen(false);
                       handleRunAll();
                     }}
-                    disabled={runningAll || runningStale}
+                    disabled={runningAction !== null}
                     className="w-full text-left px-3 py-2 flex items-center gap-2 text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg
@@ -608,35 +733,82 @@ export function GraphPanel({
           />
         )}
 
-        {staleGenerators.length > 0 && (
-          <div className="mx-3 mt-2 px-2.5 py-1.5 rounded bg-yellow-400/10 border border-yellow-400/30 text-[10px] text-yellow-700 dark:text-yellow-400 flex items-center justify-between gap-2 shrink-0">
-            <span className="flex items-center gap-1.5">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="shrink-0"
-              >
-                <path d="M12 9v4M12 17h.01" />
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-              {staleGenerators.length === 1
-                ? "1 generator out of date"
-                : `${staleGenerators.length} generators out of date`}
+        <div className="mx-3 mt-2 flex flex-wrap items-center gap-1.5 shrink-0">
+          {linkedGeneratorCount > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
+              {linkedGeneratorCount} linked generator
+              {linkedGeneratorCount === 1 ? "" : "s"}
             </span>
-            <button
-              onClick={handleRunStale}
-              disabled={runningStale || runningAll}
-              className="shrink-0 text-[10px] font-medium underline underline-offset-2 hover:no-underline disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {runningStale ? "Running…" : "Re-run"}
-            </button>
+          )}
+          {dependencyEdgeCount > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
+              {dependencyEdgeCount} dependency edge
+              {dependencyEdgeCount === 1 ? "" : "s"}
+            </span>
+          )}
+          {downstreamImpactCount > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
+              {downstreamImpactCount} downstream impact
+            </span>
+          )}
+        </div>
+
+        {attentionGenerators.length > 0 && (
+          <div className="mx-3 mt-2 px-2.5 py-2 rounded border border-yellow-400/30 bg-yellow-400/10 shrink-0 flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-yellow-800 dark:text-yellow-300">
+              {staleGenerators.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full border border-yellow-400/40 bg-yellow-400/10">
+                  {staleGenerators.length} stale
+                </span>
+              )}
+              {failedGenerators.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]">
+                  {failedGenerators.length} failed
+                </span>
+              )}
+              {blockedGenerators.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full border border-amber-400/40 bg-amber-400/10 text-amber-700 dark:text-amber-300">
+                  {blockedGenerators.length} blocked
+                </span>
+              )}
+              {blockedBySummary.length > 0 && (
+                <span className="text-[var(--color-figma-text-secondary)]">
+                  Blocked by {blockedBySummary.slice(0, 3).join(", ")}
+                  {blockedBySummary.length > 3
+                    ? ` +${blockedBySummary.length - 3} more`
+                    : ""}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {staleGenerators.length > 0 && (
+                <button
+                  onClick={handleRunStale}
+                  disabled={runningAction !== null}
+                  className="text-[10px] px-2 py-1 rounded border border-yellow-400/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {runningAction === "stale" ? "Running…" : "Re-run stale"}
+                </button>
+              )}
+              {failedGenerators.length > 0 && (
+                <button
+                  onClick={handleRetryFailed}
+                  disabled={runningAction !== null}
+                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/30 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {runningAction === "failed" ? "Retrying…" : "Retry failed"}
+                </button>
+              )}
+              {blockedGenerators.length > 0 && (
+                <button
+                  onClick={handleRetryBlocked}
+                  disabled={runningAction !== null}
+                  className="text-[10px] px-2 py-1 rounded border border-amber-400/40 text-amber-700 dark:text-amber-300 hover:bg-amber-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {runningAction === "blocked" ? "Retrying…" : "Retry blocked"}
+                </button>
+              )}
+            </div>
           </div>
         )}
 

@@ -1,5 +1,14 @@
 # Backlog Progress Log
 ---
+## 2026-04-13 - Expose generator dependency and status metadata for dashboard surfaces
+- Added a server-computed generator dashboard payload with upstream/downstream relationships, blocker references, stale reasons, and last-run summaries, then switched `/api/generators` to return that enriched metadata directly.
+- Updated GraphPanel, GeneratorPipelineCard, and graph nodes to consume the new metadata so the dashboard can show dependency counts, blocked context, and retry actions without inferring chains from raw token paths.
+- Validation: `pnpm exec eslint packages/server/src/services/generator-service.ts packages/server/src/routes/generators.ts packages/figma-plugin/src/ui/hooks/useGenerators.ts packages/figma-plugin/src/ui/components/GraphPanel.tsx packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx packages/figma-plugin/src/ui/components/nodeGraph/nodeGraphTypes.ts packages/figma-plugin/src/ui/components/nodeGraph/NodeRenderer.tsx` passed. `pnpm --filter @tokenmanager/server build && pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L137, ~L1080; `packages/server/src/routes/generators.ts` ~L198; `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L22, ~L203; `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L185, ~L255, ~L545, ~L736; `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L75, ~L1056, ~L1367, ~L1495; `packages/figma-plugin/src/ui/components/nodeGraph/nodeGraphTypes.ts` ~L1, ~L258; `packages/figma-plugin/src/ui/components/nodeGraph/NodeRenderer.tsx` ~L329; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Dependency-aware dashboards stay much simpler when the server exposes one derived DTO for relationships and status instead of making each client surface infer blockers and stale causes from raw `sourceToken` prefixes.
+  - Retry and bulk-run actions should sort selected generators by upstream count before firing requests so dashboard retries roughly honor dependency order even without a dedicated chain endpoint.
+---
 ## 2026-04-08 - [HIGH] Define a consistent workspace transition model for how screens, drawers, and overlays open or close in the constrained Figma plugin viewport, including when to use inline panels versus modal dialogs versus full-screen takeovers
 ## 2026-04-08 - App shell navigation mixes task navigation, section navigation, utilities, and status indicators into one crowded header
 - Rebuilt the shell around five job-based workspaces (`Tokens`, `Themes`, `Apply`, `Sync`, `Audit`), added tightly-scoped section tabs per workspace, and remapped `Dependencies` into `Audit` so the header now reflects user goals instead of internal app buckets like `Inspect` and `Ship`.
