@@ -35,7 +35,6 @@ const CLEANUP_SECTIONS: Array<{
   step: string;
   label: string;
   title: string;
-  description: string;
   panelHeightClassName: string;
 }> = [
   {
@@ -43,7 +42,6 @@ const CLEANUP_SECTIONS: Array<{
     step: 'Step 1',
     label: 'Scan coverage',
     title: 'Scan the canvas and inspect untokenized layers',
-    description: 'Run the heatmap first to find red and yellow layers, select the affected nodes, and quick-bind tokens before you review deeper cleanup work.',
     panelHeightClassName: 'h-[420px]',
   },
   {
@@ -51,7 +49,6 @@ const CLEANUP_SECTIONS: Array<{
     step: 'Step 2',
     label: 'Review suggestions',
     title: 'Snap near-matches to the right tokens',
-    description: 'Use token suggestions to convert hardcoded colors, spacing, and typography values without leaving the cleanup flow.',
     panelHeightClassName: 'h-[400px]',
   },
   {
@@ -59,7 +56,6 @@ const CLEANUP_SECTIONS: Array<{
     step: 'Step 3',
     label: 'Fix components',
     title: 'Clean up untokenized components',
-    description: 'Check which components still rely on hardcoded values so you can select them in Figma and finish the remaining tokenization work.',
     panelHeightClassName: 'h-[360px]',
   },
 ];
@@ -131,11 +127,6 @@ export function CanvasAnalysisPanel({
   const coverageSectionRef = useRef<HTMLDivElement>(null);
   const suggestionsSectionRef = useRef<HTMLDivElement>(null);
   const componentsSectionRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = {
-    coverage: coverageSectionRef,
-    suggestions: suggestionsSectionRef,
-    components: componentsSectionRef,
-  };
 
   const { connected, serverUrl } = useConnectionContext();
   const { activeSet, sets, refreshTokens } = useTokenSetsContext();
@@ -148,9 +139,17 @@ export function CanvasAnalysisPanel({
   const [createDraft, setCreateDraft] = useState<CanvasCreateDraft | null>(null);
   const [resolvedConsistencyMatchKeys, setResolvedConsistencyMatchKeys] = useState<Set<string>>(new Set());
 
-  const scrollToSection = (section: CanvasTab) => {
-    sectionRefs[section].current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const scrollToSection = useCallback((section: CanvasTab) => {
+    if (section === 'coverage') {
+      coverageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (section === 'suggestions') {
+      suggestionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    componentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   useEffect(() => {
     if (initialTab === 'coverage') {
@@ -160,7 +159,7 @@ export function CanvasAnalysisPanel({
       scrollToSection(initialTab);
     }, 0);
     return () => window.clearTimeout(timeoutId);
-  }, [initialTab]);
+  }, [initialTab, scrollToSection]);
 
   const findExactMatchesForBindableValue = useCallback((
     property: BindableProperty,
@@ -281,15 +280,9 @@ export function CanvasAnalysisPanel({
       <div className="px-3 py-3 border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg)]">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-              Canvas cleanup
-            </p>
-            <h2 className="mt-1 text-[13px] font-semibold text-[var(--color-figma-text)]">
-              Scan, inspect, suggest, and fix in one pass
+            <h2 className="text-[13px] font-semibold text-[var(--color-figma-text)]">
+              Canvas analysis
             </h2>
-            <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Start with coverage to find problem layers, move into token suggestions for fast fixes, then finish with untokenized components that still need manual cleanup.
-            </p>
           </div>
           <div className="shrink-0">
             <ScanScopeSelector value={heatmapScope} onChange={setHeatmapScope} showLabel />
@@ -319,7 +312,13 @@ export function CanvasAnalysisPanel({
           {CLEANUP_SECTIONS.map(section => (
             <section
               key={section.id}
-              ref={sectionRefs[section.id]}
+              ref={
+                section.id === 'coverage'
+                  ? coverageSectionRef
+                  : section.id === 'suggestions'
+                    ? suggestionsSectionRef
+                    : componentsSectionRef
+              }
               className="rounded-xl border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden"
             >
               <div className="px-4 py-3 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
@@ -327,16 +326,10 @@ export function CanvasAnalysisPanel({
                   <span className="rounded-full bg-[var(--color-figma-bg-secondary)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
                     {section.step}
                   </span>
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                    {section.label}
-                  </span>
                 </div>
                 <h3 className="mt-2 text-[12px] font-semibold text-[var(--color-figma-text)]">
                   {section.title}
                 </h3>
-                <p className="mt-1 max-w-[520px] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                  {section.description}
-                </p>
               </div>
 
               <div className={`${section.panelHeightClassName} min-h-[320px] overflow-hidden`}>

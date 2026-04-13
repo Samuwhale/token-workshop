@@ -197,7 +197,9 @@
 - [x] Add starter presets and inline token-ref guidance for all generator types
 - [x] Clean up stale semantic generator outputs across set and brand moves
 - [x] Move raw theme matrix tools and compare behind an Advanced setup route
-- [ ] Replace truncation-first path rendering across authoring surfaces with narrow-width wrapping rules
+- [x] Replace truncation-first path rendering across authoring surfaces with narrow-width wrapping rules
+- [ ] Strip tutorial chrome from CanvasAnalysisPanel so the scan/suggest/fix tools are the primary content
+- [ ] Remove 'Sections' eyebrow label and breadcrumb meta-labels from WorkspaceSummaryHeader to reduce persistent chrome across all workspaces
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

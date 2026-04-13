@@ -1983,3 +1983,19 @@
   - If a narrow plugin panel needs both token provenance and preview data, showing the full path on its own wrapped line is more reliable than trying to preserve context with leaf-only chips.
   - A single shared long-text utility keeps quick-create, review, and dependency surfaces aligned; otherwise each panel drifts back toward its own `truncate` and `max-w-*` exceptions.
 ---
+
+## 2026-04-13 - interface-pass
+- Areas explored: CanvasAnalysisPanel.tsx (panel header, jump-nav strip, section card headers), WorkspaceSummaryHeader.tsx (breadcrumb row, section tab strip, handoff banner, context pills)
+- Interface themes: minimalism (eyebrow text, redundant section identification layers, instructional paragraphs), chrome discipline (shared shell header accumulating three eyebrow-text treatments across every workspace)
+- Found 2 items — written to backlog/inbox.jsonl
+- Considered but rejected: SettingsPanel Section component uppercase tracking-wide section titles — these serve as collapsible panel toggle headers with interaction affordance; a toggle header label at that size occupies a distinct role from decorative eyebrow text; not filed as standalone. HandoffBanner "Handoff" uppercase label in WorkspaceSummaryHeader — conditional banner with accent color already differentiates itself visually; the label is borderline but not the primary clarity gap in the component.
+- Notable: CanvasAnalysisPanel carries the most redundant chrome of any uninspected surface — four identification layers per section card plus an eyebrow at the panel level. WorkspaceSummaryHeader is the highest-leverage fix because removing its eyebrow labels clears persistent chrome from every workspace header simultaneously.
+---
+## 2026-04-13 - Strip tutorial chrome from CanvasAnalysisPanel so the scan/suggest/fix tools are the primary content
+- Removed the prohibited panel eyebrow and the workflow explainer copy, kept the scope control, and simplified each section header down to the step pill plus the actionable `h3` title so the scan, suggestion, and component tools carry the surface.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` passed with the existing Node module-type warning from `eslint.config.js`.
+- Files changed: `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` ~L33, ~L127, ~L280, ~L315; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - If a jump-nav strip already names each workflow step, card headers should avoid repeating a second equal-weight label and reserve their text for the specific action the embedded tool supports.
+  - Scroll-to-section helpers that close over a per-render ref map will keep tripping hook lint; anchor directly to stable refs when the section set is fixed.
+---

@@ -1,0 +1,21 @@
+id: strip-tutorial-chrome-from-canvasanalysispanel-s-bd8d4cdc
+title: Strip tutorial chrome from CanvasAnalysisPanel so the scan/suggest/fix tools are the primary content
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: Minimalism and progressive disclosure: the panel renders as an onboarding guide rather than a work surface. Each of the three section cards carries four identification layers — step pill badge (uppercase + tracking-wide), section label, h3 title, and a description paragraph — all of which duplicate information already present in the jump-nav strip and implied by the tools themselves. The 'Canvas cleanup' eyebrow at the top is explicitly prohibited by the project style guide. This chrome weakens the actual scan, suggestion, and component-coverage tools that are the panel's purpose."
+state: ready
+acceptance_criteria:
+  - The prohibited eyebrow label 'Canvas cleanup' (uppercase + tracking-wide) is removed from the panel header
+  - Each section card header does not carry both a step pill and a full description paragraph — the h3 title and step indicator are sufficient to orient the user
+  - The redundant description paragraphs inside section cards are removed; the scan, suggestion, and component tools themselves communicate their purpose
+  - The jump-nav strip labels ('Step 1 · Scan coverage' etc.) are not duplicated by equal-weight labels inside each section card header
+  - The panel header no longer includes a multi-sentence description of the full three-step workflow when the section cards and tools already convey this structure
+source: interface-pass
+created_at: 2026-04-13T04:15:50.612Z
+updated_at: 2026-04-13T04:15:50.612Z
