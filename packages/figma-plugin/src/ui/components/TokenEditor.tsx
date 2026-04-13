@@ -1031,7 +1031,9 @@ export function TokenEditor({
                   Edit
                 </button>
               )}
-              <span className="text-[var(--color-figma-border)]">·</span>
+              {(onOpenGeneratorEditor || onNavigateToGenerator) && (
+                <span className="text-[var(--color-figma-border)]">·</span>
+              )}
               <button
                 type="button"
                 onClick={() => {

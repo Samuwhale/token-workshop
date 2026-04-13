@@ -13,15 +13,12 @@ export function ThemeIssueEntryCard({
   onAction,
   onViewTokens,
 }: ThemeIssueEntryCardProps) {
-  const issueSeverity: "error" | "warning" =
-    issue.kind === "stale-set" ? "error" : "warning";
   const accentClass =
     issue.kind === "stale-set"
       ? "bg-[var(--color-figma-error)]"
       : issue.kind === "missing-override"
         ? "bg-[var(--color-figma-accent)]"
         : "bg-[var(--color-figma-warning)]";
-  const issueCountLabel = `${issue.count} ${issue.count === 1 ? "issue" : "issues"}`;
 
   const canViewTokens =
     onViewTokens &&
@@ -31,6 +28,9 @@ export function ThemeIssueEntryCard({
     <div
       className={`flex items-center gap-2 py-2 ${canViewTokens ? "cursor-pointer hover:bg-[var(--color-figma-bg-hover)]" : ""}`}
       onClick={canViewTokens ? () => onViewTokens(issue) : undefined}
+      onKeyDown={canViewTokens ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onViewTokens!(issue); } } : undefined}
+      role={canViewTokens ? "button" : undefined}
+      tabIndex={canViewTokens ? 0 : undefined}
       title={canViewTokens ? "View affected tokens" : undefined}
     >
       <span
