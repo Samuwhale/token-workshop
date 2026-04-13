@@ -2,8 +2,17 @@ import { useState } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
-import { createToken, createTokenBody } from '../shared/tokenMutations';
-import type { CoverageMap, CoverageToken, AutoFillPreview } from '../components/themeManagerTypes';
+import { createToken, createTokenValueBody } from '../shared/tokenMutations';
+import type { CoverageMap, CoverageToken, AutoFillPendingItem, AutoFillPreview } from '../components/themeManagerTypes';
+
+function createAutoFillPendingItem(path: string, type: string | undefined, value: unknown): AutoFillPendingItem {
+  const body = createTokenValueBody({ type, value });
+  return {
+    path,
+    $value: body.$value,
+    ...(body.$type ? { $type: body.$type } : {}),
+  };
+}
 
 export interface UseThemeAutoFillParams {
   serverUrl: string;
@@ -46,9 +55,9 @@ export function useThemeAutoFill({
     const fillKey = `${dimId}:${optionName}:${item.path}`;
     setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
     try {
-      await createToken(serverUrl, targetSet, item.missingRef, createTokenBody({
-        $type: item.fillType,
-        $value: item.fillValue,
+      await createToken(serverUrl, targetSet, item.missingRef, createTokenValueBody({
+        type: item.fillType,
+        value: item.fillValue,
       }));
       debouncedFetchDimensions();
       onSuccess?.(`Auto-filled token "${item.missingRef}" in "${targetSet}"`);
@@ -71,13 +80,11 @@ export function useThemeAutoFill({
     }
     // De-duplicate by missingRef — multiple tokens may reference the same missing path
     const seen = new Set<string>();
-    const tokens: Array<{ path: string; $value: unknown; $type?: string }> = [];
+    const tokens: AutoFillPendingItem[] = [];
     for (const item of fillable) {
       if (!item.missingRef || seen.has(item.missingRef)) continue;
       seen.add(item.missingRef);
-      const t: { path: string; $value: unknown; $type?: string } = { path: item.missingRef, $value: item.fillValue };
-      if (item.fillType) t.$type = item.fillType;
-      tokens.push(t);
+      tokens.push(createAutoFillPendingItem(item.missingRef, item.fillType, item.fillValue));
     }
     setAutoFillPreview({ mode: 'single-option', dimId, optionName, targetSet, tokens });
   };
@@ -110,7 +117,7 @@ export function useThemeAutoFill({
     const dimCov = coverage[dimId];
     if (!dimCov) return;
 
-    const perSetBatch: Record<string, Array<{ path: string; $value: unknown; $type?: string }>> = {};
+    const perSetBatch: Record<string, AutoFillPendingItem[]> = {};
     let totalCount = 0;
     for (const opt of dim.options) {
       const items = dimCov[opt.name]?.uncovered ?? [];
@@ -123,9 +130,7 @@ export function useThemeAutoFill({
       for (const item of fillable) {
         if (!item.missingRef || seenInSet.has(item.missingRef)) continue;
         seenInSet.add(item.missingRef);
-        const t: { path: string; $value: unknown; $type?: string } = { path: item.missingRef, $value: item.fillValue };
-        if (item.fillType) t.$type = item.fillType;
-        perSetBatch[targetSet].push(t);
+        perSetBatch[targetSet].push(createAutoFillPendingItem(item.missingRef, item.fillType, item.fillValue));
         totalCount++;
       }
     }

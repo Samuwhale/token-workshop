@@ -16,7 +16,19 @@ import {
 } from '../services/token-mutation-commands.js';
 import { stableStringify } from '../services/stable-stringify.js';
 
-function validateTokenBody(body: unknown): body is Partial<Token> {
+interface TokenMutationRouteBody {
+  $type?: string;
+  $value?: unknown;
+  $description?: string;
+  $extensions?: Record<string, unknown>;
+}
+
+interface BatchTokenMutationRouteBody extends TokenMutationRouteBody {
+  path: string;
+  $scopes?: string[];
+}
+
+function validateTokenBody(body: unknown): body is TokenMutationRouteBody {
   if (typeof body !== 'object' || body === null) return false;
   const b = body as Record<string, unknown>;
   if ('$type' in b && b.$type !== undefined && !TOKEN_TYPE_VALUES.has(b.$type as string)) return false;
@@ -769,7 +781,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/tokens/:set/batch — upsert multiple tokens in a single request
   fastify.post<{
     Params: { set: string };
-    Body: { tokens: Array<{ path: string; $type?: string; $value: unknown; $description?: string; $scopes?: string[]; $extensions?: Record<string, unknown> }>; strategy: 'skip' | 'overwrite' | 'merge' };
+    Body: { tokens: BatchTokenMutationRouteBody[]; strategy: 'skip' | 'overwrite' | 'merge' };
   }>('/tokens/:set/batch', async (request, reply) => {
     const { set } = request.params;
     const { tokens, strategy } = request.body ?? {};
@@ -780,19 +792,20 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'strategy must be "skip", "overwrite", or "merge"' });
     }
     for (const t of tokens) {
-      if (!isValidTokenPath(t.path)) {
+      const tokenPath = t.path;
+      if (!isValidTokenPath(tokenPath)) {
         return reply.status(400).send({ error: 'Each token must have a valid non-empty path with no leading/trailing dots' });
       }
       if (t.$value === undefined) {
-        return reply.status(400).send({ error: `Token "${t.path}" must have a $value` });
+        return reply.status(400).send({ error: `Token "${tokenPath}" must have a $value` });
       }
       if (!validateTokenBody(t)) {
-        return reply.status(400).send({ error: `Invalid token body for "${t.path}": $type must be a valid DTCG token type` });
+        return reply.status(400).send({ error: `Invalid token body for "${tokenPath}": $type must be a valid DTCG token type` });
       }
       // Type-aware value validation when $type is explicitly provided
       if (t.$type) {
-        const valueErr = validateTokenValue(t.$value, t.$type, t.path);
-        if (valueErr) return reply.status(400).send({ error: `Invalid $value for "${t.path}" (type "${t.$type}"): ${valueErr}` });
+        const valueErr = validateTokenValue(t.$value, t.$type, tokenPath);
+        if (valueErr) return reply.status(400).send({ error: `Invalid $value for "${tokenPath}" (type "${t.$type}"): ${valueErr}` });
       }
     }
     return withLock(async () => {
@@ -1072,7 +1085,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // POST /api/tokens/:set/* — create token
-  fastify.post<{ Params: { set: string; '*': string }; Body: { $value: unknown; $type?: string; $description?: string; $extensions?: Record<string, unknown> } }>(
+  fastify.post<{ Params: { set: string; '*': string }; Body: TokenMutationRouteBody }>(
     '/tokens/:set/*',
     async (request, reply) => {
       const { set } = request.params;
@@ -1132,7 +1145,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // PATCH /api/tokens/:set/* — update token
-  fastify.patch<{ Params: { set: string; '*': string }; Body: { $value?: unknown; $type?: string; $description?: string; $extensions?: Record<string, unknown> } }>(
+  fastify.patch<{ Params: { set: string; '*': string }; Body: TokenMutationRouteBody }>(
     '/tokens/:set/*',
     async (request, reply) => {
       const { set } = request.params;
@@ -1166,7 +1179,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-          await fastify.tokenStore.updateToken(set, tokenPath, body);
+          await fastify.tokenStore.updateToken(set, tokenPath, body as Partial<Token>);
           const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
           await fastify.operationLog.record({
             type: 'token-update',

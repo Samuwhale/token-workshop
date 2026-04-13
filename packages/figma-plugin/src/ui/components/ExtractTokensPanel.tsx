@@ -11,7 +11,7 @@ import type {
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import { getErrorMessage } from "../shared/utils";
 import {
-  createTokenBody,
+  createTokenValueBody,
   updateToken,
   upsertToken,
 } from "../shared/tokenMutations";
@@ -259,7 +259,7 @@ export function ExtractTokensPanel({
 
     for (const item of toCreate) {
       try {
-        const body = createTokenBody({ $type: item.tokenType, $value: item.value });
+        const body = createTokenValueBody({ type: item.tokenType, value: item.value });
         if (tokenMap[item.name]) {
           await updateToken(serverUrl, activeSet, item.name, body);
         } else {

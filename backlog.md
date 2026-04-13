@@ -101,7 +101,7 @@
 - [x] [HIGH] Rebuild BatchEditor for stacked compact layout below 360px
 - [x] [HIGH] Align generator dialog steps and pipeline quick edit with one authoring form system
 - [x] [HIGH] Remap bindings task drops context at every handoff: sync warning gives no signpost to Remap, pre-fill clears on deselect, from-field autocomplete cannot find stale paths, and ambiguous completion feedback leaves users unsure whether the remap worked
-- [ ] [HIGH] Resolve the competing extraction models in Apply: remove or gate the silent 'Extract & bind' fast-path in favor of the review-first ExtractTokensPanel
+- [x] [HIGH] Resolve the competing extraction models in Apply: remove or gate the silent 'Extract & bind' fast-path in favor of the review-first ExtractTokensPanel
 - [ ] [HIGH] Align plugin token writes around a shared draft-normalization contract so create/update flows stop passing raw resolved values into `Partial<Token>`
 - [ ] [HIGH] Finish the plugin shared-contract cleanup so workflow components stop shadowing stage unions and stale prop shapes
 - [ ] [HIGH] Make generator ownership lookup set-aware and centralize derived output-path calculation

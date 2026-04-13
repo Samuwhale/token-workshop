@@ -7,7 +7,7 @@ import { ApiError } from '../shared/apiFetch';
 import { ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
 import {
   createToken,
-  createTokenBody,
+  createTokenValueBody,
   deleteToken,
 } from '../shared/tokenMutations';
 
@@ -231,7 +231,7 @@ export function useTableCreate({
       }
 
       try {
-        await createToken(serverUrl, effectiveSet, path, createTokenBody({ $type: row.type, $value: parsedValue }));
+        await createToken(serverUrl, effectiveSet, path, createTokenValueBody({ type: row.type, value: parsedValue }));
         created.push({ path, tokenPath: path, type: row.type, value: parsedValue });
       } catch (err) {
         if (err instanceof ApiError) {
@@ -266,7 +266,7 @@ export function useTableCreate({
           },
           redo: async () => {
             for (const c of created) {
-              await createToken(capturedUrl, capturedSet, c.tokenPath, createTokenBody({ $type: c.type, $value: c.value }));
+              await createToken(capturedUrl, capturedSet, c.tokenPath, createTokenValueBody({ type: c.type, value: c.value }));
             }
             onRefresh();
           },

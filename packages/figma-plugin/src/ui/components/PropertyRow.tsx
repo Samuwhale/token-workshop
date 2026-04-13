@@ -10,7 +10,7 @@ import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
 import {
   applyTokenMutationSuccess,
   createToken,
-  createTokenBody,
+  createTokenValueBody,
   isTokenMutationConflictError,
   updateToken,
 } from '../shared/tokenMutations';
@@ -263,10 +263,10 @@ export function PropertyRow({
 
     setCreating(true);
     try {
-      await createToken(serverUrl, activeSet, tokenPath, createTokenBody({
-        $type: tokenType,
-        $value: tokenValue,
-        $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
+      await createToken(serverUrl, activeSet, tokenPath, createTokenValueBody({
+        type: tokenType,
+        value: tokenValue,
+        defaultScopes: getDefaultScopesForProperty(prop),
       }));
       await applyTokenMutationSuccess({
         onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, tokenValue),
@@ -296,10 +296,10 @@ export function PropertyRow({
 
     setCreating(true);
     try {
-      await updateToken(serverUrl, activeSet, tokenPath, createTokenBody({
-        $type: tokenType,
-        $value: tokenValue,
-        $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
+      await updateToken(serverUrl, activeSet, tokenPath, createTokenValueBody({
+        type: tokenType,
+        value: tokenValue,
+        defaultScopes: getDefaultScopesForProperty(prop),
       }));
       await applyTokenMutationSuccess({
         onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, tokenValue),

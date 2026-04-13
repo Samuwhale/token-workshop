@@ -1,10 +1,25 @@
-import type { Token } from '@tokenmanager/core';
 import type { ApiError } from './apiFetch';
 import { apiFetch } from './apiFetch';
 import { dispatchToast } from './toastBus';
 import { tokenPathToUrlSegment } from './utils';
 
-export type TokenMutationBody = Partial<Token>;
+export interface TokenMutationRequest {
+  $type?: string;
+  $value?: unknown;
+  $description?: string;
+  $extensions?: Record<string, unknown>;
+}
+
+export interface TokenValueDraftInput {
+  type?: string | null;
+  value: unknown;
+  description?: string;
+  extensions?: Record<string, unknown> | null;
+  scopes?: readonly string[] | null;
+  defaultScopes?: readonly string[] | null;
+}
+
+export type TokenMutationBody = TokenMutationRequest;
 export type TokenMutationMode = 'create' | 'update' | 'upsert';
 
 export interface TokenMutationResult<T = unknown> {
@@ -28,6 +43,57 @@ export function createTokenBody(body: TokenMutationBody): TokenMutationBody {
   return Object.fromEntries(
     Object.entries(body).filter(([, value]) => value !== undefined),
   ) as TokenMutationBody;
+}
+
+export function normalizeTokenMutationType(type: string | null | undefined): string | undefined {
+  if (typeof type !== 'string') return undefined;
+  const trimmed = type.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+export function normalizeTokenMutationValue<T>(value: T): T {
+  return value;
+}
+
+export function normalizeTokenScopes(
+  scopes?: readonly string[] | null,
+  defaultScopes?: readonly string[] | null,
+): string[] | undefined {
+  const nextScopes = scopes && scopes.length > 0
+    ? scopes
+    : defaultScopes && defaultScopes.length > 0
+      ? defaultScopes
+      : undefined;
+  return nextScopes ? [...nextScopes] : undefined;
+}
+
+export function createTokenExtensions({
+  extensions,
+  scopes,
+  defaultScopes,
+}: Pick<TokenValueDraftInput, 'extensions' | 'scopes' | 'defaultScopes'>): Record<string, unknown> | undefined {
+  const nextExtensions = extensions ? { ...extensions } : {};
+  const normalizedScopes = normalizeTokenScopes(scopes, defaultScopes);
+  if (normalizedScopes) {
+    nextExtensions['com.figma.scopes'] = normalizedScopes;
+  }
+  return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
+}
+
+export function createTokenValueBody({
+  type,
+  value,
+  description,
+  extensions,
+  scopes,
+  defaultScopes,
+}: TokenValueDraftInput): TokenMutationBody {
+  return createTokenBody({
+    $type: normalizeTokenMutationType(type),
+    $value: normalizeTokenMutationValue(value),
+    $description: description,
+    $extensions: createTokenExtensions({ extensions, scopes, defaultScopes }),
+  });
 }
 
 export function getTokenMutationUrl(serverUrl: string, setName: string, tokenPath: string): string {

@@ -10,11 +10,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: SelectionInspector exposes two extraction paths: 'Extract & bind N unbound' (silent, immediate, upserts tokens with no review, no undo, can overwrite) and 'Extract' (opens ExtractTokensPanel with per-token editing, overwrite warnings, and confirmation). The ux-pass flagged this as a product-model question and deferred it explicitly. The fix is a product decision: unify on the review-first model with an unbound-only filter pre-applied, or give the fast-path a lightweight confirmation step so it is no longer a silent destructive action."
-state: ready
+  - "Completed: Removed the silent Extract & bind path, routed Apply extraction through one reviewed unbound-only panel flow, and validated with eslint plus the figma-plugin build."
+state: done
 acceptance_criteria:
   - One canonical extraction model exists in the Apply/Inspect surface — either the silent fast-path is removed and ExtractTokensPanel is pre-filtered to unbound-only when launched from the selection context, or the fast-path shows a lightweight pre-commit summary (count, name conflicts, overwrite warnings) before creating any tokens
   - After extraction, no token can be silently created or overwritten without the user seeing what was about to happen
   - The 'Extract' button and the 'Extract & bind N unbound' affordance do not coexist as two different answers to the same question in the same surface
 source: product-pass
 created_at: 2026-04-13T04:31:39.151Z
-updated_at: 2026-04-13T04:31:39.151Z
+updated_at: 2026-04-13T04:39:12.988Z

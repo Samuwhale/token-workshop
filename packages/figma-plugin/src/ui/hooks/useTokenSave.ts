@@ -5,6 +5,7 @@ import { ApiError } from '../shared/apiFetch';
 import {
   applyTokenMutationSuccess,
   createTokenBody,
+  createTokenValueBody,
   updateToken,
 } from '../shared/tokenMutations';
 import { apiFetch } from '../shared/apiFetch';
@@ -96,7 +97,7 @@ export function useTokenSave({
         : null;
     const nextSnapshot = { type, value: cloneUndoValue(newValue) };
     try {
-      await updateToken(serverUrl, setName, path, createTokenBody({ $type: type, $value: newValue }));
+      await updateToken(serverUrl, setName, path, createTokenValueBody({ type, value: newValue }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
@@ -111,9 +112,9 @@ export function useTokenSave({
             onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
             return;
           }
-          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
-            $type: previousSnapshot.type,
-            $value: previousSnapshot.value,
+          await updateToken(capturedUrl, capturedSet, path, createTokenValueBody({
+            type: previousSnapshot.type,
+            value: previousSnapshot.value,
           }));
           onRefresh();
         },
@@ -122,9 +123,9 @@ export function useTokenSave({
             onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
             return;
           }
-          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
-            $type: nextSnapshot.type,
-            $value: nextSnapshot.value,
+          await updateToken(capturedUrl, capturedSet, path, createTokenValueBody({
+            type: nextSnapshot.type,
+            value: nextSnapshot.value,
           }));
           onRefresh();
         },
@@ -199,7 +200,7 @@ export function useTokenSave({
         : null;
     const nextSnapshot = { type, value: cloneUndoValue(newValue) };
     try {
-      await updateToken(serverUrl, targetSet, path, createTokenBody({ $type: type, $value: newValue }));
+      await updateToken(serverUrl, targetSet, path, createTokenValueBody({ type, value: newValue }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
@@ -210,16 +211,16 @@ export function useTokenSave({
       onPushUndo({
         description: `Edit ${path} in ${targetSet}`,
         restore: async () => {
-          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
-            $type: previousSnapshot.type,
-            $value: previousSnapshot.value,
+          await updateToken(capturedUrl, capturedSet, path, createTokenValueBody({
+            type: previousSnapshot.type,
+            value: previousSnapshot.value,
           }));
           onRefresh();
         },
         redo: async () => {
-          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
-            $type: nextSnapshot.type,
-            $value: nextSnapshot.value,
+          await updateToken(capturedUrl, capturedSet, path, createTokenValueBody({
+            type: nextSnapshot.type,
+            value: nextSnapshot.value,
           }));
           onRefresh();
         },

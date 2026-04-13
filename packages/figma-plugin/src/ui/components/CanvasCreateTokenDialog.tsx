@@ -3,7 +3,7 @@ import type { ResolvedTokenValue } from '../../shared/types';
 import { ALL_BINDABLE_PROPERTIES, TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Spinner } from './Spinner';
-import { createTokenBody, upsertToken } from '../shared/tokenMutations';
+import { createTokenValueBody, upsertToken } from '../shared/tokenMutations';
 import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage, stableStringify, SET_NAME_RE } from '../shared/utils';
 import { getDefaultScopesForProperty } from './selectionInspectorUtils';
@@ -49,25 +49,12 @@ function isBindablePropertyName(value: string): value is (typeof ALL_BINDABLE_PR
 }
 
 function buildTokenBody(option: CanvasCreateDraftOption) {
-  const base = createTokenBody({
-    $type: option.tokenType,
-    $value: option.tokenValue,
-  });
-
-  if (!isBindablePropertyName(option.property)) {
-    return base;
-  }
-
-  const scopes = getDefaultScopesForProperty(option.property);
-  if (scopes.length === 0) {
-    return base;
-  }
-
-  return createTokenBody({
-    ...base,
-    $extensions: {
-      'com.figma.scopes': scopes,
-    },
+  return createTokenValueBody({
+    type: option.tokenType,
+    value: option.tokenValue,
+    defaultScopes: isBindablePropertyName(option.property)
+      ? getDefaultScopesForProperty(option.property)
+      : undefined,
   });
 }
 

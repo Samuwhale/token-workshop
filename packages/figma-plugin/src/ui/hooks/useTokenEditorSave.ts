@@ -5,7 +5,7 @@ import { getErrorMessage } from '../shared/utils';
 import {
   applyTokenMutationSuccess,
   createToken,
-  createTokenBody,
+  createTokenValueBody,
   deleteToken,
   fetchToken,
   updateToken,
@@ -151,11 +151,11 @@ export function useTokenEditorSave({
           console.debug('[TokenEditor] failed to preserve generator ownership extension:', err);
         }
       }
-      const body = createTokenBody({
-        $type: tokenType,
-        $value: reference || value,
-        $description: description || undefined,
-        $extensions: Object.keys(extensions).length > 0 ? extensions : undefined,
+      const body = createTokenValueBody({
+        type: tokenType,
+        value: reference || value,
+        description: description || undefined,
+        extensions,
       });
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
