@@ -11,6 +11,7 @@ export interface UseThemeBulkOpsParams {
   setDimensions: React.Dispatch<React.SetStateAction<ThemeDimension[]>>;
   debouncedFetchDimensions: () => void;
   setError: (msg: string | null) => void;
+  onSuccess?: (message: string) => void;
 }
 
 export function useThemeBulkOps({
@@ -20,6 +21,7 @@ export function useThemeBulkOps({
   setDimensions,
   debouncedFetchDimensions,
   setError,
+  onSuccess,
 }: UseThemeBulkOpsParams) {
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
 
@@ -49,6 +51,7 @@ export function useThemeBulkOps({
       apiCall: () => Promise<void>;
       nextDimensions: ThemeDimension[];
       savingKeys?: string[];
+      successMessage?: string;
     } | null;
     errorMsg: string;
     label: string;
@@ -61,13 +64,21 @@ export function useThemeBulkOps({
       try {
         const mutation = plan(dimensionsRef.current);
         if (!mutation) return;
-        const { apiCall, nextDimensions, savingKeys = [] } = mutation;
+        const {
+          apiCall,
+          nextDimensions,
+          savingKeys = [],
+          successMessage,
+        } = mutation;
         keys = savingKeys;
         if (keys.length) setSavingKeys(prev => { const n = new Set(prev); keys.forEach(k => n.add(k)); return n; });
         dimensionsRef.current = nextDimensions;
         setDimensions(nextDimensions);
         await apiCall();
         committedDimensionsRef.current = nextDimensions;
+        if (successMessage && mountedRef.current) {
+          onSuccess?.(successMessage);
+        }
         if (mountedRef.current) debouncedFetchDimensions();
       } catch (err) {
         if (!mountedRef.current) return;
@@ -86,7 +97,7 @@ export function useThemeBulkOps({
       console.error(`[ThemeManager] mutation chain error (${label}):`, err);
       setError(getErrorMessage(err, 'Unexpected mutation error'));
     });
-  }, [debouncedFetchDimensions, setDimensions, setError]);
+  }, [debouncedFetchDimensions, onSuccess, setDimensions, setError]);
 
   // --- Set state toggle (single option, single set) ---
 
@@ -198,6 +209,7 @@ export function useThemeBulkOps({
               ? { ...d, options: d.options.map(o => o.name === targetOptionName ? { ...o, sets: copiedSets } : o) }
               : d,
           ),
+          successMessage: `Copied assignments from "${sourceOptionName}" to "${targetOptionName}"`,
           apiCall: () => apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

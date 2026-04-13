@@ -1,8 +1,53 @@
-import { createContext, useContext, useMemo, useState, useRef, useEffect } from 'react';
+import { createContext, useContext, useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
 import { FieldMessage } from '../shared/FieldMessage';
 import type { AutoFillPreview } from './themeManagerTypes';
+
+export interface ThemeManagerFeedbackState {
+  error: string | null;
+  setError: (message: string | null) => void;
+  clearError: () => void;
+  reportSuccess: (message: string) => void;
+  reportError: (message: string) => void;
+}
+
+export function useThemeManagerFeedback(
+  onSuccess?: (message: string) => void,
+): ThemeManagerFeedbackState {
+  const [error, setErrorState] = useState<string | null>(null);
+
+  const setError = useCallback((message: string | null) => {
+    setErrorState(message);
+  }, []);
+
+  const clearError = useCallback(() => {
+    setErrorState(null);
+  }, []);
+
+  const reportSuccess = useCallback(
+    (message: string) => {
+      clearError();
+      onSuccess?.(message);
+    },
+    [clearError, onSuccess],
+  );
+
+  const reportError = useCallback((message: string) => {
+    setErrorState(message);
+  }, []);
+
+  return useMemo(
+    () => ({
+      error,
+      setError,
+      clearError,
+      reportSuccess,
+      reportError,
+    }),
+    [clearError, error, reportError, reportSuccess, setError],
+  );
+}
 
 export interface ThemeManagerModalsState {
   dimensions: ThemeDimension[];

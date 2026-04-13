@@ -12,6 +12,7 @@ export interface UseThemeDimensionsParams {
   serverUrl: string;
   connected: boolean;
   sets: string[];
+  setError: (message: string | null) => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onSuccess?: (msg: string) => void;
 }
@@ -21,8 +22,6 @@ export interface UseThemeDimensionsReturn extends UseThemeDimensionsCrudReturn {
   dimensions: ThemeDimension[];
   setDimensions: React.Dispatch<React.SetStateAction<ThemeDimension[]>>;
   loading: boolean;
-  error: string | null;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
   fetchWarnings: string | null;
   /** Dismiss the fetch-warnings banner. */
   clearFetchWarnings: () => void;
@@ -45,12 +44,12 @@ export function useThemeDimensions({
   serverUrl,
   connected,
   sets,
+  setError,
   onPushUndo,
   onSuccess,
 }: UseThemeDimensionsParams): UseThemeDimensionsReturn {
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [fetchWarnings, setFetchWarnings] = useState<string | null>(null);
   const [coverage, setCoverage] = useState<CoverageMap>({});
   const [missingOverrides, setMissingOverrides] = useState<MissingOverridesMap>({});
@@ -154,7 +153,7 @@ export function useThemeDimensions({
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [serverUrl, connected, sets]);
+  }, [connected, serverUrl, setError, sets]);
 
   const debouncedFetchDimensions = useCallback(() => {
     if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current);
@@ -187,8 +186,6 @@ export function useThemeDimensions({
     dimensions,
     setDimensions,
     loading,
-    error,
-    setError,
     fetchWarnings,
     clearFetchWarnings,
     coverage,

@@ -11,6 +11,7 @@ export interface UseThemeAutoFillParams {
   coverage: CoverageMap;
   debouncedFetchDimensions: () => void;
   setError: (msg: string | null) => void;
+  onSuccess?: (message: string) => void;
 }
 
 export function useThemeAutoFill({
@@ -19,6 +20,7 @@ export function useThemeAutoFill({
   coverage,
   debouncedFetchDimensions,
   setError,
+  onSuccess,
 }: UseThemeAutoFillParams) {
   const [fillingKeys, setFillingKeys] = useState<Set<string>>(new Set());
   const [autoFillPreview, setAutoFillPreview] = useState<AutoFillPreview | null>(null);
@@ -49,6 +51,7 @@ export function useThemeAutoFill({
         $value: item.fillValue,
       }));
       debouncedFetchDimensions();
+      onSuccess?.(`Auto-filled token "${item.missingRef}" in "${targetSet}"`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill token'));
     } finally {
@@ -92,6 +95,7 @@ export function useThemeAutoFill({
         body: JSON.stringify({ tokens, strategy }),
       });
       debouncedFetchDimensions();
+      onSuccess?.(`Auto-filled ${tokens.length} token${tokens.length !== 1 ? 's' : ''} in "${targetSet}"`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill tokens'));
     } finally {
@@ -149,6 +153,7 @@ export function useThemeAutoFill({
         )
       );
       debouncedFetchDimensions();
+      onSuccess?.(`Auto-filled ${preview.totalCount} token${preview.totalCount !== 1 ? 's' : ''} across ${Object.keys(perSetBatch).length} set${Object.keys(perSetBatch).length !== 1 ? 's' : ''}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill tokens'));
     } finally {

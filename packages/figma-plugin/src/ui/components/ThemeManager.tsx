@@ -15,21 +15,13 @@ import {
   summarizeThemeOptionRoles,
   type ThemeOptionRoleSummary,
 } from "./themeManagerTypes";
-import { useThemeDragDrop } from "../hooks/useThemeDragDrop";
-import { useThemeBulkOps } from "../hooks/useThemeBulkOps";
 import type { CompareMode } from "./UnifiedComparePanel";
 import type { TokenMapEntry } from "../../shared/types";
-import { useThemeAutoFill } from "../hooks/useThemeAutoFill";
-import { useThemeDimensions } from "../hooks/useThemeDimensions";
-import { useThemeOptions } from "../hooks/useThemeOptions";
-import { useThemeCoverage } from "../hooks/useThemeCoverage";
-import { useThemeCompare } from "../hooks/useThemeCompare";
 import {
   ThemeManagerModalsProvider,
   ThemeManagerModals,
-  useThemeManagerModalsValue,
+  useThemeManagerFeedback,
 } from "./ThemeManagerContext";
-import { apiFetch } from "../shared/apiFetch";
 import {
   NoticeInlineAlert,
 } from "../shared/noticeSystem";
@@ -55,7 +47,11 @@ import {
   getFirstDimensionWithFillableGaps,
   resolveThemeAutoFillAction,
 } from "./theme-manager/themeAutoFillTargets";
-import { buildThemeResolverAuthoringContext } from "./theme-manager/themeResolverContext";
+import {
+  useThemeAdvancedToolsController,
+  useThemeDiagnosticsController,
+  useThemeWorkspaceController,
+} from "./theme-manager/themeManagerControllers";
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
@@ -223,46 +219,41 @@ const ThemeManagerWorkspace = React.forwardRef<
   const setActiveView = onActiveViewChange;
   const setAuthoringMode = onAuthoringModeChange;
   const authoringScreenRef = useRef<ThemeAuthoringScreenHandle | null>(null);
+  const feedback = useThemeManagerFeedback(onSuccess);
   const [focusedDimensionId, setFocusedDimensionId] = useState<string | null>(
     null,
   );
-  const [coverageContext, setCoverageContext] =
-    useState<ThemeRoleNavigationTarget>({
-      dimId: null,
-      optionName: null,
-      preferredSetName: null,
-    });
-  const [showAllCoverageAxes, setShowAllCoverageAxes] = useState(false);
-  const [compareContext, setCompareContext] = useState<{
-    dimId: string | null;
-    optionName: string | null;
-  }>({
-    dimId: null,
-    optionName: null,
+  const workspace = useThemeWorkspaceController({
+    serverUrl,
+    connected,
+    sets,
+    feedback,
+    onPushUndo,
+    onTokensCreated,
+    onSetCreated,
   });
-  const [advancedSetupRequestKey, setAdvancedSetupRequestKey] = useState<
-    string | null
-  >(null);
-
-  // --- Domain hooks ---
   const {
-    dimensions,
-    setDimensions,
-    loading,
-    error,
-    setError,
-    fetchWarnings,
-    clearFetchWarnings,
+    dimensionsState,
+    dragDrop,
+    bulkOps,
+    autoFill,
+    options,
+    modals: modalContextValue,
     coverage,
     missingOverrides,
     optionSetOrders,
-    setOptionSetOrders,
     selectedOptions,
     setSelectedOptions,
     setTokenValues,
-    newlyCreatedDim,
     fetchDimensions,
     debouncedFetchDimensions,
+    dimensions,
+  } = workspace;
+  const {
+    loading,
+    fetchWarnings,
+    clearFetchWarnings,
+    newlyCreatedDim,
     newDimName,
     setNewDimName,
     showCreateDim,
@@ -275,18 +266,108 @@ const ThemeManagerWorkspace = React.forwardRef<
     renameValue,
     setRenameValue,
     renameError,
-    isRenamingDim: _isRenamingDim,
     startRenameDim,
     cancelRenameDim,
     executeRenameDim,
-    dimensionDeleteConfirm,
     openDeleteConfirm,
-    closeDeleteConfirm,
-    isDeletingDim: _isDeletingDim,
-    executeDeleteDimension,
-    isDuplicatingDim,
     handleDuplicateDimension,
-  } = useThemeDimensions({ serverUrl, connected, sets, onPushUndo, onSuccess });
+    isDuplicatingDim,
+  } = dimensionsState;
+  const {
+    draggingOpt,
+    dragOverOpt,
+    handleMoveDimension,
+    handleMoveOption,
+    handleOptDragStart,
+    handleOptDragOver,
+    handleOptDrop,
+    handleOptDragEnd,
+  } = dragDrop;
+  const {
+    copyFromNewOption,
+    setCopyFromNewOption,
+    roleStates,
+    handleSetState,
+    handleCopyAssignmentsFrom,
+    getCopySourceOptions,
+  } = bulkOps;
+  const {
+    fillingKeys,
+    handleAutoFillAll,
+    handleAutoFillAllOptions,
+  } = autoFill;
+  const {
+    newOptionNames,
+    setNewOptionNames,
+    showAddOption,
+    setShowAddOption,
+    addOptionErrors,
+    setAddOptionErrors,
+    addOptionInputRefs,
+    handleAddOption,
+    handleDuplicateOption,
+    renameOption,
+    renameOptionValue,
+    setRenameOptionValue,
+    renameOptionError,
+    setRenameOptionError,
+    startRenameOption,
+    cancelRenameOption,
+    executeRenameOption,
+    setOptionDeleteConfirm,
+  } = options;
+  const diagnostics = useThemeDiagnosticsController({
+    dimensions,
+    coverage,
+    missingOverrides,
+    availableSets: sets,
+    optionSetOrders,
+    setTokenValues,
+    selectedOptions,
+  });
+  const {
+    coverageContext,
+    setCoverageContext,
+    showAllCoverageAxes,
+    setShowAllCoverageAxes,
+    setTokenCounts,
+    optionIssues,
+    allIssues,
+    totalFillableGaps,
+    optionDiffCounts,
+    optionRoleSummaries,
+  } = diagnostics;
+  const advancedTools = useThemeAdvancedToolsController({
+    dimensions,
+    selectedOptions,
+    resolverState,
+  });
+  const {
+    compare,
+    compareContext,
+    setCompareContext,
+    advancedSetupRequestKey,
+    setAdvancedSetupRequestKey,
+    resolverAuthoringContext,
+    canCompareThemes,
+  } = advancedTools;
+  const {
+    showCompare,
+    setShowCompare,
+    compareMode,
+    setCompareMode,
+    compareTokenPath,
+    setCompareTokenPath,
+    compareTokenPaths,
+    setCompareTokenPaths,
+    compareThemeKey,
+    setCompareThemeKey,
+    compareThemeDefaultA,
+    setCompareThemeDefaultA,
+    compareThemeDefaultB,
+    setCompareThemeDefaultB,
+    navigateToCompare: navigateToCompareState,
+  } = compare;
 
   useEffect(() => {
     onDimensionsChange?.(dimensions);
@@ -306,136 +387,6 @@ const ThemeManagerWorkspace = React.forwardRef<
       return;
     setFocusedDimensionId(dimensions[0].id);
   }, [dimensions, focusedDimensionId]);
-
-  const {
-    draggingOpt,
-    dragOverOpt,
-    handleMoveDimension,
-    handleMoveOption,
-    handleOptDragStart,
-    handleOptDragOver,
-    handleOptDrop,
-    handleOptDragEnd,
-  } = useThemeDragDrop({
-    serverUrl,
-    connected,
-    dimensions,
-    setDimensions,
-    fetchDimensions,
-  });
-
-  const {
-    showCompare,
-    setShowCompare,
-    compareMode,
-    setCompareMode,
-    compareTokenPath,
-    setCompareTokenPath,
-    compareTokenPaths,
-    setCompareTokenPaths,
-    compareThemeKey,
-    setCompareThemeKey,
-    compareThemeDefaultA,
-    setCompareThemeDefaultA,
-    compareThemeDefaultB,
-    setCompareThemeDefaultB,
-    navigateToCompare: navigateToCompareState,
-  } = useThemeCompare();
-
-  const {
-    copyFromNewOption,
-    setCopyFromNewOption,
-    roleStates,
-    handleSetState,
-    handleCopyAssignmentsFrom,
-    getCopySourceOptions,
-  } = useThemeBulkOps({
-    serverUrl,
-    sets,
-    dimensions,
-    setDimensions,
-    debouncedFetchDimensions,
-    setError,
-  });
-
-  const {
-    fillingKeys,
-    autoFillPreview,
-    setAutoFillPreview,
-    autoFillStrategy,
-    setAutoFillStrategy,
-    handleAutoFillAll,
-    executeAutoFillAll,
-    handleAutoFillAllOptions,
-    executeAutoFillAllOptions,
-  } = useThemeAutoFill({
-    serverUrl,
-    dimensions,
-    coverage,
-    debouncedFetchDimensions,
-    setError,
-  });
-
-  const {
-    newOptionNames,
-    setNewOptionNames,
-    showAddOption,
-    setShowAddOption,
-    addOptionErrors,
-    setAddOptionErrors,
-    addOptionInputRefs,
-    handleAddOption,
-    handleDuplicateOption,
-    renameOption,
-    renameOptionValue,
-    setRenameOptionValue,
-    renameOptionError,
-    setRenameOptionError,
-    startRenameOption,
-    cancelRenameOption,
-    executeRenameOption,
-    optionDeleteConfirm,
-    setOptionDeleteConfirm,
-    executeDeleteOption,
-  } = useThemeOptions({
-    serverUrl,
-    connected,
-    sets,
-    dimensions,
-    setDimensions,
-    debouncedFetchDimensions,
-    fetchDimensions,
-    selectedOptions,
-    setSelectedOptions,
-    optionSetOrders,
-    setOptionSetOrders,
-    setError,
-    onSuccess,
-    onPushUndo,
-    copyFromNewOption,
-    setCopyFromNewOption,
-  });
-
-  const setTokenCounts = useMemo(() => {
-    const counts: Record<string, number | null> = {};
-    for (const setName of sets) {
-      counts[setName] = setTokenValues[setName]
-        ? Object.keys(setTokenValues[setName]).length
-        : null;
-    }
-    return counts;
-  }, [setTokenValues, sets]);
-
-  const { optionIssues, allIssues, totalFillableGaps } = useThemeCoverage(
-    {
-      dimensions,
-      coverage,
-      missingOverrides,
-      availableSets: sets,
-      optionSetOrders,
-      setTokenCounts,
-    },
-  );
 
   useEffect(() => {
     onGapsDetected?.(totalFillableGaps);
@@ -707,87 +658,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     ],
   );
 
-  // --- Create override set ---
-  const [createOverrideSet, setCreateOverrideSet] = useState<{
-    dimId: string;
-    setName: string;
-    optName?: string;
-  } | null>(null);
-  const [isCreatingOverrideSet, setIsCreatingOverrideSet] = useState(false);
-
-  const executeCreateOverrideSet = useCallback(
-    async ({
-      newName,
-      optionName,
-      startEmpty,
-    }: {
-      newName: string;
-      optionName: string;
-      startEmpty: boolean;
-    }) => {
-      if (!createOverrideSet) return;
-      const { dimId, setName: sourceName } = createOverrideSet;
-      setIsCreatingOverrideSet(true);
-      try {
-        if (startEmpty) {
-          await apiFetch<{ ok: true; name: string }>(`${serverUrl}/api/sets`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: newName }),
-          });
-        } else {
-          await apiFetch<{ ok: true; name: string; originalName: string }>(
-            `${serverUrl}/api/sets/${encodeURIComponent(sourceName)}/duplicate`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ newName }),
-            },
-          );
-        }
-        // Link the new set to the selected theme option as Override
-        const dim = dimensions.find((d) => d.id === dimId);
-        const opt = dim?.options.find(
-          (o: ThemeOption) => o.name === optionName,
-        );
-        if (dim && opt) {
-          const updatedSets = { ...opt.sets, [newName]: "enabled" as const };
-          await apiFetch(
-            `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: optionName, sets: updatedSets }),
-            },
-          );
-        }
-        onSetCreated?.(newName);
-        onTokensCreated?.();
-        await debouncedFetchDimensions();
-        setCreateOverrideSet(null);
-        onSuccess?.(
-          `Created override set "${newName}"${dim && opt ? ` linked to ${dim.name} → ${optionName}` : ""}`,
-        );
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to create override set",
-        );
-      } finally {
-        setIsCreatingOverrideSet(false);
-      }
-    },
-    [
-      createOverrideSet,
-      dimensions,
-      serverUrl,
-      debouncedFetchDimensions,
-      onSetCreated,
-      onTokensCreated,
-      onSuccess,
-      setError,
-    ],
-  );
-
   // Sync showCompare (set by external navigateToCompare calls) → activeView
   useEffect(() => {
     if (showCompare) setActiveView("compare");
@@ -818,6 +688,8 @@ const ThemeManagerWorkspace = React.forwardRef<
       setActiveView,
       setAuthoringMode,
       setAdvancedSetupRequestKey,
+      setCoverageContext,
+      setShowAllCoverageAxes,
       setShowCompare,
     ],
   );
@@ -889,6 +761,7 @@ const ThemeManagerWorkspace = React.forwardRef<
       setActiveView,
       setAuthoringMode,
       setAdvancedSetupRequestKey,
+      setCompareContext,
       setShowCompare,
     ],
   );
@@ -929,7 +802,7 @@ const ThemeManagerWorkspace = React.forwardRef<
       }
       navigateToCompareState(mode, path, tokenPaths, optionA, optionB);
     },
-    [focusedDimensionId, navigateToCompareState],
+    [focusedDimensionId, navigateToCompareState, setAdvancedSetupRequestKey, setCompareContext],
   );
 
   // Populate imperative handle so parent (e.g. command palette) can trigger auto-fill
@@ -972,108 +845,12 @@ const ThemeManagerWorkspace = React.forwardRef<
     ],
   );
 
-  // --- Per-option diff counts vs currently selected option ---
-  const optionDiffCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const resolveOpt = (opt: ThemeOption): Record<string, any> => {
-      const merged: Record<string, any> = {};
-      for (const [s, st] of Object.entries(opt.sets)) {
-        if (st === "source") Object.assign(merged, setTokenValues[s] ?? {});
-      }
-      for (const [s, st] of Object.entries(opt.sets)) {
-        if (st === "enabled") Object.assign(merged, setTokenValues[s] ?? {});
-      }
-      const resolve = (v: any, depth = 0): any => {
-        if (depth > 10 || typeof v !== "string") return v;
-        const m = /^\{([^}]+)\}$/.exec(v);
-        if (!m) return v;
-        const t = m[1];
-        return t in merged ? resolve(merged[t], depth + 1) : v;
-      };
-      const out: Record<string, any> = {};
-      for (const [p, v] of Object.entries(merged)) out[p] = resolve(v);
-      return out;
-    };
-    for (const dim of dimensions) {
-      if (dim.options.length < 2) continue;
-      const selOptName = selectedOptions[dim.id] || dim.options[0]?.name || "";
-      const selOpt = dim.options.find(
-        (o: ThemeOption) => o.name === selOptName,
-      );
-      if (!selOpt) continue;
-      const selTokens = resolveOpt(selOpt);
-      for (const opt of dim.options) {
-        if (opt.name === selOptName) continue;
-        const optTokens = resolveOpt(opt);
-        const allPaths = new Set([
-          ...Object.keys(optTokens),
-          ...Object.keys(selTokens),
-        ]);
-        let diff = 0;
-        for (const path of allPaths) {
-          if (
-            JSON.stringify(optTokens[path]) !== JSON.stringify(selTokens[path])
-          )
-            diff++;
-        }
-        counts[`${dim.id}/${opt.name}`] = diff;
-      }
-    }
-    return counts;
-  }, [dimensions, selectedOptions, setTokenValues]);
-
-  const optionRoleSummaries = useMemo(() => {
-    const summaries: Record<string, ThemeOptionRoleSummary> = {};
-    for (const dimension of dimensions) {
-      for (const option of dimension.options) {
-        summaries[`${dimension.id}:${option.name}`] = summarizeThemeOptionRoles(
-          {
-            option,
-            orderedSets: optionSetOrders[dimension.id]?.[option.name] || sets,
-            availableSets: sets,
-            tokenCountsBySet: setTokenCounts,
-            uncoveredCount:
-              coverage[dimension.id]?.[option.name]?.uncovered.length ?? 0,
-            missingOverrideCount:
-              missingOverrides[dimension.id]?.[option.name]?.missing.length ??
-              0,
-          },
-        );
-      }
-    }
-    return summaries;
-  }, [
-    coverage,
-    dimensions,
-    missingOverrides,
-    optionSetOrders,
-    setTokenCounts,
-    sets,
-  ]);
-
-  const resolverAuthoringContext = useMemo(
-    () =>
-      resolverState
-        ? buildThemeResolverAuthoringContext({
-            dimensions,
-            selectedOptions,
-            resolvers: resolverState.resolvers,
-            activeResolverName: resolverState.activeResolver,
-          })
-        : null,
-    [dimensions, resolverState, selectedOptions],
-  );
-
   const focusedDimension = useMemo(
     () =>
       dimensions.find((dim) => dim.id === focusedDimensionId) ??
       dimensions[0] ??
       null,
     [dimensions, focusedDimensionId],
-  );
-  const canCompareThemes = useMemo(
-    () => dimensions.some((dim) => dim.options.length >= 2),
-    [dimensions],
   );
   const coverageFocusDimension = useMemo(
     () =>
@@ -1182,27 +959,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     [compareContext.optionName, compareFocusDimension, getOptionNameForContext],
   );
 
-  const modalContextValue = useThemeManagerModalsValue({
-    dimensions,
-    autoFillPreview,
-    setAutoFillPreview,
-    autoFillStrategy,
-    setAutoFillStrategy,
-    executeAutoFillAll,
-    executeAutoFillAllOptions,
-    dimensionDeleteConfirm,
-    setDimensionDeleteConfirm: openDeleteConfirm,
-    closeDeleteConfirm,
-    executeDeleteDimension,
-    optionDeleteConfirm,
-    setOptionDeleteConfirm,
-    executeDeleteOption,
-    createOverrideSet,
-    setCreateOverrideSet,
-    executeCreateOverrideSet,
-    isCreatingOverrideSet,
-  });
-
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
@@ -1223,13 +979,13 @@ const ThemeManagerWorkspace = React.forwardRef<
   return (
     <ThemeManagerModalsProvider value={modalContextValue}>
       <div className="flex flex-col h-full">
-        {error && (
+        {feedback.error && (
           <div className="mx-3 mt-2">
             <NoticeInlineAlert
               severity="error"
-              onDismiss={() => setError(null)}
+              onDismiss={feedback.clearError}
             >
-              {error}
+              {feedback.error}
             </NoticeInlineAlert>
           </div>
         )}
