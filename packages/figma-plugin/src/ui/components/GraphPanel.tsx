@@ -20,6 +20,7 @@ import {
   GeneratorPipelineCard,
   getGeneratorTypeLabel,
 } from "./GeneratorPipelineCard";
+import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
 import { SkeletonGeneratorCard } from "./Skeleton";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
@@ -40,6 +41,14 @@ function exportGraphAsSVG(
   generators: TokenGenerator[],
   activeSet: string,
 ): void {
+  const css = (name: string, fallback: string) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  const colorBg = css("--color-figma-bg", "#ffffff");
+  const colorBgSecondary = css("--color-figma-bg-secondary", "#eff6ff");
+  const colorAccent = css("--color-figma-accent", "#1d4ed8");
+  const colorTextSecondary = css("--color-figma-text-secondary", "#6b7280");
+  const colorText = css("--color-figma-text", "#111827");
+
   const cardW = 240;
   const cardH = 48;
   const cardR = 6;
@@ -72,15 +81,15 @@ function exportGraphAsSVG(
     const targetLabel = `\u2192 ${trunc(gen.targetGroup + ".*", 30)}`;
 
     rows +=
-      `<rect x="${padX}" y="${y}" width="${cardW}" height="${cardH}" rx="${cardR}" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>` +
-      `<text x="${padX + 10}" y="${y + 18}" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="#1d4ed8">${esc(genLabel)}</text>` +
-      `<text x="${padX + 10}" y="${y + 34}" font-family="ui-monospace,monospace" font-size="8" fill="#6b7280">${esc(sourceLabel)}  ${esc(targetLabel)}</text>`;
+      `<rect x="${padX}" y="${y}" width="${cardW}" height="${cardH}" rx="${cardR}" fill="${colorBgSecondary}" stroke="${colorAccent}" stroke-width="1"/>` +
+      `<text x="${padX + 10}" y="${y + 18}" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="${colorAccent}">${esc(genLabel)}</text>` +
+      `<text x="${padX + 10}" y="${y + 34}" font-family="ui-monospace,monospace" font-size="8" fill="${colorTextSecondary}">${esc(sourceLabel)}  ${esc(targetLabel)}</text>`;
   });
 
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`,
-    `<rect width="${svgW}" height="${svgH}" fill="white"/>`,
-    `<text x="${padX}" y="${padY + 18}" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#111827">${esc(activeSet)} \u2014 Recipe graph</text>`,
+    `<rect width="${svgW}" height="${svgH}" fill="${colorBg}"/>`,
+    `<text x="${padX}" y="${padY + 18}" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="${colorText}">${esc(activeSet)} \u2014 Recipe graph</text>`,
     rows,
     "</svg>",
   ].join("\n");
@@ -182,6 +191,7 @@ export function GraphPanel({
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [justApplied, setJustApplied] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
+  const actionsMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [graphEditing, setGraphEditing] = useState<GraphEditingState>({ kind: "none" });
 
   // Auto-open template picker when navigating from ThemeManager "Generate tokens" action
@@ -208,10 +218,10 @@ export function GraphPanel({
     return () => clearTimeout(timer);
   }, [focusGeneratorId, onClearFocusGenerator]);
 
-  // Close actions menu on outside click
+  // Close actions menu on outside click / keyboard navigation
   useEffect(() => {
     if (!actionsMenuOpen) return;
-    const handler = (e: MouseEvent) => {
+    const handlePointerDown = (e: MouseEvent) => {
       if (
         actionsMenuRef.current &&
         !actionsMenuRef.current.contains(e.target as Node)
@@ -219,8 +229,28 @@ export function GraphPanel({
         setActionsMenuOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setActionsMenuOpen(false);
+        actionsMenuButtonRef.current?.focus();
+        return;
+      }
+      if (actionsMenuRef.current) {
+        handleMenuArrowKeys(e, actionsMenuRef.current);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    requestAnimationFrame(() => {
+      if (actionsMenuRef.current) {
+        getMenuItems(actionsMenuRef.current)[0]?.focus();
+      }
+    });
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [actionsMenuOpen]);
 
   const handleSelectTemplate = (template: GraphTemplate) => {
@@ -488,7 +518,7 @@ export function GraphPanel({
         <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-[11px] font-medium text-[var(--color-figma-text)] shrink-0">
-              Generators
+              Recipes
             </span>
             <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
               {q || typeFilter
@@ -543,11 +573,12 @@ export function GraphPanel({
               >
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              Add generator
+              Add recipe
             </button>
             {/* Actions overflow menu */}
             <div className="relative" ref={actionsMenuRef}>
               <button
+                ref={actionsMenuButtonRef}
                 onClick={() => setActionsMenuOpen((v) => !v)}
                 disabled={!connected}
                 className={`relative p-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${actionsMenuOpen ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"}`}
@@ -607,7 +638,7 @@ export function GraphPanel({
                         handleRunStale();
                       }}
                       disabled={runningAction !== null}
-                      className="w-full text-left px-3 py-2 flex items-center gap-2 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="w-full text-left px-3 py-2 flex items-center gap-2 text-[var(--color-figma-warning,#f59e0b)] hover:bg-[var(--color-figma-warning,#f59e0b)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       <svg
                         width="10"
@@ -662,7 +693,7 @@ export function GraphPanel({
                         handleRetryBlocked();
                       }}
                       disabled={runningAction !== null}
-                      className="w-full text-left px-3 py-2 flex items-center gap-2 text-amber-700 dark:text-amber-400 hover:bg-amber-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="w-full text-left px-3 py-2 flex items-center gap-2 text-[var(--color-figma-warning,#f59e0b)] hover:bg-[var(--color-figma-warning,#f59e0b)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       <svg
                         width="10"
@@ -702,7 +733,7 @@ export function GraphPanel({
                     >
                       <polygon points="5 3 19 12 5 21 5 3" />
                     </svg>
-                    Run all generators
+                    Run all recipes
                   </button>
                   <div
                     className="my-0.5 border-t border-[var(--color-figma-border)]"
@@ -775,7 +806,7 @@ export function GraphPanel({
                   : "Search recipes…"
               }
               aria-label="Search recipes"
-              className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
             />
             {searchQuery && (
               <button
@@ -935,18 +966,9 @@ export function GraphPanel({
                 label: "Color scales",
                 icon: (
                   <>
-                    <div
-                      className="w-1.5 h-3 rounded-sm"
-                      style={{ background: "hsl(220,70%,80%)" }}
-                    />
-                    <div
-                      className="w-1.5 h-3 rounded-sm"
-                      style={{ background: "hsl(220,70%,55%)" }}
-                    />
-                    <div
-                      className="w-1.5 h-3 rounded-sm"
-                      style={{ background: "hsl(220,70%,30%)" }}
-                    />
+                    <div className="w-1.5 h-3 rounded-sm bg-[var(--color-figma-accent)]/25" />
+                    <div className="w-1.5 h-3 rounded-sm bg-[var(--color-figma-accent)]/55" />
+                    <div className="w-1.5 h-3 rounded-sm bg-[var(--color-figma-accent)]/85" />
                   </>
                 ),
               },
@@ -1028,7 +1050,7 @@ export function GraphPanel({
               disabled={!connected}
               className="px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              Add your first generator
+              Add your first recipe
             </button>
 
             {!connected && (
