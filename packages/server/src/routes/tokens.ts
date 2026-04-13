@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { TOKEN_TYPE_VALUES, TokenValidator, isReference, parseReference, type Token, type TokenGroup } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
 import type { SnapshotEntry } from '../services/operation-log.js';
-import { snapshotPaths, snapshotSet, snapshotGroup } from '../services/operation-log.js';
+import { qualifySnapshotEntries, snapshotPaths, snapshotSet, snapshotGroup } from '../services/operation-log.js';
 import {
   batchCopyTokensCommand,
   batchMoveTokensCommand,
@@ -83,9 +83,26 @@ function mergeSetSnapshot(
   setName: string,
   snapshot: Record<string, SnapshotEntry>,
 ): void {
-  for (const [tokenPath, entry] of Object.entries(snapshot)) {
-    target[`${tokenPath}@${setName}`] = entry;
+  Object.assign(target, qualifySnapshotEntries(setName, snapshot));
+}
+
+function getTokenLifecycle(token: Token): 'draft' | 'published' | 'deprecated' {
+  const rawLifecycle = (token.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
+  return rawLifecycle === 'draft' || rawLifecycle === 'deprecated' ? rawLifecycle : 'published';
+}
+
+function groupSnapshotEntriesBySet(
+  snapshot: Record<string, SnapshotEntry>,
+): Map<string, Array<{ path: string; token: Token | null }>> {
+  const grouped = new Map<string, Array<{ path: string; token: Token | null }>>();
+  for (const [snapshotKey, entry] of Object.entries(snapshot)) {
+    const prefix = `${entry.setName}::`;
+    const tokenPath = snapshotKey.startsWith(prefix) ? snapshotKey.slice(prefix.length) : snapshotKey;
+    const items = grouped.get(entry.setName) ?? [];
+    items.push({ path: tokenPath, token: entry.token });
+    grouped.set(entry.setName, items);
   }
+  return grouped;
 }
 
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
@@ -842,6 +859,164 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return { ok: true, ...result, operationId };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch upsert tokens');
+      }
+    });
+  });
+
+  // GET /api/tokens/deprecated-usage — list deprecated tokens that still have active alias dependents
+  fastify.get('/tokens/deprecated-usage', async (_request, reply) => {
+    try {
+      const deprecatedByPath = new Map<string, { setName: string; type: string }>();
+      for (const { path: tokenPath, token, setName } of fastify.tokenStore.getAllFlatTokens()) {
+        if (getTokenLifecycle(token) !== 'deprecated' || deprecatedByPath.has(tokenPath)) {
+          continue;
+        }
+        deprecatedByPath.set(tokenPath, {
+          setName,
+          type: token.$type ?? 'unknown',
+        });
+      }
+
+      const entries = [...deprecatedByPath.entries()]
+        .map(([deprecatedPath, meta]) => ({
+          deprecatedPath,
+          setName: meta.setName,
+          type: meta.type,
+          dependents: fastify.tokenStore
+            .getDependents(deprecatedPath)
+            .slice()
+            .sort(
+              (a, b) =>
+                a.path.localeCompare(b.path) ||
+                a.setName.localeCompare(b.setName),
+            ),
+        }))
+        .filter(entry => entry.dependents.length > 0)
+        .map(entry => ({
+          ...entry,
+          activeReferenceCount: entry.dependents.length,
+        }))
+        .sort(
+          (a, b) =>
+            b.activeReferenceCount - a.activeReferenceCount ||
+            a.deprecatedPath.localeCompare(b.deprecatedPath),
+        );
+
+      return { entries };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to load deprecated token usage');
+    }
+  });
+
+  // POST /api/tokens/deprecated-usage/replace — replace all direct alias references to a deprecated token
+  fastify.post<{
+    Body: { deprecatedPath?: string; replacementPath?: string };
+  }>('/tokens/deprecated-usage/replace', async (request, reply) => {
+    const { deprecatedPath, replacementPath } = request.body ?? {};
+    if (!isValidTokenPath(deprecatedPath) || !isValidTokenPath(replacementPath)) {
+      return reply.status(400).send({ error: 'deprecatedPath and replacementPath must be valid non-empty token paths' });
+    }
+    if (deprecatedPath === replacementPath) {
+      return reply.status(400).send({ error: 'replacementPath must be different from deprecatedPath' });
+    }
+
+    return withLock(async () => {
+      const beforeSnapshot: Record<string, SnapshotEntry> = {};
+      try {
+        const deprecatedDefinitions = fastify.tokenStore.getTokenDefinitions(deprecatedPath);
+        const deprecatedDefinition = deprecatedDefinitions.find(
+          ({ token }) => getTokenLifecycle(token) === 'deprecated',
+        );
+        if (!deprecatedDefinition) {
+          return reply.status(404).send({ error: `Deprecated token "${deprecatedPath}" not found` });
+        }
+
+        const replacementDefinitions = fastify.tokenStore.getTokenDefinitions(replacementPath);
+        const replacementToken = replacementDefinitions[0]?.token;
+        if (!replacementToken) {
+          return reply.status(404).send({ error: `Replacement token "${replacementPath}" not found` });
+        }
+
+        const deprecatedType = deprecatedDefinition.token.$type;
+        const replacementType = replacementToken.$type;
+        if (deprecatedType && replacementType && deprecatedType !== replacementType) {
+          return reply.status(400).send({
+            error: `Replacement token "${replacementPath}" has type "${replacementType}" but deprecated token "${deprecatedPath}" has type "${deprecatedType}"`,
+          });
+        }
+
+        const dependents = fastify.tokenStore.getDependents(deprecatedPath);
+        if (dependents.length === 0) {
+          return { ok: true, updated: 0 };
+        }
+
+        const patchesBySet = new Map<string, Array<{ path: string; patch: Partial<Token> }>>();
+        for (const dependent of dependents) {
+          const existing = await fastify.tokenStore.getToken(dependent.setName, dependent.path);
+          if (!existing) {
+            return reply.status(404).send({
+              error: `Dependent token "${dependent.path}" in set "${dependent.setName}" no longer exists`,
+            });
+          }
+          if (existing.$type && replacementType && existing.$type !== replacementType) {
+            return reply.status(400).send({
+              error: `Cannot retarget "${dependent.path}" in set "${dependent.setName}" from type "${existing.$type}" to replacement type "${replacementType}"`,
+            });
+          }
+
+          const patches = patchesBySet.get(dependent.setName) ?? [];
+          patches.push({
+            path: dependent.path,
+            patch: { $value: `{${replacementPath}}` },
+          });
+          patchesBySet.set(dependent.setName, patches);
+        }
+
+        for (const [setName, patches] of patchesBySet.entries()) {
+          const snapshot = await snapshotPaths(
+            fastify.tokenStore,
+            setName,
+            patches.map(patch => patch.path),
+          );
+          mergeSetSnapshot(beforeSnapshot, setName, snapshot);
+        }
+
+        for (const [setName, patches] of patchesBySet.entries()) {
+          await fastify.tokenStore.batchUpdateTokens(setName, patches);
+        }
+
+        const afterSnapshot: Record<string, SnapshotEntry> = {};
+        for (const [setName, patches] of patchesBySet.entries()) {
+          const snapshot = await snapshotPaths(
+            fastify.tokenStore,
+            setName,
+            patches.map(patch => patch.path),
+          );
+          mergeSetSnapshot(afterSnapshot, setName, snapshot);
+        }
+
+        const operationId = await fastify.operationLog.record({
+          type: 'replace-deprecated-references',
+          description: `Replace ${dependents.length} reference${dependents.length === 1 ? '' : 's'} from "${deprecatedPath}" to "${replacementPath}"`,
+          setName: deprecatedDefinition.setName,
+          affectedPaths: dependents.map(dependent => dependent.path),
+          beforeSnapshot,
+          afterSnapshot,
+        });
+
+        return {
+          ok: true,
+          updated: dependents.length,
+          operationId,
+        };
+      } catch (err) {
+        if (Object.keys(beforeSnapshot).length > 0) {
+          const snapshotBySet = groupSnapshotEntriesBySet(beforeSnapshot);
+          for (const [setName, items] of snapshotBySet.entries()) {
+            await fastify.tokenStore.restoreSnapshot(setName, items);
+          }
+        }
+        return handleRouteError(reply, err, 'Failed to replace deprecated references');
       }
     });
   });

@@ -41,6 +41,7 @@ export interface LintConfig {
     'require-description'?: LintRuleConfig;
     'path-pattern'?: LintRuleConfig;
     'max-alias-depth'?: LintRuleConfig;
+    'references-deprecated-token'?: LintRuleConfig;
     'no-duplicate-values'?: LintRuleConfig;
     'alias-opportunity'?: LintRuleConfig;
     'no-hardcoded-dimensions'?: LintRuleConfig;
@@ -73,6 +74,7 @@ export const DEFAULT_LINT_CONFIG: LintConfig = {
     'require-description': { enabled: false, severity: 'info' },
     'path-pattern': { enabled: false, severity: 'warning', options: { pattern: '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$' } },
     'max-alias-depth': { enabled: true, severity: 'warning', options: { maxDepth: 3 } },
+    'references-deprecated-token': { enabled: true, severity: 'warning' },
     'no-duplicate-values': { enabled: true, severity: 'info' },
     'alias-opportunity': { enabled: true, severity: 'info' },
     'no-hardcoded-dimensions': { enabled: false, severity: 'warning' },
@@ -174,6 +176,30 @@ function resolveAliasTarget(path: string, flatTokens: Record<string, Token>, vis
   if (!isReference(token.$value)) return path;
   visited.add(path);
   return resolveAliasTarget(parseReference(token.$value as string), flatTokens, visited);
+}
+
+function getTokenLifecycle(token: Token): 'draft' | 'published' | 'deprecated' {
+  const rawLifecycle = (token.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
+  return rawLifecycle === 'draft' || rawLifecycle === 'deprecated' ? rawLifecycle : 'published';
+}
+
+function findDeprecatedAliasTarget(
+  path: string,
+  flatTokens: Record<string, Token>,
+  visited = new Set<string>(),
+): string | null {
+  if (visited.has(path)) return null;
+  const token = flatTokens[path];
+  if (!token || !isReference(token.$value)) return null;
+
+  visited.add(path);
+  const referencedPath = parseReference(token.$value as string);
+  const referencedToken = flatTokens[referencedPath];
+  if (!referencedToken) return null;
+  if (getTokenLifecycle(referencedToken) === 'deprecated') {
+    return referencedPath;
+  }
+  return findDeprecatedAliasTarget(referencedPath, flatTokens, visited);
 }
 
 // ---------------------------------------------------------------------------
@@ -439,6 +465,28 @@ export async function lintTokens(
           suggestion,
         });
       }
+    }
+  }
+
+  // --- references-deprecated-token ---
+  const referencesDeprecatedToken = rules['references-deprecated-token']
+    ? resolveRuleForSet(rules['references-deprecated-token'], setName)
+    : undefined;
+  if (referencesDeprecatedToken?.enabled) {
+    const severity = referencesDeprecatedToken.severity ?? 'warning';
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      if (isPathExcluded(tokenPath, referencesDeprecatedToken.excludePaths)) continue;
+      if (getTokenLifecycle(token) === 'deprecated') continue;
+      const deprecatedPath = findDeprecatedAliasTarget(tokenPath, allFlatTokens);
+      if (!deprecatedPath) continue;
+      violations.push({
+        rule: 'references-deprecated-token',
+        path: tokenPath,
+        severity,
+        message: `Token "${tokenPath}" references deprecated token "{${deprecatedPath}}" in its alias chain.`,
+        suggestedFix: 'replace-deprecated-reference',
+        suggestion: deprecatedPath,
+      });
     }
   }
 
@@ -749,6 +797,28 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
             message: `Alias chain depth is ${depth} (recommended max: ${maxDepth}).${suggestion ? ` Point directly to ${suggestion} to flatten.` : ''}`,
             suggestedFix: 'flatten-alias-chain',
             suggestion,
+          });
+        }
+      }
+
+      const referencesDeprecatedRule = cfg.lintRules['references-deprecated-token']
+        ? resolveRuleForSet(cfg.lintRules['references-deprecated-token'], setName)
+        : undefined;
+      if (
+        referencesDeprecatedRule?.enabled &&
+        !isPathExcluded(tokenPath, referencesDeprecatedRule.excludePaths) &&
+        getTokenLifecycle(token) !== 'deprecated'
+      ) {
+        const deprecatedPath = findDeprecatedAliasTarget(tokenPath, allFlatTokens);
+        if (deprecatedPath) {
+          issues.push({
+            severity: referencesDeprecatedRule.severity ?? 'warning',
+            setName,
+            path: tokenPath,
+            rule: 'references-deprecated-token',
+            message: `Token "${tokenPath}" references deprecated token "{${deprecatedPath}}" in its alias chain.`,
+            suggestedFix: 'replace-deprecated-reference',
+            suggestion: deprecatedPath,
           });
         }
       }

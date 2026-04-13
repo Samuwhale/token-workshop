@@ -105,7 +105,9 @@
 - [x] [HIGH] Align plugin token writes around a shared draft-normalization contract so create/update flows stop passing raw resolved values into `Partial<Token>`
 - [x] [HIGH] Finish the plugin shared-contract cleanup so workflow components stop shadowing stage unions and stale prop shapes
 - [x] [HIGH] Make generator ownership lookup set-aware and centralize derived output-path calculation
-- [ ] [HIGH] Figma variable save-to-server flow has no undo, no per-item progress, and partial failure leaves stale preview with committed partial writes
+- [x] [HIGH] Figma variable save-to-server flow has no undo, no per-item progress, and partial failure leaves stale preview with committed partial writes
+- [ ] [HIGH] Replace import path-list undo with snapshot-backed rollback for overwrite, skip, merge, and retry flows
+- [ ] [HIGH] Reject or consolidate duplicate destination-set mappings in collection imports before preview and apply
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -208,6 +210,8 @@
 - [x] Remove 'Sections' eyebrow label and breadcrumb meta-labels from WorkspaceSummaryHeader to reduce persistent chrome across all workspaces
 - [x] Paste tokens modal resets all per-row overwrite decisions on any textarea edit and undo after overwrite deletes the pre-existing token instead of restoring it
 - [x] Strip eyebrow labels, On/Off badge, and layered instructional text from LintConfigPanel
+- [ ] Deprecated token lifecycle has no active-usage detection or migration workflow
+- [ ] Split the import provider contract into focused source, destination, review, and result hooks
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

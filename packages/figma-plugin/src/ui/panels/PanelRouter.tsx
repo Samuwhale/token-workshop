@@ -1669,6 +1669,7 @@ export function PanelRouter(): ReactNode {
           validationLastRefreshed={controller.validationLastRefreshed}
           validationIsStale={controller.validationIsStale}
           onRefreshValidation={controller.refreshValidation}
+          onPushUndo={controller.pushUndo}
           onError={controller.setErrorToast}
         />
       </ErrorBoundary>

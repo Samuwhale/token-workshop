@@ -2104,6 +2104,15 @@
   - Dense configuration panels scan better when section boundaries come from card structure and spacing; repeating uppercase eyebrow labels at every nesting level quickly buries the actual controls.
   - If a switch already communicates binary state directly, adjacent `On`/`Off` badges rarely add information and usually just compete with the rule label for attention.
 ---
+## 2026-04-13 - code-pass
+- Areas explored: `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx`, `packages/figma-plugin/src/ui/components/ImportPanel.tsx`, `packages/figma-plugin/src/ui/components/ImportVariablesView.tsx`, `packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx`, `packages/figma-plugin/src/ui/components/ImportTokenListView.tsx`, `packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx`, `packages/figma-plugin/src/ui/components/ImportStylesFooter.tsx`, `packages/figma-plugin/src/ui/hooks/useImportSource.ts`, `packages/server/src/routes/tokens.ts`, `packages/server/src/services/operation-log.ts`
+- Code-health themes: bug prevention, contract clarity, state-model cleanup, maintainability hazards
+- Found 3 items — written to `backlog/inbox.jsonl`
+- Considered but rejected:
+  - `packages/backlog-runner/src/runtime-state.ts` still repeats prune calls and milestone JSON parsing, but after rereading the store flow it remained coherent and too small for a standalone backlog item.
+  - `packages/server/src/services/generator-service.ts` is still very large, but the generator work already has active structural follow-ups and this pass did not find a new verified drift cluster stronger than the import issues.
+- Notable: the import controller now has the opposite problem from the old hook sprawl: one consolidated provider owns too much, and that over-consolidation is already leaking into correctness bugs like path-list undo deleting overwritten tokens and collection-mode preview missing same-run destination collisions.
+---
 ## 2026-04-13 - Remove eyebrow labels from FigmaVariablesPanel filter row
 - Removed the Alias, Type, Scope, and Bulk eyebrow labels so the filter selects and bulk action buttons read as one compact toolbar strip driven by their own option and button text.
 - Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` passed (Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for `eslint.config.js`, but lint succeeded).
@@ -2134,4 +2143,14 @@
 - **Learnings for future iterations:**
   - For sequential multi-target saves, keep an execution-status map in the hook rather than trying to infer progress from modal-local busy state; that lets the UI survive partial failure with row-level recovery context intact.
   - If the server batch route already creates missing sets atomically and records rollback steps, the client should not pre-create sets in a separate request; that breaks undo granularity and can leave empty sets behind on failure.
+---
+## 2026-04-13 - Deprecated token lifecycle has no active-usage detection or migration workflow
+- Added a `references-deprecated-token` lint rule on the server so both set linting and workspace validation flag alias chains that still resolve through deprecated tokens, and registered that rule across the shared lint registry and presets.
+- Added server endpoints to audit deprecated tokens with live dependent counts and to rewrite every direct alias reference to a chosen successor in one operation-log entry, plus fixed the multi-set snapshot qualification used for cross-set undo records.
+- Added a `Deprecated in use` audit section in `HealthPanel` with live counts, successor picking, bulk replacement, and local undo wiring backed by the server rollback endpoint.
+- Validation: `pnpm exec eslint packages/server/src/services/lint.ts packages/server/src/routes/tokens.ts packages/figma-plugin/src/ui/shared/lintRules.ts packages/figma-plugin/src/ui/components/HealthPanel.tsx packages/figma-plugin/src/ui/panels/PanelRouter.tsx` passed with existing unrelated warnings; `pnpm exec tsc -p packages/server/tsconfig.json --noEmit` passed; `pnpm exec tsc -p packages/figma-plugin/tsconfig.json --noEmit` still fails on unrelated pre-existing errors in `graph-templates.ts`, `QuickGeneratorPopover.tsx`, `SelectionInspector.tsx`, and theme-manager refs, and a targeted grep confirmed no TypeScript errors from `HealthPanel`, `PanelRouter`, or `lintRules`.
+- Files changed: `packages/server/src/services/lint.ts` ~L38, ~L181, ~L471, ~L804; `packages/server/src/routes/tokens.ts` ~L5, ~L81, ~L866; `packages/figma-plugin/src/ui/shared/lintRules.ts` ~L46, ~L124; `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L143, ~L224, ~L398, ~L891, ~L1898; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L1669; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - When one migration rewrites dependents across multiple sets, capture and qualify snapshots per set before any write so rollback can stay a single operation-log entry instead of fragmenting into per-set undo.
+  - Lifecycle metadata needs both passive detection and an active migration surface; a deprecated-state badge alone does not help maintainers unwind downstream alias usage.
 ---

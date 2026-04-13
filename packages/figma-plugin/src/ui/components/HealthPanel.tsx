@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { LintViolation } from "../hooks/useLint";
 import type { TokenGenerator } from "../hooks/useGenerators";
+import type { UndoSlot } from "../hooks/useUndo";
 import type { HeatmapResult } from "./HeatmapPanel";
 import type { TokenMapEntry } from "../../shared/types";
 import type {
@@ -28,6 +29,7 @@ import { UnusedTokensPanel } from "./UnusedTokensPanel";
 import { DuplicateDetectionPanel } from "./DuplicateDetectionPanel";
 import { ContrastMatrixPanel } from "./ContrastMatrixPanel";
 import { LightnessInspectorPanel } from "./LightnessInspectorPanel";
+import { TokenPickerDropdown } from "./TokenPicker";
 import {
   ensureUniqueSharedAliasPath,
   promoteTokensToSharedAlias,
@@ -50,6 +52,7 @@ interface PriorityIssue {
     | "generators"
     | "validation-scroll"
     | "alias-opportunities-scroll"
+    | "deprecated-scroll"
     | "duplicates-scroll"
     | "canvas"
     | "unused-scroll";
@@ -137,6 +140,10 @@ const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
     label: "Deep reference chain",
     tip: "Shorten the chain by pointing closer to the source token",
   },
+  "references-deprecated-token": {
+    label: "Deprecated token in use",
+    tip: "Replace active references with a non-deprecated successor token",
+  },
   "type-mismatch": {
     label: "Type / value mismatch",
     tip: "The value doesn't match the declared $type",
@@ -173,6 +180,8 @@ function getValidationPriorityCtaLabel(rule: string): string {
       return "Break cycle";
     case "max-alias-depth":
       return "Shorten chain";
+    case "references-deprecated-token":
+      return "Replace refs";
     case "type-mismatch":
       return "Fix type";
     default: {
@@ -212,6 +221,19 @@ interface AliasOpportunityGroup {
   colorHex?: string;
 }
 
+interface DeprecatedUsageDependent {
+  path: string;
+  setName: string;
+}
+
+interface DeprecatedUsageEntry {
+  deprecatedPath: string;
+  setName: string;
+  type: string;
+  activeReferenceCount: number;
+  dependents: DeprecatedUsageDependent[];
+}
+
 export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
@@ -235,6 +257,7 @@ export interface HealthPanelProps {
   validationLastRefreshed: Date | null;
   validationIsStale: boolean;
   onRefreshValidation: () => void;
+  onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
 }
 
@@ -259,6 +282,7 @@ export function HealthPanel({
   validationLastRefreshed,
   validationIsStale,
   onRefreshValidation,
+  onPushUndo,
   onError,
 }: HealthPanelProps) {
   const validating = validationLoading;
@@ -267,6 +291,22 @@ export function HealthPanel({
 
   const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set());
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<
+    string | null
+  >(null);
+  const [deprecatedUsageEntries, setDeprecatedUsageEntries] = useState<
+    DeprecatedUsageEntry[]
+  >([]);
+  const [deprecatedUsageLoading, setDeprecatedUsageLoading] = useState(false);
+  const [deprecatedUsageError, setDeprecatedUsageError] = useState<
+    string | null
+  >(null);
+  const [deprecatedReplacementPaths, setDeprecatedReplacementPaths] = useState<
+    Record<string, string>
+  >({});
+  const [openDeprecatedPickerPath, setOpenDeprecatedPickerPath] = useState<
+    string | null
+  >(null);
+  const [replacingDeprecatedPath, setReplacingDeprecatedPath] = useState<
     string | null
   >(null);
 
@@ -357,7 +397,46 @@ export function HealthPanel({
 
   // reloadKey forces re-computation of allTokensUnified after mutations
   const [reloadKey, setReloadKey] = useState(0);
-  void reloadKey; // consumed via allTokensFlat dependency
+
+  useEffect(() => {
+    if (!connected || !serverUrl) {
+      setDeprecatedUsageEntries([]);
+      setDeprecatedUsageError(null);
+      setDeprecatedUsageLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setDeprecatedUsageLoading(true);
+    setDeprecatedUsageError(null);
+
+    apiFetch<{ entries: DeprecatedUsageEntry[] }>(
+      `${serverUrl}/api/tokens/deprecated-usage`,
+    )
+      .then((data) => {
+        if (cancelled) return;
+        setDeprecatedUsageEntries(
+          Array.isArray(data.entries) ? data.entries : [],
+        );
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn("[HealthPanel] failed to load deprecated usage:", err);
+        setDeprecatedUsageEntries([]);
+        setDeprecatedUsageError(
+          "Failed to load deprecated usage. Refresh the audit and try again.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDeprecatedUsageLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connected, serverUrl, reloadKey, validationIssuesProp]);
 
   // ── Derived data from allTokensFlat ────────────────────────────────────────
 
@@ -809,6 +888,66 @@ export function HealthPanel({
     }
   };
 
+  const handleReplaceDeprecatedReferences = async (
+    entry: DeprecatedUsageEntry,
+  ) => {
+    const replacementPath =
+      deprecatedReplacementPaths[entry.deprecatedPath]?.trim();
+    if (!replacementPath) {
+      onError("Pick a replacement token before rewriting references.");
+      return;
+    }
+
+    setReplacingDeprecatedPath(entry.deprecatedPath);
+    try {
+      const result = await apiFetch<{
+        ok: true;
+        updated: number;
+        operationId?: string;
+      }>(`${serverUrl}/api/tokens/deprecated-usage/replace`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deprecatedPath: entry.deprecatedPath,
+          replacementPath,
+        }),
+      });
+
+      if (onPushUndo && result.operationId && result.updated > 0) {
+        const opId = result.operationId;
+        onPushUndo({
+          description: `Replace ${result.updated} deprecated reference${result.updated === 1 ? "" : "s"}`,
+          restore: async () => {
+            await apiFetch(
+              `${serverUrl}/api/operations/${encodeURIComponent(opId)}/rollback`,
+              { method: "POST" },
+            );
+            setReloadKey((key) => key + 1);
+            await runValidation();
+          },
+        });
+      }
+
+      setDeprecatedReplacementPaths((prev) => {
+        const next = { ...prev };
+        delete next[entry.deprecatedPath];
+        return next;
+      });
+      setOpenDeprecatedPickerPath(null);
+      setReloadKey((key) => key + 1);
+      await runValidation();
+    } catch (err) {
+      console.warn("[HealthPanel] replace deprecated references failed:", err);
+      onError(
+        err instanceof Error
+          ? err.message
+          : "Failed to replace deprecated references.",
+      );
+    } finally {
+      setReplacingDeprecatedPath(null);
+    }
+  };
+
   // ── Derived metrics ──────────────────────────────────────────────────────
   const lintErrors = lintViolations.filter(
     (v) => v.severity === "error",
@@ -1099,6 +1238,11 @@ export function HealthPanel({
         return () =>
           document
             .getElementById("health-alias-opportunities-section")
+            ?.scrollIntoView({ behavior: "smooth" });
+      case "deprecated-scroll":
+        return () =>
+          document
+            .getElementById("health-deprecated-section")
             ?.scrollIntoView({ behavior: "smooth" });
       case "duplicates-scroll":
         return () =>
@@ -1749,6 +1893,179 @@ export function HealthPanel({
                 onError={onError}
                 onMutate={() => setReloadKey((k) => k + 1)}
               />
+            </div>
+
+            <div id="health-deprecated-section">
+              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
+                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                    Deprecated in use
+                  </span>
+                  {deprecatedUsageLoading ? (
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      Loading…
+                    </span>
+                  ) : deprecatedUsageEntries.length > 0 ? (
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      {deprecatedUsageEntries.length} token{deprecatedUsageEntries.length === 1 ? "" : "s"}
+                    </span>
+                  ) : (
+                    <NoticePill severity="success">All clear</NoticePill>
+                  )}
+                </div>
+                {deprecatedUsageLoading ? (
+                  <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
+                    Loading deprecated usage…
+                  </div>
+                ) : deprecatedUsageError ? (
+                  <div className="px-3 py-3 text-[10px] text-[var(--color-figma-error)]">
+                    {deprecatedUsageError}
+                  </div>
+                ) : deprecatedUsageEntries.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
+                    No deprecated tokens have active alias references.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[var(--color-figma-border)]">
+                    {deprecatedUsageEntries.map((entry) => {
+                      const selectedReplacement =
+                        deprecatedReplacementPaths[entry.deprecatedPath];
+                      const isPickerOpen =
+                        openDeprecatedPickerPath === entry.deprecatedPath;
+                      const isReplacing =
+                        replacingDeprecatedPath === entry.deprecatedPath;
+                      const dependentPreview = entry.dependents.slice(0, 3);
+                      const remainingDependents =
+                        entry.dependents.length - dependentPreview.length;
+                      return (
+                        <div
+                          key={entry.deprecatedPath}
+                          className="px-3 py-2.5"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-baseline gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-medium font-mono text-[var(--color-figma-text)] line-through">
+                                  {entry.deprecatedPath}
+                                </span>
+                                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                                  {entry.type} ·{" "}
+                                  {formatCount(
+                                    entry.activeReferenceCount,
+                                    "active reference",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                {dependentPreview.map((dependent, index) => (
+                                  <span
+                                    key={`${dependent.setName}:${dependent.path}`}
+                                  >
+                                    {index > 0 ? ", " : ""}
+                                    <span className="font-mono text-[var(--color-figma-text)]">
+                                      {dependent.path}
+                                    </span>{" "}
+                                    <span className="opacity-70">
+                                      ({dependent.setName})
+                                    </span>
+                                  </span>
+                                ))}
+                                {remainingDependents > 0 && (
+                                  <span>
+                                    {dependentPreview.length > 0 ? ", " : ""}
+                                    and {remainingDependents} more
+                                  </span>
+                                )}
+                              </div>
+                              {selectedReplacement && (
+                                <div className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                  Replace with{" "}
+                                  <span className="font-mono text-[var(--color-figma-text)]">
+                                    {selectedReplacement}
+                                  </span>
+                                </div>
+                              )}
+                              {isPickerOpen && (
+                                <div className="mt-2 max-w-xl">
+                                  <TokenPickerDropdown
+                                    allTokensFlat={allTokensFlat}
+                                    pathToSet={pathToSet}
+                                    filterType={
+                                      entry.type === "unknown"
+                                        ? undefined
+                                        : entry.type
+                                    }
+                                    excludePaths={[entry.deprecatedPath]}
+                                    placeholder="Search replacement token…"
+                                    onSelect={(path) => {
+                                      setDeprecatedReplacementPaths((prev) => ({
+                                        ...prev,
+                                        [entry.deprecatedPath]: path,
+                                      }));
+                                      setOpenDeprecatedPickerPath(null);
+                                    }}
+                                    onClose={() =>
+                                      setOpenDeprecatedPickerPath(null)
+                                    }
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            <div className="shrink-0 flex flex-col items-end gap-1.5">
+                              {selectedReplacement ? (
+                                <>
+                                  <button
+                                    onClick={() =>
+                                      handleReplaceDeprecatedReferences(entry)
+                                    }
+                                    disabled={isReplacing}
+                                    className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                                  >
+                                    {isReplacing
+                                      ? "Replacing…"
+                                      : "Replace references"}
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setOpenDeprecatedPickerPath(
+                                        entry.deprecatedPath,
+                                      )
+                                    }
+                                    disabled={isReplacing}
+                                    className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:opacity-40"
+                                  >
+                                    Change
+                                  </button>
+                                </>
+                              ) : isPickerOpen ? (
+                                <button
+                                  onClick={() =>
+                                    setOpenDeprecatedPickerPath(null)
+                                  }
+                                  className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text)] hover:text-[var(--color-figma-text)]"
+                                >
+                                  Cancel
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    setOpenDeprecatedPickerPath(
+                                      entry.deprecatedPath,
+                                    )
+                                  }
+                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                                >
+                                  Replace references
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div id="health-alias-opportunities-section">

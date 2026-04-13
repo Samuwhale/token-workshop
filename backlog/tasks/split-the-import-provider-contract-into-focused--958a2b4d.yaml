@@ -1,0 +1,24 @@
+id: split-the-import-provider-contract-into-focused--958a2b4d
+title: Split the import provider contract into focused source, destination, review, and result hooks
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ImportPanelContext.tsx
+  - packages/figma-plugin/src/ui/components/ImportPanel.tsx
+  - packages/figma-plugin/src/ui/components/ImportTokenListView.tsx
+  - packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx
+  - packages/figma-plugin/src/ui/components/ImportVariablesView.tsx
+  - packages/figma-plugin/src/ui/components/ImportStylesFooter.tsx
+capabilities: []
+validation_profile: plugin
+status_notes:
+  - "Context: ImportPanelContext.tsx is around 1500 lines and exports a 100+ field value object that mixes file intake, collection mapping, conflict state, progress, retries, undo, and next-step routing. ImportPanelRoot, ImportTokenListView, ImportConflictResolver, ImportStylesFooter, and the other import subviews all subscribe to that same bag."
+state: ready
+acceptance_criteria:
+  - The import flow no longer exposes one monolithic ImportPanelContextValue bag across every surface.
+  - Source selection/parsing, destination mapping, conflict review, and success/undo state are owned by focused hooks or contexts with explicit contracts.
+  - Import subcomponents consume only the state and actions they need instead of calling useImportPanel() against a provider rebuilt from unrelated progress, conflict, and success changes.
+source: code-pass
+created_at: 2026-04-13T05:39:14.378Z
+updated_at: 2026-04-13T05:39:14.378Z

@@ -1,0 +1,21 @@
+id: replace-import-path-list-undo-with-snapshot-back-376d79c1
+title: Replace import path-list undo with snapshot-backed rollback for overwrite, skip, merge, and retry flows
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ImportPanelContext.tsx
+  - packages/server/src/routes/tokens.ts
+  - packages/server/src/services/operation-log.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: ImportPanelContext currently records lastImport as per-set path lists and restores by POSTing batch-delete. Variable imports push every entry token path into rollbackEntries whenever any token imported, and handleRetryFailed never extends lastImport, so undo is destructive for overwrite/merge flows and incomplete after retry."
+state: ready
+acceptance_criteria:
+  - Import rollback captures enough pre-import state to restore overwritten or merged tokens instead of deleting them.
+  - Skip-mode variable imports and retried failed batches only undo tokens that were actually created or changed, not every path that appeared in the preview.
+  - The import success view and undo slot share one rollback model, so retry-after-partial-failure remains undoable end to end.
+source: code-pass
+created_at: 2026-04-13T05:39:14.296Z
+updated_at: 2026-04-13T05:39:14.296Z
