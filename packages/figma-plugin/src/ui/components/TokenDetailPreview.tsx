@@ -77,7 +77,7 @@ function GeneratorReferenceChip({
       type="button"
       onClick={() => onNavigateToGenerator(generator.id)}
       className={`${className} text-[var(--color-figma-accent)] hover:underline`}
-      title={`Open generator "${generator.name}"`}
+      title={`Open recipe "${generator.name}"`}
     >
       <svg
         className="shrink-0"

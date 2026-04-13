@@ -234,7 +234,7 @@ const FILTER_DISCOVERY_TEMPLATES: FilterDiscoveryTemplate[] = [
   {
     id: 'has-generated',
     label: 'Generated',
-    description: 'Show generator-produced tokens.',
+    description: 'Show recipe-managed tokens.',
     qualifier: 'has',
     mode: 'toggle-qualifier',
     value: 'generated',

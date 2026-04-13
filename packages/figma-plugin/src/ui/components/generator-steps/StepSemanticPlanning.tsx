@@ -338,7 +338,7 @@ export function StepSemanticPlanning({
           <p className="mt-2 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
             Semantic aliases will not be created for{' '}
             <span className="font-mono text-[var(--color-figma-text)]">
-              {targetGroup || 'this generator'}
+              {targetGroup || 'this recipe'}
             </span>
             .
           </p>

@@ -304,7 +304,7 @@ function SetPreflightCard({
       )}
       {!hasDependencies ? (
         <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          No theme, resolver, metadata, or generator dependencies detected.
+          No theme, resolver, metadata, or recipe dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
@@ -2861,7 +2861,7 @@ function SetDeleteDialog({
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto p-4">
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review linked themes, resolvers, Figma metadata, and generated-token
+            Review linked themes, resolvers, Figma metadata, and managed-token
             ownership before the set is removed.
           </p>
           <StructuralPreflightSummary

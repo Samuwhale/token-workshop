@@ -123,7 +123,7 @@ export const TYPE_DESCRIPTIONS: Record<GeneratorType, string> = {
   borderRadiusScale: 'Create rounded corner values from small to large',
   zIndexScale: 'Set up stacking order values for layered components',
   shadowScale: 'Create elevation levels with progressive shadow depth',
-  customScale: 'Write a custom formula to generate any numeric scale',
+  customScale: 'Write a custom formula to create any numeric scale',
   accessibleColorPair: 'Create foreground + background colors that meet WCAG contrast',
   darkModeInversion: 'Create a dark mode version of a color with perceptual accuracy',
   contrastCheck: 'Check WCAG contrast ratios for a set of color pairs',

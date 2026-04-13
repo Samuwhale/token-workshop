@@ -151,7 +151,7 @@ export function useGeneratorSave({
     }
     if (!isMultiBrand && typeNeedsValue && !hasValue) {
       setSaveError(
-        "This generator type requires a source token or base value.",
+        "This recipe type requires a source token or base value.",
       );
       return false;
     }
@@ -262,7 +262,7 @@ export function useGeneratorSave({
               targetSetTemplate: prevGen.targetSetTemplate,
             };
             pushUndo({
-              description: `Edited generator "${prevGen.name}"`,
+              description: `Edited recipe "${prevGen.name}"`,
               restore: async () => {
                 await apiFetch(`${serverUrl}/api/generators/${prevGen.id}`, {
                   method: "PUT",
@@ -282,7 +282,7 @@ export function useGeneratorSave({
             const newId = savedGen.id;
             const genName = name.trim();
             pushUndo({
-              description: `Created generator "${genName}"`,
+              description: `Created recipe "${genName}"`,
               restore: async () => {
                 await apiFetch(
                   `${serverUrl}/api/generators/${newId}?deleteTokens=true`,

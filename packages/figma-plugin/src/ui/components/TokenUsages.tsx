@@ -463,7 +463,7 @@ export function TokenUsages({
                       <button
                         type="button"
                         className="flex-1 min-w-0 text-left text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline truncate"
-                        title={`Open generator "${producingGenerator.name}" in Graph panel`}
+                        title={`Open recipe "${producingGenerator.name}" in Graph panel`}
                         onClick={() => onNavigateToGenerator(producingGenerator.id)}
                       >
                         {producingGenerator.name}
