@@ -1,5 +1,5 @@
 import type { ThemeDimension } from "@tokenmanager/core";
-import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
+import { handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import { SHORTCUT_KEYS } from "../../shared/shortcutRegistry";
 import { adaptShortcut } from "../../shared/utils";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
@@ -46,7 +46,7 @@ export function ThemeAuthoringHeader({
                 ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
                 : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
             }`}
-            title="Coverage, compare, and advanced views"
+            title="Review, compare, and advanced tools"
           >
             <svg
               width="12"
@@ -94,7 +94,7 @@ export function ThemeAuthoringHeader({
                 }}
                 className="flex w-full items-center px-3 py-1.5 text-left text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
-                Coverage
+                Review issues
               </button>
               <button
                 role="menuitem"
@@ -108,7 +108,7 @@ export function ThemeAuthoringHeader({
                 }}
                 className="flex w-full items-center px-3 py-1.5 text-left text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Compare
+                Compare variants
               </button>
               {resolverAvailable && (
                 <button
@@ -120,7 +120,7 @@ export function ThemeAuthoringHeader({
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                 >
-                  Advanced
+                  Advanced logic
                   <kbd className="rounded border border-[var(--color-figma-border)] px-1 font-mono text-[9px] leading-none text-[var(--color-figma-text-tertiary)]">
                     {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
                   </kbd>

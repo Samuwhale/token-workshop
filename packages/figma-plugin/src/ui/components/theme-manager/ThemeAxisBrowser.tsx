@@ -42,7 +42,7 @@ export function ThemeAxisBrowser({ dimensionsCount }: ThemeAxisBrowserProps) {
               dimSearchRef.current?.blur();
             }
           }}
-          placeholder="Filter axes or options…"
+          placeholder="Filter families or variants…"
           className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 pl-6 pr-6 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
         />
         {dimSearch && (

@@ -21,7 +21,6 @@ import type {
   ThemeIssueSummary,
   ThemeRoleNavigationTarget,
 } from "../../shared/themeWorkflow";
-import { getFirstDimensionWithFillableGaps } from "./themeAutoFillTargets";
 import {
   ThemeAuthoringProvider,
   type ThemeAuthoringContextValue,
@@ -29,10 +28,6 @@ import {
 import { ThemeAuthoringHeader } from "./ThemeAuthoringHeader";
 import { ThemeAxisBrowser } from "./ThemeAxisBrowser";
 import { ThemeAxisCard } from "./ThemeAxisCard";
-import type {
-  ThemeResolverAuthoringContext,
-  ThemeResolverAxisContext,
-} from "./themeResolverContext";
 
 export interface ThemeAuthoringScreenHandle {
   scrollToDimension: (dimId: string | null | undefined) => void;
@@ -57,13 +52,11 @@ interface ThemeAuthoringScreenProps {
   selectedOptions: Record<string, string>;
   setTokenValues: Record<string, Record<string, any>>;
   optionIssues: Record<string, ThemeIssueSummary[]>;
-  totalFillableGaps: number;
   optionDiffCounts: Record<string, number>;
   optionRoleSummaries: Record<string, ThemeOptionRoleSummary>;
   focusedDimension: ThemeDimension | null;
   canCompareThemes: boolean;
   resolverAvailable: boolean;
-  resolverAuthoringContext: ThemeResolverAuthoringContext | null;
   newlyCreatedDim: string | null;
   draggingOpt: OptionDragTarget | null;
   dragOverOpt: OptionDragTarget | null;
@@ -84,8 +77,6 @@ interface ThemeAuthoringScreenProps {
   renameOptionValue: string;
   renameOptionError: string | null;
   roleStates: ThemeRoleState[];
-  fillingKeys: Set<string>;
-  onNavigateToToken?: (path: string, set: string) => void;
   onGenerateForDimension?: (info: {
     dimensionName: string;
     targetSet: string;
@@ -174,13 +165,11 @@ export const ThemeAuthoringScreen = forwardRef<
     selectedOptions,
     setTokenValues,
     optionIssues,
-    totalFillableGaps,
     optionDiffCounts,
     optionRoleSummaries,
     focusedDimension,
     canCompareThemes,
     resolverAvailable,
-    resolverAuthoringContext,
     newlyCreatedDim,
     draggingOpt,
     dragOverOpt,
@@ -201,8 +190,6 @@ export const ThemeAuthoringScreen = forwardRef<
     renameOptionValue,
     renameOptionError,
     roleStates,
-    fillingKeys,
-    onNavigateToToken,
     onGenerateForDimension,
     setRenameValue,
     startRenameDim,
@@ -356,23 +343,6 @@ export const ThemeAuthoringScreen = forwardRef<
       );
     });
   }, [dimSearch, dimensions]);
-  const firstDimensionWithFillableGaps = useMemo(
-    () => getFirstDimensionWithFillableGaps(dimensions, coverage),
-    [coverage, dimensions],
-  );
-  const resolverAxisContextsById = useMemo<
-    Record<string, ThemeResolverAxisContext>
-  >(
-    () =>
-      Object.fromEntries(
-        (resolverAuthoringContext?.axes ?? []).map((axis) => [
-          axis.dimensionId,
-          axis,
-        ]),
-      ),
-    [resolverAuthoringContext],
-  );
-
   const toggleCollapsedDisabled = (dimId: string) => {
     setCollapsedDisabled((current) => {
       const next = new Set(current);
@@ -444,11 +414,11 @@ export const ThemeAuthoringScreen = forwardRef<
           <div className="flex flex-col items-center justify-center gap-4 px-5 py-10 text-center">
             <div className="flex flex-col gap-1">
               <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Create a theme axis
+                Create a theme family
               </p>
               <p className="max-w-[240px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Switch entire sets of tokens at once — light/dark mode, brand
-                variants, or density levels.
+                Define a family like color mode or brand, then assign the shared
+                and variant-specific token sets behind each option.
               </p>
             </div>
 
@@ -479,7 +449,7 @@ export const ThemeAuthoringScreen = forwardRef<
               onClick={() => openCreateDim()}
               className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
-              or add a custom axis
+              or add a custom family
             </button>
           </div>
         ) : (
@@ -497,12 +467,10 @@ export const ThemeAuthoringScreen = forwardRef<
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (
                   <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No axes match your filter
+                    No families match your filter
                   </div>
                 )}
                 {filteredDimensions.map((dimension) => {
-                  const resolverAxisContext =
-                    resolverAxisContextsById[dimension.id] ?? null;
                   const selectedOption =
                     selectedOptions[dimension.id] ||
                     dimension.options[0]?.name ||
@@ -555,15 +523,6 @@ export const ThemeAuthoringScreen = forwardRef<
                     },
                     0,
                   );
-                  const selectedOptionFillable = option
-                    ? (
-                        dimensionCoverage[option.name]?.uncovered ?? []
-                      ).filter(
-                        (entry) =>
-                          entry.missingRef && entry.fillValue !== undefined,
-                      ).length
-                    : 0;
-
                   return (
                     <ThemeAxisCard
                       key={dimension.id}
@@ -572,13 +531,11 @@ export const ThemeAuthoringScreen = forwardRef<
                       dimensionIndex={dimensionIndex}
                       isExpanded={focusedDimension?.id === dimension.id}
                       onToggleExpand={() => onSelectDimension(dimension.id)}
-                      resolverAxisContext={resolverAxisContext}
                       totalDimensionGaps={totalDimensionGaps}
                       totalDimensionFillable={totalDimensionFillable}
                       multiOptionGaps={optionsWithGaps.length > 1}
                       selectedOption={selectedOption}
                       option={option}
-                      optionSets={optionSets}
                       selectedOptionIssues={selectedOptionIssues}
                       overrideSets={overrideSets}
                       foundationSets={foundationSets}
@@ -599,7 +556,6 @@ export const ThemeAuthoringScreen = forwardRef<
                       isDuplicatingDim={isDuplicatingDim}
                       copySourceOptions={copySourceOptions}
                       roleStates={roleStates}
-                      fillingKeys={fillingKeys}
                       setTokenCounts={Object.fromEntries(
                         sets.map((setName) => [
                           setName,
@@ -709,14 +665,14 @@ export const ThemeAuthoringScreen = forwardRef<
                 })}
                 {dimSearch && filteredDimensions.length === 0 && (
                   <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No dimensions or options matching &ldquo;{dimSearch}&rdquo;
+                    No families or variants matching &ldquo;{dimSearch}&rdquo;
                   </div>
                 )}
                 {dimSearch &&
                   filteredDimensions.length > 0 &&
                   filteredDimensions.length < dimensions.length && (
                     <div className="px-3 py-1 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      Showing {filteredDimensions.length} of {dimensions.length} axes
+                      Showing {filteredDimensions.length} of {dimensions.length} families
                     </div>
                   )}
               </div>
@@ -730,13 +686,13 @@ export const ThemeAuthoringScreen = forwardRef<
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Axis name
+                Family name
               </label>
               <input
                 type="text"
                 value={newDimName}
                 onChange={(event) => setNewDimName(event.target.value)}
-                placeholder="e.g. Mode, Brand, Density"
+                placeholder="e.g. Color mode, Brand, Density"
                 className={`w-full rounded border bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
                   createDimError
                     ? "border-[var(--color-figma-error)]"
@@ -748,7 +704,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 autoFocus
               />
               <p className="text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">
-                Each axis has options — e.g.{" "}
+                Each family has variants — e.g.{" "}
                 <span className="font-medium">Mode:</span> light, dark
                 &nbsp;·&nbsp; <span className="font-medium">Brand:</span>{" "}
                 default, premium
@@ -765,7 +721,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 disabled={!newDimName || isCreatingDim}
                 className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
-                {isCreatingDim ? "Creating…" : "Create axis"}
+                {isCreatingDim ? "Creating…" : "Create family"}
               </button>
               <button
                 onClick={closeCreateDim}
@@ -794,7 +750,7 @@ export const ThemeAuthoringScreen = forwardRef<
               <rect x="3" y="3" width="18" height="6" rx="1.5" />
               <rect x="3" y="12" width="18" height="6" rx="1.5" opacity="0.5" />
             </svg>
-            Add theme axis
+            Add theme family
           </button>
         )}
       </div>

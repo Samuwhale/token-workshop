@@ -3,14 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   NoticeCountBadge,
   NoticeFieldMessage,
-  NoticePill,
 } from "../../shared/noticeSystem";
 import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 import type {
   ThemeOptionRoleSummary,
   ThemeRoleState,
 } from "../themeManagerTypes";
-import type { ThemeResolverAxisContext } from "./themeResolverContext";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 import { ThemeOptionRail } from "./ThemeOptionRail";
 import { ThemeOptionWorkspace } from "./ThemeOptionWorkspace";
@@ -21,13 +19,11 @@ interface ThemeAxisCardProps {
   dimensionIndex: number;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  resolverAxisContext: ThemeResolverAxisContext | null;
   totalDimensionGaps: number;
   totalDimensionFillable: number;
   multiOptionGaps: boolean;
   selectedOption: string;
   option: ThemeOption | undefined;
-  optionSets: string[];
   selectedOptionIssues: ThemeIssueSummary[];
   overrideSets: string[];
   foundationSets: string[];
@@ -48,7 +44,6 @@ interface ThemeAxisCardProps {
   isDuplicatingDim: boolean;
   copySourceOptions: string[];
   roleStates: ThemeRoleState[];
-  fillingKeys: Set<string>;
   setTokenCounts: Record<string, number | null>;
   savingKeys: Set<string>;
   onSetRenameValue: (value: string) => void;
@@ -85,13 +80,11 @@ export function ThemeAxisCard({
   dimensionIndex,
   isExpanded,
   onToggleExpand,
-  resolverAxisContext,
   totalDimensionGaps,
   totalDimensionFillable,
   multiOptionGaps,
   selectedOption,
   option,
-  optionSets,
   selectedOptionIssues,
   overrideSets,
   foundationSets,
@@ -112,7 +105,6 @@ export function ThemeAxisCard({
   isDuplicatingDim,
   copySourceOptions,
   roleStates,
-  fillingKeys,
   setTokenCounts,
   savingKeys,
   onSetRenameValue,
@@ -244,23 +236,8 @@ export function ThemeAxisCard({
                   severity="warning"
                   count={totalDimensionGaps}
                   className="min-w-[16px] shrink-0 px-1"
-                  title={`${totalDimensionGaps} issue${totalDimensionGaps === 1 ? "" : "s"} across this axis`}
+                  title={`${totalDimensionGaps} issue${totalDimensionGaps === 1 ? "" : "s"} across this family`}
                 />
-              )}
-              {resolverAxisContext && (
-                <NoticePill
-                  severity={
-                    resolverAxisContext.status === "matched"
-                      ? "info"
-                      : resolverAxisContext.status === "warning"
-                        ? "warning"
-                        : "error"
-                  }
-                >
-                  {resolverAxisContext.modifierLabel
-                    ? `Resolver: ${resolverAxisContext.modifierLabel}`
-                    : "Resolver mismatch"}
-                </NoticePill>
               )}
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
@@ -276,8 +253,8 @@ export function ThemeAxisCard({
                 <button
                   onClick={() => setAxisMenuOpen((v) => !v)}
                   className="rounded p-0.5 text-[var(--color-figma-text-secondary)] opacity-20 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)]"
-                  title="Axis actions"
-                  aria-label="Axis actions"
+                  title="Family actions"
+                  aria-label="Family actions"
                   aria-expanded={axisMenuOpen}
                   aria-haspopup="menu"
                 >
@@ -339,19 +316,6 @@ export function ThemeAxisCard({
         )}
       </div>
 
-      {isExpanded && resolverAxisContext && resolverAxisContext.status !== "matched" && (
-        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
-          <NoticeFieldMessage
-            severity={
-              resolverAxisContext.status === "warning" ? "warning" : "error"
-            }
-            className="mt-0"
-          >
-            {resolverAxisContext.issueMessages.join(" ")}
-          </NoticeFieldMessage>
-        </div>
-      )}
-
       {isExpanded && <>
       <ThemeOptionRail
         dimension={dimension}
@@ -382,8 +346,8 @@ export function ThemeAxisCard({
               }}
               placeholder={
                 dimension.options.length === 0
-                  ? "First option (e.g. Light, Dark)"
-                  : "Option name"
+                  ? "First variant (e.g. Light, Dark)"
+                  : "Variant name"
               }
               className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
                 addOptionError
@@ -415,7 +379,7 @@ export function ThemeAxisCard({
           {dimension.options.length > 0 && (
             <div className="mt-1 flex items-center gap-1">
               <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                Copy assignments from:
+                Copy setup from:
               </span>
               <select
                 value={copyFromNewOption}
@@ -444,7 +408,6 @@ export function ThemeAxisCard({
           dimension={dimension}
           option={option}
           sets={sets}
-          optionSets={optionSets}
           selectedOptionIssues={selectedOptionIssues}
           overrideSets={overrideSets}
           foundationSets={foundationSets}

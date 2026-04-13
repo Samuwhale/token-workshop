@@ -129,7 +129,7 @@ export function ThemeOptionRail({
               }))
             }
             className="shrink-0 px-1.5 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-            title="Add option"
+            title="Add variant"
           >
             +
           </button>

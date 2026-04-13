@@ -1,5 +1,5 @@
 id: unify-token-and-generator-creation-visual-consis-e5f6a7b8
-title: "Unify token creation, bulk editing, and generator configuration surfaces for visual consistency and small-viewport fitness in the Figma plugin panel"
+title: Unify token creation, bulk editing, and generator configuration surfaces for visual consistency and small-viewport fitness in the Figma plugin panel
 priority: high
 task_kind: research
 depends_on: []
@@ -23,7 +23,8 @@ status_notes:
   - "Pain point 3: Generator pipeline cards and step forms are information-dense — they were designed for comfortable viewport widths but become cramped and hard to scan when the plugin panel is narrow. Form labels, inputs, and preview areas compete for horizontal space."
   - "Pain point 4: No shared layout contract across creation/editing surfaces — header, body, footer zones use EditorShell in some places but ad-hoc flex layouts in others. Spacing, typography hierarchy, input sizing, and button placement vary between surfaces."
   - "Goal: Research and propose a unified visual and layout system for all token creation, bulk editing, and generator configuration surfaces that is visually consistent and works well at small Figma plugin panel sizes (320px and below). All authoring surfaces should feel like parts of the same tool."
-state: ready
+  - "Completed: Completed a research audit with a shared authoring layout contract, viewport/breakpoint guidance, concrete narrow-width findings, and queued five implementation follow-ups."
+state: done
 acceptance_criteria:
   - Research deliverable audits all token creation and generator configuration surfaces for layout strategy, width handling, and visual consistency
   - Proposes a shared layout contract (spacing, typography, input sizing, header/body/footer zones) that all authoring surfaces adopt
@@ -32,4 +33,4 @@ acceptance_criteria:
   - Proposes a visual consistency pass that aligns generator step forms, token editors, batch editors, and quick-create dialogs into a cohesive authoring experience
 source: product-pass
 created_at: 2026-04-13T00:00:00.000Z
-updated_at: 2026-04-13T00:00:00.000Z
+updated_at: 2026-04-13T01:14:38.636Z

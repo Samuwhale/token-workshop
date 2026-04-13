@@ -144,11 +144,11 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: summary.staleSetCount,
-      title: "Deleted set assignments",
-      summary: `${summary.staleSetCount} assigned set${summary.staleSetCount === 1 ? "" : "s"} no longer exist for this option.`,
+      title: "Deleted token sources",
+      summary: `${summary.staleSetCount} assigned token source${summary.staleSetCount === 1 ? "" : "s"} no longer exist for this variant.`,
       recommendedNextAction:
-        "Open set roles, then remove or replace the deleted assignments before previewing this option.",
-      actionLabel: "Edit set roles",
+        "Open advanced setup, then remove or replace the deleted assignments before previewing this variant.",
+      actionLabel: "Edit advanced setup",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: summary.staleSetNames,
     });
@@ -162,11 +162,11 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: summary.emptyOverrideCount,
-      title: "Empty override sets",
-      summary: `${summary.emptyOverrideCount} override set${summary.emptyOverrideCount === 1 ? "" : "s"} are assigned but currently contain no tokens.`,
+      title: "Empty variant sets",
+      summary: `${summary.emptyOverrideCount} variant-specific set${summary.emptyOverrideCount === 1 ? "" : "s"} are assigned but currently contain no tokens.`,
       recommendedNextAction:
-        "Open set roles, then add tokens to the empty override or move it out of the override layer.",
-      actionLabel: "Edit set roles",
+        "Open advanced setup, then add tokens to the empty variant set or move it back to the shared layer.",
+      actionLabel: "Edit advanced setup",
       preferredSetName: pickPreferredSetName(
         orderedSets,
         availableSets,
@@ -187,11 +187,11 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: missingOverrideCount,
-      title: "Missing override coverage",
-      summary: `${missingOverrideCount} token${missingOverrideCount === 1 ? "" : "s"} exist in Base sets but are missing from the override layer.`,
+      title: "Missing variant coverage",
+      summary: `${missingOverrideCount} token${missingOverrideCount === 1 ? "" : "s"} exist in shared sets but are missing from the variant-specific layer.`,
       recommendedNextAction:
-        "Review this option in coverage, then return to set roles to confirm which override set should own the missing tokens.",
-      actionLabel: "Edit set roles",
+        "Review this variant in issues, then open advanced setup if you need to change which set should own the missing tokens.",
+      actionLabel: "Review issues",
       preferredSetName: pickPreferredSetName(
         orderedSets,
         availableSets,
@@ -212,8 +212,8 @@ export function collectThemeOptionIssues({
       title: "Unresolved coverage gaps",
       summary: `${uncoveredCount} token${uncoveredCount === 1 ? "" : "s"} still resolve to missing values or aliases in the active stack.`,
       recommendedNextAction:
-        "Review the missing tokens, then return to set roles to confirm the active Base and Override stack before filling them.",
-      actionLabel: "Edit set roles",
+        "Review the missing tokens, then return to this variant to confirm the shared and variant-specific token sources before filling them.",
+      actionLabel: "Review issues",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: [],
     });
@@ -296,12 +296,12 @@ export function summarizeThemeWorkflow(
           ? "unmapped"
           : (topIssue?.kind ?? "coverage-gap"),
         recommendedNextAction: summary.isUnmapped
-          ? "Assign at least one Base or Override set so this option can contribute tokens."
+          ? "Assign at least one shared or variant-specific set so this variant can contribute tokens."
           : (topIssue?.recommendedNextAction ??
-            "Open set roles and resolve the outstanding issue."),
+            "Open advanced setup and resolve the outstanding issue."),
         actionLabel: summary.isUnmapped
-          ? "Assign set roles"
-          : (topIssue?.actionLabel ?? "Edit set roles"),
+          ? "Assign token sources"
+          : (topIssue?.actionLabel ?? "Edit advanced setup"),
         preferredSetName: summary.isUnmapped
           ? pickPreferredSetName(availableSets, availableSets)
           : (topIssue?.preferredSetName ??

@@ -11,11 +11,8 @@ import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { ResolverContentProps } from "./ResolverPanel";
 import {
-  STATE_LABELS,
-  STATE_DESCRIPTIONS,
   getThemeOptionRolePriorityWeight,
   summarizeThemeOptionRoles,
-  type ThemeRoleState,
   type ThemeOptionRoleSummary,
 } from "./themeManagerTypes";
 import { useThemeDragDrop } from "../hooks/useThemeDragDrop";
@@ -34,8 +31,6 @@ import {
 } from "./ThemeManagerContext";
 import { apiFetch } from "../shared/apiFetch";
 import {
-  NoticePill,
-  NoticeCountBadge,
   NoticeInlineAlert,
 } from "../shared/noticeSystem";
 import type {
@@ -224,11 +219,6 @@ const ThemeManagerWorkspace = React.forwardRef<
 ) {
   const setActiveView = onActiveViewChange;
   const setAuthoringMode = onAuthoringModeChange;
-  const [editingRoleTarget, setEditingRoleTarget] = useState<{
-    dimId: string;
-    optionName: string;
-    setName: string | null;
-  } | null>(null);
   const authoringScreenRef = useRef<ThemeAuthoringScreenHandle | null>(null);
   const [focusedDimensionId, setFocusedDimensionId] = useState<string | null>(
     null,
@@ -312,16 +302,10 @@ const ThemeManagerWorkspace = React.forwardRef<
   }, [dimensions, focusedDimensionId]);
 
   const {
-    draggingDimId,
-    dragOverDimId,
     draggingOpt,
     dragOverOpt,
     handleMoveDimension,
     handleMoveOption,
-    handleDimDragStart,
-    handleDimDragOver,
-    handleDimDrop,
-    handleDimDragEnd,
     handleOptDragStart,
     handleOptDragOver,
     handleOptDrop,
@@ -356,13 +340,9 @@ const ThemeManagerWorkspace = React.forwardRef<
     copyFromNewOption,
     setCopyFromNewOption,
     roleStates,
-    savingKeys,
     handleSetState,
-    handleBulkSetState,
-    handleBulkSetAllInOption,
     handleCopyAssignmentsFrom,
     getCopySourceOptions,
-    getSetRoleCounts,
   } = useThemeBulkOps({
     serverUrl,
     sets,
@@ -440,7 +420,7 @@ const ThemeManagerWorkspace = React.forwardRef<
     return counts;
   }, [setTokenValues, sets]);
 
-  const { optionIssues, totalIssueCount, totalFillableGaps } = useThemeCoverage(
+  const { optionIssues, totalFillableGaps } = useThemeCoverage(
     {
       dimensions,
       coverage,
@@ -502,74 +482,10 @@ const ThemeManagerWorkspace = React.forwardRef<
     });
   }, []);
 
-  useEffect(() => {
-    if (!editingRoleTarget) return;
-    const dimension = dimensions.find(
-      (dim) => dim.id === editingRoleTarget.dimId,
-    );
-    if (!dimension) {
-      setEditingRoleTarget(null);
-      return;
-    }
-    const optionExists = dimension.options.some(
-      (option: ThemeOption) => option.name === editingRoleTarget.optionName,
-    );
-    if (!optionExists) {
-      setEditingRoleTarget(null);
-      return;
-    }
-    if (editingRoleTarget.setName && sets.includes(editingRoleTarget.setName)) {
-      return;
-    }
-    setEditingRoleTarget({
-      dimId: editingRoleTarget.dimId,
-      optionName: editingRoleTarget.optionName,
-      setName: sets[0] ?? null,
-    });
-  }, [dimensions, editingRoleTarget, sets]);
-
-  const openRoleEditor = useCallback(
-    (dimId: string, optionName: string, preferredSetName?: string | null) => {
-      setEditingRoleTarget({
-        dimId,
-        optionName,
-        setName:
-          preferredSetName && sets.includes(preferredSetName)
-            ? preferredSetName
-            : (sets[0] ?? null),
-      });
-    },
-    [sets],
-  );
-
-  const closeRoleEditor = useCallback((dimId: string, optionName: string) => {
-    setEditingRoleTarget((current) =>
-      current?.dimId === dimId && current.optionName === optionName
-        ? null
-        : current,
-    );
-  }, []);
-
-  const setRoleEditorSetName = useCallback(
-    (dimId: string, optionName: string, setName: string) => {
-      setEditingRoleTarget((current) => {
-        if (current?.dimId === dimId && current.optionName === optionName) {
-          return { ...current, setName };
-        }
-        return {
-          dimId,
-          optionName,
-          setName,
-        };
-      });
-    },
-    [],
-  );
-
   const focusRoleTarget = useCallback(
     (
       target: ThemeRoleNavigationTarget | null | undefined,
-      openEditor = true,
+      _openEditor = true,
     ) => {
       const dimension = getDimensionForContext(target?.dimId ?? null);
       const optionName = getOptionNameForContext(
@@ -581,21 +497,12 @@ const ThemeManagerWorkspace = React.forwardRef<
       setFocusedDimensionId(dimension.id);
       setSelectedOptions((prev) => ({ ...prev, [dimension.id]: optionName }));
 
-      if (openEditor) {
-        openRoleEditor(
-          dimension.id,
-          optionName,
-          target?.preferredSetName ?? null,
-        );
-      }
-
       scrollToDimension(dimension.id);
       scrollToSetRoles(dimension.id, optionName);
     },
     [
       getDimensionForContext,
       getOptionNameForContext,
-      openRoleEditor,
       scrollToDimension,
       scrollToSetRoles,
       setSelectedOptions,
@@ -1111,140 +1018,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     [dimensions, resolverState, selectedOptions],
   );
 
-  // --- Render helpers ---
-
-  const renderSetRow = (
-    dim: ThemeDimension,
-    opt: ThemeOption,
-    setName: string,
-    status: ThemeRoleState,
-    isEditingRoles: boolean,
-    isBulkActionTarget: boolean,
-  ) => {
-    const isSaving = savingKeys.has(`${dim.id}/${opt.name}/${setName}`);
-    const tokenCount = setTokenCounts[setName] ?? null;
-    const isEmptyOverride =
-      status === "enabled" && tokenCount !== null && tokenCount === 0;
-    return (
-      <div
-        key={setName}
-        className={`rounded border px-2 py-1 transition-colors ${
-          isBulkActionTarget
-            ? "border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/6"
-            : "border-transparent hover:bg-[var(--color-figma-bg-hover)]"
-        } ${isSaving ? "opacity-50 pointer-events-none" : ""}`}
-      >
-        <div className="flex items-start justify-between gap-2">
-          {isEditingRoles ? (
-            <button
-              type="button"
-              onClick={() => setRoleEditorSetName(dim.id, opt.name, setName)}
-              className="min-w-0 flex-1 text-left"
-              aria-pressed={isBulkActionTarget}
-              title={`Focus bulk actions on ${setName}`}
-            >
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="truncate text-[10px] font-medium text-[var(--color-figma-text)]"
-                  title={setName}
-                >
-                  {setName}
-                </span>
-                {isBulkActionTarget && (
-                  <span className="rounded-full border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/12 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-accent)]">
-                    Bulk target
-                  </span>
-                )}
-              </div>
-            </button>
-          ) : (
-            <div className="min-w-0 flex-1">
-              <span
-                className="block truncate text-[10px] font-medium text-[var(--color-figma-text)]"
-                title={setName}
-              >
-                {setName}
-              </span>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center justify-end gap-1">
-            <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
-              {tokenCount === null
-                ? "Loading tokens…"
-                : `${tokenCount} token${tokenCount === 1 ? "" : "s"}`}
-            </span>
-            {isEmptyOverride && (
-              <NoticePill
-                severity="warning"
-                title="This override set is empty — it contains no tokens and will not change any values when this theme option is active"
-              >
-                empty
-              </NoticePill>
-            )}
-          </div>
-        </div>
-        {isEditingRoles && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1 pl-2">
-            {roleStates.map((nextState) => (
-              <button
-                key={nextState}
-                type="button"
-                onClick={() => {
-                  setRoleEditorSetName(dim.id, opt.name, setName);
-                  if (status !== nextState)
-                    handleSetState(dim.id, opt.name, setName, nextState);
-                }}
-                className={`min-h-6 rounded border px-2 py-1 text-[9px] font-medium transition-colors ${
-                  status === nextState
-                    ? nextState === "source"
-                      ? "border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]"
-                      : nextState === "enabled"
-                        ? "border-[var(--color-figma-success)]/30 bg-[var(--color-figma-success)]/12 text-[var(--color-figma-success)]"
-                        : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]"
-                    : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                }`}
-                aria-label={`${STATE_LABELS[nextState]} "${setName}": ${STATE_DESCRIPTIONS[nextState]}`}
-                aria-pressed={status === nextState}
-              >
-                {STATE_LABELS[nextState]}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderValuePreview = (value: any) => {
-    if (typeof value === "string") {
-      // Color preview
-      if (/^#[0-9a-fA-F]{6,8}$/.test(value)) {
-        return (
-          <span className="flex items-center gap-1">
-            <span
-              className="inline-block w-3 h-3 rounded border border-[var(--color-figma-border)]"
-              style={{ backgroundColor: value }}
-            />
-            <span className="font-mono text-[10px]">{value}</span>
-          </span>
-        );
-      }
-      // Alias reference
-      if (/^\{[^}]+\}$/.test(value)) {
-        return (
-          <span className="font-mono text-[10px] text-[var(--color-figma-warning)]">
-            {value}
-          </span>
-        );
-      }
-    }
-    return (
-      <span className="font-mono text-[10px]">
-        {typeof value === "object" ? JSON.stringify(value) : String(value)}
-      </span>
-    );
-  };
-
   const focusedDimension = useMemo(
     () =>
       dimensions.find((dim) => dim.id === focusedDimensionId) ??
@@ -1252,32 +1025,10 @@ const ThemeManagerWorkspace = React.forwardRef<
       null,
     [dimensions, focusedDimensionId],
   );
-  const focusedOptionName = useMemo(
-    () => getOptionNameForContext(focusedDimension, null),
-    [focusedDimension, getOptionNameForContext],
-  );
   const canCompareThemes = useMemo(
     () => dimensions.some((dim) => dim.options.length >= 2),
     [dimensions],
   );
-  const focusedContextLabel = useMemo(() => {
-    if (!focusedDimension) return "current theme context";
-    if (focusedOptionName)
-      return `${focusedDimension.name} -> ${focusedOptionName}`;
-    return focusedDimension.name;
-  }, [focusedDimension, focusedOptionName]);
-  const focusedOptionIssues = useMemo(
-    () =>
-      focusedDimension && focusedOptionName
-        ? (optionIssues[`${focusedDimension.id}:${focusedOptionName}`] ?? [])
-        : [],
-    [focusedDimension, focusedOptionName, optionIssues],
-  );
-  const focusedIssueCount = useMemo(
-    () => focusedOptionIssues.reduce((sum, issue) => sum + issue.count, 0),
-    [focusedOptionIssues],
-  );
-  const focusedPrimaryIssue = focusedOptionIssues[0] ?? null;
   const coverageFocusDimension = useMemo(
     () =>
       dimensions.find((dim) => dim.id === coverageContext.dimId) ??
@@ -1382,82 +1133,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     () =>
       getOptionNameForContext(compareFocusDimension, compareContext.optionName),
     [compareContext.optionName, compareFocusDimension, getOptionNameForContext],
-  );
-
-  const renderIssueEntry = useCallback(
-    (issue: ThemeIssueSummary, source: "authoring" | "coverage") => {
-      const actionLabel =
-        source === "coverage"
-          ? "Edit set roles"
-          : issue.kind === "stale-set" || issue.kind === "empty-override"
-            ? "Edit set roles"
-            : "Review issue";
-      const issueSeverity: "error" | "warning" =
-        issue.kind === "stale-set" ? "error" : "warning";
-      const toneClass =
-        issue.kind === "stale-set"
-          ? "border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10"
-          : issue.kind === "missing-override"
-            ? "border-violet-500/25 bg-violet-500/8"
-            : "border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/8";
-
-      const handleAction = () => {
-        const target = {
-          dimId: issue.dimensionId,
-          optionName: issue.optionName,
-          preferredSetName: issue.preferredSetName,
-        };
-
-        if (
-          source === "coverage" ||
-          issue.kind === "stale-set" ||
-          issue.kind === "empty-override"
-        ) {
-          returnToAuthoring(target);
-          return;
-        }
-
-        openCoverageView(target, false);
-      };
-
-      return (
-        <div
-          key={issue.key}
-          className={`rounded border px-2.5 py-2 ${toneClass}`}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
-                  {issue.title}
-                </span>
-                <NoticeCountBadge
-                  severity={
-                    issue.kind === "missing-override" ? "info" : issueSeverity
-                  }
-                  count={issue.count}
-                  className="min-w-[18px] px-1.5 font-semibold"
-                />
-              </div>
-              <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                {issue.summary}
-              </div>
-              <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Next: {issue.recommendedNextAction}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleAction}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              {actionLabel}
-            </button>
-          </div>
-        </div>
-      );
-    },
-    [openCoverageView, returnToAuthoring],
   );
 
   const modalContextValue = useThemeManagerModalsValue({
@@ -1626,13 +1301,11 @@ const ThemeManagerWorkspace = React.forwardRef<
               selectedOptions={selectedOptions}
               setTokenValues={setTokenValues}
               optionIssues={optionIssues}
-              totalFillableGaps={totalFillableGaps}
               optionDiffCounts={optionDiffCounts}
               optionRoleSummaries={optionRoleSummaries}
               focusedDimension={focusedDimension}
               canCompareThemes={canCompareThemes}
               resolverAvailable={Boolean(resolverState)}
-              resolverAuthoringContext={resolverAuthoringContext}
               newlyCreatedDim={newlyCreatedDim}
               draggingOpt={draggingOpt}
               dragOverOpt={dragOverOpt}
@@ -1653,8 +1326,6 @@ const ThemeManagerWorkspace = React.forwardRef<
               renameOptionValue={renameOptionValue}
               renameOptionError={renameOptionError}
               roleStates={roleStates}
-              fillingKeys={fillingKeys}
-              onNavigateToToken={onNavigateToToken}
               onGenerateForDimension={onGenerateForDimension}
               setRenameValue={setRenameValue}
               startRenameDim={startRenameDim}

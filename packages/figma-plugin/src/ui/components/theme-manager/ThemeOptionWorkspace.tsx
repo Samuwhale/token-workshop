@@ -1,5 +1,5 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NoticeFieldMessage } from "../../shared/noticeSystem";
 import type {
   ThemeIssueSummary,
@@ -16,7 +16,6 @@ interface ThemeOptionWorkspaceProps {
   dimension: ThemeDimension;
   option: ThemeOption;
   sets: string[];
-  optionSets: string[];
   selectedOptionIssues: ThemeIssueSummary[];
   overrideSets: string[];
   foundationSets: string[];
@@ -55,7 +54,6 @@ export function ThemeOptionWorkspace({
   dimension,
   option,
   sets,
-  optionSets,
   selectedOptionIssues,
   overrideSets,
   foundationSets,
@@ -86,7 +84,11 @@ export function ThemeOptionWorkspace({
   const { collapsedDisabled, toggleCollapsedDisabled, setRoleRefs } =
     useThemeAuthoringContext();
   const [optionMenuOpen, setOptionMenuOpen] = useState(false);
+  const [showAdvancedSetup, setShowAdvancedSetup] = useState(false);
+  const [pendingSharedSet, setPendingSharedSet] = useState("");
+  const [pendingVariantSet, setPendingVariantSet] = useState("");
   const optionMenuRef = useRef<HTMLDivElement | null>(null);
+  const advancedSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!optionMenuOpen) return;
@@ -107,12 +109,39 @@ export function ThemeOptionWorkspace({
   }, [optionMenuOpen]);
 
   const isDisabledCollapsed = collapsedDisabled.has(dimension.id);
+  const unusedSetCount = disabledSets.length;
+  const sharedCandidates = sets.filter((setName) => !foundationSets.includes(setName));
+  const variantCandidates = sets.filter((setName) => !overrideSets.includes(setName));
+
+  useEffect(() => {
+    if (!pendingSharedSet || sharedCandidates.includes(pendingSharedSet)) return;
+    setPendingSharedSet(sharedCandidates[0] ?? "");
+  }, [pendingSharedSet, sharedCandidates]);
+
+  useEffect(() => {
+    if (!pendingVariantSet || variantCandidates.includes(pendingVariantSet)) return;
+    setPendingVariantSet(variantCandidates[0] ?? "");
+  }, [pendingVariantSet, variantCandidates]);
+
+  useEffect(() => {
+    if (!showAdvancedSetup) return;
+    requestAnimationFrame(() => {
+      advancedSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  }, [showAdvancedSetup]);
+
+  const openAdvancedSetup = () => {
+    setShowAdvancedSetup(true);
+  };
 
   const renderIssueAction = (issue: ThemeIssueSummary) => {
     const actionLabel =
       issue.kind === "stale-set" || issue.kind === "empty-override"
-        ? "Edit set roles"
-        : "Review issue";
+        ? "Edit advanced setup"
+        : "Review issues";
     const handleAction = () => {
       const target = {
         dimId: issue.dimensionId,
@@ -120,7 +149,8 @@ export function ThemeOptionWorkspace({
         preferredSetName: issue.preferredSetName,
       };
       if (issue.kind === "stale-set" || issue.kind === "empty-override") {
-        onFocusRoleTarget(target, true);
+        openAdvancedSetup();
+        onFocusRoleTarget(target, false);
         return;
       }
       onOpenCoverageView(target, false);
@@ -142,7 +172,7 @@ export function ThemeOptionWorkspace({
     setNames: string[],
     status: ThemeRoleState,
     toneClass: string,
-    icon: React.ReactNode,
+    icon: ReactNode,
   ) => {
     if (setNames.length === 0) return null;
     return (
@@ -168,6 +198,112 @@ export function ThemeOptionWorkspace({
       </div>
     );
   };
+
+  const renderAssignmentSection = ({
+    title,
+    description,
+    setNames,
+    addValue,
+    addOptions,
+    addLabel,
+    onAddValueChange,
+    onAdd,
+    onRemove,
+    emptyLabel,
+  }: {
+    title: string;
+    description: string;
+    setNames: string[];
+    addValue: string;
+    addOptions: string[];
+    addLabel: string;
+    onAddValueChange: (value: string) => void;
+    onAdd: () => void;
+    onRemove: (setName: string) => void;
+    emptyLabel: string;
+  }) => (
+    <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
+      <div className="flex flex-col gap-1">
+        <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+          {title}
+        </div>
+        <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+          {description}
+        </p>
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {setNames.length > 0 ? (
+          setNames.map((setName) => (
+            <div
+              key={setName}
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1"
+            >
+              <span
+                className="truncate text-[10px] font-medium text-[var(--color-figma-text)]"
+                title={setName}
+              >
+                {setName}
+              </span>
+              <span className="rounded-full bg-[var(--color-figma-bg)] px-1 py-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                {setTokenCounts[setName] === null
+                  ? "…"
+                  : `${setTokenCounts[setName] ?? 0}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemove(setName)}
+                className="rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
+                aria-label={`Remove ${setName}`}
+                title={`Remove ${setName}`}
+              >
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))
+        ) : (
+          <div className="rounded border border-dashed border-[var(--color-figma-border)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {emptyLabel}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
+        <select
+          value={addValue}
+          onChange={(event) => onAddValueChange(event.target.value)}
+          className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text)]"
+        >
+          <option value="">Choose a set…</option>
+          {addOptions.map((setName) => (
+            <option key={setName} value={setName}>
+              {setName}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={!addValue}
+          className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {addLabel}
+        </button>
+      </div>
+    </section>
+  );
 
   return (
     <div className="bg-[var(--color-figma-bg-secondary)]">
@@ -222,7 +358,10 @@ export function ThemeOptionWorkspace({
           ) : (
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
+                <div className="text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                  Variant
+                </div>
+                <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
                   {option.name}
                 </span>
               </div>
@@ -230,8 +369,8 @@ export function ThemeOptionWorkspace({
                 <button
                   onClick={() => setOptionMenuOpen((v) => !v)}
                   className="rounded p-1.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                  title="Option actions"
-                  aria-label="Option actions"
+                  title="Variant actions"
+                  aria-label="Variant actions"
                   aria-expanded={optionMenuOpen}
                   aria-haspopup="menu"
                 >
@@ -286,7 +425,7 @@ export function ThemeOptionWorkspace({
                             onClick={() => { setOptionMenuOpen(false); onHandleCopyAssignmentsFrom(sourceOptionName); }}
                             className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                           >
-                            Copy roles from {sourceOptionName}
+                            Copy setup from {sourceOptionName}
                           </button>
                         ))}
                       </>
@@ -328,76 +467,173 @@ export function ThemeOptionWorkspace({
           </div>
         )}
 
-        {renderRoleSection(
-          "Override",
-          "highest priority",
-          overrideSets,
-          "enabled",
-          "bg-[var(--color-figma-success)]/5 text-[var(--color-figma-success)]",
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+        <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
+          <div className="mb-3 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2">
+            <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+              Variant setup
+            </div>
+            <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              Choose which token sets are shared across the family and which ones are unique to{" "}
+              <strong>{option.name}</strong>.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {renderAssignmentSection({
+              title: "Shared tokens",
+              description:
+                "These sets provide the baseline tokens reused across every variant in this family.",
+              setNames: foundationSets,
+              addValue: pendingSharedSet,
+              addOptions: sharedCandidates,
+              addLabel: "Add shared set",
+              onAddValueChange: setPendingSharedSet,
+              onAdd: () => {
+                if (!pendingSharedSet) return;
+                onHandleSetState(pendingSharedSet, "source");
+                setPendingSharedSet("");
+              },
+              onRemove: (setName) => onHandleSetState(setName, "disabled"),
+              emptyLabel: "No shared token sets selected yet.",
+            })}
+
+            {renderAssignmentSection({
+              title: "Variant-specific tokens",
+              description:
+                "Optional sets here only affect this variant and override the shared tokens when both define the same path.",
+              setNames: overrideSets,
+              addValue: pendingVariantSet,
+              addOptions: variantCandidates,
+              addLabel: "Add variant set",
+              onAddValueChange: setPendingVariantSet,
+              onAdd: () => {
+                if (!pendingVariantSet) return;
+                onHandleSetState(pendingVariantSet, "enabled");
+                setPendingVariantSet("");
+              },
+              onRemove: (setName) => onHandleSetState(setName, "disabled"),
+              emptyLabel: "No variant-specific token sets assigned.",
+            })}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2.5">
+              <div>
+                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                  Need direct role controls?
+                </div>
+                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                  Use advanced setup to review every assigned and unused set for this variant.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={openAdvancedSetup}
+                className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                {showAdvancedSetup
+                  ? "Advanced setup open"
+                  : `Edit advanced setup${unusedSetCount > 0 ? ` (${unusedSetCount} unused)` : ""}`}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {showAdvancedSetup && (
+          <div
+            ref={advancedSectionRef}
+            className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3"
           >
-            <path d="M12 19V5M5 12l7-7 7 7" />
-          </svg>,
-        )}
-        {renderRoleSection(
-          "Base",
-          "default values",
-          foundationSets,
-          "source",
-          "bg-[var(--color-figma-accent)]/5 text-[var(--color-figma-accent)]",
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <rect x="2" y="2" width="20" height="20" rx="3" opacity="0.3" />
-          </svg>,
-        )}
-        {disabledSets.length > 0 && (
-          <div>
-            <button
-              onClick={() => toggleCollapsedDisabled(dimension.id)}
-              className="w-full px-3 py-0.5 text-left text-[10px] font-medium text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              <span className="flex items-center gap-1">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                  Advanced setup
+                </div>
+                <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                  Raw set-role controls for power users. Changes here still save back to this variant.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedSetup(false)}
+                className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Hide
+              </button>
+            </div>
+
+            <div className="mt-3 overflow-hidden rounded-lg border border-[var(--color-figma-border)]">
+              {renderRoleSection(
+                "Override",
+                "highest priority",
+                overrideSets,
+                "enabled",
+                "bg-[var(--color-figma-success)]/5 text-[var(--color-figma-success)]",
                 <svg
                   width="8"
                   height="8"
-                  viewBox="0 0 8 8"
-                  fill="currentColor"
-                  className={`transition-transform ${
-                    isDisabledCollapsed ? "" : "rotate-90"
-                  }`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   aria-hidden="true"
                 >
-                  <path d="M2 1l4 3-4 3V1z" />
-                </svg>
-                Excluded ({disabledSets.length})
-              </span>
-            </button>
-            {!isDisabledCollapsed &&
-              disabledSets.map((setName) => (
-                <ThemeSetRoleRow
-                  key={setName}
-                  setName={setName}
-                  status="disabled"
-                  isSaving={savingKeys.has(`${dimension.id}/${option.name}/${setName}`)}
-                  tokenCount={setTokenCounts[setName] ?? null}
-                  roleStates={roleStates}
-                  onChangeState={(nextState) => onHandleSetState(setName, nextState)}
-                />
-              ))}
+                  <path d="M12 19V5M5 12l7-7 7 7" />
+                </svg>,
+              )}
+              {renderRoleSection(
+                "Base",
+                "default values",
+                foundationSets,
+                "source",
+                "bg-[var(--color-figma-accent)]/5 text-[var(--color-figma-accent)]",
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="3" opacity="0.3" />
+                </svg>,
+              )}
+              {disabledSets.length > 0 && (
+                <div>
+                  <button
+                    onClick={() => toggleCollapsedDisabled(dimension.id)}
+                    className="w-full px-3 py-0.5 text-left text-[10px] font-medium text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                  >
+                    <span className="flex items-center gap-1">
+                      <svg
+                        width="8"
+                        height="8"
+                        viewBox="0 0 8 8"
+                        fill="currentColor"
+                        className={`transition-transform ${
+                          isDisabledCollapsed ? "" : "rotate-90"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <path d="M2 1l4 3-4 3V1z" />
+                      </svg>
+                      Excluded ({disabledSets.length})
+                    </span>
+                  </button>
+                  {!isDisabledCollapsed &&
+                    disabledSets.map((setName) => (
+                      <ThemeSetRoleRow
+                        key={setName}
+                        setName={setName}
+                        status="disabled"
+                        isSaving={savingKeys.has(`${dimension.id}/${option.name}/${setName}`)}
+                        tokenCount={setTokenCounts[setName] ?? null}
+                        roleStates={roleStates}
+                        onChangeState={(nextState) => onHandleSetState(setName, nextState)}
+                      />
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
