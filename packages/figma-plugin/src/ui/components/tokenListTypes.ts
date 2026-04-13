@@ -60,12 +60,12 @@ export const CONDENSED_MAX_DEPTH = 3;
  * depth 0 → transparent (category headers get no bar).
  */
 export const DEPTH_COLORS: readonly string[] = [
-  "transparent",
-  "rgba(24,160,251,0.55)", // depth 1 — accent blue
-  "rgba(90,210,140,0.55)", // depth 2 — green
-  "rgba(255,180,50,0.55)", // depth 3 — amber
-  "rgba(230,100,80,0.55)", // depth 4 — coral
-  "rgba(170,100,240,0.55)", // depth 5 — purple
+  "var(--color-depth-0)", // depth 0 — transparent (category headers get no bar)
+  "var(--color-depth-1)", // depth 1 — accent blue
+  "var(--color-depth-2)", // depth 2 — green
+  "var(--color-depth-3)", // depth 3 — amber
+  "var(--color-depth-4)", // depth 4 — coral
+  "var(--color-depth-5)", // depth 5 — purple
 ];
 
 // ---------------------------------------------------------------------------

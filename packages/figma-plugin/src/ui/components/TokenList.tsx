@@ -97,20 +97,19 @@ import type { FilterBuilderSection } from "./TokenSearchFilterBuilder";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
-  color: "#e85d4a",
-  dimension: "#4a9ee8",
-  spacing: "#5bc4a0",
-  typography: "#a77de8",
-  fontFamily: "#c47de8",
-  fontSize: "#e8a77d",
-  fontWeight: "#7de8c4",
-  lineHeight: "#e8c47d",
-  number: "#7db8e8",
-  string: "#aae87d",
-  shadow: "#e87dc4",
-  border: "#e8e07d",
+  color: "var(--color-token-type-color)",
+  dimension: "var(--color-token-type-dimension)",
+  spacing: "var(--color-token-type-spacing)",
+  typography: "var(--color-token-type-typography)",
+  fontFamily: "var(--color-token-type-fontFamily)",
+  fontSize: "var(--color-token-type-fontSize)",
+  fontWeight: "var(--color-token-type-fontWeight)",
+  lineHeight: "var(--color-token-type-lineHeight)",
+  number: "var(--color-token-type-number)",
+  string: "var(--color-token-type-string)",
+  shadow: "var(--color-token-type-shadow)",
+  border: "var(--color-token-type-border)",
 };
-const TOKEN_TYPE_COLOR_FALLBACK = "#8888aa";
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
 const TOKENS_LIBRARY_BODY_SURFACE = "library-body";
@@ -548,42 +547,67 @@ export function TokenList({
     // Pick the first dimension with >=2 options
     const dim = dimensions.find((d) => d.options.length >= 2);
     if (!dim) return new Set();
-    const themedSets = new Set<string>();
-    for (const d of dimensions) {
-      for (const opt of d.options) {
-        for (const sn of Object.keys(opt.sets)) themedSets.add(sn);
+
+    // Early bail-out: if any option has no enabled sets, it can't produce overrides
+    const hasEnabledSets = dim.options.every((opt) =>
+      Object.values(opt.sets).some((s) => s === "enabled"),
+    );
+    if (!hasEnabledSets) return new Set();
+
+    // Collect only tokens in "enabled" override sets — only those can differ
+    const enabledSetsByOption: Set<string>[] = dim.options.map((opt) => {
+      const sets = new Set<string>();
+      for (const [sn, status] of Object.entries(opt.sets)) {
+        if (status === "enabled") sets.add(sn);
       }
-    }
-    // Resolve per-option and compare values
-    const optionMaps: Record<string, TokenMapEntry>[] = [];
-    for (const option of dim.options) {
-      const merged: Record<string, TokenMapEntry> = {};
-      for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
-        const set = pathToSet[path];
-        if (!set || !themedSets.has(set)) merged[path] = entry;
-      }
-      for (const [sn, status] of Object.entries(option.sets)) {
-        if (status !== "source") continue;
-        for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
-          if (pathToSet[path] === sn) merged[path] = entry;
+      return sets;
+    });
+
+    // Gather the candidate paths: tokens whose set appears in any enabled set
+    const candidatePaths = new Set<string>();
+    for (const [path] of Object.entries(unthemedAllTokensFlat)) {
+      const set = pathToSet[path];
+      if (!set) continue;
+      for (const enabledSets of enabledSetsByOption) {
+        if (enabledSets.has(set)) {
+          candidatePaths.add(path);
+          break;
         }
       }
-      for (const [sn, status] of Object.entries(option.sets)) {
-        if (status !== "enabled") continue;
-        for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
-          if (pathToSet[path] === sn) merged[path] = entry;
-        }
-      }
-      optionMaps.push(merged);
     }
+    if (candidatePaths.size === 0) return new Set();
+
+    // Build per-option override maps only for candidate paths
+    const optionOverrides: Map<string, TokenMapEntry>[] = dim.options.map(
+      (opt) => {
+        const overrides = new Map<string, TokenMapEntry>();
+        // Apply "enabled" sets (overrides) — last wins
+        for (const [sn, status] of Object.entries(opt.sets)) {
+          if (status !== "enabled") continue;
+          for (const path of candidatePaths) {
+            if (pathToSet[path] === sn) {
+              overrides.set(path, unthemedAllTokensFlat[path]);
+            }
+          }
+        }
+        return overrides;
+      },
+    );
+
     const varies = new Set<string>();
-    if (optionMaps.length < 2) return varies;
-    const allPaths = new Set(optionMaps.flatMap((m) => Object.keys(m)));
-    for (const path of allPaths) {
-      const first = JSON.stringify(optionMaps[0][path]?.$value ?? null);
-      for (let i = 1; i < optionMaps.length; i++) {
-        if (JSON.stringify(optionMaps[i][path]?.$value ?? null) !== first) {
-          varies.add(path);
+    for (const path of candidatePaths) {
+      const firstEntry = optionOverrides[0].get(path);
+      const firstValue = firstEntry?.$value ?? null;
+      for (let i = 1; i < optionOverrides.length; i++) {
+        const otherEntry = optionOverrides[i].get(path);
+        const otherValue = otherEntry?.$value ?? null;
+        // Referential equality check first, then fall back to stringify
+        if (firstValue !== otherValue) {
+          if (
+            JSON.stringify(firstValue) !== JSON.stringify(otherValue)
+          ) {
+            varies.add(path);
+          }
           break;
         }
       }
@@ -3442,17 +3466,8 @@ export function TokenList({
       data-tokens-library-surface-slot={librarySurfaceSlot}
       onKeyDown={handleListKeyDown}
     >
-      {/* ⌘⌥C alias-ref copy feedback toast */}
-      {copyAliasFeedback && (
-        <div
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-[11px] font-medium shadow-md"
-          aria-live="polite"
-        >
-          Copied!
-        </div>
-      )}
-      {/* ⌘⇧C preferred-format copy feedback toast */}
-      {copyPreferredFeedback && (
+      {/* Copy feedback toast (⌘⌥C alias-ref or ⌘⇧C preferred-format) */}
+      {(copyAliasFeedback || copyPreferredFeedback) && (
         <div
           className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-[11px] font-medium shadow-md"
           aria-live="polite"
@@ -3611,6 +3626,9 @@ export function TokenList({
           />
         )}
       </div>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {searchQuery ? `${displayedLeafNodes.length} tokens found` : ""}
+      </div>
       {showStaleGeneratorBanner && (
         <NoticeBanner
           severity="warning"
@@ -3656,7 +3674,7 @@ export function TokenList({
                   style={{
                     width: `${(count / statsTotalTokens) * 100}%`,
                     backgroundColor:
-                      TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK,
+                      TOKEN_TYPE_COLORS[type] ?? "var(--color-token-type-fallback)",
                   }}
                   title={`${type}: ${count}`}
                 />
@@ -3686,6 +3704,8 @@ export function TokenList({
       <div className="relative flex-1 min-h-0">
         <div
           ref={virtualListRef}
+          role="tree"
+          aria-label="Token tree"
           className={`h-full overflow-y-auto${operationLoading ? " opacity-50 pointer-events-none" : ""}`}
           onScroll={(e) => {
             const top = e.currentTarget.scrollTop;
