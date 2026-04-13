@@ -33,10 +33,15 @@ import {
   type GeneratorPreviewDiff,
 } from "../hooks/useGeneratorPreview";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
+import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function joinClasses(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
 
 export function getGeneratorTypeLabel(type: GeneratorType): string {
   switch (type) {
@@ -239,15 +244,15 @@ function DryRunPreview({
               {diff.created.map((t) => (
                 <div
                   key={t.path}
-                  className="flex items-center gap-1 text-[10px]"
+                  className="flex flex-col gap-0.5 text-[10px]"
                 >
                   <span className="text-emerald-600 font-medium shrink-0">
                     +
                   </span>
-                  <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">
+                  <span className={LONG_TEXT_CLASSES.monoSecondary}>
                     {t.path}
                   </span>
-                  <span className="ml-auto font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]">
+                  <span className={LONG_TEXT_CLASSES.monoTertiary}>
                     {formatTokenValue(t.value)}
                   </span>
                 </div>
@@ -261,14 +266,14 @@ function DryRunPreview({
                   key={t.path}
                   className="flex flex-col gap-px text-[10px] py-0.5 border-b border-[var(--color-figma-border)] last:border-b-0"
                 >
-                  <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">
+                  <span className={LONG_TEXT_CLASSES.monoSecondary}>
                     {t.path}
                   </span>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     <span className="text-[var(--color-figma-text-tertiary)] shrink-0">
                       was
                     </span>
-                    <span className="font-mono text-red-500 truncate max-w-[90px]">
+                    <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-red-500")}>
                       {formatTokenValue(t.currentValue)}
                     </span>
                     <svg
@@ -280,7 +285,7 @@ function DryRunPreview({
                     >
                       <path d="M2 1l4 3-4 3V1z" />
                     </svg>
-                    <span className="font-mono text-emerald-600 truncate max-w-[90px]">
+                    <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-emerald-600")}>
                       {formatTokenValue(t.newValue)}
                     </span>
                   </div>
@@ -293,13 +298,13 @@ function DryRunPreview({
               {diff.deleted.map((t) => (
                 <div
                   key={t.path}
-                  className="flex items-center gap-1 text-[10px]"
+                  className="flex flex-col gap-0.5 text-[10px]"
                 >
                   <span className="text-red-500 font-medium shrink-0">−</span>
-                  <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">
+                  <span className={LONG_TEXT_CLASSES.monoSecondary}>
                     {t.path}
                   </span>
-                  <span className="ml-auto font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]">
+                  <span className={LONG_TEXT_CLASSES.monoTertiary}>
                     {formatTokenValue(t.currentValue)}
                   </span>
                 </div>
@@ -425,12 +430,12 @@ function LiveDiffPreview({
       {expanded === "created" && diff.created.length > 0 && (
         <div className="max-h-24 overflow-y-auto space-y-px mt-0.5">
           {diff.created.map((t) => (
-            <div key={t.path} className="flex items-center gap-1 text-[10px]">
+            <div key={t.path} className="flex flex-col gap-0.5 text-[10px]">
               <span className="text-emerald-600 font-medium shrink-0">+</span>
-              <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">
+              <span className={LONG_TEXT_CLASSES.monoSecondary}>
                 {t.path}
               </span>
-              <span className="ml-auto font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[70px]">
+              <span className={LONG_TEXT_CLASSES.monoTertiary}>
                 {formatTokenValue(t.value)}
               </span>
             </div>
@@ -444,14 +449,14 @@ function LiveDiffPreview({
               key={t.path}
               className="flex flex-col gap-px text-[10px] py-0.5 border-b border-[var(--color-figma-border)] last:border-b-0"
             >
-              <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">
+              <span className={LONG_TEXT_CLASSES.monoSecondary}>
                 {t.path}
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
                 <span className="text-[var(--color-figma-text-tertiary)] shrink-0">
                   was
                 </span>
-                <span className="font-mono text-red-500 truncate max-w-[80px]">
+                <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-red-500")}>
                   {formatTokenValue(t.currentValue)}
                 </span>
                 <svg
@@ -463,7 +468,7 @@ function LiveDiffPreview({
                 >
                   <path d="M2 1l4 3-4 3V1z" />
                 </svg>
-                <span className="font-mono text-emerald-600 truncate max-w-[80px]">
+                <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-emerald-600")}>
                   {formatTokenValue(t.newValue)}
                 </span>
               </div>
@@ -474,12 +479,12 @@ function LiveDiffPreview({
       {expanded === "deleted" && diff.deleted.length > 0 && (
         <div className="max-h-24 overflow-y-auto space-y-px mt-0.5">
           {diff.deleted.map((t) => (
-            <div key={t.path} className="flex items-center gap-1 text-[10px]">
+            <div key={t.path} className="flex flex-col gap-0.5 text-[10px]">
               <span className="text-red-500 font-medium shrink-0">−</span>
-              <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">
+              <span className={LONG_TEXT_CLASSES.monoSecondary}>
                 {t.path}
               </span>
-              <span className="ml-auto font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[70px]">
+              <span className={LONG_TEXT_CLASSES.monoTertiary}>
                 {formatTokenValue(t.currentValue)}
               </span>
             </div>
@@ -2049,7 +2054,7 @@ export function GeneratorPipelineCard({
                         aria-hidden="true"
                       />
                     )}
-                  <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                  <span className={joinClasses(LONG_TEXT_CLASSES.monoSecondary, "flex-1")}>
                     {formatValue(token.value)}
                   </span>
                 </OverrideRow>

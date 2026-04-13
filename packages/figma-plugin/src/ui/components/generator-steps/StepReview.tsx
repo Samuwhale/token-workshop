@@ -13,6 +13,7 @@ import { ValueDiff } from '../ValueDiff';
 import { Spinner } from '../Spinner';
 import { TYPE_LABELS } from '../generators/generatorUtils';
 import { GENERATOR_AUTHORING_CLASSES } from '../generatorAuthoringSurface';
+import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -204,7 +205,7 @@ export function StepReview({
           </span>
           <div className="max-h-[100px] overflow-y-auto flex flex-col gap-0.5">
             {overwritePendingPaths.map((p: string) => (
-              <div key={p} className="text-[10px] font-mono text-[var(--color-figma-warning)]/80 truncate" title={p}>{p}</div>
+              <div key={p} className={`${LONG_TEXT_CLASSES.mono} text-[var(--color-figma-warning)]/80`} title={p}>{p}</div>
             ))}
           </div>
         </div>
@@ -218,7 +219,7 @@ export function StepReview({
           <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {nonGeneratorOverwriteEntries.map(entry => (
               <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
                   {entry.path}
                   {entry.setName !== targetSet && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
                 </span>
@@ -243,7 +244,7 @@ export function StepReview({
           <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {manualConflictEntries.map(entry => (
               <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
                   {entry.path}
                 </span>
                 <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
@@ -260,8 +261,8 @@ export function StepReview({
           </label>
           <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {deletedOutputEntries.map(entry => (
-              <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+              <div key={`${entry.setName}:${entry.path}`} className="flex flex-wrap items-start gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.setName}:${entry.path}`}>
                   {entry.path}
                   {entry.setName !== targetSet && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
                 </span>
@@ -280,15 +281,15 @@ export function StepReview({
           <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {recreatedDetachedEntries.map(entry => (
               <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
                   {entry.path}
                 </span>
                 <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
               </div>
             ))}
             {preservedDetachedEntries.map(entry => (
-              <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+              <div key={`${entry.setName}:${entry.path}`} className="flex flex-wrap items-start gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.setName}:${entry.path}`}>
                   {entry.path}
                 </span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Stays manual</span>
@@ -306,7 +307,7 @@ export function StepReview({
           </label>
           <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {newTokens.map(token => (
-              <div key={token.path} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+              <div key={token.path} className="flex flex-wrap items-start gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
                 {token.type === 'color' && typeof token.value === 'string' && (
                   <div
                     className="w-3.5 h-3.5 rounded-sm border border-white/30 ring-1 ring-[var(--color-figma-border)] shrink-0"
@@ -314,10 +315,10 @@ export function StepReview({
                     aria-hidden="true"
                   />
                 )}
-                <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={token.path}>
+                <span className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`} title={token.path}>
                   {token.path}
                 </span>
-                <span className="min-w-0 break-all text-[10px] font-mono text-[var(--color-figma-text-secondary)]" title={typeof token.value === 'object' ? JSON.stringify(token.value) : String(token.value)}>
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={typeof token.value === 'object' ? JSON.stringify(token.value) : String(token.value)}>
                   {token.type === 'dimension' && typeof token.value === 'object' && token.value !== null && 'value' in (token.value as Record<string, unknown>)
                     ? `${(token.value as { value: number; unit?: string }).value}${(token.value as { value: number; unit?: string }).unit ?? 'px'}`
                     : typeof token.value === 'object' ? JSON.stringify(token.value) : String(token.value)}

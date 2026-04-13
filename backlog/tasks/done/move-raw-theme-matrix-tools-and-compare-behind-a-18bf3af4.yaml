@@ -14,11 +14,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: The audit recommends keeping the default path focused on variant creation and moving structural maintenance tools into a secondary advanced route."
-state: ready
+  - "Completed: Added a dedicated Advanced setup route for raw set-role and compare tools, removed those controls from default authoring, and validated with targeted eslint plus figma-plugin build."
+state: done
 acceptance_criteria:
   - Compare, bulk set-role editing, override-set creation, and the raw role matrix are no longer visible in the default theme authoring path.
   - An explicit `Advanced setup` route hosts the matrix editor and compare tools with clear back navigation to simple authoring.
   - Simple authoring can still deep-link into Advanced setup when a user asks to edit the raw set-role configuration.
 source: task-followup
 created_at: 2026-04-13T01:05:03.152Z
-updated_at: 2026-04-13T01:05:03.152Z
+updated_at: 2026-04-13T04:02:47.671Z

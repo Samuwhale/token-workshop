@@ -46,6 +46,7 @@ import {
   cloneStarterConfigForGeneratorType,
   getStarterTemplateForGeneratorType,
 } from '../graph-templates';
+import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 
 
 // ---------------------------------------------------------------------------
@@ -614,7 +615,7 @@ export function StepWhat({
               <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
                 {nonGeneratorOverwriteEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                    <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
                       {entry.path}
                       <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>
                     </span>
@@ -642,7 +643,7 @@ export function StepWhat({
               <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
                 {manualConflictEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                    <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
                       {entry.path}
                     </span>
                     <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
@@ -662,8 +663,8 @@ export function StepWhat({
               </label>
               <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
                 {deletedOutputEntries.map(entry => (
-                  <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                  <div key={`${entry.setName}:${entry.path}`} className="flex flex-wrap items-start gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                    <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.setName}:${entry.path}`}>
                       {entry.path}
                       <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>
                     </span>
@@ -685,7 +686,7 @@ export function StepWhat({
               <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
                 {recreatedDetachedEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                    <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
                       {entry.path}
                     </span>
                     <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
@@ -695,8 +696,8 @@ export function StepWhat({
                   </div>
                 ))}
                 {preservedDetachedEntries.map(entry => (
-                  <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                  <div key={`${entry.setName}:${entry.path}`} className="flex flex-wrap items-start gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                    <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.setName}:${entry.path}`}>
                       {entry.path}
                     </span>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Stays manual</span>

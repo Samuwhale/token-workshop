@@ -74,6 +74,7 @@ import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
 import type { TokensLibraryGeneratorEditorTarget } from "../shared/navigationTypes";
 import { lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
+import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
@@ -197,7 +198,7 @@ function ExtendsTokenPicker({
               setOpen(false);
               setSearch("");
             }}
-            className="w-full text-left px-2 py-1 text-[11px] font-mono text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] truncate"
+            className={`${LONG_TEXT_CLASSES.monoPrimary} w-full px-2 py-1 text-left text-[11px] hover:bg-[var(--color-figma-bg-hover)]`}
             title={`${p} (${pathToSet[p] || ""})`}
           >
             {p}
@@ -630,7 +631,7 @@ function ThemeValuesSection({
                           </span>
                         ) : isAliasVal ? (
                           <span
-                            className="flex-1 text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate"
+                            className={LONG_TEXT_CLASSES.monoSecondary}
                             title={String(rawValue)}
                           >
                             {String(rawValue)}
@@ -678,7 +679,7 @@ function ThemeValuesSection({
 
                         {targetSet && (
                           <span
-                            className="text-[8px] text-[var(--color-figma-text-secondary)]/50 truncate max-w-[52px] shrink-0"
+                            className={`${LONG_TEXT_CLASSES.textSecondary} shrink-0 text-[8px] opacity-50`}
                             title={targetSet}
                           >
                             {targetSet}
@@ -1395,7 +1396,7 @@ export function TokenEditor({
             placeholder="Token path (e.g. color.brand.500)"
             autoFocus
             autoComplete="off"
-            className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? "border-[var(--color-figma-danger,#f24822)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
+            className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 ${duplicatePath ? "border-[var(--color-figma-danger,#f24822)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
           />
           {showPathAutocomplete && editPath.trim() && (
             <PathAutocomplete
@@ -1412,7 +1413,7 @@ export function TokenEditor({
         </div>
       ) : (
         <div className="flex items-center gap-1.5 min-w-0">
-          <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
+          <div className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}>
             {tokenPath}
           </div>
           {isDirty && (
@@ -1897,7 +1898,7 @@ export function TokenEditor({
                               <circle cx="12" cy="12" r="3" />
                               <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
                             </svg>
-                            <span className="truncate">{dep.path}</span>
+                            <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                             {dep.setName !== setName && (
                               <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-amber-500/20 text-amber-400 ml-auto">
                                 {dep.setName}
@@ -1909,7 +1910,7 @@ export function TokenEditor({
                             key={dep.path}
                             className="flex items-center gap-1 px-1 py-0.5 font-mono text-[9px] text-[var(--color-figma-text)]"
                           >
-                            <span className="truncate">{dep.path}</span>
+                            <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                             {dep.setName !== setName && (
                               <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-amber-500/20 text-amber-400 ml-auto">
                                 {dep.setName}
@@ -2255,7 +2256,7 @@ export function TokenEditor({
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                       </svg>
                       <span
-                        className="text-[11px] text-[var(--color-figma-text)] font-mono truncate flex-1"
+                        className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
                         title={extendsPath}
                       >
                         {extendsPath}
@@ -2447,7 +2448,7 @@ export function TokenEditor({
                               ? "Spacing"
                               : "Opacity"}
                       </span>
-                      <span className="text-[10px] text-[var(--color-figma-text)] truncate">
+                      <span className={LONG_TEXT_CLASSES.monoPrimary}>
                         {gen.targetGroup}
                       </span>
                     </div>
@@ -2644,7 +2645,7 @@ export function TokenEditor({
                               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                             </svg>
                           )}
-                          <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-accent)] truncate group-hover:underline">
+                          <span className={`${LONG_TEXT_CLASSES.mono} flex-1 text-[var(--color-figma-accent)] group-hover:underline`}>
                             {node.path}
                           </span>
                           {node.setName && node.setName !== setName && (
@@ -2763,7 +2764,7 @@ export function TokenEditor({
                                   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                 </svg>
                               )}
-                              <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate group-hover:underline">
+                              <span className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1 group-hover:underline`}>
                                 {dep.path}
                               </span>
                               {dep.setName && dep.setName !== setName && (

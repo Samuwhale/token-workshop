@@ -9,6 +9,7 @@ import { FIGMA_SCOPES } from './MetadataEditor';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { isAlias } from '../../shared/resolveAlias';
 import { PanelHelpHint } from './PanelHelpHint';
+import { LONG_TEXT_CLASSES } from '../shared/longTextStyles';
 
 const typeValidator = new TokenValidator();
 
@@ -192,6 +193,20 @@ function BatchSection({ label, children, className }: BatchSectionProps) {
       <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{label}</div>
       {children}
     </div>
+  );
+}
+
+function BatchPreviewPath({
+  path,
+  className,
+}: {
+  path: string;
+  className?: string;
+}) {
+  return (
+    <span className={joinClasses(LONG_TEXT_CLASSES.monoTertiary, className)} title={path}>
+      {path}
+    </span>
   );
 }
 
@@ -1021,12 +1036,12 @@ export function BatchEditor({
             Bulk edit {selectedPaths.size} token{selectedPaths.size !== 1 ? 's' : ''}
           </div>
           {selectionScope && (
-            <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+            <div className="mt-1 flex min-w-0 flex-wrap items-start gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
               <span className="shrink-0 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 font-medium text-[var(--color-figma-text-secondary)]">
                 {selectionScope.source === 'saved-preset' ? 'Saved scope' : 'Current scope'}
               </span>
-              <span className="truncate text-[var(--color-figma-text-secondary)]">{selectionScope.title}</span>
-              <span className="truncate font-mono">{selectionScope.detail}</span>
+              <span className={LONG_TEXT_CLASSES.textSecondary}>{selectionScope.title}</span>
+              <span className={LONG_TEXT_CLASSES.monoSecondary}>{selectionScope.detail}</span>
             </div>
           )}
         </div>
@@ -1093,9 +1108,9 @@ export function BatchEditor({
                   {typeChangeInfo.incompatible.length} token{typeChangeInfo.incompatible.length === 1 ? ' has a' : 's have'} value{typeChangeInfo.incompatible.length === 1 ? '' : 's'} incompatible with {newType}:
                 </p>
                 {(expandedPreviews['typeIncompat'] ? typeChangeInfo.incompatible : typeChangeInfo.incompatible.slice(0, PREVIEW_MAX)).map(({ path, error }) => (
-                  <div key={path} className="flex items-start gap-1 text-[10px] leading-snug">
-                    <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px] shrink-0" title={path}>{path.split('.').pop()}</span>
-                    <span className="text-[var(--color-figma-error,#ef4444)] truncate" title={error}>
+                  <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                    <BatchPreviewPath path={path} />
+                    <span className={LONG_TEXT_CLASSES.text} title={error}>
                       {error.includes(':') ? error.split(':').slice(1).join(':').trim() : error}
                     </span>
                   </div>
@@ -1287,8 +1302,9 @@ export function BatchEditor({
           {opacityPreview && opacityPreview.length > 0 && (
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['opacity'] ? opacityPreview : opacityPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex flex-wrap items-center gap-1.5 text-[10px] leading-snug">
-                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
+                <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
+                  <BatchPreviewPath path={path} />
+                  <div className="flex flex-wrap items-center gap-1.5">
                   <span
                     className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]"
                     style={{ backgroundColor: String(from) }}
@@ -1300,7 +1316,10 @@ export function BatchEditor({
                     style={{ backgroundColor: String(to) }}
                     title={String(to)}
                   />
-                  <span className="text-[var(--color-figma-text)] font-mono font-medium break-all">{String(to)}</span>
+                    <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')}>
+                      {String(to)}
+                    </span>
+                  </div>
                 </div>
               ))}
               {opacityPreview.length > PREVIEW_MAX && (
@@ -1352,8 +1371,9 @@ export function BatchEditor({
           {colorAdjustPreview && colorAdjustPreview.length > 0 && (
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['colorAdjust'] ? colorAdjustPreview : colorAdjustPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex flex-wrap items-center gap-1.5 text-[10px] leading-snug">
-                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
+                <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
+                  <BatchPreviewPath path={path} />
+                  <div className="flex flex-wrap items-center gap-1.5">
                   <span
                     className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]"
                     style={{ backgroundColor: String(from) }}
@@ -1365,7 +1385,10 @@ export function BatchEditor({
                     style={{ backgroundColor: String(to) }}
                     title={String(to)}
                   />
-                  <span className="text-[var(--color-figma-text)] font-mono font-medium break-all">{String(to)}</span>
+                    <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')}>
+                      {String(to)}
+                    </span>
+                  </div>
                 </div>
               ))}
               {colorAdjustPreview.length > PREVIEW_MAX && (
@@ -1433,9 +1456,9 @@ export function BatchEditor({
                   : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (reference values cannot be transformed):`}
               </span>
               {(expandedPreviews['skippedAlias'] ? skippedAliasTokens : skippedAliasTokens.slice(0, PREVIEW_MAX)).map(({ path, entry }) => (
-                <div key={path} className="flex flex-wrap items-center gap-1 text-[10px] leading-snug">
-                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] break-all" title={String(entry.$value)}>{String(entry.$value)}</span>
+                <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                  <BatchPreviewPath path={path} />
+                  <span className={LONG_TEXT_CLASSES.monoSecondary} title={String(entry.$value)}>{String(entry.$value)}</span>
                 </div>
               ))}
               {skippedAliasTokens.length > PREVIEW_MAX && (
@@ -1448,11 +1471,15 @@ export function BatchEditor({
           {scalePreview && scalePreview.length > 0 && (
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['scale'] ? scalePreview : scalePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex flex-wrap items-center gap-1 text-[10px] leading-snug">
-                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] break-all">{formatBatchValue(from)}</span>
-                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                  <span className="text-[var(--color-figma-text)] font-medium break-all">{formatBatchValue(to)}</span>
+                <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                  <BatchPreviewPath path={path} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className={LONG_TEXT_CLASSES.monoSecondary}>{formatBatchValue(from)}</span>
+                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                    <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')}>
+                      {formatBatchValue(to)}
+                    </span>
+                  </div>
                 </div>
               ))}
               {scalePreview.length > PREVIEW_MAX && (
@@ -1513,22 +1540,28 @@ export function BatchEditor({
           {compositeSubPropPreview && compositeSubPropPreview.length > 0 && (
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['compositeSub'] ? compositeSubPropPreview : compositeSubPropPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to, arrayLen }) => (
-                <div key={path} className="flex flex-wrap items-center gap-1.5 text-[10px] leading-snug">
-                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
-                  {arrayLen > 1 && <span className="text-[var(--color-figma-text-tertiary)] shrink-0 font-mono">[{arrayLen}]</span>}
+                <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <BatchPreviewPath path={path} />
+                    {arrayLen > 1 && <span className={LONG_TEXT_CLASSES.monoTertiary}>[{arrayLen}]</span>}
+                  </div>
                   {compositeSubPropKind === 'color' ? (
-                    <>
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: String(from) }} title={String(from)} />
                       <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
                       <span className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: String(to) }} title={String(to)} />
-                      <span className="text-[var(--color-figma-text)] font-mono font-medium break-all">{String(to)}</span>
-                    </>
+                      <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')}>
+                        {String(to)}
+                      </span>
+                    </div>
                   ) : (
-                    <>
-                      <span className="text-[var(--color-figma-text-secondary)] break-all">{formatBatchValue(from)}</span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={LONG_TEXT_CLASSES.monoSecondary}>{formatBatchValue(from)}</span>
                       <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                      <span className="text-[var(--color-figma-text)] font-medium break-all">{formatBatchValue(to)}</span>
-                    </>
+                      <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')}>
+                        {formatBatchValue(to)}
+                      </span>
+                    </div>
                   )}
                 </div>
               ))}
@@ -1575,11 +1608,15 @@ export function BatchEditor({
         {setValuePreview && setValuePreview.length > 0 && (
           <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
             {(expandedPreviews['setValue'] ? setValuePreview : setValuePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-              <div key={path} className="flex flex-wrap items-center gap-1 text-[10px] leading-snug">
-                <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-                <span className="text-[var(--color-figma-text-secondary)] font-mono break-all" title={String(from)}>{formatBatchValue(from)}</span>
-                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                <span className="text-[var(--color-figma-text)] font-medium font-mono break-all">{formatBatchValue(to)}</span>
+              <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                <BatchPreviewPath path={path} />
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className={LONG_TEXT_CLASSES.monoSecondary} title={String(from)}>{formatBatchValue(from)}</span>
+                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')}>
+                    {formatBatchValue(to)}
+                  </span>
+                </div>
               </div>
             ))}
             {setValuePreview.length > PREVIEW_MAX && (
@@ -1653,11 +1690,15 @@ export function BatchEditor({
           ) : aliasPreview && aliasPreview.length > 0 ? (
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
               {(expandedPreviews['alias'] ? aliasPreview : aliasPreview.slice(0, PREVIEW_MAX)).map(({ path, from }) => (
-                <div key={path} className="flex flex-wrap items-center gap-1 text-[10px] leading-snug">
-                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] font-mono break-all" title={String(from)}>{formatBatchValue(from)}</span>
-                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                  <span className="text-[var(--color-figma-text)] font-medium font-mono break-all">{aliasRef}</span>
+                <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                  <BatchPreviewPath path={path} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className={LONG_TEXT_CLASSES.monoSecondary} title={String(from)}>{formatBatchValue(from)}</span>
+                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                    <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')}>
+                      {aliasRef}
+                    </span>
+                  </div>
                 </div>
               ))}
               {aliasPreview.length > PREVIEW_MAX && (
@@ -1768,10 +1809,12 @@ export function BatchEditor({
                 )}:
               </div>
               {(expandedPreviews['rename'] ? renameChanges : renameChanges.slice(0, PREVIEW_MAX)).map(({ from, to }) => (
-                <div key={from} className="text-[10px] leading-snug flex flex-wrap items-baseline gap-1">
-                  <span className="text-[var(--color-figma-text-secondary)] truncate grow min-w-0" title={from}>{from}</span>
-                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                  <span className="text-[var(--color-figma-text)] font-medium truncate grow min-w-0" title={to}>{to}</span>
+                <div key={from} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                  <span className={LONG_TEXT_CLASSES.monoSecondary} title={from}>{from}</span>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                    <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')} title={to}>{to}</span>
+                  </div>
                 </div>
               ))}
               {renameChanges.length > PREVIEW_MAX && (
@@ -1822,11 +1865,13 @@ export function BatchEditor({
                 {aliasFindChanges.length} alias reference{aliasFindChanges.length === 1 ? '' : 's'} will change:
               </div>
               {(expandedPreviews['aliasFind'] ? aliasFindChanges : aliasFindChanges.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="text-[10px] leading-snug flex flex-wrap items-baseline gap-1">
-                  <span className="text-[var(--color-figma-text-tertiary)] truncate shrink-0 max-w-[80px]" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] font-mono break-all" title={from}>{from}</span>
-                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                  <span className="text-[var(--color-figma-text)] font-mono font-medium break-all" title={to}>{to}</span>
+                <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                  <BatchPreviewPath path={path} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className={LONG_TEXT_CLASSES.monoSecondary} title={from}>{from}</span>
+                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                    <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium')} title={to}>{to}</span>
+                  </div>
                 </div>
               ))}
               {aliasFindChanges.length > PREVIEW_MAX && (
@@ -1879,13 +1924,11 @@ export function BatchEditor({
             {movePreview && movePreview.items.length > 0 && (
               <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
                 {(expandedPreviews['move'] ? movePreview.items : movePreview.items.slice(0, PREVIEW_MAX)).map(({ path, conflict }) => (
-                  <div key={path} className="text-[10px] leading-snug space-y-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[var(--color-figma-text-secondary)] truncate" title={path}>{path}</span>
-                    </div>
+                  <div key={path} className="text-[10px] leading-snug space-y-0.5">
+                    <BatchPreviewPath path={path} className="text-[var(--color-figma-text-secondary)]" />
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                      <span className={`font-medium break-all ${conflict ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`} title={`${targetSet}: ${path}${conflict ? ' (already exists)' : ''}`}>
+                      <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium', conflict && 'text-[var(--color-figma-warning,#f59e0b)]')} title={`${targetSet}: ${path}${conflict ? ' (already exists)' : ''}`}>
                         {targetSet}: {path}
                       </span>
                       {conflict && (

@@ -196,7 +196,7 @@
 - [x] Add explicit branch navigation shortcuts for deep token hierarchies
 - [x] Add starter presets and inline token-ref guidance for all generator types
 - [x] Clean up stale semantic generator outputs across set and brand moves
-- [ ] Move raw theme matrix tools and compare behind an Advanced setup route
+- [x] Move raw theme matrix tools and compare behind an Advanced setup route
 - [ ] Replace truncation-first path rendering across authoring surfaces with narrow-width wrapping rules
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
