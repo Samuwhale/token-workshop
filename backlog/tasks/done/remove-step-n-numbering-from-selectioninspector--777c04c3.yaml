@@ -15,7 +15,9 @@ acceptance_criteria:
   - Section headers no longer display 'Step 1', 'Step 2', 'Step 3' labels
   - Each section retains its descriptive title ('Selected layer summary', 'Best-match suggestions', 'Bind visible properties')
   - Removing step numbers does not change the scroll anchoring or section ref behavior
-source: interface-pass
+source:
+  type: pass
+  pass_id: interface-pass
 created_at: 2026-04-12T18:04:20.550Z
 updated_at: 2026-04-12T18:14:07.552Z
 execution_domain: ui_ux

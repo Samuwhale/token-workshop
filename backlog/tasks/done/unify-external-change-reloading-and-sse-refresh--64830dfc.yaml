@@ -21,7 +21,9 @@ acceptance_criteria:
   - Git pull/checkout and other external file changes reload `$generators.json`, `$themes.json`, and resolver files into live server state without requiring a restart.
   - The SSE stream emits refresh-worthy events for non-token workspace files, and the plugin refreshes the affected data after reconnects or external edits.
   - External edits to generators, themes, or resolvers follow the same change-coherence rules as token file edits instead of silently leaving stale in-memory state.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-11T22:54:23.098Z
 updated_at: 2026-04-12T08:40:09.286Z
 execution_domain: code_logic

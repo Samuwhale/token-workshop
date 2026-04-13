@@ -27,6 +27,8 @@ acceptance_criteria:
   - Recommends breadcrumb or return-path patterns for cross-workspace transitions so users always know how to get back
   - Addresses the workflow relationship between workspaces with a recommendation for progressive onboarding or structural cues that communicate how Tokens, Themes, Apply, Sync, and Audit relate
   - Identifies which secondary surfaces (Import, Sets, Notifications, Settings) should be promoted, demoted, or repositioned in the navigation hierarchy
-source: product-pass
+source:
+  type: pass
+  pass_id: product-pass
 created_at: 2026-04-13T00:00:00.000Z
 updated_at: 2026-04-12T23:24:57.158Z

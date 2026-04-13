@@ -12,7 +12,8 @@ status_notes:
 state: superseded
 acceptance_criteria:
   - Establish one consistent loading / progress / success / error feedback model across imports, sync, binding, generator runs, audits, and settings changes so users can predict what is happening after every mutation
-source: manual
+source:
+  type: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-10T23:07:09.240Z
 execution_domain: code_logic

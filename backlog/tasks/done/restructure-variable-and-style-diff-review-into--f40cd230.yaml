@@ -20,7 +20,8 @@ acceptance_criteria:
   - Variable and style review panels group local-only, Figma-only, and conflicting rows with explicit counts and clearer bulk push, pull, and skip actions.
   - Each sync target shows a concise review summary that matches the actions the apply step will execute for that target.
   - Preview and apply affordances remain visible from the review context and no longer rely on users stitching together section badges, headers, and footer copy.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:16:39.398Z
 updated_at: 2026-04-10T23:41:56.102Z
 execution_domain: ui_ux

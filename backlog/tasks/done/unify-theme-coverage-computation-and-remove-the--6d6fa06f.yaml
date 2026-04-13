@@ -16,7 +16,9 @@ state: done
 acceptance_criteria:
   - Theme coverage is derived from one shared computation path that returns the data the Theme workspace actually consumes, instead of keeping a second partial implementation in `routes/themes.ts`.
   - The unused `coverageCache` and `/api/themes/coverage` branch are removed or rewritten to call that shared coverage builder, so server and client coverage semantics cannot drift.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-12T20:04:13.723Z
 updated_at: 2026-04-12T20:16:38.910Z
 execution_domain: code_logic

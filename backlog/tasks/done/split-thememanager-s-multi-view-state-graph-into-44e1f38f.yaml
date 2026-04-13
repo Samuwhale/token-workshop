@@ -17,7 +17,9 @@ acceptance_criteria:
   - "`ThemeManager.tsx` becomes a thin workspace shell that only owns active-view selection, shell-state reporting, and imperative handle wiring."
   - Authoring, coverage, compare, and advanced/resolver modes each move into dedicated screen/controller modules with only the state, effects, and refs they actually use.
   - View-specific headers, back-navigation, and context chips are defined once per screen instead of being repeated behind multiple `activeView` branches in the same component tree.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-12T18:18:23.088Z
 updated_at: 2026-04-12T18:30:39.442Z
 execution_domain: code_logic

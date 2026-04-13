@@ -24,7 +24,9 @@ acceptance_criteria:
   - "`tokenMutations.ts` exposes an explicit token-mutation request type that matches the `/api/tokens` route contract instead of pretending every UI payload is a `Partial<Token>`."
   - Canvas/property/theme/table/editor write paths reuse shared normalization helpers for `$type`, `$value`, and default scopes instead of each constructing ad hoc bodies from `string | unknown | ResolvedTokenValue | null`.
   - "`pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json` no longer reports the token-body type mismatches in the touched token-writing files."
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-13T04:37:00.827Z
 updated_at: 2026-04-13T04:46:19.988Z
 execution_domain: code_logic

@@ -18,7 +18,8 @@ state: done
 acceptance_criteria:
   - Folder delete and other multi-set folder operations capture enough snapshot data to roll back member sets without token-path collisions across different sets.
   - Folder operation history entries expose an accurate undo path instead of recording metadata-only placeholders.
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-08T22:39:45.439Z
 updated_at: 2026-04-09T14:11:47.025Z
 execution_domain: code_logic

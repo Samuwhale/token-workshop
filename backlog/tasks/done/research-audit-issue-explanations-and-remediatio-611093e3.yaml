@@ -19,6 +19,7 @@ acceptance_criteria:
   - Inspect the current Audit workspace issue surfaces and enumerate which issue types still present as raw counts, terse badges, or unexplained technical labels, with concrete file references.
   - Define a per-issue contract for why the issue matters, where it comes from, and which workflow-specific CTA should resolve it, noting any dependency on shared notice primitives already in the backlog.
   - Write implementation-ready follow-up backlog tasks with exact repo touch paths for HealthPanel-level summary changes and issue-panel-specific remediation UI changes.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:25:03.289Z
 updated_at: 2026-04-10T23:42:42.893Z

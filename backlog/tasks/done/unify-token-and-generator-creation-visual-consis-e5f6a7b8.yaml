@@ -31,6 +31,8 @@ acceptance_criteria:
   - Defines minimum and target viewport widths for the plugin and documents how each surface should respond at those breakpoints
   - Identifies specific overflow, truncation, and cramping issues at narrow widths and recommends fixes
   - Proposes a visual consistency pass that aligns generator step forms, token editors, batch editors, and quick-create dialogs into a cohesive authoring experience
-source: product-pass
+source:
+  type: pass
+  pass_id: product-pass
 created_at: 2026-04-13T00:00:00.000Z
 updated_at: 2026-04-13T01:14:38.636Z

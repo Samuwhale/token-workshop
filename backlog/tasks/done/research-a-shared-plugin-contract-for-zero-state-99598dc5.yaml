@@ -19,6 +19,7 @@ acceptance_criteria:
   - Inventory the current feedback primitives and bespoke cases across full-surface empty states, section empty states, no-results states, inline validation banners, blocking progress overlays, toasts, and notification history.
   - Separate zero-data/empty-state patterns from mutation-feedback patterns, and define where each state should appear for Tokens, Import, Settings, History, Sync/Publish, and other secondary surfaces.
   - Write implementation-ready follow-up backlog tasks with concrete repo touch paths for shared primitives and workspace migrations, including explicit tasks for empty-state standardization and mutation feedback/progress standardization.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:07:09.240Z
 updated_at: 2026-04-11T12:00:00.000Z

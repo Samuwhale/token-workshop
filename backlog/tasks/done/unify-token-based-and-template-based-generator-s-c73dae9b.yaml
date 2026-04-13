@@ -21,7 +21,8 @@ acceptance_criteria:
   - Token-row quick generation, advanced generator editing, and foundation-template starts all share one draft model and preserve selected type, target group, target set, and config when escalating.
   - Quick generator affordances stay transient launchers only; long-lived generator editing happens in the canonical generator editor surface defined by the Tokens workspace contract.
   - Closing or saving any generator start path returns users to a predictable Tokens workspace context instead of leaving separate quick-start and advanced flows with different handoff behavior.
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-09T07:47:03.661Z
 updated_at: 2026-04-09T14:11:43.373Z
 execution_domain: ui_ux

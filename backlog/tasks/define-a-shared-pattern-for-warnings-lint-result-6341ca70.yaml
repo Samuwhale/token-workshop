@@ -12,7 +12,8 @@ status_notes:
 state: superseded
 acceptance_criteria:
   - Define a shared pattern for warnings, lint results, stale state, and informational notices so the app stops mixing neutral pills, danger pills, banners, and inline warnings without a clear severity hierarchy
-source: manual
+source:
+  type: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-10T23:04:56.803Z
 execution_domain: code_logic

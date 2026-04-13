@@ -18,7 +18,8 @@ state: done
 acceptance_criteria:
   - "`bash scripts/backlog/validate.sh` no longer fails on the current resolver/theme/plugin TypeScript errors once `packages/core` build artifacts are present"
   - "`packages/server` and `packages/figma-plugin` builds both pass without relying on stale workspace artifacts"
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-09T12:21:37.262Z
 updated_at: 2026-04-09T12:33:00.000Z
 execution_domain: code_logic

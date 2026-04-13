@@ -23,7 +23,8 @@ acceptance_criteria:
   - Tokens > Library renders through one explicit surface contract for body, contextual panel, and split preview instead of separate empty/no-split/side-panel branches.
   - Token editor, generator editor, token preview, and compare surfaces all open and close through the same contextual panel state while preserving the current library browse context.
   - The IA blueprint documents which Tokens surfaces are primary screens, persistent contextual panels, secondary takeovers, and transient overlays, and the implementation matches that contract.
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-09T07:47:03.656Z
 updated_at: 2026-04-10T23:04:56.803Z
 execution_domain: code_logic

@@ -18,6 +18,7 @@ acceptance_criteria:
   - Inspect how theme coverage gaps, missing overrides, auto-fill actions, and override-set creation are currently exposed across the authoring and coverage views.
   - Document the exact user path from detecting a gap to choosing a safe fix, including where the affected set is known, where it is ambiguous, and where the current UI forces users to jump between views.
   - Write concrete follow-up backlog tasks with implementation-ready touch paths for a clearer gap-to-fix flow, covering contextual explanation, affected-set guidance, and authoring-to-review navigation.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-09T08:36:00.765Z
 updated_at: 2026-04-09T14:50:02.805Z

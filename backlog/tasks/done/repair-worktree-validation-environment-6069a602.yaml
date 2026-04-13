@@ -31,7 +31,8 @@ state: done
 acceptance_criteria:
   - Fresh worktrees bootstrap dependency resolution reliably before validation reruns.
   - Repo validation reruns no longer fail with missing-module workspace errors unrelated to completed task code.
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-09T15:12:47.830Z
 updated_at: 2026-04-09T21:34:15.275Z
 execution_domain: code_logic

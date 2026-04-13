@@ -16,7 +16,9 @@ acceptance_criteria:
   - The breadcrumb row no longer uses 'Workspace' or 'Surface' as uppercase tracking meta-labels before the workspace/context pill chain
   - The 'Context' uppercase tracking pill inside individual section tab buttons is removed or replaced with a plain text indicator that does not use the uppercase+tracking treatment
   - No new chrome or explanatory copy is added in place of the removed labels — the result is a simpler header row across all workspaces that use this component
-source: interface-pass
+source:
+  type: pass
+  pass_id: interface-pass
 created_at: 2026-04-13T04:15:50.666Z
 updated_at: 2026-04-13T04:19:48.577Z
 execution_domain: ui_ux

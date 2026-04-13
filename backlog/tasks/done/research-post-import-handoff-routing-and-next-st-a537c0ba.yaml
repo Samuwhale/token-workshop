@@ -19,6 +19,7 @@ acceptance_criteria:
   - Inspect `packages/figma-plugin/src/ui/components/ImportPanel.tsx`, `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx`, `packages/figma-plugin/src/ui/components/ImportSuccessView.tsx`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx`, `packages/figma-plugin/src/ui/shared/navigationTypes.ts`, and the relevant redesign docs to map the current import-complete close behavior, surviving summary state, and every existing route into Tokens, Themes, and Sync.
   - Write concrete follow-up backlog tasks that separate summary-data plumbing, next-step recommendation rules, and navigation/close behavior, with implementation-ready `touch_paths` and acceptance criteria for each child.
   - Explicitly reconcile the follow-ups with the already-completed import conflict-review and validation work so the new tasks only cover the unresolved post-import handoff gap and do not duplicate finished import-review changes.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:12:56.839Z
 updated_at: 2026-04-11T12:00:00.000Z

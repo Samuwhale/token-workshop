@@ -20,7 +20,9 @@ acceptance_criteria:
   - The import flow no longer exposes one monolithic ImportPanelContextValue bag across every surface.
   - Source selection/parsing, destination mapping, conflict review, and success/undo state are owned by focused hooks or contexts with explicit contracts.
   - Import subcomponents consume only the state and actions they need instead of calling useImportPanel() against a provider rebuilt from unrelated progress, conflict, and success changes.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-13T05:39:14.378Z
 updated_at: 2026-04-13T06:16:43.270Z
 execution_domain: code_logic

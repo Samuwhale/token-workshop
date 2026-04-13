@@ -19,7 +19,8 @@ acceptance_criteria:
   - SelectionContextValue in InspectContext.tsx surfaces the loading boolean from useSelection
   - SelectionInspector checks selectionLoading before rendering the empty state, showing a neutral placeholder or nothing while loading
   - QuickApplyPicker guard in App.tsx (currently `showQuickApply && selectedNodes.length > 0` around line 3852) also respects the loading state so it does not flash closed before the first selection message arrives
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-11T20:20:09.663Z
 updated_at: 2026-04-11T20:55:53.417Z
 execution_domain: ui_ux

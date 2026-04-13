@@ -14,7 +14,8 @@ state: done
 acceptance_criteria:
   - "`/api/operations` can page past 50 entries after many unrelated operations are recorded."
   - "`/api/operations/path-renames` preserves rename propagation across rename rollback/redo by exposing inverse rename events."
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-09T13:10:49.828Z
 updated_at: 2026-04-09T14:05:49.030Z
 execution_domain: code_logic

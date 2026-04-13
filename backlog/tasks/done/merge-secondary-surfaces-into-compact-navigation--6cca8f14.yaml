@@ -18,7 +18,8 @@ acceptance_criteria:
   - Import moves to an affordance inside the Tokens workspace rather than a top-level button
   - Sets management is reachable from the set switcher rather than a top-level button
   - Total top-level navigation targets drop from 13 to 7 or fewer
-source: manual
+source:
+  type: manual
 created_at: 2026-04-11T22:00:00.000Z
 updated_at: 2026-04-11T21:10:39.447Z
 execution_domain: ui_ux

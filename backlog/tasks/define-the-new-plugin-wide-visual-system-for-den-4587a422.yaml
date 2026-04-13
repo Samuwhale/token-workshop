@@ -12,7 +12,8 @@ status_notes:
 state: superseded
 acceptance_criteria:
   - Define the new plugin-wide visual system for density, typography, spacing, chips, badges, section headers, and CTA hierarchy, raising the baseline readability above the current 9–11px-heavy interface
-source: manual
+source:
+  type: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-10T23:05:22.564Z
 execution_domain: code_logic

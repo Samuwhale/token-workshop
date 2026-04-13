@@ -12,7 +12,8 @@ status_notes:
 state: superseded
 acceptance_criteria:
   - Simplify advanced tools inside Apply by consolidating layer search, remap, extract, selection sync, deep inspect, and filtering into one secondary tools surface with clearer status and fewer simultaneous toggles
-source: manual
+source:
+  type: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-10T23:25:03.289Z
 execution_domain: code_logic

@@ -14,7 +14,9 @@ state: done
 acceptance_criteria:
   - Queued theme role mutations capture rollback state at execution time or from the latest committed dimensions state, so a failed later mutation cannot erase an earlier successful change that was queued ahead of it.
   - "`useThemeBulkOps` no longer closes over one stale `dimensions` snapshot for every queued task; optimistic update, rollback, and refresh behavior are defined in one queue-safe mutation path."
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-12T20:04:13.629Z
 updated_at: 2026-04-12T20:09:56.450Z
 execution_domain: code_logic

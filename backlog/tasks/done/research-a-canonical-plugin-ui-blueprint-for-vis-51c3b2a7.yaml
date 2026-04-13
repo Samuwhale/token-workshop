@@ -18,6 +18,7 @@ acceptance_criteria:
   - Audit the shared shell and high-traffic plugin surfaces for typography scale, spacing density, chip/badge treatments, section headers, CTA hierarchy, and motion/layout-transition behavior.
   - Identify the current shared primitives, tokens, CSS/constants, and component entry points that would need to change to establish a unified visual and motion system.
   - Write concrete follow-up backlog tasks that split the work into executable implementation slices with named repo touch paths for shared primitives, shell-level transitions, and workspace-specific adoption.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:05:22.564Z
 updated_at: 2026-04-10T23:25:50.288Z

@@ -30,6 +30,8 @@ acceptance_criteria:
   - Defines a progressive disclosure strategy that gates advanced features (multi-dimensional themes, resolvers, coverage analysis) behind explicit user actions
   - Identifies which of the nine theme hooks can be consolidated and proposes a target state for theme state management
   - Addresses the resolver vs. dimensions boundary with a clear recommendation for when each is presented to the user
-source: product-pass
+source:
+  type: pass
+  pass_id: product-pass
 created_at: 2026-04-13T00:00:00.000Z
 updated_at: 2026-04-13T01:09:21.598Z

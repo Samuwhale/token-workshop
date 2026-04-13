@@ -17,7 +17,9 @@ acceptance_criteria:
   - One shared server helper loads dimensions, resolver references, generator targets, and generated-token ownership once and returns consistent `SetPreflightImpact` data for one or more sets.
   - "`/api/sets/:name/preflight`, `DELETE /api/sets/:name`, split with `deleteOriginal`, and folder delete all consume that shared dependency snapshot/blocker builder instead of hand-assembling impacts in each route."
   - When a new dependency type is added, structural set operations pick it up through the shared snapshot path so blocker messages and affected-set summaries stay aligned across preflight and execution flows.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-12T18:18:23.116Z
 updated_at: 2026-04-12T18:24:11.609Z
 execution_domain: code_logic

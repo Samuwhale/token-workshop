@@ -19,6 +19,7 @@ acceptance_criteria:
   - Inspect the current notice surfaces and record where banners, status pills, inline warnings, field errors, stale-state cues, and toast feedback are currently used across shared shell and workspace-specific UI.
   - Define a concrete severity hierarchy and placement rules for info, success, warning, stale, blocking error, and validation/lint feedback, including which surface types should use banners, pills, inline messages, or toasts.
   - Emit concrete follow-up backlog tasks with repo touch_paths for the first implementation slices needed to adopt the new notice model, rather than stopping at a prose audit.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:04:56.803Z
 updated_at: 2026-04-10T23:21:01.845Z

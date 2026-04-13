@@ -19,6 +19,7 @@ acceptance_criteria:
   - Inspect the current Apply code paths for selection sync, layer search, remap, extract, deep inspect, and property filtering with concrete file references from the live UI.
   - Document which controls should stay in the default selection flow versus move into a dedicated secondary tools surface, including how workflow stage copy, active hidden-state indicators, and maintenance-status summaries should work.
   - Write implementation-ready follow-up backlog tasks with exact repo touch paths for the routing/shell changes and the SelectionInspector panel split or consolidation work.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:25:03.289Z
 updated_at: 2026-04-10T23:42:42.639Z

@@ -19,6 +19,7 @@ acceptance_criteria:
   - Inspect the current token editing surface inventory across `TokenList`, `tokenListTypes`, `EditorContext`, `PanelRouter`, `TokenEditor`, `TokenGeneratorDialog`, and token-related modal components, and capture where editing currently happens inline, in contextual panels/drawers, or in modal dialogs.
   - Define a concrete surface-ownership contract for token actions that covers create, quick primitive edits, composite value edits, generator edits, preview-to-edit handoff, compare-to-edit handoff, and unsaved-change dismissal/navigation behavior.
   - Write implementation-ready follow-up backlog tasks with concrete repo touch paths for the chosen routing/state changes, including at least one task for surface ownership/routing and one task for unsaved-change and close-behavior cleanup.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:07:09.240Z
 updated_at: 2026-04-10T23:42:41.412Z

@@ -18,7 +18,8 @@ acceptance_criteria:
   - Generator API payloads expose upstream/downstream relationships, blocked-by metadata, stale reason, and last-run summary without forcing the client to infer them from raw token paths alone.
   - GraphPanel list and graph views surface dependency chips or counts, blocked-state context, and quick rerun or retry actions at the dashboard level.
   - GeneratorPipelineCard identifies upstream blockers and affected dependents inline when a generator is stale, failed, or blocked.
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-12T23:57:39.920Z
 updated_at: 2026-04-13T00:41:05.705Z
 execution_domain: code_logic

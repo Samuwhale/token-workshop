@@ -16,7 +16,9 @@ acceptance_criteria:
   - "`ManualSnapshotStore` exposes one shared snapshot-comparison path that both `diff()` and `diffSnapshots()` use for token and workspace diff generation."
   - Normal snapshot restore and `recoverPendingRestore()` run through the same journal-backed restore plan/executor instead of maintaining separate set/theme/resolver/generator replay loops.
   - Snapshot restore rollback metadata is derived from the shared restore plan inputs so adding a new workspace artifact or restore stage updates restore, recovery, and undo together.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-12T20:42:36.862Z
 updated_at: 2026-04-12T22:24:48.701Z
 execution_domain: code_logic

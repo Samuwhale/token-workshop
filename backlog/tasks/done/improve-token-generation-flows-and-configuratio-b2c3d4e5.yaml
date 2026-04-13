@@ -30,6 +30,8 @@ acceptance_criteria:
   - Recommends how semantic alias mapping should be surfaced earlier in the flow as a planning step rather than a review-only afterthought
   - Proposes a generator dashboard surface showing status, staleness, dependency chains, and quick re-run actions
   - Addresses the preview-to-save gap with a recommendation for surfacing overwrite detection and manual-edit conflicts before confirmation
-source: product-pass
+source:
+  type: pass
+  pass_id: product-pass
 created_at: 2026-04-13T00:00:00.000Z
 updated_at: 2026-04-13T00:01:43.303Z

@@ -17,7 +17,9 @@ acceptance_criteria:
   - Enabled collection-mode mappings cannot proceed with duplicate destination set names unless the controller first consolidates them into one explicit write plan.
   - Conflict preview counts and per-token review rows include collisions between enabled modes that target the same destination set, not just pre-existing server tokens.
   - Import execution writes a destination once per consolidated plan or blocks ambiguous duplicates, so later mode batches cannot silently overwrite earlier ones in the same run.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-13T05:39:14.345Z
 updated_at: 2026-04-13T06:05:49.872Z
 execution_domain: code_logic

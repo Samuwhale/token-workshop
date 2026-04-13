@@ -42,7 +42,7 @@ Default to **whole-screen cleanup** over local polish. If a surface is structura
 4. **Write findings** — for each item that clears the bar, append one JSON object per line to `backlog/inbox.jsonl`:
 
 ```json
-{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"execution_domain":"ui_ux","validation_profile":"optional","capabilities":["optional"],"context":"Include the violated interface principle here","source":"interface-pass"}
+{"title":"Short standalone title","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"execution_domain":"ui_ux","validation_profile":"optional","capabilities":["optional"],"context":"Include the violated interface principle here","source":{"type":"pass","pass_id":"interface-pass"}}
 ```
 
 Rules:

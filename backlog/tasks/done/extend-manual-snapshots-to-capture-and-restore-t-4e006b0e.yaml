@@ -20,7 +20,9 @@ acceptance_criteria:
   - Saving a manual snapshot persists token sets plus the current theme dimensions, resolver files, and generator definitions as one checkpoint.
   - Snapshot diff and restore endpoints compare and restore the non-token workspace files together with token sets.
   - Restoring a snapshot cannot leave theme, resolver, or generator config pointing at sets that only exist in the post-snapshot state.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-11T22:54:23.075Z
 updated_at: 2026-04-12T08:25:32.326Z
 execution_domain: code_logic

@@ -19,6 +19,7 @@ acceptance_criteria:
   - Inspect the current Apply workspace code paths for empty selection, mixed multi-layer selection, loading, successful binding feedback, and sync-status visibility.
   - Document the existing state transitions, banners/notices, and selection-driven UI branches with concrete file references.
   - Write implementation-ready follow-up backlog tasks that cover the chosen Apply state contract, including the exact UI surfaces and repo paths each change should touch.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:05:22.564Z
 updated_at: 2026-04-10T23:42:40.906Z

@@ -18,6 +18,7 @@ acceptance_criteria:
   - Inspect the current file-based import flow across `packages/figma-plugin/src/ui/components/ImportPanel.tsx`, `ImportPanelContext.tsx`, `ImportSourceSelector.tsx`, `ImportConflictResolver.tsx`, `ImportFileDestinationRules.tsx`, and the import hooks to map every drag-and-drop, picker, validation, conflict, and success state.
   - Document where supported formats, drop affordances, parse failures, and conflict-resolution choices are currently surfaced or hidden, including any mismatch between global drag-and-drop behavior and the source-family workflow.
   - Write concrete follow-up backlog tasks with implementation-ready touch paths for the import intake redesign, including at least one task for discoverability/affordance changes and one task for validation/conflict feedback changes.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-09T08:36:00.765Z
 updated_at: 2026-04-09T14:40:10.173Z

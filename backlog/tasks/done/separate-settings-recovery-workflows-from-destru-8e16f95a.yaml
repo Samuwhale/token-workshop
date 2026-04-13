@@ -17,7 +17,8 @@ acceptance_criteria:
   - Advanced Settings groups reversible recovery actions (`export settings`, `restore settings`, `guided setup`, `undo depth`) separately from irreversible reset actions with distinct section intros and spacing.
   - The irreversible reset control no longer sits directly adjacent to import/export affordances or shares the same visual treatment as routine recovery actions.
   - The IA blueprint documents the intended ownership for recovery/start-over helpers versus destructive reset controls.
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-09T14:43:33.241Z
 updated_at: 2026-04-09T16:46:12.304Z
 execution_domain: code_logic

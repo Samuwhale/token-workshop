@@ -29,6 +29,8 @@ acceptance_criteria:
   - Recommends a filter discovery model that does not depend on memorizing qualifier syntax — visual filter builder, suggested filters, or progressive disclosure
   - Addresses search result hierarchy loss with a recommendation for preserving group context in filtered views
   - Proposes navigation improvements for deep hierarchies (breadcrumbs, zoom-to-group, or structural shortcuts) that reduce manual expand/collapse overhead
-source: product-pass
+source:
+  type: pass
+  pass_id: product-pass
 created_at: 2026-04-13T00:00:00.000Z
 updated_at: 2026-04-12T23:32:34.577Z

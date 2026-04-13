@@ -16,7 +16,9 @@ acceptance_criteria:
   - RecoverySubsection no longer renders the 'description' prop text inline below its title
   - Section titles, subsection titles, and entry type pills remain unchanged
   - The panel's vertical scan path from section title to entry rows is uninterrupted
-source: interface-pass
+source:
+  type: pass
+  pass_id: interface-pass
 created_at: 2026-04-12T18:04:20.575Z
 updated_at: 2026-04-12T18:14:42.601Z
 execution_domain: ui_ux

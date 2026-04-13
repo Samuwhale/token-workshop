@@ -16,11 +16,7 @@ export default {
   },
   prompts: {
     agent: './scripts/backlog/agent.md',
-    planner: './scripts/backlog/planner-pass.md',
-    product: './scripts/backlog/product-pass.md',
-    interface: './scripts/backlog/interface-pass.md',
-    ux: './scripts/backlog/ux-pass.md',
-    code: './scripts/backlog/code-pass.md',
+    planner: './scripts/backlog/planner.md',
   },
   validationCommand: 'bash scripts/backlog/validate.sh',
   validationProfiles: {
@@ -72,26 +68,44 @@ export default {
       tool: 'codex',
       model: 'gpt-5.4',
     },
-    product: {
-      tool: 'codex',
-      model: 'gpt-5.4',
-    },
-    interface: {
-      tool: 'claude',
-      model: 'claude-opus-4-6',
-    },
-    ux: {
-      tool: 'claude',
-      model: 'claude-opus-4-6',
-    },
-    code: {
-      tool: 'codex',
-      model: 'gpt-5.4',
-    },
   },
   defaults: {
     workers: 2,
     passes: true,
     worktrees: true,
+  },
+  passes: {
+    'product-pass': {
+      kind: 'discovery',
+      promptFile: './scripts/backlog/passes/product-pass.md',
+      runner: {
+        tool: 'codex',
+        model: 'gpt-5.4',
+      },
+    },
+    'interface-pass': {
+      kind: 'discovery',
+      promptFile: './scripts/backlog/passes/interface-pass.md',
+      runner: {
+        tool: 'claude',
+        model: 'claude-opus-4-6',
+      },
+    },
+    'ux-pass': {
+      kind: 'discovery',
+      promptFile: './scripts/backlog/passes/ux-pass.md',
+      runner: {
+        tool: 'claude',
+        model: 'claude-opus-4-6',
+      },
+    },
+    'code-pass': {
+      kind: 'discovery',
+      promptFile: './scripts/backlog/passes/code-pass.md',
+      runner: {
+        tool: 'codex',
+        model: 'gpt-5.4',
+      },
+    },
   },
 };

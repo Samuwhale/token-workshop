@@ -16,7 +16,9 @@ acceptance_criteria:
   - "`GitSync` exposes one shared token-file diff loader that owns `.tokens.json` filtering, status normalization, before/after content loading, and untracked-working-tree handling."
   - "`getTokenFileDiffs()`, `diffBetweenCommits()`, `getWorkingTreeTokenDiff()`, `getPushPreview()`, and `getPullPreview()` delegate to that shared loader instead of repeating raw git loops."
   - "`routes/sync.ts` compare and restore flows consume the normalized diff/snapshot output instead of reparsing commit file contents into before/after token maps independently."
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-12T20:42:36.951Z
 updated_at: 2026-04-13T02:58:01.418Z
 execution_domain: code_logic

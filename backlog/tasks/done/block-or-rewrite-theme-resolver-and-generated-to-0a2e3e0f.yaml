@@ -17,7 +17,8 @@ state: done
 acceptance_criteria:
   - Deleting a set folder does not leave theme options or resolver sources pointing at removed sets
   - Folder delete refuses to proceed while any contained generated tokens or generator targets would become dangling
-source: task-followup
+source:
+  type: task-followup
 created_at: 2026-04-11T23:12:16.210Z
 updated_at: 2026-04-12T09:40:47.419Z
 execution_domain: code_logic

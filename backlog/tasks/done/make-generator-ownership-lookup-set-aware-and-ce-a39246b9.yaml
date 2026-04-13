@@ -23,7 +23,9 @@ acceptance_criteria:
   - Generator step-name parsing and detached-path filtering live in one shared helper instead of separate copies in server and UI files.
   - Generator ownership indexes use a set-aware identity (`set + path` or equivalent) rather than plain token paths, so repeated token paths across sets do not overwrite each other.
   - Detach actions and generator ownership indicators in the token tree/editor/preview/search flows read the set-aware lookup and no longer depend on ambiguous path-only matches.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-13T04:37:00.922Z
 updated_at: 2026-04-13T05:05:14.002Z
 execution_domain: code_logic

@@ -19,6 +19,7 @@ acceptance_criteria:
   - Map the current generator discovery and editing entry points across Tokens, Generators, quick-start templates, graph/list views, inline token editing, and command-palette navigation with concrete file references.
   - Document where the UI currently fails to explain generator ownership, what save will overwrite or create, and how users can get back to the generated token group after editing or creating a generator.
   - Write implementation-ready follow-up backlog tasks with exact repo touch paths for discovery/naming changes, save-impact review changes, and generated-token handoff/navigation changes.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-10T23:25:03.289Z
 updated_at: 2026-04-10T23:42:43.149Z

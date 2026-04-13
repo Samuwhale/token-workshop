@@ -19,7 +19,9 @@ acceptance_criteria:
   - Provider execution, validation reruns, candidate-queue draining, and finalize/claim transitions live in shared task-lifecycle helpers or phase objects instead of being reimplemented across `runTaskWorker()`, `attemptWorkspaceRemediation()`, and `attemptTaskReconciliation()`.
   - "`runTaskWorker()` reads as explicit phases (`preflight -> execute -> validate -> finalize/reconcile`) with typed phase results rather than one long function mixing store mutations and early-return worker results."
   - Adding a new scheduler outcome or post-run step requires updating one shared lifecycle path rather than patching multiple task/remediation codepaths.
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-12T20:42:37.001Z
 updated_at: 2026-04-13T03:50:07.439Z
 execution_domain: code_logic

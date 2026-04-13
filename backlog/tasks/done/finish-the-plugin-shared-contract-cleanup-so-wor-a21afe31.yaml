@@ -27,7 +27,9 @@ acceptance_criteria:
   - Each workflow surface imports its stage, tone, notice, and feedback contracts from one shared source; local shadow unions and inferred `string` stage arrays are removed.
   - Recent split-related symbol and prop drift (`ImportWorkflowStage`, `ThemeRoleState`, `SetManager`, `GeneratorSaveSuccessInfo`, `targetSetTemplate`, `NoticeBanner.actions`, `NoticeSeverity`) is reconciled so the live shell, import, theme, and generator flows compile against the current contracts.
   - "`pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json` no longer fails in the listed shell/workflow files."
-source: code-pass
+source:
+  type: pass
+  pass_id: code-pass
 created_at: 2026-04-13T04:37:00.890Z
 updated_at: 2026-04-13T04:55:15.357Z
 execution_domain: code_logic

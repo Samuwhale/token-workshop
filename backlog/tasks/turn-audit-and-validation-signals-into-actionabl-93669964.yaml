@@ -12,7 +12,8 @@ status_notes:
 state: superseded
 acceptance_criteria:
   - "Turn audit and validation signals into actionable product feedback instead of raw counts and badges: each issue type should explain why it matters, where it comes from, and how to fix it from the relevant workflow"
-source: manual
+source:
+  type: manual
 created_at: 2026-04-08T20:14:30.290Z
 updated_at: 2026-04-10T23:25:03.289Z
 execution_domain: code_logic

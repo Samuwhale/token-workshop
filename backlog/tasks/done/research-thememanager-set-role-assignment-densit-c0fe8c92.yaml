@@ -20,6 +20,7 @@ acceptance_criteria:
   - Inspect the set-role authoring surface across `packages/figma-plugin/src/ui/components/ThemeManager.tsx`, `packages/figma-plugin/src/ui/components/themeManagerTypes.ts`, `packages/figma-plugin/src/ui/shared/themeWorkflow.ts`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts`, and `packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts` to document how source/base, override, and excluded states are currently explained, grouped, edited, and summarized.
   - Write concrete follow-up backlog tasks that replace dense per-row toggle clusters and helper copy with an at-a-glance role summary model, explicit edit affordances, and clearer bulk-assignment patterns, with concrete implementation touch paths for each slice.
   - Write concrete follow-up backlog tasks that clarify how coverage gaps, missing overrides, empty override sets, and deleted-set warnings hand back into set-role editing so the role-assignment stage reads as one coherent workflow rather than separate status blocks.
-source: planner-pass
+source:
+  type: planner-pass
 created_at: 2026-04-09T07:34:46.657Z
 updated_at: 2026-04-09T14:00:06.574Z
