@@ -568,6 +568,7 @@ export function useCommandPaletteCommands(): {
   }, [sync]);
 
   const exportPresetCommands = useMemo<Command[]>(() => {
+    void exportPresetRev;
     const presets = lsGetJson<Array<{ id: string; name: string }>>(
       STORAGE_KEYS.EXPORT_PRESETS,
       [],
@@ -584,7 +585,6 @@ export function useCommandPaletteCommands(): {
         window.dispatchEvent(new CustomEvent("applyExportPreset"));
       },
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- exportPresetRev is a revision counter that triggers re-read from localStorage
   }, [exportPresetRev, navigateTo]);
 
   const commands = useMemo(

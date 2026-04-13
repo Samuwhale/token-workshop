@@ -49,12 +49,22 @@ export class GitTimeoutError extends HttpError {
 /**
  * If `err` is an HttpError, return its statusCode. Otherwise return undefined.
  */
+interface StatusCodeCarrier {
+  statusCode: number;
+}
+
+function hasStatusCode(err: unknown): err is StatusCodeCarrier {
+  return (
+    !!err &&
+    typeof err === "object" &&
+    "statusCode" in err &&
+    typeof (err as { statusCode?: unknown }).statusCode === "number"
+  );
+}
+
 export function getHttpStatusCode(err: unknown): number | undefined {
   if (err instanceof HttpError) return err.statusCode;
-  // Also support the Object.assign({ statusCode }) pattern used in themes.ts
-  if (err && typeof err === 'object' && 'statusCode' in err && typeof (err as any).statusCode === 'number') {
-    return (err as any).statusCode;
-  }
+  if (hasStatusCode(err)) return err.statusCode;
   return undefined;
 }
 

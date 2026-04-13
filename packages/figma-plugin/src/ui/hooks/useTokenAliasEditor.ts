@@ -1,17 +1,18 @@
 import { useState, useRef, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+import type { TokenEditorValue } from '../shared/tokenEditorTypes';
 
 interface UseTokenAliasEditorParams {
   aliasMode: boolean;
   setAliasMode: (v: boolean) => void;
-  value: any;
-  setValue: (v: any) => void;
+  value: TokenEditorValue;
+  setValue: (v: TokenEditorValue) => void;
   reference: string;
   setReference: (v: string) => void;
   tokenType: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  preAliasValueRef: React.MutableRefObject<any>;
+  preAliasValueRef: React.MutableRefObject<TokenEditorValue | null>;
 }
 
 export function useTokenAliasEditor({
@@ -42,7 +43,7 @@ export function useTokenAliasEditor({
       if (!reference) setReference('{');
       setTimeout(() => { refInputRef.current?.focus(); }, 0);
     } else {
-      let resolved: any = null;
+      let resolved: TokenEditorValue | null = null;
       if (reference && isAlias(reference)) {
         const result = resolveTokenValue(reference, tokenType, allTokensFlat);
         if (result.value != null && !result.error) {

@@ -8,7 +8,13 @@ import { useRef, useEffect, useCallback } from 'react';
  * useVariableSync, and useFigmaSync.
  */
 
-interface FigmaMessageConfig<TResponse> {
+interface FigmaMessageBase {
+  type: string;
+  correlationId?: string;
+  error?: string;
+}
+
+interface FigmaMessageConfig<TRawMessage extends FigmaMessageBase, TResponse> {
   /** Message type for successful response from the plugin */
   responseType: string;
   /** Message type for error response from the plugin (optional) */
@@ -16,12 +22,15 @@ interface FigmaMessageConfig<TResponse> {
   /** Timeout in ms (default 10000) */
   timeout?: number;
   /** Extract the resolved value from the raw plugin message. Defaults to identity. */
-  extractResponse?: (msg: any) => TResponse;
+  extractResponse?: (msg: TRawMessage) => TResponse;
 }
 
-export function useFigmaMessage<TResponse = any>(
-  config: FigmaMessageConfig<TResponse>,
-): (sendType: string, payload?: Record<string, any>) => Promise<TResponse> {
+export function useFigmaMessage<
+  TResponse = unknown,
+  TRawMessage extends FigmaMessageBase = FigmaMessageBase,
+>(
+  config: FigmaMessageConfig<TRawMessage, TResponse>,
+): (sendType: string, payload?: Record<string, unknown>) => Promise<TResponse> {
   const { responseType, errorType, timeout = 10000, extractResponse } = config;
 
   const pendingRef = useRef<
@@ -30,7 +39,7 @@ export function useFigmaMessage<TResponse = any>(
 
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
+      const msg = ev.data?.pluginMessage as TRawMessage | undefined;
       if (!msg?.correlationId) return;
 
       const cid = msg.correlationId as string;
@@ -69,7 +78,7 @@ export function useFigmaMessage<TResponse = any>(
   }, [responseType, errorType, extractResponse]);
 
   const send = useCallback(
-    (sendType: string, payload?: Record<string, any>) => {
+    (sendType: string, payload?: Record<string, unknown>) => {
       return new Promise<TResponse>((resolve, reject) => {
         const cid = `${sendType}-${Date.now()}-${Math.random()}`;
         const timer = setTimeout(() => {

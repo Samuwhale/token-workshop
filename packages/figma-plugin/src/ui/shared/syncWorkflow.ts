@@ -63,6 +63,33 @@ export const DEFAULT_PUBLISH_PREFLIGHT_STATE: PublishPreflightState = {
 export type SyncDirection = 'push' | 'pull' | 'skip';
 export type VariablePublishCompareMode = 'standard' | 'resolver-publish';
 
+export interface SyncFailure {
+  path: string;
+  error: string;
+}
+
+export interface SyncSkippedToken {
+  path: string;
+  $type: string;
+}
+
+export interface SyncApplyResultBase {
+  count: number;
+  total: number;
+  failures: SyncFailure[];
+  skipped: SyncSkippedToken[];
+  created?: number;
+  overwritten?: number;
+}
+
+export interface SyncApplyResult<TSnapshot> extends SyncApplyResultBase {
+  snapshot?: TSnapshot;
+}
+
+export interface SyncRevertResult {
+  failures: string[];
+}
+
 export interface DiffRowBase {
   id?: string;
   path: string;

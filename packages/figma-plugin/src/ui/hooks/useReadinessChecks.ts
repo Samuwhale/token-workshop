@@ -68,7 +68,7 @@ interface UseReadinessChecksParams {
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
   tokenChangeKey?: number;
-  readFigmaTokens: () => Promise<any[]>;
+  readFigmaTokens: () => Promise<unknown[]>;
   setOrphanConfirm: (val: OrphanConfirmState | null) => void;
   refreshValidation: () => Promise<ValidationSnapshot | null>;
   resolverName?: string | null;
@@ -166,7 +166,7 @@ function buildResolverOrphanCleanupPlan(
 async function loadVariableSyncSnapshot(
   serverUrl: string,
   activeSet: string,
-  readFigmaTokens: () => Promise<any[]>,
+  readFigmaTokens: () => Promise<unknown[]>,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
   resolverName?: string | null,
@@ -468,23 +468,32 @@ export function useReadinessChecks({
 
   const runReadinessChecksRef = useRef(runReadinessChecks);
   useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);
+  const restoredReadinessRef = useRef(false);
 
   useEffect(() => {
+    restoredReadinessRef.current = false;
+    setChecksRunAtKey(null);
+    setChecksStale(false);
+    setReadinessError(null);
+    setReadinessChecks([]);
+  }, [activeSet]);
+
+  useEffect(() => {
+    if (restoredReadinessRef.current) return;
     if (!connected || !activeSet || tokenChangeKey === undefined) return;
+    restoredReadinessRef.current = true;
     const stored = lsGet(LAST_READINESS_CHANGE_KEY);
     if (stored !== null && tokenChangeKey > parseInt(stored, 10)) {
       runReadinessChecksRef.current();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeSet, connected, tokenChangeKey]);
 
   useEffect(() => {
     if (!connected || !activeSet || tokenChangeKey === undefined) return;
     if (checksRunAtKey === null) return;
     if (tokenChangeKey === checksRunAtKey) return;
     runReadinessChecksRef.current();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokenChangeKey]);
+  }, [activeSet, checksRunAtKey, connected, tokenChangeKey]);
 
   useEffect(() => {
     if (!checksStale || !connected || !activeSet) return;

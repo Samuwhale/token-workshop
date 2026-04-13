@@ -3,21 +3,16 @@ import type { ColorModifierOp } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
+import type {
+  TokenEditorLifecycle,
+  TokenEditorModeValues,
+  TokenEditorSnapshot,
+  TokenEditorValue,
+} from '../shared/tokenEditorTypes';
 
-export interface FieldsSnapshot {
-  value: any;
-  description: string;
-  reference: string;
-  scopes: string[];
-  type: string;
-  colorModifiers: ColorModifierOp[];
-  modeValues: Record<string, Record<string, unknown>>;
-  extensionsJsonText: string;
-  lifecycle: 'draft' | 'published' | 'deprecated';
-  extendsPath: string;
-}
+export interface FieldsSnapshot extends TokenEditorSnapshot {}
 
-function parseInitialValueForType(type: string, raw: string): any {
+function parseInitialValueForType(type: string, raw: string): TokenEditorValue {
   const v = raw.trim();
   if (type === 'color') return v;
   if (type === 'dimension') {
@@ -54,7 +49,7 @@ export function useTokenEditorFields(params: {
   const initialRef = useRef<FieldsSnapshot | null>(null);
 
   const [tokenType, setTokenType] = useState(initialType || 'color');
-  const [value, setValue] = useState<any>(() => {
+  const [value, setValue] = useState<TokenEditorValue>(() => {
     if (!isCreateMode) return '';
     const t = initialType || 'color';
     if (initialValue && !isAlias(initialValue)) {
@@ -78,14 +73,14 @@ export function useTokenEditorFields(params: {
   });
   const [scopes, setScopes] = useState<string[]>([]);
   const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
-  const [modeValues, setModeValues] = useState<Record<string, Record<string, unknown>>>({});
+  const [modeValues, setModeValues] = useState<TokenEditorModeValues>({});
   const [extensionsJsonText, setExtensionsJsonText] = useState('');
   const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
-  const [lifecycle, setLifecycle] = useState<'draft' | 'published' | 'deprecated'>('published');
+  const [lifecycle, setLifecycle] = useState<TokenEditorLifecycle>('published');
   const [extendsPath, setExtendsPath] = useState('');
 
   // preAliasValueRef stashes pre-alias value when toggling alias mode
-  const preAliasValueRef = useRef<any>(null);
+  const preAliasValueRef = useRef<TokenEditorValue | null>(null);
 
   // isDirty - tracks whether any field differs from the initial snapshot
   const isDirty = useMemo(() => {

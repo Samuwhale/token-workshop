@@ -1,32 +1,19 @@
-import type { ColorModifierOp } from '@tokenmanager/core';
 import { ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
+import type { TokenEditorDraftData } from '../shared/tokenEditorTypes';
 
 export const EDITOR_DRAFT_PREFIX = 'tm_editor_draft';
-
-export interface EditorDraftData {
-  tokenType: string;
-  value: any;
-  description: string;
-  reference: string;
-  scopes: string[];
-  colorModifiers: ColorModifierOp[];
-  modeValues: Record<string, Record<string, unknown>>;
-  extensionsJsonText: string;
-  lifecycle: 'draft' | 'published' | 'deprecated';
-  extendsPath: string;
-  savedAt: number;
-}
+export type { TokenEditorDraftData as EditorDraftData } from '../shared/tokenEditorTypes';
 
 export function editorDraftKey(setName: string, tokenPath: string): string {
   return `${EDITOR_DRAFT_PREFIX}:${setName}:${tokenPath}`;
 }
 
-export function saveEditorDraft(setName: string, tokenPath: string, data: Omit<EditorDraftData, 'savedAt'>): void {
+export function saveEditorDraft(setName: string, tokenPath: string, data: Omit<TokenEditorDraftData, 'savedAt'>): void {
   ssSetJson(editorDraftKey(setName, tokenPath), { ...data, savedAt: Date.now() });
 }
 
-export function loadEditorDraft(setName: string, tokenPath: string): EditorDraftData | null {
-  return ssGetJson<EditorDraftData | null>(editorDraftKey(setName, tokenPath), null);
+export function loadEditorDraft(setName: string, tokenPath: string): TokenEditorDraftData | null {
+  return ssGetJson<TokenEditorDraftData | null>(editorDraftKey(setName, tokenPath), null);
 }
 
 export function clearEditorDraft(setName: string, tokenPath: string): void {

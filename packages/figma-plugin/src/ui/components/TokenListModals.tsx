@@ -9,6 +9,10 @@ import { useTokenListModals } from './TokenListModalsContext';
 import { FieldMessage } from '../shared/FieldMessage';
 import { NoticePill } from '../shared/noticeSystem';
 import { fieldBorderClass } from '../shared/editorClasses';
+import type {
+  ExtractAliasTokenDraft,
+  VariableDiffPendingState,
+} from '../shared/tokenListModalTypes';
 
 export interface TokenListModalsProps {
   setName: string;
@@ -42,12 +46,12 @@ export interface TokenListModalsProps {
   onSetRenameGroupConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null) => void;
 
   // Apply as Variables diff preview
-  varDiffPending: { added: number; modified: number; unchanged: number; flat: any[] } | null;
-  doApplyVariables: (flat: any[]) => void;
-  onSetVarDiffPending: (v: { added: number; modified: number; unchanged: number; flat: any[] } | null) => void;
+  varDiffPending: VariableDiffPendingState | null;
+  doApplyVariables: (flat: VariableDiffPendingState['flat']) => void;
+  onSetVarDiffPending: (v: VariableDiffPendingState | null) => void;
 
   // Extract to reference modal
-  extractToken: { path: string; $type?: string; $value: any } | null;
+  extractToken: ExtractAliasTokenDraft | null;
   extractMode: 'new' | 'existing';
   onSetExtractMode: (v: 'new' | 'existing') => void;
   newPrimitivePath: string;
@@ -61,7 +65,7 @@ export interface TokenListModalsProps {
   extractError: string;
   onSetExtractError: (v: string) => void;
   handleConfirmExtractToAlias: () => void;
-  onSetExtractToken: (v: { path: string; $type?: string; $value: any } | null) => void;
+  onSetExtractToken: (v: ExtractAliasTokenDraft | null) => void;
 
   // Find & Replace modal
   showFindReplace: boolean;

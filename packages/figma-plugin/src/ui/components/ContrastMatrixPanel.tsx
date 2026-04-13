@@ -76,15 +76,13 @@ export function ContrastMatrixPanel({
       }
     }
     return result.size > 0 ? result : null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     contrastMultiTheme,
     dimensions,
     allTokensFlat,
     pathToSet,
     themedSetsForContrast,
-    contrastThemeFilter,
-    allThemeOptionKeys,
+    activeContrastThemeKeys,
   ]);
 
   const multiThemeColorTokens = useMemo(():

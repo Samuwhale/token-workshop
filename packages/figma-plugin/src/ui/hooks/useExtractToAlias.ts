@@ -4,6 +4,7 @@ import {
   createTokenBody,
   updateToken,
 } from '../shared/tokenMutations';
+import type { ExtractAliasTokenDraft } from '../shared/tokenListModalTypes';
 
 export interface UseExtractToAliasParams {
   connected: boolean;
@@ -119,7 +120,7 @@ export function useExtractToAlias({
   setName,
   onRefresh,
 }: UseExtractToAliasParams) {
-  const [extractToken, setExtractToken] = useState<{ path: string; $type?: string; $value: any } | null>(null);
+  const [extractToken, setExtractToken] = useState<ExtractAliasTokenDraft | null>(null);
   const [extractMode, setExtractMode] = useState<'new' | 'existing'>('new');
   const [newPrimitivePath, setNewPrimitivePath] = useState('');
   const [newPrimitiveSet, setNewPrimitiveSet] = useState('');
@@ -127,7 +128,7 @@ export function useExtractToAlias({
   const [existingAliasSearch, setExistingAliasSearch] = useState('');
   const [extractError, setExtractError] = useState('');
 
-  const handleOpenExtractToAlias = useCallback((path: string, $type?: string, $value?: any) => {
+  const handleOpenExtractToAlias = useCallback((path: string, $type?: string, $value?: unknown) => {
     const suggested = suggestSharedAliasPath([path], $type);
     setNewPrimitivePath(suggested);
     setNewPrimitiveSet(setName);

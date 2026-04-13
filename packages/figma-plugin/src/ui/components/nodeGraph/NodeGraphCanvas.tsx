@@ -208,7 +208,6 @@ export function NodeGraphCanvas({
       y: (containerSize.h - graphH * newZoom) / 2 - (minY - PAD) * newZoom,
     });
     setZoom(newZoom);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, matchedNodeIds]);
 
   // Track container size

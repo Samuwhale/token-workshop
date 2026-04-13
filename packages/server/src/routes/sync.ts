@@ -6,6 +6,14 @@ import { snapshotPaths } from "../services/operation-log.js";
 import { handleRouteError } from "../errors.js";
 import type { GitTokenChange as TokenChange } from "../services/git-sync.js";
 
+function readGitLogField(entry: unknown, field: string): string {
+  const value =
+    entry && typeof entry === "object"
+      ? (entry as Record<string, unknown>)[field]
+      : undefined;
+  return typeof value === "string" ? value : "";
+}
+
 export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
   // GET /api/sync/status — git status + isRepo + current branch
@@ -212,11 +220,11 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const log = await fastify.gitSync.log(limit + 1, offset, search);
       const all = log.all;
       const hasMore = all.length > limit;
-      const data = all.slice(0, limit).map((entry: any) => ({
-        hash: entry.hash,
-        date: entry.date,
-        message: entry.message,
-        author: entry.author_name,
+      const data = all.slice(0, limit).map((entry) => ({
+        hash: readGitLogField(entry, "hash"),
+        date: readGitLogField(entry, "date"),
+        message: readGitLogField(entry, "message"),
+        author: readGitLogField(entry, "author_name"),
       }));
       // total is not cheaply available from git log; use -1 as sentinel when unknown
       const total = hasMore ? -1 : offset + data.length;

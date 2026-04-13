@@ -9,8 +9,14 @@ import type { FieldsSnapshot } from './useTokenEditorFields';
 import {
   loadEditorDraft,
   clearEditorDraft,
-  type EditorDraftData,
 } from './useTokenEditorUtils';
+import type {
+  TokenEditorDraftData,
+  TokenEditorLifecycle,
+  TokenEditorModeValues,
+  TokenEditorTokenResponse,
+  TokenEditorValue,
+} from '../shared/tokenEditorTypes';
 
 /**
  * Migrate flat mode values (keyed by option.name) to nested shape
@@ -53,16 +59,16 @@ interface UseTokenEditorLoadParams {
   isCreateMode: boolean;
   initialRef: React.MutableRefObject<FieldsSnapshot | null>;
   setTokenType: (v: string) => void;
-  setValue: (v: any) => void;
+  setValue: (v: TokenEditorValue) => void;
   setDescription: (v: string) => void;
   setReference: (v: string) => void;
   setAliasMode: (v: boolean) => void;
   setScopes: (v: string[]) => void;
   setColorModifiers: (v: ColorModifierOp[]) => void;
-  setModeValues: (v: Record<string, Record<string, unknown>>) => void;
+  setModeValues: (v: TokenEditorModeValues) => void;
   dimensions: ThemeDimension[];
   setExtensionsJsonText: (v: string) => void;
-  setLifecycle: (v: 'draft' | 'published' | 'deprecated') => void;
+  setLifecycle: (v: TokenEditorLifecycle) => void;
   setExtendsPath: (v: string) => void;
   setError: (v: string | null) => void;
   refInputRef: React.RefObject<HTMLInputElement | null>;
@@ -92,18 +98,26 @@ export function useTokenEditorLoad({
   valueEditorContainerRef,
 }: UseTokenEditorLoadParams) {
   const [loading, setLoading] = useState(!isCreateMode);
-  const [pendingDraft, setPendingDraft] = useState<EditorDraftData | null>(null);
+  const [pendingDraft, setPendingDraft] = useState<TokenEditorDraftData | null>(null);
   const initialServerSnapshotRef = useRef<string | null>(null);
   const didAutoFocusRef = useRef(false);
 
   const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
 
   useEffect(() => {
+    didAutoFocusRef.current = false;
+    initialServerSnapshotRef.current = null;
+    setPendingDraft(null);
+    setError(null);
+    setLoading(!isCreateMode);
+  }, [isCreateMode, setError, setName, tokenPath]);
+
+  useEffect(() => {
     if (isCreateMode) return;
     const controller = new AbortController();
     const fetchToken = async () => {
       try {
-        const data = await apiFetch<{ token?: any }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { signal: controller.signal });
+        const data = await apiFetch<TokenEditorTokenResponse>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { signal: controller.signal });
         const token = data.token;
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
@@ -118,7 +132,7 @@ export function useTokenEditorLoad({
         const loadedModes = migrateModeValues(rawModes, dimensions);
         setModeValues(loadedModes);
         const savedLifecycle = token?.$extensions?.tokenmanager?.lifecycle;
-        const loadedLifecycle: 'draft' | 'published' | 'deprecated' = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
+        const loadedLifecycle: TokenEditorLifecycle = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
         setLifecycle(loadedLifecycle);
         const savedExtends = token?.$extensions?.tokenmanager?.extends;
         const loadedExtends = typeof savedExtends === 'string' ? savedExtends : '';
@@ -137,7 +151,8 @@ export function useTokenEditorLoad({
         setExtensionsJsonText(otherExtText);
         initialServerSnapshotRef.current = JSON.stringify(token ?? null);
         const ref = isAlias(token?.$value) ? token.$value : '';
-        if (ref) setReference(ref);
+        setReference(ref);
+        setAliasMode(Boolean(ref));
         initialRef.current = {
           value: token?.$value ?? '',
           description: token?.$description || '',
@@ -150,9 +165,6 @@ export function useTokenEditorLoad({
           lifecycle: loadedLifecycle,
           extendsPath: loadedExtends,
         };
-        if (isAlias(token?.$value)) {
-          setReference(token.$value);
-        }
         // Check for a saved draft that differs from the current server state
         const draft = loadEditorDraft(setName, tokenPath);
         if (draft) {
@@ -191,6 +203,7 @@ export function useTokenEditorLoad({
     serverUrl,
     setColorModifiers,
     setDescription,
+    setAliasMode,
     setError,
     setExtensionsJsonText,
     setExtendsPath,
@@ -203,11 +216,6 @@ export function useTokenEditorLoad({
     setValue,
     tokenPath,
   ]);
-
-  // Sync alias mode with loaded reference
-  useEffect(() => {
-    if (initialRef.current?.reference) setAliasMode(true);
-  }, [initialRef, setAliasMode]);
 
   // Auto-focus the appropriate field once edit mode data finishes loading
   useEffect(() => {

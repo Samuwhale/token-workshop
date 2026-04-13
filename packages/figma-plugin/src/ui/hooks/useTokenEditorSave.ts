@@ -13,6 +13,12 @@ import {
 import { clearEditorDraft } from './useTokenEditorUtils';
 import type { UndoSlot } from './useUndo';
 import { matchesShortcut } from '../shared/shortcutRegistry';
+import type {
+  TokenEditorLifecycle,
+  TokenEditorModeValues,
+  TokenEditorTokenResponse,
+  TokenEditorValue,
+} from '../shared/tokenEditorTypes';
 
 interface UseTokenEditorSaveParams {
   serverUrl: string;
@@ -21,14 +27,14 @@ interface UseTokenEditorSaveParams {
   isCreateMode: boolean;
   editPath: string;
   tokenType: string;
-  value: any;
+  value: TokenEditorValue;
   reference: string;
   description: string;
   scopes: string[];
   colorModifiers: ColorModifierOp[];
-  modeValues: Record<string, Record<string, unknown>>;
+  modeValues: TokenEditorModeValues;
   extensionsJsonText: string;
-  lifecycle: 'draft' | 'published' | 'deprecated';
+  lifecycle: TokenEditorLifecycle;
   extendsPath: string;
   initialServerSnapshotRef: React.MutableRefObject<string | null>;
   onBack: () => void;
@@ -101,7 +107,7 @@ export function useTokenEditorSave({
     try {
       if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
         try {
-          const checkData = await fetchToken<{ token?: any }>(serverUrl, setName, tokenPath);
+          const checkData = await fetchToken<TokenEditorTokenResponse>(serverUrl, setName, tokenPath);
           const currentSnapshot = JSON.stringify(checkData.token ?? null);
           if (currentSnapshot !== initialServerSnapshotRef.current) {
             setShowConflictConfirm(true);

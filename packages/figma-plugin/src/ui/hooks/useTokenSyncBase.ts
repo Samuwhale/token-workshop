@@ -7,6 +7,8 @@ import {
   getDiffRowId,
   loadSyncSnapshot,
   type DiffRowBase,
+  type SyncApplyResultBase,
+  type SyncFailure,
   type SyncDirection,
   type SyncSnapshot,
 } from '../shared/syncWorkflow';
@@ -19,12 +21,7 @@ export type { DiffRowBase } from '../shared/syncWorkflow';
  * Extract the standard `{ count, total, failures, skipped }` shape from a Figma apply response message.
  * All three sync hooks (style, variable, figma-group) share this response shape.
  */
-export const extractSyncApplyResult = (msg: any): {
-  count: number;
-  total: number;
-  failures: { path: string; error: string }[];
-  skipped: Array<{ path: string; $type: string }>;
-} => ({
+export const extractSyncApplyResult = (msg: Partial<SyncApplyResultBase>): SyncApplyResultBase => ({
   count: msg.count ?? 0,
   total: msg.total ?? msg.count ?? 0,
   failures: msg.failures ?? [],
@@ -43,49 +40,49 @@ export interface TokenSyncConfig<TRow extends DiffRowBase> {
   progressEventType: string;
 
   /** Fetch tokens from Figma via postMessage round-trip */
-  readFigmaTokens: () => Promise<any[]>;
+  readFigmaTokens: () => Promise<unknown[]>;
 
   /**
    * Build a map from Figma token array.
    * Key = token path, Value = arbitrary entry used by buildRow/isConflict.
    */
-  buildFigmaMap: (tokens: any[]) => Map<string, any>;
+  buildFigmaMap: (tokens: unknown[]) => Map<string, unknown>;
 
   /**
    * Build a map from local (server) flattened tokens.
    * Key = token path, Value = arbitrary entry used by buildRow/isConflict.
    */
-  buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, any>;
+  buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, unknown>;
 
   /** Create a diff row for a token that exists only locally */
-  buildLocalOnlyRow: (path: string, local: any) => TRow;
+  buildLocalOnlyRow: (path: string, local: unknown) => TRow;
 
   /** Create a diff row for a token that exists only in Figma */
-  buildFigmaOnlyRow: (path: string, figma: any) => TRow;
+  buildFigmaOnlyRow: (path: string, figma: unknown) => TRow;
 
   /** Create a diff row for a conflicting token */
-  buildConflictRow: (path: string, local: any, figma: any) => TRow;
+  buildConflictRow: (path: string, local: unknown, figma: unknown) => TRow;
 
   /** Return true when local and figma entries differ */
-  isConflict: (local: any, figma: any) => boolean;
+  isConflict: (local: unknown, figma: unknown) => boolean;
 
   /** Optional custom snapshot loader for compare flows that do not map 1:1 to the active set. */
   loadSnapshot?: (params: {
     serverUrl: string;
     activeSet: string;
     signal?: AbortSignal;
-    readFigmaTokens: () => Promise<any[]>;
-  }) => Promise<SyncSnapshot<any, any, TRow>>;
+    readFigmaTokens: () => Promise<unknown[]>;
+  }) => Promise<SyncSnapshot<unknown, unknown, TRow>>;
 
   /**
    * Execute push (local → Figma).
    * Return an object with failures, or null if no push was performed.
    * Progress for push is typically reported by the plugin sandbox.
    */
-  executePush: (rows: TRow[]) => Promise<{ failures: { path: string; error: string }[] } | null>;
+  executePush: (rows: TRow[]) => Promise<{ failures: SyncFailure[] } | null>;
 
   /** Build the PATCH body for a single pull (Figma → local) row */
-  buildPullPayload: (row: TRow) => { $type: string; $value: any };
+  buildPullPayload: (row: TRow) => { $type: string; $value: unknown };
 
   /** Toast message shown on full success */
   successMessage: string;

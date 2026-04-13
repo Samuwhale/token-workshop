@@ -414,6 +414,5 @@ export function ThemeManagerModals() {
 export function useThemeManagerModalsValue(
   deps: Omit<ThemeManagerModalsState, never>,
 ): ThemeManagerModalsState {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => deps, Object.values(deps));
+  return deps;
 }

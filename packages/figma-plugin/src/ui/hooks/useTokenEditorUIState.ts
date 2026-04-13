@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import type { TokenEditorValue } from '../shared/tokenEditorTypes';
 
 interface UseTokenEditorUIStateParams {
   isDirty: boolean;
@@ -6,7 +7,7 @@ interface UseTokenEditorUIStateParams {
   setShowDiscardConfirm: (v: boolean) => void;
   tokenType: string;
   aliasMode: boolean;
-  value: any;
+  value: TokenEditorValue;
   tokenPath: string;
   setName: string;
 }
@@ -33,7 +34,7 @@ export function useTokenEditorUIState({
     if (isDirty) { setShowDiscardConfirm(true); } else { onBack(); }
   }, [isDirty, onBack, setShowDiscardConfirm]);
 
-  const handlePasteInValueEditor = useCallback((e: React.ClipboardEvent<HTMLDivElement>, parsePastedValue: (type: string, text: string) => any | null, setValue: (v: any) => void) => {
+  const handlePasteInValueEditor = useCallback((e: React.ClipboardEvent<HTMLDivElement>, parsePastedValue: (type: string, text: string) => TokenEditorValue | null, setValue: (v: TokenEditorValue) => void) => {
     if (aliasMode) return;
     const text = e.clipboardData.getData('text/plain');
     if (!text.trim()) return;

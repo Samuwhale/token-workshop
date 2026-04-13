@@ -2,7 +2,7 @@
  * Step 2 — Source: "From what source?" + config + live preview.
  * Two-column layout: source binding & config (left), live preview (right).
  */
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type {
   GeneratorType,
   GeneratorConfig,

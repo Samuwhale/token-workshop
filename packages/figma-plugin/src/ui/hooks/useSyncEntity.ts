@@ -3,6 +3,10 @@ import { dispatchToast } from '../shared/toastBus';
 import { useFigmaMessage } from './useFigmaMessage';
 import { useTokenSyncBase, extractSyncApplyResult, type SyncProgress, type DiffRowBase } from './useTokenSyncBase';
 import type { DTCGToken } from '@tokenmanager/core';
+import type {
+  SyncApplyResult,
+  SyncRevertResult,
+} from '../shared/syncWorkflow';
 
 export type { SyncProgress, DiffRowBase };
 
@@ -11,20 +15,31 @@ export type { SyncProgress, DiffRowBase };
 // memoized with useCallback), because useFigmaMessage puts them in its
 // event-listener dep array and will re-register on every change.
 
-export interface SyncMessages<TSnapshot> {
+interface SyncMessageBase {
+  type: string;
+  correlationId?: string;
+  error?: string;
+}
+
+export interface SyncMessages<
+  TSnapshot,
+  TReadResponse extends unknown[],
+  TReadMessage extends SyncMessageBase,
+  TApplyMessage extends SyncMessageBase,
+> {
   readSendType: string;
   readResponseType: string;
   readErrorType?: string;
   readTimeout: number;
   /** Must be a stable reference (module-level constant). */
-  extractReadResponse: (msg: any) => any[];
+  extractReadResponse: (msg: TReadMessage) => TReadResponse;
 
   applySendType: string;
   applyResponseType: string;
   applyErrorType?: string;
   applyTimeout: number;
   /** Must be a stable reference (module-level constant). */
-  extractApplySnapshot: (msg: any) => TSnapshot | undefined;
+  extractApplySnapshot: (msg: TApplyMessage) => TSnapshot | undefined;
 
   revertSendType: string;
   revertResponseType: string;
@@ -36,29 +51,29 @@ export interface SyncMessages<TSnapshot> {
 
 export interface SyncEntityConfig<TRow extends DiffRowBase, TSnapshot> {
   progressEventType: string;
-  buildFigmaMap: (tokens: any[]) => Map<string, any>;
-  buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, any>;
-  buildLocalOnlyRow: (path: string, local: any) => TRow;
-  buildFigmaOnlyRow: (path: string, figma: any) => TRow;
-  buildConflictRow: (path: string, local: any, figma: any) => TRow;
-  isConflict: (local: any, figma: any) => boolean;
+  buildFigmaMap: (tokens: unknown[]) => Map<string, unknown>;
+  buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, unknown>;
+  buildLocalOnlyRow: (path: string, local: unknown) => TRow;
+  buildFigmaOnlyRow: (path: string, figma: unknown) => TRow;
+  buildConflictRow: (path: string, local: unknown, figma: unknown) => TRow;
+  isConflict: (local: unknown, figma: unknown) => boolean;
   loadSnapshot?: (params: {
     serverUrl: string;
     activeSet: string;
     signal?: AbortSignal;
-    readFigmaTokens: () => Promise<any[]>;
+    readFigmaTokens: () => Promise<unknown[]>;
   }) => Promise<{
     localTokens: Map<string, DTCGToken>;
     figmaTokens: unknown[];
-    localMap: Map<string, any>;
-    figmaMap: Map<string, any>;
+    localMap: Map<string, unknown>;
+    figmaMap: Map<string, unknown>;
     rows: TRow[];
     dirs: Record<string, 'push' | 'pull' | 'skip'>;
   }>;
-  buildApplyPayload: (rows: TRow[]) => Record<string, any>;
-  buildPullPayload: (row: TRow) => { $type: string; $value: any };
-  buildRevertPayload: (snapshot: TSnapshot) => Record<string, any>;
-  onApplySuccess?: (result: { count: number; total: number; snapshot?: TSnapshot; created?: number; overwritten?: number; skipped?: Array<{ path: string; $type: string }> }) => void;
+  buildApplyPayload: (rows: TRow[]) => Record<string, unknown>;
+  buildPullPayload: (row: TRow) => { $type: string; $value: unknown };
+  buildRevertPayload: (snapshot: TSnapshot) => Record<string, unknown>;
+  onApplySuccess?: (result: SyncApplyResult<TSnapshot>) => void;
   successMessage: string;
   compareErrorLabel: string;
   applyErrorLabel: string;
@@ -69,15 +84,21 @@ export interface SyncEntityConfig<TRow extends DiffRowBase, TSnapshot> {
 }
 
 // Shared stable extractor for all revert responses.
-const extractRevertResponse = (msg: any): { failures: string[] } => ({
+const extractRevertResponse = (msg: Partial<SyncRevertResult>): SyncRevertResult => ({
   failures: msg.failures ?? [],
 });
 
-export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
+export function useSyncEntity<
+  TRow extends DiffRowBase,
+  TSnapshot,
+  TReadResponse extends unknown[],
+  TReadMessage extends SyncMessageBase,
+  TApplyMessage extends SyncMessageBase,
+>(
   serverUrl: string,
   activeSet: string,
   connected: boolean,
-  messages: SyncMessages<TSnapshot>,
+  messages: SyncMessages<TSnapshot, TReadResponse, TReadMessage, TApplyMessage>,
   config: SyncEntityConfig<TRow, TSnapshot>,
 ) {
   const [snapshot, setSnapshot] = useState<TSnapshot | null>(null);
@@ -92,36 +113,28 @@ export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
   // Compose a stable extractResponse for the apply message sender.
   // Stable as long as messages.extractApplySnapshot is stable (module-level).
   const extractApply = useCallback(
-    (msg: any) => ({
+    (msg: TApplyMessage): SyncApplyResult<TSnapshot> => ({
       ...extractSyncApplyResult(msg),
       snapshot: messages.extractApplySnapshot(msg),
     }),
     [messages],
   );
 
-  const sendRead = useFigmaMessage<any[]>({
+  const sendRead = useFigmaMessage<TReadResponse, TReadMessage>({
     responseType: messages.readResponseType,
     errorType: messages.readErrorType,
     timeout: messages.readTimeout,
     extractResponse: messages.extractReadResponse,
   });
 
-  const sendApply = useFigmaMessage<{
-    count: number;
-    total: number;
-    failures: { path: string; error: string }[];
-    skipped: Array<{ path: string; $type: string }>;
-    snapshot?: TSnapshot;
-    created?: number;
-    overwritten?: number;
-  }>({
+  const sendApply = useFigmaMessage<SyncApplyResult<TSnapshot>, TApplyMessage>({
     responseType: messages.applyResponseType,
     errorType: messages.applyErrorType,
     timeout: messages.applyTimeout,
     extractResponse: extractApply,
   });
 
-  const sendRevert = useFigmaMessage<{ failures: string[] }>({
+  const sendRevert = useFigmaMessage<SyncRevertResult, SyncRevertResult & SyncMessageBase>({
     responseType: messages.revertResponseType,
     timeout: messages.revertTimeout,
     extractResponse: extractRevertResponse,
@@ -138,12 +151,12 @@ export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
   const tokenSyncConfig = {
     progressEventType: configRef.current.progressEventType,
     readFigmaTokens,
-    buildFigmaMap: (tokens: any[]) => configRef.current.buildFigmaMap(tokens),
+    buildFigmaMap: (tokens: unknown[]) => configRef.current.buildFigmaMap(tokens),
     buildLocalMap: (tokens: Map<string, DTCGToken>) => configRef.current.buildLocalMap(tokens),
-    buildLocalOnlyRow: (path: string, local: any): TRow => configRef.current.buildLocalOnlyRow(path, local),
-    buildFigmaOnlyRow: (path: string, figma: any): TRow => configRef.current.buildFigmaOnlyRow(path, figma),
-    buildConflictRow: (path: string, local: any, figma: any): TRow => configRef.current.buildConflictRow(path, local, figma),
-    isConflict: (local: any, figma: any) => configRef.current.isConflict(local, figma),
+    buildLocalOnlyRow: (path: string, local: unknown): TRow => configRef.current.buildLocalOnlyRow(path, local),
+    buildFigmaOnlyRow: (path: string, figma: unknown): TRow => configRef.current.buildFigmaOnlyRow(path, figma),
+    buildConflictRow: (path: string, local: unknown, figma: unknown): TRow => configRef.current.buildConflictRow(path, local, figma),
+    isConflict: (local: unknown, figma: unknown) => configRef.current.isConflict(local, figma),
     loadSnapshot: configRef.current.loadSnapshot,
     executePush: async (rows: TRow[]) => {
       const cfg = configRef.current;
@@ -162,12 +175,14 @@ export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
   };
 
   const base = useTokenSyncBase<TRow>(serverUrl, activeSet, tokenSyncConfig);
+  const { computeDiff } = base;
 
   // Auto-trigger diff computation when connection + set become available.
   useEffect(() => {
-    if (config.autoComputeOnConnect && connected && activeSet) base.computeDiff();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.autoComputeOnConnect, connected, activeSet, base.computeDiff]);
+    if (config.autoComputeOnConnect && connected && activeSet) {
+      void computeDiff();
+    }
+  }, [config.autoComputeOnConnect, connected, activeSet, computeDiff]);
 
   const revert = useCallback(async () => {
     if (!snapshot) return;
@@ -204,7 +219,7 @@ export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
     progress: base.progress,
     error: base.error,
     checked: base.checked,
-    computeDiff: base.computeDiff,
+    computeDiff,
     applyDiff: base.applyDiff,
     syncCount: base.syncCount,
     pushCount: base.pushCount,

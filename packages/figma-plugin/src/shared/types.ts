@@ -301,6 +301,55 @@ export interface ReadVariableCollection {
   modes: ReadVariableMode[];
 }
 
+export interface ReadColorStyleToken {
+  path: string;
+  $type: 'color';
+  $value: string;
+  _warning?: string;
+}
+
+export interface ReadGradientStyleToken {
+  path: string;
+  $type: 'gradient';
+  $value: {
+    type: string;
+    stops: Array<{ color: string; position: number }>;
+  };
+  _warning?: string;
+}
+
+export interface ReadTypographyStyleToken {
+  path: string;
+  $type: 'typography';
+  $value: {
+    fontFamily: string;
+    fontSize: { value: number; unit: 'px' };
+    fontWeight: number;
+    lineHeight: { value: number; unit: 'px' } | number | 'auto';
+    letterSpacing: { value: number; unit: 'px' };
+    fontStyle: 'italic' | 'normal';
+  };
+}
+
+export interface ReadShadowStyleToken {
+  path: string;
+  $type: 'shadow';
+  $value: Array<{
+    color: string;
+    offsetX: { value: number; unit: 'px' };
+    offsetY: { value: number; unit: 'px' };
+    blur: { value: number; unit: 'px' };
+    spread: { value: number; unit: 'px' };
+    type: 'innerShadow' | 'dropShadow';
+  }>;
+}
+
+export type ReadStyleToken =
+  | ReadColorStyleToken
+  | ReadGradientStyleToken
+  | ReadTypographyStyleToken
+  | ReadShadowStyleToken;
+
 // ─── Consistency scanner types ────────────────────────────────────────────────
 
 /** A single node that nearly matches a token value but is not bound to it. */
@@ -744,7 +793,7 @@ export interface StylesApplyErrorMessage {
 
 export interface StylesReadMessage {
   type: 'styles-read';
-  tokens: any[];
+  tokens: ReadStyleToken[];
   correlationId?: string;
 }
 

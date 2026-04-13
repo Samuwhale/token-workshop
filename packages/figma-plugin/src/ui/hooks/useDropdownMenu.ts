@@ -9,12 +9,13 @@ export function useDropdownMenu(options?: UseDropdownMenuOptions) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const onClose = options?.onClose;
 
   const close = useCallback(() => {
     setOpen(false);
-    options?.onClose?.();
+    onClose?.();
     triggerRef.current?.focus();
-  }, [options?.onClose]);
+  }, [onClose]);
 
   const toggle = useCallback(() => setOpen((prev) => !prev), []);
 

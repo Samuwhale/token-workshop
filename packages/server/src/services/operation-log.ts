@@ -1,7 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import type { Token } from "@tokenmanager/core";
+import type {
+  ResolverFile,
+  ThemeDimension,
+  Token,
+  TokenGenerator,
+} from "@tokenmanager/core";
 import type { TokenStore } from "./token-store.js";
 import type { SetMetadataState } from "./token-store.js";
 import { stableStringify } from "./stable-stringify.js";
@@ -177,10 +182,10 @@ export type RollbackStep =
       name: string;
       metadata: Partial<SetMetadataState>;
     }
-  | { action: "write-themes"; dimensions: unknown }
-  | { action: "write-resolver"; name: string; file: unknown }
+  | { action: "write-themes"; dimensions: ThemeDimension[] }
+  | { action: "write-resolver"; name: string; file: ResolverFile }
   | { action: "delete-resolver"; name: string }
-  | { action: "create-generator"; generator: unknown }
+  | { action: "create-generator"; generator: TokenGenerator }
   | { action: "delete-generator"; id: string };
 
 /**
@@ -189,7 +194,9 @@ export type RollbackStep =
  */
 export interface ThemesWriteLock {
   withLock<T>(
-    fn: (dims: any[]) => Promise<{ dims: any[]; result: T }>,
+    fn: (
+      dims: ThemeDimension[],
+    ) => Promise<{ dims: ThemeDimension[]; result: T }>,
   ): Promise<T>;
 }
 
@@ -206,16 +213,16 @@ export interface RollbackContext {
     withLock<T>(fn: () => Promise<T>): Promise<T>;
   };
   resolverStore?: {
-    get(name: string): unknown;
-    create(name: string, file: any): Promise<void>;
-    update(name: string, file: any): Promise<void>;
+    get(name: string): ResolverFile | undefined;
+    create(name: string, file: ResolverFile): Promise<void>;
+    update(name: string, file: ResolverFile): Promise<void>;
     delete(name: string): Promise<boolean>;
     updateSetReferences?(oldName: string, newName: string): Promise<string[]>;
   };
   generatorService?: {
     updateSetName(oldName: string, newName: string): Promise<number | void>;
-    getById(id: string): Promise<unknown>;
-    restore(generator: unknown): Promise<void>;
+    getById(id: string): Promise<TokenGenerator | undefined>;
+    restore(generator: TokenGenerator): Promise<void>;
     delete(id: string): Promise<boolean>;
   };
 }
@@ -491,7 +498,7 @@ export class OperationLog {
   // Themes file helpers (for structural rollback of theme operations)
   // ---------------------------------------------------------------------------
 
-  private async readThemesFile(): Promise<unknown> {
+  private async readThemesFile(): Promise<ThemeDimension[]> {
     try {
       const content = await fs.readFile(
         path.join(this.tokenDir, "$themes.json"),
@@ -504,7 +511,7 @@ export class OperationLog {
     }
   }
 
-  private async writeThemesFile(dimensions: unknown): Promise<void> {
+  private async writeThemesFile(dimensions: ThemeDimension[]): Promise<void> {
     const data = { $themes: dimensions };
     const dest = path.join(this.tokenDir, "$themes.json");
     const tmp = `${dest}.tmp`;
@@ -556,7 +563,7 @@ export class OperationLog {
           // Read current themes state while holding the DimensionsStore lock so that
           // an in-flight theme mutation cannot complete its save between our read and
           // the inverse-step computation, which would produce a stale snapshot.
-          let currentDims: unknown;
+          let currentDims: ThemeDimension[];
           if (ctx.themesStore) {
             currentDims = await ctx.themesStore.withLock(async (dims) => ({
               dims, // no-op: don't modify dims
@@ -600,7 +607,7 @@ export class OperationLog {
           // inverse: delete the generator that was just created
           inverse.push({
             action: "delete-generator",
-            id: (step.generator as { id: string }).id,
+            id: step.generator.id,
           });
           break;
         case "delete-generator": {
@@ -659,7 +666,7 @@ export class OperationLog {
           // serialise behind this rollback write and don't overwrite it.
           if (ctx.themesStore) {
             await ctx.themesStore.withLock(async () => ({
-              dims: step.dimensions as any[],
+              dims: step.dimensions,
               result: undefined,
             }));
           } else {

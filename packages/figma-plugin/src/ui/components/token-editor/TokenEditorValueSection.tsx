@@ -2,6 +2,7 @@ import type { TokenMapEntry } from "../../../shared/types";
 import { ValueDiff, OriginalValuePreview } from "../ValueDiff";
 import { TokenNudge } from "../TokenNudge";
 import type { NearbyMatch } from "../../hooks/useNearbyTokenMatch";
+import type { TokenEditorValue } from "../../shared/tokenEditorTypes";
 import {
   ColorEditor,
   DimensionEditor,
@@ -34,14 +35,14 @@ import {
 export interface TokenEditorValueSectionProps {
   tokenPath: string;
   tokenType: string;
-  value: any;
-  setValue: (v: any) => void;
+  value: TokenEditorValue;
+  setValue: (v: TokenEditorValue) => void;
   isCreateMode: boolean;
   extendsPath: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   /** The initial server value (for showing diffs). Null when creating. */
-  initialValue: any | null;
+  initialValue: TokenEditorValue | null;
   // Typography-specific
   fontFamilyRef: React.RefObject<HTMLInputElement>;
   fontSizeRef: React.RefObject<HTMLInputElement>;
