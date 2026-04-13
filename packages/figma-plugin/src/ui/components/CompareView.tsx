@@ -1847,7 +1847,7 @@ export function CompareView({
       <div className="flex-1 overflow-hidden">
         {mode === 'tokens' && (
           tokenPaths.size < 2 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+            <div className="flex flex-col items-center justify-center h-full gap-2 px-3 text-center">
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                 Select 2 or more tokens in the Tokens tab and click <strong>Compare</strong> to see a side-by-side value comparison.
               </p>
@@ -1869,7 +1869,7 @@ export function CompareView({
 
         {mode === 'cross-theme' && (
           tokenPath === '' || dimensions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+            <div className="flex flex-col items-center justify-center h-full gap-2 px-3 text-center">
               {dimensions.length === 0 ? (
                 <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                   No modes are configured. Set up modes first.

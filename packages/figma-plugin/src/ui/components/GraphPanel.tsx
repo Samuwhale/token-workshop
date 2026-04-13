@@ -403,7 +403,7 @@ export function GraphPanel({
 
   if (setGenerators.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-6 py-8 text-center">
+      <div className="flex h-full flex-col items-center justify-center px-3 py-3 text-center">
         <FeedbackPlaceholder
           variant="empty"
           size="section"
@@ -415,7 +415,7 @@ export function GraphPanel({
           type="button"
           onClick={() => setShowCreateDialog(true)}
           disabled={!connected}
-          className="mt-4 rounded-md bg-[var(--color-figma-accent)] px-4 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-2 rounded-md bg-[var(--color-figma-accent)] px-3 py-1 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Create your first recipe
         </button>

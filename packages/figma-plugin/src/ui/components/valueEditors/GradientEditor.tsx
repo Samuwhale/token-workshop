@@ -194,8 +194,16 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToSet
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={`flex items-start gap-1.5 rounded px-1 -mx-1 cursor-pointer transition-colors ${isSelected ? 'bg-[var(--color-figma-accent)]/10 ring-1 ring-[var(--color-figma-accent)]/30' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <div className="w-16 shrink-0">
         <StepperInput

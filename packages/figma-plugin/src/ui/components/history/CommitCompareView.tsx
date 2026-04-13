@@ -91,18 +91,18 @@ export function CommitCompareView({
       {/* Diff content */}
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {loading && (
-          <div className="flex items-center justify-center py-8 gap-2">
+          <div className="flex items-center justify-center py-3 gap-2">
             <Spinner size="md" className="text-[var(--color-figma-accent)]" />
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Computing diff…</p>
           </div>
         )}
         {!loading && error && (
-          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+          <div className="flex flex-col items-center justify-center py-3 gap-2 text-center">
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{error}</p>
           </div>
         )}
         {!loading && !error && changes !== null && changes.length === 0 && (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-3">
             <p className="text-[11px] text-[var(--color-figma-text-tertiary)]">No token differences between these two commits.</p>
           </div>
         )}

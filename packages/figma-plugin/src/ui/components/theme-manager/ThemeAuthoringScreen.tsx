@@ -472,7 +472,7 @@ export const ThemeAuthoringScreen = forwardRef<
     <>
       <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
-          <div className="flex flex-col items-center justify-center gap-4 px-5 py-10 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
             <div className="flex flex-col gap-1">
               <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
                 Create a mode

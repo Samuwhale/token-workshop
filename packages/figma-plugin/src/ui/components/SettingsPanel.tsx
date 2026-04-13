@@ -702,6 +702,7 @@ export function SettingsPanel({
                   type="color"
                   value={contrastBg || "#ffffff"}
                   onChange={(e) => handleContrastBgChange(e.target.value)}
+                  aria-label="Contrast background color picker"
                   className="h-6 w-6 cursor-pointer rounded border border-[var(--color-figma-border)] p-0"
                 />
                 <input
@@ -709,6 +710,7 @@ export function SettingsPanel({
                   value={contrastBg}
                   onChange={(e) => handleContrastBgChange(e.target.value)}
                   placeholder="#ffffff"
+                  aria-label="Contrast background hex value"
                   className="w-20 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                 />
               </div>
@@ -723,6 +725,7 @@ export function SettingsPanel({
                 min={1}
                 max={200}
                 value={undoMaxHistory}
+                aria-label="Max undo steps"
                 onChange={(e) => {
                   const v = Math.max(
                     1,
@@ -758,6 +761,7 @@ export function SettingsPanel({
                 }
               }}
               placeholder="http://localhost:9400"
+              aria-label="Server URL"
               className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             {connectResult === "ok" && (
@@ -866,6 +870,7 @@ export function SettingsPanel({
                 value={cssSelector}
                 onChange={(e) => handleCssSelectorChange(e.target.value)}
                 placeholder=":root"
+                aria-label="CSS selector"
                 className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               />
             </div>
@@ -921,6 +926,7 @@ export function SettingsPanel({
               ref={importFileRef}
               type="file"
               accept=".json,application/json"
+              aria-label="Import backup file"
               className="sr-only"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -1001,7 +1007,7 @@ export function SettingsPanel({
                   </div>
                 ))}
               </div>
-              <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[#FFF3CD]/30 px-2 py-2 dark:bg-amber-900/20">
+              <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-warning,#f59e0b)]/10 px-2 py-2">
                 <svg
                   width="12"
                   height="12"

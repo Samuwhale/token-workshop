@@ -1077,6 +1077,7 @@ export function BatchEditor({
         <select
           value={newType}
           onChange={e => { setNewType(e.target.value); setShowTypeConfirm(false); }}
+          aria-label="Change token type"
           className={AUTHORING.select}
         >
           <option value="">— keep current —</option>
@@ -1350,6 +1351,7 @@ export function BatchEditor({
             <select
               value={colorAdjustOp}
               onChange={e => setColorAdjustOp(e.target.value as ColorAdjustOp)}
+              aria-label="Color adjustment operation"
               className={`min-w-0 flex-1 ${AUTHORING.inputBase}`}
             >
               <option value="lighten">Lighten</option>
@@ -1869,6 +1871,7 @@ export function BatchEditor({
               <select
                 value={targetSet}
                 onChange={e => setTargetSet(e.target.value)}
+                aria-label="Target set"
                 className={AUTHORING.select}
               >
                 <option value="">— choose set —</option>

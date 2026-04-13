@@ -77,7 +77,7 @@ export function ConfirmModal({
           {children}
         </div>
         {error && (
-          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words max-h-[80px] overflow-y-auto">{error}</p>
+          <p role="alert" className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words max-h-[80px] overflow-y-auto">{error}</p>
         )}
         <div className="px-4 pb-4 flex gap-2">
           <button

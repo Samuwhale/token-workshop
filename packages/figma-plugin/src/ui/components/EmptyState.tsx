@@ -7,7 +7,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-5 overflow-y-auto px-5 py-8 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-3 overflow-y-auto px-3 py-3 text-center">
       <FeedbackPlaceholder
         variant="empty"
         size="section"

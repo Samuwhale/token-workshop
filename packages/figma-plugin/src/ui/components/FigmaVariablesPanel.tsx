@@ -299,7 +299,7 @@ export function FigmaVariablesPanel({
 
   if (figmaLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 gap-2">
+      <div className="flex flex-col items-center justify-center py-3 gap-2">
         <Spinner size="xl" className="text-[var(--color-figma-accent)]" />
         <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
           Reading Figma variables...
@@ -310,15 +310,13 @@ export function FigmaVariablesPanel({
 
   if (figmaCollections.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 py-8">
-        <div className="w-10 h-10 rounded-lg bg-[var(--color-figma-bg-secondary)] flex items-center justify-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-          </svg>
-        </div>
+      <div className="flex flex-col items-center gap-2 py-3">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
         <div className="text-center">
           <div className="text-[11px] text-[var(--color-figma-text)] font-medium mb-1">
             Read Variables from this File
@@ -382,6 +380,7 @@ export function FigmaVariablesPanel({
             <select
               value={aliasFilter}
               onChange={event => setAliasFilter(event.target.value as AliasFilter)}
+              aria-label="Filter by alias type"
               className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
             >
               <option value="all">All variables</option>
@@ -394,6 +393,7 @@ export function FigmaVariablesPanel({
             <select
               value={typeFilter}
               onChange={event => setTypeFilter(event.target.value)}
+              aria-label="Filter by variable type"
               className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
             >
               <option value={ALL_FILTER}>All types</option>
@@ -409,6 +409,7 @@ export function FigmaVariablesPanel({
             <select
               value={scopeFilter}
               onChange={event => setScopeFilter(event.target.value)}
+              aria-label="Filter by scope"
               className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
             >
               <option value={ALL_FILTER}>All scopes</option>
@@ -536,7 +537,7 @@ export function FigmaVariablesPanel({
                               </div>
                             </div>
                             {variableHasAlias && (
-                              <span className="px-1 py-0.5 rounded text-[8px] font-medium bg-[#e67e22]/10 text-[#e67e22] shrink-0">
+                              <span className="px-1 py-0.5 rounded text-[8px] font-medium bg-[var(--color-figma-warning,#e67e22)]/10 text-[var(--color-figma-warning,#e67e22)] shrink-0">
                                 REF
                               </span>
                             )}
@@ -563,7 +564,7 @@ export function FigmaVariablesPanel({
                                         </span>
                                       )}
                                       {modeVal.isAlias ? (
-                                        <span className="text-[10px] font-mono text-[#e67e22]">
+                                        <span className="text-[10px] font-mono text-[var(--color-figma-warning,#e67e22)]">
                                           {modeVal.reference}
                                         </span>
                                       ) : (

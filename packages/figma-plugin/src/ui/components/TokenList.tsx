@@ -320,7 +320,7 @@ function TokenListFilteredEmptyState({
   onInsertSearchQualifier,
 }: FilteredEmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
+    <div className="flex flex-col items-center justify-center py-3 text-[var(--color-figma-text-secondary)]">
       <FeedbackPlaceholder
         variant="no-results"
         size="section"
@@ -4170,7 +4170,7 @@ export function TokenList({
           {crossSetResults !== null ? (
             /* Cross-set search results */
             crossSetResults.length === 0 ? (
-              <div className="py-8">
+              <div className="py-3">
                 <FeedbackPlaceholder
                   variant="no-results"
                   size="section"
@@ -4312,7 +4312,7 @@ export function TokenList({
               onRevert={handleJsonRevert}
             />
           ) : tokens.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-4 px-5 py-8 text-center">
+            <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
               <FeedbackPlaceholder
                 variant="empty"
                 size="section"

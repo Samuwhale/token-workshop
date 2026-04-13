@@ -440,7 +440,7 @@ export function ConsistencyPanel({
             </div>
 
             {visibleSuggestions.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <div className="flex flex-col items-center gap-2 py-3 text-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500" aria-hidden="true">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>

@@ -629,7 +629,7 @@ export function TokenEditor({
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+      <div role="status" className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
         <Spinner size="md" className="text-[var(--color-figma-accent)]" />
         Loading token...
       </div>
@@ -693,6 +693,7 @@ export function TokenEditor({
     <>
       {!isCreateMode && onShowReferences && (
         <button
+          type="button"
           onClick={() => onShowReferences(tokenPath)}
           title="Open advanced dependency graph (Apply → Dependencies)"
           aria-label="Open advanced dependency graph"
@@ -716,6 +717,7 @@ export function TokenEditor({
       )}
       {!isCreateMode && (
         <button
+          type="button"
           onClick={() => {
             navigator.clipboard.writeText(tokenPath);
             setCopied(true);
@@ -816,12 +818,14 @@ export function TokenEditor({
             Unsaved draft from {formatDraftAge(pendingDraft.savedAt)}
           </span>
           <button
+            type="button"
             onClick={() => applyDraft(pendingDraft)}
             className="shrink-0 text-[10px] font-medium text-amber-700 dark:text-amber-300 hover:underline"
           >
             Restore
           </button>
           <button
+            type="button"
             onClick={() => {
               setPendingDraft(null);
               clearEditorDraft(setName, tokenPath);
@@ -850,6 +854,7 @@ export function TokenEditor({
           </span>
           {isCreateMode && onSaveAndCreateAnother && (
             <button
+              type="button"
               onClick={() => handleSave(false, true)}
               disabled={saving || !canSave || !trimmedEditPath || duplicatePath}
               title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
@@ -867,6 +872,7 @@ export function TokenEditor({
         <div className="flex flex-wrap items-center gap-2">
           {!isCreateMode && (
             <button
+              type="button"
               onClick={() => setShowDeleteConfirm(true)}
               title="Delete token"
               aria-label="Delete token"
@@ -887,11 +893,12 @@ export function TokenEditor({
               </svg>
             </button>
           )}
-          <button onClick={handleBack} className={AUTHORING.footerBtnSecondary}>
+          <button type="button" onClick={handleBack} className={AUTHORING.footerBtnSecondary}>
             {isDirty || isCreateMode ? "Cancel" : "Close"}
           </button>
           {isDirty && !isCreateMode && (
             <button
+              type="button"
               onClick={handleRevert}
               title="Revert to last saved state"
               className={AUTHORING.footerBtnSecondary}
@@ -908,6 +915,7 @@ export function TokenEditor({
           }}
         >
           <button
+            type="button"
             onClick={() => handleSave()}
             disabled={
               saving ||
@@ -1113,6 +1121,7 @@ export function TokenEditor({
             </p>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => {
                   setPendingTypeChange(null);
                   setShowPendingDependents(false);
@@ -1122,6 +1131,7 @@ export function TokenEditor({
                 Keep {tokenType}
               </button>
               <button
+                type="button"
                 onClick={() => applyTypeChange(pendingTypeChange)}
                 className="flex-1 px-2 py-1 rounded bg-amber-500 text-white hover:bg-amber-600"
               >
@@ -1430,6 +1440,7 @@ export function TokenEditor({
                 {(["draft", "published", "deprecated"] as const).map((lc) => (
                   <button
                     key={lc}
+                    type="button"
                     onClick={() => setLifecycle(lc)}
                     className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
                       lifecycle === lc

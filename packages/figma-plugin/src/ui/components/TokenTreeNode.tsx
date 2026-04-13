@@ -2975,7 +2975,7 @@ const TokenLeafNode = memo(
                     onFilterByType?.(node.$type!);
                   }}
                   title={`Filter by type: ${node.$type}`}
-                  className={`inline-flex items-center justify-center px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} font-medium ${INTERACTIVE_BADGE_HIT_AREA_CLASS} ${TOKEN_TYPE_BADGE_CLASS[node.$type ?? ""] ?? "token-type-string"} cursor-pointer transition-opacity hover:ring-1 hover:ring-current/40 ${isRowActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                  className={`${BADGE_TEXT_CLASS} font-medium ${INTERACTIVE_BADGE_HIT_AREA_CLASS} text-[var(--color-figma-text-tertiary)] cursor-pointer transition-opacity hover:text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100`}
                 >
                   {node.$type}
                 </button>
@@ -3974,21 +3974,17 @@ const TokenLeafNode = memo(
                     </span>
                   )}
 
-                  {/* Set name pill */}
-                  {step.setName && (
+                  {/* Set / theme context */}
+                  {(step.setName || (step.isThemed && step.themeDimension && step.themeOption)) && (
                     <span
-                      className={`${BADGE_TEXT_CLASS} px-1 py-px rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] shrink-0 font-medium`}
+                      className={`${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] shrink-0`}
                     >
-                      {step.setName}
-                    </span>
-                  )}
-
-                  {/* Theme dimension:option pill */}
-                  {step.isThemed && step.themeDimension && step.themeOption && (
-                    <span
-                      className={`${BADGE_TEXT_CLASS} px-1 py-px rounded bg-[var(--color-figma-accent-bg,rgba(24,119,232,0.1))] text-[var(--color-figma-accent)] shrink-0 font-medium`}
-                    >
-                      {step.themeDimension}:{step.themeOption}
+                      {[
+                        step.setName,
+                        step.isThemed && step.themeDimension && step.themeOption
+                          ? `${step.themeDimension}:${step.themeOption}`
+                          : null,
+                      ].filter(Boolean).join(' · ')}
                     </span>
                   )}
 

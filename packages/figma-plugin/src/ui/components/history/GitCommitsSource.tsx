@@ -262,13 +262,11 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
 
   if (!loading && commits.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 px-5 py-8 text-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        </div>
+      <div className="flex flex-col items-center justify-center flex-1 px-3 py-3 text-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
         <div className="flex flex-col gap-1">
           <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No commits yet</p>
           <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
@@ -334,11 +332,11 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         {/* Changes */}
         <div className="flex-1 overflow-y-auto p-2 space-y-2">
           {detailLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-3">
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading changes…</p>
             </div>
           ) : detailError ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-2">
+            <div className="flex flex-col items-center justify-center py-3 gap-2">
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{detailError}</p>
               <button
                 onClick={() => fetchDetail(selectedHash!)}
@@ -348,11 +346,11 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
               </button>
             </div>
           ) : detail && detail.changes.length === 0 ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-3">
               <p className="text-[11px] text-[var(--color-figma-text-tertiary)]">No token changes in this commit.</p>
             </div>
           ) : detail && restoring ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="flex flex-col items-center justify-center py-4 gap-2">
               <Spinner size="xl" className="text-[var(--color-figma-accent)]" />
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                 Restoring {restoring === 'all' ? 'all tokens' : restoring}…
@@ -495,8 +493,8 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       </div>
 
       {filterTokenPath && tokenFilterMap && displayCommits.length === 0 && (
-        <div className="flex flex-col items-center justify-center flex-1 px-5 py-8 text-center gap-3">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+        <div className="flex flex-col items-center justify-center flex-1 px-3 py-3 text-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
@@ -507,7 +505,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       )}
 
       {!filterTokenPath && !loading && commits.length === 0 && debouncedCommitSearch && (
-        <div className="flex flex-col items-center justify-center flex-1 px-5 py-8 text-center gap-3">
+        <div className="flex flex-col items-center justify-center flex-1 px-3 py-3 text-center gap-2">
           <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No commits match "{debouncedCommitSearch}".</p>
           <button
             onClick={() => setCommitSearch('')}

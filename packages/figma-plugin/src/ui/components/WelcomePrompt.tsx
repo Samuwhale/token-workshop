@@ -85,6 +85,7 @@ function ActionRow({
 }: ActionCardProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={[
@@ -323,12 +324,13 @@ export function WelcomePrompt({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
-      <div className="flex max-h-[85vh] w-[320px] flex-col overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg">
+      <div className="flex max-h-[85vh] w-full max-w-[320px] flex-col overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="dialog" aria-modal="true" aria-labelledby="welcome-dialog-title">
         <div className="border-b border-[var(--color-figma-border)] px-4 py-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               {showBack && (
                 <button
+                  type="button"
                   onClick={() => setBranch("root")}
                   className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                   aria-label="Go back"
@@ -346,11 +348,12 @@ export function WelcomePrompt({
                   </svg>
                 </button>
               )}
-              <h2 className="text-[13px] font-semibold text-[var(--color-figma-text)]">
+              <h2 id="welcome-dialog-title" className="text-[13px] font-semibold text-[var(--color-figma-text)]">
                 {branchTitle}
               </h2>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               aria-label="Close"
@@ -399,7 +402,7 @@ export function WelcomePrompt({
           {branch === "root" && renderRoot()}
           {branch === "import" && renderImport()}
           {branch === "template-library" && (
-            <div className="h-full min-h-[360px]">
+            <div className="h-full">
               <TokenGeneratorDialog
                 serverUrl={serverUrl}
                 activeSet={activeSet}
@@ -412,7 +415,7 @@ export function WelcomePrompt({
             </div>
           )}
           {branch === "guided-setup" && (
-            <div className="h-full min-h-[360px]">
+            <div className="h-full">
               <QuickStartWizard
                 serverUrl={serverUrl}
                 activeSet={activeSet}

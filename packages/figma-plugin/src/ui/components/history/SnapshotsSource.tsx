@@ -330,7 +330,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
             </div>
           )}
           {!pairDiffLoading && noChanges && (
-            <div className="flex flex-col items-center justify-center h-32 gap-2 px-6 text-center">
+            <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
@@ -340,7 +340,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
             </div>
           )}
           {!pairDiffLoading && !noChanges && displayChanges?.length === 0 && workspaceSummary && (
-            <div className="flex flex-col items-center justify-center h-32 gap-2 px-6 text-center">
+            <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                 No token differences. {workspaceSummary} are included in this snapshot comparison.
               </p>
@@ -419,7 +419,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
             </div>
           )}
           {!diffLoading && noChanges && (
-            <div className="flex flex-col items-center justify-center h-32 gap-2 px-6 text-center">
+            <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
@@ -429,7 +429,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
             </div>
           )}
           {!diffLoading && !noChanges && displayChanges?.length === 0 && workspaceSummary && (
-            <div className="flex flex-col items-center justify-center h-32 gap-2 px-6 text-center">
+            <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                 No token differences. {workspaceSummary} are included in this snapshot.
               </p>
@@ -618,8 +618,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
         )}
 
         {!loading && snapshots.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 px-6 py-10 text-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+          <div className="flex flex-col items-center justify-center h-full gap-3 px-3 py-3 text-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
               <polyline points="17 21 17 13 7 13 7 21" />
               <polyline points="7 3 7 8 15 8" />

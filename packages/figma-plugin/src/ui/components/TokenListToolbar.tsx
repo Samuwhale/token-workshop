@@ -292,6 +292,7 @@ export function TokenListToolbar({
           disabled={!connected}
           aria-expanded={createToolsMenuOpen}
           aria-haspopup="menu"
+          aria-label="Create token, group, or import"
           className={`inline-flex items-center justify-center rounded p-1 transition-colors ${createToolsMenuOpen ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"} disabled:cursor-not-allowed disabled:opacity-40`}
           title="Create token, group, or import"
         >
@@ -347,6 +348,7 @@ export function TokenListToolbar({
                   onClick={() => removeQueryToken(chip.removeToken!)}
                   className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
                   title={`Remove ${chip.label}`}
+                  aria-label={`Remove ${chip.label}`}
                 >
                   <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M18 6L6 18M6 6l12 12" />

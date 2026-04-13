@@ -117,7 +117,7 @@ export function ThemeCoverageMatrix({
 
   if (dimensions.length === 0) {
     return (
-      <div className="py-8 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
+      <div className="py-3 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
         No dimensions defined yet
       </div>
     );

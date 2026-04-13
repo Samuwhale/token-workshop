@@ -332,7 +332,7 @@ export function CanvasAnalysisPanel({
                 </h3>
               </div>
 
-              <div className={`${section.panelHeightClassName} min-h-[320px] overflow-hidden`}>
+              <div className={`${section.panelHeightClassName} overflow-hidden`}>
                 {section.id === 'coverage' && (
                   <HeatmapPanel
                     result={heatmapResult}

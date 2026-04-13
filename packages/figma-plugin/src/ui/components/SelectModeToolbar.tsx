@@ -55,9 +55,10 @@ export function SelectModeToolbar({
         }}
         onChange={onSelectAll}
         aria-label="Toggle select all"
+        aria-describedby="select-mode-count"
         className="shrink-0 accent-[var(--color-figma-accent)]"
       />
-      <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
+      <span id="select-mode-count" className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
         {selectedPaths.size} of {displayedLeafPaths.size} selected
       </span>
       {selectedPaths.size > 0 && (

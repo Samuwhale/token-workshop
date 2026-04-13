@@ -40,6 +40,7 @@ export function SaveChangesDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="save-changes-title"
+        aria-describedby="save-changes-description"
       >
         <div className="px-4 pt-4 pb-3">
           <h3
@@ -48,7 +49,7 @@ export function SaveChangesDialog({
           >
             Save changes?
           </h3>
-          <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+          <p id="save-changes-description" className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
             Your edits have not been saved and will be lost if you close.
           </p>
         </div>

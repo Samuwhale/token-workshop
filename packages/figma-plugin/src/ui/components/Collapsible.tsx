@@ -25,7 +25,9 @@ export function Collapsible({
   return (
     <div className={className}>
       <button
+        type="button"
         onClick={onToggle}
+        aria-expanded={open}
         className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1 transition-colors"
       >
         <svg

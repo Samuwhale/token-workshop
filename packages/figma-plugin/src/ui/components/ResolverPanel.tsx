@@ -469,15 +469,11 @@ function ResolverInner({
           </div>
         )}
         {!resolversLoading && resolvers.length === 0 && Object.keys(resolverLoadErrors).length === 0 && !creating && !creatingFromTemplate && (
-          <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-4">
-            {/* Icon */}
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
-                <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
-              </svg>
-            </div>
+          <div className="flex flex-col items-center justify-center h-full px-3 py-3 text-center gap-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+              <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
+            </svg>
 
-            {/* Heading + description */}
             <div className="flex flex-col gap-1">
               <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No resolver configs yet</p>
               <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">

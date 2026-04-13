@@ -66,11 +66,11 @@ export function WhereIsOverlay({
       {/* Body */}
       <div className="flex-1 overflow-y-auto">
         {whereIsLoading ? (
-          <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <div className="py-3 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
             Searching\u2026
           </div>
         ) : whereIsResults !== null && whereIsResults.length === 0 ? (
-          <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <div className="py-3 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
             Token not found in any set
           </div>
         ) : whereIsResults !== null ? (

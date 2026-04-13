@@ -963,7 +963,7 @@ const ThemeManagerWorkspace = React.forwardRef<
 
   if (!connected) {
     return (
-      <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+      <div className="flex items-center justify-center py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
         Connect to server to manage themes
       </div>
     );
@@ -971,7 +971,7 @@ const ThemeManagerWorkspace = React.forwardRef<
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+      <div className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
         <Spinner size="md" className="text-[var(--color-figma-accent)]" />
         Loading themes...
       </div>

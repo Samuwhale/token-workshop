@@ -142,7 +142,7 @@ export function InlineBanner({
   return (
     <div
       role={variant === 'error' ? 'alert' : 'status'}
-      aria-live={variant === 'error' ? undefined : 'polite'}
+      aria-live={variant === 'error' ? 'assertive' : 'polite'}
       className={joinClasses(
         'flex items-start gap-2 border',
         LAYOUT_STYLES[layout][size],

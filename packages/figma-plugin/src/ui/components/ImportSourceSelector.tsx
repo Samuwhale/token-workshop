@@ -181,11 +181,11 @@ function ValidationStatusBadge({ status }: { status: 'ready' | 'partial' | 'erro
 
 function ParserLimitsCard({ items }: { items: string[] }) {
   return (
-    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-      <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+    <div className="border-t border-[var(--color-figma-border)] px-2 py-1.5">
+      <div className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
         Parser Limits
       </div>
-      <div className="mt-1 flex flex-col gap-1">
+      <div className="mt-0.5 flex flex-col gap-0.5">
         {items.map((item) => (
           <div key={item} className="text-[10px] text-[var(--color-figma-text-secondary)]">
             {item}
@@ -202,26 +202,26 @@ function FileValidationCard({
   validation: FileImportValidation;
 }) {
   return (
-    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+    <div className="border-t border-[var(--color-figma-border)] px-2 py-1.5">
       <div className="flex items-center justify-between gap-2">
         <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
           {validation.summary}
         </div>
         <ValidationStatusBadge status={validation.status} />
       </div>
-      <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+      <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
         {validation.detail}
       </div>
-      <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+      <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
         Next: {validation.nextAction}
       </div>
       {validation.supportedFormats.length > 0 && (
-        <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
           Supports: {formatSupportedFileFormats(validation.supportedFormats)}
         </div>
       )}
       {validation.issues.length > 0 && (
-        <div className="mt-2 flex flex-col gap-1">
+        <div className="mt-1 flex flex-col gap-0.5">
           {validation.issues.slice(0, 3).map((issue) => (
             <div
               key={`${issue.severity}-${issue.message}`}
@@ -257,9 +257,9 @@ function SelectorCard({
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 rounded border border-[var(--color-figma-border)] px-3 py-3 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+      className="flex items-center gap-2.5 rounded border border-[var(--color-figma-border)] px-2.5 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
     >
-      <div className={`flex h-8 w-8 items-center justify-center rounded ${iconBgClass}`}>
+      <div className={`flex shrink-0 items-center justify-center ${iconBgClass}`}>
         {React.isValidElement(icon)
           ? React.cloneElement(icon as React.ReactElement<React.SVGProps<SVGSVGElement>>, {
             stroke: iconStroke,
@@ -302,30 +302,26 @@ function FileIntakeBox({
       }`}
     >
       <div className="flex items-center gap-2">
-        <div className={`flex h-7 w-7 items-center justify-center rounded ${
-          isDragging ? 'bg-[var(--color-figma-accent)]/15' : 'bg-[var(--color-figma-bg)]'
-        }`}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isDragging ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'} aria-hidden="true">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="12" y1="18" x2="12" y2="12" />
-            <line x1="9" y1="15" x2="15" y2="15" />
-          </svg>
-        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${isDragging ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`} aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="12" y1="18" x2="12" y2="12" />
+          <line x1="9" y1="15" x2="15" y2="15" />
+        </svg>
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{title}</div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{description}</div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        {entries.map((entry) => (
+      <div className="flex flex-col">
+        {entries.map((entry, i) => (
           <div
             key={entry.id}
-            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5"
+            className={`px-2 py-1 ${i > 0 ? 'border-t border-[var(--color-figma-border)]' : ''}`}
           >
             <div className="text-[10px] font-medium text-[var(--color-figma-text)]">{entry.title}</div>
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
               {formatSupportedFileFormats(entry.formats)}
             </div>
           </div>
@@ -337,7 +333,7 @@ function FileIntakeBox({
 
 function InfoCallout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+    <div className="flex items-start gap-1.5 px-2 py-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-[1px] shrink-0" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="12" />

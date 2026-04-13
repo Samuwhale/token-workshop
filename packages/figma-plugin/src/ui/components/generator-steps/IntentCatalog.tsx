@@ -370,7 +370,7 @@ export function GeneratorIntentCatalog({
           />
         ))
       ) : (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
+        <div className="flex flex-col items-center justify-center py-3 text-center">
           <p className="mb-1 text-[11px] text-[var(--color-figma-text-secondary)]">
             {emptyStateTitle}
           </p>

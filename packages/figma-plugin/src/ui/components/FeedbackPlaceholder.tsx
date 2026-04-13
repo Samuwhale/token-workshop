@@ -29,39 +29,28 @@ interface FeedbackPlaceholderProps {
 const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   container: string;
   content: string;
-  iconWrap: string;
   title: string;
   description: string;
 }> = {
   full: {
-    container: 'flex h-full min-h-[220px] w-full flex-1 flex-col items-center justify-center px-6 py-8 text-center',
-    content: 'w-full max-w-[320px] space-y-4',
-    iconWrap: 'h-10 w-10 rounded-xl',
-    title: 'text-[12px] font-semibold',
-    description: 'text-[11px] leading-relaxed',
+    container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-3 py-3 text-center',
+    content: 'w-full max-w-[280px] space-y-2.5',
+    title: 'text-[11px] font-semibold',
+    description: 'text-[10px] leading-relaxed',
   },
   section: {
-    container: 'flex w-full flex-col items-center justify-center px-4 py-5 text-center',
-    content: 'w-full max-w-[280px] space-y-3',
-    iconWrap: 'h-8 w-8 rounded-lg',
+    container: 'flex w-full flex-col items-center justify-center px-3 py-3 text-center',
+    content: 'w-full max-w-[260px] space-y-2',
     title: 'text-[10px] font-medium',
     description: 'text-[10px] leading-relaxed',
   },
 };
 
-const VARIANT_STYLES: Record<FeedbackPlaceholderVariant, { iconWrap: string }> = {
-  empty: {
-    iconWrap: 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
-  },
-  'no-results': {
-    iconWrap: 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
-  },
-  error: {
-    iconWrap: 'border border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/[0.08] text-[var(--color-figma-error)]',
-  },
-  disconnected: {
-    iconWrap: 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
-  },
+const VARIANT_ICON_COLOR: Record<FeedbackPlaceholderVariant, string> = {
+  empty: 'text-[var(--color-figma-text-secondary)]',
+  'no-results': 'text-[var(--color-figma-text-secondary)]',
+  error: 'text-[var(--color-figma-error)]',
+  disconnected: 'text-[var(--color-figma-text-secondary)]',
 };
 
 function joinClasses(...values: Array<string | false | null | undefined>): string {
@@ -131,7 +120,7 @@ function FeedbackActionButton({
       disabled={action.disabled}
       title={action.title}
       className={joinClasses(
-        'rounded-lg px-3 py-1.5 text-[10px] font-medium transition-colors',
+        'rounded-md px-3 py-1 text-[10px] font-medium transition-colors',
         actionButtonClass(tone),
       )}
     >
@@ -152,20 +141,20 @@ export function FeedbackPlaceholder({
   className,
 }: FeedbackPlaceholderProps) {
   const sizeStyles = SIZE_STYLES[size];
-  const variantStyles = VARIANT_STYLES[variant];
+  const iconColor = VARIANT_ICON_COLOR[variant];
   const iconNode = icon === undefined ? defaultIcon(variant) : icon;
 
   return (
     <div className={joinClasses(sizeStyles.container, className)}>
       <div className={sizeStyles.content}>
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-2">
           {iconNode !== null ? (
-            <div className={joinClasses('mx-auto flex items-center justify-center', sizeStyles.iconWrap, variantStyles.iconWrap)}>
+            <div className={iconColor}>
               {iconNode}
             </div>
           ) : null}
           <div className="space-y-1">
-            <div className={joinClasses(sizeStyles.title, 'text-[var(--color-figma-text)]')}>{title}</div>
+            <h3 className={joinClasses(sizeStyles.title, 'text-[var(--color-figma-text)]')}>{title}</h3>
             {description ? (
               <div className={joinClasses(sizeStyles.description, 'text-[var(--color-figma-text-secondary)]')}>
                 {description}

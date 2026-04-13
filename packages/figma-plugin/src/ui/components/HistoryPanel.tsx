@@ -414,6 +414,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
             value={timelineSearch}
             onChange={e => setTimelineSearch(e.target.value)}
             placeholder="Search recovery options…"
+            aria-label="Search history"
             className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
           {timelineSearch && (
@@ -648,6 +649,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                     placeholder="Snapshot label"
                     value={saveLabel}
                     onChange={e => setSaveLabel(e.target.value)}
+                    aria-label="Snapshot label"
                     onFocus={e => e.target.select()}
                     onKeyDown={e => {
                       if (e.key === 'Enter') handleSaveSnapshot();

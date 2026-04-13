@@ -34,6 +34,7 @@ export function JsonEditorView({
         ref={jsonTextareaRef}
         value={jsonText}
         onChange={(e) => onChange(e.target.value)}
+        aria-label="JSON editor"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "s") {
             e.preventDefault();

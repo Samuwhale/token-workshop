@@ -45,7 +45,7 @@ export function ImportSuccessView() {
   const failureStrategyLabel = IMPORT_REVIEW_ACTION_COPY[failedImportStrategy].label;
 
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-10">
+    <div className="flex flex-col items-center justify-center gap-2 py-3">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <circle cx="10" cy="10" r="9" stroke={statusColor} strokeWidth="1.5" />
         {hasFailedWrites ? (

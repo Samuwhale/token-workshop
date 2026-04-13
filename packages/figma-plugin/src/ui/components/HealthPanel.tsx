@@ -1162,7 +1162,7 @@ export function HealthPanel({
         style={{ scrollbarWidth: "thin" }}
       >
         {!connected ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+          <div className="flex flex-col items-center justify-center gap-2 py-3 text-center">
             <svg
               width="20"
               height="20"

@@ -160,7 +160,7 @@ function MessageRow({
       ? 8000
       : toast.variant === "warning"
         ? 5000
-        : 3000;
+        : 4500;
 
   useEffect(() => {
     if (timeout === null) return;

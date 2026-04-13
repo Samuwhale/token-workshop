@@ -182,7 +182,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           {/* Base color — the primary input */}
           <div>
-            <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Base color</label>
+            <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="color-scale-base">Base color</label>
             <div className="flex gap-2 items-center">
               <div className="relative shrink-0">
                 <button
@@ -202,6 +202,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
                 )}
               </div>
               <input
+                id="color-scale-base"
                 type="text"
                 value={baseHex}
                 onChange={e => setBaseHex(e.target.value)}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface TooltipProps {
   label: string;
@@ -20,11 +20,17 @@ interface TooltipProps {
  *   </Tooltip>
  */
 export function Tooltip({ label, shortcut, className = '', hidden = false, children }: TooltipProps) {
+  const tooltipId = useId();
+  const child = !hidden
+    ? React.cloneElement(children, { 'aria-describedby': tooltipId })
+    : children;
+
   return (
     <div className={`relative group/tooltip ${className}`}>
-      {children}
+      {child}
       {!hidden && (
         <div
+          id={tooltipId}
           role="tooltip"
           className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-[60] pointer-events-none
             opacity-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100

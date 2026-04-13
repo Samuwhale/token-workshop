@@ -256,8 +256,9 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Dimension name</label>
+        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-dim-name">Dimension name</label>
         <input
+          id="wizard-dim-name"
           type="text"
           value={dimName}
           onChange={e => setDimName(e.target.value)}
@@ -267,8 +268,9 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Light option</label>
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-light-option">Light option</label>
           <input
+            id="wizard-light-option"
             type="text"
             value={lightName}
             onChange={e => setLightName(e.target.value)}
@@ -277,8 +279,9 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
           />
         </div>
         <div className="flex-1">
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Dark option</label>
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-dark-option">Dark option</label>
           <input
+            id="wizard-dark-option"
             type="text"
             value={darkName}
             onChange={e => setDarkName(e.target.value)}

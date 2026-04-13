@@ -78,7 +78,7 @@ export function EditorShell({
             onClick={onBack}
             aria-label={backAriaLabel}
             title={backTitle}
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] focus-visible:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
           >
             <svg
               width="12"

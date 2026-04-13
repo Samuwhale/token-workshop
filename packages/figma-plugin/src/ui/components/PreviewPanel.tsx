@@ -654,17 +654,15 @@ function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string
           </button>
         )}
       </div>
-      <span
-        role="button"
-        tabIndex={0}
-        className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
+      <button
+        type="button"
+        className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer bg-transparent border-0 p-0 ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
         title={`Click to copy value: ${value}`}
         aria-label={`Copy value ${value}`}
         onClick={() => handleCopy(value, 'value')}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(value, 'value'); } }}
       >
         {leafName}
-      </span>
+      </button>
     </div>
   );
 }
@@ -711,17 +709,15 @@ function GradientSwatch({ path, value, darkMode, onNavigateToToken }: { path: st
           </button>
         )}
       </div>
-      <span
-        role="button"
-        tabIndex={0}
-        className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
+      <button
+        type="button"
+        className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer bg-transparent border-0 p-0 ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
         title={`Click to copy value: ${value}`}
         aria-label={`Copy value ${value}`}
         onClick={() => handleCopy(value, 'value')}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(value, 'value'); } }}
       >
         {leafName}
-      </span>
+      </button>
     </div>
   );
 }

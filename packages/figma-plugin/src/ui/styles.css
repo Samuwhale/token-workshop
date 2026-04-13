@@ -110,7 +110,7 @@ select:focus-visible,
 [role="group"][tabindex]:focus-visible,
 [role="combobox"]:focus-visible {
   outline: 1.5px solid var(--color-figma-accent);
-  outline-offset: 1px;
+  outline-offset: -1px;
 }
 
 /* Scrollbar styling */
@@ -507,4 +507,13 @@ select:focus-visible,
 }
 .animate-step-enter {
   animation: step-enter 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
