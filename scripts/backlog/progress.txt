@@ -1813,3 +1813,11 @@
   - The current theme UX is confusing mainly because the common path exposes the persistence model (`source`/`enabled`/`disabled`, coverage issue classes, resolver modifiers) instead of the designer's task. A cleaner flow should center on variants first and compile that intent into the lower-level model behind the scenes.
   - Theme workspace state is already split across structural edits, diagnostics, optional tools, and cross-workspace theme switching. Future implementation work should consolidate the authoring-side hooks around those user jobs instead of preserving the current one-hook-per-implementation-detail split.
 ---
+## 2026-04-13 - Unify token creation, bulk editing, and generator configuration surfaces for visual consistency and small-viewport fitness in the Figma plugin panel
+- Added `scripts/backlog/research/authoring-surface-layout-consistency-audit.md`, which audits the current token creation, batch editing, generator dialog, generator pipeline quick-edit, and shared shell surfaces for layout strategy, width handling, overflow risk, and visual drift. The audit also records stale declared paths where generator step files moved under `components/generator-steps/` and `TokenCreateLauncher.tsx` no longer exists.
+- Queued five follow-up backlog items in `backlog/inbox.jsonl` covering shared authoring-shell primitives, quick-create alignment, BatchEditor narrow-width refactoring, generator-surface alignment, and cross-surface truncation cleanup.
+- Files changed: `scripts/backlog/research/authoring-surface-layout-consistency-audit.md` ~L1; `backlog/inbox.jsonl` ~L1; `scripts/backlog/patterns.md` ~L261; `scripts/backlog/progress.txt` ~L1839
+- **Learnings for future iterations:**
+  - In a Figma plugin panel, `320px` should be treated as the real day-to-day target width and `240px` as the hard no-overflow minimum; surfaces that only feel coherent at modal widths are not actually panel-ready.
+  - Shared structural shells are not enough on their own for authoring flows. Small-panel consistency needs one explicit density contract for spacing, labels, input heights, footer stacking, and path wrapping, or every surface will drift back toward its own fixed-width assumptions.
+---

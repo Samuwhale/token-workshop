@@ -1,0 +1,24 @@
+id: replace-truncation-first-path-rendering-across-a-ca955eff
+title: Replace truncation-first path rendering across authoring surfaces with narrow-width wrapping rules
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/CanvasCreateTokenDialog.tsx
+  - packages/figma-plugin/src/ui/components/BatchEditor.tsx
+  - packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx
+  - packages/figma-plugin/src/ui/components/generator-steps/StepWhat.tsx
+  - packages/figma-plugin/src/ui/components/generator-steps/StepReview.tsx
+  - packages/figma-plugin/src/ui/components/TokenEditor.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The audit found repeated `truncate` and small `max-w-[80px]`/`max-w-[100px]` limits across generator review, pipeline cards, batch previews, and token editing surfaces."
+state: ready
+acceptance_criteria:
+  - Token paths, set-qualified paths, and long mono values wrap or break cleanly at narrow widths where truncation currently hides key context
+  - Review, preview, and conflict lists remain scannable at 240px without forcing fixed max-width chips like 80-100px
+  - Primary authoring surfaces use a consistent utility or primitive for long path/value rendering
+source: task-followup
+created_at: 2026-04-13T01:13:56.592Z
+updated_at: 2026-04-13T01:13:56.592Z

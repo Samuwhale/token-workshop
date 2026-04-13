@@ -1,0 +1,22 @@
+id: introduce-shared-authoring-surface-layout-primit-f42ca37a
+title: Introduce shared authoring-surface layout primitives for narrow Figma panels
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/EditorShell.tsx
+  - packages/figma-plugin/src/ui/styles.css
+  - packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx
+  - packages/figma-plugin/src/ui/components/TokenEditor.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: Research audit: scripts/backlog/research/authoring-surface-layout-consistency-audit.md recommends making EditorShell the structural base for a shared authoring preset instead of leaving each surface to invent its own spacing and footer rules."
+state: ready
+acceptance_criteria:
+  - A shared authoring shell contract defines header/body/footer spacing, typography, field sizing, and footer action behavior for create/edit/configure surfaces
+  - All authoring surfaces can opt into the same 240px minimum, 320px target, and 600px split-view layout bands without duplicating class strings
+  - EditorShell-based surfaces stop hand-rolling authoring-specific header/footer density values
+source: task-followup
+created_at: 2026-04-13T01:13:56.444Z
+updated_at: 2026-04-13T01:13:56.444Z
