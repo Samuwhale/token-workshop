@@ -1999,3 +1999,11 @@
   - If a jump-nav strip already names each workflow step, card headers should avoid repeating a second equal-weight label and reserve their text for the specific action the embedded tool supports.
   - Scroll-to-section helpers that close over a per-render ref map will keep tripping hook lint; anchor directly to stable refs when the section set is fixed.
 ---
+## 2026-04-13 - Remove 'Sections' eyebrow label and breadcrumb meta-labels from WorkspaceSummaryHeader to reduce persistent chrome across all workspaces
+- Removed the breadcrumb meta labels, kept the workspace/context path as pills plus a plain depth indicator, dropped the standalone `Sections` eyebrow above the tab strip, and downgraded contextual tab affordances from an uppercase badge to inline text.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` passed with the existing Node module-type warning from `eslint.config.js`.
+- Files changed: `packages/figma-plugin/src/ui/components/WorkspaceSummaryHeader.tsx` ~L63, ~L99, ~L149, ~L180; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Shared shell headers read cleaner when breadcrumb structure comes from pills and separators alone; repeated taxonomy labels add chrome faster than they add orientation.
+  - If a tab already signals a secondary context through placement and copy, a plain inline qualifier is usually enough; badge styling should be reserved for state that needs stronger emphasis.
+---

@@ -64,9 +64,8 @@ export function WorkspaceSummaryHeader({
   const hasStatus = statusPills.length > 0;
   const hasCurrentContext =
     Boolean(currentLabel) && currentLabel !== workspaceLabel;
-  const scopeLabel = workspaceLabel
-    ? "Workspace"
-    : currentDepthLabel ?? "Surface";
+  const hasDepthIndicator =
+    Boolean(currentDepthLabel) && currentDepthLabel !== "Workspace";
 
   return (
     <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -98,10 +97,9 @@ export function WorkspaceSummaryHeader({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {(workspaceLabel || currentLabel) && (
-              <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-figma-text-tertiary)]">
-                <span>{scopeLabel}</span>
+              <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">
                 {workspaceLabel && (
-                  <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] tracking-[0.08em] text-[var(--color-figma-text-secondary)]">
+                  <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
                     {workspaceLabel}
                   </span>
                 )}
@@ -110,18 +108,21 @@ export function WorkspaceSummaryHeader({
                     <span aria-hidden="true" className="text-[11px]">
                       /
                     </span>
-                    <span className="rounded-full border border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/8 px-2 py-0.5 text-[9px] tracking-[0.08em] text-[var(--color-figma-text)]">
+                    <span className="rounded-full border border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/8 px-2 py-0.5 text-[9px] text-[var(--color-figma-text)]">
                       {currentLabel}
                     </span>
                   </>
                 )}
-                {hasCurrentContext &&
-                  currentDepthLabel &&
-                  currentDepthLabel !== "Workspace" && (
-                    <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] tracking-[0.08em] text-[var(--color-figma-text-secondary)]">
-                      {currentDepthLabel}
-                    </span>
-                  )}
+                {!workspaceLabel && currentLabel && (
+                  <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                    {currentLabel}
+                  </span>
+                )}
+                {hasDepthIndicator && (
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                    {currentDepthLabel}
+                  </span>
+                )}
               </div>
             )}
             <div className="truncate text-[13px] font-semibold text-[var(--color-figma-text)]">
@@ -148,10 +149,7 @@ export function WorkspaceSummaryHeader({
         {(hasSections || hasStatus) && (
           <div className="flex items-center gap-3 overflow-x-auto pb-0.5">
             {hasSections && sections && onSelectSection && (
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--color-figma-text-tertiary)]">
-                  Sections
-                </div>
+              <div className="flex min-w-0 flex-1">
                 <div
                   className="inline-flex shrink-0 items-center gap-1.5 overflow-x-auto"
                   role="tablist"
@@ -180,8 +178,8 @@ export function WorkspaceSummaryHeader({
                       >
                         <span>{section.label}</span>
                         {isContextual && (
-                          <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[8px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                            Context
+                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                            context
                           </span>
                         )}
                       </button>
