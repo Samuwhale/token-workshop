@@ -41,6 +41,7 @@ import { UnifiedSourceInput } from '../UnifiedSourceInput';
 import { Spinner } from '../Spinner';
 import { ValueDiff } from '../ValueDiff';
 import { AUTHORING_SURFACE_CLASSES } from '../EditorShell';
+import { GENERATOR_AUTHORING_CLASSES } from '../generatorAuthoringSurface';
 
 
 // ---------------------------------------------------------------------------
@@ -161,7 +162,7 @@ function TypeSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-colors ${
+        className={`min-h-[36px] w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-colors ${
           open
             ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
             : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40'
@@ -238,10 +239,10 @@ function PreviewImpactCard({
   }[tone];
 
   return (
-    <div className={`rounded-lg border px-3 py-2.5 ${toneClassName}`}>
+    <div className={`${GENERATOR_AUTHORING_CLASSES.metricCard} ${toneClassName}`}>
       <div className="text-[9px] uppercase tracking-wide opacity-80">{label}</div>
-      <div className="mt-1 text-[14px] font-semibold">{count}</div>
-      <div className="mt-0.5 text-[9.5px] leading-snug opacity-85">{detail}</div>
+      <div className={GENERATOR_AUTHORING_CLASSES.metricValue}>{count}</div>
+      <div className="text-[9.5px] leading-snug opacity-85">{detail}</div>
     </div>
   );
 }
@@ -312,79 +313,93 @@ export function StepWhat({
   const typeExpectsDimension = selectedType === 'typeScale' || selectedType === 'spacingScale' || selectedType === 'borderRadiusScale';
 
   return (
-    <div className={AUTHORING_SURFACE_CLASSES.splitLayout}>
-      {/* ---- LEFT: Config column ---- */}
-      <div className={AUTHORING_SURFACE_CLASSES.splitConfig}>
-        {/* Type selector — compact dropdown */}
-        <TypeSelector
-          selectedType={selectedType}
-          recommendedType={recommendedType}
-          onTypeChange={onTypeChange}
-        />
-
-        {/* Base value — unified source token / inline value input */}
-        {typeNeedsValue && (
-          <UnifiedSourceInput
-            expectedType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : null}
-            sourceTokenPath={sourceTokenPath}
-            sourceTokenValue={sourceTokenValue}
-            inlineValue={inlineValue}
-            isMultiBrand={isMultiBrand}
-            allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
-            onSourcePathChange={onSourcePathChange}
-            onInlineValueChange={onInlineValueChange}
-          />
-        )}
-
-        {/* Config editor */}
-        <div className="border border-[var(--color-figma-border)] rounded-lg p-3 bg-[var(--color-figma-bg-secondary)]">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{TYPE_LABELS[selectedType]} settings</span>
-            {(canUndo || canRedo) && (
-              <div className="flex items-center gap-0.5">
-                <button
-                  onClick={onUndo}
-                  disabled={!canUndo}
-                  title="Undo config change"
-                  aria-label="Undo"
-                  className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-20 transition-opacity"
-                >
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h5a2.5 2.5 0 0 1 0 5H6" /><path d="M5 2.5L3 4.5 5 6.5" /></svg>
-                </button>
-                <button
-                  onClick={onRedo}
-                  disabled={!canRedo}
-                  title="Redo config change"
-                  aria-label="Redo"
-                  className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-20 transition-opacity"
-                >
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4.5H4a2.5 2.5 0 0 0 0 5h2" /><path d="M7 2.5l2 2-2 2" /></svg>
-                </button>
-              </div>
-            )}
-          </div>
-          {selectedType === 'colorRamp' && <ColorRampConfigEditor config={currentConfig as ColorRampConfig} onChange={cfg => onConfigChange('colorRamp', cfg)} onInteractionStart={onConfigInteractionStart} sourceHex={effectiveSourceHex} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-          {selectedType === 'typeScale' && <TypeScaleConfigEditor config={currentConfig as TypeScaleConfig} onChange={cfg => onConfigChange('typeScale', cfg)} onInteractionStart={onConfigInteractionStart} sourceValue={effectiveSourceDim} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-          {selectedType === 'spacingScale' && <SpacingScaleConfigEditor config={currentConfig as SpacingScaleConfig} onChange={cfg => onConfigChange('spacingScale', cfg)} onInteractionStart={onConfigInteractionStart} />}
-          {selectedType === 'opacityScale' && <OpacityScaleConfigEditor config={currentConfig as OpacityScaleConfig} onChange={cfg => onConfigChange('opacityScale', cfg)} />}
-          {selectedType === 'shadowScale' && <ShadowScaleConfigEditor config={currentConfig as ShadowScaleConfig} onChange={cfg => onConfigChange('shadowScale', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-          {selectedType === 'borderRadiusScale' && <BorderRadiusConfigEditor config={currentConfig as BorderRadiusScaleConfig} onChange={cfg => onConfigChange('borderRadiusScale', cfg)} />}
-          {selectedType === 'zIndexScale' && <ZIndexConfigEditor config={currentConfig as ZIndexScaleConfig} onChange={cfg => onConfigChange('zIndexScale', cfg)} />}
-          {selectedType === 'customScale' && <CustomScaleConfigEditor config={currentConfig as CustomScaleConfig} onChange={cfg => onConfigChange('customScale', cfg)} />}
-          {selectedType === 'contrastCheck' && <ContrastCheckConfigEditor config={currentConfig as ContrastCheckConfig} onChange={cfg => onConfigChange('contrastCheck', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-          {selectedType === 'accessibleColorPair' && <AccessiblePairConfigEditor config={currentConfig as AccessibleColorPairConfig} onChange={cfg => onConfigChange('accessibleColorPair', cfg)} />}
-          {selectedType === 'darkModeInversion' && <DarkModeInversionConfigEditor config={currentConfig as DarkModeInversionConfig} onChange={cfg => onConfigChange('darkModeInversion', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-        </div>
+    <section className={`${GENERATOR_AUTHORING_CLASSES.root} ${GENERATOR_AUTHORING_CLASSES.section}`}>
+      <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
+        <h3 className={GENERATOR_AUTHORING_CLASSES.title}>Generator setup</h3>
+        <p className={GENERATOR_AUTHORING_CLASSES.description}>
+          Choose the generator type, provide a source value when needed, and review the live output preview.
+        </p>
       </div>
 
-      {/* ---- RIGHT: Preview column (sticky at wide viewports) ---- */}
-      <div className={AUTHORING_SURFACE_CLASSES.splitPreview}>
+      <div className={AUTHORING_SURFACE_CLASSES.splitLayout}>
+        {/* ---- LEFT: Config column ---- */}
+        <div className={AUTHORING_SURFACE_CLASSES.splitConfig}>
+          <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Generator type</label>
+              <TypeSelector
+                selectedType={selectedType}
+                recommendedType={recommendedType}
+                onTypeChange={onTypeChange}
+              />
+            </div>
+          </div>
+
+          {/* Base value — unified source token / inline value input */}
+          {typeNeedsValue && (
+            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+              <UnifiedSourceInput
+                expectedType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : null}
+                sourceTokenPath={sourceTokenPath}
+                sourceTokenValue={sourceTokenValue}
+                inlineValue={inlineValue}
+                isMultiBrand={isMultiBrand}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                onSourcePathChange={onSourcePathChange}
+                onInlineValueChange={onInlineValueChange}
+              />
+            </div>
+          )}
+
+          {/* Config editor */}
+          <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+            <div className="flex items-center justify-between mb-3">
+              <span className={GENERATOR_AUTHORING_CLASSES.title}>{TYPE_LABELS[selectedType]} settings</span>
+              {(canUndo || canRedo) && (
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={onUndo}
+                    disabled={!canUndo}
+                    title="Undo config change"
+                    aria-label="Undo"
+                    className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-20 transition-opacity"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h5a2.5 2.5 0 0 1 0 5H6" /><path d="M5 2.5L3 4.5 5 6.5" /></svg>
+                  </button>
+                  <button
+                    onClick={onRedo}
+                    disabled={!canRedo}
+                    title="Redo config change"
+                    aria-label="Redo"
+                    className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-20 transition-opacity"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4.5H4a2.5 2.5 0 0 0 0 5h2" /><path d="M7 2.5l2 2-2 2" /></svg>
+                  </button>
+                </div>
+              )}
+            </div>
+            {selectedType === 'colorRamp' && <ColorRampConfigEditor config={currentConfig as ColorRampConfig} onChange={cfg => onConfigChange('colorRamp', cfg)} onInteractionStart={onConfigInteractionStart} sourceHex={effectiveSourceHex} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+            {selectedType === 'typeScale' && <TypeScaleConfigEditor config={currentConfig as TypeScaleConfig} onChange={cfg => onConfigChange('typeScale', cfg)} onInteractionStart={onConfigInteractionStart} sourceValue={effectiveSourceDim} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+            {selectedType === 'spacingScale' && <SpacingScaleConfigEditor config={currentConfig as SpacingScaleConfig} onChange={cfg => onConfigChange('spacingScale', cfg)} onInteractionStart={onConfigInteractionStart} />}
+            {selectedType === 'opacityScale' && <OpacityScaleConfigEditor config={currentConfig as OpacityScaleConfig} onChange={cfg => onConfigChange('opacityScale', cfg)} />}
+            {selectedType === 'shadowScale' && <ShadowScaleConfigEditor config={currentConfig as ShadowScaleConfig} onChange={cfg => onConfigChange('shadowScale', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+            {selectedType === 'borderRadiusScale' && <BorderRadiusConfigEditor config={currentConfig as BorderRadiusScaleConfig} onChange={cfg => onConfigChange('borderRadiusScale', cfg)} />}
+            {selectedType === 'zIndexScale' && <ZIndexConfigEditor config={currentConfig as ZIndexScaleConfig} onChange={cfg => onConfigChange('zIndexScale', cfg)} />}
+            {selectedType === 'customScale' && <CustomScaleConfigEditor config={currentConfig as CustomScaleConfig} onChange={cfg => onConfigChange('customScale', cfg)} />}
+            {selectedType === 'contrastCheck' && <ContrastCheckConfigEditor config={currentConfig as ContrastCheckConfig} onChange={cfg => onConfigChange('contrastCheck', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+            {selectedType === 'accessibleColorPair' && <AccessiblePairConfigEditor config={currentConfig as AccessibleColorPairConfig} onChange={cfg => onConfigChange('accessibleColorPair', cfg)} />}
+            {selectedType === 'darkModeInversion' && <DarkModeInversionConfigEditor config={currentConfig as DarkModeInversionConfig} onChange={cfg => onConfigChange('darkModeInversion', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+          </div>
+        </div>
+
+        {/* ---- RIGHT: Preview column (sticky at wide viewports) ---- */}
+        <div className={AUTHORING_SURFACE_CLASSES.splitPreview}>
 
           {/* Preview */}
-          <div>
+          <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>
                 Preview
                 {isMultiBrand && multiBrandPreviews && multiBrandPreviews.size > 0
                   ? <span className="ml-1 text-[var(--color-figma-text)]">({multiBrandPreviews.size} brand{multiBrandPreviews.size !== 1 ? 's' : ''})</span>
@@ -488,7 +503,7 @@ export function StepWhat({
             )}
 
             {!previewError && !isMultiBrand && previewAnalysis && (
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <div className={`${GENERATOR_AUTHORING_CLASSES.metricGrid} mt-3`}>
                 <PreviewImpactCard
                   label="Safe creates"
                   count={safeCreateCount}
@@ -531,18 +546,21 @@ export function StepWhat({
 
           {/* Applied preview — shows tokens in context */}
           {!previewError && previewTokens.length > 0 && (
-            <AppliedPreview type={selectedType} tokens={previewTokens} />
+            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+              <div className={GENERATOR_AUTHORING_CLASSES.title}>Applied preview</div>
+              <AppliedPreview type={selectedType} tokens={previewTokens} />
+            </div>
           )}
 
           {nonGeneratorOverwriteEntries.length > 0 && (
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
                 Overwrite risks{' '}
                 <span className="text-[var(--color-figma-warning)]">
                   {nonGeneratorOverwriteEntries.length} token{nonGeneratorOverwriteEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
-              <div className="flex flex-col gap-1.5">
+              <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
                 {nonGeneratorOverwriteEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
@@ -563,14 +581,14 @@ export function StepWhat({
           )}
 
           {manualConflictEntries.length > 0 && (
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
                 Manual-edit conflicts{' '}
                 <span className="text-[var(--color-figma-error)]">
                   {manualConflictEntries.length} token{manualConflictEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
-              <div className="flex flex-col gap-1.5">
+              <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
                 {manualConflictEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
@@ -584,14 +602,14 @@ export function StepWhat({
           )}
 
           {deletedOutputEntries.length > 0 && (
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
                 Deleted outputs{' '}
                 <span className="text-[var(--color-figma-warning)]">
                   {deletedOutputEntries.length} token{deletedOutputEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
-              <div className="flex flex-col gap-1.5">
+              <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
                 {deletedOutputEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
                     <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
@@ -606,14 +624,14 @@ export function StepWhat({
           )}
 
           {detachedOutputEntries.length > 0 && (
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
                 Detached outputs{' '}
                 <span className="text-[var(--color-figma-warning)]">
                   {detachedOutputEntries.length} token{detachedOutputEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
-              <div className="flex flex-col gap-1.5">
+              <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
                 {recreatedDetachedEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
@@ -637,7 +655,8 @@ export function StepWhat({
             </div>
           )}
 
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

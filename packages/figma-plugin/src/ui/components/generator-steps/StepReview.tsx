@@ -12,6 +12,7 @@ import { swatchBgColor } from '../../shared/colorUtils';
 import { ValueDiff } from '../ValueDiff';
 import { Spinner } from '../Spinner';
 import { TYPE_LABELS } from '../generators/generatorUtils';
+import { GENERATOR_AUTHORING_CLASSES } from '../generatorAuthoringSurface';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -82,74 +83,67 @@ export function StepReview({
   );
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-0.5">
-        <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-          Review and confirm
-        </h3>
-        <p className="text-[9.5px] leading-snug text-[var(--color-figma-text-secondary)]">
+    <section className={`${GENERATOR_AUTHORING_CLASSES.root} ${GENERATOR_AUTHORING_CLASSES.section}`}>
+      <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
+        <h3 className={GENERATOR_AUTHORING_CLASSES.title}>Review and confirm</h3>
+        <p className={GENERATOR_AUTHORING_CLASSES.description}>
           Confirm the destination, semantic plan, and token changes before saving.
         </p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-          <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-            Generator
+      <div className={GENERATOR_AUTHORING_CLASSES.metricGrid}>
+        <div className={GENERATOR_AUTHORING_CLASSES.summaryCard}>
+          <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Generator</span>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryValue}>{name}</span>
           </div>
-          <div className="mt-1 text-[10px] font-medium text-[var(--color-figma-text)]">
-            {name}
-          </div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {TYPE_LABELS[selectedType]}
-          </div>
-        </div>
-        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-          <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-            Output
-          </div>
-          <div className="mt-1 text-[10px] font-mono text-[var(--color-figma-text)]">
-            {targetGroup}
-          </div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {isMultiBrand ? 'Multiple sets' : targetSet}
+          <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Type</span>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryValue}>{TYPE_LABELS[selectedType]}</span>
           </div>
         </div>
-        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-          <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-            Semantic aliases
+        <div className={GENERATOR_AUTHORING_CLASSES.summaryCard}>
+          <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Output</span>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryMono}>{targetGroup}</span>
           </div>
-          <div className="mt-1 text-[10px] font-medium text-[var(--color-figma-text)]">
-            {semanticEnabled && validSemanticMappings.length > 0
-              ? `${validSemanticMappings.length} alias${validSemanticMappings.length === 1 ? '' : 'es'}`
-              : 'Skipped'}
+          <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Set</span>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryValue}>{isMultiBrand ? 'Multiple sets' : targetSet}</span>
           </div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {semanticEnabled && validSemanticMappings.length > 0
-              ? `${semanticPrefix}.*`
-              : 'No semantic layer will be created.'}
+        </div>
+        <div className={GENERATOR_AUTHORING_CLASSES.summaryCard}>
+          <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Semantic aliases</span>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryValue}>
+              {semanticEnabled && validSemanticMappings.length > 0
+                ? `${validSemanticMappings.length} alias${validSemanticMappings.length === 1 ? '' : 'es'}`
+                : 'Skipped'}
+            </span>
+          </div>
+          <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+            <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Prefix</span>
+            <span className={semanticEnabled && validSemanticMappings.length > 0 ? GENERATOR_AUTHORING_CLASSES.summaryMono : GENERATOR_AUTHORING_CLASSES.summaryValue}>
+              {semanticEnabled && validSemanticMappings.length > 0
+                ? `${semanticPrefix}.*`
+                : 'No semantic layer will be created.'}
+            </span>
           </div>
         </div>
       </div>
 
       {semanticEnabled && validSemanticMappings.length > 0 && (
-        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-          <div className="mb-1 text-[10px] font-medium text-[var(--color-figma-text)]">
-            Alias preview
-          </div>
-          <div className="flex flex-col gap-0.5">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <div className={GENERATOR_AUTHORING_CLASSES.title}>Alias preview</div>
+          <div className="flex flex-col gap-1">
             {validSemanticMappings.map((mapping) => (
               <div
                 key={`${mapping.semantic}-${mapping.step}`}
-                className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]"
+                className={GENERATOR_AUTHORING_CLASSES.summaryRow}
               >
-                <span className="text-[var(--color-figma-text)]">
-                  {semanticPrefix}.{mapping.semantic}
-                </span>{' '}
-                →{' '}
-                <span className="text-[var(--color-figma-accent)]">
-                  {`{${targetGroup}.${mapping.step}}`}
-                </span>
+                <span className={GENERATOR_AUTHORING_CLASSES.summaryMono}>{semanticPrefix}.{mapping.semantic}</span>
+                <span className="text-[var(--color-figma-text-secondary)]">→</span>
+                <span className="font-mono text-[var(--color-figma-accent)]">{`{${targetGroup}.${mapping.step}}`}</span>
               </div>
             ))}
           </div>
@@ -163,30 +157,30 @@ export function StepReview({
       )}
 
       {!isMultiBrand && previewAnalysis && (
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-lg border border-[var(--color-figma-success)]/30 bg-[var(--color-figma-success)]/10 px-3 py-2.5">
+        <div className={GENERATOR_AUTHORING_CLASSES.metricGrid}>
+          <div className={`${GENERATOR_AUTHORING_CLASSES.metricCard} border-[var(--color-figma-success)]/30 bg-[var(--color-figma-success)]/10`}>
             <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-success)]/80">Safe creates</div>
-            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-success)]">{previewAnalysis.safeCreateCount}</div>
+            <div className={`${GENERATOR_AUTHORING_CLASSES.metricValue} text-[var(--color-figma-success)]`}>{previewAnalysis.safeCreateCount}</div>
           </div>
-          <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+          <div className={GENERATOR_AUTHORING_CLASSES.metricCard}>
             <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">Safe updates</div>
-            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-text)]">{safeUpdateEntries.length}</div>
+            <div className={`${GENERATOR_AUTHORING_CLASSES.metricValue} text-[var(--color-figma-text)]`}>{safeUpdateEntries.length}</div>
           </div>
-          <div className="rounded-lg border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-3 py-2.5">
+          <div className={`${GENERATOR_AUTHORING_CLASSES.metricCard} border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10`}>
             <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-warning)]/80">Overwrite risks</div>
-            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-warning)]">{nonGeneratorOverwriteEntries.length}</div>
+            <div className={`${GENERATOR_AUTHORING_CLASSES.metricValue} text-[var(--color-figma-warning)]`}>{nonGeneratorOverwriteEntries.length}</div>
           </div>
-          <div className="rounded-lg border border-[var(--color-figma-error)]/35 bg-[var(--color-figma-error)]/10 px-3 py-2.5">
+          <div className={`${GENERATOR_AUTHORING_CLASSES.metricCard} border-[var(--color-figma-error)]/35 bg-[var(--color-figma-error)]/10`}>
             <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-error)]/80">Manual conflicts</div>
-            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-error)]">{manualConflictEntries.length}</div>
+            <div className={`${GENERATOR_AUTHORING_CLASSES.metricValue} text-[var(--color-figma-error)]`}>{manualConflictEntries.length}</div>
           </div>
-          <div className="rounded-lg border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-3 py-2.5">
+          <div className={`${GENERATOR_AUTHORING_CLASSES.metricCard} border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10`}>
             <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-warning)]/80">Deleted outputs</div>
-            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-warning)]">{deletedOutputEntries.length}</div>
+            <div className={`${GENERATOR_AUTHORING_CLASSES.metricValue} text-[var(--color-figma-warning)]`}>{deletedOutputEntries.length}</div>
           </div>
-          <div className="rounded-lg border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-3 py-2.5">
+          <div className={`${GENERATOR_AUTHORING_CLASSES.metricCard} border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10`}>
             <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-warning)]/80">Detached outputs</div>
-            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-warning)]">{detachedOutputEntries.length}</div>
+            <div className={`${GENERATOR_AUTHORING_CLASSES.metricValue} text-[var(--color-figma-warning)]`}>{detachedOutputEntries.length}</div>
           </div>
         </div>
       )}
@@ -217,11 +211,11 @@ export function StepReview({
       )}
 
       {nonGeneratorOverwriteEntries.length > 0 && (
-        <div>
-          <label className="block text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-warning)]">
             Overwrite risks
           </label>
-          <div className="flex flex-col gap-1.5">
+          <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {nonGeneratorOverwriteEntries.map(entry => (
               <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                 <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
@@ -242,11 +236,11 @@ export function StepReview({
       )}
 
       {manualConflictEntries.length > 0 && (
-        <div>
-          <label className="block text-[10px] font-medium text-[var(--color-figma-error)] mb-1.5">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-error)]">
             Manual-edit conflicts
           </label>
-          <div className="flex flex-col gap-1.5">
+          <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {manualConflictEntries.map(entry => (
               <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                 <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
@@ -260,11 +254,11 @@ export function StepReview({
       )}
 
       {deletedOutputEntries.length > 0 && (
-        <div>
-          <label className="block text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-warning)]">
             Deleted outputs
           </label>
-          <div className="flex flex-col gap-1">
+          <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {deletedOutputEntries.map(entry => (
               <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
                 <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
@@ -279,11 +273,11 @@ export function StepReview({
       )}
 
       {detachedOutputEntries.length > 0 && (
-        <div>
-          <label className="block text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-warning)]">
             Detached outputs
           </label>
-          <div className="flex flex-col gap-1.5">
+          <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {recreatedDetachedEntries.map(entry => (
               <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                 <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
@@ -306,11 +300,11 @@ export function StepReview({
 
       {/* New tokens */}
       {newTokens.length > 0 && (
-        <div>
-          <label className="block text-[10px] font-medium text-[var(--color-figma-success)] mb-1.5">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-success)]">
             New tokens
           </label>
-          <div className="flex flex-col gap-1">
+          <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
             {newTokens.map(token => (
               <div key={token.path} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
                 {token.type === 'color' && typeof token.value === 'string' && (
@@ -323,7 +317,7 @@ export function StepReview({
                 <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={token.path}>
                   {token.path}
                 </span>
-                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] shrink-0 max-w-[100px] truncate" title={typeof token.value === 'object' ? JSON.stringify(token.value) : String(token.value)}>
+                <span className="min-w-0 break-all text-[10px] font-mono text-[var(--color-figma-text-secondary)]" title={typeof token.value === 'object' ? JSON.stringify(token.value) : String(token.value)}>
                   {token.type === 'dimension' && typeof token.value === 'object' && token.value !== null && 'value' in (token.value as Record<string, unknown>)
                     ? `${(token.value as { value: number; unit?: string }).value}${(token.value as { value: number; unit?: string }).unit ?? 'px'}`
                     : typeof token.value === 'object' ? JSON.stringify(token.value) : String(token.value)}
@@ -336,7 +330,7 @@ export function StepReview({
 
       {/* Multi-brand note */}
       {isMultiBrand && inputTable && (
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] rounded-lg px-3 py-2.5 bg-[var(--color-figma-bg-secondary)]">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
           <p className="mb-1">Tokens will be generated for each brand:</p>
           <ul className="list-disc list-inside">
             {inputTable.rows.filter(r => r.brand.trim()).map((row, i) => (
@@ -349,6 +343,6 @@ export function StepReview({
       )}
 
       {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}
-    </div>
+    </section>
   );
 }

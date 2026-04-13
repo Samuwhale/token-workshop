@@ -22,6 +22,8 @@ import { SemanticMappingDialog } from "./SemanticMappingDialog";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
 import { VALUE_REQUIRED_TYPES } from "./generators/generatorUtils";
 import { OverrideRow, formatValue } from "./generators/generatorShared";
+import { AUTHORING_SURFACE_CLASSES } from "./EditorShell";
+import { GENERATOR_AUTHORING_CLASSES } from "./generatorAuthoringSurface";
 import { swatchBgColor } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
 import type { ToastAction } from "../shared/toastBus";
@@ -492,10 +494,9 @@ function LiveDiffPreview({
 // Quick edit panel
 // ---------------------------------------------------------------------------
 
-const QE_INPUT =
-  "w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]";
-const QE_LABEL =
-  "block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5";
+const QE_INPUT = GENERATOR_AUTHORING_CLASSES.control;
+const QE_MONO_INPUT = GENERATOR_AUTHORING_CLASSES.controlMono;
+const QE_LABEL = GENERATOR_AUTHORING_CLASSES.summaryLabel;
 
 const RATIO_PRESETS = [
   { label: "Minor Third (1.2)", value: 1.2 },
@@ -705,7 +706,7 @@ function QuickEditTypeFields({
               value={c.color}
               onChange={(e) => onChange({ ...c, color: e.target.value })}
               placeholder="#000000"
-              className={`${QE_INPUT} font-mono`}
+              className={QE_MONO_INPUT}
               maxLength={9}
             />
           </div>
@@ -722,7 +723,7 @@ function QuickEditTypeFields({
             value={c.formula}
             onChange={(e) => onChange({ ...c, formula: e.target.value })}
             placeholder="base * ratio^index"
-            className={`${QE_INPUT} font-mono`}
+            className={QE_MONO_INPUT}
           />
         </div>
       );
@@ -782,7 +783,7 @@ function QuickEditTypeFields({
                 onChange({ ...c, backgroundHex: e.target.value })
               }
               placeholder="#ffffff"
-              className={`${QE_INPUT} font-mono`}
+              className={QE_MONO_INPUT}
               maxLength={9}
             />
           </div>
@@ -874,28 +875,42 @@ function QuickEditPanel({
   };
 
   return (
-    <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)] flex flex-col gap-2">
+    <div className={`mt-2 border-t border-[var(--color-figma-border)] pt-2 ${GENERATOR_AUTHORING_CLASSES.root}`}>
+      <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
+        <div className={GENERATOR_AUTHORING_CLASSES.title}>Quick edit</div>
+        <p className={GENERATOR_AUTHORING_CLASSES.description}>
+          Adjust the core generator inputs inline, then save and re-run with the updated preview.
+        </p>
+      </div>
+
       {needsSource && (
-        <div>
-          <label className={QE_LABEL}>Source token</label>
-          <input
-            type="text"
-            value={sourceToken}
-            onChange={(e) => setSourceToken(e.target.value)}
-            placeholder="e.g. colors.brand.primary"
-            className={`${QE_INPUT} font-mono`}
-          />
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+            <label className={QE_LABEL}>Source token</label>
+            <input
+              type="text"
+              value={sourceToken}
+              onChange={(e) => setSourceToken(e.target.value)}
+              placeholder="e.g. colors.brand.primary"
+              className={QE_MONO_INPUT}
+            />
+          </div>
         </div>
       )}
 
-      <QuickEditTypeFields
-        type={generator.type}
-        config={config}
-        onChange={setConfig}
-      />
+      <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+          <label className={QE_LABEL}>Generator settings</label>
+          <QuickEditTypeFields
+            type={generator.type}
+            config={config}
+            onChange={setConfig}
+          />
+        </div>
+      </div>
 
-      <div className="flex gap-1.5">
-        <div className="flex-1">
+      <div className={`${GENERATOR_AUTHORING_CLASSES.sectionCard} ${GENERATOR_AUTHORING_CLASSES.fieldGrid}`}>
+        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
           <label className={QE_LABEL}>Name</label>
           <input
             type="text"
@@ -904,39 +919,36 @@ function QuickEditPanel({
             className={QE_INPUT}
           />
         </div>
-        <div className="flex-1">
+        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
           <label className={QE_LABEL}>Target group</label>
           <input
             type="text"
             value={targetGroup}
             onChange={(e) => setTargetGroup(e.target.value)}
-            className={`${QE_INPUT} font-mono`}
+            className={QE_MONO_INPUT}
           />
         </div>
-      </div>
-
-      <div>
-        <label className={QE_LABEL}>Target set</label>
-        <select
-          value={targetSet}
-          onChange={(e) => setTargetSet(e.target.value)}
-          className={QE_INPUT}
-        >
-          {allSets.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+          <label className={QE_LABEL}>Target set</label>
+          <select
+            value={targetSet}
+            onChange={(e) => setTargetSet(e.target.value)}
+            className={QE_INPUT}
+          >
+            {allSets.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Live preview diff */}
       {!isMultiBrand && (
-        <div className="pt-1.5 border-t border-[var(--color-figma-border)]">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Preview changes
-            </span>
+            <span className={QE_LABEL}>Preview changes</span>
             {previewLoading && previewDiff && (
               <svg
                 width="10"
@@ -970,20 +982,22 @@ function QuickEditPanel({
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex-1 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
-        >
-          {saving ? "Saving…" : "Save & re-run"}
-        </button>
-        <button
-          onClick={onOpenFullDialog}
-          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors whitespace-nowrap"
-        >
-          Full settings →
-        </button>
+      <div className={AUTHORING_SURFACE_CLASSES.footer}>
+        <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+          <button
+            onClick={onOpenFullDialog}
+            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)]`}
+          >
+            Full settings
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className={`${AUTHORING_SURFACE_CLASSES.footerPrimary} rounded bg-[var(--color-figma-accent)] px-3 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50`}
+          >
+            {saving ? "Saving…" : "Save & re-run"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1363,6 +1377,17 @@ export function GeneratorPipelineCard({
     setActionsMenuOpen(false);
     action();
   };
+  const sourceSummary = generator.sourceToken
+    ? generator.sourceToken
+    : generator.inlineValue !== undefined
+      ? typeof generator.inlineValue === "string"
+        ? generator.inlineValue
+        : typeof generator.inlineValue === "object" &&
+            generator.inlineValue !== null &&
+            "value" in (generator.inlineValue as Record<string, unknown>)
+          ? `${(generator.inlineValue as { value: number; unit?: string }).value}${(generator.inlineValue as { unit?: string }).unit || ""}`
+          : String(generator.inlineValue)
+      : "standalone";
 
   return (
     <div
@@ -1371,83 +1396,107 @@ export function GeneratorPipelineCard({
       }
       className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${!isEnabled ? "opacity-60 border-[var(--color-figma-border)] border-dashed" : isBlocked ? "border-amber-400/70" : hasError ? "border-[var(--color-figma-error)]" : isStale ? "border-yellow-400/70" : isFocused ? "border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40" : "border-[var(--color-figma-border)]"}`}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
-          {typeLabel}
-        </span>
-        <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate flex-1">
-          {generator.name}
-        </span>
-        {!isEnabled && (
-          <span className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1.5 py-px leading-none">
-            Paused
-          </span>
-        )}
-        {isEnabled && isStale && (
-          <span
-            title={`Source token "${generator.sourceToken}" has changed since this generator last ran. Re-run to update generated tokens.`}
-            className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-yellow-600 bg-yellow-50 border border-yellow-300 rounded px-1.5 py-px leading-none"
-            aria-label="Generator output may be stale"
-          >
-            <svg
-              width="9"
-              height="9"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            Needs re-run
-          </span>
-        )}
-        {isEnabled && isBlocked && (
-          <span className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded px-1.5 py-px leading-none">
-            <svg
-              width="9"
-              height="9"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M18 8a6 6 0 0 0-12 0v3a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2Z" />
-            </svg>
-            Blocked
-          </span>
-        )}
-        {hasError && (
-          <span
-            title={generator.lastRunError?.message ?? generator.lastRunSummary?.label}
-            className={`shrink-0 ${isBlocked ? "text-amber-700" : "text-[var(--color-figma-error)]"}`}
-            aria-label={isBlocked ? "Generator blocked by upstream failure" : "Generator auto-run error"}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          </span>
-        )}
+      <div className="mb-2 flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
+              {typeLabel}
+            </span>
+            <span className="min-w-0 flex-1 text-[11px] font-medium text-[var(--color-figma-text)] break-words">
+              {generator.name}
+            </span>
+            {!isEnabled && (
+              <span className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1.5 py-px leading-none">
+                Paused
+              </span>
+            )}
+            {isEnabled && isStale && (
+              <span
+                title={`Source token "${generator.sourceToken}" has changed since this generator last ran. Re-run to update generated tokens.`}
+                className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-yellow-600 bg-yellow-50 border border-yellow-300 rounded px-1.5 py-px leading-none"
+                aria-label="Generator output may be stale"
+              >
+                <svg
+                  width="9"
+                  height="9"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                Needs re-run
+              </span>
+            )}
+            {isEnabled && isBlocked && (
+              <span className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded px-1.5 py-px leading-none">
+                <svg
+                  width="9"
+                  height="9"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 8a6 6 0 0 0-12 0v3a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2Z" />
+                </svg>
+                Blocked
+              </span>
+            )}
+            {hasError && (
+              <span
+                title={generator.lastRunError?.message ?? generator.lastRunSummary?.label}
+                className={`shrink-0 ${isBlocked ? "text-amber-700" : "text-[var(--color-figma-error)]"}`}
+                aria-label={isBlocked ? "Generator blocked by upstream failure" : "Generator auto-run error"}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </span>
+            )}
+          </div>
+          <div className="mt-2">
+            <div className={GENERATOR_AUTHORING_CLASSES.summaryCard}>
+              <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+                <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Source</span>
+                <span className={generator.sourceToken ? GENERATOR_AUTHORING_CLASSES.summaryMono : GENERATOR_AUTHORING_CLASSES.summaryValue}>
+                  {sourceSummary}
+                </span>
+              </div>
+              <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+                <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Output</span>
+                <span className={GENERATOR_AUTHORING_CLASSES.summaryMono}>{generator.targetGroup}.*</span>
+              </div>
+              <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
+                <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Set</span>
+                <span className={GENERATOR_AUTHORING_CLASSES.summaryValue}>{generator.targetSet}</span>
+                <span className="text-[var(--color-figma-text-tertiary)]">·</span>
+                <span className={GENERATOR_AUTHORING_CLASSES.summaryValue}>{stepCount} token{stepCount === 1 ? "" : "s"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
         <button
           onClick={handleToggleEnabled}
           disabled={togglingEnabled}
@@ -1458,7 +1507,7 @@ export function GeneratorPipelineCard({
           }
           aria-label={isEnabled ? "Disable generator" : "Enable generator"}
           aria-pressed={isEnabled}
-          className="shrink-0 flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--color-figma-bg-secondary)] transition-colors disabled:opacity-50"
+          className="mt-0.5 shrink-0 flex items-center justify-center w-7 h-7 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50"
         >
           {isEnabled ? (
             <svg
@@ -1529,76 +1578,6 @@ export function GeneratorPipelineCard({
           </button>
         </div>
       )}
-      <div className="flex items-center gap-1.5 text-[10px]">
-        {generator.sourceToken ? (
-          <>
-            <span className="font-mono text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] px-1 py-px rounded border border-[var(--color-figma-border)] truncate max-w-[100px]">
-              {generator.sourceToken}
-            </span>
-            <svg
-              width="8"
-              height="8"
-              viewBox="0 0 8 8"
-              fill="currentColor"
-              className="text-[var(--color-figma-text-tertiary)] shrink-0"
-            >
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
-          </>
-        ) : generator.inlineValue !== undefined ? (
-          <>
-            <span className="font-mono text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] px-1 py-px rounded border border-[var(--color-figma-border)] truncate max-w-[100px]">
-              {typeof generator.inlineValue === "string"
-                ? generator.inlineValue
-                : typeof generator.inlineValue === "object" &&
-                    generator.inlineValue !== null &&
-                    "value" in
-                      (generator.inlineValue as Record<string, unknown>)
-                  ? `${(generator.inlineValue as { value: number; unit?: string }).value}${(generator.inlineValue as { unit?: string }).unit || ""}`
-                  : String(generator.inlineValue)}
-            </span>
-            <svg
-              width="8"
-              height="8"
-              viewBox="0 0 8 8"
-              fill="currentColor"
-              className="text-[var(--color-figma-text-tertiary)] shrink-0"
-            >
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
-          </>
-        ) : (
-          <>
-            <span className="text-[10px] px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
-              standalone
-            </span>
-            <svg
-              width="8"
-              height="8"
-              viewBox="0 0 8 8"
-              fill="currentColor"
-              className="text-[var(--color-figma-text-tertiary)] shrink-0"
-            >
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
-          </>
-        )}
-        <span className="font-mono text-[var(--color-figma-text)] bg-[var(--color-figma-bg-secondary)] px-1 py-px rounded border border-[var(--color-figma-border)] truncate max-w-[100px]">
-          {generator.targetGroup}.*
-        </span>
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 8 8"
-          fill="currentColor"
-          className="text-[var(--color-figma-text-tertiary)] shrink-0"
-        >
-          <path d="M2 1l4 3-4 3V1z" />
-        </svg>
-        <span className="text-[var(--color-figma-text-secondary)] tabular-nums">
-          {stepCount} tokens
-        </span>
-      </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
         {upstreamGenerators.length > 0 && (
           <span className="px-1.5 py-px rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
@@ -2077,12 +2056,15 @@ export function GeneratorPipelineCard({
       )}
 
       {showClonePanel && (
-        <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)] flex flex-col gap-2">
-          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Clone generator
-          </span>
-          <div className="flex gap-1.5">
-            <div className="flex-1">
+        <div className={`mt-2 border-t border-[var(--color-figma-border)] pt-2 ${GENERATOR_AUTHORING_CLASSES.root}`}>
+          <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
+            <span className={GENERATOR_AUTHORING_CLASSES.title}>Clone generator</span>
+            <p className={GENERATOR_AUTHORING_CLASSES.description}>
+              Start from the current generator and adjust the destination details for the clone.
+            </p>
+          </div>
+          <div className={`${GENERATOR_AUTHORING_CLASSES.sectionCard} ${GENERATOR_AUTHORING_CLASSES.fieldGrid}`}>
+            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
               <label className={QE_LABEL}>Name</label>
               <input
                 type="text"
@@ -2092,52 +2074,56 @@ export function GeneratorPipelineCard({
                 autoFocus
               />
             </div>
-            <div className="flex-1">
+            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
               <label className={QE_LABEL}>Target group</label>
               <input
                 type="text"
                 value={cloneTargetGroup}
                 onChange={(e) => setCloneTargetGroup(e.target.value)}
-                className={`${QE_INPUT} font-mono`}
+                className={QE_MONO_INPUT}
                 placeholder="e.g. brand-dark"
               />
             </div>
           </div>
           {generator.sourceToken !== undefined && (
-            <div>
-              <label className={QE_LABEL}>Source token</label>
-              <input
-                type="text"
-                value={cloneSourceToken}
-                onChange={(e) => setCloneSourceToken(e.target.value)}
-                className={`${QE_INPUT} font-mono`}
-                placeholder="e.g. colors.brand.primary"
-              />
+            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+              <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+                <label className={QE_LABEL}>Source token</label>
+                <input
+                  type="text"
+                  value={cloneSourceToken}
+                  onChange={(e) => setCloneSourceToken(e.target.value)}
+                  className={QE_MONO_INPUT}
+                  placeholder="e.g. colors.brand.primary"
+                />
+              </div>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() =>
-                handleDuplicate({
-                  name: cloneName.trim(),
-                  targetGroup: cloneTargetGroup.trim(),
-                  sourceToken:
-                    generator.sourceToken !== undefined
-                      ? cloneSourceToken
-                      : undefined,
-                })
-              }
-              disabled={duplicating || !cloneName.trim()}
-              className="flex-1 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
-            >
-              {duplicating ? "Cloning…" : "Clone"}
-            </button>
-            <button
-              onClick={() => setShowClonePanel(false)}
-              className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-            >
-              Cancel
-            </button>
+          <div className={AUTHORING_SURFACE_CLASSES.footer}>
+            <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+              <button
+                onClick={() => setShowClonePanel(false)}
+                className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)]`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  handleDuplicate({
+                    name: cloneName.trim(),
+                    targetGroup: cloneTargetGroup.trim(),
+                    sourceToken:
+                      generator.sourceToken !== undefined
+                        ? cloneSourceToken
+                        : undefined,
+                  })
+                }
+                disabled={duplicating || !cloneName.trim()}
+                className={`${AUTHORING_SURFACE_CLASSES.footerPrimary} rounded bg-[var(--color-figma-accent)] px-3 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50`}
+              >
+                {duplicating ? "Cloning…" : "Clone generator"}
+              </button>
+            </div>
           </div>
         </div>
       )}

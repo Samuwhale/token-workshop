@@ -373,8 +373,6 @@ export function TokenGeneratorDialog({
                 onClearAllOverrides={dialog.clearAllOverrides}
               />
 
-              <div className="border-t border-[var(--color-figma-border)] my-1" />
-
               <StepWhere
                 name={dialog.name}
                 targetSet={dialog.targetSet}
@@ -392,22 +390,19 @@ export function TokenGeneratorDialog({
               />
 
               {!dialog.isEditing && dialog.previewTokens.length > 0 && (
-                <>
-                  <div className="border-t border-[var(--color-figma-border)] my-1" />
-                  <StepSemanticPlanning
-                    selectedType={dialog.selectedType}
-                    targetGroup={dialog.targetGroup}
-                    previewTokens={dialog.previewTokens}
-                    templateStarter={template?.semanticStarter}
-                    semanticEnabled={dialog.semanticEnabled}
-                    semanticPrefix={dialog.semanticPrefix}
-                    semanticMappings={dialog.semanticMappings}
-                    onSemanticEnabledChange={dialog.setSemanticEnabled}
-                    onSemanticPrefixChange={dialog.setSemanticPrefix}
-                    onSemanticMappingsChange={dialog.setSemanticMappings}
-                    onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
-                  />
-                </>
+                <StepSemanticPlanning
+                  selectedType={dialog.selectedType}
+                  targetGroup={dialog.targetGroup}
+                  previewTokens={dialog.previewTokens}
+                  templateStarter={template?.semanticStarter}
+                  semanticEnabled={dialog.semanticEnabled}
+                  semanticPrefix={dialog.semanticPrefix}
+                  semanticMappings={dialog.semanticMappings}
+                  onSemanticEnabledChange={dialog.setSemanticEnabled}
+                  onSemanticPrefixChange={dialog.setSemanticPrefix}
+                  onSemanticMappingsChange={dialog.setSemanticMappings}
+                  onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
+                />
               )}
             </>
           )}

@@ -8,6 +8,7 @@ import {
   type SemanticDraftMapping,
   type SemanticSuggestion,
 } from '../semanticPlanning';
+import { GENERATOR_AUTHORING_CLASSES } from '../generatorAuthoringSurface';
 
 type SemanticPlanState = 'skip' | 'suggested' | 'custom';
 
@@ -43,7 +44,7 @@ function StateButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`min-h-[36px] rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         active
           ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8'
           : 'border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -139,18 +140,16 @@ export function StepSemanticPlanning({
   };
 
   return (
-    <div className="px-4 py-3 flex flex-col gap-3">
-      <div className="flex flex-col gap-0.5">
-        <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-          Semantic aliases
-        </h3>
-        <p className="text-[9.5px] leading-snug text-[var(--color-figma-text-secondary)]">
+    <section className={`${GENERATOR_AUTHORING_CLASSES.root} ${GENERATOR_AUTHORING_CLASSES.section}`}>
+      <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
+        <h3 className={GENERATOR_AUTHORING_CLASSES.title}>Semantic aliases</h3>
+        <p className={GENERATOR_AUTHORING_CLASSES.description}>
           Decide whether this generator should also publish role-based aliases
           before you review the final output.
         </p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className={GENERATOR_AUTHORING_CLASSES.buttonGrid}>
         <StateButton
           label="Skip"
           description="Create only the generated scale."
@@ -187,10 +186,10 @@ export function StepSemanticPlanning({
       )}
 
       {canPlanAliases && semanticEnabled && (
-        <div className="flex flex-col gap-3 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
           {suggestions.length > 0 && (
-            <div>
-              <label className="mb-1.5 block text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>
                 Suggested starters
               </label>
               <div className="flex flex-wrap gap-1.5">
@@ -215,8 +214,8 @@ export function StepSemanticPlanning({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <label className="shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+            <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>
               Prefix
             </label>
             <input
@@ -227,13 +226,13 @@ export function StepSemanticPlanning({
                 onSemanticPrefixChange(event.target.value);
               }}
               placeholder="semantic"
-              className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+              className={GENERATOR_AUTHORING_CLASSES.controlMono}
             />
           </div>
 
-          <div>
-            <div className="mb-1 flex items-center justify-between">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+            <div className="flex items-center justify-between gap-2">
+              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>
                 Alias mappings
               </label>
               <button
@@ -250,10 +249,10 @@ export function StepSemanticPlanning({
                 + Add alias
               </button>
             </div>
-            <div className="flex flex-col gap-1">
+            <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
               {semanticMappings.length > 0 ? (
                 semanticMappings.map((mapping, index) => (
-                  <div key={`${mapping.semantic}-${index}`} className="flex items-center gap-1.5">
+                  <div key={`${mapping.semantic}-${index}`} className={`${GENERATOR_AUTHORING_CLASSES.fieldGrid} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2`}>
                     <input
                       type="text"
                       value={mapping.semantic}
@@ -268,61 +267,43 @@ export function StepSemanticPlanning({
                         );
                       }}
                       placeholder="action.default"
-                      className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                      className={GENERATOR_AUTHORING_CLASSES.controlMono}
                     />
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="shrink-0 text-[var(--color-figma-text-secondary)]"
-                    >
-                      <path d="M2 6h8M7 3l3 3-3 3" />
-                    </svg>
-                    <select
-                      value={mapping.step}
-                      onChange={(event) => {
-                        onSemanticPatternSelect(null);
-                        onSemanticMappingsChange(
-                          semanticMappings.map((candidate, candidateIndex) =>
-                            candidateIndex === index
-                              ? { ...candidate, step: event.target.value }
-                              : candidate,
-                          ),
-                        );
-                      }}
-                      className="w-20 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-1 text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-                    >
-                      {availableSteps.map((step) => (
-                        <option key={step} value={step}>
-                          {step}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSemanticPatternSelect(null);
-                        onSemanticMappingsChange(
-                          semanticMappings.filter((_, candidateIndex) => candidateIndex !== index),
-                        );
-                      }}
-                      className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-error)]"
-                      aria-label="Remove alias mapping"
-                    >
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
+                    <div className={`${GENERATOR_AUTHORING_CLASSES.fieldGrid} items-start`}>
+                      <select
+                        value={mapping.step}
+                        onChange={(event) => {
+                          onSemanticPatternSelect(null);
+                          onSemanticMappingsChange(
+                            semanticMappings.map((candidate, candidateIndex) =>
+                              candidateIndex === index
+                                ? { ...candidate, step: event.target.value }
+                                : candidate,
+                            ),
+                          );
+                        }}
+                        className={GENERATOR_AUTHORING_CLASSES.control}
                       >
-                        <path d="M3 3l6 6M9 3l-6 6" />
-                      </svg>
-                    </button>
+                        {availableSteps.map((step) => (
+                          <option key={step} value={step}>
+                            {step}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSemanticPatternSelect(null);
+                          onSemanticMappingsChange(
+                            semanticMappings.filter((_, candidateIndex) => candidateIndex !== index),
+                          );
+                        }}
+                        className="min-h-[36px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-error)]"
+                        aria-label="Remove alias mapping"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -335,9 +316,9 @@ export function StepSemanticPlanning({
         </div>
       )}
 
-      <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+      <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
         <div className="flex items-center justify-between gap-2">
-          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+          <div className={GENERATOR_AUTHORING_CLASSES.title}>
             Alias output preview
           </div>
           <span
@@ -380,6 +361,6 @@ export function StepSemanticPlanning({
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
