@@ -18,11 +18,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: The audit recommends collapsing the current nine-hook split into workspace state, diagnostics state, and advanced tool state while keeping `useThemeSwitcher` as cross-workspace state."
-state: ready
+  - "Completed: Grouped ThemeManager into workspace/diagnostics/advanced controllers, unified mutation feedback, and verified with focused eslint plus figma-plugin build."
+state: done
 acceptance_criteria:
   - ThemeManager no longer stitches nine peer theme hooks together directly inside one component.
   - Structural mutations, diagnostics, and advanced tool state are each owned by a coherent provider or controller with stable selectors.
   - Bulk operations, simple authoring actions, and diagnostics remediation share one consistent success and failure feedback pipeline.
 source: task-followup
 created_at: 2026-04-13T01:05:03.216Z
-updated_at: 2026-04-13T01:05:03.216Z
+updated_at: 2026-04-13T02:01:48.700Z

@@ -95,7 +95,7 @@
 - [x] [HIGH] Build a simple theme variant composer for light/dark and brand workflows
 - [x] [HIGH] Split theme diagnostics into an explicit review route with issue-to-fix handoffs
 - [x] [HIGH] Clarify resolver opt-in and hide resolver mismatch details from default theme authoring
-- [ ] [HIGH] Consolidate ThemeManager state into workspace and diagnostics providers
+- [x] [HIGH] Consolidate ThemeManager state into workspace and diagnostics providers
 - [ ] [HIGH] Introduce shared authoring-surface layout primitives for narrow Figma panels
 - [ ] [HIGH] Refactor canvas quick-create and token quick-create launcher onto the shared authoring contract
 - [ ] [HIGH] Rebuild BatchEditor for stacked compact layout below 360px

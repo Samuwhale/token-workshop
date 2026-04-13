@@ -82,7 +82,7 @@ export function StepReview({
   );
 
   return (
-    <div className="px-4 py-3 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-0.5">
         <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
           Review and confirm

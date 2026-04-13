@@ -1856,3 +1856,12 @@
   - ThemeManager stays easier to evolve when the shell owns only route/focus choreography and job-based controllers own grouped hook wiring plus derived state.
   - A shared feedback adapter is enough to unify theme mutation UX without forcing every mutation hook to know about toast plumbing or inline alert rendering.
 ---
+## 2026-04-13 - Introduce shared authoring-surface layout primitives for narrow Figma panels
+- Added an `EditorShell` authoring preset plus shared body/footer/split-layout slots so token and generator authoring surfaces now share one shell density contract and the same `240px` minimum, `320px` target, and `600px` split-view bands.
+- Moved the generator step shells onto the shared authoring body spacing instead of per-step outer padding, and restacked token/generator footer actions onto the shared footer wrap behavior.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/EditorShell.tsx packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx packages/figma-plugin/src/ui/components/TokenEditor.tsx packages/figma-plugin/src/ui/components/generator-steps/StepWhat.tsx packages/figma-plugin/src/ui/components/generator-steps/StepWhere.tsx packages/figma-plugin/src/ui/components/generator-steps/StepReview.tsx` passed with the pre-existing `react-hooks/exhaustive-deps` warning in `packages/figma-plugin/src/ui/components/TokenEditor.tsx:1120`. `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/EditorShell.tsx` ~L7, ~L36, ~L60; `packages/figma-plugin/src/ui/styles.css` ~L195; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L232, ~L292; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1631, ~L1743; `packages/figma-plugin/src/ui/components/generator-steps/StepWhat.tsx` ~L315; `packages/figma-plugin/src/ui/components/generator-steps/StepWhere.tsx` ~L111; `packages/figma-plugin/src/ui/components/generator-steps/StepReview.tsx` ~L85; `scripts/backlog/patterns.md` ~L233; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Shared shell adoption lands more cleanly when `EditorShell` owns the chrome mode and surfaces consume named interior slot classes for body stacks, footer actions, and split layouts instead of retyping class strings.
+  - Container-scoped `320px` and `600px` authoring bands are a better fit for Figma panels than viewport media queries because the same surface can live in a narrow plugin panel or a wider modal host.
+---

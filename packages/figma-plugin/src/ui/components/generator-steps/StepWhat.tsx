@@ -40,6 +40,7 @@ import { TypeThumbnail } from '../generators/TypeThumbnail';
 import { UnifiedSourceInput } from '../UnifiedSourceInput';
 import { Spinner } from '../Spinner';
 import { ValueDiff } from '../ValueDiff';
+import { AUTHORING_SURFACE_CLASSES } from '../EditorShell';
 
 
 // ---------------------------------------------------------------------------
@@ -311,78 +312,74 @@ export function StepWhat({
   const typeExpectsDimension = selectedType === 'typeScale' || selectedType === 'spacingScale' || selectedType === 'borderRadiusScale';
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="gen-dialog-grid gap-4">
+    <div className={AUTHORING_SURFACE_CLASSES.splitLayout}>
+      {/* ---- LEFT: Config column ---- */}
+      <div className={AUTHORING_SURFACE_CLASSES.splitConfig}>
+        {/* Type selector — compact dropdown */}
+        <TypeSelector
+          selectedType={selectedType}
+          recommendedType={recommendedType}
+          onTypeChange={onTypeChange}
+        />
 
-        {/* ---- LEFT: Config column ---- */}
-        <div className="gen-dialog-config">
-
-          {/* Type selector — compact dropdown */}
-          <TypeSelector
-            selectedType={selectedType}
-            recommendedType={recommendedType}
-            onTypeChange={onTypeChange}
+        {/* Base value — unified source token / inline value input */}
+        {typeNeedsValue && (
+          <UnifiedSourceInput
+            expectedType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : null}
+            sourceTokenPath={sourceTokenPath}
+            sourceTokenValue={sourceTokenValue}
+            inlineValue={inlineValue}
+            isMultiBrand={isMultiBrand}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            onSourcePathChange={onSourcePathChange}
+            onInlineValueChange={onInlineValueChange}
           />
+        )}
 
-          {/* Base value — unified source token / inline value input */}
-          {typeNeedsValue && (
-            <UnifiedSourceInput
-              expectedType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : null}
-              sourceTokenPath={sourceTokenPath}
-              sourceTokenValue={sourceTokenValue}
-              inlineValue={inlineValue}
-              isMultiBrand={isMultiBrand}
-              allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
-              onSourcePathChange={onSourcePathChange}
-              onInlineValueChange={onInlineValueChange}
-            />
-          )}
-
-          {/* Config editor */}
-          <div className="border border-[var(--color-figma-border)] rounded-lg p-3 bg-[var(--color-figma-bg-secondary)]">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{TYPE_LABELS[selectedType]} settings</span>
-              {(canUndo || canRedo) && (
-                <div className="flex items-center gap-0.5">
-                  <button
-                    onClick={onUndo}
-                    disabled={!canUndo}
-                    title="Undo config change"
-                    aria-label="Undo"
-                    className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-20 transition-opacity"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h5a2.5 2.5 0 0 1 0 5H6" /><path d="M5 2.5L3 4.5 5 6.5" /></svg>
-                  </button>
-                  <button
-                    onClick={onRedo}
-                    disabled={!canRedo}
-                    title="Redo config change"
-                    aria-label="Redo"
-                    className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-20 transition-opacity"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4.5H4a2.5 2.5 0 0 0 0 5h2" /><path d="M7 2.5l2 2-2 2" /></svg>
-                  </button>
-                </div>
-              )}
-            </div>
-            {selectedType === 'colorRamp' && <ColorRampConfigEditor config={currentConfig as ColorRampConfig} onChange={cfg => onConfigChange('colorRamp', cfg)} onInteractionStart={onConfigInteractionStart} sourceHex={effectiveSourceHex} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-            {selectedType === 'typeScale' && <TypeScaleConfigEditor config={currentConfig as TypeScaleConfig} onChange={cfg => onConfigChange('typeScale', cfg)} onInteractionStart={onConfigInteractionStart} sourceValue={effectiveSourceDim} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-            {selectedType === 'spacingScale' && <SpacingScaleConfigEditor config={currentConfig as SpacingScaleConfig} onChange={cfg => onConfigChange('spacingScale', cfg)} onInteractionStart={onConfigInteractionStart} />}
-            {selectedType === 'opacityScale' && <OpacityScaleConfigEditor config={currentConfig as OpacityScaleConfig} onChange={cfg => onConfigChange('opacityScale', cfg)} />}
-            {selectedType === 'shadowScale' && <ShadowScaleConfigEditor config={currentConfig as ShadowScaleConfig} onChange={cfg => onConfigChange('shadowScale', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-            {selectedType === 'borderRadiusScale' && <BorderRadiusConfigEditor config={currentConfig as BorderRadiusScaleConfig} onChange={cfg => onConfigChange('borderRadiusScale', cfg)} />}
-            {selectedType === 'zIndexScale' && <ZIndexConfigEditor config={currentConfig as ZIndexScaleConfig} onChange={cfg => onConfigChange('zIndexScale', cfg)} />}
-            {selectedType === 'customScale' && <CustomScaleConfigEditor config={currentConfig as CustomScaleConfig} onChange={cfg => onConfigChange('customScale', cfg)} />}
-            {selectedType === 'contrastCheck' && <ContrastCheckConfigEditor config={currentConfig as ContrastCheckConfig} onChange={cfg => onConfigChange('contrastCheck', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-            {selectedType === 'accessibleColorPair' && <AccessiblePairConfigEditor config={currentConfig as AccessibleColorPairConfig} onChange={cfg => onConfigChange('accessibleColorPair', cfg)} />}
-            {selectedType === 'darkModeInversion' && <DarkModeInversionConfigEditor config={currentConfig as DarkModeInversionConfig} onChange={cfg => onConfigChange('darkModeInversion', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+        {/* Config editor */}
+        <div className="border border-[var(--color-figma-border)] rounded-lg p-3 bg-[var(--color-figma-bg-secondary)]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{TYPE_LABELS[selectedType]} settings</span>
+            {(canUndo || canRedo) && (
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                  title="Undo config change"
+                  aria-label="Undo"
+                  className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-20 transition-opacity"
+                >
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h5a2.5 2.5 0 0 1 0 5H6" /><path d="M5 2.5L3 4.5 5 6.5" /></svg>
+                </button>
+                <button
+                  onClick={onRedo}
+                  disabled={!canRedo}
+                  title="Redo config change"
+                  aria-label="Redo"
+                  className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-20 transition-opacity"
+                >
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4.5H4a2.5 2.5 0 0 0 0 5h2" /><path d="M7 2.5l2 2-2 2" /></svg>
+                </button>
+              </div>
+            )}
           </div>
-
+          {selectedType === 'colorRamp' && <ColorRampConfigEditor config={currentConfig as ColorRampConfig} onChange={cfg => onConfigChange('colorRamp', cfg)} onInteractionStart={onConfigInteractionStart} sourceHex={effectiveSourceHex} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+          {selectedType === 'typeScale' && <TypeScaleConfigEditor config={currentConfig as TypeScaleConfig} onChange={cfg => onConfigChange('typeScale', cfg)} onInteractionStart={onConfigInteractionStart} sourceValue={effectiveSourceDim} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+          {selectedType === 'spacingScale' && <SpacingScaleConfigEditor config={currentConfig as SpacingScaleConfig} onChange={cfg => onConfigChange('spacingScale', cfg)} onInteractionStart={onConfigInteractionStart} />}
+          {selectedType === 'opacityScale' && <OpacityScaleConfigEditor config={currentConfig as OpacityScaleConfig} onChange={cfg => onConfigChange('opacityScale', cfg)} />}
+          {selectedType === 'shadowScale' && <ShadowScaleConfigEditor config={currentConfig as ShadowScaleConfig} onChange={cfg => onConfigChange('shadowScale', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+          {selectedType === 'borderRadiusScale' && <BorderRadiusConfigEditor config={currentConfig as BorderRadiusScaleConfig} onChange={cfg => onConfigChange('borderRadiusScale', cfg)} />}
+          {selectedType === 'zIndexScale' && <ZIndexConfigEditor config={currentConfig as ZIndexScaleConfig} onChange={cfg => onConfigChange('zIndexScale', cfg)} />}
+          {selectedType === 'customScale' && <CustomScaleConfigEditor config={currentConfig as CustomScaleConfig} onChange={cfg => onConfigChange('customScale', cfg)} />}
+          {selectedType === 'contrastCheck' && <ContrastCheckConfigEditor config={currentConfig as ContrastCheckConfig} onChange={cfg => onConfigChange('contrastCheck', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+          {selectedType === 'accessibleColorPair' && <AccessiblePairConfigEditor config={currentConfig as AccessibleColorPairConfig} onChange={cfg => onConfigChange('accessibleColorPair', cfg)} />}
+          {selectedType === 'darkModeInversion' && <DarkModeInversionConfigEditor config={currentConfig as DarkModeInversionConfig} onChange={cfg => onConfigChange('darkModeInversion', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
         </div>
+      </div>
 
-        {/* ---- RIGHT: Preview column (sticky at wide viewports) ---- */}
-        <div className="gen-dialog-preview flex flex-col gap-4">
+      {/* ---- RIGHT: Preview column (sticky at wide viewports) ---- */}
+      <div className={AUTHORING_SURFACE_CLASSES.splitPreview}>
 
           {/* Preview */}
           <div>
@@ -639,8 +636,6 @@ export function StepWhat({
               </div>
             </div>
           )}
-
-        </div>
 
       </div>
     </div>

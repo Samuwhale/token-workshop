@@ -1,7 +1,7 @@
 import { adaptShortcut } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
-import { EditorShell } from "./EditorShell";
+import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { createTokenBody, updateToken } from "../shared/tokenMutations";
 import { apiFetch } from "../shared/apiFetch";
 import { TokenHistorySection } from "./TokenHistorySection";
@@ -1629,109 +1629,111 @@ export function TokenEditor({
   );
 
   const footer = (
-    <div className="flex items-center gap-2 px-3 py-2.5 bg-[var(--color-figma-bg-secondary)]">
-      {!isCreateMode && (
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          title="Delete token"
-          aria-label="Delete token"
-          className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+    <div className={AUTHORING_SURFACE_CLASSES.footer}>
+      <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+        {!isCreateMode && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            title="Delete token"
+            aria-label="Delete token"
+            className={`${AUTHORING_SURFACE_CLASSES.footerIcon} p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]`}
           >
-            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-          </svg>
-        </button>
-      )}
-      <button
-        onClick={handleBack}
-        className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-      >
-        {isDirty || isCreateMode ? "Cancel" : "Close"}
-      </button>
-      {isDirty && !isCreateMode && (
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+            </svg>
+          </button>
+        )}
         <button
-          onClick={handleRevert}
-          title="Revert to last saved state"
-          className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          onClick={handleBack}
+          className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]`}
         >
-          Revert
+          {isDirty || isCreateMode ? "Cancel" : "Close"}
         </button>
-      )}
-      {isCreateMode && createPresentation === "launcher" && (
-        <button
-          type="button"
-          onClick={() => setCreatePresentation("editor")}
-          className="px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-default"
-        >
-          Full editor
-        </button>
-      )}
-      {isCreateMode && onSaveAndCreateAnother && (
-        <button
-          onClick={() => handleSave(false, true)}
-          disabled={saving || !canSave || !editPath.trim()}
-          title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-          className="px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? (
-            "Creating…"
-          ) : (
-            <>
-              Create & New{" "}
-              <span className="ml-1 opacity-50 text-[10px]">
-                {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)}
-              </span>
-            </>
-          )}
-        </button>
-      )}
-      <div
-        className="flex-1"
-        onClick={() => {
-          if (!canSave && saveBlockReason && tokenType === "typography")
-            focusBlockedField();
-        }}
-      >
-        <button
-          onClick={() => handleSave()}
-          disabled={
-            saving ||
-            !canSave ||
-            (!isCreateMode && !isDirty) ||
-            (isCreateMode && !editPath.trim())
-          }
-          title={saveBlockReason || `Save (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)})`}
-          className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? (
-            isCreateMode ? (
+        {isDirty && !isCreateMode && (
+          <button
+            onClick={handleRevert}
+            title="Revert to last saved state"
+            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]`}
+          >
+            Revert
+          </button>
+        )}
+        {isCreateMode && createPresentation === "launcher" && (
+          <button
+            type="button"
+            onClick={() => setCreatePresentation("editor")}
+            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-default`}
+          >
+            Full editor
+          </button>
+        )}
+        {isCreateMode && onSaveAndCreateAnother && (
+          <button
+            onClick={() => handleSave(false, true)}
+            disabled={saving || !canSave || !editPath.trim()}
+            title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
+            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {saving ? (
               "Creating…"
             ) : (
-              "Saving…"
-            )
-          ) : saveBlockReason ? (
-            saveBlockReason
-          ) : !isCreateMode && !isDirty ? (
-            "No changes"
-          ) : (
-            <>
-              {isCreateMode ? "Create" : "Save changes"}{" "}
-              <span className="ml-1 opacity-60 text-[10px]">
-                {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)}
-              </span>
-            </>
-          )}
-        </button>
+              <>
+                Create & New{" "}
+                <span className="ml-1 opacity-50 text-[10px]">
+                  {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)}
+                </span>
+              </>
+            )}
+          </button>
+        )}
+        <div
+          className={AUTHORING_SURFACE_CLASSES.footerPrimary}
+          onClick={() => {
+            if (!canSave && saveBlockReason && tokenType === "typography")
+              focusBlockedField();
+          }}
+        >
+          <button
+            onClick={() => handleSave()}
+            disabled={
+              saving ||
+              !canSave ||
+              (!isCreateMode && !isDirty) ||
+              (isCreateMode && !editPath.trim())
+            }
+            title={saveBlockReason || `Save (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)})`}
+            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              isCreateMode ? (
+                "Creating…"
+              ) : (
+                "Saving…"
+              )
+            ) : saveBlockReason ? (
+              saveBlockReason
+            ) : !isCreateMode && !isDirty ? (
+              "No changes"
+            ) : (
+              <>
+                {isCreateMode ? "Create" : "Save changes"}{" "}
+                <span className="ml-1 opacity-60 text-[10px]">
+                  {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)}
+                </span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1739,20 +1741,19 @@ export function TokenEditor({
   return (
     <div className="flex flex-col h-full">
       <EditorShell
+        surface="authoring"
         onBack={handleBack}
         title={headerTitle}
         headerActions={headerActions}
         afterHeader={afterHeader}
-        headerClassName="px-3 py-2 bg-[var(--color-figma-bg-secondary)]"
         bodyRef={scrollContainerRef}
         bodyProps={{
           onScroll: (e) => {
             scrollPositionsRef.current.set(tokenPath, e.currentTarget.scrollTop);
           },
         }}
-        bodyClassName="p-3 flex flex-col gap-3"
+        bodyClassName={AUTHORING_SURFACE_CLASSES.bodyStack}
         footer={footer}
-        footerClassName="bg-[var(--color-figma-bg-secondary)]"
       >
         {displayError && (
           <div

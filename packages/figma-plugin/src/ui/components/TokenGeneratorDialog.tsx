@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { ConfirmModal } from "./ConfirmModal";
-import { EditorShell } from "./EditorShell";
+import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import type { TokenGenerator, GeneratorTemplate } from "../hooks/useGenerators";
 import type { SemanticStarter } from "./graph-templates";
 import {
@@ -230,9 +230,9 @@ export function TokenGeneratorDialog({
     </button>
   );
   const footer = (
-    <div className="flex flex-col gap-2 p-3 bg-[var(--color-figma-bg-secondary)]">
+    <div className={AUTHORING_SURFACE_CLASSES.footer}>
       {missingFields.length > 0 && !dialog.saving && !dialog.showConfirmation && (
-        <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+        <p className={AUTHORING_SURFACE_CLASSES.footerMeta}>
           {missingFields.length === 1
             ? `${missingFields[0].charAt(0).toUpperCase() + missingFields[0].slice(1)} is required.`
             : `Required: ${missingFields.join(", ")}.`}
@@ -243,13 +243,13 @@ export function TokenGeneratorDialog({
           {dialog.existingTokensError}
         </div>
       )}
-      <div className="flex gap-2">
+      <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
         <button
           type="button"
           onClick={
             dialog.showConfirmation ? dialog.handleCancelConfirmation : handleClose
           }
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+          className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]`}
         >
           {dialog.showConfirmation ? "Back to Edit" : "Cancel"}
         </button>
@@ -257,7 +257,7 @@ export function TokenGeneratorDialog({
           type="button"
           onClick={handleSave}
           disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+          className={`${AUTHORING_SURFACE_CLASSES.footerPrimary} px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 flex items-center justify-center gap-1.5`}
         >
           {dialog.saving && <Spinner size="sm" className="text-white" />}
           {saveLabel}
@@ -290,17 +290,17 @@ export function TokenGeneratorDialog({
         className={dialogClassName}
       >
         <EditorShell
+          surface="authoring"
           onBack={onBack}
           backAriaLabel="Back to templates"
           title={title}
           headerActions={headerActions}
-          headerClassName="px-4 py-2.5"
           footer={footer}
-          footerClassName="bg-[var(--color-figma-bg-secondary)]"
+          bodyClassName={AUTHORING_SURFACE_CLASSES.bodyStack}
         >
           {existingGenerator?.detachedPaths &&
             existingGenerator.detachedPaths.length > 0 && (
-              <div className="mb-3 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+              <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
                 <p className="text-[var(--color-figma-text)]">
                   {existingGenerator.detachedPaths.length} output
                   {existingGenerator.detachedPaths.length === 1 ? "" : "s"}{" "}
