@@ -215,10 +215,11 @@ export function StepSemanticPlanning({
           )}
 
           <div className={AUTHORING.generatorFieldStack}>
-            <label className={AUTHORING.generatorSummaryLabel}>
+            <label htmlFor="semantic-prefix" className={AUTHORING.generatorSummaryLabel}>
               Prefix
             </label>
             <input
+              id="semantic-prefix"
               type="text"
               value={semanticPrefix}
               onChange={(event) => {
@@ -254,6 +255,7 @@ export function StepSemanticPlanning({
                 semanticMappings.map((mapping, index) => (
                   <div key={`${mapping.semantic}-${index}`} className={`${AUTHORING.generatorFieldGrid} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2`}>
                     <input
+                      id={`semantic-mapping-${index}`}
                       type="text"
                       value={mapping.semantic}
                       onChange={(event) => {
@@ -271,6 +273,7 @@ export function StepSemanticPlanning({
                     />
                     <div className={`${AUTHORING.generatorFieldGrid} items-start`}>
                       <select
+                        id={`semantic-mapping-step-${index}`}
                         value={mapping.step}
                         onChange={(event) => {
                           onSemanticPatternSelect(null);
