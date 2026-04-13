@@ -327,6 +327,7 @@ export const ThemeAuthoringScreen = forwardRef<
 
   const authoringContextValue = useMemo<ThemeAuthoringContextValue>(
     () => ({
+      // UI state
       collapsedDisabled,
       toggleCollapsedDisabled,
       dimSearch,
@@ -338,34 +339,132 @@ export const ThemeAuthoringScreen = forwardRef<
       tabScrollState,
       scrollOptionRail,
       addOptionInputRefs,
-      setShowAddOption,
-      setNewOptionNames,
-      setAddOptionErrors,
-      setCopyFromNewOption,
+
+      // Drag & drop
+      draggingOpt,
+      dragOverOpt,
       handleOptDragStart,
       handleOptDragOver,
       handleOptDrop,
       handleOptDragEnd,
-      draggingOpt,
-      dragOverOpt,
+
+      // Dimension CRUD
+      renameDim,
+      renameValue,
+      renameError,
+      setRenameValue,
+      startRenameDim,
+      cancelRenameDim,
+      executeRenameDim,
+      openDeleteConfirm,
+      handleDuplicateDimension,
+      isDuplicatingDim,
+      handleMoveDimension,
+      newlyCreatedDim,
+
+      // Option CRUD
+      newOptionNames,
+      showAddOption,
+      addOptionErrors,
+      copyFromNewOption,
+      setShowAddOption,
+      setNewOptionNames,
+      setAddOptionErrors,
+      setCopyFromNewOption,
+      handleAddOption,
+      renameOption,
+      renameOptionValue,
+      renameOptionError,
+      startRenameOption,
+      setRenameOptionValue,
+      setRenameOptionError,
+      executeRenameOption,
+      cancelRenameOption,
+      handleDuplicateOption,
+      setOptionDeleteConfirm,
+      handleMoveOption,
+
+      // Selection
+      onSelectDimension,
+      onSelectOption,
+      selectedOptions,
+
+      // Data
+      optionDiffCounts,
+      optionRoleSummaries,
+      optionIssues,
+
+      // Set operations
+      getCopySourceOptions,
+      handleSetState,
+      handleCopyAssignmentsFrom,
+      handleAutoFillAll,
+      handleAutoFillAllOptions,
+
+      // Navigation
+      onOpenCoverageView,
+      onOpenAdvancedSetup,
       onNavigateToTokenSet,
+      onGenerateForDimension,
     }),
     [
       collapsedDisabled,
       dimSearch,
       tabScrollState,
       addOptionInputRefs,
-      setShowAddOption,
-      setNewOptionNames,
-      setAddOptionErrors,
-      setCopyFromNewOption,
+      draggingOpt,
+      dragOverOpt,
       handleOptDragStart,
       handleOptDragOver,
       handleOptDrop,
       handleOptDragEnd,
-      draggingOpt,
-      dragOverOpt,
+      renameDim,
+      renameValue,
+      renameError,
+      setRenameValue,
+      startRenameDim,
+      cancelRenameDim,
+      executeRenameDim,
+      openDeleteConfirm,
+      handleDuplicateDimension,
+      isDuplicatingDim,
+      handleMoveDimension,
+      newlyCreatedDim,
+      newOptionNames,
+      showAddOption,
+      addOptionErrors,
+      copyFromNewOption,
+      setShowAddOption,
+      setNewOptionNames,
+      setAddOptionErrors,
+      setCopyFromNewOption,
+      handleAddOption,
+      renameOption,
+      renameOptionValue,
+      renameOptionError,
+      startRenameOption,
+      setRenameOptionValue,
+      setRenameOptionError,
+      executeRenameOption,
+      cancelRenameOption,
+      handleDuplicateOption,
+      setOptionDeleteConfirm,
+      handleMoveOption,
+      onSelectDimension,
+      onSelectOption,
+      selectedOptions,
+      optionDiffCounts,
+      optionRoleSummaries,
+      optionIssues,
+      getCopySourceOptions,
+      handleSetState,
+      handleCopyAssignmentsFrom,
+      handleAutoFillAll,
+      handleAutoFillAllOptions,
+      onOpenCoverageView,
+      onOpenAdvancedSetup,
       onNavigateToTokenSet,
+      onGenerateForDimension,
     ],
   );
 
@@ -425,34 +524,7 @@ export const ThemeAuthoringScreen = forwardRef<
                   </div>
                 )}
                 {filteredDimensions.map((dimension) => {
-                  const selectedOption =
-                    selectedOptions[dimension.id] ||
-                    dimension.options[0]?.name ||
-                    "";
-                  const option = dimension.options.find(
-                    (item: ThemeOption) => item.name === selectedOption,
-                  );
-                  const optionSets = option
-                    ? optionSetOrders[dimension.id]?.[option.name] || sets
-                    : sets;
                   const dimensionIndex = dimensions.indexOf(dimension);
-                  const overrideSets = optionSets.filter(
-                    (setName) => option?.sets[setName] === "enabled",
-                  );
-                  const foundationSets = optionSets.filter(
-                    (setName) => option?.sets[setName] === "source",
-                  );
-                  const disabledSets = optionSets.filter(
-                    (setName) =>
-                      !option?.sets[setName] ||
-                      option?.sets[setName] === "disabled",
-                  );
-                  const copySourceOptions = getCopySourceOptions(
-                    dimension.id,
-                    selectedOption,
-                  );
-                  const optionKey = `${dimension.id}:${selectedOption}`;
-                  const selectedOptionIssues = optionIssues[optionKey] ?? [];
                   const dimensionCoverage = coverage[dimension.id] ?? {};
                   const optionsWithGaps = dimension.options.filter(
                     (item: ThemeOption) =>
@@ -482,143 +554,14 @@ export const ThemeAuthoringScreen = forwardRef<
                       key={dimension.id}
                       dimension={dimension}
                       sets={sets}
+                      optionSetOrders={optionSetOrders}
+                      setTokenValues={setTokenValues}
                       dimensionIndex={dimensionIndex}
                       totalDimensions={dimensions.length}
                       isExpanded={focusedDimension?.id === dimension.id}
-                      onToggleExpand={() => onSelectDimension(dimension.id)}
                       totalDimensionGaps={totalDimensionGaps}
                       totalDimensionFillable={totalDimensionFillable}
                       multiOptionGaps={optionsWithGaps.length > 1}
-                      selectedOption={selectedOption}
-                      option={option}
-                      selectedOptionIssues={selectedOptionIssues}
-                      overrideSets={overrideSets}
-                      foundationSets={foundationSets}
-                      disabledSets={disabledSets}
-                      optionDiffCounts={optionDiffCounts}
-                      optionRoleSummaries={optionRoleSummaries}
-                      renameDim={renameDim}
-                      renameValue={renameValue}
-                      renameError={renameError}
-                      showAddOption={showAddOption[dimension.id] ?? false}
-                      newOptionName={newOptionNames[dimension.id] ?? ""}
-                      addOptionError={addOptionErrors[dimension.id] ?? ""}
-                      copyFromNewOption={copyFromNewOption[dimension.id] ?? ""}
-                      renameOption={renameOption}
-                      renameOptionValue={renameOptionValue}
-                      renameOptionError={renameOptionError}
-                      newlyCreatedDim={newlyCreatedDim}
-                      isDuplicatingDim={isDuplicatingDim}
-                      copySourceOptions={copySourceOptions}
-                      setTokenCounts={Object.fromEntries(
-                        sets.map((setName) => [
-                          setName,
-                          setTokenValues[setName]
-                            ? Object.keys(setTokenValues[setName]).length
-                            : null,
-                        ]),
-                      )}
-                      onSetRenameValue={setRenameValue}
-                      onStartRenameDim={() =>
-                        startRenameDim(dimension.id, dimension.name)
-                      }
-                      onCancelRenameDim={cancelRenameDim}
-                      onExecuteRenameDim={executeRenameDim}
-                      onDeleteDimension={() => openDeleteConfirm(dimension.id)}
-                      onDuplicateDimension={() =>
-                        handleDuplicateDimension(dimension.id)
-                      }
-                      onMoveDimension={(direction) =>
-                        handleMoveDimension(dimension.id, direction)
-                      }
-                      onSelectOption={(optionName) =>
-                        onSelectOption(dimension.id, optionName)
-                      }
-                      onToggleAddOption={(next) =>
-                        setShowAddOption((current) => ({
-                          ...current,
-                          [dimension.id]: next,
-                        }))
-                      }
-                      onSetNewOptionName={(value) => {
-                        setNewOptionNames((current) => ({
-                          ...current,
-                          [dimension.id]: value,
-                        }));
-                        setAddOptionErrors((current) => ({
-                          ...current,
-                          [dimension.id]: "",
-                        }));
-                      }}
-                      onSetCopyFromNewOption={(value) =>
-                        setCopyFromNewOption((current) => ({
-                          ...current,
-                          [dimension.id]: value,
-                        }))
-                      }
-                      onAddOption={() => handleAddOption(dimension.id)}
-                      onStartRenameOption={() =>
-                        startRenameOption(dimension.id, selectedOption)
-                      }
-                      onRenameOptionValueChange={(value) => {
-                        setRenameOptionValue(value);
-                        setRenameOptionError(null);
-                      }}
-                      onExecuteRenameOption={executeRenameOption}
-                      onCancelRenameOption={cancelRenameOption}
-                      onMoveOption={(direction) =>
-                        handleMoveOption(dimension.id, selectedOption, direction)
-                      }
-                      onDuplicateOption={() =>
-                        handleDuplicateOption(dimension.id, selectedOption)
-                      }
-                      onDeleteOption={() =>
-                        setOptionDeleteConfirm({
-                          dimId: dimension.id,
-                          optionName: selectedOption,
-                        })
-                      }
-                      onOpenCoverageView={onOpenCoverageView}
-                      onOpenAdvancedSetup={() =>
-                        onOpenAdvancedSetup({
-                          dimId: dimension.id,
-                          optionName: selectedOption,
-                          preferredSetName: null,
-                        })
-                      }
-                      onHandleSetState={(setName, nextState) =>
-                        handleSetState(dimension.id, selectedOption, setName, nextState)
-                      }
-                      onHandleCopyAssignmentsFrom={(sourceOptionName) =>
-                        handleCopyAssignmentsFrom(
-                          dimension.id,
-                          selectedOption,
-                          sourceOptionName,
-                        )
-                      }
-                      onAutoFillOption={() =>
-                        handleAutoFillAll(dimension.id, selectedOption)
-                      }
-                      onAutoFillAllOptions={() =>
-                        handleAutoFillAllOptions(dimension.id)
-                      }
-                      onGenerateForDimension={
-                        onGenerateForDimension
-                          ? () => {
-                              const targetSet =
-                                overrideSets[0] ??
-                                foundationSets[0] ??
-                                sets[0] ??
-                                "";
-                              if (targetSet) {
-                                onGenerateForDimension({
-                                  dimensionName: dimension.name,
-                                  targetSet,
-                                });
-                              }
-                            }
-                          : undefined
-                      }
                     />
                   );
                 })}
