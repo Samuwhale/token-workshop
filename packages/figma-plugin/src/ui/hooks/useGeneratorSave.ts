@@ -3,7 +3,6 @@ import { getErrorMessage } from "../shared/utils";
 import { apiFetch, createFetchSignal } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
 import type { ToastAction } from "../shared/toastBus";
-import { SEMANTIC_PATTERNS } from "../shared/semanticPatterns";
 import type { UndoSlot } from "./useUndo";
 import type {
   TokenGenerator,
@@ -94,7 +93,7 @@ export function useGeneratorSave({
   hasValue,
   previewTokens,
   onSaved,
-  onInterceptSemanticMapping,
+  onInterceptSemanticMapping: _onInterceptSemanticMapping,
   getSuccessToastAction,
   pushUndo,
   initialSemanticEnabled,
@@ -285,52 +284,6 @@ export function useGeneratorSave({
           }
         }
 
-        if (!isEditing) {
-          let tokensForMapping = previewTokens;
-          if (tokensForMapping.length === 0 && isMultiBrand) {
-            try {
-              const tokensData = await apiFetch<{
-                tokens: GeneratedTokenResult[];
-              }>(`${serverUrl}/api/generators/${savedGen.id}/tokens`);
-              tokensForMapping = tokensData.tokens ?? [];
-            } catch (err) {
-              console.warn(
-                "[useGeneratorSave] failed to fetch generator tokens for semantic mapping:",
-                err,
-              );
-            }
-          }
-
-          const validMappings = semanticMappingsAtSave.filter(
-            (mapping) => mapping.semantic.trim() && mapping.step,
-          );
-
-          if (
-            tokensForMapping.length > 0 &&
-            onInterceptSemanticMapping &&
-            !semanticEnabledAtSave &&
-            validMappings.length === 0
-          ) {
-            onInterceptSemanticMapping({
-              tokens: tokensForMapping,
-              targetGroup: targetGroupAtSave,
-              targetSet: targetSetAtSave,
-              generatorType: selectedType,
-            });
-            setSaving(false);
-            dispatchToast(
-              `Generator "${name.trim()}" created`,
-              "success",
-              getToastAction(targetGroupAtSave, targetSetAtSave),
-            );
-            onSaved({
-              targetGroup: targetGroupAtSave,
-              targetSet: targetSetAtSave,
-            });
-            return;
-          }
-        }
-
         setSaving(false);
         dispatchToast(
           isEditing
@@ -361,9 +314,7 @@ export function useGeneratorSave({
       isMultiBrand,
       inputTable,
       targetSetTemplate,
-      previewTokens,
       onSaved,
-      onInterceptSemanticMapping,
       getToastAction,
       pushUndo,
       selectedSemanticPatternId,
@@ -476,50 +427,12 @@ export function useGeneratorSave({
 
   /** Step 1: Validate inputs and show the confirmation preview.
    *  Background overwrite checks stay live while the draft changes.
-   *  For new generators: pre-populates semantic mapping state based on generator type.
    */
   const handleSave = useCallback(async () => {
     if (!validateBeforeSave()) return;
 
-    // Initialize semantic mapping state for new generators with eligible types.
-    if (
-      !isEditing &&
-      (previewTokens.length > 0 || isMultiBrand) &&
-      semanticMappings.length === 0 &&
-      !semanticEnabled
-    ) {
-      const suggestedPatterns = SEMANTIC_PATTERNS.filter((p) =>
-        p.applicableTo.includes(selectedType),
-      );
-      if (suggestedPatterns.length > 0 && suggestedPatterns[0]) {
-        const firstPattern = suggestedPatterns[0];
-        const availableSteps = previewTokens.map((t) => String(t.stepName));
-        setSelectedSemanticPatternId(firstPattern.id);
-        setSemanticMappings(
-          firstPattern.mappings.map((m) => ({
-            semantic: m.semantic,
-            step: availableSteps.includes(m.step)
-              ? m.step
-              : (availableSteps[Math.floor(availableSteps.length / 2)] ?? ""),
-          })),
-        );
-      } else {
-        setSelectedSemanticPatternId(null);
-        setSemanticMappings([]);
-      }
-      setSemanticEnabled(false); // user must opt in
-    }
-
     setShowConfirmation(true);
-  }, [
-    validateBeforeSave,
-    isEditing,
-    previewTokens,
-    isMultiBrand,
-    selectedType,
-    semanticEnabled,
-    semanticMappings.length,
-  ]);
+  }, [validateBeforeSave]);
 
   const handleQuickSave = useCallback(async () => {
     if (!validateBeforeSave()) return;

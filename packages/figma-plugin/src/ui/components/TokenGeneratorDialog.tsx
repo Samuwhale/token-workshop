@@ -4,12 +4,18 @@ import { useFocusTrap } from "../hooks/useFocusTrap";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditorShell } from "./EditorShell";
 import type { TokenGenerator, GeneratorTemplate } from "../hooks/useGenerators";
+import type { SemanticStarter } from "./graph-templates";
 import {
   useGeneratorDialog,
   type GeneratorDialogInitialDraft,
 } from "../hooks/useGeneratorDialog";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
-import { StepWhere, StepWhat, StepReview } from "./generator-steps";
+import {
+  StepSemanticPlanning,
+  StepWhere,
+  StepWhat,
+  StepReview,
+} from "./generator-steps";
 import { Spinner } from "./Spinner";
 import type { ToastAction } from "../shared/toastBus";
 
@@ -30,12 +36,12 @@ export interface TokenGeneratorDialogProps {
   existingGenerator?: TokenGenerator;
   initialDraft?: GeneratorDialogInitialDraft;
   /** Pre-fill from a quick-start template */
-  template?: GeneratorTemplate;
+  template?: GeneratorTemplate & { semanticStarter?: SemanticStarter };
   /** When provided, shows a back arrow to return to the previous step (e.g. template picker) */
   onBack?: () => void;
   onClose: () => void;
   onSaved: (info?: GeneratorSaveSuccessInfo) => void;
-  /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog */
+  /** Legacy hook for callers that still inspect semantic-ready generator output after save. */
   onInterceptSemanticMapping?: (data: {
     tokens: import("../hooks/useGenerators").GeneratedTokenResult[];
     targetGroup: string;
@@ -125,6 +131,9 @@ export function TokenGeneratorDialog({
   };
 
   const saveLabel = (() => {
+    if (!dialog.showConfirmation) {
+      return dialog.isEditing ? "Review Changes" : "Review Generator";
+    }
     if (dialog.saving)
       return dialog.isEditing ? "Saving\u2026" : "Creating\u2026";
     if (dialog.overwriteCheckLoading) return "Checking\u2026";
@@ -221,14 +230,14 @@ export function TokenGeneratorDialog({
   );
   const footer = (
     <div className="flex flex-col gap-2 p-3 bg-[var(--color-figma-bg-secondary)]">
-      {missingFields.length > 0 && !dialog.saving && (
+      {missingFields.length > 0 && !dialog.saving && !dialog.showConfirmation && (
         <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
           {missingFields.length === 1
             ? `${missingFields[0].charAt(0).toUpperCase() + missingFields[0].slice(1)} is required.`
             : `Required: ${missingFields.join(", ")}.`}
         </p>
       )}
-      {dialog.existingTokensError && (
+      {dialog.existingTokensError && !dialog.showConfirmation && (
         <div className="text-[10px] text-[var(--color-figma-error)]">
           {dialog.existingTokensError}
         </div>
@@ -236,10 +245,12 @@ export function TokenGeneratorDialog({
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={handleClose}
+          onClick={
+            dialog.showConfirmation ? dialog.handleCancelConfirmation : handleClose
+          }
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
         >
-          Cancel
+          {dialog.showConfirmation ? "Back to Edit" : "Cancel"}
         </button>
         <button
           type="button"
@@ -301,91 +312,100 @@ export function TokenGeneratorDialog({
               </div>
             )}
 
-          <StepWhat
-            selectedType={dialog.selectedType}
-            recommendedType={dialog.recommendedType}
-            currentConfig={dialog.currentConfig}
-            typeNeedsValue={dialog.typeNeedsValue}
-            hasSource={dialog.hasSource}
-            hasValue={dialog.hasValue}
-            isMultiBrand={dialog.isMultiBrand}
-            sourceTokenPath={sourceTokenPath}
-            sourceTokenValue={sourceTokenValue}
-            inlineValue={dialog.inlineValue}
-            previewTokens={dialog.previewTokens}
-            previewLoading={dialog.previewLoading}
-            previewError={dialog.previewError}
-            previewBrand={dialog.previewBrand}
-            multiBrandPreviews={dialog.multiBrandPreviews}
-            pendingOverrides={dialog.pendingOverrides}
-            lockedCount={dialog.lockedCount}
-            overwrittenEntries={dialog.overwrittenEntries}
-            allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
-            canUndo={dialog.canUndo}
-            canRedo={dialog.canRedo}
-            onUndo={dialog.handleUndo}
-            onRedo={dialog.handleRedo}
-            onConfigInteractionStart={dialog.handleConfigInteractionStart}
-            onTypeChange={dialog.handleTypeChange}
-            onConfigChange={dialog.handleConfigChange}
-            onSourcePathChange={dialog.setEditableSourcePath}
-            onInlineValueChange={dialog.setInlineValue}
-            onOverrideChange={dialog.handleOverrideChange}
-            onOverrideClear={dialog.handleOverrideClear}
-            onClearAllOverrides={dialog.clearAllOverrides}
-          />
-
-          <div className="border-t border-[var(--color-figma-border)] my-1" />
-
-          <StepWhere
-            name={dialog.name}
-            targetSet={dialog.targetSet}
-            targetGroup={dialog.targetGroup}
-            allSets={allSets}
-            isMultiBrand={dialog.isMultiBrand}
-            inputTable={dialog.inputTable}
-            targetSetTemplate={dialog.targetSetTemplate}
-            isEditing={dialog.isEditing}
-            onNameChange={dialog.handleNameChange}
-            onTargetSetChange={dialog.setTargetSet}
-            onTargetGroupChange={dialog.setTargetGroup}
-            onToggleMultiBrand={dialog.handleToggleMultiBrand}
-            onInputTableChange={dialog.setInputTable}
-            onTargetSetTemplateChange={dialog.setTargetSetTemplate}
-            selectedType={dialog.selectedType}
-            previewTokens={dialog.previewTokens}
-            hasInterceptHandler={Boolean(onInterceptSemanticMapping)}
-            semanticEnabled={dialog.semanticEnabled}
-            semanticPrefix={dialog.semanticPrefix}
-            semanticMappings={dialog.semanticMappings}
-            selectedSemanticPatternId={dialog.selectedSemanticPatternId}
-            onSemanticEnabledChange={dialog.setSemanticEnabled}
-            onSemanticPrefixChange={dialog.setSemanticPrefix}
-            onSemanticMappingsChange={dialog.setSemanticMappings}
-            onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
-          />
-
-          {(dialog.previewTokens.length > 0 || dialog.showConfirmation) && (
+          {dialog.showConfirmation ? (
+            <StepReview
+              selectedType={dialog.selectedType}
+              name={dialog.name}
+              targetGroup={dialog.targetGroup}
+              targetSet={dialog.targetSet}
+              isEditing={dialog.isEditing}
+              isMultiBrand={dialog.isMultiBrand}
+              inputTable={dialog.inputTable}
+              targetSetTemplate={dialog.targetSetTemplate}
+              semanticEnabled={dialog.semanticEnabled}
+              semanticPrefix={dialog.semanticPrefix}
+              semanticMappings={dialog.semanticMappings}
+              previewTokens={dialog.previewTokens}
+              overwrittenEntries={dialog.overwrittenEntries}
+              existingOverwritePathSet={dialog.existingOverwritePathSet}
+              overwritePendingPaths={dialog.overwritePendingPaths}
+              overwriteCheckLoading={dialog.overwriteCheckLoading}
+              overwriteCheckError={dialog.overwriteCheckError}
+              saveError={dialog.saveError}
+            />
+          ) : (
             <>
-              <div className="border-t border-[var(--color-figma-border)] my-1" />
-              <StepReview
+              <StepWhat
                 selectedType={dialog.selectedType}
+                recommendedType={dialog.recommendedType}
+                currentConfig={dialog.currentConfig}
+                typeNeedsValue={dialog.typeNeedsValue}
+                hasSource={dialog.hasSource}
+                hasValue={dialog.hasValue}
+                isMultiBrand={dialog.isMultiBrand}
+                sourceTokenPath={sourceTokenPath}
+                sourceTokenValue={sourceTokenValue}
+                inlineValue={dialog.inlineValue}
+                previewTokens={dialog.previewTokens}
+                previewLoading={dialog.previewLoading}
+                previewError={dialog.previewError}
+                previewBrand={dialog.previewBrand}
+                multiBrandPreviews={dialog.multiBrandPreviews}
+                pendingOverrides={dialog.pendingOverrides}
+                lockedCount={dialog.lockedCount}
+                overwrittenEntries={dialog.overwrittenEntries}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                canUndo={dialog.canUndo}
+                canRedo={dialog.canRedo}
+                onUndo={dialog.handleUndo}
+                onRedo={dialog.handleRedo}
+                onConfigInteractionStart={dialog.handleConfigInteractionStart}
+                onTypeChange={dialog.handleTypeChange}
+                onConfigChange={dialog.handleConfigChange}
+                onSourcePathChange={dialog.setEditableSourcePath}
+                onInlineValueChange={dialog.setInlineValue}
+                onOverrideChange={dialog.handleOverrideChange}
+                onOverrideClear={dialog.handleOverrideClear}
+                onClearAllOverrides={dialog.clearAllOverrides}
+              />
+
+              <div className="border-t border-[var(--color-figma-border)] my-1" />
+
+              <StepWhere
                 name={dialog.name}
-                targetGroup={dialog.targetGroup}
                 targetSet={dialog.targetSet}
-                isEditing={dialog.isEditing}
+                targetGroup={dialog.targetGroup}
+                allSets={allSets}
                 isMultiBrand={dialog.isMultiBrand}
                 inputTable={dialog.inputTable}
                 targetSetTemplate={dialog.targetSetTemplate}
-                previewTokens={dialog.previewTokens}
-                overwrittenEntries={dialog.overwrittenEntries}
-                existingOverwritePathSet={dialog.existingOverwritePathSet}
-                overwritePendingPaths={dialog.overwritePendingPaths}
-                overwriteCheckLoading={dialog.overwriteCheckLoading}
-                overwriteCheckError={dialog.overwriteCheckError}
-                saveError={dialog.saveError}
+                onNameChange={dialog.handleNameChange}
+                onTargetSetChange={dialog.setTargetSet}
+                onTargetGroupChange={dialog.setTargetGroup}
+                onToggleMultiBrand={dialog.handleToggleMultiBrand}
+                onInputTableChange={dialog.setInputTable}
+                onTargetSetTemplateChange={dialog.setTargetSetTemplate}
               />
+
+              {!dialog.isEditing && dialog.previewTokens.length > 0 && (
+                <>
+                  <div className="border-t border-[var(--color-figma-border)] my-1" />
+                  <StepSemanticPlanning
+                    selectedType={dialog.selectedType}
+                    targetGroup={dialog.targetGroup}
+                    previewTokens={dialog.previewTokens}
+                    templateStarter={template?.semanticStarter}
+                    semanticEnabled={dialog.semanticEnabled}
+                    semanticPrefix={dialog.semanticPrefix}
+                    semanticMappings={dialog.semanticMappings}
+                    onSemanticEnabledChange={dialog.setSemanticEnabled}
+                    onSemanticPrefixChange={dialog.setSemanticPrefix}
+                    onSemanticMappingsChange={dialog.setSemanticMappings}
+                    onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
+                  />
+                </>
+              )}
             </>
           )}
         </EditorShell>

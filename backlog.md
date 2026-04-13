@@ -83,7 +83,7 @@
 - [x] [HIGH] Redesign token tree rows for fast library scanning
 - [x] [HIGH] Promote the token filter builder into the primary search discovery flow
 - [x] [HIGH] Preserve hierarchy context in filtered token results
-- [ ] [HIGH] Unify generator entrypoints behind an intent-first composer
+- [x] [HIGH] Unify generator entrypoints behind an intent-first composer
 - [ ] [HIGH] Move semantic alias planning into a dedicated pre-review step
 - [ ] [HIGH] Expose generator dependency and status metadata for dashboard surfaces
 - [ ] [HIGH] Surface overwrite and manual-edit conflicts during live preview

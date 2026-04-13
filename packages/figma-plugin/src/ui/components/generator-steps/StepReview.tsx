@@ -11,6 +11,7 @@ import type { OverwrittenEntry } from '../../hooks/useGeneratorPreview';
 import { swatchBgColor } from '../../shared/colorUtils';
 import { ValueDiff } from '../ValueDiff';
 import { Spinner } from '../Spinner';
+import { TYPE_LABELS } from '../generators/generatorUtils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -26,6 +27,9 @@ export interface StepReviewProps {
   isMultiBrand: boolean;
   inputTable: InputTable | undefined;
   targetSetTemplate: string;
+  semanticEnabled: boolean;
+  semanticPrefix: string;
+  semanticMappings: Array<{ semantic: string; step: string }>;
   // Preview data
   previewTokens: GeneratedTokenResult[];
   overwrittenEntries: OverwrittenEntry[];
@@ -51,6 +55,9 @@ export function StepReview({
   isMultiBrand,
   inputTable,
   targetSetTemplate,
+  semanticEnabled,
+  semanticPrefix,
+  semanticMappings,
   previewTokens,
   overwrittenEntries,
   existingOverwritePathSet,
@@ -66,10 +73,85 @@ export function StepReview({
 
   const newTokens = previewTokens.filter(pt => !existingOverwritePathSet.has(pt.path));
   const unchangedOverwriteTokens = previewTokens.filter(pt => existingOverwritePathSet.has(pt.path) && !overwritePaths.has(pt.path));
+  const validSemanticMappings = useMemo(
+    () => semanticMappings.filter((mapping) => mapping.semantic.trim() && mapping.step),
+    [semanticMappings],
+  );
 
   return (
     <div className="px-4 py-3 flex flex-col gap-3">
-      <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">Summary</h3>
+      <div className="flex flex-col gap-0.5">
+        <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+          Review and confirm
+        </h3>
+        <p className="text-[9.5px] leading-snug text-[var(--color-figma-text-secondary)]">
+          Confirm the destination, semantic plan, and token changes before saving.
+        </p>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+          <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
+            Generator
+          </div>
+          <div className="mt-1 text-[10px] font-medium text-[var(--color-figma-text)]">
+            {name}
+          </div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            {TYPE_LABELS[selectedType]}
+          </div>
+        </div>
+        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+          <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
+            Output
+          </div>
+          <div className="mt-1 text-[10px] font-mono text-[var(--color-figma-text)]">
+            {targetGroup}
+          </div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            {isMultiBrand ? 'Multiple sets' : targetSet}
+          </div>
+        </div>
+        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+          <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
+            Semantic aliases
+          </div>
+          <div className="mt-1 text-[10px] font-medium text-[var(--color-figma-text)]">
+            {semanticEnabled && validSemanticMappings.length > 0
+              ? `${validSemanticMappings.length} alias${validSemanticMappings.length === 1 ? '' : 'es'}`
+              : 'Skipped'}
+          </div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            {semanticEnabled && validSemanticMappings.length > 0
+              ? `${semanticPrefix}.*`
+              : 'No semantic layer will be created.'}
+          </div>
+        </div>
+      </div>
+
+      {semanticEnabled && validSemanticMappings.length > 0 && (
+        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+          <div className="mb-1 text-[10px] font-medium text-[var(--color-figma-text)]">
+            Alias preview
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {validSemanticMappings.map((mapping) => (
+              <div
+                key={`${mapping.semantic}-${mapping.step}`}
+                className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]"
+              >
+                <span className="text-[var(--color-figma-text)]">
+                  {semanticPrefix}.{mapping.semantic}
+                </span>{' '}
+                →{' '}
+                <span className="text-[var(--color-figma-accent)]">
+                  {`{${targetGroup}.${mapping.step}}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Overwrite warning — new generator overwriting existing tokens */}
       {!isEditing && !isMultiBrand && existingOverwritePathSet.size > 0 && (

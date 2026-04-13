@@ -9,6 +9,7 @@ import { ApiError } from "../shared/apiFetch";
 import { SEMANTIC_PATTERNS } from "../shared/semanticPatterns";
 import { createTokenBody, upsertToken } from "../shared/tokenMutations";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { buildSemanticMappings, createEmptySemanticMapping } from "./semanticPlanning";
 
 export interface SemanticMappingDialogProps {
   serverUrl: string;
@@ -22,20 +23,6 @@ export interface SemanticMappingDialogProps {
   initialMappings?: SemanticTokenMapping[];
   initialPatternId?: string | null;
   onSaveLayer?: (layer: GeneratorSemanticLayer | null) => Promise<void> | void;
-}
-
-function buildPatternMappings(
-  mappings: SemanticTokenMapping[],
-  availableSteps: string[],
-): SemanticTokenMapping[] {
-  const fallbackStep =
-    availableSteps[Math.floor(availableSteps.length / 2)] ??
-    availableSteps[0] ??
-    "";
-  return mappings.map((mapping) => ({
-    semantic: mapping.semantic,
-    step: availableSteps.includes(mapping.step) ? mapping.step : fallbackStep,
-  }));
 }
 
 export function SemanticMappingDialog({
@@ -70,10 +57,10 @@ export function SemanticMappingDialog({
   );
   const [mappings, setMappings] = useState<SemanticTokenMapping[]>(() => {
     if (initialMappings?.length) {
-      return buildPatternMappings(initialMappings, availableSteps);
+      return buildSemanticMappings(initialMappings, availableSteps);
     }
     if (!defaultPattern) return [];
-    return buildPatternMappings(defaultPattern.mappings, availableSteps);
+    return buildSemanticMappings(defaultPattern.mappings, availableSteps);
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -97,13 +84,13 @@ export function SemanticMappingDialog({
     const pattern = SEMANTIC_PATTERNS.find((candidate) => candidate.id === patternId);
     if (!pattern) return;
     setSelectedPatternId(patternId);
-    setMappings(buildPatternMappings(pattern.mappings, availableSteps));
+    setMappings(buildSemanticMappings(pattern.mappings, availableSteps));
   };
 
   const handleAddRow = () => {
     setMappings((current) => [
       ...current,
-      { semantic: "", step: availableSteps[0] ?? "" },
+      createEmptySemanticMapping(availableSteps),
     ]);
   };
 
