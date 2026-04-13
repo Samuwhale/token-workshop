@@ -185,6 +185,11 @@ export function TokenListToolbar({
           <input
             ref={searchRef as React.RefObject<HTMLInputElement>}
             type="text"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={showQualifierHints && qualifierHints.length > 0}
+            aria-controls="qualifier-hints-listbox"
+            aria-activedescendant={showQualifierHints && qualifierHints.length > 0 ? `qualifier-hint-${qualifierHints[hintIndex]?.id}` : undefined}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -255,7 +260,7 @@ export function TokenListToolbar({
                     setHintIndex(0);
                     searchRef.current?.focus();
                   }}
-                  className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                  className="min-h-[24px] min-w-[24px] flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
                   title="Clear search"
                   aria-label="Clear search"
                 >
@@ -273,7 +278,7 @@ export function TokenListToolbar({
                 setHintIndex(0);
                 searchRef.current?.focus();
               }}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 min-h-[24px] min-w-[24px] flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
               title="Clear search"
               aria-label="Clear search"
             >
@@ -284,7 +289,7 @@ export function TokenListToolbar({
           )}
           {/* Filter popover — lists active filters with dismiss */}
           {filterPopoverOpen && toolbarStateChips.length > 0 && (
-            <div ref={filterPopoverRef} className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl">
+            <div ref={filterPopoverRef} role="dialog" aria-label="Active filters" className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl">
               {toolbarStateChips.map((chip) => (
                 <div
                   key={chip.key}
@@ -299,7 +304,7 @@ export function TokenListToolbar({
                       onClick={() => {
                         removeQueryToken(chip.removeToken!);
                       }}
-                      className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      className="shrink-0 rounded p-0.5 min-h-[24px] min-w-[24px] flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                       title={`Remove ${chip.label}`}
                     >
                       <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -334,11 +339,16 @@ export function TokenListToolbar({
             qualifierHints.length > 0 && (
               <div
                 ref={qualifierHintsRef as React.RefObject<HTMLDivElement>}
+                id="qualifier-hints-listbox"
+                role="listbox"
                 className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg"
               >
                 {qualifierHints.map((hint, i) => (
                   <button
                     key={hint.id}
+                    id={`qualifier-hint-${hint.id}`}
+                    role="option"
+                    aria-selected={i === hintIndex}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       if (hint.kind !== "replacement" || !hint.replacement) return;
