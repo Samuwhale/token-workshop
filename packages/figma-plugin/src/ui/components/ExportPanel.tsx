@@ -149,7 +149,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     if (connected && modeAutoSwitched) {
       setModeAutoSwitched(false);
     }
-  }, [connected]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [connected, mode, modeAutoSwitched]);
 
   // Debounced live preview: re-run export when settings change and results are already showing
   const livePreviewFnRef = useRef<() => void>(() => {});

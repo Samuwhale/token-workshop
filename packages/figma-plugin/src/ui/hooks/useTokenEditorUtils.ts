@@ -10,7 +10,7 @@ export interface EditorDraftData {
   reference: string;
   scopes: string[];
   colorModifiers: ColorModifierOp[];
-  modeValues: Record<string, any>;
+  modeValues: Record<string, Record<string, unknown>>;
   extensionsJsonText: string;
   lifecycle: 'draft' | 'published' | 'deprecated';
   extendsPath: string;

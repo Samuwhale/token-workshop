@@ -6,7 +6,6 @@ import {
   PREVIEW_H,
   TARGET_LINE_H,
   FOOTER_H,
-  NODE_PADDING,
   FIXED_NODE_HEIGHT,
 } from './nodeGraphTypes';
 import { TYPE_LABELS } from '../generators/generatorUtils';

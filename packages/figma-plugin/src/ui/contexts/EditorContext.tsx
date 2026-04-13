@@ -30,7 +30,6 @@ export type EditingToken = {
   isCreate?: boolean;
   initialType?: string;
   initialValue?: string;
-  createPresentation?: 'launcher' | 'editor';
 };
 
 export type PreviewingToken = { path: string; name?: string; set: string };

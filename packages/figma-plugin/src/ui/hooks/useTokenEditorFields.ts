@@ -11,7 +11,7 @@ export interface FieldsSnapshot {
   scopes: string[];
   type: string;
   colorModifiers: ColorModifierOp[];
-  modeValues: Record<string, unknown>;
+  modeValues: Record<string, Record<string, unknown>>;
   extensionsJsonText: string;
   lifecycle: 'draft' | 'published' | 'deprecated';
   extendsPath: string;
@@ -78,7 +78,7 @@ export function useTokenEditorFields(params: {
   });
   const [scopes, setScopes] = useState<string[]>([]);
   const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
-  const [modeValues, setModeValues] = useState<Record<string, unknown>>({});
+  const [modeValues, setModeValues] = useState<Record<string, Record<string, unknown>>>({});
   const [extensionsJsonText, setExtensionsJsonText] = useState('');
   const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
   const [lifecycle, setLifecycle] = useState<'draft' | 'published' | 'deprecated'>('published');

@@ -32,6 +32,26 @@ export function useFigmaSync(
 ) {
   const varFlow = useSyncFlow<GroupPending>();
   const styleFlow = useSyncFlow<GroupPending>();
+  const {
+    pending: syncGroupPending,
+    setPending: setSyncGroupPending,
+    applying: syncGroupApplying,
+    setApplying: setSyncGroupApplying,
+    progress: syncGroupProgress,
+    setProgress: setSyncGroupProgress,
+    error: syncGroupError,
+    setError: setSyncGroupError,
+  } = varFlow;
+  const {
+    pending: syncGroupStylesPending,
+    setPending: setSyncGroupStylesPending,
+    applying: syncGroupStylesApplying,
+    setApplying: setSyncGroupStylesApplying,
+    progress: syncGroupStylesProgress,
+    setProgress: setSyncGroupStylesProgress,
+    error: syncGroupStylesError,
+    setError: setSyncGroupStylesError,
+  } = styleFlow;
 
   const [groupScopesPath, setGroupScopesPath] = useState<string | null>(null);
   const [groupScopesSelected, setGroupScopesSelected] = useState<string[]>([]);
@@ -52,15 +72,14 @@ export function useFigmaSync(
       if (signal.aborted) return;
       const msg = ev.data?.pluginMessage;
       if (msg?.type === 'variable-sync-progress') {
-        varFlow.setProgress({ current: msg.current as number, total: msg.total as number });
+        setSyncGroupProgress({ current: msg.current as number, total: msg.total as number });
       } else if (msg?.type === 'style-sync-progress') {
-        styleFlow.setProgress({ current: msg.current as number, total: msg.total as number });
+        setSyncGroupStylesProgress({ current: msg.current as number, total: msg.total as number });
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // setters are stable useState refs — no re-registration needed
+  }, [setSyncGroupProgress, setSyncGroupStylesProgress]);
 
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }>({
     responseType: 'styles-applied',
@@ -139,35 +158,49 @@ export function useFigmaSync(
 
   const handleSyncGroup = useCallback(async () => {
     await syncGroupBase({
-      pending: varFlow.pending,
-      setPending: varFlow.setPending,
-      setApplying: varFlow.setApplying,
-      setProgress: varFlow.setProgress,
-      setError: varFlow.setError,
+      pending: syncGroupPending,
+      setPending: setSyncGroupPending,
+      setApplying: setSyncGroupApplying,
+      setProgress: setSyncGroupProgress,
+      setError: setSyncGroupError,
       sendApply: (_, payload) => sendVarApply('apply-variables', payload),
       buildPayload: (tokens) => ({ tokens, collectionMap: setCollectionNames, modeMap: setModeNames }),
       successMsg: (count, skipped) => `${count} variable${count !== 1 ? 's' : ''} synced${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
       entityName: 'variables',
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [varFlow.pending, syncGroupBase, sendVarApply, setCollectionNames, setModeNames]);
-  // varFlow.setPending/setApplying/setProgress/setError are stable useState setters
+  }, [
+    sendVarApply,
+    setCollectionNames,
+    setModeNames,
+    setSyncGroupApplying,
+    setSyncGroupError,
+    setSyncGroupPending,
+    setSyncGroupProgress,
+    syncGroupBase,
+    syncGroupPending,
+  ]);
 
   const handleSyncGroupStyles = useCallback(async () => {
     await syncGroupBase({
-      pending: styleFlow.pending,
-      setPending: styleFlow.setPending,
-      setApplying: styleFlow.setApplying,
-      setProgress: styleFlow.setProgress,
-      setError: styleFlow.setError,
+      pending: syncGroupStylesPending,
+      setPending: setSyncGroupStylesPending,
+      setApplying: setSyncGroupStylesApplying,
+      setProgress: setSyncGroupStylesProgress,
+      setError: setSyncGroupStylesError,
       sendApply: (_, payload) => sendStyleApply('apply-styles', payload),
       buildPayload: (tokens) => ({ tokens }),
       successMsg: (count, skipped) => `${count} style${count !== 1 ? 's' : ''} created${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
       entityName: 'styles',
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [styleFlow.pending, syncGroupBase, sendStyleApply]);
-  // styleFlow.setPending/setApplying/setProgress/setError are stable useState setters
+  }, [
+    sendStyleApply,
+    setSyncGroupStylesApplying,
+    setSyncGroupStylesError,
+    setSyncGroupStylesPending,
+    setSyncGroupStylesProgress,
+    syncGroupBase,
+    syncGroupStylesPending,
+  ]);
 
   const handleApplyGroupScopes = useCallback(async () => {
     if (!groupScopesPath || !connected) return;
@@ -221,16 +254,16 @@ export function useFigmaSync(
   }, [groupScopesPath, groupScopesSelected, connected, serverUrl, activeSet]);
 
   return {
-    syncGroupPending: varFlow.pending,
-    setSyncGroupPending: varFlow.setPending,
-    syncGroupApplying: varFlow.applying,
-    syncGroupProgress: varFlow.progress,
-    syncGroupError: varFlow.error,
-    syncGroupStylesPending: styleFlow.pending,
-    setSyncGroupStylesPending: styleFlow.setPending,
-    syncGroupStylesApplying: styleFlow.applying,
-    syncGroupStylesProgress: styleFlow.progress,
-    syncGroupStylesError: styleFlow.error,
+    syncGroupPending,
+    setSyncGroupPending,
+    syncGroupApplying,
+    syncGroupProgress,
+    syncGroupError,
+    syncGroupStylesPending,
+    setSyncGroupStylesPending,
+    syncGroupStylesApplying,
+    syncGroupStylesProgress,
+    syncGroupStylesError,
     groupScopesPath,
     setGroupScopesPath,
     groupScopesSelected,

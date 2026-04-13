@@ -303,7 +303,6 @@ export function PanelRouter(): ReactNode {
           isCreate: true,
           initialType: options?.initialType ?? readLastCreateType(),
           initialValue: options?.initialValue,
-          createPresentation: "launcher",
         },
       });
     },
@@ -415,7 +414,6 @@ export function PanelRouter(): ReactNode {
         set: editingToken?.set ?? activeSet,
         isCreate: true,
         initialType: savedType,
-        createPresentation: "launcher",
       });
     },
     [
@@ -573,7 +571,6 @@ export function PanelRouter(): ReactNode {
         isCreateMode: editingToken.isCreate,
         initialType: editingToken.initialType,
         initialValue: editingToken.initialValue,
-        createPresentation: editingToken.createPresentation,
         onDirtyChange: (dirty: boolean) => {
           controller.editorIsDirtyRef.current = dirty;
         },
@@ -593,50 +590,6 @@ export function PanelRouter(): ReactNode {
         onNavigateToGenerator: controller.handleNavigateToGenerator,
         onOpenGeneratorEditor: openGeneratorEditor,
         onNavigateToThemes: () => navigateTo("define", "themes"),
-        onQuickCreateMode: async (modeName: string, variantNames: string[]) => {
-          const dimId = modeName
-            .toLowerCase()
-            .trim()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "");
-          // Create the dimension
-          const dimRes = await fetch(`${serverUrl}/api/themes/dimensions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: dimId, name: modeName }),
-          });
-          if (!dimRes.ok) {
-            const err = await dimRes.json().catch(() => ({ error: "Failed" }));
-            throw new Error(err.error || "Failed to create mode");
-          }
-          // Create each option, auto-assigning current active set as "source"
-          const autoSets: Record<string, string> = {};
-          for (const s of sets) {
-            autoSets[s] = "source";
-          }
-          for (const variantName of variantNames) {
-            const optRes = await fetch(
-              `${serverUrl}/api/themes/dimensions/${dimId}/options`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: variantName, sets: autoSets }),
-              },
-            );
-            if (!optRes.ok) {
-              const err = await optRes.json().catch(() => ({ error: "Failed" }));
-              throw new Error(
-                err.error || `Failed to create variant "${variantName}"`,
-              );
-            }
-          }
-          // Refresh dimensions so the token editor picks up the new modes
-          const dimsRes = await fetch(`${serverUrl}/api/themes`);
-          if (dimsRes.ok) {
-            const data = await dimsRes.json();
-            setDimensions(data.dimensions ?? []);
-          }
-        },
       }
     : null;
 

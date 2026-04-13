@@ -75,7 +75,5 @@ export function useToastBusListener(
     };
     window.addEventListener(EVENT_NAME, handler);
     return () => window.removeEventListener(EVENT_NAME, handler);
-    // Toast handlers are stable useCallback refs from useToastStack
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pushAction, pushError, pushSuccess, pushWarning]);
 }

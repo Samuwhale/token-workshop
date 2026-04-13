@@ -1,4 +1,4 @@
-import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
+import { useState, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { STORAGE_KEYS } from '../shared/storage';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
@@ -53,7 +53,7 @@ export function useDiffState({ serverUrl, connected }: UseDiffStateOptions): Dif
   );
   const [scopeOpen, setScopeOpen] = useState(() => changesOnly);
 
-  const fetchDiffSince = async (timestamp: number) => {
+  const fetchDiffSince = useCallback(async (timestamp: number) => {
     if (!connected) return;
     setDiffLoading(true);
     setDiffError(null);
@@ -71,9 +71,9 @@ export function useDiffState({ serverUrl, connected }: UseDiffStateOptions): Dif
     } finally {
       setDiffLoading(false);
     }
-  };
+  }, [connected, serverUrl]);
 
-  const fetchDiff = async () => {
+  const fetchDiff = useCallback(async () => {
     if (!connected) return;
     setDiffLoading(true);
     setDiffError(null);
@@ -103,21 +103,21 @@ export function useDiffState({ serverUrl, connected }: UseDiffStateOptions): Dif
     } finally {
       setDiffLoading(false);
     }
-  };
+  }, [connected, fetchDiffSince, lastExportTimestamp, serverUrl]);
 
-  const handleSetBaseline = () => {
+  const handleSetBaseline = useCallback(() => {
     const now = Date.now();
     setLastExportTimestamp(now);
     // Immediately fetch diff from the new baseline (should return 0 changed tokens)
-    fetchDiffSince(now);
-  };
+    void fetchDiffSince(now);
+  }, [fetchDiffSince, setLastExportTimestamp]);
 
   // Auto-fetch diff when changesOnly is enabled and connected
   useEffect(() => {
     if (changesOnly && connected && diffPaths === null && !diffLoading) {
-      fetchDiff();
+      void fetchDiff();
     }
-  }, [changesOnly, connected]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [changesOnly, connected, diffLoading, diffPaths, fetchDiff]);
 
   return {
     changesOnly,

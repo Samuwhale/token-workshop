@@ -1,8 +1,4 @@
 import { useState, useMemo, useCallback } from 'react';
-import type { ThemeDimension } from '@tokenmanager/core';
-import type { TokenMapEntry } from '../../shared/types';
-import { AliasAutocomplete } from './AliasAutocomplete';
-import { QuickModeCreator } from './QuickModeCreator';
 
 export const FIGMA_SCOPES: Record<string, { label: string; value: string; description: string }[]> = {
   color: [
@@ -383,167 +379,11 @@ function ExtensionsEditor({
 // ModeValuesEditor — standalone section for per-mode token value overrides
 // ---------------------------------------------------------------------------
 
-export interface ModeValuesEditorProps {
-  dimensions: ThemeDimension[];
-  modeValues: Record<string, any>;
-  onModeValuesChange: (modes: Record<string, any>) => void;
-  tokenType: string;
-  aliasMode: boolean;
-  reference: string;
-  value: any;
-  allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
-  /** Navigate to the Modes workspace to configure modes */
-  onNavigateToThemes?: () => void;
-  /** Quick-create a mode inline without leaving the token editor */
-  onQuickCreateMode?: (modeName: string, variantNames: string[]) => Promise<void>;
-}
-
-export function ModeValuesEditor({
-  dimensions,
-  modeValues,
-  onModeValuesChange,
-  tokenType,
-  aliasMode,
-  reference,
-  value,
-  allTokensFlat = {},
-  pathToSet = {},
-  onNavigateToThemes,
-  onQuickCreateMode,
-}: ModeValuesEditorProps) {
-  const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
-  const setCount = Object.values(modeValues).filter(v => v !== '' && v !== undefined && v !== null).length;
-  const hasTokens = Object.keys(allTokensFlat).length > 0;
-
-  if (dimensions.length === 0) {
-    if (!onQuickCreateMode) return null;
-    return (
-      <div className="rounded-lg border border-[var(--color-figma-border)] overflow-hidden">
-        <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Values by mode
-          </span>
-        </div>
-        <div className="px-3 py-2">
-          <QuickModeCreator onCreateMode={onQuickCreateMode} />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-[var(--color-figma-border)] overflow-hidden">
-      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-          Values by mode
-        </span>
-        <span className="flex items-center gap-2">
-          {setCount > 0 && (
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{setCount} overridden</span>
-          )}
-          {onNavigateToThemes && (
-            <button
-              type="button"
-              onClick={onNavigateToThemes}
-              className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
-            >
-              Edit modes
-            </button>
-          )}
-        </span>
-      </div>
-      <div className="px-3 py-2 flex flex-col gap-2.5">
-        {dimensions.map(dim => (
-          <div key={dim.id}>
-            {dimensions.length > 1 && (
-              <div className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide mb-1.5">{dim.name}</div>
-            )}
-            {dim.options.map(option => {
-              const modeVal = modeValues[option.name] ?? '';
-              const modeValStr = typeof modeVal === 'string' ? modeVal : '';
-              const isColorVal = tokenType === 'color' && typeof modeVal === 'string' && modeVal.startsWith('#') && !modeVal.startsWith('{');
-              const showingAutocomplete = autocompleteModeKey === option.name;
-              const baseStr = aliasMode ? reference : String(value ?? '');
-              const isOverridden = modeValStr !== '' && modeValStr !== baseStr;
-              return (
-                <div key={option.name} className={`flex items-center gap-2 mb-1.5 rounded-sm pl-1.5 ${isOverridden ? 'border-l-2 border-[var(--color-figma-accent)]' : ''}`}>
-                  <span className="text-[10px] text-[var(--color-figma-text)] w-16 shrink-0 truncate" title={option.name}>{option.name}</span>
-                  {isColorVal && (
-                    <div
-                      className="w-4 h-4 rounded-sm border border-white/40 ring-1 ring-[var(--color-figma-border)] shrink-0"
-                      style={{ backgroundColor: modeVal }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      value={modeVal}
-                      onChange={e => {
-                        const v = e.target.value;
-                        onModeValuesChange({ ...modeValues, [option.name]: v });
-                        if (hasTokens) {
-                          const hasOpen = v.includes('{') && !v.endsWith('}');
-                          setAutocompleteModeKey(hasOpen ? option.name : null);
-                        }
-                      }}
-                      onFocus={() => {
-                        if (hasTokens && modeValStr.includes('{') && !modeValStr.endsWith('}')) {
-                          setAutocompleteModeKey(option.name);
-                        }
-                      }}
-                      onBlur={() => setTimeout(() => setAutocompleteModeKey(k => k === option.name ? null : k), 150)}
-                      onKeyDown={e => {
-                        if (hasTokens && e.key === '{') setAutocompleteModeKey(option.name);
-                      }}
-                      placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
-                      className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
-                    />
-                    {showingAutocomplete && (
-                      <AliasAutocomplete
-                        query={modeValStr.includes('{') ? modeValStr.slice(modeValStr.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
-                        allTokensFlat={allTokensFlat}
-                        pathToSet={pathToSet}
-                        filterType={tokenType}
-                        onSelect={path => {
-                          onModeValuesChange({ ...modeValues, [option.name]: `{${path}}` });
-                          setAutocompleteModeKey(null);
-                        }}
-                        onClose={() => setAutocompleteModeKey(null)}
-                      />
-                    )}
-                  </div>
-                  {modeVal !== '' && (
-                    <button
-                      type="button"
-                      onClick={() => { const next = { ...modeValues }; delete next[option.name]; onModeValuesChange(next); }}
-                      title={`Clear ${option.name} override`}
-                      aria-label={`Clear ${option.name} override`}
-                      className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
-                    >
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <path d="M18 6L6 18M6 6l12 12"/>
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // MetadataEditor
 // ---------------------------------------------------------------------------
 
 interface MetadataEditorProps {
-  description: string;
-  onDescriptionChange: (desc: string) => void;
   tokenType: string;
   scopes: string[];
   onScopesChange: (scopes: string[]) => void;
@@ -555,7 +395,6 @@ interface MetadataEditorProps {
 }
 
 export function MetadataEditor({
-  description, onDescriptionChange,
   tokenType, scopes, onScopesChange,
   extensionsJsonText, onExtensionsJsonTextChange,
   extensionsJsonError, onExtensionsJsonErrorChange,
@@ -566,18 +405,6 @@ export function MetadataEditor({
 
   return (
     <>
-      {/* Description */}
-      <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Description</label>
-        <textarea
-          value={description}
-          onChange={e => onDescriptionChange(e.target.value)}
-          placeholder="Optional description"
-          rows={2}
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
-        />
-      </div>
-
       {/* Figma Variable Scopes */}
     {FIGMA_SCOPES[tokenType] && (
       <div className="border-t border-[var(--color-figma-border)]">

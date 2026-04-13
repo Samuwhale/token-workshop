@@ -26,7 +26,7 @@ interface UseTokenEditorSaveParams {
   description: string;
   scopes: string[];
   colorModifiers: ColorModifierOp[];
-  modeValues: Record<string, any>;
+  modeValues: Record<string, Record<string, unknown>>;
   extensionsJsonText: string;
   lifecycle: 'draft' | 'published' | 'deprecated';
   extendsPath: string;
@@ -117,7 +117,14 @@ export function useTokenEditorSave({
       if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
       const tmExt: Record<string, any> = {};
       if (colorModifiers.length > 0) tmExt.colorModifier = colorModifiers;
-      const cleanModes = Object.fromEntries(Object.entries(modeValues).filter(([, v]) => v !== '' && v !== undefined && v !== null));
+      const cleanModes: Record<string, Record<string, unknown>> = {};
+      for (const [dimId, opts] of Object.entries(modeValues)) {
+        if (!opts || typeof opts !== 'object') continue;
+        const cleanOpts = Object.fromEntries(
+          Object.entries(opts).filter(([, v]) => v !== '' && v !== undefined && v !== null),
+        );
+        if (Object.keys(cleanOpts).length > 0) cleanModes[dimId] = cleanOpts;
+      }
       if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
       if (lifecycle !== 'published') tmExt.lifecycle = lifecycle;
       if (extendsPath) tmExt.extends = extendsPath;

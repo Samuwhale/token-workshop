@@ -17,7 +17,8 @@ import { AliasPicker } from "./AliasPicker";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
-import { MetadataEditor, ModeValuesEditor } from "./MetadataEditor";
+import { MetadataEditor } from "./MetadataEditor";
+import { ModeValuesEditor } from "./token-editor/ModeValuesEditor";
 import { PathAutocomplete } from "./PathAutocomplete";
 import { useNearbyTokenMatch } from "../hooks/useNearbyTokenMatch";
 import { Collapsible } from "./Collapsible";
@@ -65,8 +66,6 @@ interface TokenEditorProps {
   initialType?: string;
   /** Initial value for create mode — when it looks like an alias (e.g. "{color.primary}"), alias mode is activated automatically. */
   initialValue?: string;
-  /** Initial create surface presentation. */
-  createPresentation?: 'launcher' | 'editor';
   /** Called whenever the dirty state changes so the parent can guard backdrop clicks. */
   onDirtyChange?: (dirty: boolean) => void;
   /** Called with the final saved path on a successful save so the parent can highlight it. */
@@ -95,8 +94,6 @@ interface TokenEditorProps {
   onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
   /** Navigate to Modes workspace to configure modes */
   onNavigateToThemes?: () => void;
-  /** Quick-create a mode inline without leaving the token editor */
-  onQuickCreateMode?: (modeName: string, variantNames: string[]) => Promise<void>;
   /** Push an undo slot after a successful token save or create */
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
@@ -113,7 +110,6 @@ export function TokenEditor({
   isCreateMode = false,
   initialType,
   initialValue,
-  createPresentation: initialCreatePresentation = 'editor',
   onDirtyChange,
   onSaved,
   onSaveAndCreateAnother,
@@ -128,7 +124,6 @@ export function TokenEditor({
   onNavigateToGenerator,
   onOpenGeneratorEditor,
   onNavigateToThemes,
-  onQuickCreateMode,
   pushUndo,
 }: TokenEditorProps) {
   // 1. Fields hook — all editable state
@@ -212,6 +207,7 @@ export function TokenEditor({
     setScopes,
     setColorModifiers,
     setModeValues,
+    dimensions,
     setExtensionsJsonText,
     setLifecycle,
     setExtendsPath,
@@ -355,13 +351,6 @@ export function TokenEditor({
     setError(v);
     setSaveError(v);
   }, [setError, setSaveError]);
-  const [createPresentation, setCreatePresentation] = useState<'launcher' | 'editor'>(initialCreatePresentation);
-  const showAdvancedCreateFields = !isCreateMode || createPresentation === 'editor';
-
-  useEffect(() => {
-    if (!isCreateMode) return;
-    setCreatePresentation(initialCreatePresentation);
-  }, [initialCreatePresentation, isCreateMode, setName, tokenPath]);
 
   useEffect(() => {
     if (!isCreateMode) return;
@@ -647,9 +636,6 @@ export function TokenEditor({
     );
   }
 
-  const quickCreateStoredValue = aliasMode && reference ? reference : stableStringify(value);
-  const quickCreateValueLabel = aliasMode && reference ? "Reference" : "Stored";
-
   const headerTitle = (
     <>
       {isCreateMode ? (
@@ -713,11 +699,7 @@ export function TokenEditor({
         </div>
       ) : (
         <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          {isCreateMode
-            ? createPresentation === "launcher"
-              ? "Quick create"
-              : "New token"
-            : `in ${setName}`}
+          {isCreateMode ? "New token" : `in ${setName}`}
         </div>
       )}
       {isCreateMode &&
@@ -929,15 +911,6 @@ export function TokenEditor({
             Revert
           </button>
         )}
-        {isCreateMode && createPresentation === "launcher" && (
-          <button
-            type="button"
-            onClick={() => setCreatePresentation("editor")}
-            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary} border border-[var(--color-figma-border)] font-medium hover:border-[var(--color-figma-accent)]`}
-          >
-            Open full editor
-          </button>
-        )}
         {isCreateMode && onSaveAndCreateAnother && (
           <button
             onClick={() => handleSave(false, true)}
@@ -1035,43 +1008,6 @@ export function TokenEditor({
               </button>
             )}
           </div>
-        )}
-
-        {isCreateMode && createPresentation === "launcher" && (
-          <section className={AUTHORING.section}>
-            <div className={AUTHORING.titleBlock}>
-              <h3 className={AUTHORING.title}>Start with the essentials</h3>
-              <p className={AUTHORING.description}>
-                Set the path, type, and value here. Open the full editor when
-                you need metadata, lifecycle, or inheritance controls.
-              </p>
-            </div>
-            <div className={AUTHORING.summaryCard}>
-              <div className={AUTHORING.summaryRow}>
-                <span className={AUTHORING.summaryLabel}>Set</span>
-                <span className={AUTHORING.summaryValue}>{setName}</span>
-              </div>
-              <div className={AUTHORING.summaryRow}>
-                <span className={AUTHORING.summaryLabel}>Type</span>
-                <span
-                  className={`${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"} inline-flex shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide`}
-                >
-                  {tokenType}
-                </span>
-                <span className={AUTHORING.summaryValue}>
-                  {aliasMode ? "Alias token" : "Direct value"}
-                </span>
-              </div>
-              <div className={AUTHORING.summaryRow}>
-                <span className={AUTHORING.summaryLabel}>
-                  {quickCreateValueLabel}
-                </span>
-                <span className={AUTHORING.summaryMono}>
-                  {quickCreateStoredValue}
-                </span>
-              </div>
-            </div>
-          </section>
         )}
 
         {activeProducingGenerator && !isCreateMode && (
@@ -1286,163 +1222,169 @@ export function TokenEditor({
           />
         )}
 
-        {/* Details — Modifiers, Extends, Metadata, Scopes, Lifecycle, Mode values */}
-        {showAdvancedCreateFields && (
-          <Collapsible
-            open={detailsOpen}
-            onToggle={toggleDetails}
-            label="Details"
-          >
-            <div className="mt-2 flex flex-col gap-3">
-              {/* Color modifiers */}
-              {tokenType === "color" &&
-                (aliasMode
-                  ? isAlias(reference)
-                  : typeof value === "string" && value.length > 0) && (
-                  <ColorModifiersEditor
-                    reference={aliasMode ? reference : undefined}
-                    colorFlatMap={aliasMode ? colorFlatMap : undefined}
-                    directColor={
-                      !aliasMode && typeof value === "string" ? value : undefined
-                    }
-                    colorModifiers={colorModifiers}
-                    onColorModifiersChange={setColorModifiers}
-                  />
-                )}
+        {/* Color modifiers */}
+        {tokenType === "color" &&
+          (aliasMode
+            ? isAlias(reference)
+            : typeof value === "string" && value.length > 0) && (
+            <ColorModifiersEditor
+              reference={aliasMode ? reference : undefined}
+              colorFlatMap={aliasMode ? colorFlatMap : undefined}
+              directColor={
+                !aliasMode && typeof value === "string" ? value : undefined
+              }
+              colorModifiers={colorModifiers}
+              onColorModifiersChange={setColorModifiers}
+            />
+          )}
 
-              {/* Extends — base token inheritance for composite types */}
-              {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
-                    Extends
-                  </label>
-                  {extendsPath ? (
-                    <div className="flex items-center gap-1.5">
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        className="shrink-0 text-[var(--color-figma-accent)]"
-                      >
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                      </svg>
-                      <span
-                        className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
-                        title={extendsPath}
-                      >
-                        {extendsPath}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setExtendsPath("")}
-                        title="Remove base token"
-                        className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
-                      >
-                        <svg
-                          width="8"
-                          height="8"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          aria-hidden="true"
-                        >
-                          <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
-                    <ExtendsTokenPicker
-                      tokenType={tokenType}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                      currentPath={isCreateMode ? editPath.trim() : tokenPath}
-                      onSelect={setExtendsPath}
-                    />
-                  )}
-                  {extendsPath &&
-                    (() => {
-                      const base = allTokensFlat[extendsPath];
-                      if (!base)
-                        return (
-                          <p className="text-[10px] text-[var(--color-figma-error)]">
-                            Base token not found
-                          </p>
-                        );
-                      return (
-                        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
-                          Inherited properties will be merged with overrides below.
-                        </p>
-                      );
-                    })()}
-                </div>
-              )}
-
-              {/* Lifecycle */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
-                  Lifecycle
-                </label>
-                <div className="flex gap-1">
-                  {(["draft", "published", "deprecated"] as const).map((lc) => (
-                    <button
-                      key={lc}
-                      onClick={() => setLifecycle(lc)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                        lifecycle === lc
-                          ? lc === "draft"
-                            ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40"
-                            : lc === "deprecated"
-                              ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/40"
-                              : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
-                          : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                      }`}
-                    >
-                      {lc}
-                    </button>
-                  ))}
-                </div>
+        {/* Extends — base token inheritance for composite types */}
+        {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+              Extends
+            </label>
+            {extendsPath ? (
+              <div className="flex items-center gap-1.5">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  className="shrink-0 text-[var(--color-figma-accent)]"
+                >
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+                <span
+                  className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
+                  title={extendsPath}
+                >
+                  {extendsPath}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setExtendsPath("")}
+                  title="Remove base token"
+                  className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+                >
+                  <svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-
-              {/* Description, Scopes, Extensions */}
-              <MetadataEditor
-                description={description}
-                onDescriptionChange={setDescription}
+            ) : (
+              <ExtendsTokenPicker
                 tokenType={tokenType}
-                scopes={scopes}
-                onScopesChange={setScopes}
-                extensionsJsonText={extensionsJsonText}
-                onExtensionsJsonTextChange={setExtensionsJsonText}
-                extensionsJsonError={extensionsJsonError}
-                onExtensionsJsonErrorChange={setExtensionsJsonError}
-                isCreateMode={isCreateMode}
-              />
-
-              {/* Per-mode value overrides */}
-              <ModeValuesEditor
-                dimensions={dimensions}
-                modeValues={modeValues}
-                onModeValuesChange={setModeValues}
-                tokenType={tokenType}
-                aliasMode={aliasMode}
-                reference={reference}
-                value={value}
                 allTokensFlat={allTokensFlat}
                 pathToSet={pathToSet}
-                onNavigateToThemes={onNavigateToThemes}
-                onQuickCreateMode={onQuickCreateMode}
+                currentPath={isCreateMode ? editPath.trim() : tokenPath}
+                onSelect={setExtendsPath}
               />
-
-            </div>
-          </Collapsible>
+            )}
+            {extendsPath &&
+              (() => {
+                const base = allTokensFlat[extendsPath];
+                if (!base)
+                  return (
+                    <p className="text-[10px] text-[var(--color-figma-error)]">
+                      Base token not found
+                    </p>
+                  );
+                return (
+                  <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+                    Inherited properties will be merged with overrides below.
+                  </p>
+                );
+              })()}
+          </div>
         )}
+
+        {/* Variant values — first-class per-mode overrides */}
+        <ModeValuesEditor
+          dimensions={dimensions}
+          modeValues={modeValues}
+          onModeValuesChange={setModeValues}
+          tokenType={tokenType}
+          aliasMode={aliasMode}
+          reference={reference}
+          value={value}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onNavigateToThemes={onNavigateToThemes}
+        />
+
+        {/* Description */}
+        <div>
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Description</label>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Optional description"
+            rows={2}
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
+          />
+        </div>
+
+        {/* Advanced — Lifecycle, Scopes, Extensions */}
+        <Collapsible
+          open={detailsOpen}
+          onToggle={toggleDetails}
+          label="Advanced"
+        >
+          <div className="mt-2 flex flex-col gap-3">
+            {/* Lifecycle */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+                Lifecycle
+              </label>
+              <div className="flex gap-1">
+                {(["draft", "published", "deprecated"] as const).map((lc) => (
+                  <button
+                    key={lc}
+                    onClick={() => setLifecycle(lc)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                      lifecycle === lc
+                        ? lc === "draft"
+                          ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40"
+                          : lc === "deprecated"
+                            ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/40"
+                            : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
+                        : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                    }`}
+                  >
+                    {lc}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Scopes, Extensions */}
+            <MetadataEditor
+              tokenType={tokenType}
+              scopes={scopes}
+              onScopesChange={setScopes}
+              extensionsJsonText={extensionsJsonText}
+              onExtensionsJsonTextChange={setExtensionsJsonText}
+              extensionsJsonError={extensionsJsonError}
+              onExtensionsJsonErrorChange={setExtensionsJsonError}
+              isCreateMode={isCreateMode}
+            />
+          </div>
+        </Collapsible>
 
         {/* Generator groups */}
         {canBeGeneratorSource && !aliasMode && (
