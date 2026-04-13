@@ -1,0 +1,24 @@
+id: split-theme-diagnostics-into-an-explicit-review--f05c55cb
+title: Split theme diagnostics into an explicit review route with issue-to-fix handoffs
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ThemeManager.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeCoverageScreen.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeOptionWorkspace.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeIssueEntryCard.tsx
+  - packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts
+  - packages/figma-plugin/src/ui/shared/themeWorkflow.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The research audit recommends collapsing stale-set, empty-override, missing-override, and coverage-gap language into a dedicated review job for designers."
+state: ready
+acceptance_criteria:
+  - Default theme authoring shows only a concise health summary and a `Review issues` CTA instead of multiple issue classes inline.
+  - Coverage gaps, empty variant sets, and deleted-set links are grouped into a dedicated review surface with one recommended next action per issue.
+  - Review-to-authoring handoffs focus the affected variant and only reopen raw role editing when the selected fix actually requires it.
+source: task-followup
+created_at: 2026-04-13T01:05:03.100Z
+updated_at: 2026-04-13T01:05:03.100Z

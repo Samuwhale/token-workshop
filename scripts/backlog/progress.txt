@@ -1805,3 +1805,11 @@
   - If preview risk copy depends on current token-store state, compute the buckets on the same server snapshot that produced the preview and return a fingerprint; client-side diff buckets drift as soon as preview and save read different store versions.
   - Deleted-output warnings are only trustworthy when the generator run actively cleans up stale owned outputs; preview-only deleted counts without matching cleanup logic turn into false reassurance.
 ---
+## 2026-04-13 - Simplify the token-theme interaction UX so designers can build and manage themes without learning set-role priority logic, coverage diagnostics, and resolver internals
+- Added a research audit at `scripts/backlog/research/theme-authoring-ux-simplification.md` documenting the current concept hierarchy across authoring, coverage, and resolver flows, plus a recommended designer-first model based on theme families, variants, shared sources, and explicit advanced disclosure.
+- Queued five follow-up backlog items in `backlog/inbox.jsonl` covering the simple variant composer, a dedicated review route, an advanced setup route, a clearer resolver opt-in boundary, and ThemeManager state consolidation. The audit also records that declared touch path `packages/figma-plugin/src/ui/components/ThemeOptionCard.tsx` is stale in the current codebase.
+- Files changed: `scripts/backlog/research/theme-authoring-ux-simplification.md` ~L1; `backlog/inbox.jsonl` ~L1; `scripts/backlog/patterns.md` ~L230; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - The current theme UX is confusing mainly because the common path exposes the persistence model (`source`/`enabled`/`disabled`, coverage issue classes, resolver modifiers) instead of the designer's task. A cleaner flow should center on variants first and compile that intent into the lower-level model behind the scenes.
+  - Theme workspace state is already split across structural edits, diagnostics, optional tools, and cross-workspace theme switching. Future implementation work should consolidate the authoring-side hooks around those user jobs instead of preserving the current one-hook-per-implementation-detail split.
+---

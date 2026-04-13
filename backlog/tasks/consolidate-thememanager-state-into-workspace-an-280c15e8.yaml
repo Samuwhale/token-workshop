@@ -1,0 +1,28 @@
+id: consolidate-thememanager-state-into-workspace-an-280c15e8
+title: Consolidate ThemeManager state into workspace and diagnostics providers
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ThemeManager.tsx
+  - packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx
+  - packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts
+  - packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts
+  - packages/figma-plugin/src/ui/hooks/useThemeOptions.ts
+  - packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts
+  - packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts
+  - packages/figma-plugin/src/ui/hooks/useThemeAutoFill.ts
+  - packages/figma-plugin/src/ui/hooks/useThemeDragDrop.ts
+  - packages/figma-plugin/src/ui/hooks/useThemeCompare.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The audit recommends collapsing the current nine-hook split into workspace state, diagnostics state, and advanced tool state while keeping `useThemeSwitcher` as cross-workspace state."
+state: ready
+acceptance_criteria:
+  - ThemeManager no longer stitches nine peer theme hooks together directly inside one component.
+  - Structural mutations, diagnostics, and advanced tool state are each owned by a coherent provider or controller with stable selectors.
+  - Bulk operations, simple authoring actions, and diagnostics remediation share one consistent success and failure feedback pipeline.
+source: task-followup
+created_at: 2026-04-13T01:05:03.216Z
+updated_at: 2026-04-13T01:05:03.216Z

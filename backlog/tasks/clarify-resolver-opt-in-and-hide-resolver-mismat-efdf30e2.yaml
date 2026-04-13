@@ -1,0 +1,23 @@
+id: clarify-resolver-opt-in-and-hide-resolver-mismat-efdf30e2
+title: Clarify resolver opt-in and hide resolver mismatch details from default theme authoring
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeAdvancedScreen.tsx
+  - packages/figma-plugin/src/ui/components/ResolverPanel.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/themeResolverContext.ts
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeResolverContextBanner.tsx
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: The research audit draws a hard boundary: dimensions stay the default designer-facing authoring model, while resolvers are an explicit advanced opt-in for custom resolution logic."
+state: ready
+acceptance_criteria:
+  - Default theme authoring shows at most a passive indicator that advanced resolver logic exists and does not surface resolver mismatch copy.
+  - The advanced resolver entry explains when to use dimensions versus resolvers before showing resolver configuration details.
+  - Resolver mismatch diagnostics live only inside the advanced resolver flow or an explicit advanced review state.
+source: task-followup
+created_at: 2026-04-13T01:05:03.183Z
+updated_at: 2026-04-13T01:05:03.183Z

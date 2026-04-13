@@ -86,12 +86,16 @@
 - [x] [HIGH] Unify generator entrypoints behind an intent-first composer
 - [x] [HIGH] Move semantic alias planning into a dedicated pre-review step
 - [x] [HIGH] Expose generator dependency and status metadata for dashboard surfaces
-- [ ] [HIGH] Surface overwrite and manual-edit conflicts during live preview
+- [x] [HIGH] Surface overwrite and manual-edit conflicts during live preview
 - [x] [HIGH] Clarify the app workspace navigation and cross-tab handoffs so designers always know where they are, what each section does, and how to move between related tasks
 - [x] [HIGH] Improve the token library browsing and inspection UX so designers can navigate, understand, and act on large token collections without friction
 - [x] [HIGH] Improve token generation flows so designers can create and manage generators through intent-based discovery, clearer configuration, and visible output relationships
 - [ ] [HIGH] Simplify the token-theme interaction UX so designers can build and manage themes without learning set-role priority logic, coverage diagnostics, and resolver internals
 - [ ] [HIGH] Unify token creation, bulk editing, and generator configuration surfaces for visual consistency and small-viewport fitness in the Figma plugin panel
+- [ ] [HIGH] Build a simple theme variant composer for light/dark and brand workflows
+- [ ] [HIGH] Split theme diagnostics into an explicit review route with issue-to-fix handoffs
+- [ ] [HIGH] Clarify resolver opt-in and hide resolver mismatch details from default theme authoring
+- [ ] [HIGH] Consolidate ThemeManager state into workspace and diagnostics providers
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -188,6 +192,7 @@
 - [ ] Add explicit branch navigation shortcuts for deep token hierarchies
 - [ ] Add starter presets and inline token-ref guidance for all generator types
 - [ ] Clean up stale semantic generator outputs across set and brand moves
+- [ ] Move raw theme matrix tools and compare behind an Advanced setup route
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

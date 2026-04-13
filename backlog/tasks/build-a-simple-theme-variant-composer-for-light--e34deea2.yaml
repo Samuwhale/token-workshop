@@ -1,0 +1,23 @@
+id: build-a-simple-theme-variant-composer-for-light--e34deea2
+title: Build a simple theme variant composer for light/dark and brand workflows
+priority: high
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/figma-plugin/src/ui/components/ThemeManager.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeAxisCard.tsx
+  - packages/figma-plugin/src/ui/components/theme-manager/ThemeOptionWorkspace.tsx
+  - packages/figma-plugin/src/ui/shared/themeWorkflow.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: See `scripts/backlog/research/theme-authoring-ux-simplification.md` for the recommended theme family/variant model and the common-case concepts to hide."
+state: ready
+acceptance_criteria:
+  - Default theme authoring lets designers create and edit a theme family plus variants without exposing `Base`, `Override`, or `Excluded` labels.
+  - Each variant supports assigning shared token sources and optional variant-specific sources while continuing to save through the existing dimension/option model.
+  - Raw set-role editing is reachable only through an explicit advanced entry point.
+source: task-followup
+created_at: 2026-04-13T01:05:03.066Z
+updated_at: 2026-04-13T01:05:03.066Z
