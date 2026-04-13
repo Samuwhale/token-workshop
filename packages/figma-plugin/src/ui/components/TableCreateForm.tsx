@@ -1,9 +1,9 @@
 import type { TableRow } from "../hooks/useTableCreate";
-
-type TableRowField = keyof Omit<TableRow, "id">;
 import { inferTypeFromValue } from "./tokenListHelpers";
 import { InlineBanner } from "./InlineBanner";
 import { NoticeFieldMessage } from "../shared/noticeSystem";
+
+type TableRowField = keyof Omit<TableRow, "id">;
 
 export interface TableCreateFormProps {
   setName: string;

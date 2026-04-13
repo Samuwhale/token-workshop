@@ -1,11 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import type { TokenNode } from "../hooks/useTokens";
 
 export interface SelectModeOverflowMenuProps {
   selectedPaths: Set<string>;
-  displayedLeafNodes: TokenNode[];
   sets: string[];
-  setName: string;
   operationLoading: string | null;
   copyFeedback: boolean;
   copyCssFeedback: boolean;
@@ -22,9 +19,7 @@ export interface SelectModeOverflowMenuProps {
 
 export function SelectModeOverflowMenu({
   selectedPaths,
-  displayedLeafNodes: _displayedLeafNodes,
   sets,
-  setName: _setName,
   operationLoading,
   copyFeedback,
   copyCssFeedback,

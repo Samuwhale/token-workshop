@@ -1,12 +1,9 @@
-import type { TokenNode } from "../hooks/useTokens";
 import { SelectModeOverflowMenu } from "./SelectModeOverflowMenu";
 
 export interface SelectModeToolbarProps {
   selectedPaths: Set<string>;
   displayedLeafPaths: Set<string>;
-  displayedLeafNodes: TokenNode[];
   sets: string[];
-  setName: string;
   operationLoading: string | null;
   showBatchEditor: boolean;
   copyFeedback: boolean;
@@ -29,9 +26,7 @@ export interface SelectModeToolbarProps {
 export function SelectModeToolbar({
   selectedPaths,
   displayedLeafPaths,
-  displayedLeafNodes,
   sets,
-  setName,
   operationLoading,
   showBatchEditor,
   copyFeedback,
@@ -91,9 +86,7 @@ export function SelectModeToolbar({
       {selectedPaths.size > 0 && (
         <SelectModeOverflowMenu
           selectedPaths={selectedPaths}
-          displayedLeafNodes={displayedLeafNodes}
           sets={sets}
-          setName={setName}
           operationLoading={operationLoading}
           copyFeedback={copyFeedback}
           copyCssFeedback={copyCssFeedback}

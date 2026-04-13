@@ -3467,9 +3467,7 @@ export function TokenList({
           <SelectModeToolbar
             selectedPaths={selectedPaths}
             displayedLeafPaths={displayedLeafPaths}
-            displayedLeafNodes={displayedLeafNodes}
             sets={sets}
-            setName={setName}
             operationLoading={operationLoading}
             showBatchEditor={showBatchEditor}
             copyFeedback={copyFeedback}
