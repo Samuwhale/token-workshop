@@ -1,19 +1,20 @@
-import { useImportPanel } from './ImportPanelContext';
+import {
+  useImportDestinationContext,
+  useImportSourceContext,
+} from './ImportPanelContext';
 import { defaultSetName, getSourceDefinition, modeKey } from './importPanelTypes';
 import { SET_NAME_RE } from '../shared/utils';
 
 export function ImportVariablesView() {
+  const { collectionData, source, handleBack } = useImportSourceContext();
   const {
-    collectionData,
     modeEnabled,
     modeSetNames,
     collectionModeDestinationStatus,
     sets,
-    source,
-    handleBack,
     setModeEnabled,
     setModeSetNames,
-  } = useImportPanel();
+  } = useImportDestinationContext();
 
   const sourceDefinition = getSourceDefinition(source);
   const sourceLabel = sourceDefinition?.label ?? 'Imported collections';

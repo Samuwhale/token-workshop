@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { useImportPanel } from './ImportPanelContext';
+import { useImportReviewContext, useImportSourceContext } from './ImportPanelContext';
 import { renderConflictValue } from './importPanelHelpers';
 
 export function ImportConflictResolver() {
+  const { tokens, selectedTokens } = useImportSourceContext();
   const {
     conflictPaths,
     conflictDecisions,
@@ -10,8 +11,6 @@ export function ImportConflictResolver() {
     conflictSearch,
     conflictStatusFilter,
     conflictTypeFilter,
-    tokens,
-    selectedTokens,
     importing,
     importProgress,
     reviewActionCopy,
@@ -21,7 +20,7 @@ export function ImportConflictResolver() {
     setConflictDecisions,
     clearConflictState,
     executeImport,
-  } = useImportPanel();
+  } = useImportReviewContext();
 
   // Stable-ref pattern: handler is replaced each render so it always captures fresh closures
   const handlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);

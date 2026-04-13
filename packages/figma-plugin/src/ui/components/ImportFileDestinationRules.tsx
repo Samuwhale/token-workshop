@@ -1,8 +1,13 @@
-import { useImportPanel } from './ImportPanelContext';
+import {
+  useImportDestinationContext,
+  useImportReviewContext,
+  useImportSourceContext,
+} from './ImportPanelContext';
 import { getSourceDefinition } from './importPanelTypes';
 import { SET_NAME_RE } from '../shared/utils';
 
 export function ImportFileDestinationRules() {
+  const { source, tokens, continueToPreview } = useImportSourceContext();
   const {
     targetSet,
     sets,
@@ -10,19 +15,16 @@ export function ImportFileDestinationRules() {
     newSetInputVisible,
     newSetDraft,
     newSetError,
-    source,
-    tokens,
     canContinueToPreview,
     setNewSetInputVisible,
     setNewSetDraft,
     setNewSetError,
     commitNewSet,
     cancelNewSet,
-    clearConflictState,
     setTargetSetAndPersist,
     fetchSets,
-    continueToPreview,
-  } = useImportPanel();
+  } = useImportDestinationContext();
+  const { clearConflictState } = useImportReviewContext();
 
   const sourceDefinition = getSourceDefinition(source);
   const destinationLabel = sourceDefinition?.destinationDescription

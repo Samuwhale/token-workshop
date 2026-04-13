@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { SkeletonImportRow } from './Skeleton';
-import { ImportPanelProvider, useImportPanel, type ImportPanelProps } from './ImportPanelContext';
+import {
+  ImportPanelProvider,
+  useImportDestinationContext,
+  useImportResultContext,
+  useImportReviewContext,
+  useImportSourceContext,
+  type ImportPanelProps,
+} from './ImportPanelContext';
 import { ImportSourceSelector } from './ImportSourceSelector';
 import { ImportSuccessView } from './ImportSuccessView';
 import { ImportVariablesView } from './ImportVariablesView';
@@ -13,9 +20,8 @@ import { getSourceDefinition } from './importPanelTypes';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 import { InlineBanner } from './InlineBanner';
 
-function ImportPanelRoot() {
+function ImportPanelRoot({ connected }: { connected: boolean }) {
   const {
-    connected,
     collectionData,
     tokens,
     loading,
@@ -23,18 +29,16 @@ function ImportPanelRoot() {
     sourceFamily,
     source,
     workflowStage,
-    successMessage,
     fileImportValidation,
-    conflictPaths,
-    destinationReady,
-    usesCollectionDestination,
     handleDragEnter,
     handleDragLeave,
     handleDragOver,
     handleDrop,
     handleBack,
-    clearSuccessState,
-  } = useImportPanel();
+  } = useImportSourceContext();
+  const { destinationReady, usesCollectionDestination } = useImportDestinationContext();
+  const { conflictPaths } = useImportReviewContext();
+  const { successMessage, clearSuccessState } = useImportResultContext();
 
   const showSuccess = collectionData.length === 0 && tokens.length === 0 && !loading && !!successMessage;
   const showSourceSelector = !showSuccess && !loading && (workflowStage === 'family' || workflowStage === 'format');
@@ -164,7 +168,7 @@ function ImportPanelRoot() {
 export function ImportPanel(props: ImportPanelProps) {
   return (
     <ImportPanelProvider {...props}>
-      <ImportPanelRoot />
+      <ImportPanelRoot connected={props.connected} />
     </ImportPanelProvider>
   );
 }

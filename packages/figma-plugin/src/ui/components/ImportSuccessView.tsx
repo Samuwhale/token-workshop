@@ -4,10 +4,15 @@ import {
   PRIMARY_WORKSPACE_SEQUENCE,
   PRIMARY_WORKSPACE_SEQUENCE_LABEL,
 } from "../shared/navigationTypes";
-import { useImportPanel } from "./ImportPanelContext";
+import {
+  IMPORT_REVIEW_ACTION_COPY,
+  useImportResultContext,
+  useImportSourceContext,
+} from "./ImportPanelContext";
 
 export function ImportSuccessView() {
   const [showSkippedDetails, setShowSkippedDetails] = useState(false);
+  const { fileImportValidation } = useImportSourceContext();
   const {
     successMessage,
     failedImportPaths,
@@ -18,17 +23,15 @@ export function ImportSuccessView() {
     lastImport,
     lastImportReviewSummary,
     importNextStepRecommendations,
-    fileImportValidation,
     undoing,
     retrying,
     copyFeedback,
-    reviewActionCopy,
     handleUndoImport,
     handleRetryFailed,
     handleCopyFailedPaths,
     openImportNextStep,
     clearSuccessState,
-  } = useImportPanel();
+  } = useImportResultContext();
   const hasParseWarnings =
     !!fileImportValidation &&
     (fileImportValidation.status === "partial" ||
@@ -39,7 +42,7 @@ export function ImportSuccessView() {
   const statusColor = hasFailedWrites
     ? "var(--color-figma-warning,#e8a100)"
     : "var(--color-figma-success)";
-  const failureStrategyLabel = reviewActionCopy[failedImportStrategy].label;
+  const failureStrategyLabel = IMPORT_REVIEW_ACTION_COPY[failedImportStrategy].label;
 
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-10">

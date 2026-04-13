@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useImportPanel } from './ImportPanelContext';
+import { useImportSourceContext } from './ImportPanelContext';
 import { type ImportToken, getSourceDefinition } from './importPanelTypes';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 
@@ -16,7 +16,7 @@ function resolveAlias(token: ImportToken, tokensByPath: Map<string, ImportToken>
 }
 
 function TokenRowWithAlias({ token, tokensByPath }: { token: ImportToken; tokensByPath: Map<string, ImportToken> }) {
-  const { selectedTokens, toggleToken } = useImportPanel();
+  const { selectedTokens, toggleToken } = useImportSourceContext();
 
   const isAlias = typeof token.$value === 'string' && /^\{.+\}$/.test(token.$value);
   const aliasTarget = isAlias ? (token.$value as string).slice(1, -1) : null;
@@ -102,7 +102,7 @@ export function ImportTokenListView() {
     toggleAll,
     setTypeFilter,
     setSkippedExpanded,
-  } = useImportPanel();
+  } = useImportSourceContext();
 
   const [searchText, setSearchText] = useState('');
   const sourceDefinition = getSourceDefinition(source);

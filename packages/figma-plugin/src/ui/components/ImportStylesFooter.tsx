@@ -1,13 +1,18 @@
 import { useState } from 'react';
-import { useImportPanel } from './ImportPanelContext';
+import {
+  useImportDestinationContext,
+  useImportReviewContext,
+  useImportSourceContext,
+} from './ImportPanelContext';
 import { ImportConflictResolver } from './ImportConflictResolver';
 import { renderConflictValue } from './importPanelHelpers';
 
 const MAX_PREVIEW_CONFLICTS = 60;
 
 export function ImportStylesFooter() {
+  const { targetSet } = useImportDestinationContext();
+  const { selectedTokens, tokens } = useImportSourceContext();
   const {
-    targetSet,
     existingPathsFetching,
     existingTokenMapError,
     existingTokenMap,
@@ -16,12 +21,10 @@ export function ImportStylesFooter() {
     conflictPaths,
     importing,
     importProgress,
-    selectedTokens,
     checkingConflicts,
-    tokens,
     reviewActionCopy,
     handleImportStyles,
-  } = useImportPanel();
+  } = useImportReviewContext();
 
   const [previewConflictsExpanded, setPreviewConflictsExpanded] = useState(false);
   const [showAllPreviewConflicts, setShowAllPreviewConflicts] = useState(false);

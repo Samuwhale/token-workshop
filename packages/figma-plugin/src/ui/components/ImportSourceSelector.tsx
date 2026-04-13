@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { useImportPanel } from './ImportPanelContext';
+import { type FileImportValidation } from '../hooks/useImportSource';
+import { useImportSourceContext } from './ImportPanelContext';
 import {
   IMPORT_FAMILY_DEFINITIONS,
   IMPORT_SOURCE_DEFINITIONS,
@@ -198,7 +199,7 @@ function ParserLimitsCard({ items }: { items: string[] }) {
 function FileValidationCard({
   validation,
 }: {
-  validation: NonNullable<ReturnType<typeof useImportPanel>['fileImportValidation']>;
+  validation: FileImportValidation;
 }) {
   return (
     <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
@@ -368,7 +369,7 @@ export function ImportSourceSelector() {
     fileImportValidation,
     handleBack,
     selectSourceFamily,
-  } = useImportPanel();
+  } = useImportSourceContext();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

@@ -1,40 +1,34 @@
 import { useState } from 'react';
-import { useImportPanel } from './ImportPanelContext';
+import {
+  useImportDestinationContext,
+  useImportReviewContext,
+} from './ImportPanelContext';
 import { renderConflictValue } from './importPanelHelpers';
-import { modeKey, defaultSetName } from './importPanelTypes';
-import { SET_NAME_RE } from '../shared/utils';
 import { Spinner } from './Spinner';
 
 const MAX_VISIBLE_CONFLICTS = 60;
 
 export function ImportVariablesFooter() {
   const {
+    hasAmbiguousCollectionImport,
+    ambiguousCollectionImportCount,
+    totalEnabledSets,
+    totalEnabledTokens,
+    hasInvalidModeSetNames,
+  } = useImportDestinationContext();
+  const {
     varConflictPreview,
     varConflictDetails,
     varConflictDetailsExpanded,
     setVarConflictDetailsExpanded,
     checkingVarConflicts,
-    hasAmbiguousCollectionImport,
-    ambiguousCollectionImportCount,
-    totalEnabledSets,
-    totalEnabledTokens,
     importing,
     importProgress,
     handleImportVariables,
-    collectionData,
-    modeEnabled,
-    modeSetNames,
     reviewActionCopy,
-  } = useImportPanel();
+  } = useImportReviewContext();
 
-  const hasInvalidSetNames = collectionData.some(col =>
-    col.modes.some(mode => {
-      const key = modeKey(col.name, mode.modeId);
-      if (!(modeEnabled[key] ?? true)) return false;
-      const name = (modeSetNames[key] ?? defaultSetName(col.name, mode.modeName, col.modes.length)).trim();
-      return !name || !SET_NAME_RE.test(name);
-    })
-  );
+  const hasInvalidSetNames = hasInvalidModeSetNames;
 
   const [showAllConflicts, setShowAllConflicts] = useState(false);
 
