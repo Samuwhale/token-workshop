@@ -74,6 +74,7 @@ import {
   CondensedAncestorBreadcrumb,
   DepthBar,
   EMPTY_LINT_VIOLATIONS,
+  GeneratorGlyph,
   GeneratorSummaryRow,
   getBrowseMetaForGenerator,
   getBrowseMetaForReference,
@@ -144,12 +145,20 @@ function MultiModeCell({
     !!onSave &&
     !isAliasValue;
   const canEditAlias = isAliasValue && !!targetSet && !!onSave;
+  const canCreate =
+    !value &&
+    !!tokenType &&
+    INLINE_SIMPLE_TYPES.has(tokenType) &&
+    !!targetSet &&
+    !!onSave;
 
   // Stable refs so the tab-activation effect always reads fresh values without
   // adding them as trigger dependencies (which would cause spurious re-activations
   // whenever value/tokenType/canEdit change while isTabPending is already true).
   const canEditRef = useRef(canEdit);
   canEditRef.current = canEdit;
+  const canCreateRef = useRef(canCreate);
+  canCreateRef.current = canCreate;
   const valueRef = useRef(value);
   valueRef.current = value;
   const tokenTypeRef = useRef(tokenType);
@@ -159,13 +168,15 @@ function MultiModeCell({
 
   // Activate edit mode when Tab navigation lands on this cell
   useEffect(() => {
-    if (
-      !isTabPending ||
-      !canEditRef.current ||
-      !valueRef.current ||
-      tokenTypeRef.current === "color"
-    )
+    if (!isTabPending || tokenTypeRef.current === "color") return;
+    if (canCreateRef.current) {
+      // Empty cell — open editor with blank value
+      setEditValue("");
+      setEditing(true);
+      onTabActivatedRef.current?.();
       return;
+    }
+    if (!canEditRef.current || !valueRef.current) return;
     setEditValue(
       getEditableString(tokenTypeRef.current!, valueRef.current.$value),
     );
@@ -228,43 +239,59 @@ function MultiModeCell({
       className="w-[48px] shrink-0 px-0.5 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
       title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ""}`}
     >
-      {!value ? (
-        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-          —
-        </span>
-      ) : isColor ? (
-        <>
-          <span
-            className={`w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]" : ""}`}
-            style={{ backgroundColor: value.$value as string }}
-            onClick={
-              canEdit
-                ? (e) => {
-                    e.stopPropagation();
-                    colorInputRef.current?.click();
-                  }
-                : undefined
+      {/* Hidden color input — rendered for existing color values or creatable empty color cells */}
+      {(canEdit || canCreate) && tokenType === "color" && (
+        <input
+          type="color"
+          ref={colorInputRef}
+          key={colorHexBase}
+          defaultValue={colorHexBase}
+          className="sr-only"
+          onBlur={(e) => {
+            const newHex = e.target.value + colorAlphaSuffix;
+            if (newHex !== colorHex) {
+              onSave!(tokenPath, "color", newHex, targetSet!, {
+                type: value?.$type ?? "color",
+                value: value?.$value,
+              });
             }
-          />
-          {canEdit && (
-            <input
-              type="color"
-              ref={colorInputRef}
-              key={colorHexBase}
-              defaultValue={colorHexBase}
-              className="sr-only"
-              onBlur={(e) => {
-                const newHex = e.target.value + colorAlphaSuffix;
-                if (newHex !== colorHex) {
-                  onSave!(tokenPath, "color", newHex, targetSet!, {
-                    type: value.$type,
-                    value: value.$value,
-                  });
+          }}
+        />
+      )}
+      {!value ? (
+        canCreate ? (
+          <span
+            className={`text-[10px] text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer hover:text-[var(--color-figma-text-secondary)]" : "cursor-text hover:text-[var(--color-figma-text-secondary)]"}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (tokenType === "color") {
+                colorInputRef.current?.click();
+              } else {
+                setEditValue("");
+                setEditing(true);
+              }
+            }}
+          >
+            —
+          </span>
+        ) : (
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            —
+          </span>
+        )
+      ) : isColor ? (
+        <span
+          className={`w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]" : ""}`}
+          style={{ backgroundColor: value.$value as string }}
+          onClick={
+            canEdit
+              ? (e) => {
+                  e.stopPropagation();
+                  colorInputRef.current?.click();
                 }
-              }}
-            />
-          )}
-        </>
+              : undefined
+          }
+        />
       ) : editing ? (
         <input
           type="text"
@@ -1299,6 +1326,7 @@ const TokenLeafNode = memo(
       rovingFocusPath,
       showDuplicatesFilter,
       modeVariantPaths,
+      themeLensEnabled,
     } = useTokenTreeLeafState();
     const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
     const {
@@ -1577,6 +1605,7 @@ const TokenLeafNode = memo(
       null;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
+    const isThemeLensVariant = themeLensEnabled && modeVariantPaths?.has(node.path);
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected && selectMode
@@ -1584,6 +1613,9 @@ const TokenLeafNode = memo(
         : isPreviewed
           ? "bg-[var(--color-figma-accent)]/8"
           : "";
+    const themeLensClass = isThemeLensVariant
+      ? "border-l-2 border-l-[var(--color-figma-accent)]"
+      : "";
     const showExpandedMeta = !renamingToken && isRowActive;
     const duplicateCount = showDuplicatesFilter
       ? (duplicateCounts.get(stableStringify(node.$value)) ?? 0)
@@ -2159,7 +2191,7 @@ const TokenLeafNode = memo(
         <div
           role="treeitem"
           aria-level={depth + 1}
-          className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass}`}
+          className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass} ${themeLensClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}
           tabIndex={rovingFocusPath === node.path ? 0 : -1}
           data-token-path={node.path}

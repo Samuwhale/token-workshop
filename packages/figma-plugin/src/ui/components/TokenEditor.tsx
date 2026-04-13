@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { MutableRefObject } from "react";
 import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { ThemeDimension } from "@tokenmanager/core";
+import { useThemeSwitcherContext } from "../contexts/ThemeContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
@@ -126,6 +127,9 @@ export function TokenEditor({
   onNavigateToThemes,
   pushUndo,
 }: TokenEditorProps) {
+  // Theme switcher for quick-flip bar
+  const themeSwitcher = useThemeSwitcherContext();
+
   // 1. Fields hook — all editable state
   const fields = useTokenEditorFields({
     isCreateMode,
@@ -789,6 +793,35 @@ export function TokenEditor({
 
   const afterHeader = (
     <>
+      {dimensions.length > 0 && !isCreateMode && (
+        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30">
+          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Theme</span>
+          {dimensions.map((dim) => {
+            const activeOption = themeSwitcher.activeThemes[dim.id] || dim.options[0]?.name || "";
+            return (
+              <button
+                key={dim.id}
+                type="button"
+                onClick={() => {
+                  const idx = dim.options.findIndex((o) => o.name === activeOption);
+                  const nextIdx = (idx + 1) % dim.options.length;
+                  const nextOption = dim.options[nextIdx]?.name;
+                  if (nextOption) {
+                    themeSwitcher.setActiveThemes({
+                      ...themeSwitcher.activeThemes,
+                      [dim.id]: nextOption,
+                    });
+                  }
+                }}
+                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-accent)] transition-colors"
+                title={`${dim.name}: ${activeOption} (click to cycle)`}
+              >
+                {dimensions.length > 1 ? `${dim.name}: ` : ""}{activeOption}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-400/40 bg-amber-50/80 dark:bg-amber-900/20 text-[11px]">
           <svg
@@ -1297,6 +1330,7 @@ export function TokenEditor({
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
           onNavigateToThemes={onNavigateToThemes}
+          activeThemes={themeSwitcher.activeThemes}
         />
 
         {/* Details — metadata, variants, and support tools */}

@@ -119,7 +119,7 @@ const GENERATOR_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
-function GeneratorGlyph({
+export function GeneratorGlyph({
   size = 8,
   strokeWidth = 1.5,
   className,

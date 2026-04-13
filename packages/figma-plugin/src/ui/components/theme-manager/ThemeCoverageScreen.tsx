@@ -28,6 +28,7 @@ interface ThemeCoverageScreenProps {
   onBack: (target?: ThemeRoleNavigationTarget | null) => void;
   onAutoFill: () => void;
   onResolveIssue: (issue: ThemeIssueSummary) => void;
+  onViewTokens?: (issue: ThemeIssueSummary) => void;
   onSelectOption: (
     dimId: string,
     optionName: string,
@@ -54,6 +55,7 @@ export function ThemeCoverageScreen({
   onBack,
   onAutoFill,
   onResolveIssue,
+  onViewTokens,
   onSelectOption,
 }: ThemeCoverageScreenProps) {
   const focusedIssueLabel =
@@ -164,6 +166,7 @@ export function ThemeCoverageScreen({
                         key={issue.key}
                         issue={issue}
                         onAction={() => onResolveIssue(issue)}
+                        onViewTokens={onViewTokens}
                       />
                     ))}
                   </div>

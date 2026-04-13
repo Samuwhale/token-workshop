@@ -16,6 +16,8 @@ export interface TokenListOverflowMenuProps {
   onCondensedViewChange: (v: boolean) => void;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
+  themeLensEnabled: boolean;
+  onToggleThemeLens: () => void;
   hasDimensions: boolean;
   showPreviewSplit: boolean;
   onTogglePreviewSplit?: () => void;
@@ -276,6 +278,13 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
                 label="Show modes"
                 checked={props.multiModeEnabled}
                 onClick={() => runAndClose(props.onToggleMultiMode)}
+              />
+            )}
+            {props.hasDimensions && (
+              <MenuItem
+                label="Theme lens"
+                checked={props.themeLensEnabled}
+                onClick={() => runAndClose(props.onToggleThemeLens)}
               />
             )}
             <MenuItem

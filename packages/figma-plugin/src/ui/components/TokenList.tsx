@@ -253,6 +253,8 @@ export function TokenList({
     multiModeDimId,
     setMultiModeDimId,
     toggleMultiMode,
+    themeLensEnabled,
+    setThemeLensEnabled,
   } = viewState;
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] =
@@ -2981,12 +2983,16 @@ export function TokenList({
   const effectiveRovingPath =
     rovingFocusPath ?? flatItems[0]?.node.path ?? null;
 
+  const effectiveAllTokensFlat = themeLensEnabled || !unthemedAllTokensFlat
+    ? allTokensFlat
+    : unthemedAllTokensFlat;
+
   const tokenTreeSharedData = useMemo<TokenTreeSharedDataContextType>(
     () => ({
-      allTokensFlat,
+      allTokensFlat: effectiveAllTokensFlat,
       pathToSet,
     }),
-    [allTokensFlat, pathToSet],
+    [effectiveAllTokensFlat, pathToSet],
   );
 
   const tokenTreeGroupState = useMemo<TokenTreeGroupStateContextType>(
@@ -3097,7 +3103,8 @@ export function TokenList({
       pendingTabEdit,
       rovingFocusPath: effectiveRovingPath,
       showDuplicatesFilter: showDuplicates,
-      modeVariantPaths: !multiModeEnabled && modeVariantPaths.size > 0 ? modeVariantPaths : undefined,
+      modeVariantPaths: (!multiModeEnabled || themeLensEnabled) && modeVariantPaths.size > 0 ? modeVariantPaths : undefined,
+      themeLensEnabled,
     }),
     [
       density,
@@ -3126,6 +3133,7 @@ export function TokenList({
       showDuplicates,
       multiModeEnabled,
       modeVariantPaths,
+      themeLensEnabled,
     ],
   );
 
@@ -3587,6 +3595,8 @@ export function TokenList({
               onCondensedViewChange: setCondensedView,
               multiModeEnabled,
               onToggleMultiMode: toggleMultiMode,
+              themeLensEnabled,
+              onToggleThemeLens: () => setThemeLensEnabled((v) => !v),
               hasDimensions: dimensions.length > 0,
               showPreviewSplit,
               onTogglePreviewSplit,

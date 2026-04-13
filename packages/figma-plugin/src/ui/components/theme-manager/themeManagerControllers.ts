@@ -61,6 +61,7 @@ export function useThemeWorkspaceController({
     selectedOptions,
     setSelectedOptions,
     setTokenValues,
+    setTokenTypesRef,
     fetchDimensions,
     debouncedFetchDimensions,
   } = dimensionsState;
@@ -234,6 +235,7 @@ export function useThemeWorkspaceController({
       selectedOptions,
       setSelectedOptions,
       setTokenValues,
+      setTokenTypesRef,
       fetchDimensions,
       debouncedFetchDimensions,
       dimensions,
@@ -258,6 +260,7 @@ export function useThemeWorkspaceController({
       setDimensions,
       setSelectedOptions,
       setTokenValues,
+      setTokenTypesRef,
       createOverrideSet,
     ],
   );

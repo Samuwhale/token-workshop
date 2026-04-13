@@ -197,6 +197,7 @@ export function useTokenEditorLoad({
     fetchToken();
     return () => controller.abort();
   }, [
+    dimensions,
     encodedTokenPath,
     initialRef,
     isCreateMode,

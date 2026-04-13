@@ -169,6 +169,23 @@ export function useTokenListViewState({
     }
   }, [multiModeEnabled, dimensions, multiModeDimId]);
 
+  // --- Theme lens (show themed values instead of base values) ---
+  const [themeLensEnabled, setThemeLensEnabledState] = useState<boolean>(
+    () => lsGet("tm_theme_lens") === "1",
+  );
+
+  const setThemeLensEnabled = useCallback(
+    (v: boolean | ((current: boolean) => boolean)) => {
+      setThemeLensEnabledState((current) => {
+        const next = typeof v === "function" ? v(current) : v;
+        lsSet("tm_theme_lens", next ? "1" : "0");
+        dispatchTokenListViewChanged(setName);
+        return next;
+      });
+    },
+    [setName],
+  );
+
   return {
     showRecentlyTouched,
     setShowRecentlyTouched,
@@ -191,5 +208,7 @@ export function useTokenListViewState({
     multiModeDimId,
     setMultiModeDimId,
     toggleMultiMode,
+    themeLensEnabled,
+    setThemeLensEnabled,
   };
 }

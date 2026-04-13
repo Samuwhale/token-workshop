@@ -428,6 +428,8 @@ export interface TokenTreeLeafStateContextType {
   showDuplicatesFilter?: boolean;
   /** Token paths that have different values across mode variants (for indicator when columns are hidden) */
   modeVariantPaths?: Set<string>;
+  /** When true, the token list is showing themed values instead of base values */
+  themeLensEnabled?: boolean;
 }
 
 export interface TokenTreeLeafActionsContextType {

@@ -4,12 +4,14 @@ interface ThemeIssueEntryCardProps {
   issue: ThemeIssueSummary;
   actionLabel?: string;
   onAction: () => void;
+  onViewTokens?: (issue: ThemeIssueSummary) => void;
 }
 
 export function ThemeIssueEntryCard({
   issue,
   actionLabel,
   onAction,
+  onViewTokens,
 }: ThemeIssueEntryCardProps) {
   const issueSeverity: "error" | "warning" =
     issue.kind === "stale-set" ? "error" : "warning";
@@ -54,14 +56,25 @@ export function ThemeIssueEntryCard({
               <span>{issue.summary}</span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onAction}
-            className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-            title={issue.recommendedNextAction}
-          >
-            {actionLabel ?? issue.actionLabel}
-          </button>
+          <span className="flex shrink-0 items-center gap-2">
+            {onViewTokens && (issue.kind === "missing-override" || issue.kind === "coverage-gap") && (
+              <button
+                type="button"
+                onClick={() => onViewTokens(issue)}
+                className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+              >
+                View tokens
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onAction}
+              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+              title={issue.recommendedNextAction}
+            >
+              {actionLabel ?? issue.actionLabel}
+            </button>
+          </span>
         </div>
       </div>
     </div>

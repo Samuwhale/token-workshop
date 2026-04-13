@@ -18,6 +18,7 @@ export interface ModeValuesEditorProps {
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
   onNavigateToThemes?: () => void;
+  activeThemes?: Record<string, string>;
 }
 
 function updateNestedMode(
@@ -60,6 +61,7 @@ export function ModeValuesEditor({
   allTokensFlat = {},
   pathToSet = {},
   onNavigateToThemes,
+  activeThemes = {},
 }: ModeValuesEditorProps) {
   const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
   // Track which rows the user has toggled to alias input mode
@@ -96,19 +98,16 @@ export function ModeValuesEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
             Theme overrides
           </p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Override the base token for specific theme variants.
-          </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {setCount > 0 && (
-            <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
               {setCount} override{setCount === 1 ? "" : "s"}
             </span>
           )}
@@ -123,15 +122,15 @@ export function ModeValuesEditor({
           )}
         </div>
       </div>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
         {dimensions.map(dim => (
-          <div key={dim.id} className="flex flex-col gap-2 border-t border-[var(--color-figma-border)]/70 pt-3 first:border-t-0 first:pt-0">
+          <div key={dim.id} className="flex flex-col">
             {dimensions.length > 1 && (
-              <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+              <div className="mb-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                 {dim.name}
               </div>
             )}
-            <div className="flex flex-col gap-2">
+            <div className="divide-y divide-[var(--color-figma-border)]/50 rounded-md border border-[var(--color-figma-border)]/65 overflow-hidden">
               {dim.options.map(option => {
                 const modeVal = modeValues[dim.id]?.[option.name] ?? '';
                 const modeValStr = typeof modeVal === 'string' ? modeVal : '';
@@ -143,31 +142,75 @@ export function ModeValuesEditor({
                 const forceAliasInput = aliasInputKeys.has(acKey);
                 const showRichEditor =
                   useRichEditor && !isAlias && !forceAliasInput && !showingAutocomplete;
+                const isActiveTheme = activeThemes[dim.id] === option.name;
 
                 return (
                   <div
                     key={option.name}
-                    className={`rounded-md border px-2.5 py-2 ${
+                    className={`group flex items-center gap-2 py-1.5 px-2.5 ${
                       isOverridden
-                        ? 'border-[var(--color-figma-accent)]/45 bg-[var(--color-figma-accent)]/8'
-                        : 'border-[var(--color-figma-border)]/65 bg-[var(--color-figma-bg-secondary)]/20'
-                    }`}
+                        ? 'border-l-2 border-l-[var(--color-figma-accent)]'
+                        : 'border-l-2 border-l-transparent'
+                    } ${isActiveTheme ? 'bg-[var(--color-figma-accent)]/5' : ''}`}
                   >
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <span
-                          className="block truncate text-[10px] font-medium text-[var(--color-figma-text)]"
-                          title={option.name}
-                        >
-                          {option.name}
-                        </span>
-                        {!isOverridden && (
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                            Uses the base token value
-                          </span>
-                        )}
-                      </div>
-                      <span className="flex shrink-0 items-center gap-1">
+                    <span
+                      className="w-[72px] shrink-0 truncate text-[10px] font-medium text-[var(--color-figma-text)]"
+                      title={option.name}
+                    >
+                      {option.name}
+                    </span>
+                    <div className="flex flex-1 items-center gap-1 min-w-0">
+                      {showRichEditor ? (
+                        <div className="flex-1 min-w-0">
+                          <ModeValueEditor
+                            tokenType={tokenType}
+                            value={modeVal === '' ? undefined : modeVal}
+                            onChange={v => onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, v))}
+                            allTokensFlat={allTokensFlat}
+                            pathToSet={pathToSet}
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative flex-1 min-w-0">
+                          <input
+                            type="text"
+                            value={modeValStr}
+                            onChange={e => {
+                              const v = e.target.value;
+                              onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, v));
+                              if (hasTokens) {
+                                const hasOpen = v.includes('{') && !v.endsWith('}');
+                                setAutocompleteModeKey(hasOpen ? acKey : null);
+                              }
+                            }}
+                            onFocus={() => {
+                              if (hasTokens && modeValStr.includes('{') && !modeValStr.endsWith('}')) {
+                                setAutocompleteModeKey(acKey);
+                              }
+                            }}
+                            onBlur={() => setTimeout(() => setAutocompleteModeKey(k => k === acKey ? null : k), 150)}
+                            onKeyDown={e => {
+                              if (hasTokens && e.key === '{') setAutocompleteModeKey(acKey);
+                            }}
+                            placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
+                            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+                          />
+                          {showingAutocomplete && (
+                            <AliasAutocomplete
+                              query={modeValStr.includes('{') ? modeValStr.slice(modeValStr.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
+                              allTokensFlat={allTokensFlat}
+                              pathToSet={pathToSet}
+                              filterType={tokenType}
+                              onSelect={path => {
+                                onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, `{${path}}`));
+                                setAutocompleteModeKey(null);
+                              }}
+                              onClose={() => setAutocompleteModeKey(null)}
+                            />
+                          )}
+                        </div>
+                      )}
+                      <span className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         {useRichEditor && hasTokens && (
                           <button
                             type="button"
@@ -206,54 +249,6 @@ export function ModeValuesEditor({
                         )}
                       </span>
                     </div>
-                    {showRichEditor ? (
-                      <ModeValueEditor
-                        tokenType={tokenType}
-                        value={modeVal === '' ? undefined : modeVal}
-                        onChange={v => onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, v))}
-                        allTokensFlat={allTokensFlat}
-                        pathToSet={pathToSet}
-                      />
-                    ) : (
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={modeValStr}
-                          onChange={e => {
-                            const v = e.target.value;
-                            onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, v));
-                            if (hasTokens) {
-                              const hasOpen = v.includes('{') && !v.endsWith('}');
-                              setAutocompleteModeKey(hasOpen ? acKey : null);
-                            }
-                          }}
-                          onFocus={() => {
-                            if (hasTokens && modeValStr.includes('{') && !modeValStr.endsWith('}')) {
-                              setAutocompleteModeKey(acKey);
-                            }
-                          }}
-                          onBlur={() => setTimeout(() => setAutocompleteModeKey(k => k === acKey ? null : k), 150)}
-                          onKeyDown={e => {
-                            if (hasTokens && e.key === '{') setAutocompleteModeKey(acKey);
-                          }}
-                          placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
-                          className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
-                        />
-                        {showingAutocomplete && (
-                          <AliasAutocomplete
-                            query={modeValStr.includes('{') ? modeValStr.slice(modeValStr.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
-                            allTokensFlat={allTokensFlat}
-                            pathToSet={pathToSet}
-                            filterType={tokenType}
-                            onSelect={path => {
-                              onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, `{${path}}`));
-                              setAutocompleteModeKey(null);
-                            }}
-                            onClose={() => setAutocompleteModeKey(null)}
-                          />
-                        )}
-                      </div>
-                    )}
                   </div>
                 );
               })}

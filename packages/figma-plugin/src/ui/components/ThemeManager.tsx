@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useState,
   useEffect,
   useRef,
@@ -245,6 +246,7 @@ const ThemeManagerWorkspace = React.forwardRef<
     selectedOptions,
     setSelectedOptions,
     setTokenValues,
+    setTokenTypesRef,
     fetchDimensions,
     debouncedFetchDimensions,
     dimensions,
@@ -652,6 +654,13 @@ const ThemeManagerWorkspace = React.forwardRef<
               }
               onBack={returnToAuthoring}
               onAutoFill={handleCoverageAutoFill}
+              onViewTokens={onNavigateToTokenSet ? (issue) => {
+                if (issue.preferredSetName) {
+                  onNavigateToTokenSet(issue.preferredSetName);
+                } else if (issue.affectedSetNames?.[0]) {
+                  onNavigateToTokenSet(issue.affectedSetNames[0]);
+                }
+              } : undefined}
               onResolveIssue={(issue) => {
                 const target = {
                   dimId: issue.dimensionId,
@@ -769,6 +778,7 @@ const ThemeManagerWorkspace = React.forwardRef<
               dimensions={dimensions}
               selectedOptions={selectedOptions}
               setTokenValues={setTokenValues}
+              setTokenTypes={setTokenTypesRef.current}
               onNavigateToToken={onNavigateToToken}
               onBack={() => setAuthoringMode("roles")}
             />

@@ -208,7 +208,13 @@ export function NodeGraphCanvas({
       y: (containerSize.h - graphH * newZoom) / 2 - (minY - PAD) * newZoom,
     });
     setZoom(newZoom);
-  }, [searchQuery, matchedNodeIds]);
+  }, [
+    containerSize.h,
+    containerSize.w,
+    graph.nodes,
+    matchedNodeIds,
+    searchQuery,
+  ]);
 
   // Track container size
   useEffect(() => {
