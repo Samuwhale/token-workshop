@@ -54,6 +54,7 @@ pnpm backlog:doctor
 - `pnpm backlog:status` shows current queue counts, whether the orchestrator is active, and the key runtime file locations. Add `-- --verbose` to include the live lease, reservation, planner, and blockage sections from the runtime report.
 - `pnpm backlog:sync` performs the queue-maintenance step only: drain the structured candidate queue into YAML task specs and rebuild the generated `backlog.md` report.
 - `pnpm backlog:doctor` verifies the runner toolchain, prompts, validation command, and queue state before a longer autonomous run. It fails fast if backlog state is still in legacy/stale mode, duplicate task IDs exist, or legacy prompt instructions remain.
+- `pnpm backlog:runner:update` initializes the shared [backlog-runner](https://github.com/Samuwhale/backlog-runner) submodule if needed, pulls the latest `main` branch into [`packages/backlog-runner`](/Users/samuel/Documents/Projects/TokenManager/packages/backlog-runner), and refreshes workspace installs.
 - These are the only supported backlog entrypoints. Do not use legacy Codex skill wrappers or edit generated backlog state by hand.
 - Task specs live in [`backlog/tasks`](/Users/samuel/Documents/Projects/TokenManager/backlog/tasks).
 - [`backlog.md`](/Users/samuel/Documents/Projects/TokenManager/backlog.md) is a stable generated report built from persisted task specs.

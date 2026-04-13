@@ -28,7 +28,36 @@ export default {
     core: 'pnpm --filter @tokenmanager/core build',
     server: 'pnpm --filter @tokenmanager/server build',
     plugin: 'pnpm preview:build',
-    backlog: 'pnpm --filter @tokenmanager/backlog-runner exec vitest run',
+    backlog: 'pnpm --filter backlog-runner exec vitest run',
+  },
+  heuristics: {
+    backlogRuntimePaths: [
+      'backlog/',
+      '.backlog-runner/',
+      'scripts/backlog/',
+      'packages/backlog-runner/',
+    ],
+    uiPathPrefixes: [
+      'packages/figma-plugin/src/ui',
+    ],
+    validationProfileRules: [
+      { profile: 'core', pathPrefixes: ['packages/core'] },
+      { profile: 'server', pathPrefixes: ['packages/server'] },
+      { profile: 'plugin', pathPrefixes: ['packages/figma-plugin'] },
+      {
+        profile: 'backlog',
+        pathPrefixes: [
+          'packages/backlog-runner',
+          'scripts/backlog',
+          'backlog.config.mjs',
+          'README.md',
+        ],
+      },
+    ],
+  },
+  workspaceBootstrap: {
+    installCommand: 'pnpm install --frozen-lockfile',
+    repairCommand: 'pnpm backlog:doctor --repair',
   },
   runners: {
     taskUi: {
