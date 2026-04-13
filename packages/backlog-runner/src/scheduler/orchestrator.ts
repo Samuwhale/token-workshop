@@ -37,6 +37,7 @@ const BLOCKED_DISCOVERY_MAX_BACKOFF_MS = 10 * 60 * 1000;
 type DiscoveryLaunchMode = 'empty' | 'blocked';
 const ORCHESTRATOR_TAKEOVER_GRACE_MS = 15_000;
 const ORCHESTRATOR_TAKEOVER_KILL_TIMEOUT_MS = 10_000;
+const ORCHESTRATOR_STALE_THRESHOLD_MS = Math.max(ORCHESTRATOR_POLL_INTERVAL_MS * 5, 30_000);
 
 type ActiveControlWorker = {
   kind: 'planner' | 'discovery';
@@ -75,15 +76,27 @@ function renderLoopSummary(options: {
 }
 
 async function writeOrchestratorStatus(config: BacklogRunnerConfig, status: OrchestratorRuntimeStatus): Promise<void> {
-  await writeFile(
-    path.join(config.files.runtimeDir, 'orchestrator-status.json'),
-    `${JSON.stringify(status, null, 2)}\n`,
-    'utf8',
-  );
+  try {
+    await writeFile(
+      path.join(config.files.runtimeDir, 'orchestrator-status.json'),
+      `${JSON.stringify(status, null, 2)}\n`,
+      'utf8',
+    );
+  } catch (error) {
+    if (!shouldIgnoreOrchestratorStatusError(error)) {
+      throw error;
+    }
+  }
 }
 
 async function clearOrchestratorStatus(config: BacklogRunnerConfig): Promise<void> {
-  await rm(path.join(config.files.runtimeDir, 'orchestrator-status.json'), { force: true });
+  try {
+    await rm(path.join(config.files.runtimeDir, 'orchestrator-status.json'), { force: true });
+  } catch (error) {
+    if (!shouldIgnoreOrchestratorStatusError(error)) {
+      throw error;
+    }
+  }
 }
 
 async function readOrchestratorStatus(config: BacklogRunnerConfig): Promise<OrchestratorRuntimeStatus | null> {
@@ -93,6 +106,22 @@ async function readOrchestratorStatus(config: BacklogRunnerConfig): Promise<Orch
   } catch {
     return null;
   }
+}
+
+function shouldIgnoreOrchestratorStatusError(error: unknown): boolean {
+  if (!(error instanceof Error) || !('code' in error)) {
+    return false;
+  }
+  const code = (error as NodeJS.ErrnoException).code;
+  return code === 'ENOENT' || code === 'EINVAL';
+}
+
+function isOrchestratorStatusFresh(status: OrchestratorRuntimeStatus): boolean {
+  const updatedAtMs = Date.parse(status.updatedAt);
+  if (!Number.isFinite(updatedAtMs)) {
+    return false;
+  }
+  return (Date.now() - updatedAtMs) <= ORCHESTRATOR_STALE_THRESHOLD_MS;
 }
 
 export class LiveOrchestratorError extends Error {
@@ -229,7 +258,7 @@ async function ensureOrchestratorAvailable(
   const status = await readOrchestratorStatus(config);
   if (!status) return;
 
-  if (isPidAlive(status.pid)) {
+  if (isPidAlive(status.pid) && isOrchestratorStatusFresh(status)) {
     if (options.takeover) {
       await takeOverLiveOrchestrator(config, logger, status, options.sleep);
       return;
@@ -406,10 +435,11 @@ export async function runBacklogRunner(
         return genericWorkerResult('failed', Date.now(), { note: fatalError.message });
       })
       .finally(async () => {
+        taskWorkers.delete(claim.task.id);
         try {
           await updateStatus();
-        } finally {
-          taskWorkers.delete(claim.task.id);
+        } catch {
+          // Orchestrator status persistence is best-effort while workers settle.
         }
       });
     taskWorkers.set(claim.task.id, { title: claim.task.title, promise });
@@ -434,16 +464,17 @@ export async function runBacklogRunner(
         return genericWorkerResult('failed', Date.now(), { note: fatalError.message });
       })
       .finally(async () => {
+        controlWorker = null;
         try {
           await updateStatus();
-        } finally {
-          controlWorker = null;
+        } catch {
+          // Orchestrator status persistence is best-effort while workers settle.
         }
       });
     controlWorker = { kind: 'planner', promise, batchKey };
   };
 
-  const launchDiscoveryWorker = (discoveryMode: DiscoveryLaunchMode): void => {
+  const launchDiscoveryWorker = (discoveryMode: DiscoveryLaunchMode): Promise<BacklogWorkerResult> => {
     const promise = runDiscoveryWorker(
       config,
       store,
@@ -471,13 +502,15 @@ export async function runBacklogRunner(
         return genericWorkerResult('failed', Date.now(), { note: fatalError.message });
       })
       .finally(async () => {
+        controlWorker = null;
         try {
           await updateStatus();
-        } finally {
-          controlWorker = null;
+        } catch {
+          // Orchestrator status persistence is best-effort while workers settle.
         }
       });
     controlWorker = { kind: 'discovery', promise, discoveryMode };
+    return promise;
   };
 
   const onSignal = () => {
@@ -595,6 +628,7 @@ export async function runBacklogRunner(
         if (batchKey && shouldAttemptPlannerBatch(batchKey, plannerCooldownActive ? plannerCooldownBatchKey : null)) {
           launchPlannerWorker(batchKey);
           await updateStatus();
+          continue;
         }
       }
 
@@ -605,7 +639,6 @@ export async function runBacklogRunner(
         }
         if (claims.length > 0) {
           await updateStatus();
-          await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
           continue;
         }
       }
@@ -621,16 +654,14 @@ export async function runBacklogRunner(
       ) {
         if (counts.blocked === 0 && now >= discoveryCooldownUntil) {
           logger.line('  No tasks found — running discovery passes to replenish backlog…');
-          launchDiscoveryWorker('empty');
+          await launchDiscoveryWorker('empty');
           await updateStatus();
-          await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
           continue;
         }
         if (counts.blocked > 0 && now >= blockedDiscoveryCooldownUntil) {
           logger.line('  No runnable tasks remain — running discovery passes to unblock backlog…');
-          launchDiscoveryWorker('blocked');
+          await launchDiscoveryWorker('blocked');
           await updateStatus();
-          await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
           continue;
         }
       }

@@ -705,6 +705,42 @@ export function buildZoomBreadcrumb(
   return segments;
 }
 
+export interface ZoomBranchNavigation {
+  breadcrumb: Array<{ name: string; path: string }>;
+  current: { name: string; path: string };
+  parent: { name: string; path: string } | null;
+  siblings: Array<{ name: string; path: string }>;
+}
+
+export function buildZoomBranchNavigation(
+  zoomPath: string,
+  nodes: TokenNode[],
+): ZoomBranchNavigation | null {
+  const breadcrumb = buildZoomBreadcrumb(zoomPath, nodes);
+  const current = breadcrumb[breadcrumb.length - 1];
+  if (!current) return null;
+
+  const parent = breadcrumb.length > 1 ? breadcrumb[breadcrumb.length - 2] : null;
+  const siblingSource = parent
+    ? (findGroupByPath(nodes, parent.path)?.children ?? [])
+    : nodes;
+
+  const siblings = siblingSource
+    .filter(
+      (node): node is TokenNode =>
+        node.isGroup && node.path !== current.path,
+    )
+    .map((node) => ({ name: node.name, path: node.path }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+
+  return {
+    breadcrumb,
+    current,
+    parent,
+    siblings,
+  };
+}
+
 export function collectGroupLeaves(nodes: TokenNode[], groupPath: string): Array<{ path: string; data: { $type?: string; $value?: any; $description?: string } }> {
   const result: Array<{ path: string; data: { $type?: string; $value?: any; $description?: string } }> = [];
   const walk = (list: TokenNode[]) => {

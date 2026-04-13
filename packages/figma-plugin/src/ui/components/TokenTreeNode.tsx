@@ -1252,6 +1252,11 @@ const TokenGroupNode = memo(
               e.preventDefault();
               onToggleExpand(node.path);
             }
+            if (e.key === "z" && !renamingGroup && !selectMode) {
+              e.preventDefault();
+              e.stopPropagation();
+              onZoomIntoGroup?.(node.path);
+            }
             if (e.key === "n" && !renamingGroup && !selectMode) {
               e.preventDefault();
               e.stopPropagation();
@@ -1465,6 +1470,35 @@ const TokenGroupNode = memo(
                   </svg>
                 </button>
               )}
+              {onZoomIntoGroup && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onZoomIntoGroup(node.path);
+                  }}
+                  title="Scope to group"
+                  aria-label="Scope to group"
+                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M15 3h6v6" />
+                    <path d="M9 21H3v-6" />
+                    <path d="M21 3l-7 7" />
+                    <path d="M3 21l7-7" />
+                  </svg>
+                  <span>Scope</span>
+                </button>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1534,6 +1568,24 @@ const TokenGroupNode = memo(
               style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
               onClick={(e) => e.stopPropagation()}
             >
+              {onZoomIntoGroup && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="z"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    closeGroupMenus();
+                    onZoomIntoGroup(node.path);
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span>Scope to group</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                    Z
+                  </span>
+                </button>
+              )}
               {onCreateSibling && (
                 <button
                   role="menuitem"

@@ -9,6 +9,7 @@ import { runProvider } from '../providers/index.js';
 import { JSON_SCHEMA } from '../providers/common.js';
 import { normalizeWhitespace } from '../utils.js';
 import type {
+  AgentResult,
   BacklogPassType,
   BacklogRunnerConfig,
   BacklogStore,
@@ -36,14 +37,16 @@ import {
   genericWorkerResult,
   getRunnerConfig,
   logDrainResult,
+  persistLifecyclePhase,
   readPrompt,
   retryTime,
-  runValidationCommand,
-  taskCommitExclusionPaths,
+  runLoggedAgentPhase,
+  runValidationPhase,
   taskExecutionPaths,
   taskWorkerResult,
   validateStagedWorkspace,
   validateWorkspaceScope,
+  verifyValidationPhase,
 } from './helpers.js';
 import {
   applyClaimRepairOutcome,
@@ -252,6 +255,354 @@ export async function runPlannerWorker(
   });
 }
 
+type TaskPhaseResult<T> =
+  | { kind: 'continue'; value: T }
+  | { kind: 'stop'; result: BacklogWorkerResult };
+
+interface TaskWorkerPhaseContext {
+  config: BacklogRunnerConfig;
+  store: BacklogStore;
+  workspaceStrategy: WorkspaceStrategy;
+  commandRunner: CommandRunner;
+  logger: RunnerLogger;
+  options: ResolvedRunOptions;
+  claim: BacklogTaskClaim;
+  startedAt: number;
+  session: WorkspaceSession;
+  transcriptRecorder: Awaited<ReturnType<typeof createAgentTranscriptRecorder>> | null;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+interface TaskPreflightPhaseValue {
+  allowedPaths: string[];
+}
+
+interface TaskExecutionPhaseValue extends TaskPreflightPhaseValue {
+  agentResult: AgentResult;
+  validationCommand: string;
+}
+
+interface TaskValidationPhaseValue extends TaskExecutionPhaseValue {
+  validationSummary?: string;
+}
+
+function continueTaskPhase<T>(value: T): TaskPhaseResult<T> {
+  return { kind: 'continue', value };
+}
+
+function stopTaskPhase<T>(result: BacklogWorkerResult): TaskPhaseResult<T> {
+  return { kind: 'stop', result };
+}
+
+async function runTaskPreflightPhase(
+  phaseContext: TaskWorkerPhaseContext,
+): Promise<TaskPhaseResult<TaskPreflightPhaseValue>> {
+  const {
+    config,
+    store,
+    commandRunner,
+    logger,
+    options,
+    claim,
+    startedAt,
+    session,
+  } = phaseContext;
+  const allowedPaths = taskExecutionPaths(config, claim.task.touchPaths);
+
+  const stagedPreflight = await validateStagedWorkspace(
+    commandRunner,
+    session.cwd,
+    allowedPaths,
+    'dirty workspace preflight',
+  );
+  if (!stagedPreflight.ok) {
+    logger.line(`  WARNING: ${stagedPreflight.reason}`);
+    const outcome = await tryWithRemediation(config, store, commandRunner, logger, options, claim, startedAt, {
+      mode: 'preflight',
+      cwd: session.cwd,
+      allowedPaths,
+      failureReason: stagedPreflight.reason ?? 'dirty workspace preflight',
+      verify: async () => validateStagedWorkspace(commandRunner, session.cwd, allowedPaths, 'dirty workspace preflight'),
+    });
+    if (!('ok' in outcome)) {
+      return stopTaskPhase(outcome);
+    }
+  }
+
+  if (session.cwd !== config.projectRoot) {
+    const mainRepoStagedPreflight = await validateStagedWorkspace(
+      commandRunner,
+      config.projectRoot,
+      allowedPaths,
+      'main repo staged preflight',
+    );
+    if (!mainRepoStagedPreflight.ok) {
+      logger.line('  WARNING: main checkout has unexpected staged files — deferring task');
+      logger.line(`  (reason: ${mainRepoStagedPreflight.reason})`);
+      await store.deferClaim(claim, mainRepoStagedPreflight.reason ?? 'main checkout not clean', 60_000, { category: 'preflight' });
+      return stopTaskPhase(taskWorkerResult('deferred', claim, startedAt, {
+        note: `main checkout not clean: ${mainRepoStagedPreflight.reason}`,
+      }));
+    }
+  }
+
+  return continueTaskPhase({ allowedPaths });
+}
+
+async function runTaskExecutionPhase(
+  phaseContext: TaskWorkerPhaseContext,
+  preflight: TaskPreflightPhaseValue,
+): Promise<TaskPhaseResult<TaskExecutionPhaseValue>> {
+  const {
+    config,
+    store,
+    commandRunner,
+    logger,
+    options,
+    claim,
+    startedAt,
+    session,
+    transcriptRecorder,
+  } = phaseContext;
+
+  logger.line(`  Running agent… (started ${new Date().toTimeString().slice(0, 8)})`);
+  const context = await buildExecutionContext(
+    config,
+    session.cwd,
+    claim,
+    await store.getTaskDependencies(claim.task.id),
+    await store.getActiveReservations(claim.task.id),
+  );
+  const agentResult = await runLoggedAgentPhase({
+    commandRunner,
+    options,
+    logger,
+    role: 'task',
+    label: 'task run',
+    context,
+    prompt: await readPrompt(config.prompts.agent),
+    cwd: session.cwd,
+    maxTurns: 50,
+    includeMeta: true,
+    onProgress: async event => {
+      if (transcriptRecorder) {
+        await transcriptRecorder.record(event);
+      }
+      if (event.type === 'assistant-message') {
+        const milestone = normalizeWhitespace(event.message);
+        if (milestone) {
+          await store.recordTaskActivity(claim.task.id, {
+            transcriptPath: transcriptRecorder?.transcriptPath ?? '',
+            milestone,
+          });
+        }
+      }
+    },
+  });
+
+  if (agentResult.status !== 'done') {
+    await store.failClaim(claim, agentResult.note || 'agent reported failure');
+    return stopTaskPhase(taskWorkerResult('failed', claim, startedAt, {
+      note: agentResult.note || 'agent reported failure',
+    }));
+  }
+
+  return continueTaskPhase({
+    ...preflight,
+    agentResult,
+    validationCommand: config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand,
+  });
+}
+
+async function runTaskValidationPhase(
+  phaseContext: TaskWorkerPhaseContext,
+  execution: TaskExecutionPhaseValue,
+): Promise<TaskPhaseResult<TaskValidationPhaseValue>> {
+  const {
+    config,
+    store,
+    commandRunner,
+    logger,
+    options,
+    claim,
+    startedAt,
+    session,
+  } = phaseContext;
+
+  logger.line('');
+  logger.line(`  Running validation profile "${claim.task.validationProfile}": ${execution.validationCommand}`);
+  const validation = await runValidationPhase(
+    commandRunner,
+    execution.validationCommand,
+    session.cwd,
+    'validation failed',
+  );
+  if (validation.ok) {
+    logger.line(
+      `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
+    );
+    return continueTaskPhase({
+      ...execution,
+      validationSummary: undefined,
+    });
+  }
+
+  const validationSummary = validation.summary;
+  const failureReason = validation.failureReason ?? `validation failed: ${validation.summary}`;
+  if (containsSharedInstallPolicyCode(failureReason)) {
+    await store.deferClaim(claim, failureReason, PREFLIGHT_DEFERRAL_MS, { category: 'preflight' });
+    logger.line(`  ⚠ ${failureReason} — deferred for retry`);
+    return stopTaskPhase(taskWorkerResult('deferred', claim, startedAt, {
+      note: failureReason,
+      validationSummary,
+    }));
+  }
+
+  const outcome = await tryWithRemediation(config, store, commandRunner, logger, options, claim, startedAt, {
+    mode: 'validation',
+    cwd: session.cwd,
+    allowedPaths: execution.allowedPaths,
+    failureReason,
+    validationSummary,
+    verify: async () => verifyValidationPhase(
+      commandRunner,
+      execution.validationCommand,
+      session.cwd,
+      'validation failed',
+    ),
+  });
+  if ('ok' in outcome) {
+    logger.line('  ✓ validation recovered by remediation');
+    return continueTaskPhase({
+      ...execution,
+      validationSummary,
+    });
+  }
+
+  const classification = classifyValidationFailure(
+    claim,
+    outcome.note ?? failureReason,
+    await changedFiles(commandRunner, session.cwd),
+  );
+  if (classification.blocking) {
+    return stopTaskPhase(outcome);
+  }
+  await queueNonBlockingValidationFollowup(store, logger, claim, classification);
+  return continueTaskPhase({
+    ...execution,
+    validationSummary,
+  });
+}
+
+async function runTaskFinalizePhase(
+  phaseContext: TaskWorkerPhaseContext,
+  validation: TaskValidationPhaseValue,
+): Promise<BacklogWorkerResult> {
+  const {
+    config,
+    store,
+    workspaceStrategy,
+    commandRunner,
+    logger,
+    options,
+    claim,
+    startedAt,
+    session,
+    sleep,
+  } = phaseContext;
+  const message = `chore(backlog): done – ${validation.agentResult.item || claim.task.title}`;
+
+  const finalizationResult = await withLock(lockPath(config, 'git'), 30, async (): Promise<BacklogWorkerResult | undefined> => {
+    logger.line('');
+
+    if (options.worktrees) {
+      logger.line(`  Merging to main: ${claim.task.title}`);
+      const originalDiff = await diffForPaths(commandRunner, session.cwd, validation.allowedPaths);
+      const mergeResult = await session.merge();
+      if (!mergeResult.ok) {
+        const recovered = await attemptTaskReconciliation(
+          config,
+          store,
+          workspaceStrategy,
+          commandRunner,
+          logger,
+          options,
+          claim,
+          mergeResult.reason ?? 'merge failed',
+          originalDiff,
+          false,
+          message,
+          mergeResult,
+          sleep,
+        );
+        if (!recovered.recovered) {
+          await applyClaimRepairOutcome(store, logger, claim, recovered, mergeResult.reason ?? 'merge failed');
+          return taskWorkerResult(recovered.deferred ? 'deferred' : 'failed', claim, startedAt, {
+            note: recovered.failureReason ?? mergeResult.reason ?? 'merge failed',
+            queuedFollowups: recovered.queuedFollowups,
+            validationSummary: validation.validationSummary,
+          });
+        }
+        return undefined;
+      }
+      logger.line('  ✓ Merged code changes to main');
+    } else {
+      logger.line(`  Finalizing code changes: ${claim.task.title}`);
+    }
+
+    const persisted = await persistLifecyclePhase({
+      store,
+      workspaceStrategy,
+      logger,
+      config,
+      commitMessage: message,
+      sleep,
+      onPersisted: async () => {
+        await store.completeClaim(claim, validation.agentResult.note || 'completed');
+      },
+    });
+    if (!persisted.ok) {
+      const failReason = options.worktrees ? 'finalize failed after merge' : 'commit/push failed';
+      const recovered = await attemptTaskReconciliation(
+        config,
+        store,
+        workspaceStrategy,
+        commandRunner,
+        logger,
+        options,
+        claim,
+        persisted.finalizeResult.reason ?? failReason,
+        await diffForPaths(commandRunner, config.projectRoot),
+        false,
+        message,
+        persisted.finalizeResult,
+        sleep,
+      );
+      if (!recovered.recovered) {
+        await applyClaimRepairOutcome(store, logger, claim, recovered, persisted.finalizeResult.reason ?? failReason);
+        return taskWorkerResult(recovered.deferred ? 'deferred' : 'failed', claim, startedAt, {
+          note: recovered.failureReason ?? persisted.finalizeResult.reason ?? failReason,
+          queuedFollowups: recovered.queuedFollowups,
+          validationSummary: validation.validationSummary,
+        });
+      }
+      return undefined;
+    }
+
+    logger.line(`  ✓ Marked done after ${options.worktrees ? 'merge' : 'finalize'}`);
+    return taskWorkerResult('completed', claim, startedAt, {
+      note: validation.agentResult.note || 'completed',
+      queuedFollowups: persisted.queuedFollowups,
+      validationSummary: validation.validationSummary,
+    });
+  });
+
+  return finalizationResult ?? taskWorkerResult('completed', claim, startedAt, {
+    note: validation.agentResult.note || 'completed',
+    validationSummary: validation.validationSummary,
+  });
+}
+
 export async function runTaskWorker(
   config: BacklogRunnerConfig,
   store: BacklogStore,
@@ -298,203 +649,36 @@ export async function runTaskWorker(
     await store.recordTaskActivity(claim.task.id, {
       transcriptPath: transcriptRecorder.transcriptPath,
     });
-
-    const allowedPaths = taskExecutionPaths(config, claim.task.touchPaths);
-    const stagedPreflight = await validateStagedWorkspace(
-      commandRunner,
-      session.cwd,
-      allowedPaths,
-      'dirty workspace preflight',
-    );
-    if (!stagedPreflight.ok) {
-      logger.line(`  WARNING: ${stagedPreflight.reason}`);
-      const outcome = await tryWithRemediation(config, store, commandRunner, logger, options, claim, startedAt, {
-        mode: 'preflight',
-        cwd: session.cwd,
-        allowedPaths,
-        failureReason: stagedPreflight.reason ?? 'dirty workspace preflight',
-        verify: async () => validateStagedWorkspace(commandRunner, session.cwd, allowedPaths, 'dirty workspace preflight'),
-      });
-      if (!('ok' in outcome)) return outcome;
-    }
-    if (session.cwd !== config.projectRoot) {
-      const mainRepoStagedPreflight = await validateStagedWorkspace(
-        commandRunner,
-        config.projectRoot,
-        allowedPaths,
-        'main repo staged preflight',
-      );
-      if (!mainRepoStagedPreflight.ok) {
-        logger.line(`  WARNING: main checkout has unexpected staged files — deferring task`);
-        logger.line(`  (reason: ${mainRepoStagedPreflight.reason})`);
-        await store.deferClaim(claim, mainRepoStagedPreflight.reason ?? 'main checkout not clean', 60_000, { category: 'preflight' });
-        return taskWorkerResult('deferred', claim, startedAt, {
-          note: `main checkout not clean: ${mainRepoStagedPreflight.reason}`,
-        });
-      }
-    }
-
-    logger.line(`  Running agent… (started ${new Date().toTimeString().slice(0, 8)})`);
-    const context = await buildExecutionContext(
+    const phaseContext: TaskWorkerPhaseContext = {
       config,
-      session.cwd,
+      store,
+      workspaceStrategy,
+      commandRunner,
+      logger,
+      options,
       claim,
-      await store.getTaskDependencies(claim.task.id),
-      await store.getActiveReservations(claim.task.id),
-    );
-    const result = await runProvider(commandRunner, {
-      tool: getRunnerConfig(options, 'task').tool,
-      model: getRunnerConfig(options, 'task').model,
-      context,
-      prompt: await readPrompt(config.prompts.agent),
-      cwd: session.cwd,
-      maxTurns: 50,
-      schema: JSON_SCHEMA,
-      onProgress: async event => {
-        if (transcriptRecorder) {
-          await transcriptRecorder.record(event);
-        }
-        if (event.type === 'assistant-message') {
-          const milestone = normalizeWhitespace(event.message);
-          if (milestone) {
-            await store.recordTaskActivity(claim.task.id, {
-              transcriptPath: transcriptRecorder?.transcriptPath ?? '',
-              milestone,
-            });
-          }
-        }
-      },
-    });
+      startedAt,
+      session,
+      transcriptRecorder,
+      sleep,
+    };
 
-    logger.line('');
-    logger.line(`  ${result.status === 'done' ? '✓' : '✗'} ${result.status}: ${result.item}`);
-    if (result.note) logger.line(`    ${result.note}`);
-    const meta = [
-      result.turns ? `${result.turns} turns` : '',
-      result.durationSeconds ? formatDuration(result.durationSeconds) : '',
-      result.costUsd ? `$${result.costUsd.toFixed(2)}` : '',
-    ].filter(Boolean);
-    if (meta.length > 0) {
-      logger.line(`    ${meta.join(' · ')}`);
+    const preflightPhase = await runTaskPreflightPhase(phaseContext);
+    if (preflightPhase.kind === 'stop') {
+      return preflightPhase.result;
     }
 
-    if (result.status !== 'done') {
-      await store.failClaim(claim, result.note || 'agent reported failure');
-      return taskWorkerResult('failed', claim, startedAt, { note: result.note || 'agent reported failure' });
+    const executionPhase = await runTaskExecutionPhase(phaseContext, preflightPhase.value);
+    if (executionPhase.kind === 'stop') {
+      return executionPhase.result;
     }
 
-    const validationCommand = config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand;
-    logger.line('');
-    logger.line(`  Running validation profile "${claim.task.validationProfile}": ${validationCommand}`);
-    let validationSummary: string | undefined;
-    const validation = await runValidationCommand(commandRunner, validationCommand, session.cwd);
-    if (!validation.ok) {
-      validationSummary = validation.summary;
-      const sharedInstallReason = `validation failed: ${validation.summary}`;
-      if (containsSharedInstallPolicyCode(sharedInstallReason)) {
-        await store.deferClaim(claim, sharedInstallReason, PREFLIGHT_DEFERRAL_MS, { category: 'preflight' });
-        logger.line(`  ⚠ ${sharedInstallReason} — deferred for retry`);
-        return taskWorkerResult('deferred', claim, startedAt, {
-          note: sharedInstallReason,
-          validationSummary,
-        });
-      }
-      const outcome = await tryWithRemediation(config, store, commandRunner, logger, options, claim, startedAt, {
-        mode: 'validation',
-        cwd: session.cwd,
-        allowedPaths,
-        failureReason: `validation failed: ${validation.summary}`,
-        validationSummary: validation.summary,
-        verify: async () => {
-          const rerun = await runValidationCommand(commandRunner, validationCommand, session.cwd);
-          return rerun.ok
-            ? { ok: true }
-            : { ok: false, reason: `validation failed: ${rerun.summary}` };
-        },
-      });
-      if ('ok' in outcome) {
-        logger.line('  ✓ validation recovered by remediation');
-      } else {
-        const classification = classifyValidationFailure(
-          claim,
-          outcome.note ?? `validation failed: ${validation.summary}`,
-          await changedFiles(commandRunner, session.cwd),
-        );
-        if (classification.blocking) {
-          return outcome;
-        }
-        await queueNonBlockingValidationFollowup(store, logger, claim, classification);
-      }
-    } else {
-      logger.line(
-        `  ✓ validation passed (${formatDuration(validation.durationSeconds) || `${validation.durationSeconds}s`})`,
-      );
+    const validationPhase = await runTaskValidationPhase(phaseContext, executionPhase.value);
+    if (validationPhase.kind === 'stop') {
+      return validationPhase.result;
     }
 
-    const message = `chore(backlog): done – ${result.item || claim.task.title}`;
-    const finalizationResult = await withLock(lockPath(config, 'git'), 30, async (): Promise<BacklogWorkerResult | undefined> => {
-      logger.line('');
-
-      if (options.worktrees) {
-        logger.line(`  Merging to main: ${claim.task.title}`);
-        const originalDiff = await diffForPaths(commandRunner, session.cwd, allowedPaths);
-        const mergeResult = await session.merge();
-        if (!mergeResult.ok) {
-          const recovered = await attemptTaskReconciliation(
-            config, store, workspaceStrategy, commandRunner, logger, options, claim,
-            mergeResult.reason ?? 'merge failed', originalDiff, false, message, mergeResult, sleep,
-          );
-          if (!recovered.recovered) {
-            await applyClaimRepairOutcome(store, logger, claim, recovered, mergeResult.reason ?? 'merge failed');
-            return taskWorkerResult(recovered.deferred ? 'deferred' : 'failed', claim, startedAt, {
-              note: recovered.failureReason ?? mergeResult.reason ?? 'merge failed',
-              queuedFollowups: recovered.queuedFollowups,
-              validationSummary,
-            });
-          }
-          return undefined;
-        }
-        logger.line('  ✓ Merged code changes to main');
-      } else {
-        logger.line(`  Finalizing code changes: ${claim.task.title}`);
-      }
-
-      logDrainResult(logger, 'Candidate planner', await store.drainCandidateQueue());
-
-      const finalizeResult = await workspaceStrategy.commitAndPush(
-        message,
-        taskCommitExclusionPaths(config),
-        { sleep, scopeMode: 'all-except' },
-      );
-      if (!finalizeResult.ok) {
-        const failReason = options.worktrees ? 'finalize failed after merge' : 'commit/push failed';
-        const recovered = await attemptTaskReconciliation(
-          config, store, workspaceStrategy, commandRunner, logger, options, claim,
-          finalizeResult.reason ?? failReason,
-          await diffForPaths(commandRunner, config.projectRoot),
-          false, message, finalizeResult, sleep,
-        );
-        if (!recovered.recovered) {
-          await applyClaimRepairOutcome(store, logger, claim, recovered, finalizeResult.reason ?? failReason);
-          return taskWorkerResult(recovered.deferred ? 'deferred' : 'failed', claim, startedAt, {
-            note: recovered.failureReason ?? finalizeResult.reason ?? failReason,
-            queuedFollowups: recovered.queuedFollowups,
-            validationSummary,
-          });
-        }
-        return undefined;
-      }
-
-      await store.completeClaim(claim, result.note || 'completed');
-      logger.line(`  ✓ Marked done after ${options.worktrees ? 'merge' : 'finalize'}`);
-    });
-    if (finalizationResult) {
-      return finalizationResult;
-    }
-    return taskWorkerResult('completed', claim, startedAt, {
-      note: result.note || 'completed',
-      validationSummary,
-    });
+    return runTaskFinalizePhase(phaseContext, validationPhase.value);
   } catch (error) {
     const classified = classifyAgentError(error);
     if (classified.kind === 'auth') {

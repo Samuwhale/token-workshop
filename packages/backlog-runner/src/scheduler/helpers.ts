@@ -3,17 +3,23 @@ import path from 'node:path';
 import { summarizeCommandOutput } from '../command-output.js';
 import { normalizePathForGit, unexpectedFiles } from '../git-scope.js';
 import type { RunnerLogger } from '../logger.js';
-import { isAuthFailure, isRateLimited } from '../providers/common.js';
+import { JSON_SCHEMA, isAuthFailure, isRateLimited } from '../providers/common.js';
+import { runProvider } from '../providers/index.js';
 import { parseGitStatusPaths } from '../utils.js';
 import type {
+  AgentResult,
+  AgentRunRequest,
   BacklogDrainResult,
   BacklogRunnerConfig,
   BacklogRunnerRole,
+  BacklogStore,
   BacklogTaskClaim,
   BacklogWorkerResult,
   CommandRunner,
   ResolvedRunOptions,
   ValidationCommandResult,
+  WorkspaceApplyResult,
+  WorkspaceStrategy,
 } from '../types.js';
 
 export function formatDuration(seconds?: number): string {
@@ -148,6 +154,95 @@ export async function runValidationCommand(
   };
 }
 
+export interface LoggedAgentPhaseOptions {
+  commandRunner: CommandRunner;
+  options: ResolvedRunOptions;
+  logger: RunnerLogger;
+  role: BacklogRunnerRole;
+  label: string;
+  context: string;
+  prompt: string;
+  cwd: string;
+  maxTurns: number;
+  includeMeta?: boolean;
+  onProgress?: AgentRunRequest['onProgress'];
+}
+
+export async function runLoggedAgentPhase({
+  commandRunner,
+  options,
+  logger,
+  role,
+  label,
+  context,
+  prompt,
+  cwd,
+  maxTurns,
+  includeMeta = false,
+  onProgress,
+}: LoggedAgentPhaseOptions): Promise<AgentResult> {
+  const runner = getRunnerConfig(options, role);
+  const result = await runProvider(commandRunner, {
+    tool: runner.tool,
+    model: runner.model,
+    context,
+    prompt,
+    cwd,
+    maxTurns,
+    schema: JSON_SCHEMA,
+    onProgress,
+  });
+
+  logger.line(`  ${result.status === 'done' ? '✓' : '✗'} ${label}: ${result.item}`);
+  if (result.note) logger.line(`    ${result.note}`);
+  if (includeMeta) {
+    const meta = [
+      result.turns ? `${result.turns} turns` : '',
+      result.durationSeconds ? formatDuration(result.durationSeconds) : '',
+      result.costUsd ? `$${result.costUsd.toFixed(2)}` : '',
+    ].filter(Boolean);
+    if (meta.length > 0) {
+      logger.line(`    ${meta.join(' · ')}`);
+    }
+  }
+
+  return result;
+}
+
+export interface ValidationPhaseResult {
+  ok: boolean;
+  summary: string;
+  durationSeconds: number;
+  failureReason?: string;
+}
+
+export async function runValidationPhase(
+  commandRunner: CommandRunner,
+  command: string,
+  cwd: string,
+  failurePrefix: string,
+): Promise<ValidationPhaseResult> {
+  const result = await runValidationCommand(commandRunner, command, cwd);
+  return {
+    ok: result.ok,
+    summary: result.summary,
+    durationSeconds: result.durationSeconds,
+    failureReason: result.ok ? undefined : `${failurePrefix}: ${result.summary}`,
+  };
+}
+
+export async function verifyValidationPhase(
+  commandRunner: CommandRunner,
+  command: string,
+  cwd: string,
+  failurePrefix: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const result = await runValidationPhase(commandRunner, command, cwd, failurePrefix);
+  return result.ok
+    ? { ok: true }
+    : { ok: false, reason: result.failureReason };
+}
+
 export async function readPrompt(filePath: string): Promise<string> {
   return readFile(filePath, 'utf8');
 }
@@ -173,6 +268,59 @@ export async function diffForPaths(
 
 export function normalizeInlineNote(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
+}
+
+export async function drainCandidateQueuePhase(
+  store: BacklogStore,
+  logger: RunnerLogger,
+  label = 'Candidate planner',
+): Promise<BacklogDrainResult> {
+  const result = await store.drainCandidateQueue();
+  logDrainResult(logger, label, result);
+  return result;
+}
+
+export interface PersistLifecyclePhaseOptions {
+  store: BacklogStore;
+  workspaceStrategy: WorkspaceStrategy;
+  logger: RunnerLogger;
+  config: BacklogRunnerConfig;
+  commitMessage: string;
+  retryPendingPush?: boolean;
+  sleep?: (ms: number) => Promise<void>;
+  onPersisted: (drainResult: BacklogDrainResult) => Promise<void>;
+}
+
+export interface PersistLifecyclePhaseResult {
+  ok: boolean;
+  queuedFollowups: number;
+  finalizeResult: WorkspaceApplyResult;
+}
+
+export async function persistLifecyclePhase({
+  store,
+  workspaceStrategy,
+  logger,
+  config,
+  commitMessage,
+  retryPendingPush = false,
+  sleep,
+  onPersisted,
+}: PersistLifecyclePhaseOptions): Promise<PersistLifecyclePhaseResult> {
+  const drainResult = await drainCandidateQueuePhase(store, logger);
+  const finalizeResult = await workspaceStrategy.commitAndPush(
+    commitMessage,
+    taskCommitExclusionPaths(config),
+    { retryPendingPush, sleep, scopeMode: 'all-except' },
+  );
+  if (finalizeResult.ok) {
+    await onPersisted(drainResult);
+  }
+  return {
+    ok: finalizeResult.ok,
+    queuedFollowups: drainResult.createdTasks,
+    finalizeResult,
+  };
 }
 
 export function workerDurationSeconds(startedAt: number): number {

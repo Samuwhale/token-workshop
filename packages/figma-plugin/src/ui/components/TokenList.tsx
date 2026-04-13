@@ -37,7 +37,7 @@ import {
   collectAllGroupPaths,
   flattenLeafNodes,
   findGroupByPath,
-  buildZoomBreadcrumb,
+  buildZoomBranchNavigation,
   QUERY_QUALIFIERS,
   replaceQueryToken,
   getStructuredFilterDiscoveryTemplates,
@@ -3287,14 +3287,14 @@ export function TokenList({
   const handleZoomIntoGroup = useCallback(
     (groupPath: string) => {
       setZoomRootPath(groupPath);
-      setVirtualScrollTop(0);
-      if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
       // Ensure the zoom target's children are visible
       setExpandedPaths((prev) => {
         const next = new Set(prev);
         next.add(groupPath);
         return next;
       });
+      setVirtualScrollTop(0);
+      if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
     },
     [setExpandedPaths, setVirtualScrollTop, setZoomRootPath],
   );
@@ -3308,10 +3308,17 @@ export function TokenList({
   const handleZoomToAncestor = useCallback(
     (ancestorPath: string) => {
       setZoomRootPath(ancestorPath || null);
+      if (ancestorPath) {
+        setExpandedPaths((prev) => {
+          const next = new Set(prev);
+          next.add(ancestorPath);
+          return next;
+        });
+      }
       setVirtualScrollTop(0);
       if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
     },
-    [setVirtualScrollTop, setZoomRootPath],
+    [setExpandedPaths, setVirtualScrollTop, setZoomRootPath],
   );
 
   // Virtual scroll window computation — uses itemOffsets for variable-height rows
@@ -3349,10 +3356,19 @@ export function TokenList({
     return map;
   }, [flatItems]);
 
-  const zoomBreadcrumb = useMemo(() => {
+  const zoomNavigation = useMemo(() => {
     if (!zoomRootPath) return null;
-    return buildZoomBreadcrumb(zoomRootPath, sortedTokens);
+    return buildZoomBranchNavigation(zoomRootPath, sortedTokens);
   }, [zoomRootPath, sortedTokens]);
+
+  const zoomBreadcrumb = zoomNavigation?.breadcrumb ?? null;
+  const zoomParentPath = zoomNavigation?.parent?.path ?? null;
+  const zoomSiblingBranches = zoomNavigation?.siblings ?? [];
+
+  const handleZoomUpOneLevel = useCallback(() => {
+    if (!zoomParentPath) return;
+    handleZoomToAncestor(zoomParentPath);
+  }, [handleZoomToAncestor, zoomParentPath]);
 
   const breadcrumbSegments = useMemo(() => {
     if (flatItems.length === 0 || rawStart >= flatItems.length) return [];
@@ -5356,53 +5372,102 @@ export function TokenList({
           ) : (
             <div className="py-1">
               {zoomBreadcrumb ? (
-                <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[10px]">
-                  <button
-                    onClick={handleZoomOut}
-                    className="flex items-center gap-0.5 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] mr-1"
-                    title="Exit focus mode (Esc)"
-                  >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M19 12H5M12 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleZoomOut}
-                    className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
-                  >
-                    Root
-                  </button>
-                  {zoomBreadcrumb.map((seg, i) => (
-                    <span key={seg.path} className="flex items-center gap-0.5">
-                      <span className="opacity-40 mx-0.5">›</span>
-                      {i < zoomBreadcrumb.length - 1 ? (
-                        <button
-                          className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[120px]"
-                          title={seg.path}
-                          onClick={() => handleZoomToAncestor(seg.path)}
-                        >
-                          {seg.name}
-                        </button>
-                      ) : (
-                        <span
-                          className="font-medium text-[var(--color-figma-text)] truncate max-w-[120px]"
-                          title={seg.path}
-                        >
-                          {seg.name}
-                        </span>
-                      )}
+                <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px]">
+                  <div className="flex items-center gap-1">
+                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                      Scope
                     </span>
-                  ))}
+                    <button
+                      onClick={handleZoomUpOneLevel}
+                      disabled={!zoomParentPath}
+                      className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-default disabled:opacity-40"
+                      title={
+                        zoomParentPath
+                          ? "Move up one group"
+                          : "Already at the top scoped branch"
+                      }
+                    >
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 19V5" />
+                        <path d="m5 12 7-7 7 7" />
+                      </svg>
+                      <span>Up</span>
+                    </button>
+                    <button
+                      onClick={handleZoomOut}
+                      className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      title="Clear the scoped branch (Esc)"
+                    >
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M18 6 6 18" />
+                        <path d="M6 6l12 12" />
+                      </svg>
+                      <span>All tokens</span>
+                    </button>
+                    <div className="min-w-0 flex items-center gap-0.5 overflow-x-auto">
+                      {zoomBreadcrumb.map((seg, i) => (
+                        <span
+                          key={seg.path}
+                          className="flex items-center gap-0.5 shrink-0"
+                        >
+                          {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
+                          {i < zoomBreadcrumb.length - 1 ? (
+                            <button
+                              className="truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline max-w-[120px]"
+                              title={seg.path}
+                              onClick={() => handleZoomToAncestor(seg.path)}
+                            >
+                              {seg.name}
+                            </button>
+                          ) : (
+                            <span
+                              className="truncate font-medium text-[var(--color-figma-text)] max-w-[120px]"
+                              title={seg.path}
+                            >
+                              {seg.name}
+                            </span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {zoomSiblingBranches.length > 0 && (
+                    <div className="mt-1 flex items-center gap-1 overflow-x-auto">
+                      <span className="shrink-0 text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        Branches
+                      </span>
+                      {zoomSiblingBranches.map((branch) => (
+                        <button
+                          key={branch.path}
+                          onClick={() => handleZoomToAncestor(branch.path)}
+                          className="shrink-0 rounded-full border border-[var(--color-figma-border)] px-2 py-0.5 text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)]"
+                          title={`Scope to ${branch.path}`}
+                        >
+                          {branch.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
                 <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] group/breadcrumb">
