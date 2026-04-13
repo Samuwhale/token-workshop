@@ -206,7 +206,7 @@ export function UnifiedSourceInput({
 
           {expectedType === null && (
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              This generator type does not require a base value.
+              This recipe type does not require a base value.
             </p>
           )}
 

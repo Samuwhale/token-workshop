@@ -223,7 +223,7 @@ export function useTokenSave({
         ),
       );
       if (!derivedGenerator) {
-        onError?.('Detach failed: generator ownership not found');
+        onError?.('Detach failed: recipe ownership not found');
         return;
       }
       await apiFetch(`${serverUrl}/api/generators/${derivedGenerator.id}/detach`, {

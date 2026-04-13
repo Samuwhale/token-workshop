@@ -646,7 +646,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                       {(s.dimensionCount + s.resolverCount + s.generatorCount) > 0 ? ` · ${[
                         s.dimensionCount > 0 ? `${s.dimensionCount} theme ${s.dimensionCount === 1 ? 'dimension' : 'dimensions'}` : '',
                         s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',
-                        s.generatorCount > 0 ? `${s.generatorCount} ${s.generatorCount === 1 ? 'generator' : 'generators'}` : '',
+                        s.generatorCount > 0 ? `${s.generatorCount} ${s.generatorCount === 1 ? 'recipe' : 'recipes'}` : '',
                       ].filter(Boolean).join(' · ')}` : ''}
                     </p>
                   </div>

@@ -104,7 +104,7 @@ function formatSnapshotWorkspaceCounts(snapshot: SnapshotSummary) {
     parts.push(`${snapshot.resolverCount} ${snapshot.resolverCount === 1 ? 'resolver' : 'resolvers'}`);
   }
   if (snapshot.generatorCount > 0) {
-    parts.push(`${snapshot.generatorCount} ${snapshot.generatorCount === 1 ? 'generator' : 'generators'}`);
+    parts.push(`${snapshot.generatorCount} ${snapshot.generatorCount === 1 ? 'recipe' : 'recipes'}`);
   }
   return parts.join(' · ');
 }

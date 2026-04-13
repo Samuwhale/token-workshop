@@ -95,7 +95,7 @@ export function StepReview({
       <div className={AUTHORING.generatorMetricGrid}>
         <div className={AUTHORING.generatorSummaryCard}>
           <div className={AUTHORING.generatorSummaryRow}>
-            <span className={AUTHORING.generatorSummaryLabel}>Generator</span>
+            <span className={AUTHORING.generatorSummaryLabel}>Recipe</span>
             <span className={AUTHORING.generatorSummaryValue}>{name}</span>
           </div>
           <div className={AUTHORING.generatorSummaryRow}>
@@ -332,7 +332,7 @@ export function StepReview({
       {/* Multi-brand note */}
       {isMultiBrand && inputTable && (
         <div className={AUTHORING.generatorSectionCard}>
-          <p className="mb-1">Tokens will be generated for each brand:</p>
+          <p className="mb-1">Tokens will be created for each brand:</p>
           <ul className="list-disc list-inside">
             {inputTable.rows.filter(r => r.brand.trim()).map((row, i) => (
               <li key={i} className="font-mono">

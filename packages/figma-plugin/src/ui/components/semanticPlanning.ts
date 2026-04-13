@@ -58,7 +58,7 @@ export function getSemanticSuggestions(
     suggestions.push({
       id: INTENT_SEMANTIC_SUGGESTION_ID,
       label: 'Chosen intent',
-      description: 'Starter aliases from the selected generator intent.',
+      description: 'Starter aliases from the selected recipe intent.',
       source: 'intent',
       prefix: templateStarter.prefix,
       mappings: buildSemanticMappings(templateStarter.mappings, availableSteps),
@@ -71,7 +71,7 @@ export function getSemanticSuggestions(
     suggestions.push({
       id: pattern.id,
       label: pattern.label,
-      description: 'Suggested alias pattern for this generator type.',
+      description: 'Suggested alias pattern for this recipe type.',
       source: 'pattern',
       prefix: templateStarter?.prefix ?? 'semantic',
       mappings: buildSemanticMappings(pattern.mappings, availableSteps),

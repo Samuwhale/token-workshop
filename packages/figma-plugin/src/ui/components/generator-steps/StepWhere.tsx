@@ -115,7 +115,7 @@ export function StepWhere({
       <div className={AUTHORING.generatorTitleBlock}>
         <h3 className={AUTHORING.generatorTitle}>Destination</h3>
         <p className={AUTHORING.generatorDescription}>
-          Choose the generator name, output group, and token set before review.
+          Choose the recipe name, output group, and token set before review.
         </p>
       </div>
 
@@ -139,7 +139,7 @@ export function StepWhere({
           )}
         </div>
         <div className={AUTHORING.generatorFieldStack}>
-          <label className={AUTHORING.generatorSummaryLabel}>Generator name</label>
+          <label className={AUTHORING.generatorSummaryLabel}>Recipe name</label>
           <input
             type="text"
             value={name}
@@ -183,8 +183,8 @@ export function StepWhere({
         </div>
         <p className={AUTHORING.generatorDescription}>
           {isMultiBrand
-            ? 'Generate the same scale into multiple brand-specific token sets.'
-            : 'Switch to multi-brand when this generator should publish one scale across several sets.'}
+            ? 'Create the same scale into multiple brand-specific token sets.'
+            : 'Switch to multi-brand when this recipe should publish one scale across several sets.'}
         </p>
       </div>
 
@@ -193,7 +193,7 @@ export function StepWhere({
           <div className={AUTHORING.generatorTitleBlock}>
             <div className={AUTHORING.generatorTitle}>Brand rows</div>
             <p className={AUTHORING.generatorDescription}>
-              Each row publishes the generator into a distinct set template.
+              Each row publishes the recipe into a distinct set template.
             </p>
           </div>
           <InputTableEditor table={inputTable} onChange={onInputTableChange} />

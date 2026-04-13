@@ -137,7 +137,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   }
   if (lower.includes("generator")) {
     return {
-      label: "Open generators",
+      label: "Open recipes",
       target: { kind: "workspace", topTab: "define", subTab: "generators" },
     };
   }

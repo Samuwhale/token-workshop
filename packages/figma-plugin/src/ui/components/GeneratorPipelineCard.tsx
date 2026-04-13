@@ -190,7 +190,7 @@ function DryRunPreview({
 
       {totalChanges === 0 && diff.unchanged.length === 0 ? (
         <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">
-          No tokens would be generated.
+          No tokens would be created.
         </p>
       ) : totalChanges === 0 ? (
         <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -375,7 +375,7 @@ function LiveDiffPreview({
   if (totalTokens === 0) {
     return (
       <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic py-1">
-        No tokens would be generated.
+        No tokens would be created.
       </p>
     );
   }
@@ -865,7 +865,7 @@ function QuickEditPanel({
         body: JSON.stringify(body),
       });
       dispatchToast(
-        `Generator "${name.trim()}" updated`,
+        `Recipe "${name.trim()}" updated`,
         "success",
         getViewTokensToastAction?.({
           targetGroup,
@@ -885,7 +885,7 @@ function QuickEditPanel({
       <div className={AUTHORING.generatorTitleBlock}>
         <div className={AUTHORING.generatorTitle}>Quick edit</div>
         <p className={AUTHORING.generatorDescription}>
-          Adjust the core generator inputs inline, then save and re-run with the updated preview.
+          Adjust the core recipe inputs inline, then save and re-run with the updated preview.
         </p>
       </div>
 
@@ -906,7 +906,7 @@ function QuickEditPanel({
 
       <div className={AUTHORING.generatorSectionCard}>
         <div className={AUTHORING.generatorFieldStack}>
-          <label className={QE_LABEL}>Generator settings</label>
+          <label className={QE_LABEL}>Recipe settings</label>
           <QuickEditTypeFields
             type={generator.type}
             config={config}
@@ -1086,7 +1086,7 @@ export function GeneratorPipelineCard({
     generator.lastRunSummary?.message ??
     generator.staleReason ??
     (status === "neverRun"
-      ? "Run this generator to create its managed outputs."
+      ? "Run this recipe to create its managed outputs."
       : undefined);
   const lastRunTimeLabel = formatRelativeTimestamp(generator.lastRunSummary?.at);
   const showDependencyAttention =
@@ -1294,7 +1294,7 @@ export function GeneratorPipelineCard({
       setShowSemanticDialog(true);
     } catch (err) {
       setActionError(
-        err instanceof Error ? err.message : "Failed to load generator steps",
+        err instanceof Error ? err.message : "Failed to load recipe steps",
       );
     } finally {
       setSemanticDialogLoading(false);
@@ -1418,9 +1418,9 @@ export function GeneratorPipelineCard({
             )}
             {isEnabled && isStale && (
               <span
-                title={`Source token "${generator.sourceToken}" has changed since this generator last ran. Re-run to update generated tokens.`}
+                title={`Source token "${generator.sourceToken}" has changed since this recipe last ran. Re-run to update managed tokens.`}
                 className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-yellow-600 bg-yellow-50 border border-yellow-300 rounded px-1.5 py-px leading-none"
-                aria-label="Generator output may be stale"
+                aria-label="Recipe output may be stale"
               >
                 <svg
                   width="9"
@@ -1462,7 +1462,7 @@ export function GeneratorPipelineCard({
               <span
                 title={generator.lastRunError?.message ?? generator.lastRunSummary?.label}
                 className={`shrink-0 ${isBlocked ? "text-amber-700" : "text-[var(--color-figma-error)]"}`}
-                aria-label={isBlocked ? "Generator blocked by upstream failure" : "Generator auto-run error"}
+                aria-label={isBlocked ? "Recipe blocked by upstream failure" : "Recipe auto-run error"}
               >
                 <svg
                   width="12"
@@ -1508,10 +1508,10 @@ export function GeneratorPipelineCard({
           disabled={togglingEnabled}
           title={
             isEnabled
-              ? "Pause auto-run (disable generator)"
-              : "Resume auto-run (enable generator)"
+              ? "Pause auto-run (disable recipe)"
+              : "Resume auto-run (enable recipe)"
           }
-          aria-label={isEnabled ? "Disable generator" : "Enable generator"}
+          aria-label={isEnabled ? "Disable recipe" : "Enable recipe"}
           aria-pressed={isEnabled}
           className="mt-0.5 shrink-0 flex items-center justify-center w-7 h-7 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50"
         >
@@ -1629,7 +1629,7 @@ export function GeneratorPipelineCard({
           {downstreamGenerators.length > 0 && (
             <p className="mt-1">
               A retry here affects {downstreamGenerators.length} downstream
-              generator{downstreamGenerators.length === 1 ? "" : "s"}.
+              recipe{downstreamGenerators.length === 1 ? "" : "s"}.
             </p>
           )}
         </div>
@@ -1689,7 +1689,7 @@ export function GeneratorPipelineCard({
                 ? "border-yellow-400/60 bg-yellow-400/10 text-yellow-700 hover:bg-yellow-400/15"
                 : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/30 hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/6"
             }`}
-            title={isBlocked ? "Retry this blocked generator" : "Run generator now"}
+            title={isBlocked ? "Retry this blocked recipe" : "Run recipe now"}
           >
             {running ? (
               <svg
@@ -1728,7 +1728,7 @@ export function GeneratorPipelineCard({
             onClick={handleViewTokens}
             disabled={!onViewTokens}
             className="inline-flex items-center gap-1 rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/30 hover:bg-[var(--color-figma-accent)]/6 hover:text-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-            title="Open the generated token group in Tokens"
+            title="Open the managed token group in Tokens"
           >
             <svg
               width="10"
@@ -1757,8 +1757,8 @@ export function GeneratorPipelineCard({
                 ? "border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]"
                 : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
             }`}
-            title="More generator actions"
-            aria-label="More generator actions"
+            title="More recipe actions"
+            aria-label="More recipe actions"
             aria-haspopup="menu"
             aria-expanded={actionsMenuOpen}
           >
@@ -1908,8 +1908,8 @@ export function GeneratorPipelineCard({
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40 disabled:cursor-not-allowed"
                 title={
                   semanticAliasCount > 0
-                    ? "Edit semantic aliases for this generator"
-                    : "Add a semantic layer for this generator"
+                    ? "Edit semantic aliases for this recipe"
+                    : "Add a semantic layer for this recipe"
                 }
               >
                 <svg
@@ -1936,7 +1936,7 @@ export function GeneratorPipelineCard({
                 role="menuitem"
                 onClick={() => runMenuAction(handleToggleClonePanel)}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                title="Clone this generator with a new name, target group, or source token"
+                title="Clone this recipe with a new name, target group, or source token"
               >
                 <svg
                   width="10"
@@ -1952,7 +1952,7 @@ export function GeneratorPipelineCard({
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                 </svg>
-                {showClonePanel ? "Close clone panel" : "Clone generator"}
+                {showClonePanel ? "Close clone panel" : "Clone recipe"}
               </button>
               <div
                 className="my-1 border-t border-[var(--color-figma-border)]"
@@ -1985,7 +1985,7 @@ export function GeneratorPipelineCard({
                   <path d="M10 11v6" />
                   <path d="M14 11v6" />
                 </svg>
-                Delete generator
+                Delete recipe
               </button>
             </div>
           )}
@@ -2034,7 +2034,7 @@ export function GeneratorPipelineCard({
           )}
           {stepResults && stepResults.length === 0 && (
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">
-              No steps generated yet. Run the generator first.
+              No steps created yet. Run the recipe first.
             </p>
           )}
           {stepResults && stepResults.length > 0 && (
@@ -2082,9 +2082,9 @@ export function GeneratorPipelineCard({
       {showClonePanel && (
         <div className={`mt-2 border-t border-[var(--color-figma-border)] pt-2 ${AUTHORING.generatorRoot}`}>
           <div className={AUTHORING.generatorTitleBlock}>
-            <span className={AUTHORING.generatorTitle}>Clone generator</span>
+            <span className={AUTHORING.generatorTitle}>Clone recipe</span>
             <p className={AUTHORING.generatorDescription}>
-              Start from the current generator and adjust the destination details for the clone.
+              Start from the current recipe and adjust the destination details for the clone.
             </p>
           </div>
           <div className={`${AUTHORING.generatorSectionCard} ${AUTHORING.generatorFieldGrid}`}>
@@ -2145,7 +2145,7 @@ export function GeneratorPipelineCard({
                 disabled={duplicating || !cloneName.trim()}
                 className={`${AUTHORING_SURFACE_CLASSES.footerPrimary} rounded bg-[var(--color-figma-accent)] px-3 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50`}
               >
-                {duplicating ? "Cloning…" : "Clone generator"}
+                {duplicating ? "Cloning…" : "Clone recipe"}
               </button>
             </div>
           </div>
@@ -2171,7 +2171,7 @@ export function GeneratorPipelineCard({
 
       {showDeleteConfirm && (
         <ConfirmModal
-          title="Delete Generator"
+          title="Delete Recipe"
           description={`Delete "${generator.name}"? This cannot be undone.`}
           confirmLabel="Delete"
           danger
@@ -2187,8 +2187,8 @@ export function GeneratorPipelineCard({
             />
             <span className="text-[11px] text-[var(--color-figma-text-secondary)]">
               {semanticAliasCount > 0
-                ? `Also delete generated scale tokens and ${semanticAliasCount} semantic alias${semanticAliasCount === 1 ? "" : "es"}`
-                : "Also delete generated tokens"}
+                ? `Also delete managed scale tokens and ${semanticAliasCount} semantic alias${semanticAliasCount === 1 ? "" : "es"}`
+                : "Also delete managed tokens"}
             </span>
           </label>
         </ConfirmModal>

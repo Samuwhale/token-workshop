@@ -2,7 +2,7 @@
  * Step 2 — What: The creative workspace for configuring a generator.
  * Two-column layout: type + config (left), live preview (right).
  */
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import type {
   GeneratorType,
   GeneratorConfig,
@@ -55,6 +55,7 @@ import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 
 export interface StepWhatProps {
   // Generator state
+  isEditing: boolean;
   selectedType: GeneratorType;
   recommendedType: GeneratorType | undefined;
   currentConfig: GeneratorConfig;
@@ -97,10 +98,10 @@ export interface StepWhatProps {
 }
 
 // ---------------------------------------------------------------------------
-// Compact type selector — shows selected type with a dropdown to change
+// Goal-first type cards — replaces the dropdown with a visual grid
 // ---------------------------------------------------------------------------
 
-function TypeDropdownItem({
+function TypeCard({
   type,
   isSelected,
   isRecommended,
@@ -114,64 +115,60 @@ function TypeDropdownItem({
   return (
     <button
       type="button"
-      role="option"
-      aria-selected={isSelected}
       onClick={onSelect}
-      className={`w-full text-left px-2.5 py-2 flex items-center gap-2.5 transition-colors ${
+      className={`w-full text-left rounded-lg border px-2.5 py-2 transition-colors ${
         isSelected
-          ? 'bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]'
-          : 'hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
+          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
+          : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-accent)]/5'
       }`}
     >
-      <div className="flex-none w-5 h-5 flex items-center justify-center">
-        <TypeThumbnail type={type} size={14} />
+      <div className="flex items-start gap-2">
+        <div className="flex-none mt-0.5 w-9 h-9 rounded flex items-center justify-center bg-[var(--color-figma-accent)]/10">
+          <TypeThumbnail type={type} size={24} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+              {TYPE_LABELS[type]}
+            </span>
+            {isRecommended && (
+              <span className="text-[9px] rounded-full px-1.5 py-0.5 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                Recommended
+              </span>
+            )}
+          </div>
+          <p className="text-[9px] text-[var(--color-figma-text-secondary)] leading-snug mt-0.5">
+            {TYPE_DESCRIPTIONS[type]}
+          </p>
+        </div>
       </div>
-      <span className="text-[10px] font-medium flex-1 min-w-0 truncate">
-        {TYPE_LABELS[type]}
-      </span>
-      {isRecommended && !isSelected && (
-        <span className="text-[9px] text-[var(--color-figma-accent)] shrink-0">rec.</span>
-      )}
-      {isSelected && (
-        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M2.5 6.5L5 9l4.5-6" /></svg>
-      )}
     </button>
   );
 }
 
-function TypeSelector({
+function TypeCardGrid({
   selectedType,
   recommendedType,
+  expanded,
   onTypeChange,
+  onCollapse,
 }: {
   selectedType: GeneratorType;
   recommendedType: GeneratorType | undefined;
+  expanded: boolean;
   onTypeChange: (type: GeneratorType) => void;
+  onCollapse: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [showAdvanced, setShowAdvanced] = useState(
+    () => ADVANCED_TYPES.includes(selectedType),
+  );
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  return (
-    <div ref={containerRef} className="relative">
+  if (!expanded) {
+    return (
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
-        className={`min-h-[36px] w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-colors ${
-          open
-            ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-            : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40'
-        }`}
+        onClick={onCollapse}
+        className="min-h-[36px] w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40 transition-colors"
       >
         <div className="flex-none w-6 h-6 rounded flex items-center justify-center bg-[var(--color-figma-accent)]/10">
           <TypeThumbnail type={selectedType} size={14} />
@@ -184,43 +181,53 @@ function TypeSelector({
             {TYPE_DESCRIPTIONS[selectedType]}
           </p>
         </div>
-        <svg
-          width="10" height="10" viewBox="0 0 10 10" fill="currentColor"
-          className={`shrink-0 text-[var(--color-figma-text-secondary)] transition-transform ${open ? 'rotate-180' : ''}`}
-        >
-          <path d="M2 3.5l3 4 3-4H2z" />
-        </svg>
+        <span className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)]">Change</span>
       </button>
+    );
+  }
 
-      {open && (
-        <div
-          role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1 max-h-[280px] overflow-y-auto"
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        {PRIMARY_TYPES.map(type => (
+          <TypeCard
+            key={type}
+            type={type}
+            isSelected={selectedType === type}
+            isRecommended={type === recommendedType}
+            onSelect={() => onTypeChange(type)}
+          />
+        ))}
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(v => !v)}
+          className="flex items-center gap-1.5 py-1 text-[9px] text-[var(--color-figma-text-secondary)] uppercase tracking-wider font-medium hover:text-[var(--color-figma-text)] transition-colors"
         >
-          {PRIMARY_TYPES.map(type => (
-            <TypeDropdownItem
-              key={type}
-              type={type}
-              isSelected={selectedType === type}
-              isRecommended={type === recommendedType}
-              onSelect={() => { onTypeChange(type); setOpen(false); }}
-            />
-          ))}
-          <div className="border-t border-[var(--color-figma-border)] my-1" />
-          <div className="px-2.5 py-1">
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase tracking-wider font-medium">Advanced</span>
+          <svg
+            width="8" height="8" viewBox="0 0 10 10" fill="currentColor"
+            className={`transition-transform ${showAdvanced ? 'rotate-90' : ''}`}
+          >
+            <path d="M3 1.5l4 3.5-4 3.5V1.5z" />
+          </svg>
+          Advanced
+        </button>
+        {showAdvanced && (
+          <div className="grid grid-cols-2 gap-2 mt-1">
+            {ADVANCED_TYPES.map(type => (
+              <TypeCard
+                key={type}
+                type={type}
+                isSelected={selectedType === type}
+                isRecommended={type === recommendedType}
+                onSelect={() => onTypeChange(type)}
+              />
+            ))}
           </div>
-          {ADVANCED_TYPES.map(type => (
-            <TypeDropdownItem
-              key={type}
-              type={type}
-              isSelected={selectedType === type}
-              isRecommended={type === recommendedType}
-              onSelect={() => { onTypeChange(type); setOpen(false); }}
-            />
-          ))}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -257,6 +264,7 @@ function PreviewImpactCard({
 // ---------------------------------------------------------------------------
 
 export function StepWhat({
+  isEditing,
   selectedType,
   recommendedType,
   currentConfig,
@@ -291,6 +299,12 @@ export function StepWhat({
   onOverrideClear,
   onClearAllOverrides,
 }: StepWhatProps) {
+  const [typePickerExpanded, setTypePickerExpanded] = useState(!isEditing);
+
+  const handleTypeChange = (type: GeneratorType) => {
+    onTypeChange(type);
+    setTypePickerExpanded(false);
+  };
 
   const overwritePaths = useMemo(
     () => new Set(overwrittenEntries.map(e => e.path)),
@@ -321,9 +335,9 @@ export function StepWhat({
   return (
     <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
       <div className={AUTHORING.generatorTitleBlock}>
-        <h3 className={AUTHORING.generatorTitle}>Generator setup</h3>
+        <h3 className={AUTHORING.generatorTitle}>Recipe setup</h3>
         <p className={AUTHORING.generatorDescription}>
-          Choose the generator type, provide a source value when needed, and review the live output preview.
+          Choose the recipe type, provide a source value when needed, and review the live output preview.
         </p>
       </div>
 
@@ -332,17 +346,19 @@ export function StepWhat({
         <div className={AUTHORING_SURFACE_CLASSES.splitConfig}>
           <div className={AUTHORING.generatorSectionCard}>
             <div className={AUTHORING.generatorFieldStack}>
-              <label className={AUTHORING.generatorSummaryLabel}>Generator type</label>
-              <TypeSelector
+              <label className={AUTHORING.generatorSummaryLabel}>Recipe type</label>
+              <TypeCardGrid
                 selectedType={selectedType}
                 recommendedType={recommendedType}
-                onTypeChange={onTypeChange}
+                expanded={typePickerExpanded}
+                onTypeChange={handleTypeChange}
+                onCollapse={() => setTypePickerExpanded(true)}
               />
             </div>
           </div>
 
           {/* Base value — unified source token / inline value input */}
-          {typeNeedsValue && (
+          {!typePickerExpanded && typeNeedsValue && (
             <div className={AUTHORING.generatorSectionCard}>
               <UnifiedSourceInput
                 expectedType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : null}
@@ -358,7 +374,7 @@ export function StepWhat({
             </div>
           )}
 
-          {starterTemplate && (
+          {!typePickerExpanded && starterTemplate && (
             <div className={AUTHORING.generatorSectionCard}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -405,7 +421,7 @@ export function StepWhat({
           )}
 
           {/* Config editor */}
-          <div className={AUTHORING.generatorSectionCard}>
+          {!typePickerExpanded && <div className={AUTHORING.generatorSectionCard}>
             <div className="flex items-center justify-between mb-3">
               <span className={AUTHORING.generatorTitle}>{TYPE_LABELS[selectedType]} settings</span>
               {(canUndo || canRedo) && (
@@ -442,11 +458,11 @@ export function StepWhat({
             {selectedType === 'contrastCheck' && <ContrastCheckConfigEditor config={currentConfig as ContrastCheckConfig} onChange={cfg => onConfigChange('contrastCheck', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {selectedType === 'accessibleColorPair' && <AccessiblePairConfigEditor config={currentConfig as AccessibleColorPairConfig} onChange={cfg => onConfigChange('accessibleColorPair', cfg)} />}
             {selectedType === 'darkModeInversion' && <DarkModeInversionConfigEditor config={currentConfig as DarkModeInversionConfig} onChange={cfg => onConfigChange('darkModeInversion', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-          </div>
+          </div>}
         </div>
 
         {/* ---- RIGHT: Preview column (sticky at wide viewports) ---- */}
-        <div className={AUTHORING_SURFACE_CLASSES.splitPreview}>
+        {!typePickerExpanded && <div className={AUTHORING_SURFACE_CLASSES.splitPreview}>
 
           {/* Preview */}
           <div className={AUTHORING.generatorSectionCard}>
@@ -549,8 +565,8 @@ export function StepWhat({
                 {isMultiBrand
                   ? 'Add a brand row with an input value to see a preview.'
                   : typeNeedsValue && !hasValue
-                    ? `Pick or enter a base ${typeExpectsColor ? 'color' : 'value'} to see generated tokens.`
-                    : 'Configure settings to generate a preview.'}
+                    ? `Pick or enter a base ${typeExpectsColor ? 'color' : 'value'} to see the token preview.`
+                    : 'Configure settings to see a preview.'}
               </div>
             )}
 
@@ -566,19 +582,19 @@ export function StepWhat({
                   label="Safe updates"
                   count={safeUpdateEntries.length}
                   tone="neutral"
-                  detail={safeUpdateEntries.length === 0 ? 'No generator-owned outputs need updating.' : 'Existing outputs this generator can update cleanly.'}
+                  detail={safeUpdateEntries.length === 0 ? 'No recipe-owned outputs need updating.' : 'Existing outputs this recipe can update cleanly.'}
                 />
                 <PreviewImpactCard
                   label="Overwrite risks"
                   count={nonGeneratorOverwriteEntries.length}
                   tone={nonGeneratorOverwriteEntries.length > 0 ? 'warning' : 'neutral'}
-                  detail={nonGeneratorOverwriteEntries.length === 0 ? 'No manual or foreign tokens are in the way.' : 'Manual tokens or other generators would be overwritten.'}
+                  detail={nonGeneratorOverwriteEntries.length === 0 ? 'No manual or foreign tokens are in the way.' : 'Manual tokens or other recipes would be overwritten.'}
                 />
                 <PreviewImpactCard
                   label="Manual conflicts"
                   count={manualConflictEntries.length}
                   tone={manualConflictEntries.length > 0 ? 'error' : 'neutral'}
-                  detail={manualConflictEntries.length === 0 ? 'No drifted generator outputs detected.' : 'Generator-owned outputs were manually edited since the last run.'}
+                  detail={manualConflictEntries.length === 0 ? 'No drifted recipe outputs detected.' : 'Recipe-owned outputs were manually edited since the last run.'}
                 />
                 <PreviewImpactCard
                   label="Deleted outputs"
@@ -691,7 +707,7 @@ export function StepWhat({
                     </span>
                     <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
                     <span className="text-[10px] text-[var(--color-figma-warning)]">
-                      Saving will recreate this detached output and return it to generator ownership.
+                      Saving will recreate this detached output and return it to recipe ownership.
                     </span>
                   </div>
                 ))}
@@ -707,7 +723,7 @@ export function StepWhat({
             </div>
           )}
 
-        </div>
+        </div>}
       </div>
     </section>
   );

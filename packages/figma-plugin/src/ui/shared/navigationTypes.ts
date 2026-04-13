@@ -84,7 +84,7 @@ export const TOP_TABS: {
     subTabs: [
       { id: "tokens", label: "Tokens" },
       { id: "themes", label: "Modes" },
-      { id: "generators", label: "Generators" },
+      { id: "generators", label: "Recipes" },
     ],
   },
   {
@@ -219,7 +219,7 @@ export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
     id: "tokens",
     label: "Tokens",
     stepNumber: 1,
-    role: "Build and organize the token library, naming, and generators.",
+    role: "Build and organize the token library, naming, and recipes.",
   },
   {
     id: "themes",
@@ -402,8 +402,8 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         usage: "Edit or create a token while keeping the library in view.",
       },
       "generator-editor": {
-        label: "Generator editor",
-        usage: "Adjust a generator without leaving the current list.",
+        label: "Recipe editor",
+        usage: "Adjust a recipe without leaving the current list.",
       },
       "token-preview": {
         label: "Token preview",
@@ -452,7 +452,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "define",
     subTab: "tokens",
     transition: workspaceTransition(
-      "Browse, edit, and organize tokens and generators.",
+      "Browse, edit, and organize tokens and recipes.",
     ),
     sections: [
       {
@@ -465,11 +465,11 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       },
       {
         id: "generators",
-        label: "Generators",
-        summaryTitle: "Token generators",
+        label: "Recipes",
+        summaryTitle: "Recipes",
         topTab: "define",
         subTab: "generators",
-        transition: workspaceTransition("Create and adjust token generators."),
+        transition: workspaceTransition("Create and adjust recipes."),
       },
     ],
     matchRoutes: [route("define", "tokens"), route("define", "generators")],

@@ -296,8 +296,8 @@ export function useGeneratorSave({
         setSaving(false);
         dispatchToast(
           isEditing
-            ? `Generator "${name.trim()}" updated`
-            : `Generator "${name.trim()}" created`,
+            ? `Recipe "${name.trim()}" updated`
+            : `Recipe "${name.trim()}" created`,
           "success",
           getToastAction(targetGroupAtSave, targetSetAtSave),
         );

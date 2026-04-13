@@ -232,7 +232,7 @@ export function useCommandPaletteCommands(): {
         id: "validate",
         label: "Run audit now",
         description:
-          "Refresh validation across references, duplicates, and generator output",
+          "Refresh validation across references, duplicates, and recipe output",
         category: "Audit",
         handler: () => {
           navigateTo("sync", "health");
@@ -242,7 +242,7 @@ export function useCommandPaletteCommands(): {
       {
         id: "generate-color-scale",
         label: "Generate Color Scale",
-        description: "Open the fast color ramp generator",
+        description: "Open the fast color ramp tool",
         category: "Tokens",
         handler: () => {
           goToTokens();
@@ -251,9 +251,9 @@ export function useCommandPaletteCommands(): {
       },
       ...GRAPH_TEMPLATES.map((template) => ({
         id: `graph-template-${template.id}`,
-        label: `Create generator: ${template.label}`,
+        label: `Create recipe: ${template.label}`,
         description: template.description,
-        category: "Generators" as const,
+        category: "Recipes" as const,
         handler: () => {
           navigateTo("define", "generators");
           tokens.setPendingGraphTemplate(template.id);

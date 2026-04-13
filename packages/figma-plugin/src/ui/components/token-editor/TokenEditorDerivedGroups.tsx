@@ -138,7 +138,7 @@ export function TokenEditorDerivedGroups({
                       },
                     });
                   }}
-                  title="Duplicate generator"
+                  title="Duplicate recipe"
                   className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
                 >
                   Duplicate

@@ -80,7 +80,7 @@ function exportGraphAsSVG(
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`,
     `<rect width="${svgW}" height="${svgH}" fill="white"/>`,
-    `<text x="${padX}" y="${padY + 18}" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#111827">${esc(activeSet)} \u2014 Generator graph</text>`,
+    `<text x="${padX}" y="${padY + 18}" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#111827">${esc(activeSet)} \u2014 Recipe graph</text>`,
     rows,
     "</svg>",
   ].join("\n");
@@ -286,12 +286,12 @@ export function GraphPanel({
             : "Retried";
       const groupLabel =
         action === "all"
-          ? "generator"
+          ? "recipe"
           : action === "stale"
-            ? "stale generator"
+            ? "stale recipe"
             : action === "failed"
-              ? "failed generator"
-              : "blocked generator";
+              ? "failed recipe"
+              : "blocked recipe";
 
       if (errors.length === 0) {
         dispatchToast(
@@ -415,11 +415,11 @@ export function GraphPanel({
         { method: "POST" },
       );
       dispatchToast(
-        `Generator ran — ${res.count ?? 0} token${(res.count ?? 0) !== 1 ? "s" : ""} updated`,
+        `Recipe ran — ${res.count ?? 0} token${(res.count ?? 0) !== 1 ? "s" : ""} updated`,
         "success",
       );
     } catch {
-      dispatchToast("Generator run failed", "error");
+      dispatchToast("Recipe run failed", "error");
     }
     onRefresh();
   }, [serverUrl, onRefresh]);
@@ -432,7 +432,7 @@ export function GraphPanel({
   const handleGraphEditSaved = useCallback(() => {
     setGraphEditing({ kind: "none" });
     onRefresh();
-    dispatchToast("Generator updated", "success");
+    dispatchToast("Recipe updated", "success");
   }, [onRefresh]);
 
   // Generator editing from graph view
@@ -497,7 +497,7 @@ export function GraphPanel({
             </span>
             <PanelHelpIcon
               panelKey="generators"
-              title="Generators"
+              title="Recipes"
               expanded={help.expanded}
               onToggle={help.toggle}
             />
@@ -741,7 +741,7 @@ export function GraphPanel({
 
         {help.expanded && (
           <PanelHelpBanner
-            title="Generators"
+            title="Recipes"
             description="Turn a single source token into a whole token group automatically — color ramps, spacing scales, type scales, and more. Pick a template to get started, then customize the parameters."
             onDismiss={help.dismiss}
           />
@@ -771,10 +771,10 @@ export function GraphPanel({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 viewMode === "graph"
-                  ? "Search generators — highlights and zooms to matches…"
-                  : "Search generators…"
+                  ? "Search recipes — highlights and zooms to matches…"
+                  : "Search recipes…"
               }
-              aria-label="Search generators"
+              aria-label="Search recipes"
               className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
             />
             {searchQuery && (
@@ -860,7 +860,7 @@ export function GraphPanel({
               <FeedbackPlaceholder
                 variant="no-results"
                 size="full"
-                title="No generators match"
+                title="No recipes match"
                 description="Try a different search term or clear the active filter."
                 secondaryAction={
                   searchQuery || typeFilter
@@ -886,7 +886,7 @@ export function GraphPanel({
     return (
       <div
         className="flex flex-col gap-2 p-3 overflow-y-auto"
-        aria-label="Loading generators…"
+        aria-label="Loading recipes…"
         aria-busy="true"
       >
         <SkeletonGeneratorCard />
@@ -924,8 +924,8 @@ export function GraphPanel({
                 <circle cx="22" cy="12" r="1" />
               </svg>
             }
-            title="No generators yet"
-            description="Generators turn a source token into a whole token group — color scales, spacing scales, type scales, contrast pairs, and semantic aliases."
+            title="No recipes yet"
+            description="Recipes turn a source token into a whole token group — color scales, spacing scales, type scales, contrast pairs, and semantic aliases."
           />
 
           {/* What generators produce */}
@@ -1037,7 +1037,7 @@ export function GraphPanel({
                 size="section"
                 className="w-full"
                 title="Connect to the server first"
-                description="Template setup needs the server connection before it can create and run generators."
+                description="Template setup needs the server connection before it can create and run recipes."
               />
             )}
           </div>

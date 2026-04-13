@@ -444,7 +444,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
                     ["name", "Name"],
                     ["value", "Value"],
                     ["desc", "Description"],
-                    ["generator", "Generator"],
+                    ["generator", "Recipe"],
                   ] as const
                 ).map(([key, label]) => (
                   <MenuItem

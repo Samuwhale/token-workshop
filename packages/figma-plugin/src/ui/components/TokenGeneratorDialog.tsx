@@ -133,7 +133,7 @@ export function TokenGeneratorDialog({
 
   const saveLabel = (() => {
     if (!dialog.showConfirmation) {
-      return dialog.isEditing ? "Review Changes" : "Review Generator";
+      return dialog.isEditing ? "Review Changes" : "Review Recipe";
     }
     if (dialog.saving)
       return dialog.isEditing ? "Saving\u2026" : "Creating\u2026";
@@ -146,8 +146,8 @@ export function TokenGeneratorDialog({
       return `Save Changes (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`;
     }
     return aliasCount > 0
-      ? `Create Generator (+${aliasCount} aliases)`
-      : "Create Generator";
+      ? `Create Recipe (+${aliasCount} aliases)`
+      : "Create Recipe";
   })();
 
   // --- Missing field hints ---
@@ -204,10 +204,10 @@ export function TokenGeneratorDialog({
       className="text-[12px] font-semibold text-[var(--color-figma-text)]"
     >
       {dialog.isEditing
-        ? "Edit Generator"
+        ? "Edit Recipe"
         : template
           ? template.label
-          : "New Generator"}
+          : "New Recipe"}
     </span>
   );
   const headerActions = (
@@ -307,11 +307,11 @@ export function TokenGeneratorDialog({
                 <p className="text-[var(--color-figma-text)]">
                   {existingGenerator.detachedPaths.length} output
                   {existingGenerator.detachedPaths.length === 1 ? "" : "s"}{" "}
-                  detached from this generator.
+                  detached from this recipe.
                 </p>
                 <p className="mt-1">
                   Detached tokens stay manual and will not update on the next
-                  generator run unless you recreate them through the generator.
+                  recipe run unless you recreate them through the recipe.
                 </p>
               </div>
             )}
@@ -341,6 +341,7 @@ export function TokenGeneratorDialog({
           ) : (
             <>
               <StepWhat
+                isEditing={dialog.isEditing}
                 selectedType={dialog.selectedType}
                 recommendedType={dialog.recommendedType}
                 currentConfig={dialog.currentConfig}

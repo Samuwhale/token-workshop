@@ -116,15 +116,15 @@ export const ALL_TYPES: GeneratorType[] = [...PRIMARY_TYPES, ...ADVANCED_TYPES];
 
 /** One-line descriptions for each generator type, written for designers. */
 export const TYPE_DESCRIPTIONS: Record<GeneratorType, string> = {
-  colorRamp: 'Generate a full color palette from a single base color',
+  colorRamp: 'Create a full color palette from a single base color',
   typeScale: 'Create a harmonious font size progression using a ratio',
   spacingScale: 'Build consistent spacing values from a base unit',
   opacityScale: 'Define a set of opacity levels for layering effects',
-  borderRadiusScale: 'Generate rounded corner values from small to large',
+  borderRadiusScale: 'Create rounded corner values from small to large',
   zIndexScale: 'Set up stacking order values for layered components',
   shadowScale: 'Create elevation levels with progressive shadow depth',
   customScale: 'Write a custom formula to generate any numeric scale',
-  accessibleColorPair: 'Generate foreground + background colors that meet WCAG contrast',
+  accessibleColorPair: 'Create foreground + background colors that meet WCAG contrast',
   darkModeInversion: 'Create a dark mode version of a color with perceptual accuracy',
   contrastCheck: 'Check WCAG contrast ratios for a set of color pairs',
 };

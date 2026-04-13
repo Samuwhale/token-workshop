@@ -1536,7 +1536,7 @@ export function TokenList({
         onRefresh();
         onRefreshGenerators?.();
       } catch {
-        onError?.("Failed to detach generator group");
+        onError?.("Failed to detach recipe group");
       }
     },
     [onError, onRefresh, onRefreshGenerators, serverUrl],
@@ -1568,12 +1568,12 @@ export function TokenList({
       }
       if (failedGenerators.length === 0) {
         dispatchToast(
-          `Re-ran ${successCount} stale generator${successCount !== 1 ? "s" : ""}${totalUpdatedTokens > 0 ? ` — ${totalUpdatedTokens} token${totalUpdatedTokens !== 1 ? "s" : ""} updated` : ""}`,
+          `Re-ran ${successCount} stale recipe${successCount !== 1 ? "s" : ""}${totalUpdatedTokens > 0 ? ` — ${totalUpdatedTokens} token${totalUpdatedTokens !== 1 ? "s" : ""} updated` : ""}`,
           "success",
         );
       } else {
         dispatchToast(
-          `${failedGenerators.length} generator${failedGenerators.length !== 1 ? "s" : ""} failed: ${failedGenerators.join(", ")}`,
+          `${failedGenerators.length} recipe${failedGenerators.length !== 1 ? "s" : ""} failed: ${failedGenerators.join(", ")}`,
           "error",
         );
       }
@@ -2652,7 +2652,7 @@ export function TokenList({
         );
       if (genImpacts)
         parts.push(
-          `affect ${genImpacts.length} generator${genImpacts.length !== 1 ? "s" : ""}`,
+          `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
         );
       if (thmImpacts)
         parts.push(
@@ -2682,7 +2682,7 @@ export function TokenList({
         );
       if (genImpacts)
         parts.push(
-          `affect ${genImpacts.length} generator${genImpacts.length !== 1 ? "s" : ""}`,
+          `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
         );
       if (thmImpacts)
         parts.push(
@@ -2706,7 +2706,7 @@ export function TokenList({
       );
     if (genImpacts)
       parts.push(
-        `affect ${genImpacts.length} generator${genImpacts.length !== 1 ? "s" : ""}`,
+        `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
       );
     if (thmImpacts)
       parts.push(
@@ -3629,14 +3629,14 @@ export function TokenList({
             >
               {runningStaleGenerators && <Spinner size="xs" />}
               <span>
-                {runningStaleGenerators ? "Regenerating…" : "Regenerate all"}
+                {runningStaleGenerators ? "Re-running…" : "Re-run all"}
               </span>
             </button>
           }
         >
           {staleGeneratorsForSet.length === 1
-            ? "1 generator"
-            : `${staleGeneratorsForSet.length} generators`}{" "}
+            ? "1 recipe"
+            : `${staleGeneratorsForSet.length} recipes`}{" "}
           in <strong>{setName}</strong>{" "}
           {staleGeneratorsForSet.length === 1 ? "is" : "are"} out of date
         </NoticeBanner>
@@ -4000,7 +4000,7 @@ export function TokenList({
                         name: "Leaf name",
                         value: "Value",
                         desc: "Description",
-                        generator: "Generator",
+                        generator: "Recipe",
                       };
                     const matchingSections = new Map<
                       FilterBuilderSection,

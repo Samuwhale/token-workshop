@@ -30,9 +30,9 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
       "Build color, spacing, type, and mode foundations step by step.",
   },
   "template-library": {
-    title: "Foundation templates",
+    title: "Recipe templates",
     description:
-      "Generate a scale like color, spacing, or typography into your token set.",
+      "Create a palette, type scale, or spacing system for your token set.",
   },
 };
 
@@ -168,8 +168,8 @@ export function WelcomePrompt({
         }
       />
       <ActionCard
-        title="Foundation templates"
-        description="Generate a scale like color, spacing, or typography into your token set."
+        title="Recipe templates"
+        description="Create a palette, type scale, or spacing system for your token set."
         disabled={!connected}
         onClick={() => setBranch("template-library")}
         icon={
@@ -372,7 +372,7 @@ export function WelcomePrompt({
                 allSets={allSets}
                 embedded
                 title="Foundation templates"
-                description="Choose a foundation, then refine it in the generator editor."
+                description="Choose a foundation, then refine it in the recipe editor."
                 onBack={() => setBranch("root")}
                 onClose={onClose}
                 onConfirm={onTemplateCreated}

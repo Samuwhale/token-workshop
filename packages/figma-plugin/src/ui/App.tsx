@@ -601,8 +601,8 @@ export function App() {
   const onGeneratorError = useCallback(
     ({ generatorId, message }: { generatorId?: string; message: string }) => {
       const label = generatorId
-        ? `Generator "${generatorId}" failed`
-        : "Generator auto-run failed";
+        ? `Recipe "${generatorId}" failed`
+        : "Recipe auto-run failed";
       setErrorToast(`${label}: ${message}`);
     },
     [setErrorToast],
@@ -917,9 +917,9 @@ export function App() {
         const n = affectedGens.length;
         const genIds = affectedGens.map((g) => g.id);
         pushActionToast(
-          `Source token for ${n} ${n === 1 ? "generator" : "generators"} changed`,
+          `Source token for ${n} ${n === 1 ? "recipe" : "recipes"} changed`,
           {
-            label: "Regenerate",
+            label: "Re-run",
             onClick: async () => {
               for (const id of genIds) {
                 try {
@@ -2006,7 +2006,7 @@ export function App() {
           });
         if (staleGeneratorCount > 0)
           pills.push({
-            label: `${staleGeneratorCount} stale generator${staleGeneratorCount === 1 ? "" : "s"}`,
+            label: `${staleGeneratorCount} stale recipe${staleGeneratorCount === 1 ? "" : "s"}`,
             tone: "stale",
           });
         break;

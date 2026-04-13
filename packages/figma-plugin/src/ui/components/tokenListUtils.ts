@@ -203,13 +203,13 @@ export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'has', qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: 'has:duplicate', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'has', qualifier: 'has:description', desc: 'Only tokens with a description', example: 'has:description', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'has', qualifier: 'has:extension', desc: 'Only tokens with extensions', example: 'has:extension', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
-  { key: 'has', qualifier: 'has:generated', desc: 'Only generator-produced tokens', example: 'has:generated', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:generated', desc: 'Only recipe-managed tokens', example: 'has:generated', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'has', qualifier: 'has:unused', desc: 'Tokens with no Figma usage and no alias dependents', example: 'has:unused', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'value', qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000', valueHint: 'Enter a value fragment, for example #ff0000 or 16px.' },
   { key: 'desc', qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary', valueHint: 'Enter words from the token description.' },
   { key: 'path', qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand', valueHint: 'Enter a path segment like colors.brand or spacing.' },
   { key: 'name', qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500', valueHint: 'Enter the token leaf name, such as 500 or primary.' },
-  { key: 'generator', qualifier: 'generator:', desc: 'Filter by generator name', example: 'generator:color-ramp', valueHint: 'Enter the generator name that produced the token.' },
+  { key: 'generator', qualifier: 'generator:', desc: 'Filter by recipe name', example: 'generator:color-ramp', valueHint: 'Enter the recipe name that produced the token.' },
   { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];
 

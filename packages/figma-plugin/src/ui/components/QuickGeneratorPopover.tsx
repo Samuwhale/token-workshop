@@ -159,7 +159,7 @@ function QuickGeneratorIntentPicker({
       ref={popoverRef as React.RefObject<HTMLDivElement>}
       role="dialog"
       aria-modal="false"
-      aria-label="Quick generator intent picker"
+      aria-label="Quick recipe intent picker"
       className={POPOVER_CLASS}
       style={{ top: position.y, left: position.x }}
       onClick={(event) => event.stopPropagation()}
@@ -177,7 +177,7 @@ function QuickGeneratorIntentPicker({
           type="button"
           onClick={onClose}
           className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          aria-label="Close quick generator"
+          aria-label="Close quick recipe"
         >
           <svg
             width="12"
@@ -340,7 +340,7 @@ function QuickGeneratorSetup({
             type="button"
             onClick={onBack}
             className="mt-0.5 rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            aria-label="Back to generator intents"
+            aria-label="Back to recipe intents"
           >
             <svg
               width="12"
@@ -369,7 +369,7 @@ function QuickGeneratorSetup({
           type="button"
           onClick={onClose}
           className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          aria-label="Close quick generator"
+          aria-label="Close quick recipe"
         >
           <svg
             width="12"

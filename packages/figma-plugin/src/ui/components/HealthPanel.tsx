@@ -993,10 +993,10 @@ export function HealthPanel({
     if (errorGenerators.length > 0) {
       items.push({
         severity: "critical",
-        category: "Generators",
-        message: `${formatCount(errorGenerators.length, "generator")} failed`,
+        category: "Recipes",
+        message: `${formatCount(errorGenerators.length, "recipe")} failed`,
         count: errorGenerators.length,
-        ctaLabel: "Inspect generators",
+        ctaLabel: "Inspect recipes",
         action: "generators",
       });
     }
@@ -1049,10 +1049,10 @@ export function HealthPanel({
     if (staleGenerators.length > 0) {
       items.push({
         severity: "warning",
-        category: "Generators",
-        message: `${formatCount(staleGenerators.length, "generator")} stale`,
+        category: "Recipes",
+        message: `${formatCount(staleGenerators.length, "recipe")} stale`,
         count: staleGenerators.length,
-        ctaLabel: "Run generators",
+        ctaLabel: "Run recipes",
         action: "generators",
       });
     }

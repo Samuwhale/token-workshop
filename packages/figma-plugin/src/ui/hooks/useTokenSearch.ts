@@ -348,7 +348,7 @@ export function useTokenSearch({
         return matches.map(name => ({
           id: `generator:${name}`,
           label: `generator:${name}`,
-          desc: 'Filter by generator name',
+          desc: 'Filter by recipe name',
           replacement: `generator:${name}`,
           kind: 'replacement' as const,
         }));

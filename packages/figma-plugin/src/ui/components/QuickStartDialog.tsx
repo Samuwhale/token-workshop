@@ -302,8 +302,8 @@ export function QuickStartDialog({
   onConfirm,
   onInterceptSemanticMapping,
   embedded = false,
-  title = 'Foundation templates',
-  description = 'Choose a starting structure for your token system. Each option opens the shared generator editor for a live generator in the active set.',
+  title = 'Recipe templates',
+  description = 'Choose a starting structure for your token system. Each option opens the shared recipe editor for a live recipe in the active set.',
   onBack,
 }: QuickStartDialogProps) {
   const [generatorStart, setGeneratorStart] = useState<{

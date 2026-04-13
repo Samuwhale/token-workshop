@@ -1297,7 +1297,7 @@ export function PanelRouter(): ReactNode {
   function renderDefineGenerators(): ReactNode {
     return (
       <ErrorBoundary
-        panelName="Generators"
+        panelName="Recipes"
         onReset={() => navigateTo("define", "tokens")}
       >
         <GraphPanel

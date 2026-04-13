@@ -348,7 +348,7 @@ function SetPreflightCard({
           {impact.generatedOwnership.length > 0 && (
             <div className="flex flex-col gap-1">
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Generated token ownership ({impact.generatedOwnership.length})
+                Managed token ownership ({impact.generatedOwnership.length})
               </div>
               <div className="flex flex-col gap-1.5">
                 {impact.generatedOwnership.map((ownership) => (
@@ -383,7 +383,7 @@ function SetPreflightCard({
           {impact.generatorTargets.length > 0 && (
             <div className="flex flex-col gap-1">
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Generator targets ({impact.generatorTargets.length})
+                Recipe targets ({impact.generatorTargets.length})
               </div>
               <div className="flex flex-col gap-1">
                 {impact.generatorTargets.map((generator) => (
@@ -2157,8 +2157,8 @@ function ManageView({
                     )}
                     {onOpenGenerators && (
                       <StrokeIconButton
-                        title="Generate tokens"
-                        ariaLabel="Generate tokens"
+                        title="Create recipe"
+                        ariaLabel="Create recipe"
                         onClick={() => onOpenGenerators(set)}
                       >
                         <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />

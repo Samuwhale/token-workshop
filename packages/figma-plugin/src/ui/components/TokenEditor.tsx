@@ -490,7 +490,7 @@ export function TokenEditor({
         "success",
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to detach token from generator");
+      setError(err instanceof Error ? err.message : "Failed to detach token from recipe");
     } finally {
       setDetachingGeneratorOwnership(false);
     }
@@ -1081,10 +1081,10 @@ export function TokenEditor({
                 <p className="text-[var(--color-figma-text)]">
                   This token is managed by{" "}
                   <span className="font-medium">{activeProducingGenerator.name}</span>.
-                  Manual value changes here will be overwritten on the next generator run.
+                  Manual value changes here will be overwritten on the next recipe run.
                 </p>
                 <p className="mt-1">
-                  Edit the generator to change the managed output, or detach this token first to make it independently editable.
+                  Edit the recipe to change the managed output, or detach this token first to make it independently editable.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
