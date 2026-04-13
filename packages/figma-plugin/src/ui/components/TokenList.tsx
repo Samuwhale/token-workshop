@@ -26,8 +26,7 @@ import {
   lsRemove,
   lsSet,
 } from "../shared/storage";
-import { useSettingsListener, type PreferredCopyFormat } from "./SettingsPanel";
-import type { SortOrder } from "./tokenListUtils";
+import type { PreferredCopyFormat } from "./SettingsPanel";
 import {
   formatDisplayPath,
   nodeParentPath,
@@ -39,13 +38,11 @@ import {
   findGroupByPath,
   buildZoomBranchNavigation,
   QUERY_QUALIFIERS,
-  replaceQueryToken,
 } from "./tokenListUtils";
 import type { LintViolation } from "../hooks/useLint";
 import type {
   TokenListProps,
   MultiModeValue,
-  Density,
   AffectedRef,
   GeneratorImpact,
   ThemeImpact,
@@ -55,7 +52,7 @@ import type {
   TokenTreeLeafStateContextType,
   TokenTreeSharedDataContextType,
 } from "./tokenListTypes";
-import { VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from "./tokenListTypes";
+import { VIRTUAL_OVERSCAN } from "./tokenListTypes";
 import {
   highlightMatch,
 } from "./tokenListHelpers";
@@ -81,6 +78,7 @@ import { useTokenVirtualScroll } from "../hooks/useTokenVirtualScroll";
 import { useTokenSearch } from "../hooks/useTokenSearch";
 import { useTokenSelection } from "../hooks/useTokenSelection";
 import { useJsonEditor } from "../hooks/useJsonEditor";
+import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { JsonEditorView } from "./JsonEditorView";
 import { dispatchToast } from "../shared/toastBus";
 import { NoticeBanner, NoticeFieldMessage } from "../shared/noticeSystem";
@@ -90,13 +88,13 @@ import {
   PromoteReviewPanel,
   RelocateTokenReviewPanel,
 } from "./ContextualReviewPanel";
-import { TokenListOverflowMenu } from "./TokenListOverflowMenu";
+import type { TokenListOverflowMenuProps } from "./TokenListOverflowMenu";
+import { TokenListToolbar, type ToolbarStateChip } from "./TokenListToolbar";
 import { SelectModeToolbar } from "./SelectModeToolbar";
 import { TableCreateForm } from "./TableCreateForm";
 import { WhereIsOverlay } from "./WhereIsOverlay";
 import type { FilterBuilderSection } from "./TokenSearchFilterBuilder";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
-import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color: "#e85d4a",
@@ -115,7 +113,6 @@ const TOKEN_TYPE_COLORS: Record<string, string> = {
 const TOKEN_TYPE_COLOR_FALLBACK = "#8888aa";
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
-const VALID_SORT_ORDERS: SortOrder[] = ["default", "alpha-asc", "by-type"];
 const TOKENS_LIBRARY_BODY_SURFACE = "library-body";
 const TOKENS_LIBRARY_SPLIT_PREVIEW_LABEL = "Split preview";
 
@@ -141,11 +138,6 @@ type VisibleTokenRow = {
 
 type BatchEditorFocusTarget = "find-path";
 
-function dispatchTokenListViewChanged(setName: string): void {
-  window.dispatchEvent(
-    new CustomEvent("tm-token-list-view-changed", { detail: { setName } }),
-  );
-}
 
 
 
@@ -251,10 +243,31 @@ export function TokenList({
   const [batchMoveToSetTarget, setBatchMoveToSetTarget] = useState("");
   const [showBatchCopyToSet, setShowBatchCopyToSet] = useState(false);
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState("");
-  const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
+  const viewState = useTokenListViewState({ setName, dimensions });
+  const {
+    showRecentlyTouched,
+    setShowRecentlyTouched,
+    inspectMode,
+    setInspectMode,
+    viewMode,
+    setViewMode,
+    sortOrder,
+    setSortOrder,
+    showResolvedValues,
+    setShowResolvedValues,
+    statsBarOpen,
+    setStatsBarOpen,
+    density,
+    setDensity,
+    rowHeight,
+    condensedView,
+    setCondensedView,
+    multiModeEnabled,
+    multiModeDimId,
+    setMultiModeDimId,
+    toggleMultiMode,
+  } = viewState;
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
-  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
-  const [createToolsMenuOpen, setCreateToolsMenuOpen] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] =
     useState<BulkEditScope | null>(null);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] =
@@ -271,11 +284,7 @@ export function TokenList({
     timeout: 15000,
     extractResponse: extractSyncApplyResult,
   });
-  const [showResolvedValues, setShowResolvedValuesState] = useState(false);
   const [zoomRootPath, setZoomRootPath] = useState<string | null>(null);
-  const [statsBarOpen, setStatsBarOpenState] = useState(
-    () => lsGet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN) === "true",
-  );
   // Roving tabindex: tracks which row path currently has tabIndex=0
   const [rovingFocusPath, setRovingFocusPath] = useState<string | null>(null);
 
@@ -327,10 +336,6 @@ export function TokenList({
   );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
-  const createToolsMenuContainerRef = useRef<HTMLDivElement>(null);
-  const createToolsMenuButtonRef = useRef<HTMLButtonElement>(null);
-  const createToolsMenuRef = useRef<HTMLDivElement>(null);
-  const filterPopoverRef = useRef<HTMLDivElement>(null);
   const batchEditorPanelRef = useRef<HTMLDivElement>(null);
   const virtualListRef = useRef<HTMLDivElement>(null);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
@@ -373,65 +378,6 @@ export function TokenList({
   // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
 
   useEffect(() => {
-    if (!createToolsMenuOpen) return;
-    const onMouseDown = (event: MouseEvent) => {
-      if (createToolsMenuContainerRef.current?.contains(event.target as Node))
-        return;
-      setCreateToolsMenuOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setCreateToolsMenuOpen(false);
-        createToolsMenuButtonRef.current?.focus();
-        return;
-      }
-      if (createToolsMenuRef.current) {
-        handleMenuArrowKeys(event, createToolsMenuRef.current);
-      }
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKeyDown);
-    window.requestAnimationFrame(() => {
-      if (createToolsMenuRef.current)
-        getMenuItems(createToolsMenuRef.current)[0]?.focus();
-    });
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [createToolsMenuOpen]);
-
-  useEffect(() => {
-    if (!filterPopoverOpen) return;
-    const onMouseDown = (event: MouseEvent) => {
-      if (filterPopoverRef.current?.contains(event.target as Node)) return;
-      setFilterPopoverOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setFilterPopoverOpen(false);
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [filterPopoverOpen]);
-
-  // Sort order — persisted in localStorage per-set so each set remembers its own order
-  const [sortOrder, setSortOrderState] = useState<SortOrder>("default");
-
-  useEffect(() => {
-    const stored = lsGet(STORAGE_KEY.tokenSort(setName));
-    setSortOrderState(
-      VALID_SORT_ORDERS.includes(stored as SortOrder)
-        ? (stored as SortOrder)
-        : "default",
-    );
-  }, [setName]);
-
-  useEffect(() => {
     setDismissedStaleGeneratorSignature(lsGet(staleGeneratorBannerStorageKey));
   }, [staleGeneratorBannerStorageKey]);
 
@@ -456,38 +402,6 @@ export function TokenList({
     staleGeneratorSignature,
     staleGeneratorsForSet.length,
   ]);
-
-  const setSortOrder = useCallback(
-    (order: SortOrder) => {
-      setSortOrderState(order);
-      lsSet(STORAGE_KEY.tokenSort(setName), order);
-    },
-    [setName],
-  );
-
-  const setShowResolvedValues = useCallback(
-    (value: boolean | ((current: boolean) => boolean)) => {
-      setShowResolvedValuesState((current) => {
-        const next = typeof value === "function" ? value(current) : value;
-        lsSet(STORAGE_KEY.tokenShowResolvedValues(setName), next ? "1" : "0");
-        dispatchTokenListViewChanged(setName);
-        return next;
-      });
-    },
-    [setName],
-  );
-
-  const setStatsBarOpen = useCallback(
-    (value: boolean | ((current: boolean) => boolean)) => {
-      setStatsBarOpenState((current) => {
-        const next = typeof value === "function" ? value(current) : value;
-        lsSet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN, next ? "true" : "false");
-        dispatchTokenListViewChanged(setName);
-        return next;
-      });
-    },
-    [setName],
-  );
 
   // Clear optimistic deletions when the server response arrives with fresh tokens
   useEffect(() => {
@@ -564,89 +478,6 @@ export function TokenList({
     walk(nodes);
     return result;
   };
-
-  // Inspect mode — show only tokens bound to selected layers
-  const [inspectMode, setInspectMode] = useState(false);
-  const [viewMode, setViewModeState] = useState<"tree" | "json">("tree");
-
-  useEffect(() => {
-    const stored = lsGet(STORAGE_KEY.tokenViewMode(setName));
-    setViewModeState(stored === "json" ? "json" : "tree");
-  }, [setName]);
-
-  const setViewMode = useCallback(
-    (mode: "tree" | "json") => {
-      setViewModeState(mode);
-      lsSet(STORAGE_KEY.tokenViewMode(setName), mode);
-      dispatchTokenListViewChanged(setName);
-    },
-    [setName],
-  );
-  const [density, setDensityState] = useState<Density>(() => {
-    const stored = lsGet(STORAGE_KEYS.DENSITY);
-    return stored === "compact" ? "compact" : "comfortable";
-  });
-  const setDensity = useCallback((d: Density) => {
-    setDensityState(d);
-    lsSet(STORAGE_KEYS.DENSITY, d);
-  }, []);
-  // Sync density when changed from Settings panel
-  const densityRev = useSettingsListener(STORAGE_KEYS.DENSITY);
-  useEffect(() => {
-    if (densityRev === 0) return;
-    const stored = lsGet(STORAGE_KEYS.DENSITY);
-    setDensityState(stored === "compact" ? "compact" : "comfortable");
-  }, [densityRev]);
-  const rowHeight = DENSITY_ROW_HEIGHT[density];
-
-  useEffect(() => {
-    setShowResolvedValuesState(
-      lsGet(STORAGE_KEY.tokenShowResolvedValues(setName)) === "1",
-    );
-  }, [setName]);
-
-  // Condensed view — caps indentation at CONDENSED_MAX_DEPTH to prevent deep nesting from pushing content off-screen
-  const [condensedView, setCondensedViewState] = useState<boolean>(
-    () => lsGet(STORAGE_KEYS.CONDENSED_VIEW) === "1",
-  );
-  const setCondensedView = useCallback((v: boolean) => {
-    setCondensedViewState(v);
-    lsSet(STORAGE_KEYS.CONDENSED_VIEW, v ? "1" : "0");
-  }, []);
-
-  // Multi-mode column view — show resolved values per mode variant side-by-side
-  // Auto-enable when modes (dimensions) exist unless user explicitly opted out
-  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
-    const stored = lsGet("tm_multi_mode");
-    if (stored !== null) return stored === "1";
-    return dimensions.length > 0;
-  });
-  const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
-  const toggleMultiMode = useCallback(() => {
-    setMultiModeEnabled((prev) => {
-      const next = !prev;
-      lsSet("tm_multi_mode", next ? "1" : "0");
-      return next;
-    });
-  }, []);
-
-  // Auto-enable when dimensions appear for the first time (no stored preference)
-  useEffect(() => {
-    if (dimensions.length > 0 && lsGet("tm_multi_mode") === null) {
-      setMultiModeEnabled(true);
-    }
-  }, [dimensions.length]);
-
-  // Auto-select first dimension when multi-mode is enabled and no dimension is selected
-  useEffect(() => {
-    if (
-      multiModeEnabled &&
-      dimensions.length > 0 &&
-      (!multiModeDimId || !dimensions.some((d) => d.id === multiModeDimId))
-    ) {
-      setMultiModeDimId(dimensions[0].id);
-    }
-  }, [multiModeEnabled, dimensions, multiModeDimId]);
 
   // Compute per-option resolved token maps for the selected dimension
   const multiModeData = useMemo(() => {
@@ -2382,11 +2213,6 @@ export function TokenList({
     setNewGroupError("");
   }, [setNewGroupDialogParent, setNewGroupName, setNewGroupError]);
 
-  const runCreateToolsAction = useCallback((action: () => void) => {
-    setCreateToolsMenuOpen(false);
-    action();
-  }, []);
-
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities = useMemo<NodeCapabilities | null>(
     () =>
@@ -3705,324 +3531,86 @@ export function TokenList({
 
         {/* Compact toolbar — single row: [back?] [search (filter badge)] [+] [...] */}
         {!selectMode && viewMode === "tree" && (
-          <div className="flex items-center gap-1 px-1.5 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            {(navHistoryLength ?? 0) > 0 && (
-              <button
-                onClick={onNavigateBack}
-                className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-                title={`Go back to previous token (Alt+←)${(navHistoryLength ?? 0) > 1 ? ` — ${navHistoryLength} in history` : ""}`}
-                aria-label="Go back to previous token"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-
-            {tokens.length > 0 ? (
-              <div className="relative flex-1 min-w-0">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]"
-                  aria-hidden="true"
-                >
-                  <circle cx="4" cy="4" r="3" />
-                  <path d="M6.5 6.5L9 9" strokeLinecap="round" />
-                </svg>
-                <input
-                  ref={searchRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setHintIndex(0);
-                  }}
-                  onFocus={() => {
-                    setShowQualifierHints(true);
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => setShowQualifierHints(false), 150);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      if (searchQuery) {
-                        setSearchQuery("");
-                        setHintIndex(0);
-                      }
-                      searchRef.current?.blur();
-                      return;
-                    }
-                    if (!showQualifierHints || qualifierHints.length === 0)
-                      return;
-                    if (e.key === "ArrowDown") {
-                      e.preventDefault();
-                      setHintIndex((i) =>
-                        Math.min(i + 1, qualifierHints.length - 1),
-                      );
-                    } else if (e.key === "ArrowUp") {
-                      e.preventDefault();
-                      setHintIndex((i) => Math.max(i - 1, 0));
-                    } else if (
-                      e.key === "Tab" ||
-                      (e.key === "Enter" && qualifierHints.length > 0)
-                    ) {
-                      const hint = qualifierHints[hintIndex];
-                      if (!hint || hint.kind !== "replacement") return;
-                      e.preventDefault();
-                      setSearchQuery(
-                        replaceQueryToken(
-                          searchQuery,
-                          activeQueryToken,
-                          hint.replacement,
-                        ),
-                      );
-                      setHintIndex(0);
-                    }
-                  }}
-                  placeholder="Search names, paths, or descriptions"
-                  title={searchTooltip}
-                  className={`w-full rounded border bg-[var(--color-figma-bg)] py-1 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery || toolbarStateChips.length > 0 ? "pr-12" : "pr-2"} ${structuredFilterChips.length > 0 ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
-                />
-                {/* Active filter/view badge inside search */}
-                {toolbarStateChips.length > 0 && (
-                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setFilterPopoverOpen((v) => !v)}
-                      className="rounded-full bg-[var(--color-figma-accent)]/15 px-1.5 py-0.5 text-[9px] font-medium leading-none text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/25 transition-colors"
-                      title={`${toolbarStateChips.length} active filter${toolbarStateChips.length !== 1 ? "s" : ""} — click to manage`}
-                    >
-                      {toolbarStateChips.length}
-                    </button>
-                    {searchQuery && (
-                      <button
-                        onClick={() => {
-                          setSearchQuery("");
-                          setHintIndex(0);
-                          searchRef.current?.focus();
-                        }}
-                        className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-                        title="Clear search"
-                        aria-label="Clear search"
-                      >
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                )}
-                {!toolbarStateChips.length && searchQuery && (
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setHintIndex(0);
-                      searchRef.current?.focus();
-                    }}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-                    title="Clear search"
-                    aria-label="Clear search"
-                  >
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-                {/* Filter popover — lists active filters with dismiss */}
-                {filterPopoverOpen && toolbarStateChips.length > 0 && (
-                  <div ref={filterPopoverRef} className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl">
-                    {toolbarStateChips.map((chip) => (
-                      <div
-                        key={chip.key}
-                        className="flex items-center gap-2 px-2.5 py-1 text-[10px]"
-                      >
-                        <span className={`flex-1 truncate ${chip.tone === "filter" ? "text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)]"}`}>
-                          {chip.label}
-                        </span>
-                        {chip.removeToken && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              removeQueryToken(chip.removeToken!);
-                            }}
-                            className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                            title={`Remove ${chip.label}`}
-                          >
-                            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <div className="mt-1 border-t border-[var(--color-figma-border)] px-2.5 py-1 flex items-center gap-2">
-                      {(activeFilterSummary.length > 0 || hasStructuredFilters) && (
-                        <button
-                          onClick={() => { clearFilters(); setFilterPopoverOpen(false); }}
-                          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-                        >
-                          Clear filters
-                        </button>
-                      )}
-                      {activeViewSummary.length > 0 && (
-                        <button
-                          onClick={() => { clearViewModes(); setFilterPopoverOpen(false); }}
-                          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-                        >
-                          Reset view
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {showQualifierHints &&
-                  activeQueryToken.token.includes(":") &&
-                  qualifierHints.length > 0 && (
-                    <div
-                      ref={qualifierHintsRef}
-                      className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg"
-                    >
-                      {qualifierHints.map((hint, i) => (
-                        <button
-                          key={hint.id}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            if (hint.kind !== "replacement") return;
-                            setSearchQuery(
-                              replaceQueryToken(
-                                searchQuery,
-                                activeQueryToken,
-                                hint.replacement,
-                              ),
-                            );
-                            setHintIndex(0);
-                            searchRef.current?.focus();
-                          }}
-                          className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[10px] ${i === hintIndex ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"} ${hint.kind === "replacement" ? "" : "cursor-default"}`}
-                        >
-                          <span className="font-mono font-semibold text-[var(--color-figma-accent)]">
-                            {hint.label}
-                          </span>
-                          <span className="truncate">{hint.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-              </div>
-            ) : (
-              <div className="flex-1" />
-            )}
-
-            <div
-              className="relative shrink-0"
-              ref={createToolsMenuContainerRef}
-            >
-              <button
-                ref={createToolsMenuButtonRef}
-                onClick={() => setCreateToolsMenuOpen((open) => !open)}
-                disabled={!connected}
-                aria-expanded={createToolsMenuOpen}
-                aria-haspopup="menu"
-                className={`inline-flex items-center justify-center rounded p-1 transition-colors ${createToolsMenuOpen ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"} disabled:cursor-not-allowed disabled:opacity-40`}
-                title="Create token, group, or import"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
-
-              {createToolsMenuOpen && (
-                <div
-                  ref={createToolsMenuRef}
-                  className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
-                  role="menu"
-                >
-                  <button role="menuitem" onClick={() => runCreateToolsAction(() => onCreateNew?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-                    Single token
-                  </button>
-                  <button role="menuitem" onClick={() => runCreateToolsAction(openTableCreate)} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-                    Bulk create
-                  </button>
-                  <button role="menuitem" onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-                    New group
-                  </button>
-                  <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  <button role="menuitem" onClick={() => runCreateToolsAction(() => onShowPasteModal?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-                    Paste JSON
-                  </button>
-                  <button role="menuitem" onClick={() => runCreateToolsAction(() => onOpenImportPanel?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-                    Import
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {tokens.length > 0 && (
-              <TokenListOverflowMenu
-                sortOrder={sortOrder}
-                onSortOrderChange={setSortOrder}
-                onExpandAll={handleExpandAll}
-                onCollapseAll={handleCollapseAll}
-                hasGroups={tokens.some((n) => n.isGroup)}
-                density={density}
-                onDensityChange={setDensity}
-                condensedView={condensedView}
-                onCondensedViewChange={setCondensedView}
-                multiModeEnabled={multiModeEnabled}
-                onToggleMultiMode={toggleMultiMode}
-                hasDimensions={dimensions.length > 0}
-                showPreviewSplit={showPreviewSplit}
-                onTogglePreviewSplit={onTogglePreviewSplit}
-                canToggleSearchResultPresentation={
-                  canToggleSearchResultPresentation && !crossSetSearch
-                }
-                searchResultPresentation={searchResultPresentation}
-                onSearchResultPresentationChange={
-                  setSearchResultPresentation
-                }
-                showIssuesOnly={showIssuesOnly ?? false}
-                onToggleIssuesOnly={onToggleIssuesOnly}
-                lintCount={lintViolations.length}
-                recentlyTouchedCount={recentlyTouched.count}
-                showRecentlyTouched={showRecentlyTouched}
-                onToggleRecentlyTouched={() => setShowRecentlyTouched((v) => !v)}
-                inspectMode={inspectMode}
-                onToggleInspectMode={() => setInspectMode((v) => !v)}
-                crossSetSearch={crossSetSearch}
-                onToggleCrossSetSearch={() => setCrossSetSearch(!crossSetSearch)}
-                hasMultipleSets={sets.length > 1}
-                refFilter={refFilter}
-                onRefFilterChange={setRefFilter}
-                showDuplicates={showDuplicates}
-                onToggleDuplicates={() => setShowDuplicates(!showDuplicates)}
-                filterPresets={filterPresets}
-                onApplyFilterPreset={applyFilterPreset}
-                onDeleteFilterPreset={deleteFilterPreset}
-                onSelectTokens={() => {
-                  setSelectMode(true);
-                  setShowBatchEditor(false);
-                }}
-                onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
-                onFindReplace={handleOpenFindReplaceReview}
-                onFoundationTemplates={onOpenStartHere ? () => onOpenStartHere("template-library") : undefined}
-                onApplyVariables={handleApplyVariables}
-                onApplyStyles={handleApplyStyles}
-                applyingOrLoading={applying || varDiffLoading}
-                tokensExist={tokens.length > 0}
-                connected={connected}
-                activeCount={viewOptionsActiveCount}
-                onInsertSearchQualifier={insertSearchQualifier}
-                onClearFilters={(activeFilterSummary.length > 0 || hasStructuredFilters) ? clearFilters : undefined}
-                onResetView={activeViewSummary.length > 0 ? clearViewModes : undefined}
-              />
-            )}
-          </div>
+          <TokenListToolbar
+            onNavigateBack={onNavigateBack}
+            navHistoryLength={navHistoryLength}
+            searchRef={searchRef}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            hintIndex={hintIndex}
+            setHintIndex={setHintIndex}
+            showQualifierHints={showQualifierHints}
+            setShowQualifierHints={setShowQualifierHints}
+            qualifierHints={qualifierHints}
+            activeQueryToken={activeQueryToken}
+            searchTooltip={searchTooltip}
+            qualifierHintsRef={qualifierHintsRef}
+            structuredFilterChips={structuredFilterChips}
+            toolbarStateChips={toolbarStateChips}
+            activeFilterSummary={activeFilterSummary}
+            activeViewSummary={activeViewSummary}
+            hasStructuredFilters={hasStructuredFilters}
+            removeQueryToken={removeQueryToken}
+            clearFilters={clearFilters}
+            clearViewModes={clearViewModes}
+            connected={connected}
+            hasTokens={tokens.length > 0}
+            onCreateNew={onCreateNew}
+            openTableCreate={openTableCreate}
+            handleOpenNewGroupDialog={handleOpenNewGroupDialog}
+            onShowPasteModal={onShowPasteModal}
+            onOpenImportPanel={onOpenImportPanel}
+            overflowMenuProps={tokens.length > 0 ? {
+              sortOrder,
+              onSortOrderChange: setSortOrder,
+              onExpandAll: handleExpandAll,
+              onCollapseAll: handleCollapseAll,
+              hasGroups: tokens.some((n) => n.isGroup),
+              density,
+              onDensityChange: setDensity,
+              condensedView,
+              onCondensedViewChange: setCondensedView,
+              multiModeEnabled,
+              onToggleMultiMode: toggleMultiMode,
+              hasDimensions: dimensions.length > 0,
+              showPreviewSplit,
+              onTogglePreviewSplit,
+              canToggleSearchResultPresentation: canToggleSearchResultPresentation && !crossSetSearch,
+              searchResultPresentation,
+              onSearchResultPresentationChange: setSearchResultPresentation,
+              showIssuesOnly: showIssuesOnly ?? false,
+              onToggleIssuesOnly,
+              lintCount: lintViolations.length,
+              recentlyTouchedCount: recentlyTouched.count,
+              showRecentlyTouched,
+              onToggleRecentlyTouched: () => setShowRecentlyTouched((v) => !v),
+              inspectMode,
+              onToggleInspectMode: () => setInspectMode((v) => !v),
+              crossSetSearch,
+              onToggleCrossSetSearch: () => setCrossSetSearch(!crossSetSearch),
+              hasMultipleSets: sets.length > 1,
+              refFilter,
+              onRefFilterChange: setRefFilter,
+              showDuplicates,
+              onToggleDuplicates: () => setShowDuplicates(!showDuplicates),
+              filterPresets,
+              onApplyFilterPreset: applyFilterPreset,
+              onDeleteFilterPreset: deleteFilterPreset,
+              onSelectTokens: () => { setSelectMode(true); setShowBatchEditor(false); },
+              onBulkEdit: handleOpenBulkWorkflowForVisibleTokens,
+              onFindReplace: handleOpenFindReplaceReview,
+              onFoundationTemplates: onOpenStartHere ? () => onOpenStartHere("template-library") : undefined,
+              onApplyVariables: handleApplyVariables,
+              onApplyStyles: handleApplyStyles,
+              applyingOrLoading: applying || varDiffLoading,
+              tokensExist: tokens.length > 0,
+              connected,
+              activeCount: viewOptionsActiveCount,
+              onInsertSearchQualifier: insertSearchQualifier,
+              onClearFilters: (activeFilterSummary.length > 0 || hasStructuredFilters) ? clearFilters : undefined,
+              onResetView: activeViewSummary.length > 0 ? clearViewModes : undefined,
+            } : null}
+          />
         )}
       </div>
       {showStaleGeneratorBanner && (
