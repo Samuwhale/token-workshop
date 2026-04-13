@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { Token } from "@tokenmanager/core";
 import type { TokenStore } from "./token-store.js";
 import type { SetMetadataState } from "./token-store.js";
+import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError, ConflictError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
@@ -47,6 +48,67 @@ export function listSnapshotTokenPaths(
       ),
     ),
   ];
+}
+
+function snapshotEntriesEqual(
+  left: SnapshotEntry | undefined,
+  right: SnapshotEntry | undefined,
+): boolean {
+  if (!left && !right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return (
+    left.setName === right.setName &&
+    stableStringify(left.token) === stableStringify(right.token)
+  );
+}
+
+export function listChangedSnapshotKeys(
+  before: Record<string, SnapshotEntry>,
+  after: Record<string, SnapshotEntry>,
+): string[] {
+  const changedKeys: string[] = [];
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  for (const snapshotKey of keys) {
+    if (!snapshotEntriesEqual(before[snapshotKey], after[snapshotKey])) {
+      changedKeys.push(snapshotKey);
+    }
+  }
+  return changedKeys;
+}
+
+export function listChangedSnapshotTokenPaths(
+  before: Record<string, SnapshotEntry>,
+  after: Record<string, SnapshotEntry>,
+): string[] {
+  return [
+    ...new Set(
+      listChangedSnapshotKeys(before, after).map((snapshotKey) => {
+        const entry = after[snapshotKey] ?? before[snapshotKey];
+        if (!entry) {
+          return snapshotKey;
+        }
+        return getSnapshotTokenPath(snapshotKey, entry.setName);
+      }),
+    ),
+  ];
+}
+
+export function pickSnapshotEntries(
+  snapshot: Record<string, SnapshotEntry>,
+  snapshotKeys: string[],
+): Record<string, SnapshotEntry> {
+  const result: Record<string, SnapshotEntry> = {};
+  for (const snapshotKey of snapshotKeys) {
+    const entry = snapshot[snapshotKey];
+    if (entry) {
+      result[snapshotKey] = entry;
+    }
+  }
+  return result;
 }
 
 export function qualifySnapshotEntries(

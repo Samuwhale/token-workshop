@@ -210,7 +210,7 @@
 - [x] Remove 'Sections' eyebrow label and breadcrumb meta-labels from WorkspaceSummaryHeader to reduce persistent chrome across all workspaces
 - [x] Paste tokens modal resets all per-row overwrite decisions on any textarea edit and undo after overwrite deletes the pre-existing token instead of restoring it
 - [x] Strip eyebrow labels, On/Off badge, and layered instructional text from LintConfigPanel
-- [ ] Deprecated token lifecycle has no active-usage detection or migration workflow
+- [x] Deprecated token lifecycle has no active-usage detection or migration workflow
 - [ ] Split the import provider contract into focused source, destination, review, and result hooks
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence

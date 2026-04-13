@@ -2154,3 +2154,12 @@
   - When one migration rewrites dependents across multiple sets, capture and qualify snapshots per set before any write so rollback can stay a single operation-log entry instead of fragmenting into per-set undo.
   - Lifecycle metadata needs both passive detection and an active migration surface; a deprecated-state badge alone does not help maintainers unwind downstream alias usage.
 ---
+## 2026-04-13 - Replace import path-list undo with snapshot-backed rollback for overwrite, skip, merge, and retry flows
+- Replaced import undo tracking with server operation-log sessions so overwrite, merge, and skip imports roll back by restoring pre-import snapshots instead of deleting preview paths, and retry success batches append into the same rollback session the success view uses.
+- Trimmed batch-upsert operation snapshots down to the token paths that actually changed before recording the operation, so skip-mode and no-op overwrite paths never become undo targets.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/ImportPanelContext.tsx packages/server/src/routes/tokens.ts packages/server/src/services/operation-log.ts` passed with existing hook-dependency warnings in `ImportPanelContext.tsx`; `pnpm exec tsc -p packages/server/tsconfig.json --noEmit` passed; `pnpm exec tsc -p packages/figma-plugin/tsconfig.json --noEmit` still fails on unrelated pre-existing errors in `graph-templates.ts`, `QuickGeneratorPopover.tsx`, `SelectionInspector.tsx`, and theme-manager refs.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx` ~L70, ~L348, ~L746, ~L847, ~L993, ~L1134, ~L1167; `packages/server/src/routes/tokens.ts` ~L6, ~L858; `packages/server/src/services/operation-log.ts` ~L69; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Import undo should capture operation IDs, not preview path lists, so overwrite and merge flows can restore prior token state and retried partial batches can join the same rollback session.
+  - Batch mutation routes should filter before/after snapshots to changed entries before recording history; otherwise skip-mode previews and no-op overwrites create misleading undo scope.
+---

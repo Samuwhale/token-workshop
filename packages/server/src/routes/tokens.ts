@@ -2,7 +2,15 @@ import type { FastifyPluginAsync } from 'fastify';
 import { TOKEN_TYPE_VALUES, TokenValidator, isReference, parseReference, type Token, type TokenGroup } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
 import type { SnapshotEntry } from '../services/operation-log.js';
-import { qualifySnapshotEntries, snapshotPaths, snapshotSet, snapshotGroup } from '../services/operation-log.js';
+import {
+  listChangedSnapshotKeys,
+  listChangedSnapshotTokenPaths,
+  pickSnapshotEntries,
+  qualifySnapshotEntries,
+  snapshotPaths,
+  snapshotSet,
+  snapshotGroup,
+} from '../services/operation-log.js';
 import {
   batchCopyTokensCommand,
   batchMoveTokensCommand,
@@ -847,16 +855,27 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           strategy,
         );
         const after = await snapshotPaths(fastify.tokenStore, set, paths);
-        const operationId = await fastify.operationLog.record({
-          type: 'batch-upsert',
-          description: `Batch upsert ${tokens.length} tokens in ${set}`,
-          setName: set,
-          affectedPaths: paths,
-          beforeSnapshot: before,
-          afterSnapshot: after,
-          ...(!setExistedBefore ? { rollbackSteps: [{ action: 'delete-set' as const, name: set }] } : {}),
-        });
-        return { ok: true, ...result, operationId };
+        const changedSnapshotKeys = listChangedSnapshotKeys(before, after);
+        const changedPaths = listChangedSnapshotTokenPaths(before, after);
+        const beforeSnapshot = pickSnapshotEntries(before, changedSnapshotKeys);
+        const afterSnapshot = pickSnapshotEntries(after, changedSnapshotKeys);
+
+        let operationId: string | undefined;
+        if (changedSnapshotKeys.length > 0) {
+          operationId = (
+            await fastify.operationLog.record({
+              type: 'batch-upsert',
+              description: `Batch upsert ${tokens.length} tokens in ${set}`,
+              setName: set,
+              affectedPaths: changedPaths,
+              beforeSnapshot,
+              afterSnapshot,
+              ...(!setExistedBefore ? { rollbackSteps: [{ action: 'delete-set' as const, name: set }] } : {}),
+            })
+          ).id;
+        }
+
+        return { ok: true, ...result, changedPaths, operationId };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch upsert tokens');
       }

@@ -12,7 +12,8 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: The `deprecated` lifecycle state exists in the data model and is editable in TokenEditor. It shows visual treatment (strikethrough) in AliasAutocomplete and TokenPicker. Draft tokens gate the publish preflight. But deprecated tokens have no downstream enforcement: no lint rule catches aliases that still point to a deprecated token, no health surface lists which deprecated tokens are still actively referenced, and there is no migration path to redirect those references. A design system maintainer marking a token as deprecated today gets no automatic help finding or migrating its consumers. The health audit surface already owns unused-token detection, duplicate detection, and alias-opportunity promotion — it is the correct owner for deprecated-in-use detection and migration."
-state: ready
+  - "Completed: Added deprecated-reference linting, a single-operation cross-set reference replacement route with undo support, and a HealthPanel deprecated-usage migration flow."
+state: done
 acceptance_criteria:
   - A new `references-deprecated-token` lint rule in the server lint service flags any token whose alias chain includes at least one deprecated token
   - The lint rule is registered in lintRules.ts and appears in LintConfigPanel so it can be enabled/disabled per preset
@@ -21,4 +22,4 @@ acceptance_criteria:
   - The replacement action registers a single undo entry covering all rewritten tokens
 source: product-pass
 created_at: 2026-04-13T05:34:37.742Z
-updated_at: 2026-04-13T05:34:37.742Z
+updated_at: 2026-04-13T05:46:56.140Z

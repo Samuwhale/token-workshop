@@ -67,6 +67,12 @@ export interface LastImportReviewSummary {
   keepExistingCount: number;
 }
 
+export interface ImportRollbackOperation {
+  operationId: string;
+  setName: string;
+  changedPaths: string[];
+}
+
 export interface ImportCompletionResult {
   sourceType: ImportSourceKind;
   sourceFamily: SourceFamily;
@@ -132,7 +138,7 @@ export interface ImportPanelContextValue {
   succeededImportCount: number;
   retrying: boolean;
   copyFeedback: boolean;
-  lastImport: { entries: { setName: string; paths: string[] }[] } | null;
+  lastImport: { operations: ImportRollbackOperation[] } | null;
   lastImportReviewSummary: LastImportReviewSummary | null;
   importNextStepRecommendations: ImportNextStepRecommendation[];
   undoing: boolean;
@@ -253,7 +259,7 @@ const ImportPanelContext = createContext<ImportPanelContextValue | null>(null);
 type ExistingTokenValue = { $type: string; $value: unknown };
 type ConflictDecision = "accept" | "merge" | "reject";
 type ImportBatch = { setName: string; tokens: Record<string, unknown>[] };
-type ImportHistory = { entries: { setName: string; paths: string[] }[] };
+type ImportHistory = { operations: ImportRollbackOperation[] };
 type ImportStrategy = "overwrite" | "skip" | "merge";
 type ImportSource = ImportPanelContextValue["source"];
 
@@ -339,6 +345,27 @@ function buildFailedImportGroups(batches: ImportBatch[]): ImportFailureGroup[] {
     .filter((group) => group.paths.length > 0);
 }
 
+function toImportRollbackOperation(
+  setName: string,
+  result: {
+    changedPaths?: string[];
+    operationId?: string;
+  },
+): ImportRollbackOperation | null {
+  if (!result.operationId) {
+    return null;
+  }
+  const changedPaths = result.changedPaths ?? [];
+  if (changedPaths.length === 0) {
+    return null;
+  }
+  return {
+    operationId: result.operationId,
+    setName,
+    changedPaths,
+  };
+}
+
 export function useImportPanel(): ImportPanelContextValue {
   const ctx = useContext(ImportPanelContext);
   if (!ctx)
@@ -418,6 +445,7 @@ export function ImportPanelProvider({
   const existingPathsCacheRef = useRef<
     Map<string, Map<string, ExistingTokenValue>>
   >(new Map());
+  const lastImportRef = useRef<ImportHistory | null>(null);
   const existingFetchIdRef = useRef(0);
   const varConflictFetchIdRef = useRef(0);
   const retryingRef = useRef(false);
@@ -682,31 +710,18 @@ export function ImportPanelProvider({
     fetchSetTokenMap,
   ]);
 
-  const ensureSetExists = useCallback(
-    async (setName: string) => {
-      try {
-        await apiFetch(`${serverUrl}/api/sets`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: setName }),
-        });
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 409) return;
-        throw new Error(
-          `Failed to create set "${setName}": ${err instanceof Error ? err.message : "Unknown error"}`,
-        );
-      }
-    },
-    [serverUrl],
-  );
-
   const importPayloadBatch = useCallback(
     async (
       setName: string,
       tokens: Record<string, unknown>[],
       strategy: ImportStrategy,
     ) => {
-      const result = await apiFetch<{ imported: number; skipped: number }>(
+      return await apiFetch<{
+        imported: number;
+        skipped: number;
+        changedPaths?: string[];
+        operationId?: string;
+      }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`,
         {
           method: "POST",
@@ -714,7 +729,6 @@ export function ImportPanelProvider({
           body: JSON.stringify({ tokens, strategy }),
         },
       );
-      return result.imported;
     },
     [serverUrl],
   );
@@ -729,49 +743,61 @@ export function ImportPanelProvider({
     [importPayloadBatch, src.source],
   );
 
-  const deleteImportedEntries = useCallback(
-    async (entries: ImportHistory["entries"]) => {
-      for (const entry of entries) {
+  const rollbackImportHistory = useCallback(
+    async (history: ImportHistory) => {
+      const operations = history.operations;
+      while (operations.length > 0) {
+        const operation = operations[operations.length - 1];
         await apiFetch(
-          `${serverUrlRef.current}/api/tokens/${encodeURIComponent(entry.setName)}/batch-delete`,
+          `${serverUrlRef.current}/api/operations/${encodeURIComponent(operation.operationId)}/rollback`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paths: entry.paths, force: true }),
           },
         );
+        operations.pop();
       }
     },
     [],
   );
 
-  const setLastImportWithUndo = useCallback(
-    (entries: ImportHistory | null) => {
-      setLastImport(entries);
-      if (!entries || !onPushUndoRef.current) return;
+  const setCurrentImportHistory = useCallback((history: ImportHistory | null) => {
+    lastImportRef.current = history;
+    setLastImport(history);
+  }, []);
 
-      const capturedEntries = entries.entries.map((entry) => ({
-        setName: entry.setName,
-        paths: [...entry.paths],
-      }));
-      const totalPaths = capturedEntries.reduce(
-        (sum, entry) => sum + entry.paths.length,
-        0,
+  const appendImportRollbackOperations = useCallback(
+    (
+      operations: ImportRollbackOperation[],
+      options?: { pushUndo?: boolean },
+    ) => {
+      if (operations.length === 0) {
+        return;
+      }
+
+      const currentHistory = lastImportRef.current;
+      const history =
+        currentHistory ?? {
+          operations: [],
+        };
+      history.operations.push(
+        ...operations.map((operation) => ({
+          operationId: operation.operationId,
+          setName: operation.setName,
+          changedPaths: [...operation.changedPaths],
+        })),
       );
-      const setNames = [
-        ...new Set(capturedEntries.map((entry) => entry.setName)),
-      ];
-      const description =
-        setNames.length === 1
-          ? `Import ${totalPaths} token${totalPaths !== 1 ? "s" : ""} to "${setNames[0]}"`
-          : `Import ${totalPaths} token${totalPaths !== 1 ? "s" : ""} to ${setNames.length} sets`;
+      setCurrentImportHistory(history);
+
+      if (!options?.pushUndo || currentHistory || !onPushUndoRef.current) {
+        return;
+      }
 
       onPushUndoRef.current({
-        description,
+        description: "Undo import",
         restore: async () => {
-          await deleteImportedEntries(capturedEntries);
+          await rollbackImportHistory(history);
           onImportedRef.current();
-          setLastImport(null);
+          setCurrentImportHistory(null);
           setLastImportReviewSummary(null);
           setSuccessMessage(null);
           clearFailedState();
@@ -779,7 +805,12 @@ export function ImportPanelProvider({
         },
       });
     },
-    [clearFailedState, deleteImportedEntries, resetExistingPathsCache],
+    [
+      clearFailedState,
+      rollbackImportHistory,
+      resetExistingPathsCache,
+      setCurrentImportHistory,
+    ],
   );
 
   const publishImportCompletion = useCallback(
@@ -813,23 +844,23 @@ export function ImportPanelProvider({
       let importedTokens = 0;
       const failedPaths: string[] = [];
       const failedBatches: ImportBatch[] = [];
-      const rollbackEntries: ImportHistory["entries"] = [];
+      const rollbackOperations: ImportRollbackOperation[] = [];
 
       try {
         for (const entry of collectionImportEntries) {
-          await ensureSetExists(entry.setName);
           try {
-            const imported = await importTokenBatch(
+            const result = await importTokenBatch(
               entry.setName,
               entry.tokens,
               strategy,
             );
-            importedTokens += imported;
-            if (imported > 0) {
-              rollbackEntries.push({
-                setName: entry.setName,
-                paths: entry.tokens.map((token) => token.path),
-              });
+            importedTokens += result.imported;
+            const rollbackOperation = toImportRollbackOperation(
+              entry.setName,
+              result,
+            );
+            if (rollbackOperation) {
+              rollbackOperations.push(rollbackOperation);
             }
           } catch (err) {
             console.warn("[ImportPanel] failed to import token batch:", err);
@@ -906,9 +937,8 @@ export function ImportPanelProvider({
           keepExistingCount:
             strategy === "skip" ? (varConflictPreview?.overwriteCount ?? 0) : 0,
         });
-        setLastImportWithUndo(
-          rollbackEntries.length > 0 ? { entries: rollbackEntries } : null,
-        );
+        setCurrentImportHistory(null);
+        appendImportRollbackOperations(rollbackOperations, { pushUndo: true });
         setSuccessMessage(successSummary);
       } catch (err) {
         src.setError(getErrorMessage(err));
@@ -921,11 +951,11 @@ export function ImportPanelProvider({
       collectionImportEntries,
       clearConflictState,
       clearFailedState,
-      ensureSetExists,
       importTokenBatch,
+      appendImportRollbackOperations,
       publishImportCompletion,
       resetExistingPathsCache,
-      setLastImportWithUndo,
+      setCurrentImportHistory,
       totalEnabledTokens,
       enabledCollectionCount,
       varConflictPreview,
@@ -952,8 +982,6 @@ export function ImportPanelProvider({
         );
         setImportProgress({ done: 0, total: tokensToImport.length });
 
-        await ensureSetExists(setsHook.targetSet);
-
         const mergeTokens = mergePaths
           ? tokensToImport.filter((token) => mergePaths.has(token.path))
           : [];
@@ -962,19 +990,36 @@ export function ImportPanelProvider({
           : tokensToImport;
 
         let imported = 0;
+        const rollbackOperations: ImportRollbackOperation[] = [];
         if (overwriteTokens.length > 0) {
-          imported += await importTokenBatch(
+          const result = await importTokenBatch(
             setsHook.targetSet,
             overwriteTokens,
             strategy,
           );
+          imported += result.imported;
+          const rollbackOperation = toImportRollbackOperation(
+            setsHook.targetSet,
+            result,
+          );
+          if (rollbackOperation) {
+            rollbackOperations.push(rollbackOperation);
+          }
         }
         if (mergeTokens.length > 0) {
-          imported += await importTokenBatch(
+          const result = await importTokenBatch(
             setsHook.targetSet,
             mergeTokens,
             "merge",
           );
+          imported += result.imported;
+          const rollbackOperation = toImportRollbackOperation(
+            setsHook.targetSet,
+            result,
+          );
+          if (rollbackOperation) {
+            rollbackOperations.push(rollbackOperation);
+          }
         }
 
         setImportProgress({
@@ -1015,18 +1060,8 @@ export function ImportPanelProvider({
           mergeCount,
           keepExistingCount,
         });
-        setLastImportWithUndo(
-          imported > 0
-            ? {
-                entries: [
-                  {
-                    setName: setsHook.targetSet,
-                    paths: tokensToImport.map((token) => token.path),
-                  },
-                ],
-              }
-            : null,
-        );
+        setCurrentImportHistory(null);
+        appendImportRollbackOperations(rollbackOperations, { pushUndo: true });
         setSuccessMessage(
           `Imported ${imported} token${imported !== 1 ? "s" : ""} to "${setsHook.targetSet}"`,
         );
@@ -1041,12 +1076,12 @@ export function ImportPanelProvider({
       clearConflictState,
       clearFailedState,
       selectedImportTokens,
-      ensureSetExists,
       setsHook.targetSet,
       importTokenBatch,
+      appendImportRollbackOperations,
       publishImportCompletion,
       resetExistingPathsCache,
-      setLastImportWithUndo,
+      setCurrentImportHistory,
       conflictPaths,
       previewNewCount,
       previewOverwriteCount,
@@ -1098,15 +1133,16 @@ export function ImportPanelProvider({
 
   const handleUndoImport = useCallback(async () => {
     src.setError(null);
-    if (!lastImport || undoingRef.current) return;
+    const history = lastImportRef.current;
+    if (!history || undoingRef.current) return;
 
     undoingRef.current = true;
     setUndoing(true);
     try {
-      await deleteImportedEntries(lastImport.entries);
+      await rollbackImportHistory(history);
       dispatchToast("Import undone", "success");
       onImportedRef.current();
-      setLastImport(null);
+      setCurrentImportHistory(null);
       setLastImportResult(null);
       setLastImportReviewSummary(null);
       setSuccessMessage(null);
@@ -1120,10 +1156,10 @@ export function ImportPanelProvider({
       setUndoing(false);
     }
   }, [
-    lastImport,
-    deleteImportedEntries,
     clearFailedState,
+    rollbackImportHistory,
     resetExistingPathsCache,
+    setCurrentImportHistory,
     src.clearFileImportValidation,
     src.setError,
   ]);
@@ -1138,15 +1174,24 @@ export function ImportPanelProvider({
     const stillFailedPaths: string[] = [];
     const stillFailedBatches: ImportBatch[] = [];
     let retried = 0;
+    const recoveredOperations: ImportRollbackOperation[] = [];
 
     try {
       for (const batch of failedImportBatches) {
         try {
-          retried += await importPayloadBatch(
+          const result = await importPayloadBatch(
             batch.setName,
             batch.tokens,
             failedImportStrategy,
           );
+          retried += result.imported;
+          const rollbackOperation = toImportRollbackOperation(
+            batch.setName,
+            result,
+          );
+          if (rollbackOperation) {
+            recoveredOperations.push(rollbackOperation);
+          }
         } catch (err) {
           console.warn(
             "[ImportPanel] retry failed for batch:",
@@ -1162,6 +1207,7 @@ export function ImportPanelProvider({
         }
       }
 
+      appendImportRollbackOperations(recoveredOperations, { pushUndo: true });
       resetExistingPathsCache();
       if (stillFailedPaths.length === 0) {
         setFailedImportPaths([]);
@@ -1190,6 +1236,7 @@ export function ImportPanelProvider({
       setRetrying(false);
     }
   }, [
+    appendImportRollbackOperations,
     failedImportBatches,
     importPayloadBatch,
     failedImportStrategy,
@@ -1212,11 +1259,11 @@ export function ImportPanelProvider({
   const clearSuccessState = useCallback(() => {
     setSuccessMessage(null);
     clearFailedState();
-    setLastImport(null);
+    setCurrentImportHistory(null);
     setLastImportResult(null);
     setLastImportReviewSummary(null);
     src.clearFileImportValidation();
-  }, [clearFailedState, src.clearFileImportValidation]);
+  }, [clearFailedState, setCurrentImportHistory, src.clearFileImportValidation]);
 
   const failedImportGroups = useMemo(
     () => buildFailedImportGroups(failedImportBatches),
