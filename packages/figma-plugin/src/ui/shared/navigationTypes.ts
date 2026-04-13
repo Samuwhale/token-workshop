@@ -225,7 +225,7 @@ export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
     id: "themes",
     label: "Themes",
     stepNumber: 2,
-    role: "Turn token sets into theme dimensions, modes, and coverage.",
+    role: "Define modes, assign base and variant token sets, review coverage.",
   },
   {
     id: "apply",

@@ -145,6 +145,18 @@ function formatLiveOrchestratorMessage(config: BacklogRunnerConfig, status: Orch
   return `Another backlog orchestrator is already running (${status.orchestratorId}, pid ${status.pid}). ${activeTaskSummary} Runtime report: ${config.files.runtimeReport}. ${shutdownSummary}`;
 }
 
+async function yieldToEventLoop(): Promise<void> {
+  await new Promise<void>(resolve => setTimeout(resolve, 0));
+}
+
+async function waitForPollInterval(
+  sleep: (ms: number) => Promise<void>,
+  ms: number,
+): Promise<void> {
+  await sleep(ms);
+  await yieldToEventLoop();
+}
+
 async function waitForOrchestratorExit(
   config: BacklogRunnerConfig,
   orchestratorId: string,
@@ -159,17 +171,17 @@ async function waitForOrchestratorExit(
       return true;
     }
     if (!currentStatus) {
-      await sleep(Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
+      await waitForPollInterval(sleep, Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
       continue;
     }
     if (currentStatus.orchestratorId !== orchestratorId) {
-      await sleep(Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
+      await waitForPollInterval(sleep, Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
       continue;
     }
     if (!isPidAlive(currentStatus.pid)) {
       return true;
     }
-    await sleep(Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
+    await waitForPollInterval(sleep, Math.min(ORCHESTRATOR_POLL_INTERVAL_MS, Math.max(250, deadline - Date.now())));
   }
   return false;
 }
@@ -618,7 +630,7 @@ export async function runBacklogRunner(
 
       if (now < rateLimitUntil) {
         logger.line(`  Rate limit backoff active until ${new Date(rateLimitUntil).toTimeString().slice(0, 8)}.`);
-        await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
+        await waitForPollInterval(sleep, ORCHESTRATOR_POLL_INTERVAL_MS);
         continue;
       }
 
@@ -684,7 +696,7 @@ export async function runBacklogRunner(
         }
       }
 
-      await sleep(ORCHESTRATOR_POLL_INTERVAL_MS);
+      await waitForPollInterval(sleep, ORCHESTRATOR_POLL_INTERVAL_MS);
     }
 
     if (fatalError || stopRequested || await fileExists(config.files.stop)) {

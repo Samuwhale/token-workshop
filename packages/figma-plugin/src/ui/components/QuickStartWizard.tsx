@@ -5,9 +5,6 @@ import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { apiFetch } from '../shared/apiFetch';
-import {
-  GeneratorIntentCatalog,
-} from './TemplatePicker';
 import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratorDialog';
 
 // ---------------------------------------------------------------------------
@@ -42,10 +39,10 @@ interface QuickStartWizardProps {
 // Step labels
 // ---------------------------------------------------------------------------
 
-const STEPS: { step: WizardStep; label: string; description: string }[] = [
-  { step: 1, label: 'Build Foundations', description: 'Generate the primitive scales your system will rely on' },
-  { step: 2, label: 'Name Semantics', description: 'Map reusable roles onto those foundations' },
-  { step: 3, label: 'Add Themes', description: 'Set up modes or brands that switch across token sets' },
+const STEPS: { step: WizardStep; label: string }[] = [
+  { step: 1, label: 'Foundations' },
+  { step: 2, label: 'Semantics' },
+  { step: 3, label: 'Themes' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -60,22 +57,11 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[var(--color-figma-bg-secondary)] flex items-center justify-center shrink-0">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <path d="M8 21h8M12 17v4" />
-            <circle cx="12" cy="10" r="2" />
-            <path d="M7.5 7.5a6.5 6.5 0 0 1 9 0M5 5a10 10 0 0 1 14 0" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Start the Token Manager server</p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-            Token Manager needs a local server to read and write the token files that define your system.
-            Run the following in your project directory:
-          </p>
-        </div>
+      <div>
+        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Start the Token Manager server</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
+          Run the following in your project directory:
+        </p>
       </div>
 
       <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-3 py-2">
@@ -102,10 +88,6 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
           {checking ? 'Checking…' : 'Retry Connection'}
         </button>
       </div>
-
-      <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-snug">
-        Once the server is running, click "Retry Connection" or this panel will reconnect automatically.
-      </p>
     </div>
   );
 }
@@ -146,22 +128,12 @@ function CreateSetStep({ serverUrl, onCreated }: {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[var(--color-figma-accent)]/10 flex items-center justify-center shrink-0">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="12" y1="11" x2="12" y2="17" />
-            <line x1="9" y1="14" x2="15" y2="14" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token set</p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-            Token sets are JSON files that hold the foundations of your design system.
-            Give your first set a clear name. You can add more sets later for semantics, themes, or brands.
-          </p>
-        </div>
+      <div>
+        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token set</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
+          Token sets are JSON files that hold your design system foundations.
+          You can add more sets later for semantics, themes, or brands.
+        </p>
       </div>
 
       <div>
@@ -222,14 +194,12 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
     setError('');
     try {
       const dimId = slugify(dimName);
-      // Create dimension
       await apiFetch(`${serverUrl}/api/themes/dimensions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: dimId, name: dimName.trim() }),
       });
 
-      // Create Light option (active set as source)
       const lightSets: Record<string, string> = {};
       lightSets[activeSet] = 'source';
       await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
@@ -238,7 +208,6 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
         body: JSON.stringify({ name: lightName.trim(), sets: lightSets }),
       });
 
-      // Create Dark option (active set disabled by default)
       const darkSets: Record<string, string> = {};
       darkSets[activeSet] = 'disabled';
       await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
@@ -311,15 +280,6 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
           />
         </div>
       </div>
-      <div className="border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg-secondary)]">
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          This will create a <span className="font-medium text-[var(--color-figma-text)]">{dimName || 'Color Mode'}</span> axis with:
-        </p>
-        <ul className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] list-disc pl-4">
-          <li><span className="font-medium text-[var(--color-figma-text)]">{lightName || 'Light'}</span> — uses <span className="font-mono text-[var(--color-figma-accent)]">{activeSet}</span> as base</li>
-          <li><span className="font-medium text-[var(--color-figma-text)]">{darkName || 'Dark'}</span> — ready for a dark override set</li>
-        </ul>
-      </div>
       {error && <p className="text-[10px] text-[var(--color-figma-error)]">{error}</p>}
       <div className="flex gap-2">
         <button
@@ -341,31 +301,57 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
 }
 
 // ---------------------------------------------------------------------------
+// Compact template picker for wizard step 1
+// ---------------------------------------------------------------------------
+
+function CompactTemplatePicker({ templates, connected, onSelect }: {
+  templates: GraphTemplate[];
+  connected: boolean;
+  onSelect: (template: GraphTemplate) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      {templates.map(template => (
+        <button
+          key={template.id}
+          onClick={() => onSelect(template)}
+          disabled={!connected}
+          className="w-full text-left px-4 py-2.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</p>
+            </div>
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
+              <path d="M4.5 2.5L8 6l-3.5 3.5" />
+            </svg>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Stepper Bar
 // ---------------------------------------------------------------------------
 
-function StepperBar({ currentStep, completedSteps, onStepClick }: {
+function StepperBar({ currentStep, completedSteps }: {
   currentStep: WizardStep;
   completedSteps: Set<WizardStep>;
-  onStepClick?: (step: WizardStep) => void;
 }) {
   return (
     <div className="flex items-center gap-1 px-4 py-3">
       {STEPS.map(({ step, label }, i) => {
         const isActive = step === currentStep;
         const isCompleted = completedSteps.has(step);
-        const clickable = !!onStepClick && !isActive;
         return (
           <div key={step} className="flex items-center gap-1 flex-1 min-w-0">
             {i > 0 && (
               <div className={`w-4 h-px shrink-0 ${isCompleted || isActive ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'}`} />
             )}
-            <button
-              type="button"
-              disabled={!clickable}
-              onClick={() => clickable && onStepClick!(step)}
-              className={`flex items-center gap-1.5 min-w-0 bg-transparent border-0 p-0 ${clickable ? 'cursor-pointer hover:opacity-100' : ''} ${isActive ? '' : 'opacity-60'}`}
-            >
+            <div className={`flex items-center gap-1.5 min-w-0 ${isActive ? '' : 'opacity-50'}`}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                 isCompleted
                   ? 'bg-[var(--color-figma-accent)] text-white'
@@ -380,64 +366,10 @@ function StepperBar({ currentStep, completedSteps, onStepClick }: {
               <span className={`text-[10px] truncate ${isActive ? 'font-medium text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
                 {label}
               </span>
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Prereq indicator bar (shown at top when in connect/create-set phase)
-// ---------------------------------------------------------------------------
-
-function PrereqBar({ phase, needsConnect, needsSet }: {
-  phase: PrereqPhase;
-  needsConnect: boolean;
-  needsSet: boolean;
-}) {
-  const steps = [
-    needsConnect && { key: 'connect', label: 'Connect server' },
-    needsSet && { key: 'create-set', label: 'Create token set' },
-  ].filter(Boolean) as { key: string; label: string }[];
-
-  if (steps.length === 0) return null;
-
-  return (
-    <div className="flex items-center gap-1 px-4 py-2.5">
-      {steps.map(({ key, label }, i) => {
-        const isActive = phase === key;
-        const isDone = phase !== key && (
-          (key === 'connect' && phase !== 'connect') ||
-          (key === 'create-set' && phase === null)
-        );
-        return (
-          <div key={key} className="flex items-center gap-1 min-w-0">
-            {i > 0 && <div className="w-3 h-px shrink-0 bg-[var(--color-figma-border)]" />}
-            <div className={`flex items-center gap-1.5 ${isActive ? '' : 'opacity-50'}`}>
-              <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
-                isDone
-                  ? 'bg-[var(--color-figma-accent)] text-white'
-                  : isActive
-                    ? 'border-2 border-[var(--color-figma-accent)] text-[var(--color-figma-accent)]'
-                    : 'border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
-              }`}>
-                {isDone ? (
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                ) : (i + 1)}
-              </div>
-              <span className={`text-[10px] truncate ${isActive ? 'font-medium text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
-                {label}
-              </span>
             </div>
           </div>
         );
       })}
-      <div className="flex items-center gap-1 ml-1 opacity-40">
-        <div className="w-3 h-px bg-[var(--color-figma-border)]" />
-        <span className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">then 3 setup steps</span>
-      </div>
     </div>
   );
 }
@@ -459,30 +391,23 @@ export function QuickStartWizard({
   embedded = false,
   onBack,
 }: QuickStartWizardProps) {
-  // Track initial prereq needs so PrereqBar shows correct steps
-  const initialNeedsConnect = useRef(!connected);
-  const initialNeedsSet = useRef(allSets.length === 0 && connected);
-
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [completedSteps, setCompletedSteps] = useState<Set<WizardStep>>(new Set());
 
-  // Prereq phase state — computed once at mount, then driven by effects
+  // Prereq phase state
   const [prereqPhase, setPrereqPhase] = useState<PrereqPhase>(() => {
     if (!connected) return 'connect';
     if (allSets.length === 0) return 'create-set';
     return null;
   });
 
-  // Token set created during the wizard prereq phase (used as active set for main steps)
   const [wizardCreatedSet, setWizardCreatedSet] = useState<string | null>(null);
   const effectiveActiveSet = wizardCreatedSet || activeSet;
 
-  // When connection status changes from outside, advance prereq phase
   const allSetsRef = useRef(allSets);
   allSetsRef.current = allSets;
   useEffect(() => {
     if (connected && prereqPhase === 'connect') {
-      initialNeedsSet.current = allSetsRef.current.length === 0;
       setPrereqPhase(allSetsRef.current.length === 0 ? 'create-set' : null);
     }
   }, [connected, prereqPhase]);
@@ -501,19 +426,6 @@ export function QuickStartWizard({
     setCurrentStep(step);
   }, []);
 
-  // Jump to any step directly (from StepperBar click)
-  const handleStepClick = useCallback((step: WizardStep) => {
-    setCompletedSteps(prev => {
-      const next = new Set(prev);
-      for (let s = 1 as WizardStep; s < step; s = (s + 1) as WizardStep) {
-        next.add(s);
-      }
-      return next;
-    });
-    setSelectedTemplate(null);
-    setCurrentStep(step);
-  }, []);
-
   // Prereq: set created
   const handleSetCreated = useCallback((name: string) => {
     setWizardCreatedSet(name);
@@ -529,17 +441,13 @@ export function QuickStartWizard({
   const handleStep1Complete = useCallback(() => {
     setSelectedTemplate(null);
     markCompleted(1);
-    if (semanticData) {
-      advanceTo(2);
-    } else {
-      // Generator didn't produce semantic-mappable tokens (e.g. z-index) — skip to step 3
-      advanceTo(3);
-    }
+    // Skip step 2 if no semantic data to map
+    advanceTo(semanticData ? 2 : 3);
   }, [semanticData, markCompleted, advanceTo]);
 
   const handleStep1Skip = () => {
     markCompleted(1);
-    advanceTo(2);
+    advanceTo(3);
   };
 
   // Step 2 handlers
@@ -564,32 +472,23 @@ export function QuickStartWizard({
     onComplete();
   };
 
-  // -- Prereq phase rendering --
+  // -- Prereq phase rendering (inline within wizard shell, stepper visible above) --
 
   if (prereqPhase === 'connect' || prereqPhase === 'create-set') {
     const prereqContent = (
       <>
         {!embedded && (
           <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-            <div>
-              <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Before You Begin</div>
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-                {prereqPhase === 'connect'
-                  ? 'A running server is required to manage token files'
-                  : 'You need at least one token set to store your system foundations'}
-              </div>
-            </div>
+            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Guided setup</div>
             <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
           </div>
         )}
 
-        <PrereqBar
-          phase={prereqPhase}
-          needsConnect={initialNeedsConnect.current}
-          needsSet={initialNeedsSet.current || prereqPhase === 'create-set'}
-        />
+        <div className="opacity-40 pointer-events-none">
+          <StepperBar currentStep={1} completedSteps={new Set()} />
+        </div>
         <div className="border-t border-[var(--color-figma-border)]" />
 
         <div className="p-4">
@@ -665,41 +564,24 @@ export function QuickStartWizard({
     <>
       {!embedded && (
         <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-          <div>
-            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Guided setup</div>
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-              Build a usable token system in three focused steps
-            </div>
-          </div>
+          <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Guided setup</div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
       )}
 
-      <StepperBar currentStep={currentStep} completedSteps={completedSteps} onStepClick={handleStepClick} />
+      <StepperBar currentStep={currentStep} completedSteps={completedSteps} />
       <div className="border-t border-[var(--color-figma-border)]" />
 
       <div className="flex-1 overflow-y-auto">
           {currentStep === 1 && (
             <>
-              <div className="px-4 py-3 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-                <div>
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Pick a foundation goal</div>
-                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
-                    Start from the outcome you want. Each intent opens the same composer with a mapped type, preset config, and any starter semantics already filled in.
-                  </div>
-                </div>
-              </div>
-              <div className="px-3 py-3">
-                <GeneratorIntentCatalog
-                  templates={GRAPH_TEMPLATES}
-                  connected={connected}
-                  onSelectTemplate={setSelectedTemplate}
-                  emptyStateTitle="No generator intents"
-                  emptyStateDescription="Generator intents are unavailable right now."
-                />
-              </div>
+              <CompactTemplatePicker
+                templates={GRAPH_TEMPLATES}
+                connected={connected}
+                onSelect={setSelectedTemplate}
+              />
               <div className="px-4 py-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
                 <button
                   onClick={handleStep1Skip}
@@ -711,46 +593,13 @@ export function QuickStartWizard({
             </>
           )}
 
-          {currentStep === 2 && !semanticData && (
-            <div className="p-4 flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-figma-bg-secondary)] flex items-center justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 10V7l4-6 4 6v3H8V8H4v2H2z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Name semantic roles</p>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                    No foundations were generated in step 1. You can map semantic roles later from the token list or graph view.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-1">
-                <button
-                  onClick={handleStep2Skip}
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
-                >
-                  Continue to Themes
-                </button>
-              </div>
-            </div>
-          )}
-
           {currentStep === 3 && (
             <div className="p-4 flex flex-col gap-3">
-              <div className="flex items-start gap-3 mb-1">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-figma-accent)]/10 flex items-center justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 6.5A4.5 4.5 0 0 1 4.5 1a4.5 4.5 0 1 0 5.5 5.5z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add theme modes</p>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                    Create a theme axis such as light and dark so your token system can switch across contexts.
-                  </p>
-                </div>
+              <div>
+                <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add theme modes</p>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
+                  Create a theme axis such as light and dark so your token system can switch across contexts.
+                </p>
               </div>
               <ThemeStep
                 serverUrl={serverUrl}

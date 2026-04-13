@@ -239,7 +239,7 @@ function ThemeAdvancedSetupScreen({
     <>
       <AdvancedScreenHeader
         title="Advanced setup"
-        description="Keep normal family authoring in the main flow. Use this route when you need raw set-role controls, comparison tools, or resolver-only publish logic."
+        description="Keep normal mode authoring in the main flow. Use this route when you need raw set-role controls, comparison tools, or resolver-only publish logic."
         backLabel="Back to authoring"
         onBack={onBack}
       />
@@ -251,7 +251,7 @@ function ThemeAdvancedSetupScreen({
               Stay in simple authoring
             </p>
             <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Use the default theme workflow for shared sets, variant-specific
+              Use the default theme workflow for base sets, variant-specific
               sets, coverage review, and preview.
             </p>
           </div>
@@ -272,7 +272,7 @@ function ThemeAdvancedSetupScreen({
           <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <label className="flex flex-col gap-1">
               <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                Family
+                Mode
               </span>
               <select
                 value={selectedDimension?.id ?? ""}
@@ -311,7 +311,7 @@ function ThemeAdvancedSetupScreen({
 
           {!selectedDimension || !selectedOption ? (
             <div className="rounded border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-[10px] text-[var(--color-figma-text-tertiary)]">
-              Create at least one family and variant before using Advanced setup.
+              Create at least one mode and variant before using Advanced setup.
             </div>
           ) : (
             <>
@@ -435,7 +435,7 @@ function ThemeResolverScreen({
               <ThemeResolverContextBanner
                 context={resolverAuthoringContext}
                 title="Advanced review"
-                description="Detailed resolver mismatch diagnostics stay in this advanced flow so the default family authoring surface can stay focused on dimensions and variants."
+                description="Detailed resolver mismatch diagnostics stay in this advanced flow so the default mode authoring surface can stay focused on modes and variants."
               />
             </div>
           )}

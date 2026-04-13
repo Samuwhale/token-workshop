@@ -273,7 +273,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             />
             {props.hasDimensions && (
               <MenuItem
-                label="Mode columns"
+                label="Show modes"
                 checked={props.multiModeEnabled}
                 onClick={() => runAndClose(props.onToggleMultiMode)}
               />

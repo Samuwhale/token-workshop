@@ -410,11 +410,9 @@ export function App() {
   const [startHereState, setStartHereState] = useState<{
     open: boolean;
     initialBranch: StartHereBranch;
-    firstRun: boolean;
   }>(() => ({
     open: initialFirstRun,
     initialBranch: "root",
-    firstRun: initialFirstRun,
   }));
   // undoMaxHistory is managed by SettingsPanel; App re-reads from localStorage when it changes
   const undoHistoryRev = useSettingsListener(STORAGE_KEYS.UNDO_MAX_HISTORY);
@@ -434,15 +432,15 @@ export function App() {
     setShowSetSwitcher(false);
   }, [setShowCommandPalette, setShowQuickApply, setShowSetSwitcher]);
   const openStartHere = useCallback(
-    (initialBranch: StartHereBranch = "root", firstRun = false) => {
+    (initialBranch: StartHereBranch = "root") => {
       dismissEphemeralOverlays();
-      setStartHereState({ open: true, initialBranch, firstRun });
+      setStartHereState({ open: true, initialBranch });
     },
     [dismissEphemeralOverlays],
   );
   const closeStartHere = useCallback(() => {
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
-    setStartHereState({ open: false, initialBranch: "root", firstRun: false });
+    setStartHereState({ open: false, initialBranch: "root" });
   }, []);
   useEffect(() => {
     if (!postImportBanner?.visible || LAST_IMPORT_RESULT_DISMISS_MS <= 0) {
@@ -1813,7 +1811,7 @@ export function App() {
         closeSecondarySurface();
         navigateTo("define", "tokens");
         refreshTokens();
-        openStartHere("guided-setup", true);
+        openStartHere("guided-setup");
       },
       handleImportComplete,
       notificationHistory,
@@ -3811,7 +3809,6 @@ export function App() {
           activeSet={activeSet}
           allSets={sets}
           initialBranch={startHereState.initialBranch}
-          isFirstRun={startHereState.firstRun}
           onClose={closeStartHere}
           onRetryConnection={retryConnection}
           onImportFigma={() => openSecondaryPanel("import")}
@@ -3819,7 +3816,6 @@ export function App() {
           onCreateToken={() =>
             setEditingToken({ path: "", set: activeSet, isCreate: true })
           }
-          onGenerateColorScale={() => setShowColorScaleGen(true)}
           onTemplateCreated={(firstPath) => {
             closeStartHere();
             refreshAll();

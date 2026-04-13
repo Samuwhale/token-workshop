@@ -746,9 +746,12 @@ export function TokenList({
   }, []);
 
   // Multi-mode column view — show resolved values per theme option side-by-side
-  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(
-    () => lsGet("tm_multi_mode") === "1",
-  );
+  // Auto-enable when themes (dimensions) exist unless user explicitly opted out
+  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
+    const stored = lsGet("tm_multi_mode");
+    if (stored !== null) return stored === "1";
+    return dimensions.length > 0;
+  });
   const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
   const toggleMultiMode = useCallback(() => {
     setMultiModeEnabled((prev) => {
@@ -757,6 +760,13 @@ export function TokenList({
       return next;
     });
   }, []);
+
+  // Auto-enable when dimensions appear for the first time (no stored preference)
+  useEffect(() => {
+    if (dimensions.length > 0 && lsGet("tm_multi_mode") === null) {
+      setMultiModeEnabled(true);
+    }
+  }, [dimensions.length]);
 
   // Auto-select first dimension when multi-mode is enabled and no dimension is selected
   useEffect(() => {
@@ -829,6 +839,57 @@ export function TokenList({
     pathToSet,
     dimensions,
   ]);
+
+  // Lightweight check: which token paths have different values across mode options?
+  // Computed even when mode columns are hidden, for the inline variant indicator.
+  const modeVariantPaths = useMemo<Set<string>>(() => {
+    if (multiModeEnabled || !unthemedAllTokensFlat || dimensions.length === 0)
+      return new Set();
+    // Pick the first dimension with >=2 options
+    const dim = dimensions.find((d) => d.options.length >= 2);
+    if (!dim) return new Set();
+    const themedSets = new Set<string>();
+    for (const d of dimensions) {
+      for (const opt of d.options) {
+        for (const sn of Object.keys(opt.sets)) themedSets.add(sn);
+      }
+    }
+    // Resolve per-option and compare values
+    const optionMaps: Record<string, TokenMapEntry>[] = [];
+    for (const option of dim.options) {
+      const merged: Record<string, TokenMapEntry> = {};
+      for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
+        const set = pathToSet[path];
+        if (!set || !themedSets.has(set)) merged[path] = entry;
+      }
+      for (const [sn, status] of Object.entries(option.sets)) {
+        if (status !== "source") continue;
+        for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
+          if (pathToSet[path] === sn) merged[path] = entry;
+        }
+      }
+      for (const [sn, status] of Object.entries(option.sets)) {
+        if (status !== "enabled") continue;
+        for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
+          if (pathToSet[path] === sn) merged[path] = entry;
+        }
+      }
+      optionMaps.push(merged);
+    }
+    const varies = new Set<string>();
+    if (optionMaps.length < 2) return varies;
+    const allPaths = new Set(optionMaps.flatMap((m) => Object.keys(m)));
+    for (const path of allPaths) {
+      const first = JSON.stringify(optionMaps[0][path]?.$value ?? null);
+      for (let i = 1; i < optionMaps.length; i++) {
+        if (JSON.stringify(optionMaps[i][path]?.$value ?? null) !== first) {
+          varies.add(path);
+          break;
+        }
+      }
+    }
+    return varies;
+  }, [multiModeEnabled, unthemedAllTokensFlat, pathToSet, dimensions]);
 
   // Build multiModeValues for a given token path
   const getMultiModeValues = useCallback(
@@ -1365,8 +1426,8 @@ export function TokenList({
     if (multiModeEnabled) {
       items.push(
         multiModeDimensionName
-          ? `Mode columns · ${multiModeDimensionName}`
-          : "Mode columns",
+          ? `Modes · ${multiModeDimensionName}`
+          : "Modes",
       );
     }
     if (condensedView) items.push("Condensed");
@@ -3340,6 +3401,7 @@ export function TokenList({
       pendingTabEdit,
       rovingFocusPath: effectiveRovingPath,
       showDuplicatesFilter: showDuplicates,
+      modeVariantPaths: !multiModeEnabled && modeVariantPaths.size > 0 ? modeVariantPaths : undefined,
     }),
     [
       density,
@@ -3366,6 +3428,8 @@ export function TokenList({
       pendingTabEdit,
       effectiveRovingPath,
       showDuplicates,
+      multiModeEnabled,
+      modeVariantPaths,
     ],
   );
 
@@ -4233,8 +4297,22 @@ export function TokenList({
           {/* Multi-mode column headers */}
           {multiModeData && viewMode === "tree" && (
             <div className="sticky top-0 z-20 flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <div className="flex-1 min-w-0 px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Token
+              <div className="flex-1 min-w-0 px-2 py-1 flex items-center gap-1">
+                {dimensions.length > 1 ? (
+                  <select
+                    value={multiModeDimId ?? ""}
+                    onChange={(e) => setMultiModeDimId(e.target.value)}
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                  >
+                    {dimensions.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                    {multiModeDimensionName ?? "Token"}
+                  </span>
+                )}
               </div>
               {multiModeData.results.map((r) => (
                 <div

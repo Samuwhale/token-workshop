@@ -20,15 +20,15 @@ function getBannerDescription(context: ThemeResolverAuthoringContext): string {
   const reviewTargets: string[] = [];
   if (context.issueAxisCount > 0) {
     reviewTargets.push(
-      `${context.issueAxisCount} family mismatch${context.issueAxisCount === 1 ? "" : "es"}`,
+      `${context.issueAxisCount} mode mismatch${context.issueAxisCount === 1 ? "" : "es"}`,
     );
   }
   if (context.unmatchedModifierCount > 0) {
     reviewTargets.push(
-      `${context.unmatchedModifierCount} resolver-only dimension${context.unmatchedModifierCount === 1 ? "" : "s"}`,
+      `${context.unmatchedModifierCount} resolver-only mode${context.unmatchedModifierCount === 1 ? "" : "s"}`,
     );
   }
-  const mappedAxes = `${context.matchedAxisCount}/${context.axes.length} families aligned`;
+  const mappedAxes = `${context.matchedAxisCount}/${context.axes.length} modes aligned`;
 
   return `${mappedAxes}. Review ${reviewTargets.join(" and ")} here before publishing.`;
 }

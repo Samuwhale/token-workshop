@@ -141,9 +141,9 @@ export function useThemeDimensionsCrud({
       setNewlyCreatedDim(id);
       setDimensions(prev => [...prev, { id, name, options: [] }]);
       debouncedFetchDimensions();
-      onSuccess?.(`Created dimension "${name}"`);
+      onSuccess?.(`Created mode "${name}"`);
     } catch (err) {
-      setCreateDimError(makeErrorMsg(err, 'Failed to create dimension'));
+      setCreateDimError(makeErrorMsg(err, 'Failed to create mode'));
     } finally {
       setIsCreatingDim(false);
     }
@@ -190,9 +190,9 @@ export function useThemeDimensionsCrud({
       setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name } : d));
       cancelRenameDim();
       debouncedFetchDimensions();
-      onSuccess?.(`Renamed dimension to "${name}"`);
+      onSuccess?.(`Renamed mode to "${name}"`);
       onPushUndo?.({
-        description: `Renamed layer "${oldName}" → "${name}"`,
+        description: `Renamed mode "${oldName}" → "${name}"`,
         restore: async () => {
           await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameDim)}`, {
             method: 'PUT',
@@ -237,9 +237,9 @@ export function useThemeDimensionsCrud({
       await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}`, { method: 'DELETE' });
       setDimensions(prev => prev.filter(d => d.id !== id));
       debouncedFetchDimensions();
-      onSuccess?.(`Deleted layer "${savedDim.name}"`);
+      onSuccess?.(`Deleted mode "${savedDim.name}"`);
       onPushUndo?.({
-        description: `Deleted layer "${savedDim.name}"`,
+        description: `Deleted mode "${savedDim.name}"`,
         restore: async () => {
           try {
             await apiFetch(`${serverUrl}/api/themes/dimensions`, {
@@ -248,7 +248,7 @@ export function useThemeDimensionsCrud({
               body: JSON.stringify({ id: savedDim.id, name: savedDim.name }),
             });
           } catch (err) {
-            setError(makeErrorMsg(err, 'Failed to undo: could not recreate layer'));
+            setError(makeErrorMsg(err, 'Failed to undo: could not recreate mode'));
             return;
           }
           for (const opt of savedDim.options) {
@@ -260,14 +260,14 @@ export function useThemeDimensionsCrud({
               });
             } catch (err) {
               console.warn('[ThemeManager] failed to restore option during undo:', opt.name, err);
-              setError(`Undo restored layer but failed to restore option "${opt.name}"`);
+              setError(`Undo restored mode but failed to restore variant "${opt.name}"`);
             }
           }
           fetchDimensions();
         },
       });
     } catch (err) {
-      setError(makeErrorMsg(err, 'Failed to delete dimension'));
+      setError(makeErrorMsg(err, 'Failed to delete mode'));
     } finally {
       setIsDeletingDim(false);
     }
@@ -291,9 +291,9 @@ export function useThemeDimensionsCrud({
       setNewlyCreatedDim(response.dimension.id);
       setDimensions(prev => [...prev, response.dimension]);
       debouncedFetchDimensions();
-      onSuccess?.(`Duplicated layer as "${response.dimension.name}"`);
+      onSuccess?.(`Duplicated mode as "${response.dimension.name}"`);
     } catch (err) {
-      setError(makeErrorMsg(err, 'Failed to duplicate dimension'));
+      setError(makeErrorMsg(err, 'Failed to duplicate mode'));
     } finally {
       setIsDuplicatingDim(false);
     }

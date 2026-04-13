@@ -232,7 +232,7 @@ export function ThemeAxisCard({
                   severity="warning"
                   count={totalDimensionGaps}
                   className="min-w-[16px] shrink-0 px-1"
-                  title={`${totalDimensionGaps} issue${totalDimensionGaps === 1 ? "" : "s"} across this family`}
+                  title={`${totalDimensionGaps} issue${totalDimensionGaps === 1 ? "" : "s"} across this mode`}
                 />
               )}
             </div>
@@ -249,8 +249,8 @@ export function ThemeAxisCard({
                 <button
                   onClick={() => setAxisMenuOpen((v) => !v)}
                   className="rounded p-0.5 text-[var(--color-figma-text-secondary)] opacity-20 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)]"
-                  title="Family actions"
-                  aria-label="Family actions"
+                  title="Mode actions"
+                  aria-label="Mode actions"
                   aria-expanded={axisMenuOpen}
                   aria-haspopup="menu"
                 >

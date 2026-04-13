@@ -37,6 +37,22 @@ async function sleep(ms: number): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function removeLockDirectory(lockDir: string): Promise<void> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await rm(lockDir, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException | undefined)?.code;
+      if (code !== 'ENOTEMPTY' && code !== 'EBUSY') {
+        throw error;
+      }
+      await sleep(25 * (attempt + 1));
+    }
+  }
+  await rm(lockDir, { recursive: true, force: true });
+}
+
 export async function acquireLock(lockDir: string, timeoutSeconds = 30): Promise<LockHandle> {
   const startedAt = Date.now();
   const ownPid = process.pid;
@@ -86,8 +102,8 @@ export async function releaseLock(lock: LockHandle): Promise<void> {
     localState.count -= 1;
     return;
   }
+  await removeLockDirectory(lock.lockDir);
   localLocks.delete(lock.lockDir);
-  await rm(lock.lockDir, { recursive: true, force: true });
 }
 
 export async function withLock<T>(lockDir: string, timeoutSeconds: number, fn: () => Promise<T>): Promise<T> {

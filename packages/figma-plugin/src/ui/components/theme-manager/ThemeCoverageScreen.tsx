@@ -84,7 +84,7 @@ export function ThemeCoverageScreen({
               {autoFillDescription
                 ? autoFillDescription
                 : showAllAxes || !focusDimension
-                ? "Started from the current theme context and expanded to every family. Review the grouped issues, then jump back into the affected variant."
+                ? "Started from the current theme context and expanded to every mode. Review the grouped issues, then jump back into the affected variant."
                 : primaryIssue
                   ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} -> ${primaryIssue.optionName}. ${primaryIssue.recommendedNextAction}`
                   : focusOptionName

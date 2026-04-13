@@ -1812,6 +1812,7 @@ const TokenLeafNode = memo(
       pendingTabEdit,
       rovingFocusPath,
       showDuplicatesFilter,
+      modeVariantPaths,
     } = useTokenTreeLeafState();
     const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
     const {
@@ -3295,6 +3296,18 @@ const TokenLeafNode = memo(
                 )}
               </span>
             ))}
+          {/* Mode variant indicator — shown when columns are hidden but token varies across modes */}
+          {modeVariantPaths?.has(node.path) && !multiModeValues && (
+            <span
+              className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)] cursor-default"
+              title="This token has different values across modes"
+            >
+              <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor" aria-hidden="true">
+                <path d="M3 0L5.6 3L3 6L0.4 3Z" />
+              </svg>
+              modes
+            </span>
+          )}
           {tokenStatus &&
             (tokenStatus.kind === "lint" ? (
               <button

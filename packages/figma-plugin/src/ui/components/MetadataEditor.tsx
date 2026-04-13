@@ -392,6 +392,8 @@ export interface ModeValuesEditorProps {
   value: any;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
+  /** Navigate to the Themes workspace to configure modes */
+  onNavigateToThemes?: () => void;
 }
 
 export function ModeValuesEditor({
@@ -404,6 +406,7 @@ export function ModeValuesEditor({
   value,
   allTokensFlat = {},
   pathToSet = {},
+  onNavigateToThemes,
 }: ModeValuesEditorProps) {
   const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
   const setCount = Object.values(modeValues).filter(v => v !== '' && v !== undefined && v !== null).length;
@@ -413,11 +416,22 @@ export function ModeValuesEditor({
     <div className="rounded-lg border border-[var(--color-figma-border)] overflow-hidden">
       <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
         <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-          Per-mode values
+          Values by mode
         </span>
-        {setCount > 0 && (
-          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{setCount} overridden</span>
-        )}
+        <span className="flex items-center gap-2">
+          {setCount > 0 && (
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{setCount} overridden</span>
+          )}
+          {onNavigateToThemes && (
+            <button
+              type="button"
+              onClick={onNavigateToThemes}
+              className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
+            >
+              Configure
+            </button>
+          )}
+        </span>
       </div>
       <div className="px-3 py-2 flex flex-col gap-2.5">
         {dimensions.map(dim => (
@@ -430,8 +444,10 @@ export function ModeValuesEditor({
               const modeValStr = typeof modeVal === 'string' ? modeVal : '';
               const isColorVal = tokenType === 'color' && typeof modeVal === 'string' && modeVal.startsWith('#') && !modeVal.startsWith('{');
               const showingAutocomplete = autocompleteModeKey === option.name;
+              const baseStr = aliasMode ? reference : String(value ?? '');
+              const isOverridden = modeValStr !== '' && modeValStr !== baseStr;
               return (
-                <div key={option.name} className="flex items-center gap-2 mb-1.5">
+                <div key={option.name} className={`flex items-center gap-2 mb-1.5 rounded-sm pl-1.5 ${isOverridden ? 'border-l-2 border-[var(--color-figma-accent)]' : ''}`}>
                   <span className="text-[10px] text-[var(--color-figma-text)] w-16 shrink-0 truncate" title={option.name}>{option.name}</span>
                   {isColorVal && (
                     <div

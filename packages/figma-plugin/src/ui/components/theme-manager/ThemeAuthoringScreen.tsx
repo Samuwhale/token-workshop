@@ -371,11 +371,11 @@ export const ThemeAuthoringScreen = forwardRef<
           <div className="flex flex-col items-center justify-center gap-4 px-5 py-10 text-center">
             <div className="flex flex-col gap-1">
               <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Create a theme family
+                Create a mode
               </p>
               <p className="max-w-[240px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Define a family like color mode or brand, then assign the shared
-                and variant-specific token sets behind each option.
+                Define a mode like color mode or brand, then assign the base
+                and variant-specific token sets for each variant.
               </p>
             </div>
 
@@ -406,7 +406,7 @@ export const ThemeAuthoringScreen = forwardRef<
               onClick={() => openCreateDim()}
               className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
-              or add a custom family
+              or add a custom mode
             </button>
           </div>
         ) : (
@@ -416,7 +416,7 @@ export const ThemeAuthoringScreen = forwardRef<
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (
                   <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No families match your filter
+                    No modes match your filter
                   </div>
                 )}
                 {filteredDimensions.map((dimension) => {
@@ -639,7 +639,7 @@ export const ThemeAuthoringScreen = forwardRef<
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Family name
+                Mode name
               </label>
               <input
                 type="text"
@@ -657,7 +657,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 autoFocus
               />
               <p className="text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">
-                Each family has variants — e.g.{" "}
+                Each mode has variants — e.g.{" "}
                 <span className="font-medium">Mode:</span> light, dark
                 &nbsp;·&nbsp; <span className="font-medium">Brand:</span>{" "}
                 default, premium
@@ -674,7 +674,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 disabled={!newDimName || isCreatingDim}
                 className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
-                {isCreatingDim ? "Creating…" : "Create family"}
+                {isCreatingDim ? "Creating…" : "Create mode"}
               </button>
               <button
                 onClick={closeCreateDim}
@@ -689,7 +689,7 @@ export const ThemeAuthoringScreen = forwardRef<
             onClick={() => openCreateDim()}
             className="flex w-full items-center justify-center rounded border border-dashed border-[var(--color-figma-border)] px-3 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
-            Add theme family
+            Add mode
           </button>
         )}
       </div>

@@ -128,9 +128,9 @@ export function useThemeOptions({
       setSelectedOptions(prev => ({ ...prev, [dimId]: name }));
       debouncedFetchDimensions();
       setTimeout(() => addOptionInputRefs.current[dimId]?.focus(), 0);
-      onSuccess?.(`Added option "${name}"`);
+      onSuccess?.(`Added variant "${name}"`);
     } catch (err) {
-      setAddOptionErrors(prev => ({ ...prev, [dimId]: makeErrorMsg(err, 'Failed to add option') }));
+      setAddOptionErrors(prev => ({ ...prev, [dimId]: makeErrorMsg(err, 'Failed to add variant') }));
     } finally {
       setIsAddingOption(prev => ({ ...prev, [dimId]: false }));
     }
@@ -158,9 +158,9 @@ export function useThemeOptions({
       ));
       setSelectedOptions(prev => ({ ...prev, [dimId]: newName }));
       debouncedFetchDimensions();
-      onSuccess?.(`Duplicated option as "${newName}"`);
+      onSuccess?.(`Duplicated variant as "${newName}"`);
     } catch (err) {
-      setError(makeErrorMsg(err, 'Failed to duplicate option'));
+      setError(makeErrorMsg(err, 'Failed to duplicate variant'));
     } finally {
       setIsDuplicatingOption(false);
     }
@@ -188,7 +188,7 @@ export function useThemeOptions({
     const dim = dimensions.find(d => d.id === renameOption.dimId);
     if (!dim) { cancelRenameOption(); return; }
     if (dim.options.some(o => o.name === name)) {
-      setRenameOptionError(`Option "${name}" already exists`);
+      setRenameOptionError(`Variant "${name}" already exists`);
       return;
     }
     setIsRenamingOption(true);
@@ -221,7 +221,7 @@ export function useThemeOptions({
       });
       cancelRenameOption();
       debouncedFetchDimensions();
-      onSuccess?.(`Renamed option to "${name}"`);
+      onSuccess?.(`Renamed variant to "${name}"`);
     } catch (err) {
       setRenameOptionError(makeErrorMsg(err, 'Rename failed'));
     } finally {
@@ -248,9 +248,9 @@ export function useThemeOptions({
         d.id === dimId ? { ...d, options: d.options.filter(o => o.name !== optionName) } : d,
       ));
       debouncedFetchDimensions();
-      onSuccess?.(`Deleted option "${optionName}"`);
+      onSuccess?.(`Deleted variant "${optionName}"`);
       onPushUndo?.({
-        description: `Deleted option "${optionName}" from "${dimName}"`,
+        description: `Deleted variant "${optionName}" from "${dimName}"`,
         restore: async () => {
           await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
             method: 'POST',
