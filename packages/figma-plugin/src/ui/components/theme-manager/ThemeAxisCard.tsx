@@ -1,14 +1,9 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   NoticeCountBadge,
   NoticeFieldMessage,
 } from "../../shared/noticeSystem";
-import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
-import type {
-  ThemeOptionRoleSummary,
-  ThemeRoleState,
-} from "../themeManagerTypes";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 import { ThemeOptionRail } from "./ThemeOptionRail";
 import { ThemeOptionWorkspace } from "./ThemeOptionWorkspace";
@@ -16,123 +11,75 @@ import { ThemeOptionWorkspace } from "./ThemeOptionWorkspace";
 interface ThemeAxisCardProps {
   dimension: ThemeDimension;
   sets: string[];
+  optionSetOrders: Record<string, Record<string, string[]>>;
+  setTokenValues: Record<string, Record<string, any>>;
   dimensionIndex: number;
   isExpanded: boolean;
-  onToggleExpand: () => void;
   totalDimensionGaps: number;
   totalDimensionFillable: number;
   multiOptionGaps: boolean;
-  selectedOption: string;
-  option: ThemeOption | undefined;
-  selectedOptionIssues: ThemeIssueSummary[];
-  overrideSets: string[];
-  foundationSets: string[];
-  disabledSets: string[];
-  optionDiffCounts: Record<string, number>;
-  optionRoleSummaries: Record<string, ThemeOptionRoleSummary>;
-  renameDim: string | null;
-  renameValue: string;
-  renameError: string | null;
-  showAddOption: boolean;
-  newOptionName: string;
-  addOptionError: string;
-  copyFromNewOption: string;
-  renameOption: { dimId: string; optionName: string } | null;
-  renameOptionValue: string;
-  renameOptionError: string | null;
-  newlyCreatedDim: string | null;
-  isDuplicatingDim: boolean;
-  copySourceOptions: string[];
-  setTokenCounts: Record<string, number | null>;
-  onSetRenameValue: (value: string) => void;
-  onStartRenameDim: () => void;
-  onCancelRenameDim: () => void;
-  onExecuteRenameDim: () => void;
-  onDeleteDimension: () => void;
-  onDuplicateDimension: () => void;
-  onMoveDimension: (direction: "up" | "down") => void;
-  onSelectOption: (optionName: string) => void;
-  onToggleAddOption: (next: boolean) => void;
-  onSetNewOptionName: (value: string) => void;
-  onSetCopyFromNewOption: (value: string) => void;
-  onAddOption: () => void;
-  onStartRenameOption: () => void;
-  onRenameOptionValueChange: (value: string) => void;
-  onExecuteRenameOption: () => void;
-  onCancelRenameOption: () => void;
-  onMoveOption: (direction: "up" | "down") => void;
-  onDuplicateOption: () => void;
-  onDeleteOption: () => void;
-  onOpenCoverageView: (target?: any, allAxes?: boolean) => void;
-  onOpenAdvancedSetup: () => void;
-  onHandleSetState: (setName: string, nextState: ThemeRoleState) => void;
-  onHandleCopyAssignmentsFrom: (sourceOptionName: string) => void;
-  onAutoFillOption: () => void;
-  onAutoFillAllOptions: () => void;
-  onGenerateForDimension?: () => void;
 }
 
 export function ThemeAxisCard({
   dimension,
   sets,
+  optionSetOrders,
+  setTokenValues,
   dimensionIndex,
   isExpanded,
-  onToggleExpand,
   totalDimensionGaps,
   totalDimensionFillable,
   multiOptionGaps,
-  selectedOption,
-  option,
-  selectedOptionIssues,
-  overrideSets,
-  foundationSets,
-  disabledSets,
-  optionDiffCounts,
-  optionRoleSummaries,
-  renameDim,
-  renameValue,
-  renameError,
-  showAddOption,
-  newOptionName,
-  addOptionError,
-  copyFromNewOption,
-  renameOption,
-  renameOptionValue,
-  renameOptionError,
-  newlyCreatedDim,
-  isDuplicatingDim,
-  copySourceOptions,
-  setTokenCounts,
-  onSetRenameValue,
-  onStartRenameDim,
-  onCancelRenameDim,
-  onExecuteRenameDim,
-  onDeleteDimension,
-  onDuplicateDimension,
-  onMoveDimension,
-  onSelectOption,
-  onToggleAddOption,
-  onSetNewOptionName,
-  onSetCopyFromNewOption,
-  onAddOption,
-  onStartRenameOption,
-  onRenameOptionValueChange,
-  onExecuteRenameOption,
-  onCancelRenameOption,
-  onMoveOption,
-  onDuplicateOption,
-  onDeleteOption,
-  onOpenCoverageView,
-  onOpenAdvancedSetup,
-  onHandleSetState,
-  onHandleCopyAssignmentsFrom,
-  onAutoFillOption,
-  onAutoFillAllOptions,
-  onGenerateForDimension,
 }: ThemeAxisCardProps) {
-  const { dimensionRefs, addOptionInputRefs } = useThemeAuthoringContext();
+  const ctx = useThemeAuthoringContext();
   const [axisMenuOpen, setAxisMenuOpen] = useState(false);
   const axisMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedOption =
+    ctx.selectedOptions[dimension.id] ||
+    dimension.options[0]?.name ||
+    "";
+  const option = dimension.options.find(
+    (item: ThemeOption) => item.name === selectedOption,
+  );
+  const optionSets = option
+    ? optionSetOrders[dimension.id]?.[option.name] || sets
+    : sets;
+  const overrideSets = optionSets.filter(
+    (setName) => option?.sets[setName] === "enabled",
+  );
+  const foundationSets = optionSets.filter(
+    (setName) => option?.sets[setName] === "source",
+  );
+  const disabledSets = optionSets.filter(
+    (setName) =>
+      !option?.sets[setName] ||
+      option?.sets[setName] === "disabled",
+  );
+  const copySourceOptions = ctx.getCopySourceOptions(
+    dimension.id,
+    selectedOption,
+  );
+  const optionKey = `${dimension.id}:${selectedOption}`;
+  const selectedOptionIssues = ctx.optionIssues[optionKey] ?? [];
+
+  const setTokenCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        sets.map((setName) => [
+          setName,
+          setTokenValues[setName]
+            ? Object.keys(setTokenValues[setName]).length
+            : null,
+        ]),
+      ),
+    [sets, setTokenValues],
+  );
+
+  const showAddOption = ctx.showAddOption[dimension.id] ?? false;
+  const newOptionName = ctx.newOptionNames[dimension.id] ?? "";
+  const addOptionError = ctx.addOptionErrors[dimension.id] ?? "";
+  const copyFromNewOption = ctx.copyFromNewOption[dimension.id] ?? "";
 
   useEffect(() => {
     if (!axisMenuOpen) return;
@@ -155,8 +102,8 @@ export function ThemeAxisCard({
   return (
     <div
       ref={(element) => {
-        dimensionRefs.current[dimension.id] = element;
-        if (element && dimension.id === newlyCreatedDim) {
+        ctx.dimensionRefs.current[dimension.id] = element;
+        if (element && dimension.id === ctx.newlyCreatedDim) {
           element.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
       }}
@@ -165,7 +112,7 @@ export function ThemeAxisCard({
       <div className="group flex items-center gap-2 bg-[var(--color-figma-bg-secondary)] px-3 py-1.5">
         <button
           type="button"
-          onClick={onToggleExpand}
+          onClick={() => ctx.onSelectDimension(dimension.id)}
           className="shrink-0 text-[var(--color-figma-text-tertiary)]"
           aria-expanded={isExpanded}
           aria-label={`${isExpanded ? "Collapse" : "Expand"} ${dimension.name}`}
@@ -182,40 +129,40 @@ export function ThemeAxisCard({
           </svg>
         </button>
 
-        {renameDim === dimension.id ? (
+        {ctx.renameDim === dimension.id ? (
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex items-center gap-1">
               <input
                 type="text"
-                value={renameValue}
-                onChange={(event) => onSetRenameValue(event.target.value)}
+                value={ctx.renameValue}
+                onChange={(event) => ctx.setRenameValue(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") onExecuteRenameDim();
-                  else if (event.key === "Escape") onCancelRenameDim();
+                  if (event.key === "Enter") ctx.executeRenameDim();
+                  else if (event.key === "Escape") ctx.cancelRenameDim();
                 }}
                 className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
-                  renameError
+                  ctx.renameError
                     ? "border-[var(--color-figma-error)]"
                     : "border-[var(--color-figma-border)]"
                 }`}
                 autoFocus
               />
               <button
-                onClick={onExecuteRenameDim}
-                disabled={!renameValue.trim()}
+                onClick={ctx.executeRenameDim}
+                disabled={!ctx.renameValue.trim()}
                 className="rounded bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
                 Save
               </button>
               <button
-                onClick={onCancelRenameDim}
+                onClick={ctx.cancelRenameDim}
                 className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
               </button>
             </div>
-            {renameError && (
-              <NoticeFieldMessage severity="error">{renameError}</NoticeFieldMessage>
+            {ctx.renameError && (
+              <NoticeFieldMessage severity="error">{ctx.renameError}</NoticeFieldMessage>
             )}
           </div>
         ) : (
@@ -237,9 +184,21 @@ export function ThemeAxisCard({
               )}
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
-              {onGenerateForDimension && (
+              {ctx.onGenerateForDimension && (
                 <button
-                  onClick={onGenerateForDimension}
+                  onClick={() => {
+                    const targetSet =
+                      overrideSets[0] ??
+                      foundationSets[0] ??
+                      sets[0] ??
+                      "";
+                    if (targetSet) {
+                      ctx.onGenerateForDimension!({
+                        dimensionName: dimension.name,
+                        targetSet,
+                      });
+                    }
+                  }}
                   className="rounded px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
                 >
                   Generate
@@ -267,14 +226,14 @@ export function ThemeAxisCard({
                   >
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onStartRenameDim(); }}
+                      onClick={() => { setAxisMenuOpen(false); ctx.startRenameDim(dimension.id, dimension.name); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Rename
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onMoveDimension("up"); }}
+                      onClick={() => { setAxisMenuOpen(false); ctx.handleMoveDimension(dimension.id, "up"); }}
                       disabled={dimensionIndex === 0}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
@@ -282,7 +241,7 @@ export function ThemeAxisCard({
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onMoveDimension("down"); }}
+                      onClick={() => { setAxisMenuOpen(false); ctx.handleMoveDimension(dimension.id, "down"); }}
                       disabled={dimensionIndex === sets.length - 1}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
@@ -290,8 +249,8 @@ export function ThemeAxisCard({
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onDuplicateDimension(); }}
-                      disabled={isDuplicatingDim}
+                      onClick={() => { setAxisMenuOpen(false); ctx.handleDuplicateDimension(dimension.id); }}
+                      disabled={ctx.isDuplicatingDim}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
                       Duplicate
@@ -299,14 +258,21 @@ export function ThemeAxisCard({
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onOpenCoverageView(undefined, true); }}
+                      onClick={() => { setAxisMenuOpen(false); ctx.onOpenCoverageView(undefined, true); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Review all issues
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onOpenAdvancedSetup(); }}
+                      onClick={() => {
+                        setAxisMenuOpen(false);
+                        ctx.onOpenAdvancedSetup({
+                          dimId: dimension.id,
+                          optionName: selectedOption,
+                          preferredSetName: null,
+                        });
+                      }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Advanced setup
@@ -314,7 +280,7 @@ export function ThemeAxisCard({
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onDeleteDimension(); }}
+                      onClick={() => { setAxisMenuOpen(false); ctx.openDeleteConfirm(dimension.id); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
                     >
                       Delete
@@ -331,20 +297,28 @@ export function ThemeAxisCard({
       <ThemeOptionRail
         dimension={dimension}
         selectedOption={selectedOption}
-        optionDiffCounts={optionDiffCounts}
-        optionRoleSummaries={optionRoleSummaries}
-        onSelectOption={(dimId, optionName) => onSelectOption(optionName)}
+        optionDiffCounts={ctx.optionDiffCounts}
+        optionRoleSummaries={ctx.optionRoleSummaries}
+        onSelectOption={(dimId, optionName) => ctx.onSelectOption(dimId, optionName)}
         showAddOption={showAddOption}
-        onStartRenameOption={onStartRenameOption}
-        onMoveOption={onMoveOption}
-        onDuplicateOption={onDuplicateOption}
-        onDeleteOption={onDeleteOption}
+        onStartRenameOption={() => ctx.startRenameOption(dimension.id, selectedOption)}
+        onMoveOption={(direction) => ctx.handleMoveOption(dimension.id, selectedOption, direction)}
+        onDuplicateOption={() => ctx.handleDuplicateOption(dimension.id, selectedOption)}
+        onDeleteOption={() => ctx.setOptionDeleteConfirm({ dimId: dimension.id, optionName: selectedOption })}
         canMoveLeft={option ? dimension.options.indexOf(option) > 0 : false}
         canMoveRight={option ? dimension.options.indexOf(option) < dimension.options.length - 1 : false}
         copySourceOptions={copySourceOptions}
-        onHandleCopyAssignmentsFrom={onHandleCopyAssignmentsFrom}
-        onOpenAdvancedSetup={onOpenAdvancedSetup}
-        onOpenCoverageView={() => onOpenCoverageView(undefined, false)}
+        onHandleCopyAssignmentsFrom={(sourceOptionName) =>
+          ctx.handleCopyAssignmentsFrom(dimension.id, selectedOption, sourceOptionName)
+        }
+        onOpenAdvancedSetup={() =>
+          ctx.onOpenAdvancedSetup({
+            dimId: dimension.id,
+            optionName: selectedOption,
+            preferredSetName: null,
+          })
+        }
+        onOpenCoverageView={() => ctx.onOpenCoverageView(undefined, false)}
         disabledSetCount={disabledSets.length}
       />
 
@@ -353,17 +327,35 @@ export function ThemeAxisCard({
           <div className="flex items-center gap-1">
             <input
               ref={(element) => {
-                addOptionInputRefs.current[dimension.id] = element;
+                ctx.addOptionInputRefs.current[dimension.id] = element;
               }}
               type="text"
               value={newOptionName}
-              onChange={(event) => onSetNewOptionName(event.target.value)}
+              onChange={(event) => {
+                ctx.setNewOptionNames((current) => ({
+                  ...current,
+                  [dimension.id]: event.target.value,
+                }));
+                ctx.setAddOptionErrors((current) => ({
+                  ...current,
+                  [dimension.id]: "",
+                }));
+              }}
               onKeyDown={(event) => {
-                if (event.key === "Enter") onAddOption();
+                if (event.key === "Enter") ctx.handleAddOption(dimension.id);
                 if (event.key === "Escape") {
-                  onToggleAddOption(false);
-                  onSetNewOptionName("");
-                  onSetCopyFromNewOption("");
+                  ctx.setShowAddOption((current) => ({
+                    ...current,
+                    [dimension.id]: false,
+                  }));
+                  ctx.setNewOptionNames((current) => ({
+                    ...current,
+                    [dimension.id]: "",
+                  }));
+                  ctx.setCopyFromNewOption((current) => ({
+                    ...current,
+                    [dimension.id]: "",
+                  }));
                 }
               }}
               placeholder={
@@ -379,7 +371,7 @@ export function ThemeAxisCard({
               autoFocus
             />
             <button
-              onClick={onAddOption}
+              onClick={() => ctx.handleAddOption(dimension.id)}
               disabled={!newOptionName.trim()}
               className="rounded bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
             >
@@ -388,9 +380,18 @@ export function ThemeAxisCard({
             {dimension.options.length > 0 && (
               <button
                 onClick={() => {
-                  onToggleAddOption(false);
-                  onSetNewOptionName("");
-                  onSetCopyFromNewOption("");
+                  ctx.setShowAddOption((current) => ({
+                    ...current,
+                    [dimension.id]: false,
+                  }));
+                  ctx.setNewOptionNames((current) => ({
+                    ...current,
+                    [dimension.id]: "",
+                  }));
+                  ctx.setCopyFromNewOption((current) => ({
+                    ...current,
+                    [dimension.id]: "",
+                  }));
                 }}
                 className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
@@ -405,7 +406,12 @@ export function ThemeAxisCard({
               </span>
               <select
                 value={copyFromNewOption}
-                onChange={(event) => onSetCopyFromNewOption(event.target.value)}
+                onChange={(event) =>
+                  ctx.setCopyFromNewOption((current) => ({
+                    ...current,
+                    [dimension.id]: event.target.value,
+                  }))
+                }
                 className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[9px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               >
                 <option value="">None (start empty)</option>
@@ -434,17 +440,26 @@ export function ThemeAxisCard({
           overrideSets={overrideSets}
           foundationSets={foundationSets}
           disabledSets={disabledSets}
-          renameOption={renameOption}
-          renameOptionValue={renameOptionValue}
-          renameOptionError={renameOptionError}
+          renameOption={ctx.renameOption}
+          renameOptionValue={ctx.renameOptionValue}
+          renameOptionError={ctx.renameOptionError}
           setTokenCounts={setTokenCounts}
           fillableCount={multiOptionGaps ? 0 : totalDimensionFillable}
-          onAutoFill={multiOptionGaps ? onAutoFillAllOptions : onAutoFillOption}
-          onRenameOptionValueChange={onRenameOptionValueChange}
-          onExecuteRenameOption={onExecuteRenameOption}
-          onCancelRenameOption={onCancelRenameOption}
-          onOpenCoverageView={onOpenCoverageView}
-          onHandleSetState={onHandleSetState}
+          onAutoFill={
+            multiOptionGaps
+              ? () => ctx.handleAutoFillAllOptions(dimension.id)
+              : () => ctx.handleAutoFillAll(dimension.id, selectedOption)
+          }
+          onRenameOptionValueChange={(value) => {
+            ctx.setRenameOptionValue(value);
+            ctx.setRenameOptionError(null);
+          }}
+          onExecuteRenameOption={ctx.executeRenameOption}
+          onCancelRenameOption={ctx.cancelRenameOption}
+          onOpenCoverageView={ctx.onOpenCoverageView}
+          onHandleSetState={(setName, nextState) =>
+            ctx.handleSetState(dimension.id, selectedOption, setName, nextState)
+          }
         />
       )}
       </>}
