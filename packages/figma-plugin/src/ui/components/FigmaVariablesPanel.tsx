@@ -377,11 +377,8 @@ export function FigmaVariablesPanel({
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <label className="flex-1 min-w-[112px]">
-            <span className="block text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)] mb-1">
-              Alias
-            </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex-1 min-w-[112px]">
             <select
               value={aliasFilter}
               onChange={event => setAliasFilter(event.target.value as AliasFilter)}
@@ -391,12 +388,9 @@ export function FigmaVariablesPanel({
               <option value="aliases">Aliases only</option>
               <option value="literals">Resolved values only</option>
             </select>
-          </label>
+          </div>
 
-          <label className="flex-1 min-w-[112px]">
-            <span className="block text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)] mb-1">
-              Type
-            </span>
+          <div className="flex-1 min-w-[112px]">
             <select
               value={typeFilter}
               onChange={event => setTypeFilter(event.target.value)}
@@ -409,12 +403,9 @@ export function FigmaVariablesPanel({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="flex-1 min-w-[112px]">
-            <span className="block text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)] mb-1">
-              Scope
-            </span>
+          <div className="flex-1 min-w-[112px]">
             <select
               value={scopeFilter}
               onChange={event => setScopeFilter(event.target.value)}
@@ -430,12 +421,6 @@ export function FigmaVariablesPanel({
                 </option>
               ))}
             </select>
-          </label>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div className="text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)] mr-1">
-            Bulk
           </div>
           <button
             onClick={handleExpandCollections}

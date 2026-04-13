@@ -9,7 +9,8 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Minimalism and hierarchy — the panel carries five eyebrow section labels, a redundant On/Off badge that duplicates the visible toggle-switch state, and instructional paragraphs at panel, preset, rule, exception, and set-override nesting levels simultaneously. Every layer of the hierarchy explains itself textually, making it impossible to scan the actual rule configuration at a glance. The rules themselves are buried under chrome."
-state: ready
+  - "Completed: Flattened LintConfigPanel hierarchy, removed redundant rule state badges and instructional copy, and logged the work after focused lint validation."
+state: done
 acceptance_criteria:
   - The five uppercase+tracking-wide section headers (Quality policy, Start with a preset, Rule tuning, Token-group exceptions, Set-specific treatment) are removed; sections are separated by layout and border alone
   - The On/Off pill badge next to each rule label is removed; the toggle switch is the sole state indicator
@@ -17,4 +18,4 @@ acceptance_criteria:
   - The rules list reads as the primary content of the panel with presets as a self-evident setup step above it
 source: interface-pass
 created_at: 2026-04-13T05:13:09.995Z
-updated_at: 2026-04-13T05:13:09.995Z
+updated_at: 2026-04-13T05:15:51.479Z

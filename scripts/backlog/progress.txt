@@ -2104,3 +2104,11 @@
   - Dense configuration panels scan better when section boundaries come from card structure and spacing; repeating uppercase eyebrow labels at every nesting level quickly buries the actual controls.
   - If a switch already communicates binary state directly, adjacent `On`/`Off` badges rarely add information and usually just compete with the rule label for attention.
 ---
+## 2026-04-13 - Remove eyebrow labels from FigmaVariablesPanel filter row
+- Removed the Alias, Type, Scope, and Bulk eyebrow labels so the filter selects and bulk action buttons read as one compact toolbar strip driven by their own option and button text.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` passed (Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for `eslint.config.js`, but lint succeeded).
+- Files changed: `packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx` ~L380; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Toolbar controls that already expose clear inline text should sit on one shared action row; adding uppercase labels above each control makes the strip read like a form without improving orientation.
+  - Bulk action buttons in compact utility panels do not need a separate section title when each button label already names the target scope.
+---
