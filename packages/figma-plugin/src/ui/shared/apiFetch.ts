@@ -68,6 +68,34 @@ export interface PaginatedResponse<T> {
   offset: number;
 }
 
+function isJsonContentType(contentType: string | null): boolean {
+  if (!contentType) return false;
+  const normalized = contentType.toLowerCase();
+  return normalized.includes('application/json') || normalized.includes('+json');
+}
+
+async function readResponseBody(res: Response): Promise<unknown> {
+  const raw = await res.text();
+  if (raw.trim() === '') return undefined;
+  if (!isJsonContentType(res.headers.get('content-type'))) return raw;
+  return JSON.parse(raw) as unknown;
+}
+
+function getErrorMessageFromBody(body: unknown, status: number): string {
+  if (
+    body !== null &&
+    typeof body === 'object' &&
+    'error' in body &&
+    typeof (body as { error?: unknown }).error === 'string'
+  ) {
+    return (body as { error: string }).error;
+  }
+  if (typeof body === 'string' && body.trim() !== '') {
+    return body;
+  }
+  return `Request failed (${status})`;
+}
+
 /**
  * Fetch a paginated list endpoint and return the standard envelope.
  * Builds the URL with `limit` and `offset` appended (or overriding existing ones).
@@ -88,12 +116,9 @@ export async function fetchPage<T>(
 
 export async function apiFetch<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
+  const body = await readResponseBody(res);
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as { error?: string };
-    throw new ApiError(body.error ?? `Request failed (${res.status})`, res.status);
+    throw new ApiError(getErrorMessageFromBody(body, res.status), res.status);
   }
-  if (res.status === 204 || res.headers.get('content-length') === '0') {
-    return undefined as T;
-  }
-  return res.json() as Promise<T>;
+  return body as T;
 }

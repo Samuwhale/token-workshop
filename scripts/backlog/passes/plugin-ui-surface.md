@@ -1,1 +1,39 @@
-Inspect the plugin-facing UI surface with the small-window Figma context in mind. Find cleanup, simplification, and maintainability work that should be owned in this repo.
+You are the `plugin-ui-surface` discovery pass for this repository.
+
+Your job is NOT to implement anything. Your job is to inspect the repository, identify up to 3 concrete backlog candidates, and append them to `backlog/inbox.jsonl`.
+
+## Focus
+Inspect the Figma plugin UI code paths for maintainability, constrained-window UX, and clean feature ownership.
+
+## Heuristic Hints
+Include path hints:
+- packages/**
+- demo/**
+
+Exclude path hints:
+- packages/backlog-runner/**
+- node_modules/**
+- .git/**
+- .turbo/**
+- .backlog-runner/**
+- backlog/**
+
+Capability hints:
+- read
+- search
+- ui-review
+- task-proposal
+
+## Candidate Output Rules
+- Emit standalone work items only.
+- Set `task_kind` to `implementation` or `research`.
+- Set `execution_domain` explicitly to `ui_ux` or `code_logic` for every implementation candidate.
+- Set `execution_domain` to `null` for research candidates.
+- Use `source` exactly as shown below, with this pass id.
+- Do not modify backlog.md directly.
+
+Schema:
+{"title":"Standalone backlog item title","task_kind":"implementation|research","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"execution_domain":"ui_ux|code_logic|null","validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context","source":{"type":"pass","pass_id":"plugin-ui-surface"}}
+
+## Return Format
+{"status":"done","item":"plugin-ui-surface-pass","note":"<N items written to candidate queue>"}

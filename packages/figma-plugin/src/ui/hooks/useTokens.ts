@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { isDTCGToken } from '@tokenmanager/core';
 import type { DTCGGroup, TokenValue, TokenReference } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
-import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import { STORAGE_KEYS, lsGet, lsSet, lsRemove } from '../shared/storage';
 import { apiFetch, isNetworkError, createFetchSignal } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
@@ -48,7 +48,8 @@ export function useTokens(
   const [sets, setSets] = useState<string[]>([]);
   const [activeSet, setActiveSetState] = useState<string>(() => lsGet(STORAGE_KEYS.ACTIVE_SET, ''));
   const setActiveSet = (s: string) => {
-    lsSet(STORAGE_KEYS.ACTIVE_SET, s);
+    if (s) lsSet(STORAGE_KEYS.ACTIVE_SET, s);
+    else lsRemove(STORAGE_KEYS.ACTIVE_SET);
     setActiveSetState(s);
   };
   const [tokens, setTokens] = useState<TokenNode[]>([]);
@@ -87,22 +88,32 @@ export function useTokens(
       setSetDescriptions(setsData.descriptions || {});
       setSetCollectionNames(setsData.collectionNames || {});
       setSetModeNames(setsData.modeNames || {});
+      setSetTokenCounts(setsData.counts || {});
 
       setFetchError(null);
 
-      if (allSets.length > 0) {
-        const current = activeSetRef.current || allSets[0];
-        if (!activeSetRef.current) {
+      if (allSets.length === 0) {
+        if (activeSetRef.current) {
           internalSetChangeRef.current = true;
-          setActiveSet(current);
+          setActiveSet('');
         }
-
-        const tokensData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
-        if (gen !== fetchGenRef.current || signal.aborted) return;
-        setTokens(buildTree(tokensData.tokens || {}));
+        setTokens([]);
         setTokenRevision(r => r + 1);
-        setSetTokenCounts(setsData.counts || {});
+        return;
       }
+
+      const current = allSets.includes(activeSetRef.current)
+        ? activeSetRef.current
+        : allSets[0];
+      if (current !== activeSetRef.current) {
+        internalSetChangeRef.current = true;
+        setActiveSet(current);
+      }
+
+      const tokensData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
+      if (gen !== fetchGenRef.current || signal.aborted) return;
+      setTokens(buildTree(tokensData.tokens || {}));
+      setTokenRevision(r => r + 1);
     } catch (err) {
       if (isAbortError(err)) return;
       const isNetworkErr = isNetworkError(err);
@@ -130,7 +141,6 @@ export function useTokens(
       return;
     }
     refreshTokens();
-     
   }, [activeSet, refreshTokens]);
 
   /** Add a new set to local state without re-fetching from server. */
@@ -166,7 +176,13 @@ export function useTokens(
 
   /** Fetch tokens for a specific set without re-fetching the sets list. */
   const fetchTokensForSet = useCallback(async (setName: string) => {
-    if (!connected || !setName) return;
+    if (!connected) return;
+    if (!setName) {
+      setTokens([]);
+      setTokenRevision(r => r + 1);
+      setFetchError(null);
+      return;
+    }
     const gen = ++fetchGenRef.current;
     const unmountSig = unmountControllerRef.current.signal;
     const disconnectSig = getDisconnectSignal?.();

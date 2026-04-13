@@ -32,6 +32,17 @@ export interface ResolverModifierMeta {
   default?: string;
 }
 
+function buildResolverInput(
+  meta: ResolverMeta,
+  currentInput: Record<string, string> = {},
+): Record<string, string> {
+  const nextInput: Record<string, string> = {};
+  for (const [modName, mod] of Object.entries(meta.modifiers)) {
+    nextInput[modName] = currentInput[modName] ?? mod.default ?? mod.contexts[0] ?? '';
+  }
+  return nextInput;
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -90,8 +101,22 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     apiFetch<{ resolvers: ResolverMeta[]; loadErrors?: Record<string, { message: string; at: string }> }>(`${serverUrl}/api/resolvers`, { signal })
       .then(data => {
         if (unmountAbortRef.current.signal.aborted) return;
-        setResolvers(data.resolvers ?? []);
+        const nextResolvers = data.resolvers ?? [];
+        setResolvers(nextResolvers);
         setResolverLoadErrors(data.loadErrors ?? {});
+        if (activeResolver) {
+          const activeMeta = nextResolvers.find(resolver => resolver.name === activeResolver);
+          if (!activeMeta) {
+            setActiveResolverState(null);
+            setResolverInput({});
+            setResolvedTokens(null);
+            setResolverError(null);
+          } else {
+            setResolverInput(prev => buildResolverInput(activeMeta, prev));
+          }
+        } else {
+          setResolverError(null);
+        }
       })
       .catch(err => {
         if (isAbortError(err)) return;
@@ -101,7 +126,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
       .finally(() => {
         if (!unmountAbortRef.current.signal.aborted) setResolversLoading(false);
       });
-  }, [connected, serverUrl]);
+  }, [activeResolver, connected, serverUrl]);
 
   useEffect(() => {
     fetchResolvers();
@@ -116,15 +141,12 @@ export function useResolvers(serverUrl: string, connected: boolean) {
       // Set default inputs from the resolver metadata
       const meta = resolvers.find(r => r.name === name);
       if (meta) {
-        const defaults: Record<string, string> = {};
-        for (const [modName, mod] of Object.entries(meta.modifiers)) {
-          defaults[modName] = mod.default ?? mod.contexts[0] ?? '';
-        }
-        setResolverInput(defaults);
+        setResolverInput(buildResolverInput(meta));
       }
     } else {
       setResolverInput({});
       setResolvedTokens(null);
+      setResolverError(null);
     }
   }, [resolvers]);
 
@@ -133,6 +155,9 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // -----------------------------------------------------------------------
   useEffect(() => {
     if (!activeResolver || !connected) {
+      abortRef.current?.abort();
+      setLoading(false);
+      setResolverError(null);
       setResolvedTokens(null);
       return;
     }

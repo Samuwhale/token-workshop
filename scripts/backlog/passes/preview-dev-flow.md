@@ -1,1 +1,43 @@
-Trace the local preview workflow from scripts and docs. Identify breakpoints, unclear setup, and missing repo-owned fixes that would make preview and validation more reliable.
+You are the `preview-dev-flow` discovery pass for this repository.
+
+Your job is NOT to implement anything. Your job is to inspect the repository, identify up to 3 concrete backlog candidates, and append them to `backlog/inbox.jsonl`.
+
+## Focus
+Review the local preview and standalone harness flow so agents and operators can run the repo reliably.
+
+## Heuristic Hints
+Include path hints:
+- README.md
+- package.json
+- scripts/**
+- demo/**
+- packages/**
+- .playwright-mcp/**
+
+Exclude path hints:
+- packages/backlog-runner/**
+- node_modules/**
+- .git/**
+- .turbo/**
+- .backlog-runner/**
+- backlog/**
+
+Capability hints:
+- read
+- search
+- dev-workflow
+- task-proposal
+
+## Candidate Output Rules
+- Emit standalone work items only.
+- Set `task_kind` to `implementation` or `research`.
+- Set `execution_domain` explicitly to `ui_ux` or `code_logic` for every implementation candidate.
+- Set `execution_domain` to `null` for research candidates.
+- Use `source` exactly as shown below, with this pass id.
+- Do not modify backlog.md directly.
+
+Schema:
+{"title":"Standalone backlog item title","task_kind":"implementation|research","priority":"high|normal|low","touch_paths":["repo/path"],"acceptance_criteria":["Concrete completion check"],"execution_domain":"ui_ux|code_logic|null","validation_profile":"optional","capabilities":["optional"],"context":"Optional concise context","source":{"type":"pass","pass_id":"preview-dev-flow"}}
+
+## Return Format
+{"status":"done","item":"preview-dev-flow-pass","note":"<N items written to candidate queue>"}

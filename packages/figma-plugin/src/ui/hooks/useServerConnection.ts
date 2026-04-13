@@ -50,6 +50,7 @@ export function useServerConnection() {
   const retryConnection = useCallback(async () => {
     setChecking(true);
     const ok = await checkConnection(serverUrlRef.current);
+    if (!mountedRef.current) return;
     setConnected(ok);
     setChecking(false);
   }, [checkConnection]);
@@ -61,6 +62,7 @@ export function useServerConnection() {
    * for the next 5-second health poll.
    */
   const markDisconnected = useCallback(() => {
+    if (!mountedRef.current) return;
     fireDisconnect();
     setConnected(false);
     setChecking(true);
@@ -77,6 +79,7 @@ export function useServerConnection() {
     updateServerUrl(url);
     setChecking(true);
     const ok = await checkConnection(url);
+    if (!mountedRef.current) return false;
     setConnected(ok);
     setChecking(false);
     return ok;
