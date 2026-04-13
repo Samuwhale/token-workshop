@@ -63,6 +63,29 @@
   --token-badge-fontWeight-text: #6c5ce7;
   --token-badge-strokeStyle-bg: #e67e2233;
   --token-badge-strokeStyle-text: #e67e22;
+
+  /* Token type colors — used in stats bar segments */
+  --color-token-type-color: #e85d4a;
+  --color-token-type-dimension: #4a9ee8;
+  --color-token-type-spacing: #5bc4a0;
+  --color-token-type-typography: #a77de8;
+  --color-token-type-fontFamily: #c47de8;
+  --color-token-type-fontSize: #e8a77d;
+  --color-token-type-fontWeight: #7de8c4;
+  --color-token-type-lineHeight: #e8c47d;
+  --color-token-type-number: #7db8e8;
+  --color-token-type-string: #aae87d;
+  --color-token-type-shadow: #e87dc4;
+  --color-token-type-border: #e8e07d;
+  --color-token-type-fallback: #8888aa;
+
+  /* Depth guide-bar colors — used in tree indentation bars */
+  --color-depth-0: transparent;
+  --color-depth-1: rgba(24, 160, 251, 0.55);
+  --color-depth-2: rgba(90, 210, 140, 0.55);
+  --color-depth-3: rgba(255, 180, 50, 0.55);
+  --color-depth-4: rgba(230, 100, 80, 0.55);
+  --color-depth-5: rgba(170, 100, 240, 0.55);
 }
 
 body {

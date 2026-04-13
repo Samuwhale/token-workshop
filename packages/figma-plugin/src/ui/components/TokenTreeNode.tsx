@@ -1127,7 +1127,8 @@ const TokenGroupNode = memo(
         }
       >
         <div
-          role="button"
+          role="treeitem"
+          aria-level={depth + 1}
           tabIndex={groupRovingFocusPath === node.path ? 0 : -1}
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
@@ -2684,6 +2685,8 @@ const TokenLeafNode = memo(
     return (
       <div ref={nodeRef}>
         <div
+          role="treeitem"
+          aria-level={depth + 1}
           className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}
           tabIndex={rovingFocusPath === node.path ? 0 : -1}
