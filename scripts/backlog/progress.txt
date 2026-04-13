@@ -2081,3 +2081,11 @@
   - Generator ownership helpers should produce managed `(set, path)` outputs once and let both server validation and UI lookup maps consume that same inventory instead of rebuilding step-name parsing in each surface.
   - Active-set search and command palettes need the same set-qualified generator keying as tree/editor surfaces; path-only lookup maps silently reintroduce collisions even if the main token view is fixed.
 ---
+## 2026-04-13 - Paste tokens modal resets all per-row overwrite decisions on any textarea edit and undo after overwrite deletes the pre-existing token instead of restoring it
+- Reconciled paste-row overwrite state against the current parsed conflict rows instead of clearing it on every textarea edit, captured pre-paste snapshots for overwritten tokens so undo restores previous values before deleting newly created rows, and added a success toast that reports skipped conflicts, invalid rows, and unsupported parsed values after the modal closes.
+- Validation: `pnpm exec tsc --noEmit -p packages/figma-plugin/tsconfig.json 2>&1 | rg "(PasteTokensModal\\.tsx|App\\.tsx)"` (no matches); `pnpm exec eslint packages/figma-plugin/src/ui/components/PasteTokensModal.tsx packages/figma-plugin/src/ui/App.tsx` (passes for the touched modal; `App.tsx` still has pre-existing warnings unrelated to this task)
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L43, ~L105, ~L173, ~L217, ~L525; `packages/figma-plugin/src/ui/App.tsx` ~L3991; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Parsed-row UI decisions should be reconciled against stable row identities and pruned only when those identities disappear; resetting per-row state on every source edit makes review-heavy flows unusable.
+  - Undo for mixed create/overwrite batches should restore overwritten snapshots first and only then delete newly created paths, otherwise freshly pasted aliases can block cleanup or destroy prior data.
+---

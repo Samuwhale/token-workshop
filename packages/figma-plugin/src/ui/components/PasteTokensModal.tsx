@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { adaptShortcut, getErrorMessage } from '../shared/utils';
+import { dispatchToast } from '../shared/toastBus';
+import { adaptShortcut, getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { parseInput, validateTokenPath, type ParsedToken } from '../shared/tokenParsers';
 import { apiFetch } from '../shared/apiFetch';
 import type { UndoSlot } from '../hooks/useUndo';
+import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,6 +40,58 @@ const TYPE_COLORS: Record<string, string> = {
   string: 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]',
 };
 
+interface RestorableTokenSnapshot {
+  path: string;
+  data: {
+    $type: string;
+    $value: unknown;
+  };
+}
+
+function cloneUndoValue<T>(value: T): T {
+  if (value === undefined || value === null) return value;
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function buildPasteSuccessMessage({
+  activeSet,
+  importedCount,
+  createdCount,
+  updatedCount,
+  skippedConflictCount,
+  invalidCount,
+  unsupportedCount,
+}: {
+  activeSet: string;
+  importedCount: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedConflictCount: number;
+  invalidCount: number;
+  unsupportedCount: number;
+}): string {
+  const actionParts: string[] = [];
+  if (createdCount > 0) actionParts.push(`${createdCount} created`);
+  if (updatedCount > 0) actionParts.push(`${updatedCount} overwritten`);
+
+  const skippedParts: string[] = [];
+  if (skippedConflictCount > 0) {
+    skippedParts.push(`${skippedConflictCount} conflict${skippedConflictCount === 1 ? '' : 's'} left unchanged`);
+  }
+  if (invalidCount > 0) {
+    skippedParts.push(`${invalidCount} invalid row${invalidCount === 1 ? '' : 's'} skipped`);
+  }
+  if (unsupportedCount > 0) {
+    skippedParts.push(`${unsupportedCount} unsupported value${unsupportedCount === 1 ? '' : 's'} skipped`);
+  }
+
+  const importedLabel = `Pasted ${importedCount} token${importedCount === 1 ? '' : 's'} into "${activeSet}"`;
+  const actionLabel = actionParts.length > 0 ? ` — ${actionParts.join(', ')}` : '';
+  const skippedLabel = skippedParts.length > 0 ? ` · ${skippedParts.join(', ')}` : '';
+  return `${importedLabel}${actionLabel}${skippedLabel}`;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -52,18 +106,26 @@ interface PasteTokensModalProps {
   serverUrl: string;
   activeSet: string;
   existingPaths: Set<string>;
+  existingTokens: Record<string, TokenMapEntry>;
   onClose: () => void;
   onConfirm: () => void;
   pushUndo?: (slot: UndoSlot) => void;
 }
 
-export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose, onConfirm, pushUndo }: PasteTokensModalProps) {
+export function PasteTokensModal({
+  serverUrl,
+  activeSet,
+  existingPaths,
+  existingTokens,
+  onClose,
+  onConfirm,
+  pushUndo,
+}: PasteTokensModalProps) {
   const [input, setInput] = useState('');
   const [prefix, setPrefix] = useState('');
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [rowOverwrites, setRowOverwrites] = useState<Record<string, boolean>>({});
-  const [overwriteAll, setOverwriteAll] = useState(false);
   const [parsedSkippedExpanded, setParsedSkippedExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -105,17 +167,27 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   }, []);
 
   useEffect(() => {
-    setRowOverwrites({});
-    setOverwriteAll(false);
     setParsedSkippedExpanded(false);
   }, [input]);
 
-  const handleOverwriteAll = (checked: boolean) => {
-    setOverwriteAll(checked);
-    const next: Record<string, boolean> = {};
-    rows.forEach(r => { if (r.conflict) next[r.path] = checked; });
-    setRowOverwrites(next);
-  };
+  useEffect(() => {
+    setRowOverwrites(prev => {
+      const next: Record<string, boolean> = {};
+      for (const row of rows) {
+        if (row.conflict && !row.validationError && prev[row.path]) {
+          next[row.path] = true;
+        }
+      }
+
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      const changed =
+        prevKeys.length !== nextKeys.length ||
+        prevKeys.some(path => prev[path] !== next[path]);
+
+      return changed ? next : prev;
+    });
+  }, [rows]);
 
   const effectiveRows = rows.map(r => ({
     ...r,
@@ -129,6 +201,18 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   const toUpdate = conflicts.filter(r => r.overwrite);
   const skipped = conflicts.filter(r => !r.overwrite);
   const confirmCount = toCreate.length + toUpdate.length;
+  const overwriteAll = conflicts.length > 0 && conflicts.every(row => rowOverwrites[row.path]);
+
+  const handleOverwriteAll = (checked: boolean) => {
+    setRowOverwrites(prev => {
+      const next = { ...prev };
+      for (const row of conflicts) {
+        if (checked) next[row.path] = true;
+        else delete next[row.path];
+      }
+      return next;
+    });
+  };
 
   const handleConfirm = async () => {
     if (confirmCount === 0 || busy) return;
@@ -136,6 +220,18 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
     setSubmitError('');
     try {
       const tokenRows = [...toCreate, ...toUpdate];
+      const overwrittenSnapshots: RestorableTokenSnapshot[] = toUpdate.flatMap(row => {
+        const existingToken = existingTokens[row.path];
+        if (!existingToken) return [];
+        return [{
+          path: row.path,
+          data: {
+            $type: existingToken.$type,
+            $value: cloneUndoValue(existingToken.$value),
+          },
+        }];
+      });
+      const createdPaths = toCreate.map(row => row.path);
       const tokens = tokenRows.map(row => ({
         path: row.path,
         $type: row.$type,
@@ -147,23 +243,70 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
         body: JSON.stringify({ tokens, strategy: 'overwrite' }),
       });
       if (pushUndo && tokenRows.length > 0) {
-        const capturedPaths = tokenRows.map(r => r.path);
         const capturedSet = activeSet;
         const capturedUrl = serverUrl;
+        const capturedTokenRows = tokens.map(token => ({
+          path: token.path,
+          $type: token.$type,
+          $value: cloneUndoValue(token.$value),
+        }));
+        const capturedSnapshots = overwrittenSnapshots.map(snapshot => ({
+          path: snapshot.path,
+          data: {
+            $type: snapshot.data.$type,
+            $value: cloneUndoValue(snapshot.data.$value),
+          },
+        }));
+        const capturedCreatedPaths = [...createdPaths];
+        const finalize = () => {
+          onConfirm();
+        };
         pushUndo({
           description: `Paste ${tokenRows.length} token${tokenRows.length !== 1 ? 's' : ''} to "${capturedSet}"`,
           restore: async () => {
-            await apiFetch(
-              `${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-delete`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paths: capturedPaths, force: true }),
-              },
+            await Promise.all(
+              capturedSnapshots.map(({ path, data }) =>
+                apiFetch(
+                  `${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${tokenPathToUrlSegment(path)}`,
+                  {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                  },
+                ),
+              ),
             );
+            if (capturedCreatedPaths.length > 0) {
+              await apiFetch(
+                `${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-delete`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ paths: capturedCreatedPaths }),
+                },
+              );
+            }
+            finalize();
+          },
+          redo: async () => {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tokens: capturedTokenRows, strategy: 'overwrite' }),
+            });
+            finalize();
           },
         });
       }
+      dispatchToast(buildPasteSuccessMessage({
+        activeSet,
+        importedCount: confirmCount,
+        createdCount: toCreate.length,
+        updatedCount: toUpdate.length,
+        skippedConflictCount: skipped.length,
+        invalidCount: invalidRows.length,
+        unsupportedCount: parsedSkipped.length,
+      }), 'success');
       onConfirm();
     } catch (err) {
       setSubmitError(getErrorMessage(err));
@@ -382,10 +525,12 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                       type="checkbox"
                       checked={rowOverwrites[row.path] ?? false}
                       onChange={e => {
-                        const next = { ...rowOverwrites, [row.path]: e.target.checked };
-                        setRowOverwrites(next);
-                        const allChecked = rows.filter(r => r.conflict && !r.validationError).every(r => next[r.path]);
-                        setOverwriteAll(allChecked);
+                        setRowOverwrites(prev => {
+                          const next = { ...prev };
+                          if (e.target.checked) next[row.path] = true;
+                          else delete next[row.path];
+                          return next;
+                        });
                       }}
                       className="accent-[var(--color-figma-accent)]"
                     />

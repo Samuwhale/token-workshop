@@ -3998,6 +3998,7 @@ export function App() {
               ),
             )
           }
+          existingTokens={perSetFlat[activeSet] ?? {}}
           onClose={() => setShowPasteModal(false)}
           onConfirm={() => {
             setShowPasteModal(false);
