@@ -573,7 +573,9 @@ export function QuickStartWizard({
 
   const mainContent = (
     <>
-      {!embedded && (
+      {/* Suppress the wizard header when the generator is active — it provides
+          its own EditorShell header with back, title, and dirty-aware close. */}
+      {!selectedTemplate && !embedded && (
         <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
           <div className="flex items-center gap-2">
             {showBackButton && (
@@ -597,7 +599,7 @@ export function QuickStartWizard({
         </div>
       )}
 
-      {embedded && showBackButton && (
+      {!selectedTemplate && embedded && showBackButton && (
         <div className="px-4 py-2 border-b border-[var(--color-figma-border)] flex items-center gap-2">
           <button
             onClick={handleInlineBack}
@@ -621,6 +623,7 @@ export function QuickStartWizard({
             allSets={allSets}
             template={selectedTemplate}
             initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
+            onBack={handleTemplateBack}
             onClose={onClose}
             onInterceptSemanticMapping={handleFoundationsInterceptSemantic}
             onSaved={handleFoundationsSaved}
