@@ -108,7 +108,7 @@ function DependencyChips({
     tone === "danger"
       ? "border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/8 text-[var(--color-figma-error)]"
       : tone === "warning"
-        ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-700 dark:text-yellow-300"
+        ? "border-[var(--color-figma-warning,#f59e0b)]/40 bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#f59e0b)]"
         : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]";
 
   return (
@@ -156,6 +156,168 @@ function formatTokenValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function DiffSummary({
+  diff,
+  maxDetailHeight = "max-h-28",
+  nothingChangedText,
+}: {
+  diff: {
+    created: Array<{ path: string; value?: unknown }>;
+    updated: Array<{
+      path: string;
+      currentValue: unknown;
+      newValue: unknown;
+    }>;
+    unchanged: Array<{ path: string }>;
+    deleted: Array<{ path: string; currentValue: unknown }>;
+  };
+  maxDetailHeight?: string;
+  nothingChangedText?: React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState<
+    "created" | "updated" | "deleted" | null
+  >(null);
+  const totalChanges =
+    diff.created.length + diff.updated.length + diff.deleted.length;
+
+  if (totalChanges === 0 && diff.unchanged.length === 0) {
+    return (
+      <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">
+        No tokens would be created.
+      </p>
+    );
+  }
+
+  if (totalChanges === 0 && diff.unchanged.length > 0) {
+    return (
+      <>
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-[10px] px-1.5 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
+            ={diff.unchanged.length} unchanged
+          </span>
+          {nothingChangedText}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1 flex-wrap">
+        {diff.created.length > 0 && (
+          <button
+            onClick={() =>
+              setExpanded(expanded === "created" ? null : "created")
+            }
+            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "created" ? "bg-[var(--color-figma-success,#22c55e)]/20 text-[var(--color-figma-success,#22c55e)] border border-[var(--color-figma-success,#22c55e)]/40" : "bg-[var(--color-figma-success,#22c55e)]/10 text-[var(--color-figma-success,#22c55e)] border border-[var(--color-figma-success,#22c55e)]/25 hover:bg-[var(--color-figma-success,#22c55e)]/20"}`}
+          >
+            +{diff.created.length} new
+          </button>
+        )}
+        {diff.updated.length > 0 && (
+          <button
+            onClick={() =>
+              setExpanded(expanded === "updated" ? null : "updated")
+            }
+            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "updated" ? "bg-[var(--color-figma-warning,#f59e0b)]/20 text-[var(--color-figma-warning,#f59e0b)] border border-[var(--color-figma-warning,#f59e0b)]/40" : "bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#f59e0b)] border border-[var(--color-figma-warning,#f59e0b)]/25 hover:bg-[var(--color-figma-warning,#f59e0b)]/20"}`}
+          >
+            ~{diff.updated.length} changed
+          </button>
+        )}
+        {diff.deleted.length > 0 && (
+          <button
+            onClick={() =>
+              setExpanded(expanded === "deleted" ? null : "deleted")
+            }
+            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "deleted" ? "bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] border border-[var(--color-figma-error)]/40" : "bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] border border-[var(--color-figma-error)]/25 hover:bg-[var(--color-figma-error)]/20"}`}
+          >
+            -{diff.deleted.length} removed
+          </button>
+        )}
+        {diff.unchanged.length > 0 && (
+          <span className="text-[10px] px-1.5 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
+            ={diff.unchanged.length} unchanged
+          </span>
+        )}
+        {nothingChangedText}
+      </div>
+
+      {expanded === "created" && diff.created.length > 0 && (
+        <div className={`${maxDetailHeight} overflow-y-auto space-y-px mt-1`}>
+          {diff.created.map((t) => (
+            <div
+              key={t.path}
+              className="flex flex-col gap-0.5 text-[10px]"
+            >
+              <span className="text-[var(--color-figma-success,#22c55e)] font-medium shrink-0">
+                +
+              </span>
+              <span className={LONG_TEXT_CLASSES.monoSecondary}>
+                {t.path}
+              </span>
+              <span className={LONG_TEXT_CLASSES.monoTertiary}>
+                {formatTokenValue(t.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {expanded === "updated" && diff.updated.length > 0 && (
+        <div className={`${maxDetailHeight} overflow-y-auto space-y-px mt-1`}>
+          {diff.updated.map((t) => (
+            <div
+              key={t.path}
+              className="flex flex-col gap-px text-[10px] py-0.5 border-b border-[var(--color-figma-border)] last:border-b-0"
+            >
+              <span className={LONG_TEXT_CLASSES.monoSecondary}>
+                {t.path}
+              </span>
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">
+                  was
+                </span>
+                <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-[var(--color-figma-error)]")}>
+                  {formatTokenValue(t.currentValue)}
+                </span>
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  fill="currentColor"
+                  className="text-[var(--color-figma-text-tertiary)] shrink-0"
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+                <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-[var(--color-figma-success,#22c55e)]")}>
+                  {formatTokenValue(t.newValue)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {expanded === "deleted" && diff.deleted.length > 0 && (
+        <div className={`${maxDetailHeight} overflow-y-auto space-y-px mt-1`}>
+          {diff.deleted.map((t) => (
+            <div
+              key={t.path}
+              className="flex flex-col gap-0.5 text-[10px]"
+            >
+              <span className="text-[var(--color-figma-error)] font-medium shrink-0">−</span>
+              <span className={LONG_TEXT_CLASSES.monoSecondary}>
+                {t.path}
+              </span>
+              <span className={LONG_TEXT_CLASSES.monoTertiary}>
+                {formatTokenValue(t.currentValue)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DryRunPreview({
   diff,
   onConfirmRun,
@@ -167,9 +329,6 @@ function DryRunPreview({
   onClose: () => void;
   running: boolean;
 }) {
-  const [expanded, setExpanded] = useState<
-    "created" | "updated" | "deleted" | null
-  >(null);
   const totalChanges =
     diff.created.length + diff.updated.length + diff.deleted.length;
 
@@ -188,131 +347,7 @@ function DryRunPreview({
         </button>
       </div>
 
-      {totalChanges === 0 && diff.unchanged.length === 0 ? (
-        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">
-          No tokens would be created.
-        </p>
-      ) : totalChanges === 0 ? (
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          All {diff.unchanged.length} tokens are already up-to-date. Nothing
-          would change.
-        </p>
-      ) : (
-        <div className="space-y-1">
-          {/* Summary pills */}
-          <div className="flex items-center gap-1 flex-wrap">
-            {diff.created.length > 0 && (
-              <button
-                onClick={() =>
-                  setExpanded(expanded === "created" ? null : "created")
-                }
-                className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "created" ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100"}`}
-              >
-                +{diff.created.length} new
-              </button>
-            )}
-            {diff.updated.length > 0 && (
-              <button
-                onClick={() =>
-                  setExpanded(expanded === "updated" ? null : "updated")
-                }
-                className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "updated" ? "bg-amber-100 text-amber-700 border border-amber-300" : "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100"}`}
-              >
-                ~{diff.updated.length} changed
-              </button>
-            )}
-            {diff.deleted.length > 0 && (
-              <button
-                onClick={() =>
-                  setExpanded(expanded === "deleted" ? null : "deleted")
-                }
-                className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "deleted" ? "bg-red-100 text-red-700 border border-red-300" : "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"}`}
-              >
-                -{diff.deleted.length} removed
-              </button>
-            )}
-            {diff.unchanged.length > 0 && (
-              <span className="text-[10px] px-1.5 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
-                ={diff.unchanged.length} unchanged
-              </span>
-            )}
-          </div>
-
-          {/* Detail list for expanded section */}
-          {expanded === "created" && diff.created.length > 0 && (
-            <div className="max-h-28 overflow-y-auto space-y-px mt-1">
-              {diff.created.map((t) => (
-                <div
-                  key={t.path}
-                  className="flex flex-col gap-0.5 text-[10px]"
-                >
-                  <span className="text-emerald-600 font-medium shrink-0">
-                    +
-                  </span>
-                  <span className={LONG_TEXT_CLASSES.monoSecondary}>
-                    {t.path}
-                  </span>
-                  <span className={LONG_TEXT_CLASSES.monoTertiary}>
-                    {formatTokenValue(t.value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-          {expanded === "updated" && diff.updated.length > 0 && (
-            <div className="max-h-28 overflow-y-auto space-y-px mt-1">
-              {diff.updated.map((t) => (
-                <div
-                  key={t.path}
-                  className="flex flex-col gap-px text-[10px] py-0.5 border-b border-[var(--color-figma-border)] last:border-b-0"
-                >
-                  <span className={LONG_TEXT_CLASSES.monoSecondary}>
-                    {t.path}
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1">
-                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">
-                      was
-                    </span>
-                    <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-red-500")}>
-                      {formatTokenValue(t.currentValue)}
-                    </span>
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 8 8"
-                      fill="currentColor"
-                      className="text-[var(--color-figma-text-tertiary)] shrink-0"
-                    >
-                      <path d="M2 1l4 3-4 3V1z" />
-                    </svg>
-                    <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-emerald-600")}>
-                      {formatTokenValue(t.newValue)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {expanded === "deleted" && diff.deleted.length > 0 && (
-            <div className="max-h-28 overflow-y-auto space-y-px mt-1">
-              {diff.deleted.map((t) => (
-                <div
-                  key={t.path}
-                  className="flex flex-col gap-0.5 text-[10px]"
-                >
-                  <span className="text-red-500 font-medium shrink-0">−</span>
-                  <span className={LONG_TEXT_CLASSES.monoSecondary}>
-                    {t.path}
-                  </span>
-                  <span className={LONG_TEXT_CLASSES.monoTertiary}>
-                    {formatTokenValue(t.currentValue)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      <DiffSummary diff={diff} />
 
       <button
         onClick={onConfirmRun}
@@ -340,10 +375,6 @@ function LiveDiffPreview({
   diff: GeneratorPreviewDiff | null;
   loading: boolean;
 }) {
-  const [expanded, setExpanded] = useState<
-    "created" | "updated" | "deleted" | null
-  >(null);
-
   if (loading && !diff) {
     return (
       <div className="flex items-center gap-1.5 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] italic">
@@ -382,115 +413,19 @@ function LiveDiffPreview({
 
   return (
     <div
-      className={`space-y-1 transition-opacity duration-150 ${loading ? "opacity-40" : "opacity-100"}`}
+      className={`transition-opacity duration-150 ${loading ? "opacity-40" : "opacity-100"}`}
     >
-      <div className="flex items-center gap-1 flex-wrap">
-        {diff.created.length > 0 && (
-          <button
-            onClick={() =>
-              setExpanded(expanded === "created" ? null : "created")
-            }
-            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "created" ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100"}`}
-          >
-            +{diff.created.length} new
-          </button>
-        )}
-        {diff.updated.length > 0 && (
-          <button
-            onClick={() =>
-              setExpanded(expanded === "updated" ? null : "updated")
-            }
-            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "updated" ? "bg-amber-100 text-amber-700 border border-amber-300" : "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100"}`}
-          >
-            ~{diff.updated.length} changed
-          </button>
-        )}
-        {diff.deleted.length > 0 && (
-          <button
-            onClick={() =>
-              setExpanded(expanded === "deleted" ? null : "deleted")
-            }
-            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === "deleted" ? "bg-red-100 text-red-700 border border-red-300" : "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"}`}
-          >
-            -{diff.deleted.length} removed
-          </button>
-        )}
-        {diff.unchanged.length > 0 && (
-          <span className="text-[10px] px-1.5 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
-            ={diff.unchanged.length} unchanged
-          </span>
-        )}
-        {totalChanges === 0 && diff.unchanged.length > 0 && (
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic ml-1">
-            — nothing would change
-          </span>
-        )}
-      </div>
-
-      {expanded === "created" && diff.created.length > 0 && (
-        <div className="max-h-24 overflow-y-auto space-y-px mt-0.5">
-          {diff.created.map((t) => (
-            <div key={t.path} className="flex flex-col gap-0.5 text-[10px]">
-              <span className="text-emerald-600 font-medium shrink-0">+</span>
-              <span className={LONG_TEXT_CLASSES.monoSecondary}>
-                {t.path}
-              </span>
-              <span className={LONG_TEXT_CLASSES.monoTertiary}>
-                {formatTokenValue(t.value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      {expanded === "updated" && diff.updated.length > 0 && (
-        <div className="max-h-24 overflow-y-auto space-y-px mt-0.5">
-          {diff.updated.map((t) => (
-            <div
-              key={t.path}
-              className="flex flex-col gap-px text-[10px] py-0.5 border-b border-[var(--color-figma-border)] last:border-b-0"
-            >
-              <span className={LONG_TEXT_CLASSES.monoSecondary}>
-                {t.path}
-              </span>
-              <div className="flex flex-wrap items-center gap-1">
-                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">
-                  was
-                </span>
-                <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-red-500")}>
-                  {formatTokenValue(t.currentValue)}
-                </span>
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 8 8"
-                  fill="currentColor"
-                  className="text-[var(--color-figma-text-tertiary)] shrink-0"
-                >
-                  <path d="M2 1l4 3-4 3V1z" />
-                </svg>
-                <span className={joinClasses(LONG_TEXT_CLASSES.mono, "text-emerald-600")}>
-                  {formatTokenValue(t.newValue)}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      {expanded === "deleted" && diff.deleted.length > 0 && (
-        <div className="max-h-24 overflow-y-auto space-y-px mt-0.5">
-          {diff.deleted.map((t) => (
-            <div key={t.path} className="flex flex-col gap-0.5 text-[10px]">
-              <span className="text-red-500 font-medium shrink-0">−</span>
-              <span className={LONG_TEXT_CLASSES.monoSecondary}>
-                {t.path}
-              </span>
-              <span className={LONG_TEXT_CLASSES.monoTertiary}>
-                {formatTokenValue(t.currentValue)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      <DiffSummary
+        diff={diff}
+        maxDetailHeight="max-h-24"
+        nothingChangedText={
+          totalChanges === 0 && diff.unchanged.length > 0 ? (
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic ml-1">
+              — nothing would change
+            </span>
+          ) : undefined
+        }
+      />
     </div>
   );
 }
@@ -559,8 +494,9 @@ function QuickEditTypeFields({
           </div>
           <div className="flex gap-1.5">
             <div className="flex-1">
-              <label className={QE_LABEL}>Light end (L*)</label>
+              <label htmlFor="qe-light-end" className={QE_LABEL}>Light end (L*)</label>
               <input
+                id="qe-light-end"
                 type="number"
                 value={c.lightEnd}
                 min={1}
@@ -572,8 +508,9 @@ function QuickEditTypeFields({
               />
             </div>
             <div className="flex-1">
-              <label className={QE_LABEL}>Dark end (L*)</label>
+              <label htmlFor="qe-dark-end" className={QE_LABEL}>Dark end (L*)</label>
               <input
+                id="qe-dark-end"
                 type="number"
                 value={c.darkEnd}
                 min={1}
@@ -585,8 +522,9 @@ function QuickEditTypeFields({
               />
             </div>
             <div className="flex-1">
-              <label className={QE_LABEL}>Chroma boost</label>
+              <label htmlFor="qe-chroma-boost" className={QE_LABEL}>Chroma boost</label>
               <input
+                id="qe-chroma-boost"
                 type="number"
                 value={c.chromaBoost}
                 min={0.1}
@@ -610,8 +548,9 @@ function QuickEditTypeFields({
       return (
         <>
           <div>
-            <label className={QE_LABEL}>Scale ratio</label>
+            <label htmlFor="qe-scale-ratio" className={QE_LABEL}>Scale ratio</label>
             <select
+              id="qe-scale-ratio"
               value={knownRatio ? String(c.ratio) : "custom"}
               onChange={(e) => {
                 const v = parseFloat(e.target.value);
@@ -631,8 +570,9 @@ function QuickEditTypeFields({
           </div>
           <div className="flex gap-1.5">
             <div className="flex-1">
-              <label className={QE_LABEL}>Unit</label>
+              <label htmlFor="qe-type-unit" className={QE_LABEL}>Unit</label>
               <select
+                id="qe-type-unit"
                 value={c.unit}
                 onChange={(e) =>
                   onChange({ ...c, unit: e.target.value as "px" | "rem" })
@@ -644,8 +584,9 @@ function QuickEditTypeFields({
               </select>
             </div>
             <div className="flex-1">
-              <label className={QE_LABEL}>Round to</label>
+              <label htmlFor="qe-round-to" className={QE_LABEL}>Round to</label>
               <input
+                id="qe-round-to"
                 type="number"
                 value={c.roundTo}
                 min={0}
@@ -664,8 +605,9 @@ function QuickEditTypeFields({
       const c = config as SpacingScaleConfig;
       return (
         <div>
-          <label className={QE_LABEL}>Unit</label>
+          <label htmlFor="qe-spacing-unit" className={QE_LABEL}>Unit</label>
           <select
+            id="qe-spacing-unit"
             value={c.unit}
             onChange={(e) =>
               onChange({ ...c, unit: e.target.value as "px" | "rem" })
@@ -682,8 +624,9 @@ function QuickEditTypeFields({
       const c = config as BorderRadiusScaleConfig;
       return (
         <div>
-          <label className={QE_LABEL}>Unit</label>
+          <label htmlFor="qe-radius-unit" className={QE_LABEL}>Unit</label>
           <select
+            id="qe-radius-unit"
             value={c.unit}
             onChange={(e) =>
               onChange({ ...c, unit: e.target.value as "px" | "rem" })
@@ -700,13 +643,14 @@ function QuickEditTypeFields({
       const c = config as ShadowScaleConfig;
       return (
         <div>
-          <label className={QE_LABEL}>Shadow color</label>
+          <label htmlFor="qe-shadow-color" className={QE_LABEL}>Shadow color</label>
           <div className="flex items-center gap-1.5">
             <div
               className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0"
               style={{ background: c.color }}
             />
             <input
+              id="qe-shadow-color"
               type="text"
               value={c.color}
               onChange={(e) => onChange({ ...c, color: e.target.value })}
@@ -722,8 +666,9 @@ function QuickEditTypeFields({
       const c = config as CustomScaleConfig;
       return (
         <div>
-          <label className={QE_LABEL}>Formula</label>
+          <label htmlFor="qe-formula" className={QE_LABEL}>Formula</label>
           <input
+            id="qe-formula"
             type="text"
             value={c.formula}
             onChange={(e) => onChange({ ...c, formula: e.target.value })}
@@ -756,8 +701,9 @@ function QuickEditTypeFields({
       const c = config as DarkModeInversionConfig;
       return (
         <div>
-          <label className={QE_LABEL}>Chroma boost</label>
+          <label htmlFor="qe-dark-chroma-boost" className={QE_LABEL}>Chroma boost</label>
           <input
+            id="qe-dark-chroma-boost"
             type="number"
             value={c.chromaBoost}
             min={0}
@@ -775,13 +721,14 @@ function QuickEditTypeFields({
       const c = config as ContrastCheckConfig;
       return (
         <div>
-          <label className={QE_LABEL}>Background color</label>
+          <label htmlFor="qe-bg-color" className={QE_LABEL}>Background color</label>
           <div className="flex items-center gap-1.5">
             <div
               className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0"
               style={{ background: c.backgroundHex }}
             />
             <input
+              id="qe-bg-color"
               type="text"
               value={c.backgroundHex}
               onChange={(e) =>
@@ -892,8 +839,9 @@ function QuickEditPanel({
       {needsSource && (
         <div className={AUTHORING.generatorSectionCard}>
           <div className={AUTHORING.generatorFieldStack}>
-            <label className={QE_LABEL}>Source token</label>
+            <label htmlFor="qe-source-token" className={QE_LABEL}>Source token</label>
             <input
+              id="qe-source-token"
               type="text"
               value={sourceToken}
               onChange={(e) => setSourceToken(e.target.value)}
@@ -906,7 +854,7 @@ function QuickEditPanel({
 
       <div className={AUTHORING.generatorSectionCard}>
         <div className={AUTHORING.generatorFieldStack}>
-          <label className={QE_LABEL}>Recipe settings</label>
+          <span className={QE_LABEL}>Recipe settings</span>
           <QuickEditTypeFields
             type={generator.type}
             config={config}
@@ -917,8 +865,9 @@ function QuickEditPanel({
 
       <div className={`${AUTHORING.generatorSectionCard} ${AUTHORING.generatorFieldGrid}`}>
         <div className={AUTHORING.generatorFieldStack}>
-          <label className={QE_LABEL}>Name</label>
+          <label htmlFor="qe-recipe-name" className={QE_LABEL}>Name</label>
           <input
+            id="qe-recipe-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -926,8 +875,9 @@ function QuickEditPanel({
           />
         </div>
         <div className={AUTHORING.generatorFieldStack}>
-          <label className={QE_LABEL}>Target group</label>
+          <label htmlFor="qe-target-group" className={QE_LABEL}>Target group</label>
           <input
+            id="qe-target-group"
             type="text"
             value={targetGroup}
             onChange={(e) => setTargetGroup(e.target.value)}
@@ -935,8 +885,9 @@ function QuickEditPanel({
           />
         </div>
         <div className={AUTHORING.generatorFieldStack}>
-          <label className={QE_LABEL}>Target set</label>
+          <label htmlFor="qe-target-set" className={QE_LABEL}>Target set</label>
           <select
+            id="qe-target-set"
             value={targetSet}
             onChange={(e) => setTargetSet(e.target.value)}
             className={QE_INPUT}
@@ -1400,7 +1351,7 @@ export function GeneratorPipelineCard({
       ref={
         isFocused ? (focusRef as React.LegacyRef<HTMLDivElement>) : undefined
       }
-      className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${!isEnabled ? "opacity-60 border-[var(--color-figma-border)] border-dashed" : isBlocked ? "border-amber-400/70" : hasError ? "border-[var(--color-figma-error)]" : isStale ? "border-yellow-400/70" : isFocused ? "border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40" : "border-[var(--color-figma-border)]"}`}
+      className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-[border-color,box-shadow] duration-300 ${!isEnabled ? "opacity-60 border-[var(--color-figma-border)] border-dashed" : isBlocked ? "border-[var(--color-figma-warning,#f59e0b)]/70" : hasError ? "border-[var(--color-figma-error)]" : isStale ? "border-[var(--color-figma-warning,#f59e0b)]/70" : isFocused ? "border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40" : "border-[var(--color-figma-border)]"}`}
     >
       <div className="mb-2 flex items-start gap-2">
         <div className="min-w-0 flex-1">
@@ -1419,7 +1370,7 @@ export function GeneratorPipelineCard({
             {isEnabled && isStale && (
               <span
                 title={`Source token "${generator.sourceToken}" has changed since this recipe last ran. Re-run to update managed tokens.`}
-                className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-yellow-600 bg-yellow-50 border border-yellow-300 rounded px-1.5 py-px leading-none"
+                className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning,#f59e0b)]/10 border border-[var(--color-figma-warning,#f59e0b)]/30 rounded px-1.5 py-px leading-none"
                 aria-label="Recipe output may be stale"
               >
                 <svg
@@ -1441,7 +1392,7 @@ export function GeneratorPipelineCard({
               </span>
             )}
             {isEnabled && isBlocked && (
-              <span className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded px-1.5 py-px leading-none">
+              <span className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning,#f59e0b)]/10 border border-[var(--color-figma-warning,#f59e0b)]/30 rounded px-1.5 py-px leading-none">
                 <svg
                   width="9"
                   height="9"
@@ -1461,7 +1412,7 @@ export function GeneratorPipelineCard({
             {hasError && (
               <span
                 title={generator.lastRunError?.message ?? generator.lastRunSummary?.label}
-                className={`shrink-0 ${isBlocked ? "text-amber-700" : "text-[var(--color-figma-error)]"}`}
+                className={`shrink-0 ${isBlocked ? "text-[var(--color-figma-warning,#f59e0b)]" : "text-[var(--color-figma-error)]"}`}
                 aria-label={isBlocked ? "Recipe blocked by upstream failure" : "Recipe auto-run error"}
               >
                 <svg
@@ -1549,7 +1500,7 @@ export function GeneratorPipelineCard({
       </div>
       {hasError && (
         <div
-          className={`mb-2 text-[10px] rounded px-2 py-1 border break-words ${isBlocked ? "text-amber-700 bg-amber-50 border-amber-200" : "text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border-[var(--color-figma-error)]/20"}`}
+          className={`mb-2 text-[10px] rounded px-2 py-1 border break-words ${isBlocked ? "text-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning,#f59e0b)]/10 border-[var(--color-figma-warning,#f59e0b)]/20" : "text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border-[var(--color-figma-error)]/20"}`}
         >
           {isBlocked ? "Blocked by upstream failure" : "Auto-run failed"}
           {generator.lastRunError?.message ? `: ${generator.lastRunError.message}` : ""}
@@ -1613,7 +1564,7 @@ export function GeneratorPipelineCard({
         </div>
       )}
       {showDependencyAttention && (
-        <div className="mt-2 rounded border border-yellow-400/30 bg-yellow-400/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="mt-2 rounded border border-[var(--color-figma-warning,#f59e0b)]/30 bg-[var(--color-figma-warning,#f59e0b)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
           {blockedByGenerators.length > 0 && (
             <DependencyChips
               label="Blocked by"
@@ -1684,9 +1635,9 @@ export function GeneratorPipelineCard({
             disabled={running || previewLoading}
             className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               isBlocked
-                ? "border-amber-400/60 bg-amber-400/10 text-amber-700 hover:bg-amber-400/15"
+                ? "border-[var(--color-figma-warning,#f59e0b)]/60 bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#f59e0b)] hover:bg-[var(--color-figma-warning,#f59e0b)]/15"
                 : isStale
-                ? "border-yellow-400/60 bg-yellow-400/10 text-yellow-700 hover:bg-yellow-400/15"
+                ? "border-[var(--color-figma-warning,#f59e0b)]/60 bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#f59e0b)] hover:bg-[var(--color-figma-warning,#f59e0b)]/15"
                 : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/30 hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/6"
             }`}
             title={isBlocked ? "Retry this blocked recipe" : "Run recipe now"}
