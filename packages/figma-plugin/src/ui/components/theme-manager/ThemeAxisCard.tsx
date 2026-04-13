@@ -1,5 +1,5 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
-import { useEffect, useRef, useState } from "react";
+import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import {
   NoticeCountBadge,
   NoticeFieldMessage,
@@ -17,6 +17,7 @@ interface ThemeAxisCardProps {
   dimension: ThemeDimension;
   sets: string[];
   dimensionIndex: number;
+  totalDimensions: number;
   isExpanded: boolean;
   onToggleExpand: () => void;
   totalDimensionGaps: number;
@@ -76,6 +77,7 @@ export function ThemeAxisCard({
   dimension,
   sets,
   dimensionIndex,
+  totalDimensions,
   isExpanded,
   onToggleExpand,
   totalDimensionGaps,
@@ -131,26 +133,7 @@ export function ThemeAxisCard({
   onGenerateForDimension,
 }: ThemeAxisCardProps) {
   const { dimensionRefs, addOptionInputRefs } = useThemeAuthoringContext();
-  const [axisMenuOpen, setAxisMenuOpen] = useState(false);
-  const axisMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!axisMenuOpen) return;
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!axisMenuRef.current?.contains(event.target as Node)) {
-        setAxisMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAxisMenuOpen(false);
-    };
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [axisMenuOpen]);
+  const axisMenu = useDropdownMenu();
 
   return (
     <div
@@ -245,13 +228,14 @@ export function ThemeAxisCard({
                   Generate
                 </button>
               )}
-              <div className="relative" ref={axisMenuRef}>
+              <div className="relative">
                 <button
-                  onClick={() => setAxisMenuOpen((v) => !v)}
-                  className="rounded p-0.5 text-[var(--color-figma-text-secondary)] opacity-20 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)]"
+                  ref={axisMenu.triggerRef}
+                  onClick={axisMenu.toggle}
+                  className="rounded p-0.5 text-[var(--color-figma-text-secondary)] opacity-20 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--color-figma-bg-hover)]"
                   title="Mode actions"
                   aria-label="Mode actions"
-                  aria-expanded={axisMenuOpen}
+                  aria-expanded={axisMenu.open}
                   aria-haspopup="menu"
                 >
                   <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -260,21 +244,22 @@ export function ThemeAxisCard({
                     <circle cx="8" cy="13" r="1.5" />
                   </svg>
                 </button>
-                {axisMenuOpen && (
+                {axisMenu.open && (
                   <div
+                    ref={axisMenu.menuRef}
                     role="menu"
                     className="absolute right-0 top-full z-50 mt-1 w-[160px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
                   >
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onStartRenameDim(); }}
+                      onClick={() => { axisMenu.close(); onStartRenameDim(); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Rename
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onMoveDimension("up"); }}
+                      onClick={() => { axisMenu.close(); onMoveDimension("up"); }}
                       disabled={dimensionIndex === 0}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
@@ -282,15 +267,15 @@ export function ThemeAxisCard({
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onMoveDimension("down"); }}
-                      disabled={dimensionIndex === sets.length - 1}
+                      onClick={() => { axisMenu.close(); onMoveDimension("down"); }}
+                      disabled={dimensionIndex === totalDimensions - 1}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
                       Move down
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onDuplicateDimension(); }}
+                      onClick={() => { axisMenu.close(); onDuplicateDimension(); }}
                       disabled={isDuplicatingDim}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
@@ -299,14 +284,14 @@ export function ThemeAxisCard({
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onOpenCoverageView(undefined, true); }}
+                      onClick={() => { axisMenu.close(); onOpenCoverageView(undefined, true); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Review all issues
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onOpenAdvancedSetup(); }}
+                      onClick={() => { axisMenu.close(); onOpenAdvancedSetup(); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Advanced setup
@@ -314,7 +299,7 @@ export function ThemeAxisCard({
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     <button
                       role="menuitem"
-                      onClick={() => { setAxisMenuOpen(false); onDeleteDimension(); }}
+                      onClick={() => { axisMenu.close(); onDeleteDimension(); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
                     >
                       Delete
