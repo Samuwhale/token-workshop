@@ -1,90 +1,112 @@
 import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import type { TokenGenerator } from '../../hooks/useGenerators';
 import type { UndoSlot } from '../../hooks/useUndo';
-import { portPosition, nodeHeight, computeDependencyEdges } from './nodeGraphTypes';
+import { portInPosition, portOutPosition, FIXED_NODE_HEIGHT } from './nodeGraphTypes';
 import { useNodeGraph } from './useNodeGraph';
 import { NodeRenderer } from './NodeRenderer';
 import { edgePath } from '../../shared/graphUtils';
 
 // ---------------------------------------------------------------------------
-// Dependency edge path — connects output node (right) to source node (left)
-// across rows, routing via the right side of the canvas.
+// Detail popover — HTML overlay for selected node
 // ---------------------------------------------------------------------------
 
-function depEdgePath(x1: number, y1: number, x2: number, y2: number): string {
-  const rightX = Math.max(x1, x2) + 60;
-  return `M${x1},${y1} C${rightX},${y1} ${rightX},${y2} ${x2},${y2}`;
+function formatRelativeTime(value?: string): string | null {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return null;
+  const diffMs = Date.now() - time;
+  const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays}d ago`;
 }
 
-// ---------------------------------------------------------------------------
-// Minimap
-// ---------------------------------------------------------------------------
+interface DetailPopoverProps {
+  generator: TokenGenerator;
+  nodeScreenX: number;
+  nodeScreenY: number;
+  nodeWidth: number;
+  onRun: (id: string) => void;
+  onEdit: (id: string) => void;
+  onViewTokens: (targetGroup: string, targetSet: string) => void;
+}
 
-function Minimap({
-  nodes,
-  pan,
-  zoom,
-  viewW,
-  viewH,
-}: {
-  nodes: { x: number; y: number; width: number; height: number; kind: string }[];
-  pan: { x: number; y: number };
-  zoom: number;
-  viewW: number;
-  viewH: number;
-}) {
-  if (nodes.length === 0) return null;
-
-  const minX = Math.min(...nodes.map(n => n.x));
-  const minY = Math.min(...nodes.map(n => n.y));
-  const maxX = Math.max(...nodes.map(n => n.x + n.width));
-  const maxY = Math.max(...nodes.map(n => n.y + n.height));
-  const graphW = maxX - minX + 80;
-  const graphH = maxY - minY + 80;
-  const mapW = 120;
-  const mapH = 80;
-  const scale = Math.min(mapW / graphW, mapH / graphH);
-
-  const viewRectX = (-pan.x / zoom - minX + 40) * scale;
-  const viewRectY = (-pan.y / zoom - minY + 40) * scale;
-  const viewRectW = (viewW / zoom) * scale;
-  const viewRectH = (viewH / zoom) * scale;
-
-  const kindColors: Record<string, string> = {
-    source: '#6b7280',
-    generator: '#3b82f6',
-    output: '#6b7280',
-  };
+function DetailPopover({
+  generator,
+  nodeScreenX,
+  nodeScreenY,
+  nodeWidth,
+  onRun,
+  onEdit,
+  onViewTokens,
+}: DetailPopoverProps) {
+  const lastRun = formatRelativeTime(generator.lastRunAt);
+  const hasError = !!generator.lastRunError;
 
   return (
     <div
-      className="absolute bottom-2 right-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] opacity-60 hover:opacity-90 transition-opacity pointer-events-auto"
-      style={{ width: mapW, height: mapH, zIndex: 20 }}
+      className="absolute z-50 w-56 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg p-2.5 text-[10px]"
+      style={{
+        left: nodeScreenX + nodeWidth + 8,
+        top: nodeScreenY,
+        maxHeight: 240,
+        overflow: 'auto',
+      }}
     >
-      <svg width={mapW} height={mapH}>
-        {nodes.map((n, i) => (
-          <rect
-            key={i}
-            x={(n.x - minX + 40) * scale}
-            y={(n.y - minY + 40) * scale}
-            width={Math.max(2, n.width * scale)}
-            height={Math.max(2, n.height * scale)}
-            rx={1}
-            fill={kindColors[n.kind] || '#6b7280'}
-            opacity={0.6}
-          />
-        ))}
-        <rect
-          x={viewRectX}
-          y={viewRectY}
-          width={viewRectW}
-          height={viewRectH}
-          fill="none"
-          stroke="var(--color-figma-accent)"
-          strokeWidth={1}
-          opacity={0.8}
-        />
-      </svg>
+      {/* Source */}
+      <div className="mb-1.5">
+        <span className="text-[var(--color-figma-text-tertiary)]">Source: </span>
+        <span className="font-mono text-[var(--color-figma-text-secondary)] break-all">
+          {generator.sourceToken || 'standalone'}
+        </span>
+      </div>
+
+      {/* Target */}
+      <div className="mb-1.5">
+        <span className="text-[var(--color-figma-text-tertiary)]">Target: </span>
+        <span className="font-mono text-[var(--color-figma-text-secondary)] break-all">
+          {generator.targetGroup}.* {generator.targetSet ? `\u2192 ${generator.targetSet}` : ''}
+        </span>
+      </div>
+
+      {/* Last run */}
+      {lastRun && (
+        <div className="mb-1.5 text-[var(--color-figma-text-tertiary)]">
+          Last run {lastRun}
+        </div>
+      )}
+
+      {/* Error */}
+      {hasError && (
+        <div className="mb-1.5 px-1.5 py-1 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] break-words">
+          {generator.lastRunError!.message}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 mt-2 pt-1.5 border-t border-[var(--color-figma-border)]">
+        <button
+          onClick={() => onRun(generator.id)}
+          className="flex-1 py-1 rounded text-center bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+        >
+          Run
+        </button>
+        <button
+          onClick={() => onEdit(generator.id)}
+          className="flex-1 py-1 rounded text-center border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => onViewTokens(generator.targetGroup, generator.targetSet)}
+          className="flex-1 py-1 rounded text-center border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+        >
+          Tokens
+        </button>
+      </div>
     </div>
   );
 }
@@ -96,10 +118,12 @@ function Minimap({
 export interface NodeGraphCanvasProps {
   generators: TokenGenerator[];
   activeSet: string;
-  serverUrl: string;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   searchQuery?: string;
+  onEditGenerator?: (generatorId: string) => void;
+  onRunGenerator?: (generatorId: string) => void;
+  onViewTokens?: (targetGroup: string, targetSet: string) => void;
 }
 
 export function NodeGraphCanvas({
@@ -107,6 +131,9 @@ export function NodeGraphCanvas({
   activeSet,
   onPushUndo,
   searchQuery = '',
+  onEditGenerator,
+  onRunGenerator,
+  onViewTokens,
 }: NodeGraphCanvasProps) {
   const {
     graph,
@@ -114,6 +141,7 @@ export function NodeGraphCanvas({
     pushMoveUndo,
     selectedNodeId,
     setSelectedNodeId,
+    selectedGenerator,
     persistPositions,
   } = useNodeGraph(generators, activeSet, onPushUndo);
 
@@ -124,11 +152,8 @@ export function NodeGraphCanvas({
   const panRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const dragRef = useRef<{ nodeId: string; startX: number; startY: number; nodeX: number; nodeY: number } | null>(null);
   const [containerSize, setContainerSize] = useState({ w: 600, h: 400 });
-
-  // ---------------------------------------------------------------------------
-  // Dependency edges
-  // ---------------------------------------------------------------------------
-  const dependencyEdges = useMemo(() => computeDependencyEdges(generators), [generators]);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const lastClickRef = useRef<{ nodeId: string; time: number } | null>(null);
 
   // ---------------------------------------------------------------------------
   // Search — compute matched node IDs
@@ -140,7 +165,7 @@ export function NodeGraphCanvas({
       graph.nodes
         .filter(n =>
           n.label.toLowerCase().includes(q) ||
-          (n.sourceTokenPath ?? '').toLowerCase().includes(q) ||
+          (n.sourceToken ?? '').toLowerCase().includes(q) ||
           (n.targetGroup ?? '').toLowerCase().includes(q) ||
           (n.generatorType ?? '').toLowerCase().includes(q),
         )
@@ -158,7 +183,7 @@ export function NodeGraphCanvas({
     const minX = Math.min(...matchedNodes.map(n => n.x));
     const minY = Math.min(...matchedNodes.map(n => n.y));
     const maxX = Math.max(...matchedNodes.map(n => n.x + n.width));
-    const maxY = Math.max(...matchedNodes.map(n => n.y + (n.height || nodeHeight(n))));
+    const maxY = Math.max(...matchedNodes.map(n => n.y + FIXED_NODE_HEIGHT));
     const graphW = maxX - minX + PAD * 2;
     const graphH = maxY - minY + PAD * 2;
     const scaleX = containerSize.w / graphW;
@@ -184,7 +209,6 @@ export function NodeGraphCanvas({
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
-
 
   // ---------------------------------------------------------------------------
   // Pan
@@ -260,12 +284,27 @@ export function NodeGraphCanvas({
   );
 
   // ---------------------------------------------------------------------------
-  // Node drag
+  // Node pointer handlers
   // ---------------------------------------------------------------------------
   const handleNodePointerDown = useCallback(
     (nodeId: string, e: React.PointerEvent<SVGGElement>) => {
       const node = graph.nodes.find(n => n.id === nodeId);
       if (!node) return;
+
+      // Double-click detection
+      const now = Date.now();
+      if (
+        lastClickRef.current &&
+        lastClickRef.current.nodeId === nodeId &&
+        now - lastClickRef.current.time < 350
+      ) {
+        // Double-click → edit
+        lastClickRef.current = null;
+        if (onEditGenerator) onEditGenerator(node.generatorId);
+        return;
+      }
+      lastClickRef.current = { nodeId, time: now };
+
       setSelectedNodeId(nodeId);
       dragRef.current = {
         nodeId,
@@ -275,7 +314,7 @@ export function NodeGraphCanvas({
         nodeY: node.y,
       };
     },
-    [graph.nodes, setSelectedNodeId],
+    [graph.nodes, setSelectedNodeId, onEditGenerator],
   );
 
   // ---------------------------------------------------------------------------
@@ -299,7 +338,7 @@ export function NodeGraphCanvas({
     const minX = Math.min(...graph.nodes.map(n => n.x));
     const minY = Math.min(...graph.nodes.map(n => n.y));
     const maxX = Math.max(...graph.nodes.map(n => n.x + n.width));
-    const maxY = Math.max(...graph.nodes.map(n => n.y + (n.height || nodeHeight(n))));
+    const maxY = Math.max(...graph.nodes.map(n => n.y + FIXED_NODE_HEIGHT));
     const graphW = maxX - minX + 80;
     const graphH = maxY - minY + 80;
     const scaleX = containerSize.w / graphW;
@@ -319,6 +358,19 @@ export function NodeGraphCanvas({
       fitToView();
     }
   }, [graph.nodes.length, fitToView]);
+
+  // ---------------------------------------------------------------------------
+  // Popover positioning
+  // ---------------------------------------------------------------------------
+  const selectedNode = selectedNodeId ? graph.nodes.find(n => n.id === selectedNodeId) : null;
+  const popoverPos = useMemo(() => {
+    if (!selectedNode) return null;
+    return {
+      x: selectedNode.x * zoom + pan.x,
+      y: selectedNode.y * zoom + pan.y,
+      width: selectedNode.width * zoom,
+    };
+  }, [selectedNode, zoom, pan]);
 
   // ---------------------------------------------------------------------------
   // Render
@@ -350,13 +402,13 @@ export function NodeGraphCanvas({
             height={24 * zoom}
             patternUnits="userSpaceOnUse"
           >
-            <circle cx={zoom} cy={zoom} r={zoom * 0.8} fill="var(--color-figma-text-tertiary)" opacity="0.2" />
+            <circle cx={zoom} cy={zoom} r={zoom * 0.8} fill="var(--color-figma-text-tertiary)" opacity="0.12" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#ng-grid)" />
       </svg>
 
-      {/* Main SVG layer (pan + zoom) */}
+      {/* Main SVG layer */}
       <svg
         className="absolute inset-0"
         width="100%"
@@ -364,88 +416,61 @@ export function NodeGraphCanvas({
         style={{ zIndex: 1 }}
       >
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Cross-generator dependency edges */}
-          {dependencyEdges.map(dep => {
-            const fromOutNode = graph.nodes.find(n => n.id === `out-${dep.fromGeneratorId}`);
-            const toSrcNode = graph.nodes.find(n => n.id === `src-${dep.toGeneratorId}`);
-            const toGenNode = graph.nodes.find(n => n.id === `gen-${dep.toGeneratorId}`);
-            const toNode = toSrcNode ?? toGenNode;
-            if (!fromOutNode || !toNode) return null;
+          {/* Dependency edges */}
+          {graph.dependencyEdges.map(dep => {
+            const fromNode = graph.nodes.find(n => n.id === `gen-${dep.fromGeneratorId}`);
+            const toNode = graph.nodes.find(n => n.id === `gen-${dep.toGeneratorId}`);
+            if (!fromNode || !toNode) return null;
 
-            const fromX = fromOutNode.x + fromOutNode.width;
-            const fromY = fromOutNode.y + (fromOutNode.height || nodeHeight(fromOutNode)) / 2;
-            const toX = toNode.x;
-            const toY = toNode.y + (toNode.height || nodeHeight(toNode)) / 2;
-            const path = depEdgePath(fromX, fromY, toX, toY);
+            const from = portOutPosition(fromNode);
+            const to = portInPosition(toNode);
+            const path = edgePath(from.x, from.y, to.x, to.y);
+
+            const shortLabel = dep.label.length > 26 ? `\u2026${dep.label.slice(-24)}` : dep.label;
+            const midX = (from.x + to.x) / 2;
+            const midY = (from.y + to.y) / 2;
 
             return (
               <g key={dep.id} style={{ pointerEvents: 'none' }} aria-hidden="true">
-                <path d={path} fill="none" stroke="var(--color-figma-accent)" strokeWidth={6} strokeOpacity={0.08} />
+                {/* Glow */}
+                <path d={path} fill="none" stroke="var(--color-figma-accent)" strokeWidth={6} strokeOpacity={0.06} />
+                {/* Line */}
                 <path
                   d={path}
                   fill="none"
                   stroke="var(--color-figma-accent)"
                   strokeWidth={1.5}
                   strokeDasharray="5 4"
-                  strokeOpacity={0.55}
-                />
-                <circle cx={toX} cy={toY} r={3} fill="var(--color-figma-accent)" opacity={0.7} />
-                {dep.label && (() => {
-                  const rightX = Math.max(fromX, toX) + 60;
-                  const midX = (rightX + toX) / 2;
-                  const midY = (fromY + toY) / 2;
-                  const shortLabel = dep.label.length > 26 ? `…${dep.label.slice(-24)}` : dep.label;
-                  return (
-                    <g>
-                      <rect
-                        x={midX - shortLabel.length * 2.7}
-                        y={midY - 7}
-                        width={shortLabel.length * 5.4}
-                        height={13}
-                        rx={3}
-                        fill="var(--color-figma-bg)"
-                        stroke="var(--color-figma-accent)"
-                        strokeWidth={0.75}
-                        strokeOpacity={0.4}
-                        opacity={0.9}
-                      />
-                      <text
-                        x={midX}
-                        y={midY + 3.5}
-                        textAnchor="middle"
-                        fontFamily="ui-monospace,monospace"
-                        fontSize={8}
-                        fill="var(--color-figma-accent)"
-                        opacity={0.85}
-                      >
-                        {shortLabel}
-                      </text>
-                    </g>
-                  );
-                })()}
-              </g>
-            );
-          })}
-
-          {/* Edges */}
-          {graph.edges.map(edge => {
-            const fromNode = graph.nodes.find(n => n.id === edge.fromNodeId);
-            const toNode = graph.nodes.find(n => n.id === edge.toNodeId);
-            if (!fromNode || !toNode) return null;
-            const from = portPosition(fromNode, edge.fromPortId);
-            const to = portPosition(toNode, edge.toPortId);
-            if (!from || !to) return null;
-            return (
-              <g key={edge.id} style={{ pointerEvents: 'none' }}>
-                <path
-                  d={edgePath(from.x, from.y, to.x, to.y)}
-                  fill="none"
-                  stroke="var(--color-figma-text-tertiary)"
-                  strokeWidth={1.5}
                   strokeOpacity={0.5}
                 />
-                <circle cx={from.x} cy={from.y} r={3} fill="var(--color-figma-accent)" opacity={0.6} />
-                <circle cx={to.x} cy={to.y} r={3} fill="var(--color-figma-accent)" opacity={0.6} />
+                {/* Target dot */}
+                <circle cx={to.x} cy={to.y} r={3} fill="var(--color-figma-accent)" opacity={0.7} />
+                {/* Label */}
+                <g>
+                  <rect
+                    x={midX - shortLabel.length * 2.7}
+                    y={midY - 7}
+                    width={shortLabel.length * 5.4}
+                    height={13}
+                    rx={3}
+                    fill="var(--color-figma-bg)"
+                    stroke="var(--color-figma-accent)"
+                    strokeWidth={0.75}
+                    strokeOpacity={0.35}
+                    opacity={0.92}
+                  />
+                  <text
+                    x={midX}
+                    y={midY + 3.5}
+                    textAnchor="middle"
+                    fontFamily="ui-monospace,monospace"
+                    fontSize={8}
+                    fill="var(--color-figma-accent)"
+                    opacity={0.8}
+                  >
+                    {shortLabel}
+                  </text>
+                </g>
               </g>
             );
           })}
@@ -456,59 +481,47 @@ export function NodeGraphCanvas({
               key={node.id}
               transform={`translate(${node.x}, ${node.y})`}
               onPointerDown={(e) => handleNodePointerDown(node.id, e)}
+              onPointerEnter={() => setHoveredNodeId(node.id)}
+              onPointerLeave={() => setHoveredNodeId(prev => prev === node.id ? null : prev)}
             >
               <NodeRenderer
                 node={node}
                 isSelected={selectedNodeId === node.id}
                 isHighlighted={matchedNodeIds.size > 0 && matchedNodeIds.has(node.id)}
+                isHovered={hoveredNodeId === node.id}
                 onSelect={setSelectedNodeId}
+                onRun={onRunGenerator}
+                onEdit={onEditGenerator}
               />
             </g>
           ))}
         </g>
       </svg>
 
-      {/* Toolbar overlay */}
-      <div className="absolute top-2 right-2 flex items-center gap-1" style={{ zIndex: 10 }}>
-        <button
-          onClick={() => setZoom(z => Math.min(3, z * 1.25))}
-          className="w-6 h-6 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] flex items-center justify-center text-[12px] font-bold transition-colors"
-          title="Zoom in"
-        >
-          +
-        </button>
-        <button
-          onClick={() => setZoom(z => Math.max(0.2, z * 0.8))}
-          className="w-6 h-6 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] flex items-center justify-center text-[12px] font-bold transition-colors"
-          title="Zoom out"
-        >
-          -
-        </button>
-        <button
-          onClick={fitToView}
-          className="h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] flex items-center justify-center text-[9px] transition-colors"
-          title="Fit to view"
-        >
-          Fit
-        </button>
-        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] ml-1 tabular-nums">
-          {Math.round(zoom * 100)}%
-        </span>
-      </div>
+      {/* Fit button */}
+      <button
+        onClick={fitToView}
+        className="absolute top-2 right-2 w-7 h-7 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] flex items-center justify-center transition-colors"
+        style={{ zIndex: 10 }}
+        title="Fit to view"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
+        </svg>
+      </button>
 
-      {/* Help text */}
-      <div className="absolute bottom-2 left-2 text-[8px] text-[var(--color-figma-text-tertiary)] pointer-events-none" style={{ zIndex: 10 }}>
-        Scroll to zoom &middot; Drag to pan
-      </div>
-
-      {/* Minimap */}
-      <Minimap
-        nodes={graph.nodes.map(n => ({ x: n.x, y: n.y, width: n.width, height: n.height || nodeHeight(n), kind: n.kind }))}
-        pan={pan}
-        zoom={zoom}
-        viewW={containerSize.w}
-        viewH={containerSize.h}
-      />
+      {/* Detail popover */}
+      {selectedGenerator && popoverPos && onEditGenerator && onRunGenerator && onViewTokens && (
+        <DetailPopover
+          generator={selectedGenerator}
+          nodeScreenX={popoverPos.x}
+          nodeScreenY={popoverPos.y}
+          nodeWidth={popoverPos.width}
+          onRun={onRunGenerator}
+          onEdit={onEditGenerator}
+          onViewTokens={onViewTokens}
+        />
+      )}
     </div>
   );
 }

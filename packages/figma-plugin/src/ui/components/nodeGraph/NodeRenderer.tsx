@@ -1,96 +1,53 @@
+import { useState } from 'react';
 import type { GraphNode } from './nodeGraphTypes';
-import { NODE_HEADER_H, PORT_ROW_H, GENERATOR_PREVIEW_H } from './nodeGraphTypes';
+import {
+  NODE_WIDTH,
+  NODE_HEADER_H,
+  SOURCE_LINE_H,
+  PREVIEW_H,
+  TARGET_LINE_H,
+  FOOTER_H,
+  NODE_PADDING,
+  FIXED_NODE_HEIGHT,
+} from './nodeGraphTypes';
+import { TYPE_LABELS } from '../generators/generatorUtils';
 
 // ---------------------------------------------------------------------------
-// Color scheme per node kind
+// Status colors
 // ---------------------------------------------------------------------------
 
-const KIND_COLORS: Record<string, { bg: string; border: string; header: string; headerText: string }> = {
-  source: {
-    bg: 'var(--color-figma-bg)',
-    border: 'var(--color-figma-border)',
-    header: 'var(--color-figma-bg-secondary)',
-    headerText: 'var(--color-figma-text-secondary)',
-  },
-  generator: {
-    bg: 'var(--color-figma-bg)',
-    border: 'var(--color-figma-accent)',
-    header: 'color-mix(in srgb, var(--color-figma-accent) 12%, var(--color-figma-bg))',
-    headerText: 'var(--color-figma-accent)',
-  },
-  output: {
-    bg: 'var(--color-figma-bg)',
-    border: 'var(--color-figma-border)',
-    header: 'var(--color-figma-bg-secondary)',
-    headerText: 'var(--color-figma-text-secondary)',
-  },
-};
+function statusAccentColor(status: string): string | null {
+  switch (status) {
+    case 'stale': return '#eab308';    // yellow-500
+    case 'failed': return '#ef4444';   // red-500
+    case 'blocked': return '#f59e0b';  // amber-500
+    default: return null;
+  }
+}
 
-// ---------------------------------------------------------------------------
-// Kind icons (inline SVGs)
-// ---------------------------------------------------------------------------
-
-function KindIcon({ kind }: { kind: string }) {
-  switch (kind) {
-    case 'source':
-      return (
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      );
-    case 'generator':
-      return (
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-        </svg>
-      );
-    case 'output':
-      return (
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-      );
-    default:
-      return null;
+function statusDotColor(status: string): string {
+  switch (status) {
+    case 'stale': return '#eab308';
+    case 'failed': return '#ef4444';
+    case 'blocked': return '#f59e0b';
+    case 'fresh': return '#22c55e';
+    default: return 'var(--color-figma-text-tertiary)';
   }
 }
 
 // ---------------------------------------------------------------------------
-// Port label row (read-only, no wiring affordances)
-// ---------------------------------------------------------------------------
-
-function PortRow({ label, direction, index }: { label: string; direction: 'in' | 'out'; index: number }) {
-  const cy = NODE_HEADER_H + index * PORT_ROW_H + PORT_ROW_H / 2;
-  return (
-    <text
-      x={direction === 'in' ? 10 : -10}
-      y={cy + 3}
-      textAnchor={direction === 'in' ? 'start' : 'end'}
-      fontSize="9"
-      fill="var(--color-figma-text-secondary)"
-      style={{ userSelect: 'none', pointerEvents: 'none' }}
-    >
-      {label}
-    </text>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Inline preview for generator nodes
+// Inline preview (adapted from previous implementation)
 // ---------------------------------------------------------------------------
 
 function GeneratorPreview({ node }: { node: GraphNode }) {
-  const y = NODE_HEADER_H + node.ports.length * PORT_ROW_H + 4;
+  const y = NODE_HEADER_H + SOURCE_LINE_H + 2;
   const padX = 10;
-  const w = node.width - padX * 2;
+  const w = NODE_WIDTH - padX * 2;
 
   if (node.previewColors && node.previewColors.length > 0) {
-    const colors = node.previewColors.slice(0, 7);
-    const dotR = 4;
-    const spacing = Math.min(w / colors.length, dotR * 3);
+    const colors = node.previewColors.slice(0, 11);
+    const dotR = 5;
+    const spacing = Math.min(w / colors.length, dotR * 2.8);
     const totalW = (colors.length - 1) * spacing;
     const startX = padX + (w - totalW) / 2;
     return (
@@ -99,7 +56,7 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
           <circle
             key={i}
             cx={startX + i * spacing}
-            cy={y + GENERATOR_PREVIEW_H / 2}
+            cy={y + PREVIEW_H / 2}
             r={dotR}
             fill={c}
             stroke="var(--color-figma-border)"
@@ -113,20 +70,20 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
   switch (node.generatorType) {
     case 'colorRamp':
     case 'darkModeInversion': {
-      const count = Math.min(node.stepCount || 5, 7);
-      const dotR = 4;
-      const spacing = Math.min(w / count, dotR * 3);
+      const count = Math.min(node.stepCount || 7, 11);
+      const dotR = 5;
+      const spacing = Math.min(w / count, dotR * 2.8);
       const totalW = (count - 1) * spacing;
       const startX = padX + (w - totalW) / 2;
       return (
         <g style={{ pointerEvents: 'none' }}>
           {Array.from({ length: count }, (_, i) => {
-            const lightness = 90 - (i / (count - 1)) * 70;
+            const lightness = 92 - (i / (count - 1)) * 74;
             return (
               <circle
                 key={i}
                 cx={startX + i * spacing}
-                cy={y + GENERATOR_PREVIEW_H / 2}
+                cy={y + PREVIEW_H / 2}
                 r={dotR}
                 fill={`hsl(220, 50%, ${lightness}%)`}
                 stroke="var(--color-figma-border)"
@@ -139,25 +96,25 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
     }
 
     case 'typeScale': {
-      const barCount = Math.min(node.stepCount || 3, 4);
-      const barH = 2.5;
-      const gap = 1.5;
+      const barCount = Math.min(node.stepCount || 4, 5);
+      const barH = 3;
+      const gap = 2;
       const totalH = barCount * barH + (barCount - 1) * gap;
-      const startY = y + (GENERATOR_PREVIEW_H - totalH) / 2;
+      const startY = y + (PREVIEW_H - totalH) / 2;
       return (
         <g style={{ pointerEvents: 'none' }}>
           {Array.from({ length: barCount }, (_, i) => {
-            const barW = w * (1 - i * 0.2);
+            const barW = w * (1 - i * 0.18);
             return (
               <rect
                 key={i}
                 x={padX}
                 y={startY + i * (barH + gap)}
-                width={Math.max(8, barW)}
+                width={Math.max(10, barW)}
                 height={barH}
-                rx={1}
+                rx={1.5}
                 fill="var(--color-figma-text-tertiary)"
-                opacity={0.8 - i * 0.15}
+                opacity={0.85 - i * 0.12}
               />
             );
           })}
@@ -167,18 +124,18 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
 
     case 'spacingScale':
     case 'borderRadiusScale': {
-      const count = Math.min(node.stepCount || 4, 5);
-      const maxSize = 10;
+      const count = Math.min(node.stepCount || 5, 7);
+      const maxSize = 14;
       const spacing2 = w / (count + 1);
       return (
         <g style={{ pointerEvents: 'none' }}>
           {Array.from({ length: count }, (_, i) => {
-            const size = 3 + (i / (count - 1)) * (maxSize - 3);
+            const size = 4 + (i / (count - 1)) * (maxSize - 4);
             return (
               <rect
                 key={i}
                 x={padX + spacing2 * (i + 1) - size / 2}
-                y={y + GENERATOR_PREVIEW_H / 2 - size / 2}
+                y={y + PREVIEW_H / 2 - size / 2}
                 width={size}
                 height={size}
                 rx={node.generatorType === 'borderRadiusScale' ? size * 0.3 : 1}
@@ -194,9 +151,9 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
     }
 
     case 'opacityScale': {
-      const count = Math.min(node.stepCount || 5, 6);
-      const dotR = 4;
-      const spacing3 = Math.min(w / count, dotR * 3);
+      const count = Math.min(node.stepCount || 6, 8);
+      const dotR = 5;
+      const spacing3 = Math.min(w / count, dotR * 2.8);
       const totalW = (count - 1) * spacing3;
       const startX = padX + (w - totalW) / 2;
       return (
@@ -207,7 +164,7 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
               <circle
                 key={i}
                 cx={startX + i * spacing3}
-                cy={y + GENERATOR_PREVIEW_H / 2}
+                cy={y + PREVIEW_H / 2}
                 r={dotR}
                 fill="var(--color-figma-text-secondary)"
                 opacity={opacity}
@@ -219,8 +176,8 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
     }
 
     default: {
-      const count = Math.min(node.stepCount || 3, 6);
-      const dotR = 2;
+      const count = Math.min(node.stepCount || 4, 8);
+      const dotR = 3;
       const spacing4 = dotR * 3;
       const totalW = (count - 1) * spacing4;
       const startX = padX + (w - totalW) / 2;
@@ -230,7 +187,7 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
             <circle
               key={i}
               cx={startX + i * spacing4}
-              cy={y + GENERATOR_PREVIEW_H / 2}
+              cy={y + PREVIEW_H / 2}
               r={dotR}
               fill="var(--color-figma-text-tertiary)"
               opacity={0.6}
@@ -243,24 +200,44 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Node component — read-only, no wiring or transform node support
+// Main node renderer
 // ---------------------------------------------------------------------------
 
 export interface NodeRendererProps {
   node: GraphNode;
   isSelected: boolean;
   isHighlighted?: boolean;
+  isHovered?: boolean;
   onSelect: (id: string) => void;
+  onRun?: (generatorId: string) => void;
+  onEdit?: (generatorId: string) => void;
 }
 
 export function NodeRenderer({
   node,
   isSelected,
   isHighlighted,
+  isHovered,
   onSelect,
+  onRun,
+  onEdit,
 }: NodeRendererProps) {
-  const colors = KIND_COLORS[node.kind] || KIND_COLORS.source;
-  const h = node.height || NODE_HEADER_H + node.ports.length * PORT_ROW_H + 8;
+  const h = FIXED_NODE_HEIGHT;
+  const w = node.width;
+  const accent = statusAccentColor(node.status);
+  const disabled = !node.enabled;
+  const showActions = isHovered || isSelected;
+
+  const trunc = (s: string, max: number) =>
+    s.length > max ? s.slice(0, max - 1) + '\u2026' : s;
+
+  const typeLabel = TYPE_LABELS[node.generatorType as keyof typeof TYPE_LABELS] || node.generatorType;
+
+  // Y offsets for each section
+  const sourceY = NODE_HEADER_H;
+  const previewY = sourceY + SOURCE_LINE_H;
+  const targetY = previewY + PREVIEW_H;
+  const footerY = targetY + TARGET_LINE_H;
 
   return (
     <g
@@ -269,15 +246,13 @@ export function NodeRenderer({
         e.stopPropagation();
         onSelect(node.id);
       }}
-      style={{ cursor: 'grab' }}
+      style={{ cursor: 'grab', opacity: disabled ? 0.5 : 1 }}
     >
-      {/* Shadow */}
-      <rect x={1} y={1} width={node.width} height={h} rx={6} fill="rgba(0,0,0,0.06)" />
       {/* Highlight ring for search matches */}
       {isHighlighted && (
         <rect
           x={-4} y={-4}
-          width={node.width + 8} height={h + 8}
+          width={w + 8} height={h + 8}
           rx={10}
           fill="none"
           stroke="#f59e0b"
@@ -286,78 +261,156 @@ export function NodeRenderer({
           style={{ pointerEvents: 'none' }}
         />
       )}
+
+      {/* Shadow */}
+      <rect
+        x={1} y={2}
+        width={w} height={h}
+        rx={8}
+        fill="rgba(0,0,0,0.06)"
+      />
+
       {/* Body */}
       <rect
         x={0} y={0}
-        width={node.width} height={h}
-        rx={6}
-        fill={colors.bg}
-        stroke={isSelected ? 'var(--color-figma-accent)' : colors.border}
+        width={w} height={h}
+        rx={8}
+        fill="var(--color-figma-bg)"
+        stroke={isSelected ? 'var(--color-figma-accent)' : 'var(--color-figma-border)'}
         strokeWidth={isSelected ? 2 : 1}
-        strokeOpacity={isSelected ? 1 : 0.5}
+        strokeOpacity={isSelected ? 1 : disabled ? 0.4 : 0.6}
+        strokeDasharray={disabled ? '4 3' : undefined}
       />
-      {/* Header bar */}
-      <rect x={0} y={0} width={node.width} height={NODE_HEADER_H} rx={6} fill={colors.header} />
-      <rect x={0} y={NODE_HEADER_H - 6} width={node.width} height={6} fill={colors.header} />
-      {/* Header icon + label */}
-      <g transform={`translate(8, ${NODE_HEADER_H / 2 + 1})`} style={{ pointerEvents: 'none' }}>
-        <g transform="translate(0, -5)" style={{ color: colors.headerText }}>
-          <KindIcon kind={node.kind} />
+
+      {/* Status accent — left border bar */}
+      {accent && (
+        <rect
+          x={0} y={4}
+          width={3} height={h - 8}
+          rx={1.5}
+          fill={accent}
+        />
+      )}
+
+      {/* Header background */}
+      <rect
+        x={0} y={0}
+        width={w} height={NODE_HEADER_H}
+        rx={8}
+        fill="var(--color-figma-bg-secondary)"
+      />
+      <rect
+        x={0} y={NODE_HEADER_H - 8}
+        width={w} height={8}
+        fill="var(--color-figma-bg-secondary)"
+      />
+
+      {/* Header: name + status dot */}
+      <text
+        x={10} y={NODE_HEADER_H / 2 + 4.5}
+        fontSize="12" fontWeight="600"
+        fill="var(--color-figma-text)"
+        style={{ userSelect: 'none', pointerEvents: 'none' }}
+      >
+        {trunc(node.label, 28)}
+      </text>
+      <circle
+        cx={w - 12}
+        cy={NODE_HEADER_H / 2}
+        r={4}
+        fill={statusDotColor(node.status)}
+        opacity={0.9}
+      />
+
+      {/* Source line */}
+      <text
+        x={10} y={sourceY + SOURCE_LINE_H / 2 + 3.5}
+        fontSize="10"
+        fontFamily="ui-monospace, monospace"
+        fill="var(--color-figma-text-tertiary)"
+        style={{ userSelect: 'none', pointerEvents: 'none' }}
+      >
+        {node.sourceToken
+          ? `\u2190 ${trunc(node.sourceToken, 32)}`
+          : '\u2190 standalone'}
+      </text>
+
+      {/* Preview */}
+      <GeneratorPreview node={node} />
+
+      {/* Target line */}
+      <text
+        x={10} y={targetY + TARGET_LINE_H / 2 + 3.5}
+        fontSize="10"
+        fontFamily="ui-monospace, monospace"
+        fill="var(--color-figma-text-tertiary)"
+        style={{ userSelect: 'none', pointerEvents: 'none' }}
+      >
+        {`\u2192 ${trunc(node.targetGroup + '.*', 32)}`}
+      </text>
+
+      {/* Divider above footer */}
+      <line
+        x1={8} y1={footerY}
+        x2={w - 8} y2={footerY}
+        stroke="var(--color-figma-border)"
+        strokeOpacity={0.4}
+      />
+
+      {/* Footer: type label + step count */}
+      <text
+        x={10} y={footerY + FOOTER_H / 2 + 3.5}
+        fontSize="10"
+        fill="var(--color-figma-text-secondary)"
+        style={{ userSelect: 'none', pointerEvents: 'none' }}
+      >
+        {typeLabel}{node.stepCount > 0 ? ` \u00b7 ${node.stepCount} steps` : ''}
+      </text>
+
+      {/* Action icons (visible on hover/select) */}
+      {showActions && (
+        <g>
+          {/* Run button */}
+          <g
+            style={{ cursor: 'pointer' }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onRun?.(node.generatorId);
+            }}
+          >
+            <rect
+              x={w - 48} y={footerY + 3}
+              width={18} height={16}
+              rx={3}
+              fill="var(--color-figma-bg-hover)"
+              opacity={0.8}
+            />
+            <svg x={w - 44} y={footerY + 5} width="10" height="12" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3" fill="var(--color-figma-accent)" />
+            </svg>
+          </g>
+
+          {/* Edit button */}
+          <g
+            style={{ cursor: 'pointer' }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onEdit?.(node.generatorId);
+            }}
+          >
+            <rect
+              x={w - 26} y={footerY + 3}
+              width={18} height={16}
+              rx={3}
+              fill="var(--color-figma-bg-hover)"
+              opacity={0.8}
+            />
+            <svg x={w - 22} y={footerY + 5} width="10" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+            </svg>
+          </g>
         </g>
-        <text
-          x={16} y={3}
-          fontSize="10" fontWeight="600"
-          fill={colors.headerText}
-          style={{ userSelect: 'none' }}
-        >
-          {node.label.length > 18 ? node.label.slice(0, 17) + '\u2026' : node.label}
-        </text>
-      </g>
-
-      {/* Subtitle rows */}
-      {node.kind === 'source' && node.sourceTokenPath && (
-        <text
-          x={8} y={NODE_HEADER_H + 14}
-          fontSize="8" fill="var(--color-figma-text-tertiary)"
-          style={{ userSelect: 'none', pointerEvents: 'none' }}
-        >
-          {node.sourceTokenPath.length > 22
-            ? node.sourceTokenPath.slice(0, 21) + '\u2026'
-            : node.sourceTokenPath}
-        </text>
       )}
-      {node.kind === 'generator' && (
-        <text
-          x={8} y={NODE_HEADER_H + 14}
-          fontSize="8" fill="var(--color-figma-text-tertiary)"
-          style={{ userSelect: 'none', pointerEvents: 'none' }}
-        >
-          {node.status === 'blocked'
-            ? `blocked by ${(node.blockedBy ?? []).slice(0, 1).join(', ') || 'upstream'}`
-            : `${node.generatorType}${node.stepCount ? ` \u00b7 ${node.stepCount} steps` : ''}${
-                (node.upstreamCount ?? 0) > 0 || (node.downstreamCount ?? 0) > 0
-                  ? ` \u00b7 ${node.upstreamCount ?? 0}\u2191 ${node.downstreamCount ?? 0}\u2193`
-                  : ''
-              }`}
-        </text>
-      )}
-      {node.kind === 'output' && (
-        <text
-          x={8} y={NODE_HEADER_H + 14}
-          fontSize="8" fill="var(--color-figma-text-tertiary)"
-          style={{ userSelect: 'none', pointerEvents: 'none' }}
-        >
-          {node.targetSet ? `\u2192 ${node.targetSet}` : ''}
-        </text>
-      )}
-
-      {/* Inline preview for generator nodes */}
-      {node.kind === 'generator' && <GeneratorPreview node={node} />}
-
-      {/* Port labels (read-only) */}
-      {node.ports.map((port, pi) => (
-        <PortRow key={port.id} label={port.label} direction={port.direction} index={pi} />
-      ))}
     </g>
   );
 }

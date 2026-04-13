@@ -6,28 +6,10 @@ import { getGeneratorDashboardStatus } from '../../hooks/useGenerators';
 import { TYPE_LABELS } from '../generators/generatorUtils';
 
 // ---------------------------------------------------------------------------
-// Node kinds — transform nodes removed (were non-functional)
+// Nodes — single unified node per generator
 // ---------------------------------------------------------------------------
 
-export type NodeKind = 'source' | 'generator' | 'output';
-
-// ---------------------------------------------------------------------------
-// Ports
-// ---------------------------------------------------------------------------
-
-export type PortType = 'color' | 'dimension' | 'number' | 'any';
-export type PortDirection = 'in' | 'out';
-
-export interface Port {
-  id: string;
-  label: string;
-  type: PortType;
-  direction: PortDirection;
-}
-
-// ---------------------------------------------------------------------------
-// Nodes
-// ---------------------------------------------------------------------------
+export type NodeKind = 'generator';
 
 export interface GraphNode {
   id: string;
@@ -37,59 +19,40 @@ export interface GraphNode {
   y: number;
   width: number;
   height: number;
-  ports: Port[];
-  // Source nodes
-  sourceTokenPath?: string;
-  // Generator nodes — link to server generator
-  generatorId?: string;
-  generatorType?: string;
-  stepCount?: number;
-  status?: GeneratorDashboardStatus;
-  upstreamCount?: number;
-  downstreamCount?: number;
-  blockedBy?: string[];
-  // Output nodes
-  targetGroup?: string;
-  targetSet?: string;
-  // Preview data for inline node previews
+  // Generator identity
+  generatorId: string;
+  generatorType: string;
+  // Source and target
+  sourceToken: string | null;
+  targetGroup: string;
+  targetSet: string;
+  // Status
+  status: GeneratorDashboardStatus;
+  enabled: boolean;
+  lastRunAt?: string;
+  errorMessage?: string;
+  // Metrics
+  stepCount: number;
+  upstreamCount: number;
+  downstreamCount: number;
+  blockedBy: string[];
+  // Preview
   previewColors?: string[];
-}
-
-// ---------------------------------------------------------------------------
-// Edges
-// ---------------------------------------------------------------------------
-
-export interface GraphEdge {
-  id: string;
-  fromNodeId: string;
-  fromPortId: string;
-  toNodeId: string;
-  toPortId: string;
+  // Layout depth (0 = root, 1+ = downstream)
+  depth: number;
 }
 
 // ---------------------------------------------------------------------------
 // Cross-generator dependency edges
 // ---------------------------------------------------------------------------
 
-/**
- * Represents a semantic dependency between two generators: the upstream generator
- * produces tokens that are consumed as input by the downstream generator.
- * These are rendered separately from port-based edges with distinct styling.
- */
 export interface DependencyEdge {
   id: string;
-  /** ID of the generator whose output feeds the downstream generator */
   fromGeneratorId: string;
-  /** ID of the generator that consumes the upstream generator's output */
   toGeneratorId: string;
-  /** The specific sourceToken path that creates this dependency */
   label: string;
 }
 
-/**
- * Compute inter-generator dependency edges for a list of generators.
- * Generator B depends on generator A when B.sourceToken starts with A.targetGroup + '.'.
- */
 export function computeDependencyEdges(generators: TokenGenerator[]): DependencyEdge[] {
   const deps: DependencyEdge[] = [];
   for (const downstream of generators) {
@@ -103,7 +66,7 @@ export function computeDependencyEdges(generators: TokenGenerator[]): Dependency
           toGeneratorId: downstream.id,
           label: downstream.sourceToken,
         });
-        break; // One upstream per generator dependency
+        break;
       }
     }
   }
@@ -116,62 +79,50 @@ export function computeDependencyEdges(generators: TokenGenerator[]): Dependency
 
 export interface NodeGraphState {
   nodes: GraphNode[];
-  edges: GraphEdge[];
+  dependencyEdges: DependencyEdge[];
 }
 
 // ---------------------------------------------------------------------------
 // Layout constants
 // ---------------------------------------------------------------------------
 
-export const NODE_WIDTHS: Record<NodeKind, number> = {
-  source: 140,
-  generator: 180,
-  output: 140,
-};
+export const NODE_WIDTH = 260;
+export const NODE_HEADER_H = 28;
+export const SOURCE_LINE_H = 18;
+export const PREVIEW_H = 28;
+export const TARGET_LINE_H = 18;
+export const FOOTER_H = 22;
+export const NODE_PADDING = 8;
 
-export const NODE_HEADER_H = 24;
-export const PORT_ROW_H = 22;
-export const PORT_RADIUS = 5;
-export const PORT_HIT_RADIUS = 12;
-
-/** Extra height added for inline previews in generator nodes */
-export const GENERATOR_PREVIEW_H = 20;
-
-export function nodeHeight(node: GraphNode): number {
-  const base = NODE_HEADER_H + Math.max(1, node.ports.length) * PORT_ROW_H + 8;
-  if (node.kind === 'generator') return base + GENERATOR_PREVIEW_H;
-  return base;
+export function nodeHeight(_node?: GraphNode): number {
+  return NODE_HEADER_H + SOURCE_LINE_H + PREVIEW_H + TARGET_LINE_H + FOOTER_H + NODE_PADDING;
 }
 
+// Height is fixed for all nodes
+export const FIXED_NODE_HEIGHT = nodeHeight();
+
 // ---------------------------------------------------------------------------
-// Port position helpers
+// Port positions (for dependency edge attachment)
 // ---------------------------------------------------------------------------
 
-export function portPosition(
-  node: GraphNode,
-  portId: string,
-): { x: number; y: number } | null {
-  const portIndex = node.ports.findIndex(p => p.id === portId);
-  if (portIndex < 0) return null;
-  const port = node.ports[portIndex];
-  const px = port.direction === 'in' ? node.x : node.x + node.width;
-  const py = node.y + NODE_HEADER_H + portIndex * PORT_ROW_H + PORT_ROW_H / 2;
-  return { x: px, y: py };
+/** Left center of node — incoming dependency edge target */
+export function portInPosition(node: GraphNode): { x: number; y: number } {
+  return { x: node.x, y: node.y + FIXED_NODE_HEIGHT / 2 };
+}
+
+/** Right center of node — outgoing dependency edge source */
+export function portOutPosition(node: GraphNode): { x: number; y: number } {
+  return { x: node.x + node.width, y: node.y + FIXED_NODE_HEIGHT / 2 };
 }
 
 // ---------------------------------------------------------------------------
 // Generator → graph conversion
 // ---------------------------------------------------------------------------
 
-/**
- * Topologically sort generators so that upstream producers come before
- * downstream consumers in the layout. Cycles fall back to original order.
- */
 function topoSortGenerators(generators: TokenGenerator[]): TokenGenerator[] {
   const n = generators.length;
   if (n <= 1) return [...generators];
 
-  // adj[i] = indices of generators that i feeds into (i must appear before adj[i][j])
   const adj: number[][] = Array.from({ length: n }, () => []);
   const inDegree = new Array<number>(n).fill(0);
 
@@ -188,7 +139,6 @@ function topoSortGenerators(generators: TokenGenerator[]): TokenGenerator[] {
     }
   }
 
-  // Kahn's algorithm
   const queue: number[] = [];
   for (let i = 0; i < n; i++) {
     if (inDegree[i] === 0) queue.push(i);
@@ -204,7 +154,6 @@ function topoSortGenerators(generators: TokenGenerator[]): TokenGenerator[] {
     }
   }
 
-  // Append any remaining (cycle members) in original order
   const inSortedSet = new Set(sorted);
   for (let i = 0; i < n; i++) {
     if (!inSortedSet.has(i)) sorted.push(i);
@@ -219,101 +168,99 @@ function getStepCount(gen: TokenGenerator): number {
   return 0;
 }
 
+/**
+ * Compute the depth of each generator in the dependency DAG.
+ * Depth 0 = no upstream generators, depth N = max upstream chain length.
+ */
+function computeDepths(generators: TokenGenerator[]): Map<string, number> {
+  const depths = new Map<string, number>();
+  const byId = new Map(generators.map(g => [g.id, g]));
+
+  // Build adjacency: upstream → downstream
+  const downstreamOf = new Map<string, string[]>();
+  for (const gen of generators) {
+    if (!gen.sourceToken) continue;
+    for (const other of generators) {
+      if (other.id === gen.id) continue;
+      if (gen.sourceToken.startsWith(other.targetGroup + '.')) {
+        const list = downstreamOf.get(other.id) ?? [];
+        list.push(gen.id);
+        downstreamOf.set(other.id, list);
+        break;
+      }
+    }
+  }
+
+  function getDepth(id: string): number {
+    if (depths.has(id)) return depths.get(id)!;
+    const gen = byId.get(id)!;
+    if (!gen.sourceToken) {
+      depths.set(id, 0);
+      return 0;
+    }
+    // Find upstream
+    let maxUpstream = -1;
+    for (const other of generators) {
+      if (other.id === id) continue;
+      if (gen.sourceToken.startsWith(other.targetGroup + '.')) {
+        maxUpstream = Math.max(maxUpstream, getDepth(other.id));
+        break;
+      }
+    }
+    const d = maxUpstream >= 0 ? maxUpstream + 1 : 0;
+    depths.set(id, d);
+    return d;
+  }
+
+  for (const gen of generators) getDepth(gen.id);
+  return depths;
+}
+
 export function generatorsToGraph(generators: TokenGenerator[]): NodeGraphState {
   const nodes: GraphNode[] = [];
-  const edges: GraphEdge[] = [];
+  const sortedGenerators = topoSortGenerators(generators);
+  const depthMap = computeDepths(generators);
+  const dependencyEdges = computeDependencyEdges(generators);
 
-  const COL_SRC = 40;
-  const COL_GEN = 260;
-  const COL_OUT = 520;
-  const ROW_H = 120;
+  const COL_X = 40;
+  const DEPTH_INDENT = 40;
+  const ROW_GAP = 20;
   const TOP_PAD = 40;
 
-  // Sort generators topologically so upstream producers appear above downstream consumers
-  const sortedGenerators = topoSortGenerators(generators);
+  const h = FIXED_NODE_HEIGHT;
 
   sortedGenerators.forEach((gen, i) => {
-    const rowY = TOP_PAD + i * ROW_H;
-    const srcId = `src-${gen.id}`;
-    const genId = `gen-${gen.id}`;
-    const outId = `out-${gen.id}`;
+    const depth = depthMap.get(gen.id) ?? 0;
+    const rowY = TOP_PAD + i * (h + ROW_GAP);
+    const nodeId = `gen-${gen.id}`;
 
-    // Source node
-    if (gen.sourceToken) {
-      nodes.push({
-        id: srcId,
-        kind: 'source',
-        label: gen.sourceToken.split('.').pop() || gen.sourceToken,
-        x: COL_SRC,
-        y: rowY,
-        width: NODE_WIDTHS.source,
-        height: 0, // computed at render
-        ports: [{ id: `${srcId}-out`, label: 'Value', type: 'any', direction: 'out' }],
-        sourceTokenPath: gen.sourceToken,
-      });
-    }
-
-    // Generator node
     const stepCount = getStepCount(gen);
+    const status = getGeneratorDashboardStatus(gen);
+
     nodes.push({
-      id: genId,
+      id: nodeId,
       kind: 'generator',
       label: gen.name || TYPE_LABELS[gen.type as keyof typeof TYPE_LABELS] || gen.type,
-      x: COL_GEN,
+      x: COL_X + depth * DEPTH_INDENT,
       y: rowY,
-      width: NODE_WIDTHS.generator,
-      height: 0,
-      ports: [
-        { id: `${genId}-in`, label: 'Source', type: 'any', direction: 'in' },
-        { id: `${genId}-out`, label: `${stepCount} tokens`, type: 'any', direction: 'out' },
-      ],
+      width: NODE_WIDTH,
+      height: h,
       generatorId: gen.id,
       generatorType: gen.type,
-      stepCount,
-      status: getGeneratorDashboardStatus(gen),
-      upstreamCount: gen.upstreamGenerators?.length ?? 0,
-      downstreamCount: gen.downstreamGenerators?.length ?? 0,
-      blockedBy: gen.blockedByGenerators?.map((dependency) => dependency.name) ?? [],
-    });
-
-    // Output node
-    nodes.push({
-      id: outId,
-      kind: 'output',
-      label: gen.targetGroup,
-      x: COL_OUT,
-      y: rowY,
-      width: NODE_WIDTHS.output,
-      height: 0,
-      ports: [{ id: `${outId}-in`, label: 'Input', type: 'any', direction: 'in' }],
+      sourceToken: gen.sourceToken ?? null,
       targetGroup: gen.targetGroup,
       targetSet: gen.targetSet,
-    });
-
-    // Edges
-    if (gen.sourceToken) {
-      edges.push({
-        id: `edge-${srcId}-${genId}`,
-        fromNodeId: srcId,
-        fromPortId: `${srcId}-out`,
-        toNodeId: genId,
-        toPortId: `${genId}-in`,
-      });
-    }
-
-    edges.push({
-      id: `edge-${genId}-${outId}`,
-      fromNodeId: genId,
-      fromPortId: `${genId}-out`,
-      toNodeId: outId,
-      toPortId: `${outId}-in`,
+      status,
+      enabled: gen.enabled !== false,
+      lastRunAt: gen.lastRunAt,
+      errorMessage: gen.lastRunError?.message,
+      stepCount,
+      upstreamCount: gen.upstreamGenerators?.length ?? 0,
+      downstreamCount: gen.downstreamGenerators?.length ?? 0,
+      blockedBy: gen.blockedByGenerators?.map(d => d.name) ?? [],
+      depth,
     });
   });
 
-  // Compute heights
-  for (const node of nodes) {
-    node.height = nodeHeight(node);
-  }
-
-  return { nodes, edges };
+  return { nodes, dependencyEdges };
 }

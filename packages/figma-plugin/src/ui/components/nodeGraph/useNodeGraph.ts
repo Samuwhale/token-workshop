@@ -27,19 +27,17 @@ function savePositions(activeSet: string, nodes: GraphNode[]): void {
 }
 
 // ---------------------------------------------------------------------------
-// Hook — read-only pipeline graph (no wiring or transform nodes)
+// Hook
 // ---------------------------------------------------------------------------
 
 export interface UseNodeGraphResult {
   graph: NodeGraphState;
-  // Node manipulation
   moveNode: (id: string, x: number, y: number) => void;
-  /** Push an undo slot for a completed node move (call at drag end). */
   pushMoveUndo: (nodeId: string, fromX: number, fromY: number) => void;
-  // Selection
   selectedNodeId: string | null;
   setSelectedNodeId: (id: string | null) => void;
-  // Persist positions
+  /** The TokenGenerator corresponding to the selected node, or null. */
+  selectedGenerator: TokenGenerator | null;
   persistPositions: () => void;
 }
 
@@ -48,7 +46,6 @@ export function useNodeGraph(
   activeSet: string,
   onPushUndo?: (slot: UndoSlot) => void,
 ): UseNodeGraphResult {
-  // Derive initial state from generators, applying saved positions
   const initialGraph = useMemo(() => {
     const base = generatorsToGraph(generators);
     const saved = loadPositions(activeSet);
@@ -64,7 +61,6 @@ export function useNodeGraph(
   const [graph, setGraph] = useState<NodeGraphState>(initialGraph);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  // Always-current refs for use in undo closures
   const graphRef = useRef(graph);
   graphRef.current = graph;
   const onPushUndoRef = useRef(onPushUndo);
@@ -91,6 +87,13 @@ export function useNodeGraph(
     }
     setGraph(base);
   }
+
+  const selectedGenerator = useMemo(() => {
+    if (!selectedNodeId) return null;
+    const node = graph.nodes.find(n => n.id === selectedNodeId);
+    if (!node) return null;
+    return generators.find(g => g.id === node.generatorId) ?? null;
+  }, [selectedNodeId, graph.nodes, generators]);
 
   const moveNode = useCallback((id: string, x: number, y: number) => {
     setGraph(prev => ({
@@ -135,6 +138,7 @@ export function useNodeGraph(
     pushMoveUndo,
     selectedNodeId,
     setSelectedNodeId,
+    selectedGenerator,
     persistPositions,
   };
 }

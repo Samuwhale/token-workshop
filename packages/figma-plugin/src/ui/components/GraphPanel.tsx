@@ -26,6 +26,13 @@ import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { createGeneratorDraftFromTemplate } from "../hooks/useGeneratorDialog";
 
 // ---------------------------------------------------------------------------
+// Graph view editing state — generator being edited from the graph canvas
+// ---------------------------------------------------------------------------
+type GraphEditingState =
+  | { kind: "none" }
+  | { kind: "editing"; generatorId: string };
+
+// ---------------------------------------------------------------------------
 // SVG export
 // ---------------------------------------------------------------------------
 
@@ -33,19 +40,18 @@ function exportGraphAsSVG(
   generators: TokenGenerator[],
   activeSet: string,
 ): void {
-  const boxW = 130;
-  const boxH = 28;
-  const boxR = 5;
-  const arrowW = 28;
+  const cardW = 240;
+  const cardH = 48;
+  const cardR = 6;
   const padX = 20;
   const padY = 20;
   const titleH = 32;
-  const rowGap = 10;
-  const svgW = padX * 2 + boxW * 3 + arrowW * 2;
+  const rowGap = 12;
+  const svgW = padX * 2 + cardW;
   const svgH =
     padY +
     titleH +
-    generators.length * (boxH + rowGap) -
+    generators.length * (cardH + rowGap) -
     (generators.length > 0 ? rowGap : 0) +
     padY;
 
@@ -58,30 +64,17 @@ function exportGraphAsSVG(
   const trunc = (s: string, n: number) =>
     s.length > n ? s.slice(0, n - 1) + "\u2026" : s;
 
-  const box = (bx: number, by: number, label: string, accent = false) =>
-    `<rect x="${bx}" y="${by}" width="${boxW}" height="${boxH}" rx="${boxR}" fill="${accent ? "#eff6ff" : "#f9fafb"}" stroke="${accent ? "#93c5fd" : "#e5e7eb"}" stroke-width="1"/>` +
-    `<text x="${bx + boxW / 2}" y="${by + boxH / 2 + 4}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="${accent ? "#1d4ed8" : "#374151"}">${esc(trunc(label, 18))}</text>`;
-
-  const arrow = (ax: number, ay: number) =>
-    `<line x1="${ax}" y1="${ay}" x2="${ax + arrowW - 5}" y2="${ay}" stroke="#9ca3af" stroke-width="1.5"/>` +
-    `<polygon points="${ax + arrowW - 5},${ay - 3} ${ax + arrowW},${ay} ${ax + arrowW - 5},${ay + 3}" fill="#9ca3af"/>`;
-
   let rows = "";
   generators.forEach((gen, i) => {
-    const y = padY + titleH + i * (boxH + rowGap);
-    const mid = y + boxH / 2;
-    const bx1 = padX;
-    const bx2 = padX + boxW + arrowW;
-    const bx3 = padX + boxW * 2 + arrowW * 2;
-    const sourceLabel = gen.sourceToken || "standalone";
-    const genLabel = trunc(gen.name || getGeneratorTypeLabel(gen.type), 18);
-    const targetLabel = `${gen.targetGroup}.*`;
+    const y = padY + titleH + i * (cardH + rowGap);
+    const genLabel = trunc(gen.name || getGeneratorTypeLabel(gen.type), 28);
+    const sourceLabel = gen.sourceToken ? `\u2190 ${trunc(gen.sourceToken, 30)}` : "\u2190 standalone";
+    const targetLabel = `\u2192 ${trunc(gen.targetGroup + ".*", 30)}`;
+
     rows +=
-      box(bx1, y, sourceLabel) +
-      arrow(bx1 + boxW, mid) +
-      box(bx2, y, genLabel, true) +
-      arrow(bx2 + boxW, mid) +
-      box(bx3, y, targetLabel);
+      `<rect x="${padX}" y="${y}" width="${cardW}" height="${cardH}" rx="${cardR}" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>` +
+      `<text x="${padX + 10}" y="${y + 18}" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="#1d4ed8">${esc(genLabel)}</text>` +
+      `<text x="${padX + 10}" y="${y + 34}" font-family="ui-monospace,monospace" font-size="8" fill="#6b7280">${esc(sourceLabel)}  ${esc(targetLabel)}</text>`;
   });
 
   const svg = [
@@ -189,6 +182,7 @@ export function GraphPanel({
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [justApplied, setJustApplied] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
+  const [graphEditing, setGraphEditing] = useState<GraphEditingState>({ kind: "none" });
 
   // Auto-open template picker when navigating from ThemeManager "Generate tokens" action
   useEffect(() => {
@@ -345,43 +339,6 @@ export function GraphPanel({
     await runGenerators("blocked", blockedGenerators);
   };
 
-  const linkedGeneratorCount = useMemo(
-    () =>
-      setGenerators.filter(
-        (generator) =>
-          (generator.upstreamGenerators?.length ?? 0) > 0 ||
-          (generator.downstreamGenerators?.length ?? 0) > 0,
-      ).length,
-    [setGenerators],
-  );
-  const dependencyEdgeCount = useMemo(
-    () =>
-      setGenerators.reduce(
-        (count, generator) => count + (generator.upstreamGenerators?.length ?? 0),
-        0,
-      ),
-    [setGenerators],
-  );
-  const downstreamImpactCount = useMemo(
-    () =>
-      setGenerators.reduce(
-        (count, generator) => count + (generator.downstreamGenerators?.length ?? 0),
-        0,
-      ),
-    [setGenerators],
-  );
-  const blockedBySummary = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          blockedGenerators.flatMap((generator) =>
-            (generator.blockedByGenerators ?? []).map((dependency) => dependency.name),
-          ),
-        ),
-      ),
-    [blockedGenerators],
-  );
-
   const generatorTemplate = useMemo<GeneratorTemplate | undefined>(() => {
     if (!selectedTemplate) return undefined;
     return {
@@ -442,6 +399,62 @@ export function GraphPanel({
         : undefined,
     [onViewTokens],
   );
+
+  // ---------------------------------------------------------------------------
+  // Graph canvas action handlers
+  // ---------------------------------------------------------------------------
+
+  const handleGraphEdit = useCallback((generatorId: string) => {
+    setGraphEditing({ kind: "editing", generatorId });
+  }, []);
+
+  const handleGraphRun = useCallback(async (generatorId: string) => {
+    try {
+      const res = await apiFetch<{ count: number }>(
+        `${serverUrl}/api/generators/${generatorId}/run`,
+        { method: "POST" },
+      );
+      dispatchToast(
+        `Generator ran — ${res.count ?? 0} token${(res.count ?? 0) !== 1 ? "s" : ""} updated`,
+        "success",
+      );
+    } catch {
+      dispatchToast("Generator run failed", "error");
+    }
+    onRefresh();
+  }, [serverUrl, onRefresh]);
+
+  const handleGraphEditClose = useCallback(() => {
+    setGraphEditing({ kind: "none" });
+    onRefresh();
+  }, [onRefresh]);
+
+  const handleGraphEditSaved = useCallback(() => {
+    setGraphEditing({ kind: "none" });
+    onRefresh();
+    dispatchToast("Generator updated", "success");
+  }, [onRefresh]);
+
+  // Generator editing from graph view
+  if (graphEditing.kind === "editing") {
+    const editGen = setGenerators.find(g => g.id === graphEditing.generatorId);
+    if (editGen) {
+      return (
+        <TokenGeneratorDialog
+          serverUrl={serverUrl}
+          allSets={allSets}
+          activeSet={activeSet}
+          existingGenerator={editGen}
+          onBack={handleGraphEditClose}
+          onClose={handleGraphEditClose}
+          onSaved={handleGraphEditSaved}
+          getSuccessToastAction={getViewTokensToastAction}
+          onInterceptSemanticMapping={() => {}}
+          onPushUndo={onPushUndo}
+        />
+      );
+    }
+  }
 
   // Template configuration — open full TokenGeneratorDialog pre-filled from template.
   // generatorTemplate and handleTemplateSaved are memoized at hook scope above.
@@ -504,11 +517,11 @@ export function GraphPanel({
               <button
                 onClick={() => setViewMode("graph")}
                 className={`px-2 py-1 transition-colors border-l border-[var(--color-figma-border)] ${viewMode === "graph" ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"}`}
-                title="Pipeline map"
-                aria-label="Pipeline map"
+                title="Graph view"
+                aria-label="Graph view"
                 aria-pressed={viewMode === "graph"}
               >
-                Map
+                Graph
               </button>
             </div>
             {/* Add generator — primary action */}
@@ -734,85 +747,6 @@ export function GraphPanel({
           />
         )}
 
-        <div className="mx-3 mt-2 flex flex-wrap items-center gap-1.5 shrink-0">
-          {linkedGeneratorCount > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
-              {linkedGeneratorCount} linked generator
-              {linkedGeneratorCount === 1 ? "" : "s"}
-            </span>
-          )}
-          {dependencyEdgeCount > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
-              {dependencyEdgeCount} dependency edge
-              {dependencyEdgeCount === 1 ? "" : "s"}
-            </span>
-          )}
-          {downstreamImpactCount > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
-              {downstreamImpactCount} downstream impact
-            </span>
-          )}
-        </div>
-
-        {attentionGenerators.length > 0 && (
-          <div className="mx-3 mt-2 px-2.5 py-2 rounded border border-yellow-400/30 bg-yellow-400/10 shrink-0 flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-yellow-800 dark:text-yellow-300">
-              {staleGenerators.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full border border-yellow-400/40 bg-yellow-400/10">
-                  {staleGenerators.length} stale
-                </span>
-              )}
-              {failedGenerators.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]">
-                  {failedGenerators.length} failed
-                </span>
-              )}
-              {blockedGenerators.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full border border-amber-400/40 bg-amber-400/10 text-amber-700 dark:text-amber-300">
-                  {blockedGenerators.length} blocked
-                </span>
-              )}
-              {blockedBySummary.length > 0 && (
-                <span className="text-[var(--color-figma-text-secondary)]">
-                  Blocked by {blockedBySummary.slice(0, 3).join(", ")}
-                  {blockedBySummary.length > 3
-                    ? ` +${blockedBySummary.length - 3} more`
-                    : ""}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {staleGenerators.length > 0 && (
-                <button
-                  onClick={handleRunStale}
-                  disabled={runningAction !== null}
-                  className="text-[10px] px-2 py-1 rounded border border-yellow-400/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  {runningAction === "stale" ? "Running…" : "Re-run stale"}
-                </button>
-              )}
-              {failedGenerators.length > 0 && (
-                <button
-                  onClick={handleRetryFailed}
-                  disabled={runningAction !== null}
-                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/30 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  {runningAction === "failed" ? "Retrying…" : "Retry failed"}
-                </button>
-              )}
-              {blockedGenerators.length > 0 && (
-                <button
-                  onClick={handleRetryBlocked}
-                  disabled={runningAction !== null}
-                  className="text-[10px] px-2 py-1 rounded border border-amber-400/40 text-amber-700 dark:text-amber-300 hover:bg-amber-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  {runningAction === "blocked" ? "Retrying…" : "Retry blocked"}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Search bar (shown in both views) */}
         <div className="px-3 pt-2.5 pb-1 shrink-0">
           <div className="relative">
@@ -895,10 +829,12 @@ export function GraphPanel({
           <NodeGraphCanvas
             generators={filteredGenerators}
             activeSet={activeSet}
-            serverUrl={serverUrl}
             onRefresh={onRefresh}
             onPushUndo={onPushUndo}
             searchQuery={searchQuery}
+            onEditGenerator={handleGraphEdit}
+            onRunGenerator={handleGraphRun}
+            onViewTokens={onViewTokens}
           />
         )}
 
