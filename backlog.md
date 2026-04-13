@@ -99,7 +99,7 @@
 - [x] [HIGH] Introduce shared authoring-surface layout primitives for narrow Figma panels
 - [x] [HIGH] Refactor canvas quick-create and token quick-create launcher onto the shared authoring contract
 - [x] [HIGH] Rebuild BatchEditor for stacked compact layout below 360px
-- [ ] [HIGH] Align generator dialog steps and pipeline quick edit with one authoring form system
+- [x] [HIGH] Align generator dialog steps and pipeline quick edit with one authoring form system
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.

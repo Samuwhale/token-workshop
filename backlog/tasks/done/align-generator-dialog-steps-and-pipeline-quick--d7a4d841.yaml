@@ -13,11 +13,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: Research audit recommends keeping the current generator section model but moving it onto a panel-first authoring contract shared with GeneratorPipelineCard quick edit and clone surfaces."
-state: ready
+  - "Completed: Shared generator authoring-form primitives now drive the dialog steps, review/semantic panels, quick edit, clone flows, and pipeline provenance layout; eslint and figma-plugin build passed."
+state: done
 acceptance_criteria:
   - Generator dialog sections, review cards, quick edit, and clone panels share the same label sizing, control heights, section cards, and footer/button hierarchy
   - Generator config stays single-column through standard plugin widths and only adopts split config/preview layout at 600px+
   - Generator pipeline cards reduce default header density so narrow columns do not rely on aggressive 100px truncation for core provenance details
 source: task-followup
 created_at: 2026-04-13T01:13:56.561Z
-updated_at: 2026-04-13T01:13:56.561Z
+updated_at: 2026-04-13T02:46:34.639Z

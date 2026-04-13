@@ -1889,3 +1889,10 @@
   - Generator workflow consistency lands better when shell-level spacing stays in `EditorShell` and a separate shared form contract owns cards, controls, and summary rows for both modal editors and inline pipeline panels.
   - Pipeline provenance details should use wrapped summary rows, not fixed-width chips, because source token paths and target groups are the first details that collapse in narrow dashboard columns.
 ---
+## 2026-04-13 - Add an explicit ownership contract for generated tokens: warn before manual edits and provide a detach-from-generator operation
+- Stale — already done. The current codebase already warns before inline edits of generated tokens, exposes token/group detach actions, and tells users to edit the generator instead of silently overriding managed outputs.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/TokenTreeNode.tsx packages/figma-plugin/src/ui/components/TokenEditor.tsx packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx packages/server/src/routes/generators.ts packages/server/src/services/generator-service.ts` passed with pre-existing warnings in `packages/figma-plugin/src/ui/components/TokenEditor.tsx:1121` and `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx:2001,2098`.
+- Files changed: `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Generator ownership work is already split across the tree row, editor panel, generator dialog, and detach route/service; verify all four surfaces before re-opening follow-up backlog items in this area.
+---
