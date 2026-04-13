@@ -253,7 +253,7 @@ export function GeneratorIntentCard({
       type="button"
       onClick={onSelect}
       disabled={disabled}
-      className={`w-full rounded border bg-[var(--color-figma-bg)] text-left transition-all group disabled:opacity-40 disabled:cursor-not-allowed ${densityClass} ${
+      className={`w-full rounded border bg-[var(--color-figma-bg)] text-left transition-all motion-reduce:transition-none group disabled:opacity-40 disabled:cursor-not-allowed ${densityClass} ${
         isSuggested
           ? "border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/5"
           : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] hover:border-[var(--color-figma-accent)]"
@@ -280,28 +280,11 @@ export function GeneratorIntentCard({
           <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
             {template.description}
           </p>
-          <p className="mt-1 text-[9.5px] leading-snug text-[var(--color-figma-text-tertiary)]">
-            {template.whenToUse}
-          </p>
           {!compact && (
             <div className="mt-2">
               <PipelineStages stages={template.stages} />
             </div>
           )}
-          <div className="mt-2 grid gap-1">
-            <div className="flex items-start gap-1.5 text-[9.5px] text-[var(--color-figma-text-secondary)]">
-              <span className="font-medium text-[var(--color-figma-text)]">
-                Needs
-              </span>
-              <span className="leading-snug">{template.sourceRequirement}</span>
-            </div>
-            <div className="flex items-start gap-1.5 text-[9.5px] text-[var(--color-figma-text-secondary)]">
-              <span className="font-medium text-[var(--color-figma-text)]">
-                Seeds
-              </span>
-              <span className="leading-snug">{template.starterPreset}</span>
-            </div>
-          </div>
           <div className="mt-2 flex items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
             <span>
               {stepCount} starter step{stepCount === 1 ? "" : "s"}
@@ -430,10 +413,10 @@ export function TemplatePicker({
         )}
         <div className="flex-1">
           <div className="mb-0.5 text-[12px] font-medium text-[var(--color-figma-text)]">
-            Generator intents
+            Recipe templates
           </div>
           <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-            Start from the outcome you want, then open the shared generator composer pre-seeded for{" "}
+            Choose what you want to create. The recipe editor will be pre-seeded for{" "}
             <span className="font-mono">{activeSet}</span>.
           </p>
         </div>
@@ -460,9 +443,9 @@ export function TemplatePicker({
             type="text"
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search intents…"
-            aria-label="Search intents"
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] py-1 pl-6 pr-6 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+            placeholder="Search templates…"
+            aria-label="Search templates"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] py-1 pl-6 pr-6 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none focus-visible:border-[var(--color-figma-accent)]"
           />
           {searchQuery && (
             <button
@@ -524,7 +507,7 @@ export function TemplatePicker({
       {!connected && (
         <div className="px-3 pb-3">
           <p className="text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-            Connect to the server to create generators.
+            Connect to the server to create recipes.
           </p>
         </div>
       )}
