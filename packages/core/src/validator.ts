@@ -11,7 +11,6 @@ import { isReference, isFormula, isDTCGToken, isDTCGGroup } from './dtcg-types.j
 import type {
   Token,
   TokenGroup,
-  TokenType,
   DimensionValue,
   DurationValue,
   ShadowValue,

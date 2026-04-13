@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { TokenResolver } from '../resolver.js';
-import { TOKEN_TYPES } from '../constants.js';
 import type { Token } from '../types.js';
 
 // ---------------------------------------------------------------------------

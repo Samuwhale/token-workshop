@@ -25,7 +25,6 @@ import { FIGMA_SCOPES } from './MetadataEditor';
 import {
   buildVariablePublishFigmaMap,
   buildPublishPullPayload,
-  getDiffRowId,
   loadVariablePublishSnapshot,
   type ResolverPublishSyncMapping,
   stylePublishDiffConfig,
@@ -1520,8 +1519,8 @@ function buildPreflightCardState({
   stage,
   isOutdated,
   running,
-  blockingCount,
-  advisoryCount,
+  blockingCount: _blockingCount,
+  advisoryCount: _advisoryCount,
 }: {
   stage: PublishPreflightStage;
   isOutdated: boolean;

@@ -63,7 +63,7 @@ export async function selectNode(nodeId: string) {
       figma.currentPage.selection = [node as SceneNode];
       figma.viewport.scrollAndZoomIntoView([node as SceneNode]);
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently ignore — node might not be accessible
   }
 }

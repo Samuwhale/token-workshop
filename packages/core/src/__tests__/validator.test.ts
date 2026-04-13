@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { TokenValidator, type ValidationResult } from '../validator.js';
-import { TOKEN_TYPES } from '../constants.js';
 import type { Token, TokenGroup } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -168,7 +167,7 @@ describe('TokenValidator', () => {
     });
 
     it('rejects typography missing required fields', () => {
-      const { fontFamily, ...missing } = validTypography;
+      const { fontFamily: _fontFamily, ...missing } = validTypography;
       expectInvalid(
         validator.validate(makeToken(missing, 'typography'), 'typo'),
         'missing required field "fontFamily"',
@@ -206,7 +205,7 @@ describe('TokenValidator', () => {
     });
 
     it('rejects shadow missing required fields', () => {
-      const { blur, ...missing } = validShadow;
+      const { blur: _blur, ...missing } = validShadow;
       expectInvalid(
         validator.validate(makeToken(missing, 'shadow'), 's'),
         'missing required field "blur"',

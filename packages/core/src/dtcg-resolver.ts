@@ -20,7 +20,7 @@ import type {
   TokenType,
 } from './types.js';
 import type { DTCGGroup, DTCGToken } from './dtcg-types.js';
-import { isDTCGToken, flattenTokenGroup } from './dtcg-types.js';
+import { flattenTokenGroup } from './dtcg-types.js';
 import { TOKEN_TYPE_VALUES } from './constants.js';
 import { TokenResolver } from './resolver.js';
 

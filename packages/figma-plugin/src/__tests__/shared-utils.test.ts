@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SET_NAME_RE, stableStringify, getErrorMessage, adaptShortcut, countLeafNodes } from '../ui/shared/utils';
+import { SET_NAME_RE, stableStringify, getErrorMessage, countLeafNodes } from '../ui/shared/utils';
 
 describe('SET_NAME_RE', () => {
   it('allows simple names', () => {

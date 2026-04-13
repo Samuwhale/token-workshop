@@ -1,5 +1,5 @@
 import type { ColorValue, GradientValue, TypographyValue, ShadowValue, DimensionValue } from '@tokenmanager/core';
-import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
+import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
 import { fontStyleToWeight, resolveStyleForWeight } from './fontLoading.js';
 import { getErrorMessage } from '../shared/utils.js';
 import type { StyleSnapshotEntry, StyleSnapshot } from '../shared/types.js';

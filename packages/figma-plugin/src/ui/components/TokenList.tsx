@@ -41,7 +41,6 @@ import {
   QUERY_QUALIFIERS,
   replaceQueryToken,
 } from "./tokenListUtils";
-import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
 import type {
   TokenListProps,
@@ -50,7 +49,6 @@ import type {
   AffectedRef,
   GeneratorImpact,
   ThemeImpact,
-  PromoteRow,
   TokenTreeGroupActionsContextType,
   TokenTreeGroupStateContextType,
   TokenTreeLeafActionsContextType,
@@ -63,7 +61,6 @@ import {
   inferTypeFromValue,
   highlightMatch,
 } from "./tokenListHelpers";
-import { ValuePreview } from "./ValuePreview";
 import { TokenTreeNode } from "./TokenTreeNode";
 import { TokenTreeProvider } from "./TokenTreeContext";
 import { TokenListModals } from "./TokenListModals";
@@ -146,7 +143,7 @@ function SelectModeOverflowMenu({
   selectedPaths,
   displayedLeafNodes: _displayedLeafNodes,
   sets,
-  setName,
+  setName: _setName,
   operationLoading,
   copyFeedback,
   copyCssFeedback,
@@ -295,7 +292,7 @@ export function TokenList({
     generators,
     generatorsByTargetGroup,
     derivedTokenPaths,
-    cascadeDiff,
+    cascadeDiff: _cascadeDiff,
     tokenUsageCounts,
     perSetFlat,
     collectionMap = {},
@@ -331,8 +328,8 @@ export function TokenList({
     onViewTokenHistory,
     onEditGenerator,
     onOpenGeneratorEditor,
-    onNavigateToGenerator,
-    onShowReferences,
+    onNavigateToGenerator: _onNavigateToGenerator,
+    onShowReferences: _onShowReferences,
     onDisplayedLeafNodesChange,
     onSelectionChange,
     onOpenCompare,
@@ -422,17 +419,6 @@ export function TokenList({
     }
     prevHighlightRef.current = highlightedToken ?? null;
   }, [highlightedToken, recentlyTouched, onTokenTouched]);
-
-  const generatorsBySource = useMemo(() => {
-    const map = new Map<string, TokenGenerator[]>();
-    for (const gen of generators ?? []) {
-      if (!gen.sourceToken) continue;
-      const arr = map.get(gen.sourceToken) ?? [];
-      arr.push(gen);
-      map.set(gen.sourceToken, arr);
-    }
-    return map;
-  }, [generators]);
 
   const staleGeneratorsForSet = useMemo(
     () =>
@@ -691,13 +677,6 @@ export function TokenList({
     [allTokensFlat],
   );
 
-  const statsSetTotals = useMemo(() => {
-    if (!perSetFlat) return [];
-    return Object.entries(perSetFlat)
-      .map(([name, flat]) => ({ name, total: Object.keys(flat).length }))
-      .sort((a, b) => b.total - a.total);
-  }, [perSetFlat]);
-
   const flattenTokens = (nodes: TokenNode[]): any[] => {
     const result: any[] = [];
     const walk = (list: TokenNode[]) => {
@@ -716,8 +695,6 @@ export function TokenList({
     walk(nodes);
     return result;
   };
-
-  // promotableDuplicateCount computed after useTokenSearch hook call (below)
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
@@ -1192,7 +1169,6 @@ export function TokenList({
     whereIsLoading,
     setWhereIsLoading: _setWhereIsLoading,
     whereIsAbortRef,
-    handleFindInAllSets,
   } = tokenWhereIs;
 
   // Phase 2: useTokenExpansion
@@ -1210,7 +1186,6 @@ export function TokenList({
     handleToggleExpand,
     handleExpandAll,
     handleCollapseAll,
-    handleToggleChain,
   } = tokenExpansion;
   const expandedPathsRef = useRef(expandedPaths);
 
@@ -1273,9 +1248,6 @@ export function TokenList({
     crossSetSearch,
     setCrossSetSearch,
     filterPresets,
-    presetNameInput,
-    setPresetNameInput,
-    saveFilterPreset,
     deleteFilterPreset,
     applyFilterPreset,
     showQualifierHints,
@@ -1299,7 +1271,7 @@ export function TokenList({
     removeQueryToken,
     filtersActive,
     activeFilterCount,
-    duplicateValuePaths,
+    duplicateValuePaths: _duplicateValuePaths,
     duplicateCounts,
     availableTypes,
     qualifierHints,
@@ -1475,7 +1447,7 @@ export function TokenList({
       setSearchQuery(trimmed ? `${trimmed} ${qualifier}:` : `${qualifier}:`);
       requestAnimationFrame(() => searchRef.current?.focus());
     },
-    [searchQuery, setSearchQuery],
+    [searchQuery, setSearchQuery, searchRef],
   );
 
   // Sync displayedLeafNodesRef
@@ -1621,7 +1593,6 @@ export function TokenList({
     selectedLeafNodes,
     handleTokenSelect,
     handleSelectAll,
-    handleSelectGroupChildren,
   } = tokenSelection;
 
   // Wire up the clearSelection ref now that useTokenSelection has been called
@@ -1674,18 +1645,6 @@ export function TokenList({
     openBulkEditorForPaths,
   ]);
 
-  const handleOpenBulkWorkflowForPreset = useCallback(
-    (preset: { id: string; name: string; query: string }) => {
-      setCrossSetSearch(false);
-      setPendingBulkPresetLaunch({
-        presetId: preset.id,
-        presetName: preset.name,
-        query: preset.query,
-      });
-      setSearchQuery(preset.query);
-    },
-    [setCrossSetSearch, setSearchQuery],
-  );
 
   useEffect(() => {
     if (!pendingBulkPresetLaunch) return;
@@ -1720,14 +1679,6 @@ export function TokenList({
       setActiveBulkEditScope(null);
     }
   }, [selectMode, selectedPaths.size]);
-
-  const bulkWorkflowDisabledReason = useMemo(() => {
-    if (crossSetSearch)
-      return 'Bulk editing runs against the current set only. Turn off "Search all sets" first.';
-    if (displayedLeafNodes.length === 0)
-      return "No tokens match the current search scope.";
-    return null;
-  }, [crossSetSearch, displayedLeafNodes.length]);
 
   const tokenCrud = useTokenCrud({
     connected,
@@ -1976,25 +1927,6 @@ export function TokenList({
     });
     return () => window.cancelAnimationFrame(frameId);
   }, [pendingBatchEditorFocus, showBatchEditor]);
-
-  // promotableDuplicateCount — needs duplicateValuePaths (from useTokenSearch) and tokens
-  const promotableDuplicateCount = useMemo(() => {
-    const flat: Array<{ path: string; $value: unknown }> = [];
-    const walk = (list: TokenNode[]) => {
-      for (const node of list) {
-        if (!node.isGroup) flat.push({ path: node.path, $value: node.$value });
-        if (node.children) walk(node.children);
-      }
-    };
-    walk(tokens);
-    return flat.filter(
-      (t) =>
-        duplicateValuePaths.has(t.path) &&
-        !isAlias(
-          t.$value as import("@tokenmanager/core").TokenValue | undefined,
-        ),
-    ).length;
-  }, [tokens, duplicateValuePaths]);
 
   // handleListKeyDown is defined after custom hook calls to avoid TDZ
   // Container-level keyboard shortcut handler for the token list
@@ -2490,15 +2422,6 @@ export function TokenList({
     virtualListRef.current.scrollTop = 0;
     setVirtualScrollTop(0);
   }, [flatItems, itemOffsets, setVirtualScrollTop]);
-
-  const syncChangedCount = useMemo(() => {
-    if (!syncSnapshot) return 0;
-    return Object.entries(allTokensFlat).filter(
-      ([path, token]) =>
-        path in syncSnapshot &&
-        syncSnapshot[path] !== stableStringify(token.$value),
-    ).length;
-  }, [syncSnapshot, allTokensFlat]);
 
   const clearFilters = useCallback(() => {
     setSearchQuery("");
@@ -3223,20 +3146,6 @@ export function TokenList({
     }
     return segments;
   }, [flatItems, rawStart, groupNameMap]);
-
-  // Enter select mode with a single token pre-selected, then navigate to compare tab
-  const handleCompareToken = useCallback(
-    (path: string) => {
-      if (onOpenCompare) {
-        onOpenCompare(new Set([path]));
-      } else {
-        setSelectMode(true);
-        setSelectedPaths(new Set([path]));
-        setShowBatchEditor(false);
-      }
-    },
-    [onOpenCompare, setSelectMode, setSelectedPaths, setShowBatchEditor],
-  );
 
   const handleCompareAcrossThemes = useCallback(
     (path: string) => {

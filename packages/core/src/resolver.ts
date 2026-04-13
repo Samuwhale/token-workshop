@@ -518,7 +518,7 @@ export class TokenResolver {
    * Determine the effective $type for a token. If the token itself
    * declares a type, use it. Otherwise follow the reference chain.
    */
-  private resolveType(token: Token, path: string): TokenType {
+  private resolveType(token: Token, _path: string): TokenType {
     if (token.$type) return token.$type;
 
     // If the value is a direct reference, inherit the type from the target

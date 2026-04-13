@@ -11,7 +11,6 @@ import {
   type VariablePublishCompareMode,
 } from '../shared/syncWorkflow';
 import type {
-  PublishDiffRow,
   PublishPreflightActionId,
   PublishPreflightCluster,
   PublishPreflightStage,

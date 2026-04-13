@@ -324,6 +324,7 @@ export function useCommandPaletteCommands(): {
     activeSet,
     sets.length,
     navigateTo,
+    openSecondarySurface,
     selectedNodes.length,
     setEditingToken,
     shell,
@@ -583,6 +584,7 @@ export function useCommandPaletteCommands(): {
         window.dispatchEvent(new CustomEvent("applyExportPreset"));
       },
     }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- exportPresetRev is a revision counter that triggers re-read from localStorage
   }, [exportPresetRev, navigateTo]);
 
   const commands = useMemo(

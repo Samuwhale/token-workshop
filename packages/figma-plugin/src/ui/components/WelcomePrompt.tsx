@@ -157,7 +157,7 @@ export function WelcomePrompt({
   initialBranch = "root",
   isFirstRun = false,
   onRetryConnection,
-  onOpenSettings,
+  onOpenSettings: _onOpenSettings,
   onClose,
   onImportFigma,
   onPasteJSON,

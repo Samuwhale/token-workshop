@@ -778,40 +778,6 @@ export function HealthPanel({
 
   // ── Fix / mutate handlers ───────────────────────────────────────────────────
 
-  const applyLintFix = async (violation: LintViolation) => {
-    const key = `lint:${violation.rule}:${violation.path}`;
-    setFixingKeys((prev) => {
-      const next = new Set(prev);
-      next.add(key);
-      return next;
-    });
-    try {
-      if (violation.suggestedFix === "rename-token" && violation.suggestion) {
-        await apiFetch(
-          `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/tokens/rename`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              oldPath: violation.path,
-              newPath: violation.suggestion,
-              updateAliases: true,
-            }),
-          },
-        );
-      }
-      onRefreshValidation();
-    } catch {
-      onError("Fix failed — check your connection and try again.");
-    } finally {
-      setFixingKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  };
-
   const applyIssueFix = async (issue: ValidationIssue) => {
     const key = suppressKey(issue);
     const renameUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/tokens/rename`;
@@ -963,8 +929,6 @@ export function HealthPanel({
   const errorGenerators = generators.filter(
     (g) => g.lastRunError && !g.lastRunError.blockedBy,
   );
-  const blockedGenerators = generators.filter((g) => g.lastRunError?.blockedBy);
-
   const hasUsageData = Object.keys(tokenUsageCounts).length > 0;
   const unusedCount = hasUsageData
     ? Object.keys(allTokensFlat).filter((path) => !tokenUsageCounts[path])
@@ -986,82 +950,6 @@ export function HealthPanel({
           (heatmapResult?.red ?? 0) > 0
         ? "warning"
         : "healthy";
-
-  const lintStatus: HealthStatus | null =
-    lintErrors > 0 ? "critical" : lintWarnings > 0 ? "warning" : "healthy";
-
-  const generatorStatus: HealthStatus | null =
-    errorGenerators.length > 0
-      ? "critical"
-      : staleGenerators.length > 0
-        ? "warning"
-        : "healthy";
-
-  const canvasStatus: HealthStatus | null = heatmapResult
-    ? heatmapResult.red > 0
-      ? "warning"
-      : "healthy"
-    : null;
-
-  const canvasCoveragePercent =
-    heatmapResult && heatmapResult.total > 0
-      ? Math.round((heatmapResult.green / heatmapResult.total) * 100)
-      : null;
-
-  const aliasDependencyIssues = useMemo(
-    () =>
-      (validationIssuesProp ?? []).filter(
-        (issue) =>
-          issue.rule === "broken-alias" || issue.rule === "circular-reference",
-      ),
-    [validationIssuesProp],
-  );
-
-  const aliasDependencyCounts = useMemo(() => {
-    const counts = { brokenAlias: 0, circularReference: 0 };
-    for (const issue of aliasDependencyIssues) {
-      if (issue.rule === "broken-alias") counts.brokenAlias += 1;
-      else counts.circularReference += 1;
-    }
-    return counts;
-  }, [aliasDependencyIssues]);
-
-  const aliasDependencyIssueCount = aliasDependencyIssues.length;
-
-  const aliasDependencyPreview = useMemo(() => {
-    const seen = new Set<string>();
-    const preview: ValidationIssue[] = [];
-    for (const issue of aliasDependencyIssues) {
-      const key = `${issue.setName}:${issue.path}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      preview.push(issue);
-      if (preview.length === 5) break;
-    }
-    return preview;
-  }, [aliasDependencyIssues]);
-
-  const aliasDependencyStatus: HealthStatus | null =
-    validationIssuesProp === null
-      ? null
-      : aliasDependencyIssueCount > 0
-        ? "critical"
-        : "healthy";
-
-  const aliasDependencyDetail =
-    validationIssuesProp === null
-      ? "Run an audit to surface broken aliases and circular references."
-      : aliasDependencyIssueCount === 0
-        ? "No broken aliases or circular references in the latest audit."
-        : [
-            formatCount(aliasDependencyCounts.brokenAlias, "broken alias"),
-            formatCount(
-              aliasDependencyCounts.circularReference,
-              "circular reference",
-            ),
-          ]
-            .filter((part) => !part.startsWith("0 "))
-            .join(" · ");
 
   // Comprehensive prioritised issue list — aggregates ALL sources so the panel
   // is useful at a glance without expanding any sub-section.

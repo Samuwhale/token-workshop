@@ -96,7 +96,7 @@ async function executeCompareBulkCreate(params: {
   serverUrl: string;
   batches: CompareBulkCreateBatch[];
   undoDescription: string;
-  pushUndo: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
+  pushUndo?: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
   afterMutation?: () => void | Promise<void>;
 }): Promise<CompareBulkCreateResult> {
   const { serverUrl, batches, undoDescription, pushUndo, afterMutation } = params;
@@ -141,7 +141,7 @@ async function executeCompareBulkCreate(params: {
   const createdCount = successes.reduce((sum, batch) => sum + batch.tokens.length, 0);
   if (createdCount > 0) {
     const rollbackable = successes.filter(batch => batch.operationId);
-    if (rollbackable.length > 0) {
+    if (rollbackable.length > 0 && pushUndo) {
       const batchesForRedo = successes.map(batch => ({
         targetSet: batch.targetSet,
         tokens: batch.tokens,
@@ -664,7 +664,7 @@ interface CrossThemeModeProps {
   onClose: () => void;
   serverUrl?: string;
   onTokensCreated?: () => void;
-  pushUndo: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
+  pushUndo?: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
 }
 
 function CrossThemeMode({
@@ -1792,6 +1792,7 @@ interface CompareViewProps {
 
   serverUrl?: string;
   onTokensCreated?: () => void;
+  pushUndo?: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
 }
 
 const MODES: { id: CompareMode; label: string }[] = [
@@ -1820,6 +1821,7 @@ export function CompareView({
   onGoToTokens,
   serverUrl,
   onTokensCreated,
+  pushUndo,
 }: CompareViewProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -1893,6 +1895,7 @@ export function CompareView({
               onClose={onClearTokenPath}
               serverUrl={serverUrl}
               onTokensCreated={onTokensCreated}
+              pushUndo={pushUndo}
             />
           )
         )}

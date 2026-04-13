@@ -357,7 +357,6 @@ export function App() {
     generators,
     refreshGenerators,
     generatorsBySource,
-    derivedTokenPaths,
   } = useGeneratorContext();
   const {
     dimensions,
@@ -419,9 +418,10 @@ export function App() {
   }));
   // undoMaxHistory is managed by SettingsPanel; App re-reads from localStorage when it changes
   const undoHistoryRev = useSettingsListener(STORAGE_KEYS.UNDO_MAX_HISTORY);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const undoMaxHistory = useMemo(
     () => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20) ?? 20,
+    // undoHistoryRev triggers re-read from localStorage; not used directly
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [undoHistoryRev],
   );
   const [pendingPublishCount, setPendingPublishCount] = useState(0);
@@ -565,13 +565,12 @@ export function App() {
     setShowConnectionEditor(false);
     setConnectionConnectResult(null);
   }, [connected]);
-  // Wire the alias-not-found toast into EditorContext (setErrorToast is stable)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Wire the alias-not-found toast into EditorContext
   useEffect(() => {
     setAliasNotFoundHandler((p) =>
       setErrorToast(`Alias target not found: ${p}`),
     );
-  }, []);
+  }, [setAliasNotFoundHandler, setErrorToast]);
   // Route all dispatchToast() calls from deeply-nested components/hooks into the in-plugin ToastStack
   useToastBusListener(
     setSuccessToast,
@@ -2532,6 +2531,7 @@ export function App() {
     themeShellState.authoringMode,
     themeWorkflowSummary.currentStage,
     themeWorkflowSummary.unmappedOptionCount,
+    themeWorkflowSummary.nextSetRoleTarget?.actionLabel,
   ]);
 
   const workspaceContextualControls =

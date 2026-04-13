@@ -3,6 +3,7 @@ import type { MutableRefObject } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { ConfirmModal } from "./ConfirmModal";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
+import { AUTHORING } from "../shared/editorClasses";
 import type { TokenGenerator, GeneratorTemplate } from "../hooks/useGenerators";
 import type { SemanticStarter } from "./graph-templates";
 import {
@@ -239,7 +240,7 @@ export function TokenGeneratorDialog({
         </p>
       )}
       {dialog.existingTokensError && !dialog.showConfirmation && (
-        <div className="text-[10px] text-[var(--color-figma-error)]">
+        <div role="alert" className={AUTHORING.error}>
           {dialog.existingTokensError}
         </div>
       )}
@@ -249,19 +250,21 @@ export function TokenGeneratorDialog({
           onClick={
             dialog.showConfirmation ? dialog.handleCancelConfirmation : handleClose
           }
-          className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]`}
+          className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
         >
           {dialog.showConfirmation ? "Back to Edit" : "Cancel"}
         </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
-          className={`${AUTHORING_SURFACE_CLASSES.footerPrimary} px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 flex items-center justify-center gap-1.5`}
-        >
-          {dialog.saving && <Spinner size="sm" className="text-white" />}
-          {saveLabel}
-        </button>
+        <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
+            className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
+          >
+            {dialog.saving && <Spinner size="sm" className="text-white" />}
+            {saveLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

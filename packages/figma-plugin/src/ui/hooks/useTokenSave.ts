@@ -237,7 +237,7 @@ export function useTokenSave({
     }
     onRefresh();
     onRefreshGenerators?.();
-  }, [connected, generators, onError, onRefresh, onRefreshGenerators, serverUrl]);
+  }, [connected, generators, onError, onRefresh, onRefreshGenerators, serverUrl, setName]);
 
   return {
     handleInlineSave,

@@ -2,7 +2,7 @@ import { adaptShortcut, stableStringify } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
-import { QUICK_CREATE_SURFACE_CLASSES } from "./quickCreateSurface";
+import { AUTHORING } from "../shared/editorClasses";
 import { createTokenBody, updateToken } from "../shared/tokenMutations";
 import { apiFetch } from "../shared/apiFetch";
 import { TokenHistorySection } from "./TokenHistorySection";
@@ -1075,10 +1075,10 @@ export function TokenEditor({
 
   // Merge errors from load and save hooks
   const displayError = error || saveError;
-  const setDisplayError = (v: string | null) => {
+  const setDisplayError = useCallback((v: string | null) => {
     setError(v);
     setSaveError(v);
-  };
+  }, [setError, setSaveError]);
   const [createPresentation, setCreatePresentation] = useState<'launcher' | 'editor'>(initialCreatePresentation);
   const showAdvancedCreateFields = !isCreateMode || createPresentation === 'editor';
 
@@ -1135,6 +1135,7 @@ export function TokenEditor({
     setModeValues,
     setReference,
     setScopes,
+    setDisplayError,
     setShowPathAutocomplete,
     setTokenType,
     setValue,
@@ -1639,7 +1640,7 @@ export function TokenEditor({
         )}
         <button
           onClick={handleBack}
-          className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]`}
+          className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
         >
           {isDirty || isCreateMode ? "Cancel" : "Close"}
         </button>
@@ -1647,7 +1648,7 @@ export function TokenEditor({
           <button
             onClick={handleRevert}
             title="Revert to last saved state"
-            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]`}
+            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
           >
             Revert
           </button>
@@ -1656,7 +1657,7 @@ export function TokenEditor({
           <button
             type="button"
             onClick={() => setCreatePresentation("editor")}
-            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50 disabled:cursor-default`}
+            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary} border border-[var(--color-figma-border)] font-medium hover:border-[var(--color-figma-accent)]`}
           >
             Open full editor
           </button>
@@ -1666,7 +1667,7 @@ export function TokenEditor({
             onClick={() => handleSave(false, true)}
             disabled={saving || !canSave || !editPath.trim()}
             title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary} border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {saving ? (
               "Creating…"
@@ -1696,7 +1697,7 @@ export function TokenEditor({
               (isCreateMode && !editPath.trim())
             }
             title={saveBlockReason || `Save (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)})`}
-            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className={AUTHORING.footerBtnPrimary}
           >
             {saving ? (
               isCreateMode ? (
@@ -1761,35 +1762,35 @@ export function TokenEditor({
         )}
 
         {isCreateMode && createPresentation === "launcher" && (
-          <section className={QUICK_CREATE_SURFACE_CLASSES.section}>
-            <div className={QUICK_CREATE_SURFACE_CLASSES.titleBlock}>
-              <h3 className={QUICK_CREATE_SURFACE_CLASSES.title}>Start with the essentials</h3>
-              <p className={QUICK_CREATE_SURFACE_CLASSES.description}>
+          <section className={AUTHORING.section}>
+            <div className={AUTHORING.titleBlock}>
+              <h3 className={AUTHORING.title}>Start with the essentials</h3>
+              <p className={AUTHORING.description}>
                 Set the path, type, and value here. Open the full editor when
                 you need metadata, lifecycle, or inheritance controls.
               </p>
             </div>
-            <div className={QUICK_CREATE_SURFACE_CLASSES.summaryCard}>
-              <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Set</span>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryValue}>{setName}</span>
+            <div className={AUTHORING.summaryCard}>
+              <div className={AUTHORING.summaryRow}>
+                <span className={AUTHORING.summaryLabel}>Set</span>
+                <span className={AUTHORING.summaryValue}>{setName}</span>
               </div>
-              <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Type</span>
+              <div className={AUTHORING.summaryRow}>
+                <span className={AUTHORING.summaryLabel}>Type</span>
                 <span
                   className={`${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"} inline-flex shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide`}
                 >
                   {tokenType}
                 </span>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryValue}>
+                <span className={AUTHORING.summaryValue}>
                   {aliasMode ? "Alias token" : "Direct value"}
                 </span>
               </div>
-              <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>
+              <div className={AUTHORING.summaryRow}>
+                <span className={AUTHORING.summaryLabel}>
                   {quickCreateValueLabel}
                 </span>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryMono}>
+                <span className={AUTHORING.summaryMono}>
                   {quickCreateStoredValue}
                 </span>
               </div>

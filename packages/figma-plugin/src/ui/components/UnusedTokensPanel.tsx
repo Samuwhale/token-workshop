@@ -43,32 +43,10 @@ function normalizeLifecycle(lifecycle?: UnusedToken['$lifecycle']): LifecycleVal
   return lifecycle ?? 'published';
 }
 
-function formatLifecycle(lifecycle: LifecycleValue): string {
-  switch (lifecycle) {
-    case 'draft':
-      return 'Draft';
-    case 'deprecated':
-      return 'Deprecated';
-    default:
-      return 'Published';
-  }
-}
-
 function getActionBadgeClass(action: CleanupAction): string {
   return action === 'delete'
     ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'
     : 'border-gray-400/40 bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
-}
-
-function getLifecycleBadgeClass(lifecycle: LifecycleValue): string {
-  switch (lifecycle) {
-    case 'draft':
-      return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
-    case 'deprecated':
-      return 'border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]';
-    default:
-      return 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
-  }
 }
 
 export function UnusedTokensPanel({

@@ -8,7 +8,7 @@ import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage, stableStringify, SET_NAME_RE } from '../shared/utils';
 import { getDefaultScopesForProperty } from './selectionInspectorUtils';
 import { AUTHORING_SURFACE_CLASSES } from './EditorShell';
-import { QUICK_CREATE_SURFACE_CLASSES } from './quickCreateSurface';
+import { AUTHORING } from '../shared/editorClasses';
 
 export interface CanvasCreateDraftOption {
   property: string;
@@ -198,17 +198,17 @@ export function CanvasCreateTokenDialog({
         </div>
 
         <div className={`${AUTHORING_SURFACE_CLASSES.bodyStack} min-h-0 flex-1 overflow-y-auto`}>
-          <section className={QUICK_CREATE_SURFACE_CLASSES.section}>
-            <div className={QUICK_CREATE_SURFACE_CLASSES.summaryCard}>
-              <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Layers</span>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.summaryValue}>{dialogSummary}</span>
+          <section className={AUTHORING.section}>
+            <div className={AUTHORING.summaryCard}>
+              <div className={AUTHORING.summaryRow}>
+                <span className={AUTHORING.summaryLabel}>Layers</span>
+                <span className={AUTHORING.summaryValue}>{dialogSummary}</span>
               </div>
               {selectedOption && (
                 <>
-                  <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
-                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Property</span>
-                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryValue}>
+                  <div className={AUTHORING.summaryRow}>
+                    <span className={AUTHORING.summaryLabel}>Property</span>
+                    <span className={AUTHORING.summaryValue}>
                       {selectedOption.propertyLabel}
                     </span>
                     <span
@@ -217,15 +217,15 @@ export function CanvasCreateTokenDialog({
                       {selectedOption.tokenType}
                     </span>
                   </div>
-                  <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
-                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Preview</span>
-                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryMono}>
+                  <div className={AUTHORING.summaryRow}>
+                    <span className={AUTHORING.summaryLabel}>Preview</span>
+                    <span className={AUTHORING.summaryMono}>
                       {selectedOption.previewValue}
                     </span>
                   </div>
-                  <div className={QUICK_CREATE_SURFACE_CLASSES.summaryRow}>
-                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryLabel}>Stored</span>
-                    <span className={QUICK_CREATE_SURFACE_CLASSES.summaryMono}>
+                  <div className={AUTHORING.summaryRow}>
+                    <span className={AUTHORING.summaryLabel}>Stored</span>
+                    <span className={AUTHORING.summaryMono}>
                       {storedValueSummary}
                     </span>
                   </div>
@@ -234,14 +234,14 @@ export function CanvasCreateTokenDialog({
             </div>
           </section>
 
-          <section className={QUICK_CREATE_SURFACE_CLASSES.section}>
+          <section className={AUTHORING.section}>
             {hasMultipleOptions && (
-              <label className={QUICK_CREATE_SURFACE_CLASSES.fieldStack}>
-                <span className={QUICK_CREATE_SURFACE_CLASSES.fieldLabel}>Property</span>
+              <label className={AUTHORING.fieldStack}>
+                <span className={AUTHORING.label}>Property</span>
                 <select
                   value={String(selectedIndex)}
                   onChange={(event) => setSelectedIndex(Number(event.target.value))}
-                  className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                  className={AUTHORING.select}
                 >
                   {draft.options.map((option, index) => (
                     <option key={`${option.property}:${index}`} value={index}>
@@ -252,13 +252,13 @@ export function CanvasCreateTokenDialog({
               </label>
             )}
 
-            <label className={QUICK_CREATE_SURFACE_CLASSES.fieldStack}>
-              <span className={QUICK_CREATE_SURFACE_CLASSES.fieldLabel}>Target set</span>
+            <label className={AUTHORING.fieldStack}>
+              <span className={AUTHORING.label}>Target set</span>
               {hasMultipleSets ? (
                 <select
                   value={targetSet}
                   onChange={(event) => setTargetSet(event.target.value)}
-                  className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                  className={AUTHORING.select}
                 >
                   {sets.map((setName) => (
                     <option key={setName} value={setName}>
@@ -267,14 +267,14 @@ export function CanvasCreateTokenDialog({
                   ))}
                 </select>
               ) : (
-                <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] break-words">
+                <div className={`${AUTHORING.input} bg-[var(--color-figma-bg-secondary)] break-words`}>
                   {targetSet}
                 </div>
               )}
             </label>
 
-            <label className={QUICK_CREATE_SURFACE_CLASSES.fieldStack}>
-              <span className={QUICK_CREATE_SURFACE_CLASSES.fieldLabel}>Token path</span>
+            <label className={AUTHORING.fieldStack}>
+              <span className={AUTHORING.label}>Token path</span>
               <input
                 value={tokenPath}
                 onChange={(event) => {
@@ -282,7 +282,7 @@ export function CanvasCreateTokenDialog({
                   setError('');
                 }}
                 placeholder="group.token-name"
-                className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                className={AUTHORING.input}
               />
             </label>
           </section>
@@ -291,7 +291,7 @@ export function CanvasCreateTokenDialog({
         <div className="tm-authoring-surface__footer">
           <div className={AUTHORING_SURFACE_CLASSES.footer}>
             {error && (
-              <p className="text-[10px] text-[var(--color-figma-error)] break-words">
+              <p role="alert" className={AUTHORING.error}>
                 {error}
               </p>
             )}
@@ -299,7 +299,7 @@ export function CanvasCreateTokenDialog({
               <button
                 onClick={onClose}
                 disabled={creating}
-                className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:opacity-50`}
+                className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary} disabled:opacity-50`}
               >
                 Cancel
               </button>
@@ -307,7 +307,7 @@ export function CanvasCreateTokenDialog({
                 <button
                   onClick={handleCreate}
                   disabled={!selectedOption || !tokenPath.trim() || creating}
-                  className="flex w-full items-center justify-center gap-1.5 rounded bg-[var(--color-figma-accent)] px-3 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                  className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
                 >
                   {creating && <Spinner size="sm" className="text-white" />}
                   {creating ? 'Creating…' : 'Create & bind'}

@@ -18,17 +18,6 @@ const DIM_NEAR_MAX = 1;
 // Opacity / number: within 2% absolute
 const OPACITY_NEAR_MAX = 0.02;
 
-function colorDist(hex1: string, hex2: string): number {
-  const c1 = parseHexRaw(hex1.replace('#', ''));
-  const c2 = parseHexRaw(hex2.replace('#', ''));
-  if (!c1 || !c2) return Infinity;
-  // parseHexRaw returns 0-1 values; scale to 0-255 for Euclidean distance
-  const dr = (c1.rgb.r - c2.rgb.r) * 255;
-  const dg = (c1.rgb.g - c2.rgb.g) * 255;
-  const db = (c1.rgb.b - c2.rgb.b) * 255;
-  return Math.sqrt(dr ** 2 + dg ** 2 + db ** 2);
-}
-
 // ---------------------------------------------------------------------------
 // Reverse-index helpers — reduce per-node lookup from O(tokens) to O(1) avg
 // ---------------------------------------------------------------------------

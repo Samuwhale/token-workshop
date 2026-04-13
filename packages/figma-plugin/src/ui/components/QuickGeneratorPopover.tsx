@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type {
   ColorRampConfig,
@@ -154,7 +154,7 @@ function QuickGeneratorIntentPicker({
 }) {
   return (
     <div
-      ref={popoverRef}
+      ref={popoverRef as React.RefObject<HTMLDivElement>}
       role="dialog"
       aria-modal="false"
       aria-label="Quick generator intent picker"
@@ -325,7 +325,7 @@ function QuickGeneratorSetup({
 
   return (
     <div
-      ref={popoverRef}
+      ref={popoverRef as React.RefObject<HTMLDivElement>}
       role="dialog"
       aria-modal="false"
       aria-label={`Quick ${template.label}`}

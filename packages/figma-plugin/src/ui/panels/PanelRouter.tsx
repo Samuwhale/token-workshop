@@ -9,26 +9,15 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import type {
-  ReactNode,
-  MutableRefObject,
-  RefObject,
-  Dispatch,
-  SetStateAction,
-  MouseEvent,
-  KeyboardEvent,
-} from "react";
+import type { ReactNode } from "react";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
-import type { TokenListImperativeHandle } from "../components/tokenListTypes";
 import { TokenEditor } from "../components/TokenEditor";
 import { TokenGeneratorDialog } from "../components/TokenGeneratorDialog";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
 import { ThemeManager } from "../components/ThemeManager";
-import type { ThemeManagerHandle } from "../components/ThemeManager";
 import { SetManager } from "../components/SetSwitcher";
 import { PublishPanel } from "../components/PublishPanel";
-import type { PublishPanelHandle } from "../components/PublishPanel";
 import { ImportPanel } from "../components/ImportPanel";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import { SelectionInspector } from "../components/SelectionInspector";
@@ -42,7 +31,6 @@ import { PreviewPanel } from "../components/PreviewPanel";
 import {
   getStartHereBranchCopy,
   TOKENS_START_HERE_BRANCHES,
-  type StartHereBranch,
 } from "../components/WelcomePrompt";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { NotificationsPanel } from "../components/NotificationsPanel";
@@ -79,24 +67,12 @@ import {
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
-import type { LintViolation } from "../hooks/useLint";
-import type {
-  ValidationSnapshot,
-  ValidationIssue,
-  ValidationSummary,
-} from "../hooks/useValidationCache";
-import type { UndoSlot } from "../hooks/useUndo";
-import type { OperationEntry } from "../hooks/useRecentOperations";
-import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
-import type { StarredTokensState } from "../hooks/useStarredTokens";
-import type { NotificationEntry } from "../hooks/useToastStack";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
 import type {
   ImportNextStepRecommendation,
   TopTab,
   SubTab,
   SecondarySurfaceId,
-  SurfaceTransition,
   TokensLibraryContextualSurface,
   TokensLibraryGeneratorEditorTarget,
 } from "../shared/navigationTypes";
@@ -106,7 +82,6 @@ import {
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
 import type { ToastAction } from "../shared/toastBus";
-import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
 import { useEditorWidth } from "../hooks/useEditorWidth";
 
 const LAST_CREATE_GROUP_STORAGE_KEY = "tm_last_create_group";
@@ -204,7 +179,7 @@ export function PanelRouter(): ReactNode {
     tokensComparePath,
     setTokensComparePath,
     tokensCompareThemeKey,
-    setTokensCompareThemeKey,
+    setTokensCompareThemeKey: _setTokensCompareThemeKey,
     tokensCompareDefaultA,
     tokensCompareDefaultB,
     tokensContextualSurfaceState,
@@ -296,6 +271,7 @@ export function PanelRouter(): ReactNode {
     ) {
       controller.setShowPreviewSplit(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs accessed via dot notation
   }, [
     activeTokensContextualSurface,
     controller.showPreviewSplit,
@@ -354,6 +330,7 @@ export function PanelRouter(): ReactNode {
         },
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
     [
       activeSet,
       controller.setShowPreviewSplit,
@@ -372,6 +349,7 @@ export function PanelRouter(): ReactNode {
         generator: target,
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
     [controller.setShowPreviewSplit, switchContextualSurface],
   );
 
@@ -385,6 +363,7 @@ export function PanelRouter(): ReactNode {
       }
       navigateTo("define", "tokens");
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
     [
       activeSet,
       navigateTo,
@@ -409,6 +388,7 @@ export function PanelRouter(): ReactNode {
     }
     setEditingToken(null);
     controller.refreshAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
   }, [
     editingToken?.isCreate,
     controller.refreshAll,
@@ -424,6 +404,7 @@ export function PanelRouter(): ReactNode {
       }
       controller.handleEditorSave(savedPath);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
     [editingToken?.isCreate, controller.handleEditorSave, setCreateFromEmpty],
   );
 
@@ -445,6 +426,7 @@ export function PanelRouter(): ReactNode {
         createPresentation: "launcher",
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
     [
       activeSet,
       editingToken?.set,
@@ -466,6 +448,7 @@ export function PanelRouter(): ReactNode {
       return;
     controller.setShowPreviewSplit(false);
     openCreateLauncher();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
   }, [
     createFromEmpty,
     editingGenerator,
@@ -656,6 +639,7 @@ export function PanelRouter(): ReactNode {
       onGoToTokens={() => setShowTokensCompare(false)}
       serverUrl={serverUrl}
       onTokensCreated={controller.refreshAll}
+      pushUndo={controller.pushUndo}
       onBack={() => setShowTokensCompare(false)}
       backLabel="Back to tokens"
     />

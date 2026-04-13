@@ -326,9 +326,6 @@ export function SelectionInspector({
       setBindingErrors({});
       setPeerSuggestion(null);
       setPropTypeSuggestion(null);
-      setExtractingUnbound(false);
-      setExtractUnboundResult(null);
-      setExtractUnboundError(null);
       setNoMoreSiblings(false);
       setDeepRemoveError(null);
       setShowExtractPanel(false);

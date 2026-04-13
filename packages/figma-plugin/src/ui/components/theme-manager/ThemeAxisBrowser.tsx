@@ -1,3 +1,4 @@
+import React from "react";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 
 interface ThemeAxisBrowserProps {
@@ -32,7 +33,7 @@ export function ThemeAxisBrowser({ dimensionsCount }: ThemeAxisBrowserProps) {
           <path d="M21 21l-4.35-4.35" />
         </svg>
         <input
-          ref={dimSearchRef}
+          ref={dimSearchRef as React.RefObject<HTMLInputElement>}
           type="text"
           value={dimSearch}
           onChange={(event) => setDimSearch(event.target.value)}

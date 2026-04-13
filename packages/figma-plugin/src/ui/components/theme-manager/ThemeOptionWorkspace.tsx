@@ -39,7 +39,7 @@ export function ThemeOptionWorkspace({
   selectedOptionIssues,
   overrideSets,
   foundationSets,
-  disabledSets,
+  disabledSets: _disabledSets,
   renameOption,
   renameOptionValue,
   renameOptionError,
