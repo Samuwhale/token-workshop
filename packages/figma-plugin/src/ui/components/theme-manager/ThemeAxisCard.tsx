@@ -64,6 +64,7 @@ export function ThemeAxisCard({
   );
   const optionKey = `${dimension.id}:${selectedOption}`;
   const selectedOptionIssues = ctx.optionIssues[optionKey] ?? [];
+  const selectedOptionSummary = ctx.optionRoleSummaries[optionKey] ?? null;
 
   const setTokenCounts = useMemo(
     () =>
@@ -151,21 +152,28 @@ export function ThemeAxisCard({
           </div>
         ) : (
           <>
-            <div className="flex min-w-0 flex-1 items-center gap-1">
-              <span
-                className="truncate text-[11px] font-medium text-[var(--color-figma-text)]"
-                title={dimension.name}
-              >
-                {dimension.name}
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex min-w-0 items-center gap-1">
+                <span
+                  className="truncate text-[11px] font-medium text-[var(--color-figma-text)]"
+                  title={dimension.name}
+                >
+                  {dimension.name}
+                </span>
+                {totalDimensionGaps > 0 && (
+                  <NoticeCountBadge
+                    severity="warning"
+                    count={totalDimensionGaps}
+                    className="min-w-[16px] shrink-0 px-1"
+                    title={`${totalDimensionGaps} issue${totalDimensionGaps === 1 ? "" : "s"} across this family`}
+                  />
+                )}
+              </div>
+              <span className="truncate text-[9px] text-[var(--color-figma-text-tertiary)]">
+                {dimension.options.length === 0
+                  ? "No variants yet"
+                  : `${dimension.options.length} variant${dimension.options.length === 1 ? "" : "s"} · ${selectedOptionSummary?.baseCount ?? foundationSets.length} shared set${(selectedOptionSummary?.baseCount ?? foundationSets.length) === 1 ? "" : "s"} · ${selectedOptionSummary?.overrideCount ?? overrideSets.length} variant-specific set${(selectedOptionSummary?.overrideCount ?? overrideSets.length) === 1 ? "" : "s"}`}
               </span>
-              {totalDimensionGaps > 0 && (
-                <NoticeCountBadge
-                  severity="warning"
-                  count={totalDimensionGaps}
-                  className="min-w-[16px] shrink-0 px-1"
-                  title={`${totalDimensionGaps} issue${totalDimensionGaps === 1 ? "" : "s"} across this mode`}
-                />
-              )}
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
               {ctx.onGenerateForDimension && (
@@ -193,8 +201,8 @@ export function ThemeAxisCard({
                   ref={axisMenu.triggerRef}
                   onClick={axisMenu.toggle}
                   className="rounded p-0.5 text-[var(--color-figma-text-secondary)] opacity-20 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--color-figma-bg-hover)]"
-                  title="Mode actions"
-                  aria-label="Mode actions"
+                  title="Family actions"
+                  aria-label="Family actions"
                   aria-expanded={axisMenu.open}
                   aria-haspopup="menu"
                 >
@@ -247,7 +255,7 @@ export function ThemeAxisCard({
                       onClick={() => { axisMenu.close(); ctx.onOpenCoverageView(undefined, true); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
-                      Review all issues
+                      Review family issues
                     </button>
                     <button
                       role="menuitem"
@@ -443,6 +451,13 @@ export function ThemeAxisCard({
           onExecuteRenameOption={ctx.executeRenameOption}
           onCancelRenameOption={ctx.cancelRenameOption}
           onOpenCoverageView={ctx.onOpenCoverageView}
+          onOpenAdvancedSetup={() =>
+            ctx.onOpenAdvancedSetup({
+              dimId: dimension.id,
+              optionName: selectedOption,
+              preferredSetName: null,
+            })
+          }
           onHandleSetState={(setName, nextState) =>
             ctx.handleSetState(dimension.id, selectedOption, setName, nextState)
           }

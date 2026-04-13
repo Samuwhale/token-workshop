@@ -98,7 +98,7 @@ export function ThemeCoverageScreen({
                 onClick={onToggleShowAllAxes}
                 className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
               >
-                {showAllAxes ? `Focus ${focusDimension.name}` : "Show all axes"}
+                {showAllAxes ? `Focus ${focusDimension.name}` : "Show all families"}
               </button>
             )}
             {autoFillAction && (

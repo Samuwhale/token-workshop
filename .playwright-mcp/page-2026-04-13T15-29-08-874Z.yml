@@ -1,0 +1,381 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: TokenManager Standalone
+    - generic [ref=e4]: loaded
+    - button "Clear Log" [ref=e5] [cursor=pointer]
+    - button "Mock Selection" [ref=e6] [cursor=pointer]
+    - generic [ref=e7]: 11 messages
+  - iframe [active] [ref=e8]:
+    - generic [ref=f2e3]:
+      - generic [ref=f2e5]:
+        - tablist "Workspaces" [ref=f2e6]:
+          - tab "Tokens" [active] [selected] [ref=f2e7]
+          - tab "Modes" [ref=f2e8]
+          - tab "Apply" [ref=f2e9]
+          - tab "Sync" [ref=f2e10]
+          - tab "Audit" [ref=f2e11]
+        - tablist "Workspace sections" [ref=f2e853]:
+          - tab "Library" [selected] [ref=f2e854]
+          - tab "Recipes" [ref=f2e855]
+        - generic [ref=f2e16]:
+          - button "Import" [ref=f2e17]
+          - button "Open app menu" [ref=f2e19]:
+            - img [ref=f2e20]
+      - generic [ref=f2e24]:
+        - button "No mode applied" [ref=f2e856]:
+          - img [ref=f2e857]
+          - generic [ref=f2e860]: No mode applied
+          - img [ref=f2e861]
+        - generic [ref=f2e865]:
+          - generic [ref=f2e867]:
+            - generic [ref=f2e868]:
+              - generic [ref=f2e869]:
+                - img
+                - 'combobox "Search names, paths, and descriptions. Use Filters for structured search, or type qualifier prefixes like type: and has: for autocomplete." [ref=f2e870]'
+              - button "Create token, group, or import" [ref=f2e872]:
+                - img [ref=f2e873]
+              - button "1" [ref=f2e876]:
+                - img [ref=f2e877]
+                - generic [ref=f2e881]: "1"
+            - generic [ref=f2e882]:
+              - generic [ref=f2e883]: Modes · Color Mode
+              - button "Reset view" [ref=f2e884]
+          - tree "Token tree" [ref=f2e887]:
+            - generic [ref=f2e888]:
+              - combobox [ref=f2e890]:
+                - option "Color Mode" [selected]
+                - option "brand"
+              - generic "Light" [ref=f2e891]
+              - generic "Dark" [ref=f2e892]
+            - generic [ref=f2e893]:
+              - treeitem "Toggle group brand" [expanded] [level=1] [ref=f2e895] [cursor=pointer]:
+                - img [ref=f2e896]
+                - generic [ref=f2e898]: brand
+                - generic "Managed by Brand color palette" [ref=f2e899]:
+                  - img [ref=f2e900]
+                - generic "11 tokens in this group" [ref=f2e905]: "11"
+                - generic "11 of 11 tokens have themed overrides" [ref=f2e906]: 11/11
+                - button "11" [ref=f2e907]:
+                  - img [ref=f2e908]
+                  - text: "11"
+                - generic [ref=f2e913]:
+                  - button "Move group down" [ref=f2e914]:
+                    - img [ref=f2e915]
+                  - button "Scope to group" [ref=f2e917]:
+                    - img [ref=f2e918]
+                    - generic [ref=f2e923]: Scope
+                  - button "Add token to group" [ref=f2e924]:
+                    - img [ref=f2e925]
+                  - button "Group actions" [ref=f2e927]:
+                    - img [ref=f2e928]
+              - 'treeitem "Edit color: #f6f6f6 50 color More token actions #f6f6f6 #f6f6f6" [level=2] [ref=f2e933]':
+                - generic [ref=f2e934]:
+                  - 'button "Edit color: #f6f6f6" [ref=f2e936]'
+                  - 'generic "brand.50 Type: color Value: #f6f6f6" [ref=f2e937] [cursor=pointer]':
+                    - generic [ref=f2e938]:
+                      - generic "brand.50" [ref=f2e939]: "50"
+                      - button "color" [ref=f2e940]
+                  - 'button "warning: Color token \"brand.50\" uses a raw value \"#f6f6f6\" instead of an alias." [ref=f2e941]':
+                    - img [ref=f2e942]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e944]:
+                  - 'generic "Light: #f6f6f6 Set: primitives" [ref=f2e945]':
+                    - textbox [ref=f2e947]: "#f6f6f6"
+                  - 'generic "Dark: #f6f6f6 Set: primitives" [ref=f2e948]':
+                    - textbox [ref=f2e950]: "#f6f6f6"
+              - 'treeitem "Edit color: #ffb8b1 100 color More token actions #ffb8b1 #ffb8b1" [level=2] [ref=f2e952]':
+                - generic [ref=f2e953]:
+                  - 'button "Edit color: #ffb8b1" [ref=f2e955]'
+                  - 'generic "brand.100 Type: color Value: #ffb8b1" [ref=f2e956] [cursor=pointer]':
+                    - generic [ref=f2e957]:
+                      - generic "brand.100" [ref=f2e958]: "100"
+                      - button "color" [ref=f2e959]
+                  - 'button "warning: Color token \"brand.100\" uses a raw value \"#ffb8b1\" instead of an alias." [ref=f2e960]':
+                    - img [ref=f2e961]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e963]:
+                  - 'generic "Light: #ffb8b1 Set: primitives" [ref=f2e964]':
+                    - textbox [ref=f2e966]: "#ffb8b1"
+                  - 'generic "Dark: #ffb8b1 Set: primitives" [ref=f2e967]':
+                    - textbox [ref=f2e969]: "#ffb8b1"
+              - 'treeitem "Edit color: #ff8581 200 color More token actions #ff8581 #ff8581" [level=2] [ref=f2e971]':
+                - generic [ref=f2e972]:
+                  - 'button "Edit color: #ff8581" [ref=f2e974]'
+                  - 'generic "brand.200 Type: color Value: #ff8581" [ref=f2e975] [cursor=pointer]':
+                    - generic [ref=f2e976]:
+                      - generic "brand.200" [ref=f2e977]: "200"
+                      - button "color" [ref=f2e978]
+                  - 'button "warning: Color token \"brand.200\" uses a raw value \"#ff8581\" instead of an alias." [ref=f2e979]':
+                    - img [ref=f2e980]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e982]:
+                  - 'generic "Light: #ff8581 Set: primitives" [ref=f2e983]':
+                    - textbox [ref=f2e985]: "#ff8581"
+                  - 'generic "Dark: #ff8581 Set: primitives" [ref=f2e986]':
+                    - textbox [ref=f2e988]: "#ff8581"
+              - 'treeitem "Edit color: #ff6b69 300 color More token actions #ff6b69 #ff6b69" [level=2] [ref=f2e990]':
+                - generic [ref=f2e991]:
+                  - 'button "Edit color: #ff6b69" [ref=f2e993]'
+                  - 'generic "brand.300 Type: color Value: #ff6b69" [ref=f2e994] [cursor=pointer]':
+                    - generic [ref=f2e995]:
+                      - generic "brand.300" [ref=f2e996]: "300"
+                      - button "color" [ref=f2e997]
+                  - 'button "warning: Color token \"brand.300\" uses a raw value \"#ff6b69\" instead of an alias." [ref=f2e998]':
+                    - img [ref=f2e999]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1001]:
+                  - 'generic "Light: #ff6b69 Set: primitives" [ref=f2e1002]':
+                    - textbox [ref=f2e1004]: "#ff6b69"
+                  - 'generic "Dark: #ff6b69 Set: primitives" [ref=f2e1005]':
+                    - textbox [ref=f2e1007]: "#ff6b69"
+              - 'treeitem "Edit color: #e95254 400 color More token actions #e95254 #e95254" [level=2] [ref=f2e1009]':
+                - generic [ref=f2e1010]:
+                  - 'button "Edit color: #e95254" [ref=f2e1012]'
+                  - 'generic "brand.400 Type: color Value: #e95254" [ref=f2e1013] [cursor=pointer]':
+                    - generic [ref=f2e1014]:
+                      - generic "brand.400" [ref=f2e1015]: "400"
+                      - button "color" [ref=f2e1016]
+                  - 'button "warning: Color token \"brand.400\" uses a raw value \"#e95254\" instead of an alias." [ref=f2e1017]':
+                    - img [ref=f2e1018]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1020]:
+                  - 'generic "Light: #e95254 Set: primitives" [ref=f2e1021]':
+                    - textbox [ref=f2e1023]: "#e95254"
+                  - 'generic "Dark: #e95254 Set: primitives" [ref=f2e1024]':
+                    - textbox [ref=f2e1026]: "#e95254"
+              - 'treeitem "Edit color: #ce3940 500 color More token actions #ce3940 #ce3940" [level=2] [ref=f2e1028]':
+                - generic [ref=f2e1029]:
+                  - 'button "Edit color: #ce3940" [ref=f2e1031]'
+                  - 'generic "brand.500 Type: color Value: #ce3940" [ref=f2e1032] [cursor=pointer]':
+                    - generic [ref=f2e1033]:
+                      - generic "brand.500" [ref=f2e1034]: "500"
+                      - button "color" [ref=f2e1035]
+                  - 'button "warning: Color token \"brand.500\" uses a raw value \"#ce3940\" instead of an alias." [ref=f2e1036]':
+                    - img [ref=f2e1037]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1039]:
+                  - 'generic "Light: #ce3940 Set: primitives" [ref=f2e1040]':
+                    - textbox [ref=f2e1042]: "#ce3940"
+                  - 'generic "Dark: #ce3940 Set: primitives" [ref=f2e1043]':
+                    - textbox [ref=f2e1045]: "#ce3940"
+              - 'treeitem "Edit color: #b41e2e 600 color More token actions #b41e2e #b41e2e" [level=2] [ref=f2e1047]':
+                - generic [ref=f2e1048]:
+                  - 'button "Edit color: #b41e2e" [ref=f2e1050]'
+                  - 'generic "brand.600 Type: color Value: #b41e2e" [ref=f2e1051] [cursor=pointer]':
+                    - generic [ref=f2e1052]:
+                      - generic "brand.600" [ref=f2e1053]: "600"
+                      - button "color" [ref=f2e1054]
+                  - 'button "warning: Color token \"brand.600\" uses a raw value \"#b41e2e\" instead of an alias." [ref=f2e1055]':
+                    - img [ref=f2e1056]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1058]:
+                  - 'generic "Light: #b41e2e Set: primitives" [ref=f2e1059]':
+                    - textbox [ref=f2e1061]: "#b41e2e"
+                  - 'generic "Dark: #b41e2e Set: primitives" [ref=f2e1062]':
+                    - textbox [ref=f2e1064]: "#b41e2e"
+              - 'treeitem "Edit color: #9c001d 700 color More token actions #9c001d #9c001d" [level=2] [ref=f2e1066]':
+                - generic [ref=f2e1067]:
+                  - 'button "Edit color: #9c001d" [ref=f2e1069]'
+                  - 'generic "brand.700 Type: color Value: #9c001d" [ref=f2e1070] [cursor=pointer]':
+                    - generic [ref=f2e1071]:
+                      - generic "brand.700" [ref=f2e1072]: "700"
+                      - button "color" [ref=f2e1073]
+                  - 'button "warning: Color token \"brand.700\" uses a raw value \"#9c001d\" instead of an alias." [ref=f2e1074]':
+                    - img [ref=f2e1075]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1077]:
+                  - 'generic "Light: #9c001d Set: primitives" [ref=f2e1078]':
+                    - textbox [ref=f2e1080]: "#9c001d"
+                  - 'generic "Dark: #9c001d Set: primitives" [ref=f2e1081]':
+                    - textbox [ref=f2e1083]: "#9c001d"
+              - 'treeitem "Edit color: #83000c 800 color More token actions #83000c #83000c" [level=2] [ref=f2e1085]':
+                - generic [ref=f2e1086]:
+                  - 'button "Edit color: #83000c" [ref=f2e1088]'
+                  - 'generic "brand.800 Type: color Value: #83000c" [ref=f2e1089] [cursor=pointer]':
+                    - generic [ref=f2e1090]:
+                      - generic "brand.800" [ref=f2e1091]: "800"
+                      - button "color" [ref=f2e1092]
+                  - 'button "warning: Color token \"brand.800\" uses a raw value \"#83000c\" instead of an alias." [ref=f2e1093]':
+                    - img [ref=f2e1094]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1096]:
+                  - 'generic "Light: #83000c Set: primitives" [ref=f2e1097]':
+                    - textbox [ref=f2e1099]: "#83000c"
+                  - 'generic "Dark: #83000c Set: primitives" [ref=f2e1100]':
+                    - textbox [ref=f2e1102]: "#83000c"
+              - 'treeitem "Edit color: #55030d 900 color More token actions #55030d #55030d" [level=2] [ref=f2e1104]':
+                - generic [ref=f2e1105]:
+                  - 'button "Edit color: #55030d" [ref=f2e1107]'
+                  - 'generic "brand.900 Type: color Value: #55030d" [ref=f2e1108] [cursor=pointer]':
+                    - generic [ref=f2e1109]:
+                      - generic "brand.900" [ref=f2e1110]: "900"
+                      - button "color" [ref=f2e1111]
+                  - 'button "warning: Color token \"brand.900\" uses a raw value \"#55030d\" instead of an alias." [ref=f2e1112]':
+                    - img [ref=f2e1113]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1115]:
+                  - 'generic "Light: #55030d Set: primitives" [ref=f2e1116]':
+                    - textbox [ref=f2e1118]: "#55030d"
+                  - 'generic "Dark: #55030d Set: primitives" [ref=f2e1119]':
+                    - textbox [ref=f2e1121]: "#55030d"
+              - 'treeitem "Edit color: #181818 950 color More token actions #181818 #181818" [level=2] [ref=f2e1123]':
+                - generic [ref=f2e1124]:
+                  - 'button "Edit color: #181818" [ref=f2e1126]'
+                  - 'generic "brand.950 Type: color Value: #181818" [ref=f2e1127] [cursor=pointer]':
+                    - generic [ref=f2e1128]:
+                      - generic "brand.950" [ref=f2e1129]: "950"
+                      - button "color" [ref=f2e1130]
+                  - 'button "warning: Color token \"brand.950\" uses a raw value \"#181818\" instead of an alias." [ref=f2e1131]':
+                    - img [ref=f2e1132]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1134]:
+                  - 'generic "Light: #181818 Set: primitives" [ref=f2e1135]':
+                    - textbox [ref=f2e1137]: "#181818"
+                  - 'generic "Dark: #181818 Set: primitives" [ref=f2e1138]':
+                    - textbox [ref=f2e1140]: "#181818"
+              - treeitem "Toggle group semantic" [expanded] [level=1] [ref=f2e1142] [cursor=pointer]:
+                - img [ref=f2e1143]
+                - generic [ref=f2e1145]: semantic
+                - generic "4 tokens in this group" [ref=f2e1146]: "4"
+                - generic:
+                  - button "Move group up":
+                    - img
+                  - button "Move group down":
+                    - img
+                  - button "Scope to group":
+                    - img
+                    - generic: Scope
+                  - button "Add token to group":
+                    - img
+                  - button "Group actions":
+                    - img
+              - treeitem "Toggle group action" [expanded] [level=2] [ref=f2e1148] [cursor=pointer]:
+                - img [ref=f2e1149]
+                - generic [ref=f2e1151]: action
+                - generic "4 tokens in this group" [ref=f2e1152]: "4"
+                - generic:
+                  - button "Scope to group":
+                    - img
+                    - generic: Scope
+                  - button "Add token to group":
+                    - img
+                  - button "Group actions":
+                    - img
+              - 'treeitem "Edit default default color More token actions #ce3940 #ce3940" [level=3] [ref=f2e1154]':
+                - generic [ref=f2e1155]:
+                  - button "Edit default" [ref=f2e1156] [cursor=pointer]:
+                    - generic "#ce3940" [ref=f2e1158]
+                  - 'generic "semantic.action.default Type: color Value: #ce3940 Description: Semantic reference for brand.500" [ref=f2e1159] [cursor=pointer]':
+                    - generic [ref=f2e1160]:
+                      - generic "semantic.action.default" [ref=f2e1161]: default
+                      - button "color" [ref=f2e1162]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1163]:
+                  - 'generic "Light: #ce3940 Set: primitives" [ref=f2e1164]':
+                    - textbox [ref=f2e1166]: "#ce3940"
+                  - 'generic "Dark: #ce3940 Set: primitives" [ref=f2e1167]':
+                    - textbox [ref=f2e1169]: "#ce3940"
+              - 'treeitem "Edit hover hover color More token actions #b41e2e #b41e2e" [level=3] [ref=f2e1171]':
+                - generic [ref=f2e1172]:
+                  - button "Edit hover" [ref=f2e1173] [cursor=pointer]:
+                    - generic "#b41e2e" [ref=f2e1175]
+                  - 'generic "semantic.action.hover Type: color Value: #b41e2e Description: Semantic reference for brand.600" [ref=f2e1176] [cursor=pointer]':
+                    - generic [ref=f2e1177]:
+                      - generic "semantic.action.hover" [ref=f2e1178]: hover
+                      - button "color" [ref=f2e1179]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1180]:
+                  - 'generic "Light: #b41e2e Set: primitives" [ref=f2e1181]':
+                    - textbox [ref=f2e1183]: "#b41e2e"
+                  - 'generic "Dark: #b41e2e Set: primitives" [ref=f2e1184]':
+                    - textbox [ref=f2e1186]: "#b41e2e"
+              - 'treeitem "Edit active active color More token actions #9c001d #9c001d" [level=3] [ref=f2e1188]':
+                - generic [ref=f2e1189]:
+                  - button "Edit active" [ref=f2e1190] [cursor=pointer]:
+                    - generic "#9c001d" [ref=f2e1192]
+                  - 'generic "semantic.action.active Type: color Value: #9c001d Description: Semantic reference for brand.700" [ref=f2e1193] [cursor=pointer]':
+                    - generic [ref=f2e1194]:
+                      - generic "semantic.action.active" [ref=f2e1195]: active
+                      - button "color" [ref=f2e1196]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1197]:
+                  - 'generic "Light: #9c001d Set: primitives" [ref=f2e1198]':
+                    - textbox [ref=f2e1200]: "#9c001d"
+                  - 'generic "Dark: #9c001d Set: primitives" [ref=f2e1201]':
+                    - textbox [ref=f2e1203]: "#9c001d"
+              - 'treeitem "Edit disabled disabled color More token actions #ff6b69 #ff6b69" [level=3] [ref=f2e1205]':
+                - generic [ref=f2e1206]:
+                  - button "Edit disabled" [ref=f2e1207] [cursor=pointer]:
+                    - generic "#ff6b69" [ref=f2e1209]
+                  - 'generic "semantic.action.disabled Type: color Value: #ff6b69 Description: Semantic reference for brand.300" [ref=f2e1210] [cursor=pointer]':
+                    - generic [ref=f2e1211]:
+                      - generic "semantic.action.disabled" [ref=f2e1212]: disabled
+                      - button "color" [ref=f2e1213]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1214]:
+                  - 'generic "Light: #ff6b69 Set: primitives" [ref=f2e1215]':
+                    - textbox [ref=f2e1217]: "#ff6b69"
+                  - 'generic "Dark: #ff6b69 Set: primitives" [ref=f2e1218]':
+                    - textbox [ref=f2e1220]: "#ff6b69"
+              - 'treeitem "Edit color: #639ddf blueadwad color More token actions #639ddf #639ddf" [level=1] [ref=f2e1222]':
+                - generic [ref=f2e1223]:
+                  - 'button "Edit color: #639ddf" [ref=f2e1225]'
+                  - 'generic "blueadwad Type: color Value: #639ddf" [ref=f2e1226] [cursor=pointer]':
+                    - generic [ref=f2e1227]:
+                      - generic "blueadwad" [ref=f2e1228]
+                      - button "color" [ref=f2e1229]
+                  - 'button "warning: Color token \"blueadwad\" uses a raw value \"#639ddf\" instead of an alias." [ref=f2e1230]':
+                    - img [ref=f2e1231]
+                  - generic:
+                    - button "More token actions":
+                      - img
+                - generic [ref=f2e1233]:
+                  - 'generic "Light: #639ddf Set: primitives" [ref=f2e1234]':
+                    - textbox [ref=f2e1236]: "#639ddf"
+                  - 'generic "Dark: #639ddf Set: primitives" [ref=f2e1237]':
+                    - textbox [ref=f2e1239]: "#639ddf"
+      - generic "Drag to resize" [ref=f2e97]:
+        - img [ref=f2e98]
+  - generic [ref=e9]: ⋯
+  - generic [ref=e10]:
+    - generic [ref=e11]: "[15:25:31.837] UI → get-available-fonts: {\"type\":\"get-available-fonts\"}"
+    - generic [ref=e12]: "[15:25:31.838] UI → set-deep-inspect: {\"type\":\"set-deep-inspect\",\"enabled\":false}"
+    - generic [ref=e13]: "[15:25:31.838] UI → get-selection: {\"type\":\"get-selection\"}"
+    - generic [ref=e14]: "[15:25:31.838] UI → get-active-themes: {\"type\":\"get-active-themes\"}"
+    - generic [ref=e15]: "[15:25:31.849] ← UI selection: {\"type\":\"selection\",\"nodes\":[]}"
+    - generic [ref=e16]: "[15:25:31.853] ← UI active-themes-loaded: {\"type\":\"active-themes-loaded\",\"themes\":{}}"
+    - generic [ref=e17]: "[15:25:31.863] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"
+    - generic [ref=e18]: "[15:25:31.962] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"
+    - generic [ref=e19]: "[15:25:32.011] UI → scan-token-usage: {\"type\":\"scan-token-usage\"}"
+    - generic [ref=e20]: "[15:25:32.041] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"
+    - generic [ref=e21]: "[15:29:06.709] UI → scan-token-usage: {\"type\":\"scan-token-usage\"}"

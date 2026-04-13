@@ -1,4 +1,4 @@
-import { adaptShortcut, stableStringify } from "../shared/utils";
+import { adaptShortcut } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -639,14 +639,6 @@ export function TokenEditor({
   const trimmedEditPath = editPath.trim();
   const trimmedEditLeaf = trimmedEditPath.split(".").filter(Boolean).pop() ?? "";
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
-  const modeOverrideCount = Object.values(modeValues).reduce(
-    (count, optionMap) =>
-      count +
-      Object.values(optionMap).filter(
-        (entry) => entry !== "" && entry !== undefined && entry !== null,
-      ).length,
-    0,
-  );
   const footerNote =
     isCreateMode && duplicatePath
       ? "Choose another token path to continue."
@@ -1294,16 +1286,24 @@ export function TokenEditor({
           />
         )}
 
+        <ModeValuesEditor
+          dimensions={dimensions}
+          modeValues={modeValues}
+          onModeValuesChange={setModeValues}
+          tokenType={tokenType}
+          aliasMode={aliasMode}
+          reference={reference}
+          value={value}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onNavigateToThemes={onNavigateToThemes}
+        />
+
         {/* Details — metadata, variants, and support tools */}
         <Collapsible
           open={detailsOpen}
           onToggle={toggleDetails}
-          label={
-            <span>
-              Details
-              {modeOverrideCount > 0 ? ` (${modeOverrideCount} variant override${modeOverrideCount === 1 ? "" : "s"})` : ""}
-            </span>
-          }
+          label={<span>Details</span>}
         >
           <div className="mt-2 flex flex-col gap-3">
             <div className="flex flex-col gap-1">
@@ -1417,19 +1417,6 @@ export function TokenEditor({
                   })()}
               </div>
             )}
-
-            <ModeValuesEditor
-              dimensions={dimensions}
-              modeValues={modeValues}
-              onModeValuesChange={setModeValues}
-              tokenType={tokenType}
-              aliasMode={aliasMode}
-              reference={reference}
-              value={value}
-              allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
-              onNavigateToThemes={onNavigateToThemes}
-            />
 
             {/* Lifecycle */}
             <div className="flex flex-col gap-1">

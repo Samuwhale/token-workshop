@@ -1,0 +1,52 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: TokenManager Standalone
+    - generic [ref=e4]: loaded
+    - button "Clear Log" [ref=e5] [cursor=pointer]
+    - button "Mock Selection" [ref=e6] [cursor=pointer]
+    - generic [ref=e7]: 10 messages
+  - iframe [active] [ref=e8]:
+    - generic [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - generic [ref=f1e5]:
+          - tablist "Workspaces" [ref=f1e6]:
+            - tab "Tokens" [ref=f1e7]
+            - tab "Modes" [ref=f1e8]
+            - tab "Apply" [selected] [ref=f1e9]
+            - tab "Sync" [ref=f1e10]
+            - tab "Audit" [ref=f1e11]
+          - generic [ref=f1e12]:
+            - button "Import" [ref=f1e13]
+            - button "Open app menu" [ref=f1e15]:
+              - img [ref=f1e16]
+        - generic [ref=f1e21]:
+          - tablist "Workspace sections" [ref=f1e22]:
+            - tab "Selection" [selected] [ref=f1e546]:
+              - generic [ref=f1e547]: Selection
+            - tab "Canvas" [ref=f1e548]:
+              - generic [ref=f1e549]: Canvas
+          - generic [ref=f1e551]: 0 layers selected
+      - generic [ref=f1e552]:
+        - generic [ref=f1e554]:
+          - img
+          - textbox "Search layers" [active] [ref=f1e555]:
+            - /placeholder: Search layers by name, type, or component…
+        - generic [ref=f1e558]:
+          - img [ref=f1e560]
+          - generic [ref=f1e563]:
+            - heading "No layer selected" [level=3] [ref=f1e564]
+            - generic [ref=f1e565]: Search above or select a layer on the canvas to inspect its token bindings.
+      - generic "Drag to resize" [ref=f1e409]:
+        - img [ref=f1e410]
+  - generic [ref=e9]: ⋯
+  - generic [ref=e10]:
+    - generic [ref=e11]: "[15:16:36.086] UI → get-available-fonts: {\"type\":\"get-available-fonts\"}"
+    - generic [ref=e12]: "[15:16:36.141] UI → set-deep-inspect: {\"type\":\"set-deep-inspect\",\"enabled\":false}"
+    - generic [ref=e13]: "[15:16:36.141] UI → get-selection: {\"type\":\"get-selection\"}"
+    - generic [ref=e14]: "[15:16:36.141] UI → get-active-themes: {\"type\":\"get-active-themes\"}"
+    - generic [ref=e15]: "[15:16:36.152] ← UI selection: {\"type\":\"selection\",\"nodes\":[]}"
+    - generic [ref=e16]: "[15:16:36.153] ← UI active-themes-loaded: {\"type\":\"active-themes-loaded\",\"themes\":{}}"
+    - generic [ref=e17]: "[15:16:36.178] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"
+    - generic [ref=e18]: "[15:16:36.178] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"
+    - generic [ref=e19]: "[15:16:36.185] UI → scan-token-usage: {\"type\":\"scan-token-usage\"}"
+    - generic [ref=e20]: "[15:16:36.202] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"

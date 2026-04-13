@@ -809,10 +809,10 @@ function CrossThemeMode({
     return (
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Compare across modes</span>
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Compare across themes</span>
           <button onClick={onClose} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">Close</button>
         </div>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No modes found. Add modes in the Modes tab to compare token values across variants.</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No themes found. Add theme families in the Themes tab to compare token values across variants.</p>
       </div>
     );
   }
@@ -1111,7 +1111,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
             onChange={e => setOptionKeyA(e.target.value)}
             className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
           >
-            <option value="">Select a mode variant…</option>
+            <option value="">Select a theme variant…</option>
             {flatOptions.map(o => (
               <option key={o.key} value={o.key}>{o.label}</option>
             ))}
@@ -1124,7 +1124,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
             onChange={e => setOptionKeyB(e.target.value)}
             className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
           >
-            <option value="">Select a mode variant…</option>
+            <option value="">Select a theme variant…</option>
             {flatOptions.map(o => (
               <option key={o.key} value={o.key}>{o.label}</option>
             ))}
@@ -1137,7 +1137,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
             {flatOptions.length < 2
-              ? 'You need at least two mode variants to compare.'
+              ? 'You need at least two theme variants to compare.'
               : 'Select two different options above to see how they differ.'}
           </p>
         </div>
@@ -1872,11 +1872,11 @@ export function CompareView({
             <div className="flex flex-col items-center justify-center h-full gap-2 px-3 text-center">
               {dimensions.length === 0 ? (
                 <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-                  No modes are configured. Set up modes first.
+                  No themes are configured. Set up theme families first.
                 </p>
               ) : (
                 <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-                  Right-click any token in the Tokens tab and choose <strong>Compare across modes</strong> to see how its value changes across each mode variant.
+                  Right-click any token in the Tokens tab and choose <strong>Compare across themes</strong> to see how its value changes across each theme variant.
                 </p>
               )}
               <button

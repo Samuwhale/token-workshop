@@ -238,9 +238,9 @@ function ThemeAdvancedSetupScreen({
   return (
     <>
       <AdvancedScreenHeader
-        title="Advanced setup"
-        description="Keep normal mode authoring in the main flow. Use this route when you need raw set-role controls, comparison tools, or resolver-only publish logic."
-        backLabel="Back to authoring"
+        title="Advanced theme setup"
+        description="Keep normal theme authoring in the main flow. Use this route when you need raw set-role controls, comparison tools, or resolver-only publish logic."
+        backLabel="Back to themes"
         onBack={onBack}
       />
 
@@ -251,7 +251,7 @@ function ThemeAdvancedSetupScreen({
               Stay in simple authoring
             </p>
             <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Use the default mode workflow for shared sets, override sets,
+              Use the default theme workflow for shared sets, variant-specific sets,
               coverage review, and preview.
             </p>
           </div>
@@ -272,7 +272,7 @@ function ThemeAdvancedSetupScreen({
           <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <label className="flex flex-col gap-1">
               <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                Mode
+                Family
               </span>
               <select
                 value={selectedDimension?.id ?? ""}
@@ -311,7 +311,7 @@ function ThemeAdvancedSetupScreen({
 
           {!selectedDimension || !selectedOption ? (
             <div className="rounded border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-[10px] text-[var(--color-figma-text-tertiary)]">
-              Create at least one mode and variant before using Advanced setup.
+              Create at least one theme family and variant before using Advanced setup.
             </div>
           ) : (
             <>
@@ -413,7 +413,7 @@ function ThemeResolverScreen({
     <>
       <AdvancedScreenHeader
         title="Advanced resolver setup"
-        description="Keep everyday light/dark, brand, and density authoring in modes. Move here only when publish output needs custom resolution order, modifier defaults, or contexts that do not map cleanly to those modes."
+        description="Keep everyday light/dark, brand, and density authoring in themes. Move here only when publish output needs custom resolution order, modifier defaults, or contexts that do not map cleanly to those themes."
         backLabel="Back to advanced setup"
         onBack={onBack}
       />
@@ -435,7 +435,7 @@ function ThemeResolverScreen({
               <ThemeResolverContextBanner
                 context={resolverAuthoringContext}
                 title="Advanced review"
-                description="Detailed resolver mismatch diagnostics stay in this advanced flow so the default mode authoring surface can stay focused on modes and variants."
+                description="Detailed resolver mismatch diagnostics stay in this advanced flow so the default theme authoring surface can stay focused on families and variants."
               />
             </div>
           )}

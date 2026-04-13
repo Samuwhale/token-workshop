@@ -50,7 +50,7 @@ export function ThemePreviewScreen({
           merged[path] = {
             value,
             set: setName,
-            layer: `${dimension.name} / Base`,
+            layer: `${dimension.name} / Shared`,
           };
         }
       }
@@ -63,7 +63,7 @@ export function ThemePreviewScreen({
           merged[path] = {
             value,
             set: setName,
-            layer: `${dimension.name} / Override`,
+            layer: `${dimension.name} / Variant-specific`,
           };
         }
       }
@@ -113,11 +113,11 @@ export function ThemePreviewScreen({
         <div className="flex items-start justify-between gap-3 px-3 py-2.5">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              Mode preview
+              Theme preview
             </p>
             <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Review the resolved token combination without crowding the role
-              authoring surface.
+              Review the resolved token combination for the currently selected
+              variants without crowding the main theme authoring flow.
             </p>
           </div>
           <button
@@ -137,12 +137,12 @@ export function ThemePreviewScreen({
             >
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Back to set roles
+            Back to themes
           </button>
         </div>
         <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
           <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {activeSelectionLabel || "No active mode variant selection"}
+            {activeSelectionLabel || "No active theme variant selection"}
           </div>
         </div>
       </div>
@@ -182,10 +182,10 @@ export function ThemePreviewScreen({
                       )
                     );
                   })
-                ? "Assign sets as Base or Override to see resolved tokens"
+                ? "Connect shared or variant-specific token sources to see resolved tokens"
                 : previewSearch
-                  ? "No matching tokens"
-                  : "No tokens resolved with current selections"}
+                ? "No matching tokens"
+                : "Connect shared or variant-specific token sources to see the resolved theme"}
           </div>
         ) : (
           <table className="w-full text-[10px]">

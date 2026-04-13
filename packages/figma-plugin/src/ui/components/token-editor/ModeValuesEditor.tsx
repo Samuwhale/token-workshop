@@ -78,10 +78,10 @@ export function ModeValuesEditor({
       <div className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
         <div className="min-w-0">
           <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Variant values
+            Theme overrides
           </p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            No variant groups configured yet.
+            No theme families configured yet.
           </p>
         </div>
         <button
@@ -89,7 +89,7 @@ export function ModeValuesEditor({
           onClick={onNavigateToThemes}
           className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
         >
-          Set up variants
+          Set up themes
         </button>
       </div>
     );
@@ -100,16 +100,16 @@ export function ModeValuesEditor({
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Variant values
+            Theme overrides
           </p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Override the base value for specific variants.
+            Override the base token for specific theme variants.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {setCount > 0 && (
             <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
-              {setCount} overridden
+              {setCount} override{setCount === 1 ? "" : "s"}
             </span>
           )}
           {onNavigateToThemes && (
@@ -118,7 +118,7 @@ export function ModeValuesEditor({
               onClick={onNavigateToThemes}
               className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
             >
-              Manage variants
+              Manage themes
             </button>
           )}
         </div>
@@ -163,7 +163,7 @@ export function ModeValuesEditor({
                         </span>
                         {!isOverridden && (
                           <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                            Inherits the base value
+                            Uses the base token value
                           </span>
                         )}
                       </div>

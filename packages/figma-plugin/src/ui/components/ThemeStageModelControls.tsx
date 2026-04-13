@@ -20,8 +20,8 @@ export function ThemeStageModelControls({
 }: ThemeStageModelControlsProps) {
   return (
     <WorkflowStageIndicators
-      title="Mode workflow"
-      description="Build modes, variants, set roles, and preview in order. Review tools stay in secondary views."
+      title="Theme workflow"
+      description="Create theme families, add variants, connect shared and variant-specific token sources, then preview the resolved combination."
       stages={stages}
       onSelectStage={onSelectStage}
       actions={actions}

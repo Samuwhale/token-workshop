@@ -13,6 +13,7 @@ interface CompactAssignmentProps {
   setNames: string[];
   addValue: string;
   addOptions: string[];
+  emptyText: string;
   onAddValueChange: (value: string) => void;
   onAdd: () => void;
   onRemove: (setName: string) => void;
@@ -25,6 +26,7 @@ function CompactAssignment({
   setNames,
   addValue,
   addOptions,
+  emptyText,
   onAddValueChange,
   onAdd,
   onRemove,
@@ -33,10 +35,15 @@ function CompactAssignment({
 }: CompactAssignmentProps) {
   return (
     <div className="flex items-start gap-2 px-3 py-1.5">
-      <span className="shrink-0 pt-0.5 text-[10px] font-semibold text-[var(--color-figma-text-secondary)] w-[70px]">
+      <span className="w-[86px] shrink-0 pt-0.5 text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">
         {label}
       </span>
       <div className="flex flex-1 flex-wrap items-center gap-1 min-w-0">
+        {setNames.length === 0 && !addValue && (
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {emptyText}
+          </span>
+        )}
         {setNames.map((setName) => (
           <span
             key={setName}
@@ -71,12 +78,13 @@ function CompactAssignment({
           <button
             type="button"
             onClick={() => onAddValueChange(addOptions[0] ?? "")}
-            className="inline-flex items-center justify-center rounded-full border border-dashed border-[var(--color-figma-border)] p-0.5 text-[var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+            className="inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-figma-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
             title={`Add ${label.toLowerCase()} set`}
           >
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
+            Add set
           </button>
         )}
         {addValue && (
@@ -132,6 +140,7 @@ interface ThemeOptionWorkspaceProps {
     target?: ThemeRoleNavigationTarget | null,
     allAxes?: boolean,
   ) => void;
+  onOpenAdvancedSetup: () => void;
   onHandleSetState: (setName: string, nextState: ThemeRoleState) => void;
 }
 
@@ -153,6 +162,7 @@ export function ThemeOptionWorkspace({
   onExecuteRenameOption,
   onCancelRenameOption,
   onOpenCoverageView,
+  onOpenAdvancedSetup,
   onHandleSetState,
 }: ThemeOptionWorkspaceProps) {
   const { setRoleRefs, onNavigateToTokenSet } = useThemeAuthoringContext();
@@ -164,6 +174,30 @@ export function ThemeOptionWorkspace({
     () => summarizeThemeIssueHealth(selectedOptionIssues),
     [selectedOptionIssues],
   );
+  const assignmentSummary = useMemo(() => {
+    const summaryParts: string[] = [];
+    if (foundationSets.length > 0) {
+      summaryParts.push(
+        `${foundationSets.length} shared set${foundationSets.length === 1 ? "" : "s"}`,
+      );
+    }
+    if (overrideSets.length > 0) {
+      summaryParts.push(
+        `${overrideSets.length} variant-specific set${overrideSets.length === 1 ? "" : "s"}`,
+      );
+    }
+    if (_disabledSets.length > 0) {
+      summaryParts.push(
+        `${_disabledSets.length} hidden in Advanced setup`,
+      );
+    }
+
+    if (summaryParts.length === 0) {
+      return "No token sources are connected yet. Start with one shared set used across every variant.";
+    }
+
+    return `${summaryParts.join(" · ")} active for this variant.`;
+  }, [_disabledSets.length, foundationSets.length, overrideSets.length]);
 
   useEffect(() => {
     if (!pendingSharedSet || sharedCandidates.includes(pendingSharedSet)) return;
@@ -235,41 +269,64 @@ export function ThemeOptionWorkspace({
         </div>
       )}
 
-      {/* Health warning — compact single line */}
-      {selectedOptionHealth && (
-        <div className="flex items-center gap-2 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-warning)]/5 text-[10px]">
-          <span className="inline-flex items-center justify-center rounded-full bg-[var(--color-figma-warning)]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--color-figma-warning)]">
-            {selectedOptionHealth.totalCount}
-          </span>
-          <span className="flex-1 truncate text-[var(--color-figma-text-secondary)]">
-            {selectedOptionHealth.description}
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              onOpenCoverageView(
-                {
-                  dimId: dimension.id,
-                  optionName: option.name,
-                  preferredSetName: selectedOptionIssues[0]?.preferredSetName ?? null,
-                },
-                false,
-              )
-            }
-            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-          >
-            Review
-          </button>
+      <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 px-3 py-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+              {option.name}
+            </p>
+            <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              Pick the shared token sets every variant should inherit, then add
+              variant-specific sets only where {option.name} needs to differ.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+            {selectedOptionHealth && (
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenCoverageView(
+                    {
+                      dimId: dimension.id,
+                      optionName: option.name,
+                      preferredSetName:
+                        selectedOptionIssues[0]?.preferredSetName ?? null,
+                    },
+                    false,
+                  )
+                }
+                className="inline-flex items-center rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+              >
+                Review issues
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onOpenAdvancedSetup}
+              className="inline-flex items-center rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+            >
+              Advanced setup
+            </button>
+          </div>
         </div>
-      )}
+        <p className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
+          {assignmentSummary}
+        </p>
+        {selectedOptionHealth && (
+          <p className="mt-1 text-[10px] text-[var(--color-figma-warning)]">
+            Needs review: {selectedOptionHealth.description}
+          </p>
+        )}
+      </div>
 
       {/* Compact assignment rows */}
       <div className="border-b border-[var(--color-figma-border)] py-1">
         <CompactAssignment
-          label="Shared"
+          label="Shared tokens"
           setNames={foundationSets}
           addValue={pendingSharedSet}
           addOptions={sharedCandidates}
+          emptyText="No shared sets yet"
           onAddValueChange={setPendingSharedSet}
           onAdd={() => {
             if (!pendingSharedSet) return;
@@ -281,10 +338,11 @@ export function ThemeOptionWorkspace({
           onNavigateToTokenSet={onNavigateToTokenSet}
         />
         <CompactAssignment
-          label="Overrides"
+          label="Variant tokens"
           setNames={overrideSets}
           addValue={pendingVariantSet}
           addOptions={variantCandidates}
+          emptyText="No variant-specific sets yet"
           onAddValueChange={setPendingVariantSet}
           onAdd={() => {
             if (!pendingVariantSet) return;

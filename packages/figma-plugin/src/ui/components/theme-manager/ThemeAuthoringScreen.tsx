@@ -307,6 +307,33 @@ export const ThemeAuthoringScreen = forwardRef<
       );
     });
   }, [dimSearch, dimensions]);
+  const focusedOptionName = useMemo(() => {
+    if (!focusedDimension) return null;
+    return (
+      selectedOptions[focusedDimension.id] ??
+      focusedDimension.options[0]?.name ??
+      null
+    );
+  }, [focusedDimension, selectedOptions]);
+  const focusedOption = useMemo(() => {
+    if (!focusedDimension || !focusedOptionName) return null;
+    return (
+      focusedDimension.options.find(
+        (option: ThemeOption) => option.name === focusedOptionName,
+      ) ?? null
+    );
+  }, [focusedDimension, focusedOptionName]);
+  const focusedOptionSummary = useMemo(() => {
+    if (!focusedDimension || !focusedOptionName) return null;
+    return optionRoleSummaries[`${focusedDimension.id}:${focusedOptionName}`] ?? null;
+  }, [focusedDimension, focusedOptionName, optionRoleSummaries]);
+  const focusedIssueCount = useMemo(() => {
+    if (!focusedDimension || !focusedOptionName) return 0;
+    return (optionIssues[`${focusedDimension.id}:${focusedOptionName}`] ?? []).reduce(
+      (sum, issue) => sum + issue.count,
+      0,
+    );
+  }, [focusedDimension, focusedOptionName, optionIssues]);
   const toggleCollapsedDisabled = (dimId: string) => {
     setCollapsedDisabled((current) => {
       const next = new Set(current);
@@ -475,11 +502,12 @@ export const ThemeAuthoringScreen = forwardRef<
           <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
             <div className="flex flex-col gap-1">
               <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Create a mode
+                Create a theme family
               </p>
               <p className="max-w-[240px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Define a mode like color mode or brand, then assign the base
-                and variant-specific token sets for each variant.
+                Define a family like color mode or brand, then add variants and
+                connect the shared and variant-specific token sets each variant
+                should use.
               </p>
             </div>
 
@@ -510,17 +538,81 @@ export const ThemeAuthoringScreen = forwardRef<
               onClick={() => openCreateDim()}
               className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
-              or add a custom mode
+              or add a custom family
             </button>
           </div>
         ) : (
           <ThemeAuthoringProvider value={authoringContextValue}>
             <div className="flex flex-col">
+              <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2.5">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                        Theme families
+                      </p>
+                      <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                        {focusedDimension && focusedOption
+                          ? `Editing ${focusedDimension.name} / ${focusedOption.name}. Start with shared token sets used across every variant, then add variant-specific sets only where this variant should differ.`
+                          : "Build theme families, add variants, and connect token sources without dropping into advanced role logic."}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openCreateDim()}
+                        className="inline-flex items-center rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+                      >
+                        New family
+                      </button>
+                      {focusedDimension && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddOption((current) => ({
+                              ...current,
+                              [focusedDimension.id]: true,
+                            }));
+                            requestAnimationFrame(() => {
+                              addOptionInputRefs.current[focusedDimension.id]?.focus();
+                            });
+                          }}
+                          className="inline-flex items-center rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+                        >
+                          New variant
+                        </button>
+                      )}
+                      {focusedDimension && focusedOption && focusedIssueCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenCoverageView({
+                              dimId: focusedDimension.id,
+                              optionName: focusedOption.name,
+                              preferredSetName: null,
+                            })
+                          }
+                          className="inline-flex items-center rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+                        >
+                          Review issues
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {focusedDimension && focusedOptionSummary && (
+                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      {`${focusedDimension.options.length} variant${focusedDimension.options.length === 1 ? "" : "s"} in ${focusedDimension.name}. ${focusedOptionSummary.baseCount} shared set${focusedOptionSummary.baseCount === 1 ? "" : "s"} and ${focusedOptionSummary.overrideCount} variant-specific set${focusedOptionSummary.overrideCount === 1 ? "" : "s"} are active for ${focusedOption.name}.`}
+                      {focusedOptionSummary.excludedCount > 0 &&
+                        ` ${focusedOptionSummary.excludedCount} other set${focusedOptionSummary.excludedCount === 1 ? " is" : "s are"} hidden until Advanced setup.`}
+                    </div>
+                  )}
+                </div>
+              </div>
               <ThemeAxisBrowser dimensionsCount={dimensions.length} />
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (
                   <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No modes match your filter
+                    No theme families match your filter
                   </div>
                 )}
                 {filteredDimensions.map((dimension) => {
@@ -567,14 +659,14 @@ export const ThemeAuthoringScreen = forwardRef<
                 })}
                 {dimSearch && filteredDimensions.length === 0 && (
                   <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No modes matching &ldquo;{dimSearch}&rdquo;
+                    No theme families matching &ldquo;{dimSearch}&rdquo;
                   </div>
                 )}
                 {dimSearch &&
                   filteredDimensions.length > 0 &&
                   filteredDimensions.length < dimensions.length && (
                     <div className="px-3 py-1 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      Showing {filteredDimensions.length} of {dimensions.length} modes
+                      Showing {filteredDimensions.length} of {dimensions.length} families
                     </div>
                   )}
               </div>
@@ -585,10 +677,10 @@ export const ThemeAuthoringScreen = forwardRef<
 
       <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
         {showCreateDim ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
               <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Mode name
+                Theme family name
               </label>
               <input
                 type="text"
@@ -606,8 +698,8 @@ export const ThemeAuthoringScreen = forwardRef<
                 autoFocus
               />
               <p className="text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">
-                Each mode has variants — e.g.{" "}
-                <span className="font-medium">Mode:</span> light, dark
+                Each theme family has variants — e.g.{" "}
+                <span className="font-medium">Color mode:</span> light, dark
                 &nbsp;·&nbsp; <span className="font-medium">Brand:</span>{" "}
                 default, premium
               </p>
@@ -623,7 +715,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 disabled={!newDimName || isCreatingDim}
                 className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
-                {isCreatingDim ? "Creating…" : "Create mode"}
+                {isCreatingDim ? "Creating…" : "Create family"}
               </button>
               <button
                 onClick={closeCreateDim}
@@ -638,7 +730,7 @@ export const ThemeAuthoringScreen = forwardRef<
             onClick={() => openCreateDim()}
             className="flex w-full items-center justify-center rounded border border-dashed border-[var(--color-figma-border)] px-3 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
-            Add mode
+            Add family
           </button>
         )}
       </div>

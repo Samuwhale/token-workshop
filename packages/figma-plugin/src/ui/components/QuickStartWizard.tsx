@@ -675,7 +675,7 @@ export function QuickStartWizard({
         {checklistView === 'modes-inline' && (
           <div className="p-4 flex flex-col gap-3">
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Create a mode such as light and dark so your token system can switch across contexts.
+              Create a theme family such as color mode, then add variants like light and dark so your token system can switch across contexts.
             </p>
             <ThemeStep
               serverUrl={serverUrl}

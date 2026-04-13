@@ -226,7 +226,7 @@ function getFallbackPostImportRecommendation(
     return createFallbackWorkspaceRecommendation(
       "define",
       "themes",
-      "Open Modes next. Imported variable collections usually need a quick mode-structure pass before you fine-tune individual tokens.",
+      "Open Themes next. Imported variable collections usually need a quick theme-structure pass before you fine-tune individual tokens.",
     );
   }
 
@@ -2147,11 +2147,11 @@ export function App() {
       {
         id: "axes" as const,
         step: 1,
-        label: "Axes",
+        label: "Families",
         detail:
           themeWorkflowSummary.axisCount === 0
-            ? "Start by creating the first axis"
-            : `${themeWorkflowSummary.axisCount} axis${themeWorkflowSummary.axisCount === 1 ? "" : "es"} defined`,
+            ? "Start by creating the first theme family"
+            : `${themeWorkflowSummary.axisCount} famil${themeWorkflowSummary.axisCount === 1 ? "y" : "ies"} defined`,
         tone:
           themeWorkflowSummary.axisCount === 0
             ? "current"
@@ -2162,13 +2162,13 @@ export function App() {
       {
         id: "options" as const,
         step: 2,
-        label: "Options",
+        label: "Variants",
         detail:
           themeWorkflowSummary.axisCount === 0
-            ? "Create an axis first"
+            ? "Create a family first"
             : themeWorkflowSummary.axesMissingOptionsCount > 0
-              ? `${themeWorkflowSummary.axesMissingOptionsCount} axis${themeWorkflowSummary.axesMissingOptionsCount === 1 ? "" : "es"} still need options`
-              : `${themeWorkflowSummary.optionCount} option${themeWorkflowSummary.optionCount === 1 ? "" : "s"} ready`,
+              ? `${themeWorkflowSummary.axesMissingOptionsCount} famil${themeWorkflowSummary.axesMissingOptionsCount === 1 ? "y still needs variants" : "ies still need variants"}`
+              : `${themeWorkflowSummary.optionCount} variant${themeWorkflowSummary.optionCount === 1 ? "" : "s"} ready`,
         tone:
           themeWorkflowSummary.axisCount === 0
             ? "blocked"
@@ -2183,19 +2183,19 @@ export function App() {
       {
         id: "set-roles" as const,
         step: 3,
-        label: "Set roles",
+        label: "Token sources",
         detail:
           themeWorkflowSummary.optionCount === 0
-            ? "Add options before mapping sets"
+            ? "Add variants before connecting token sources"
             : themeWorkflowSummary.unmappedOptionCount > 0
               ? themeWorkflowSummary.nextSetRoleTarget
-                ? `${themeWorkflowSummary.unmappedOptionCount} option${themeWorkflowSummary.unmappedOptionCount === 1 ? "" : "s"} still need base or override sets. Start with ${themeWorkflowSummary.nextSetRoleTarget.dimensionName} -> ${themeWorkflowSummary.nextSetRoleTarget.optionName}.`
-                : `${themeWorkflowSummary.unmappedOptionCount} option${themeWorkflowSummary.unmappedOptionCount === 1 ? "" : "s"} still need base or override sets`
+                ? `${themeWorkflowSummary.unmappedOptionCount} variant${themeWorkflowSummary.unmappedOptionCount === 1 ? "" : "s"} still need shared or variant-specific token sources. Start with ${themeWorkflowSummary.nextSetRoleTarget.dimensionName} -> ${themeWorkflowSummary.nextSetRoleTarget.optionName}.`
+                : `${themeWorkflowSummary.unmappedOptionCount} variant${themeWorkflowSummary.unmappedOptionCount === 1 ? "" : "s"} still need shared or variant-specific token sources`
               : themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0
                 ? themeWorkflowSummary.nextSetRoleTarget
-                  ? `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} mapped option${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? "" : "s"} still need stale or empty assignments fixed. Start with ${themeWorkflowSummary.nextSetRoleTarget.dimensionName} -> ${themeWorkflowSummary.nextSetRoleTarget.optionName}.`
-                  : `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} mapped option${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? "" : "s"} still need stale or empty assignments fixed`
-                : `${themeWorkflowSummary.mappedSetCount} role assignment${themeWorkflowSummary.mappedSetCount === 1 ? "" : "s"} in place`,
+                  ? `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} variant${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? "" : "s"} still need token-source fixes. Start with ${themeWorkflowSummary.nextSetRoleTarget.dimensionName} -> ${themeWorkflowSummary.nextSetRoleTarget.optionName}.`
+                  : `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} variant${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? "" : "s"} still need token-source fixes`
+                : `${themeWorkflowSummary.mappedSetCount} token source${themeWorkflowSummary.mappedSetCount === 1 ? "" : "s"} connected`,
         tone:
           themeWorkflowSummary.optionCount === 0
             ? "blocked"
@@ -2213,7 +2213,7 @@ export function App() {
         step: 4,
         label: "Preview",
         detail: !themeWorkflowSummary.previewReady
-          ? "Assign sets before previewing"
+          ? "Connect token sources before previewing"
           : themeShellState.activeView === "authoring" &&
               themeShellState.authoringMode === "preview"
             ? "Preview stage is active"
@@ -2239,12 +2239,7 @@ export function App() {
       themeShellState.authoringMode === "preview"
     ) {
       actions.push({
-        label:
-          themeShellState.activeView === "coverage"
-            ? "Back to set roles"
-            : themeShellState.authoringMode === "preview"
-              ? "Back to set roles"
-              : "Back to authoring",
+        label: "Back to themes",
         onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
       });
     }
@@ -2371,19 +2366,14 @@ export function App() {
         themeShellState.authoringMode === "preview"
       ) {
         return {
-          label:
-            themeShellState.activeView === "coverage"
-              ? "Back to set roles"
-              : themeShellState.authoringMode === "preview"
-                ? "Back to set roles"
-                : "Back to authoring",
+          label: "Back to themes",
           onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
         };
       }
 
       if (themeWorkflowSummary.currentStage === "options") {
         return {
-          label: "Add option",
+          label: "Add variant",
           onClick: () => {
             guardEditorAction(() => {
               navigateTo("define", "themes");
@@ -3538,8 +3528,8 @@ export function App() {
                         <button
                           onClick={() => navigateTo("define", "themes")}
                           className="ml-auto px-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)]"
-                          title="Manage modes"
-                          aria-label="Manage modes"
+                          title="Manage themes"
+                          aria-label="Manage themes"
                         >
                           <svg
                             width="10"

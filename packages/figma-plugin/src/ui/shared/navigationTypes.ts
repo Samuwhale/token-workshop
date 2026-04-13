@@ -83,7 +83,7 @@ export const TOP_TABS: {
     label: "Define",
     subTabs: [
       { id: "tokens", label: "Tokens" },
-      { id: "themes", label: "Modes" },
+      { id: "themes", label: "Themes" },
       { id: "generators", label: "Recipes" },
     ],
   },
@@ -223,9 +223,9 @@ export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
   },
   {
     id: "themes",
-    label: "Modes",
+    label: "Themes",
     stepNumber: 2,
-    role: "Define modes, assign shared and override token sets, review coverage.",
+    role: "Define theme families, connect shared and variant token sets, and review coverage.",
   },
   {
     id: "apply",
@@ -395,7 +395,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
     surfaces: {
       compare: {
         label: "Compare",
-        usage: "Compare tokens or modes without leaving the library.",
+        usage: "Compare tokens or theme variants without leaving the library.",
       },
       "token-editor": {
         label: "Token editor",
@@ -476,12 +476,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
   {
     id: "themes",
-    label: "Modes",
-    summaryTitle: "Mode configuration",
+    label: "Themes",
+    summaryTitle: "Theme setup",
     topTab: "define",
     subTab: "themes",
     transition: workspaceTransition(
-      "Define modes, assign token sets, and review coverage.",
+      "Define theme families, connect token sources, and review coverage.",
     ),
   },
   {
@@ -794,7 +794,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "themes",
-        "Open Modes next. Multiple imported variable collections usually need mode structure before you fine-tune individual tokens.",
+        "Open Themes next. Multiple imported variable collections usually need theme structure before you fine-tune individual tokens.",
       ),
     );
   }
@@ -824,7 +824,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "tokens",
-        "Open Tokens next to review the imported library before moving into Modes, Apply, or Sync.",
+        "Open Tokens next to review the imported library before moving into Themes, Apply, or Sync.",
       ),
     );
   }
