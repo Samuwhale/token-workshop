@@ -5,6 +5,7 @@ interface ThemeResolverContextBannerProps {
   context: ThemeResolverAuthoringContext;
   actionLabel?: string;
   description?: string;
+  title?: string;
   onAction?: () => void;
 }
 
@@ -13,11 +14,23 @@ function getBannerDescription(context: ThemeResolverAuthoringContext): string {
     if (context.autoSelected && context.resolverCount > 1) {
       return "Showing the closest resolver match because no resolver is currently selected.";
     }
-    return "The current theme structure aligns with the selected resolver configuration.";
+    return "The current theme families and selected variants align with this resolver.";
   }
 
-  const mappedAxes = `${context.matchedAxisCount}/${context.axes.length} theme axes aligned`;
-  return `${mappedAxes}. Resolve the flagged axis or context mismatches before publishing.`;
+  const reviewTargets: string[] = [];
+  if (context.issueAxisCount > 0) {
+    reviewTargets.push(
+      `${context.issueAxisCount} family mismatch${context.issueAxisCount === 1 ? "" : "es"}`,
+    );
+  }
+  if (context.unmatchedModifierCount > 0) {
+    reviewTargets.push(
+      `${context.unmatchedModifierCount} resolver-only dimension${context.unmatchedModifierCount === 1 ? "" : "s"}`,
+    );
+  }
+  const mappedAxes = `${context.matchedAxisCount}/${context.axes.length} families aligned`;
+
+  return `${mappedAxes}. Review ${reviewTargets.join(" and ")} here before publishing.`;
 }
 
 function getAxisTone(status: "matched" | "warning" | "error"): string {
@@ -34,6 +47,7 @@ export function ThemeResolverContextBanner({
   context,
   actionLabel,
   description,
+  title = "Resolver review",
   onAction,
 }: ThemeResolverContextBannerProps) {
   const bannerDescription = description ?? getBannerDescription(context);
@@ -44,7 +58,7 @@ export function ThemeResolverContextBanner({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-              Resolver context
+              {title}
             </span>
             <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
               {context.resolverName}

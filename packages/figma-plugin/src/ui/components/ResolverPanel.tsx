@@ -364,6 +364,12 @@ function ResolverInner({
             </button>
           </div>
         </div>
+        <p className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/60 px-2 py-1.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+          Theme dimensions stay the default workflow for light/dark, brand, and
+          similar variants. Use resolvers only when publish output needs
+          explicit merge order, modifier defaults, or contexts that do not map
+          1:1 to those visible families.
+        </p>
       </div>
 
       {/* Create form */}
@@ -475,7 +481,9 @@ function ResolverInner({
             <div className="flex flex-col gap-1">
               <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No resolver configs yet</p>
               <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
-                Resolvers define how token sets merge based on dimensions — replacing per-combination files with a single config.
+                Resolvers add publish-time merge logic when theme families are
+                not enough, replacing per-combination files with a single
+                config.
               </p>
             </div>
 

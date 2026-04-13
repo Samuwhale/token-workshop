@@ -14,11 +14,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: The research audit recommends collapsing stale-set, empty-override, missing-override, and coverage-gap language into a dedicated review job for designers."
-state: ready
+  - "Completed: Added grouped theme issue review, simplified authoring to a health summary plus Review issues CTA, and made review handoffs reopen advanced setup only for stale/empty-set fixes."
+state: done
 acceptance_criteria:
   - Default theme authoring shows only a concise health summary and a `Review issues` CTA instead of multiple issue classes inline.
   - Coverage gaps, empty variant sets, and deleted-set links are grouped into a dedicated review surface with one recommended next action per issue.
   - Review-to-authoring handoffs focus the affected variant and only reopen raw role editing when the selected fix actually requires it.
 source: task-followup
 created_at: 2026-04-13T01:05:03.100Z
-updated_at: 2026-04-13T01:05:03.100Z
+updated_at: 2026-04-13T01:42:55.881Z

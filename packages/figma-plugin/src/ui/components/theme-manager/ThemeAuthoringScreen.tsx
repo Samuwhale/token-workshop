@@ -462,6 +462,29 @@ export const ThemeAuthoringScreen = forwardRef<
                 onOpenCompareView={onOpenCompareView}
                 onOpenAdvancedView={onOpenAdvancedView}
               />
+              {resolverAvailable && (
+                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-3 py-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                        Advanced resolver setup is optional
+                      </p>
+                      <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                        Keep standard theme work in families and variants. Open
+                        advanced setup only when publish output needs custom
+                        resolution order or modifier contexts.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onOpenAdvancedView}
+                      className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                    >
+                      Open advanced
+                    </button>
+                  </div>
+                </div>
+              )}
               <ThemeAxisBrowser dimensionsCount={dimensions.length} />
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (

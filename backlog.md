@@ -93,7 +93,7 @@
 - [x] [HIGH] Simplify the token-theme interaction UX so designers can build and manage themes without learning set-role priority logic, coverage diagnostics, and resolver internals
 - [x] [HIGH] Unify token creation, bulk editing, and generator configuration surfaces for visual consistency and small-viewport fitness in the Figma plugin panel
 - [x] [HIGH] Build a simple theme variant composer for light/dark and brand workflows
-- [ ] [HIGH] Split theme diagnostics into an explicit review route with issue-to-fix handoffs
+- [x] [HIGH] Split theme diagnostics into an explicit review route with issue-to-fix handoffs
 - [ ] [HIGH] Clarify resolver opt-in and hide resolver mismatch details from default theme authoring
 - [ ] [HIGH] Consolidate ThemeManager state into workspace and diagnostics providers
 - [ ] [HIGH] Introduce shared authoring-surface layout primitives for narrow Figma panels

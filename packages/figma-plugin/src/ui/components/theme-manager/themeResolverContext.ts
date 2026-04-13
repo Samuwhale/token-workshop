@@ -30,6 +30,8 @@ export interface ThemeResolverAuthoringContext {
   autoSelected: boolean;
   matchedAxisCount: number;
   issueCount: number;
+  issueAxisCount: number;
+  unmatchedModifierCount: number;
   axes: ThemeResolverAxisContext[];
   unmatchedModifiers: ThemeResolverModifierSummary[];
 }
@@ -283,9 +285,10 @@ export function buildThemeResolverAuthoringContext({
       contexts: resolver.modifiers[modifierName]?.contexts ?? [],
     }),
   );
+  const issueAxisCount = axes.filter((axis) => axis.status !== "matched").length;
+  const unmatchedModifierCount = unmatchedModifiers.length;
   const issueCount =
-    axes.filter((axis) => axis.status !== "matched").length +
-    unmatchedModifiers.length;
+    issueAxisCount + unmatchedModifierCount;
 
   return {
     resolverName: resolver.name,
@@ -294,6 +297,8 @@ export function buildThemeResolverAuthoringContext({
     autoSelected,
     matchedAxisCount: axes.filter((axis) => axis.status === "matched").length,
     issueCount,
+    issueAxisCount,
+    unmatchedModifierCount,
     axes,
     unmatchedModifiers,
   };

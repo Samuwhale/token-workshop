@@ -24,12 +24,13 @@ export function ThemeAdvancedScreen({
         <div className="px-3 py-2.5 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              Advanced theme logic
+              Advanced resolver setup
             </p>
             <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Use DTCG resolvers when you need explicit resolution order,
-              modifier contexts, or cross-dimensional logic beyond light/dark
-              style theme authoring.
+              Keep everyday light/dark, brand, and density authoring in theme
+              families. Move here only when publish output needs custom
+              resolution order, modifier defaults, or contexts that do not map
+              cleanly to those families.
             </p>
           </div>
           <button
@@ -62,6 +63,27 @@ export function ThemeAdvancedScreen({
             </kbd>
           </span>
         </div>
+        <div className="grid gap-2 px-3 pb-2 md:grid-cols-2">
+          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
+            <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              Stay in theme families
+            </p>
+            <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              Use the default authoring flow for designer-facing variants like
+              light/dark, brand tiers, and density options.
+            </p>
+          </div>
+          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
+            <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              Use resolvers here
+            </p>
+            <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              Open this screen when the output depends on explicit merge order,
+              modifier defaults, or publish-time logic that spans multiple
+              families.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -70,7 +92,8 @@ export function ThemeAdvancedScreen({
             <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
               <ThemeResolverContextBanner
                 context={resolverAuthoringContext}
-                description="This is the resolver summary reflected back into theme authoring, so structural mismatches are visible before publish preflight."
+                title="Advanced review"
+                description="Detailed resolver mismatch diagnostics stay in this advanced flow so the default family authoring surface can stay focused on dimensions and variants."
               />
             </div>
           )}

@@ -1838,3 +1838,12 @@
   - Theme review works better when authoring only shows aggregate health and the dedicated review surface owns the per-issue explanation plus the next fix action. Duplicating issue-class cards in both places makes the authoring surface noisy without helping users choose the fix.
   - Review-to-authoring jumps should treat advanced editing as a one-shot request tied to the specific variant, not as persistent route state. Otherwise later navigation keeps reopening expert controls after the original issue handoff is already handled.
 ---
+## 2026-04-13 - Clarify resolver opt-in and hide resolver mismatch details from default theme authoring
+- Added a passive authoring note that advertises advanced resolver setup without surfacing resolver mismatch copy, and reframed the advanced resolver entry around when to stay in theme families versus when to switch to resolvers.
+- Kept resolver mismatch diagnostics inside the advanced flow by tightening the resolver review banner copy and splitting the advanced summary into family mismatches versus resolver-only dimensions.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx packages/figma-plugin/src/ui/components/theme-manager/ThemeAdvancedScreen.tsx packages/figma-plugin/src/ui/components/ResolverPanel.tsx packages/figma-plugin/src/ui/components/theme-manager/themeResolverContext.ts packages/figma-plugin/src/ui/components/theme-manager/ThemeResolverContextBanner.tsx` passed. `pnpm --filter @tokenmanager/figma-plugin build` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx` ~L457; `packages/figma-plugin/src/ui/components/theme-manager/ThemeAdvancedScreen.tsx` ~L23; `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L341, ~L482; `packages/figma-plugin/src/ui/components/theme-manager/themeResolverContext.ts` ~L26, ~L284; `packages/figma-plugin/src/ui/components/theme-manager/ThemeResolverContextBanner.tsx` ~L4, ~L12; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Advanced escape hatches stay calmer when the default surface only advertises the capability and the advanced entry itself explains why and when to switch mental models.
+  - Resolver diagnostics read better when the advanced summary separates family mismatches from resolver-only dimensions instead of collapsing everything into one generic issue count.
+---
