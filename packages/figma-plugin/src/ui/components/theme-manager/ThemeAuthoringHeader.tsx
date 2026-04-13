@@ -1,28 +1,17 @@
 import type { ThemeDimension } from "@tokenmanager/core";
 import { handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
-import { SHORTCUT_KEYS } from "../../shared/shortcutRegistry";
-import { adaptShortcut } from "../../shared/utils";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 
 interface ThemeAuthoringHeaderProps {
   focusedDimension: ThemeDimension | null;
-  canCompareThemes: boolean;
-  resolverAvailable: boolean;
   onOpenCoverageView: () => void;
-  onOpenCompareView: (
-    dimension?: ThemeDimension,
-    optionName?: string,
-  ) => void;
-  onOpenAdvancedView: () => void;
+  onOpenAdvancedSetup: () => void;
 }
 
 export function ThemeAuthoringHeader({
   focusedDimension,
-  canCompareThemes,
-  resolverAvailable,
   onOpenCoverageView,
-  onOpenCompareView,
-  onOpenAdvancedView,
+  onOpenAdvancedSetup,
 }: ThemeAuthoringHeaderProps) {
   const {
     secondaryToolsOpen,
@@ -99,33 +88,17 @@ export function ThemeAuthoringHeader({
               <button
                 role="menuitem"
                 tabIndex={-1}
-                disabled={!canCompareThemes}
                 onClick={() => {
                   setSecondaryToolsOpen(false);
-                  onOpenCompareView(
-                    focusedDimension ?? undefined,
-                  );
+                  onOpenAdvancedSetup();
                 }}
-                className="flex w-full items-center px-3 py-1.5 text-left text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex w-full items-center px-3 py-1.5 text-left text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
-                Compare variants
+                Advanced setup
               </button>
-              {resolverAvailable && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => {
-                    setSecondaryToolsOpen(false);
-                    onOpenAdvancedView();
-                  }}
-                  className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  Advanced logic
-                  <kbd className="rounded border border-[var(--color-figma-border)] px-1 font-mono text-[9px] leading-none text-[var(--color-figma-text-tertiary)]">
-                    {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
-                  </kbd>
-                </button>
-              )}
+              <div className="border-t border-[var(--color-figma-border)] px-3 py-1.5 text-[9px] leading-snug text-[var(--color-figma-text-tertiary)]">
+                Compare tools and raw role controls now live in Advanced setup.
+              </div>
             </div>
           )}
         </div>

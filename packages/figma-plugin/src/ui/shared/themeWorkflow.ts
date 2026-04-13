@@ -12,6 +12,7 @@ export type ThemeManagerView =
   | "authoring"
   | "coverage"
   | "compare"
+  | "advanced-setup"
   | "advanced";
 export type ThemeAuthoringMode = "roles" | "preview";
 

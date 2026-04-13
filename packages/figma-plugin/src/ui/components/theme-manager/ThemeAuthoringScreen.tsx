@@ -15,7 +15,6 @@ import { NoticeFieldMessage } from "../../shared/noticeSystem";
 import type {
   CoverageMap,
   ThemeOptionRoleSummary,
-  ThemeRoleState,
 } from "../themeManagerTypes";
 import type {
   ThemeIssueSummary,
@@ -55,8 +54,6 @@ interface ThemeAuthoringScreenProps {
   optionDiffCounts: Record<string, number>;
   optionRoleSummaries: Record<string, ThemeOptionRoleSummary>;
   focusedDimension: ThemeDimension | null;
-  canCompareThemes: boolean;
-  resolverAvailable: boolean;
   newlyCreatedDim: string | null;
   draggingOpt: OptionDragTarget | null;
   dragOverOpt: OptionDragTarget | null;
@@ -76,8 +73,6 @@ interface ThemeAuthoringScreenProps {
   renameOption: OptionRenameTarget | null;
   renameOptionValue: string;
   renameOptionError: string | null;
-  advancedSetupRequestKey: string | null;
-  roleStates: ThemeRoleState[];
   onGenerateForDimension?: (info: {
     dimensionName: string;
     targetSet: string;
@@ -146,9 +141,9 @@ interface ThemeAuthoringScreenProps {
     target?: ThemeRoleNavigationTarget | null,
     allAxes?: boolean,
   ) => void;
-  onOpenCompareView: (dimension?: ThemeDimension, optionName?: string) => void;
-  onOpenAdvancedView: () => void;
-  onConsumeAdvancedSetupRequest: (requestKey: string) => void;
+  onOpenAdvancedSetup: (
+    target?: ThemeRoleNavigationTarget | null,
+  ) => void;
 }
 
 export const ThemeAuthoringScreen = forwardRef<
@@ -166,8 +161,6 @@ export const ThemeAuthoringScreen = forwardRef<
     optionDiffCounts,
     optionRoleSummaries,
     focusedDimension,
-    canCompareThemes,
-    resolverAvailable,
     newlyCreatedDim,
     draggingOpt,
     dragOverOpt,
@@ -187,8 +180,6 @@ export const ThemeAuthoringScreen = forwardRef<
     renameOption,
     renameOptionValue,
     renameOptionError,
-    advancedSetupRequestKey,
-    roleStates,
     onGenerateForDimension,
     setRenameValue,
     startRenameDim,
@@ -226,9 +217,7 @@ export const ThemeAuthoringScreen = forwardRef<
     handleAutoFillAll,
     handleAutoFillAllOptions,
     onOpenCoverageView,
-    onOpenCompareView,
-    onOpenAdvancedView,
-    onConsumeAdvancedSetupRequest,
+    onOpenAdvancedSetup,
   },
   ref,
 ) {
@@ -456,35 +445,22 @@ export const ThemeAuthoringScreen = forwardRef<
             <div className="flex flex-col">
               <ThemeAuthoringHeader
                 focusedDimension={focusedDimension}
-                canCompareThemes={canCompareThemes}
-                resolverAvailable={resolverAvailable}
                 onOpenCoverageView={() => onOpenCoverageView(null, true)}
-                onOpenCompareView={onOpenCompareView}
-                onOpenAdvancedView={onOpenAdvancedView}
+                onOpenAdvancedSetup={() =>
+                  onOpenAdvancedSetup(
+                    focusedDimension
+                      ? {
+                          dimId: focusedDimension.id,
+                          optionName:
+                            selectedOptions[focusedDimension.id] ??
+                            focusedDimension.options[0]?.name ??
+                            null,
+                          preferredSetName: null,
+                        }
+                      : null,
+                  )
+                }
               />
-              {resolverAvailable && (
-                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-3 py-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                        Advanced resolver setup is optional
-                      </p>
-                      <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                        Keep standard theme work in families and variants. Open
-                        advanced setup only when publish output needs custom
-                        resolution order or modifier contexts.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={onOpenAdvancedView}
-                      className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                    >
-                      Open advanced
-                    </button>
-                  </div>
-                </div>
-              )}
               <ThemeAxisBrowser dimensionsCount={dimensions.length} />
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (
@@ -574,16 +550,9 @@ export const ThemeAuthoringScreen = forwardRef<
                       renameOption={renameOption}
                       renameOptionValue={renameOptionValue}
                       renameOptionError={renameOptionError}
-                      shouldOpenAdvancedSetup={
-                        advancedSetupRequestKey === optionKey
-                      }
-                      onAdvancedSetupRequestHandled={() =>
-                        onConsumeAdvancedSetupRequest(optionKey)
-                      }
                       newlyCreatedDim={newlyCreatedDim}
                       isDuplicatingDim={isDuplicatingDim}
                       copySourceOptions={copySourceOptions}
-                      roleStates={roleStates}
                       setTokenCounts={Object.fromEntries(
                         sets.map((setName) => [
                           setName,
@@ -592,7 +561,6 @@ export const ThemeAuthoringScreen = forwardRef<
                             : null,
                         ]),
                       )}
-                      savingKeys={new Set()}
                       onSetRenameValue={setRenameValue}
                       onStartRenameDim={() =>
                         startRenameDim(dimension.id, dimension.name)
@@ -654,6 +622,13 @@ export const ThemeAuthoringScreen = forwardRef<
                         })
                       }
                       onOpenCoverageView={onOpenCoverageView}
+                      onOpenAdvancedSetup={() =>
+                        onOpenAdvancedSetup({
+                          dimId: dimension.id,
+                          optionName: selectedOption,
+                          preferredSetName: null,
+                        })
+                      }
                       onHandleSetState={(setName, nextState) =>
                         handleSetState(dimension.id, selectedOption, setName, nextState)
                       }

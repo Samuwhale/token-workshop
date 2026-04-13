@@ -61,7 +61,7 @@ export function ThemeCompareScreen({
           <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
             {compareFocusDimension && compareFocusOptionName
               ? `Theme option comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare modes if you need token-level or set-level analysis without losing this context.`
-              : "Compare launches from the current axis or option so you can inspect alternatives without leaving theme authoring."}
+              : "Compare launches from Advanced setup so you can inspect alternatives without reopening the simple authoring flow."}
           </p>
         </div>
       </div>
@@ -89,8 +89,8 @@ export function ThemeCompareScreen({
           onBack={onBack}
           backLabel={
             compareFocusDimension
-              ? `Back to ${compareFocusDimension.name}`
-              : "Back to authoring"
+              ? `Back to ${compareFocusDimension.name} setup`
+              : "Back to advanced setup"
           }
         />
       </div>

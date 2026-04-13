@@ -705,6 +705,8 @@ export function App() {
         return "Theme coverage review";
       case "compare":
         return "Theme comparison";
+      case "advanced-setup":
+        return "Advanced theme setup";
       case "advanced":
         return "Advanced theme logic";
       default:
@@ -2098,6 +2100,8 @@ export function App() {
           pills.push({ label: "Coverage review", tone: "info" });
         if (themeShellState.activeView === "compare")
           pills.push({ label: "Compare mode", tone: "info" });
+        if (themeShellState.activeView === "advanced-setup")
+          pills.push({ label: "Advanced setup", tone: "info" });
         if (themeShellState.activeView === "advanced")
           pills.push({ label: "Resolver mode", tone: "info" });
         break;

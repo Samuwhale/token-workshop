@@ -238,6 +238,7 @@ const ThemeManagerWorkspace = React.forwardRef<
     bulkOps,
     autoFill,
     options,
+    overrideSet,
     modals: modalContextValue,
     coverage,
     missingOverrides,
@@ -288,8 +289,12 @@ const ThemeManagerWorkspace = React.forwardRef<
     setCopyFromNewOption,
     roleStates,
     handleSetState,
+    handleBulkSetState,
+    handleBulkSetAllInOption,
     handleCopyAssignmentsFrom,
     getCopySourceOptions,
+    getSetRoleCounts,
+    savingKeys,
   } = bulkOps;
   const {
     fillingKeys,
@@ -346,8 +351,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     compare,
     compareContext,
     setCompareContext,
-    advancedSetupRequestKey,
-    setAdvancedSetupRequestKey,
     resolverAuthoringContext,
     canCompareThemes,
   } = advancedTools;
@@ -439,19 +442,8 @@ const ThemeManagerWorkspace = React.forwardRef<
     });
   }, []);
 
-  const buildOptionRequestKey = useCallback(
-    (target: ThemeRoleNavigationTarget | null | undefined) =>
-      target?.dimId && target.optionName
-        ? `${target.dimId}:${target.optionName}`
-        : null,
-    [],
-  );
-
   const focusRoleTarget = useCallback(
-    (
-      target: ThemeRoleNavigationTarget | null | undefined,
-      _openEditor = true,
-    ) => {
+    (target: ThemeRoleNavigationTarget | null | undefined) => {
       const dimension = getDimensionForContext(target?.dimId ?? null);
       const optionName = getOptionNameForContext(
         dimension,
@@ -482,11 +474,37 @@ const ThemeManagerWorkspace = React.forwardRef<
     [setSelectedOptions],
   );
 
+  const openAdvancedSetupView = useCallback(
+    (target?: ThemeRoleNavigationTarget | null) => {
+      const dimension = getDimensionForContext(target?.dimId ?? null);
+      const optionName = getOptionNameForContext(
+        dimension,
+        target?.optionName ?? null,
+      );
+
+      if (dimension?.id) {
+        setFocusedDimensionId(dimension.id);
+      }
+      if (dimension && optionName) {
+        setSelectedOptions((prev) => ({ ...prev, [dimension.id]: optionName }));
+      }
+
+      setShowCompare(false);
+      setAuthoringMode("roles");
+      setActiveView("advanced-setup");
+    },
+    [
+      getDimensionForContext,
+      getOptionNameForContext,
+      setActiveView,
+      setAuthoringMode,
+      setSelectedOptions,
+      setShowCompare,
+    ],
+  );
+
   const returnToAuthoring = useCallback(
-    (
-      target?: ThemeRoleNavigationTarget | string | null,
-      options?: { openAdvancedSetup?: boolean },
-    ) => {
+    (target?: ThemeRoleNavigationTarget | string | null) => {
       setShowCompare(false);
       setAuthoringMode("roles");
       setActiveView("authoring");
@@ -501,12 +519,8 @@ const ThemeManagerWorkspace = React.forwardRef<
                 ? compareContext
                 : null));
 
-      setAdvancedSetupRequestKey(
-        options?.openAdvancedSetup ? buildOptionRequestKey(resolvedTarget) : null,
-      );
-
       if (resolvedTarget?.dimId) {
-        focusRoleTarget(resolvedTarget, activeView === "coverage");
+        focusRoleTarget(resolvedTarget);
         return;
       }
 
@@ -514,14 +528,12 @@ const ThemeManagerWorkspace = React.forwardRef<
     },
     [
       activeView,
-      buildOptionRequestKey,
       compareContext,
       coverageContext,
       focusRoleTarget,
       focusedDimensionId,
       scrollToDimension,
       setActiveView,
-      setAdvancedSetupRequestKey,
       setAuthoringMode,
       setShowCompare,
     ],
@@ -529,7 +541,6 @@ const ThemeManagerWorkspace = React.forwardRef<
 
   const focusAuthoringStage = useCallback(
     (stage: ThemeAuthoringStage) => {
-      setAdvancedSetupRequestKey(null);
       setShowCompare(false);
       setActiveView("authoring");
       setAuthoringMode(stage === "preview" ? "preview" : "roles");
@@ -650,7 +661,6 @@ const ThemeManagerWorkspace = React.forwardRef<
       scrollToDimension,
       setActiveView,
       setAuthoringMode,
-      setAdvancedSetupRequestKey,
       setShowAddOption,
       setShowCompare,
       setTokenCounts,
@@ -670,7 +680,6 @@ const ThemeManagerWorkspace = React.forwardRef<
         targetDimension,
         target?.optionName ?? null,
       );
-      setAdvancedSetupRequestKey(null);
       if (targetDimension) setFocusedDimensionId(targetDimension.id);
       setCoverageContext({
         dimId: targetDimension?.id ?? null,
@@ -687,7 +696,6 @@ const ThemeManagerWorkspace = React.forwardRef<
       getOptionNameForContext,
       setActiveView,
       setAuthoringMode,
-      setAdvancedSetupRequestKey,
       setCoverageContext,
       setShowAllCoverageAxes,
       setShowCompare,
@@ -696,7 +704,6 @@ const ThemeManagerWorkspace = React.forwardRef<
 
   const openCompareView = useCallback(
     (dimension?: ThemeDimension, optionName?: string) => {
-      setAdvancedSetupRequestKey(null);
       setCompareMode("theme-options");
       const contextualDimension = getDimensionForContext(dimension?.id ?? null);
       const compareDimension =
@@ -760,23 +767,16 @@ const ThemeManagerWorkspace = React.forwardRef<
       setCompareThemeKey,
       setActiveView,
       setAuthoringMode,
-      setAdvancedSetupRequestKey,
       setCompareContext,
       setShowCompare,
     ],
   );
 
   const openAdvancedView = useCallback(() => {
-    setAdvancedSetupRequestKey(null);
     setShowCompare(false);
     setAuthoringMode("roles");
     setActiveView("advanced");
-  }, [
-    setActiveView,
-    setAuthoringMode,
-    setAdvancedSetupRequestKey,
-    setShowCompare,
-  ]);
+  }, [setActiveView, setAuthoringMode, setShowCompare]);
 
   const handleNavigateToCompare = useCallback(
     (
@@ -786,7 +786,6 @@ const ThemeManagerWorkspace = React.forwardRef<
       optionA?: string,
       optionB?: string,
     ) => {
-      setAdvancedSetupRequestKey(null);
       if (mode === "theme-options" && optionA) {
         const separator = optionA.indexOf(":");
         const dimId = separator === -1 ? optionA : optionA.slice(0, separator);
@@ -802,7 +801,7 @@ const ThemeManagerWorkspace = React.forwardRef<
       }
       navigateToCompareState(mode, path, tokenPaths, optionA, optionB);
     },
-    [focusedDimensionId, navigateToCompareState, setAdvancedSetupRequestKey, setCompareContext],
+    [focusedDimensionId, navigateToCompareState, setCompareContext],
   );
 
   // Populate imperative handle so parent (e.g. command palette) can trigger auto-fill
@@ -821,7 +820,6 @@ const ThemeManagerWorkspace = React.forwardRef<
       navigateToCompare: handleNavigateToCompare,
       focusStage: focusAuthoringStage,
       openCreateAxis: () => {
-        setAdvancedSetupRequestKey(null);
         setShowCompare(false);
         setActiveView("authoring");
         openCreateDim();
@@ -840,7 +838,6 @@ const ThemeManagerWorkspace = React.forwardRef<
       openCreateDim,
       returnToAuthoring,
       setActiveView,
-      setAdvancedSetupRequestKey,
       setShowCompare,
     ],
   );
@@ -1023,17 +1020,16 @@ const ThemeManagerWorkspace = React.forwardRef<
               onBack={returnToAuthoring}
               onAutoFill={handleCoverageAutoFill}
               onResolveIssue={(issue) => {
-                returnToAuthoring(
-                  {
-                    dimId: issue.dimensionId,
-                    optionName: issue.optionName,
-                    preferredSetName: issue.preferredSetName,
-                  },
-                  {
-                    openAdvancedSetup:
-                      themeIssueRequiresAdvancedSetup(issue),
-                  },
-                );
+                const target = {
+                  dimId: issue.dimensionId,
+                  optionName: issue.optionName,
+                  preferredSetName: issue.preferredSetName,
+                };
+                if (themeIssueRequiresAdvancedSetup(issue)) {
+                  openAdvancedSetupView(target);
+                  return;
+                }
+                returnToAuthoring(target);
               }}
               onSelectOption={(dimId, optionName, preferredSetName) => {
                 handleSelectOption(dimId, optionName);
@@ -1074,19 +1070,65 @@ const ThemeManagerWorkspace = React.forwardRef<
                 onTokensCreated?.();
               }}
               onBack={() => {
-                returnToAuthoring({
-                  dimId: compareFocusDimension?.id ?? compareContext.dimId,
-                  optionName:
-                    compareFocusOptionName ?? compareContext.optionName,
-                  preferredSetName: null,
-                });
+                setShowCompare(false);
+                setActiveView("advanced-setup");
               }}
+            />
+          ) : activeView === "advanced-setup" ? (
+            <ThemeAdvancedScreen
+              mode="setup"
+              dimensions={dimensions}
+              focusedDimension={focusedDimension}
+              selectedOptionName={
+                focusedDimension ? selectedOptions[focusedDimension.id] ?? null : null
+              }
+              orderedSets={
+                focusedDimension
+                  ? optionSetOrders[focusedDimension.id]?.[
+                      selectedOptions[focusedDimension.id] ??
+                        focusedDimension.options[0]?.name ??
+                        ""
+                    ] ?? sets
+                  : sets
+              }
+              canCompareThemes={canCompareThemes}
+              resolverAvailable={Boolean(resolverState)}
+              roleStates={roleStates}
+              savingKeys={savingKeys}
+              setTokenCounts={setTokenCounts}
+              getCopySourceOptions={getCopySourceOptions}
+              getSetRoleCounts={getSetRoleCounts}
+              onSelectDimension={setFocusedDimensionId}
+              onSelectOption={handleSelectOption}
+              onSetState={handleSetState}
+              onBulkSetState={handleBulkSetState}
+              onBulkSetAllInOption={handleBulkSetAllInOption}
+              onCopyAssignmentsFrom={handleCopyAssignmentsFrom}
+              onCreateOverrideSet={(dimId, optionName, setName) =>
+                overrideSet.setCreateOverrideSet({
+                  dimId,
+                  setName,
+                  optName: optionName,
+                })
+              }
+              onOpenCompare={() =>
+                openCompareView(
+                  focusedDimension ?? undefined,
+                  focusedDimension
+                    ? selectedOptions[focusedDimension.id] ??
+                        focusedDimension.options[0]?.name
+                    : undefined,
+                )
+              }
+              onOpenResolver={openAdvancedView}
+              onBack={returnToAuthoring}
             />
           ) : activeView === "advanced" && resolverState ? (
             <ThemeAdvancedScreen
+              mode="resolver"
               resolverState={resolverState}
               resolverAuthoringContext={resolverAuthoringContext}
-              onBack={() => setActiveView("authoring")}
+              onBack={() => setActiveView("advanced-setup")}
               onSuccess={onSuccess}
             />
           ) : activeView === "authoring" && authoringMode === "preview" ? (
@@ -1110,8 +1152,6 @@ const ThemeManagerWorkspace = React.forwardRef<
               optionDiffCounts={optionDiffCounts}
               optionRoleSummaries={optionRoleSummaries}
               focusedDimension={focusedDimension}
-              canCompareThemes={canCompareThemes}
-              resolverAvailable={Boolean(resolverState)}
               newlyCreatedDim={newlyCreatedDim}
               draggingOpt={draggingOpt}
               dragOverOpt={dragOverOpt}
@@ -1131,8 +1171,6 @@ const ThemeManagerWorkspace = React.forwardRef<
               renameOption={renameOption}
               renameOptionValue={renameOptionValue}
               renameOptionError={renameOptionError}
-              advancedSetupRequestKey={advancedSetupRequestKey}
-              roleStates={roleStates}
               onGenerateForDimension={onGenerateForDimension}
               setRenameValue={setRenameValue}
               startRenameDim={startRenameDim}
@@ -1170,13 +1208,7 @@ const ThemeManagerWorkspace = React.forwardRef<
               handleAutoFillAll={handleAutoFillAll}
               handleAutoFillAllOptions={handleAutoFillAllOptions}
               onOpenCoverageView={openCoverageView}
-              onOpenCompareView={openCompareView}
-              onOpenAdvancedView={openAdvancedView}
-              onConsumeAdvancedSetupRequest={(requestKey) =>
-                setAdvancedSetupRequestKey((current) =>
-                  current === requestKey ? null : current,
-                )
-              }
+              onOpenAdvancedSetup={openAdvancedSetupView}
             />
           )}
         </>

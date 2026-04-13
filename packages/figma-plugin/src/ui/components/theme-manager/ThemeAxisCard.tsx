@@ -7,7 +7,6 @@ import {
 import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 import type {
   ThemeOptionRoleSummary,
-  ThemeRoleState,
 } from "../themeManagerTypes";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 import { ThemeOptionRail } from "./ThemeOptionRail";
@@ -43,11 +42,7 @@ interface ThemeAxisCardProps {
   newlyCreatedDim: string | null;
   isDuplicatingDim: boolean;
   copySourceOptions: string[];
-  roleStates: ThemeRoleState[];
   setTokenCounts: Record<string, number | null>;
-  savingKeys: Set<string>;
-  shouldOpenAdvancedSetup: boolean;
-  onAdvancedSetupRequestHandled: () => void;
   onSetRenameValue: (value: string) => void;
   onStartRenameDim: () => void;
   onCancelRenameDim: () => void;
@@ -68,6 +63,7 @@ interface ThemeAxisCardProps {
   onDuplicateOption: () => void;
   onDeleteOption: () => void;
   onOpenCoverageView: (target?: any, allAxes?: boolean) => void;
+  onOpenAdvancedSetup: () => void;
   onHandleSetState: (setName: string, nextState: ThemeRoleState) => void;
   onHandleCopyAssignmentsFrom: (sourceOptionName: string) => void;
   onAutoFillOption: () => void;
@@ -105,11 +101,7 @@ export function ThemeAxisCard({
   newlyCreatedDim,
   isDuplicatingDim,
   copySourceOptions,
-  roleStates,
   setTokenCounts,
-  savingKeys,
-  shouldOpenAdvancedSetup,
-  onAdvancedSetupRequestHandled,
   onSetRenameValue,
   onStartRenameDim,
   onCancelRenameDim,
@@ -130,6 +122,7 @@ export function ThemeAxisCard({
   onDuplicateOption,
   onDeleteOption,
   onOpenCoverageView,
+  onOpenAdvancedSetup,
   onHandleSetState,
   onHandleCopyAssignmentsFrom,
   onAutoFillOption,
@@ -418,12 +411,8 @@ export function ThemeAxisCard({
           renameOptionValue={renameOptionValue}
           renameOptionError={renameOptionError}
           copySourceOptions={copySourceOptions}
-          roleStates={roleStates}
-          savingKeys={savingKeys}
           setTokenCounts={setTokenCounts}
           fillableCount={multiOptionGaps ? 0 : totalDimensionFillable}
-          shouldOpenAdvancedSetup={shouldOpenAdvancedSetup}
-          onAdvancedSetupRequestHandled={onAdvancedSetupRequestHandled}
           onAutoFill={multiOptionGaps ? onAutoFillAllOptions : onAutoFillOption}
           onStartRenameOption={onStartRenameOption}
           onRenameOptionValueChange={onRenameOptionValueChange}
@@ -437,6 +426,7 @@ export function ThemeAxisCard({
             dimension.options.indexOf(option) < dimension.options.length - 1
           }
           onOpenCoverageView={onOpenCoverageView}
+          onOpenAdvancedSetup={onOpenAdvancedSetup}
           onHandleSetState={onHandleSetState}
           onHandleCopyAssignmentsFrom={onHandleCopyAssignmentsFrom}
         />

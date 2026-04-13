@@ -13,11 +13,12 @@ validation_profile: backlog
 status_notes:
   - "Context: `runTaskWorker()` interleaves preflight, agent execution, validation, remediation, merge, and finalize logic in one 250-line control flow, while remediation and reconciliation duplicate their own provider-run, validation, queue-drain, and completion semantics. That makes scheduler behavior hard to change safely."
   - "Deferred after remediation: validation failed: FAIL src/__tests__/e2e.test.ts > runner e2e > orchestrator proactively refines planned work when the ready buffer is low | AssertionError: expected 'id: task-planned\\ntitle: Planned task…' to contain 'state: superseded' until 2026-04-13T03:31:54.523Z"
-state: ready
+  - "Completed: Extracted shared scheduler lifecycle helpers for agent execution, validation disposition, and persisted claim transitions; refactored worker/remediation/reconciliation to use them and verified with targeted eslint and backlog-runner e2e tests."
+state: done
 acceptance_criteria:
   - Provider execution, validation reruns, candidate-queue draining, and finalize/claim transitions live in shared task-lifecycle helpers or phase objects instead of being reimplemented across `runTaskWorker()`, `attemptWorkspaceRemediation()`, and `attemptTaskReconciliation()`.
   - "`runTaskWorker()` reads as explicit phases (`preflight -> execute -> validate -> finalize/reconcile`) with typed phase results rather than one long function mixing store mutations and early-return worker results."
   - Adding a new scheduler outcome or post-run step requires updating one shared lifecycle path rather than patching multiple task/remediation codepaths.
 source: code-pass
 created_at: 2026-04-12T20:42:37.001Z
-updated_at: 2026-04-13T03:16:54.568Z
+updated_at: 2026-04-13T03:50:07.439Z

@@ -1,16 +1,13 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NoticeFieldMessage } from "../../shared/noticeSystem";
 import {
   summarizeThemeIssueHealth,
   type ThemeIssueSummary,
   type ThemeRoleNavigationTarget,
 } from "../../shared/themeWorkflow";
-import type {
-  ThemeRoleState,
-} from "../themeManagerTypes";
+import type { ThemeRoleState } from "../themeManagerTypes";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
-import { ThemeSetRoleRow } from "./ThemeSetRoleRow";
 
 interface ThemeOptionWorkspaceProps {
   dimension: ThemeDimension;
@@ -24,12 +21,8 @@ interface ThemeOptionWorkspaceProps {
   renameOptionValue: string;
   renameOptionError: string | null;
   copySourceOptions: string[];
-  roleStates: ThemeRoleState[];
-  savingKeys: Set<string>;
   setTokenCounts: Record<string, number | null>;
   fillableCount: number;
-  shouldOpenAdvancedSetup: boolean;
-  onAdvancedSetupRequestHandled: () => void;
   onAutoFill: () => void;
   onStartRenameOption: () => void;
   onRenameOptionValueChange: (value: string) => void;
@@ -44,6 +37,7 @@ interface ThemeOptionWorkspaceProps {
     target?: ThemeRoleNavigationTarget | null,
     allAxes?: boolean,
   ) => void;
+  onOpenAdvancedSetup: () => void;
   onHandleSetState: (setName: string, nextState: ThemeRoleState) => void;
   onHandleCopyAssignmentsFrom: (sourceOptionName: string) => void;
 }
@@ -60,12 +54,8 @@ export function ThemeOptionWorkspace({
   renameOptionValue,
   renameOptionError,
   copySourceOptions,
-  roleStates,
-  savingKeys,
   setTokenCounts,
   fillableCount,
-  shouldOpenAdvancedSetup,
-  onAdvancedSetupRequestHandled,
   onAutoFill,
   onStartRenameOption,
   onRenameOptionValueChange,
@@ -77,17 +67,15 @@ export function ThemeOptionWorkspace({
   canMoveLeft,
   canMoveRight,
   onOpenCoverageView,
+  onOpenAdvancedSetup,
   onHandleSetState,
   onHandleCopyAssignmentsFrom,
 }: ThemeOptionWorkspaceProps) {
-  const { collapsedDisabled, toggleCollapsedDisabled, setRoleRefs } =
-    useThemeAuthoringContext();
+  const { setRoleRefs } = useThemeAuthoringContext();
   const [optionMenuOpen, setOptionMenuOpen] = useState(false);
-  const [showAdvancedSetup, setShowAdvancedSetup] = useState(false);
   const [pendingSharedSet, setPendingSharedSet] = useState("");
   const [pendingVariantSet, setPendingVariantSet] = useState("");
   const optionMenuRef = useRef<HTMLDivElement | null>(null);
-  const advancedSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!optionMenuOpen) return;
@@ -106,8 +94,6 @@ export function ThemeOptionWorkspace({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [optionMenuOpen]);
-
-  const isDisabledCollapsed = collapsedDisabled.has(dimension.id);
   const unusedSetCount = disabledSets.length;
   const sharedCandidates = sets.filter((setName) => !foundationSets.includes(setName));
   const variantCandidates = sets.filter((setName) => !overrideSets.includes(setName));
@@ -125,59 +111,6 @@ export function ThemeOptionWorkspace({
     if (!pendingVariantSet || variantCandidates.includes(pendingVariantSet)) return;
     setPendingVariantSet(variantCandidates[0] ?? "");
   }, [pendingVariantSet, variantCandidates]);
-
-  useEffect(() => {
-    if (!showAdvancedSetup) return;
-    requestAnimationFrame(() => {
-      advancedSectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    });
-  }, [showAdvancedSetup]);
-
-  useEffect(() => {
-    if (!shouldOpenAdvancedSetup) return;
-    setShowAdvancedSetup(true);
-    onAdvancedSetupRequestHandled();
-  }, [onAdvancedSetupRequestHandled, shouldOpenAdvancedSetup]);
-
-  const openAdvancedSetup = () => {
-    setShowAdvancedSetup(true);
-  };
-
-  const renderRoleSection = (
-    title: string,
-    subtitle: string,
-    setNames: string[],
-    status: ThemeRoleState,
-    toneClass: string,
-    icon: ReactNode,
-  ) => {
-    if (setNames.length === 0) return null;
-    return (
-      <div>
-        <div className={`flex items-center gap-1 px-3 py-0.5 text-[10px] font-medium ${toneClass}`}>
-          {icon}
-          {title} ({setNames.length})
-          <span className="ml-1 font-normal text-[var(--color-figma-text-tertiary)]">
-            {subtitle}
-          </span>
-        </div>
-        {setNames.map((setName) => (
-          <ThemeSetRoleRow
-            key={setName}
-            setName={setName}
-            status={status}
-            isSaving={savingKeys.has(`${dimension.id}/${option.name}/${setName}`)}
-            tokenCount={setTokenCounts[setName] ?? null}
-            roleStates={roleStates}
-            onChangeState={(nextState) => onHandleSetState(setName, nextState)}
-          />
-        ))}
-      </div>
-    );
-  };
 
   const renderAssignmentSection = ({
     title,
@@ -534,116 +467,14 @@ export function ThemeOptionWorkspace({
               </div>
               <button
                 type="button"
-                onClick={openAdvancedSetup}
+                onClick={onOpenAdvancedSetup}
                 className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
               >
-                {showAdvancedSetup
-                  ? "Advanced setup open"
-                  : `Edit advanced setup${unusedSetCount > 0 ? ` (${unusedSetCount} unused)` : ""}`}
+                {`Open advanced setup${unusedSetCount > 0 ? ` (${unusedSetCount} unused)` : ""}`}
               </button>
             </div>
           </div>
         </div>
-
-        {showAdvancedSetup && (
-          <div
-            ref={advancedSectionRef}
-            className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                  Advanced setup
-                </div>
-                <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                  Raw set-role controls for power users. Changes here still save back to this variant.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAdvancedSetup(false)}
-                className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Hide
-              </button>
-            </div>
-
-            <div className="mt-3 overflow-hidden rounded-lg border border-[var(--color-figma-border)]">
-              {renderRoleSection(
-                "Override",
-                "highest priority",
-                overrideSets,
-                "enabled",
-                "bg-[var(--color-figma-success)]/5 text-[var(--color-figma-success)]",
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M12 19V5M5 12l7-7 7 7" />
-                </svg>,
-              )}
-              {renderRoleSection(
-                "Base",
-                "default values",
-                foundationSets,
-                "source",
-                "bg-[var(--color-figma-accent)]/5 text-[var(--color-figma-accent)]",
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <rect x="2" y="2" width="20" height="20" rx="3" opacity="0.3" />
-                </svg>,
-              )}
-              {disabledSets.length > 0 && (
-                <div>
-                  <button
-                    onClick={() => toggleCollapsedDisabled(dimension.id)}
-                    className="w-full px-3 py-0.5 text-left text-[10px] font-medium text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    <span className="flex items-center gap-1">
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 8 8"
-                        fill="currentColor"
-                        className={`transition-transform ${
-                          isDisabledCollapsed ? "" : "rotate-90"
-                        }`}
-                        aria-hidden="true"
-                      >
-                        <path d="M2 1l4 3-4 3V1z" />
-                      </svg>
-                      Excluded ({disabledSets.length})
-                    </span>
-                  </button>
-                  {!isDisabledCollapsed &&
-                    disabledSets.map((setName) => (
-                      <ThemeSetRoleRow
-                        key={setName}
-                        setName={setName}
-                        status="disabled"
-                        isSaving={savingKeys.has(`${dimension.id}/${option.name}/${setName}`)}
-                        tokenCount={setTokenCounts[setName] ?? null}
-                        roleStates={roleStates}
-                        onChangeState={(nextState) => onHandleSetState(setName, nextState)}
-                      />
-                    ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

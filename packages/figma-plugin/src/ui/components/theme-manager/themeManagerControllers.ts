@@ -446,9 +446,6 @@ export function useThemeAdvancedToolsController({
     dimId: null,
     optionName: null,
   });
-  const [advancedSetupRequestKey, setAdvancedSetupRequestKey] = useState<
-    string | null
-  >(null);
 
   const resolverAuthoringContext = useMemo(
     () =>
@@ -473,13 +470,10 @@ export function useThemeAdvancedToolsController({
       compare,
       compareContext,
       setCompareContext,
-      advancedSetupRequestKey,
-      setAdvancedSetupRequestKey,
       resolverAuthoringContext,
       canCompareThemes,
     }),
     [
-      advancedSetupRequestKey,
       canCompareThemes,
       compare,
       compareContext,
@@ -509,10 +503,6 @@ export interface ThemeAdvancedToolsControllerState {
   compareContext: { dimId: string | null; optionName: string | null };
   setCompareContext: React.Dispatch<
     React.SetStateAction<{ dimId: string | null; optionName: string | null }>
-  >;
-  advancedSetupRequestKey: string | null;
-  setAdvancedSetupRequestKey: React.Dispatch<
-    React.SetStateAction<string | null>
   >;
   resolverAuthoringContext: ReturnType<
     typeof buildThemeResolverAuthoringContext
