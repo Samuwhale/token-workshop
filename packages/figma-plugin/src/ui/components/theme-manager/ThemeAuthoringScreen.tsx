@@ -483,6 +483,7 @@ export const ThemeAuthoringScreen = forwardRef<
                       dimension={dimension}
                       sets={sets}
                       dimensionIndex={dimensionIndex}
+                      totalDimensions={dimensions.length}
                       isExpanded={focusedDimension?.id === dimension.id}
                       onToggleExpand={() => onSelectDimension(dimension.id)}
                       totalDimensionGaps={totalDimensionGaps}
