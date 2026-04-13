@@ -47,6 +47,18 @@ export interface ThemeIssueSummary {
   affectedSetNames: string[];
 }
 
+export interface ThemeIssueReviewGroup {
+  kind: ThemeIssueKind;
+  title: string;
+  description: string;
+  issues: ThemeIssueSummary[];
+}
+
+export interface ThemeIssueHealthSummary {
+  totalCount: number;
+  description: string;
+}
+
 export interface ThemeWorkflowSummary {
   axisCount: number;
   optionCount: number;
@@ -98,6 +110,126 @@ const THEME_ISSUE_KIND_WEIGHT: Record<ThemeIssueKind, number> = {
   "coverage-gap": 3,
 };
 
+const THEME_ISSUE_KIND_LABEL: Record<ThemeIssueKind, string> = {
+  "stale-set": "deleted token sources",
+  "empty-override": "empty variant sets",
+  "missing-override": "missing variant coverage",
+  "coverage-gap": "coverage gaps",
+};
+
+const THEME_ISSUE_GROUP_COPY: Record<
+  ThemeIssueKind,
+  { title: string; description: string }
+> = {
+  "stale-set": {
+    title: "Deleted token sources",
+    description:
+      "These variants still point at sets that no longer exist. Open advanced setup to remove or replace those assignments.",
+  },
+  "empty-override": {
+    title: "Empty variant sets",
+    description:
+      "These variants have override sets assigned but those sets do not currently contain any tokens.",
+  },
+  "missing-override": {
+    title: "Missing variant coverage",
+    description:
+      "These variants are missing tokens that exist in the shared layer. Review the gaps, then decide whether each token should stay shared or move into the variant layer.",
+  },
+  "coverage-gap": {
+    title: "Coverage gaps",
+    description:
+      "These variants still resolve to missing values or broken aliases somewhere in their active stack.",
+  },
+};
+
+function getThemeIssueKindWeight(kind: ThemeIssueKind): number {
+  return THEME_ISSUE_KIND_WEIGHT[kind];
+}
+
+function formatThemeIssueKindList(kinds: ThemeIssueKind[]): string {
+  const labels = Array.from(
+    new Set(
+      kinds
+        .slice()
+        .sort((left, right) => getThemeIssueKindWeight(left) - getThemeIssueKindWeight(right))
+        .map((kind) => THEME_ISSUE_KIND_LABEL[kind]),
+    ),
+  );
+
+  if (labels.length === 0) return "issues";
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
+export function sortThemeIssuesByPriority(
+  issues: ThemeIssueSummary[],
+): ThemeIssueSummary[] {
+  return issues.slice().sort((left, right) => {
+    const weightDelta =
+      getThemeIssueKindWeight(left.kind) - getThemeIssueKindWeight(right.kind);
+    if (weightDelta !== 0) return weightDelta;
+
+    if (right.count !== left.count) return right.count - left.count;
+    if (left.dimensionName !== right.dimensionName) {
+      return left.dimensionName.localeCompare(right.dimensionName);
+    }
+    return left.optionName.localeCompare(right.optionName);
+  });
+}
+
+export function themeIssueRequiresAdvancedSetup(
+  issue: ThemeIssueSummary,
+): boolean {
+  return issue.kind === "stale-set" || issue.kind === "empty-override";
+}
+
+export function summarizeThemeIssueHealth(
+  issues: ThemeIssueSummary[],
+): ThemeIssueHealthSummary | null {
+  if (issues.length === 0) return null;
+
+  const totalCount = issues.reduce((sum, issue) => sum + issue.count, 0);
+  const description =
+    `${totalCount} issue${totalCount === 1 ? "" : "s"} across ${formatThemeIssueKindList(
+      issues.map((issue) => issue.kind),
+    )}. Review them before previewing this variant.`;
+
+  return {
+    totalCount,
+    description,
+  };
+}
+
+export function groupThemeIssuesForReview(
+  issues: ThemeIssueSummary[],
+): ThemeIssueReviewGroup[] {
+  if (issues.length === 0) return [];
+
+  const issuesByKind = new Map<ThemeIssueKind, ThemeIssueSummary[]>();
+  for (const issue of sortThemeIssuesByPriority(issues)) {
+    const groupIssues = issuesByKind.get(issue.kind);
+    if (groupIssues) {
+      groupIssues.push(issue);
+    } else {
+      issuesByKind.set(issue.kind, [issue]);
+    }
+  }
+
+  return Array.from(issuesByKind.entries())
+    .sort(
+      ([leftKind], [rightKind]) =>
+        getThemeIssueKindWeight(leftKind) - getThemeIssueKindWeight(rightKind),
+    )
+    .map(([kind, groupedIssues]) => ({
+      kind,
+      title: THEME_ISSUE_GROUP_COPY[kind].title,
+      description: THEME_ISSUE_GROUP_COPY[kind].description,
+      issues: groupedIssues,
+    }));
+}
+
 function pickPreferredSetName(
   orderedSets: string[],
   availableSets: string[],
@@ -148,7 +280,7 @@ export function collectThemeOptionIssues({
       summary: `${summary.staleSetCount} assigned token source${summary.staleSetCount === 1 ? "" : "s"} no longer exist for this variant.`,
       recommendedNextAction:
         "Open advanced setup, then remove or replace the deleted assignments before previewing this variant.",
-      actionLabel: "Edit advanced setup",
+      actionLabel: "Open advanced setup",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: summary.staleSetNames,
     });
@@ -166,7 +298,7 @@ export function collectThemeOptionIssues({
       summary: `${summary.emptyOverrideCount} variant-specific set${summary.emptyOverrideCount === 1 ? "" : "s"} are assigned but currently contain no tokens.`,
       recommendedNextAction:
         "Open advanced setup, then add tokens to the empty variant set or move it back to the shared layer.",
-      actionLabel: "Edit advanced setup",
+      actionLabel: "Open advanced setup",
       preferredSetName: pickPreferredSetName(
         orderedSets,
         availableSets,
@@ -190,8 +322,8 @@ export function collectThemeOptionIssues({
       title: "Missing variant coverage",
       summary: `${missingOverrideCount} token${missingOverrideCount === 1 ? "" : "s"} exist in shared sets but are missing from the variant-specific layer.`,
       recommendedNextAction:
-        "Review this variant in issues, then open advanced setup if you need to change which set should own the missing tokens.",
-      actionLabel: "Review issues",
+        "Return to this variant, then decide whether the missing tokens belong in the shared layer or the variant-specific layer.",
+      actionLabel: "Return to variant",
       preferredSetName: pickPreferredSetName(
         orderedSets,
         availableSets,
@@ -212,21 +344,14 @@ export function collectThemeOptionIssues({
       title: "Unresolved coverage gaps",
       summary: `${uncoveredCount} token${uncoveredCount === 1 ? "" : "s"} still resolve to missing values or aliases in the active stack.`,
       recommendedNextAction:
-        "Review the missing tokens, then return to this variant to confirm the shared and variant-specific token sources before filling them.",
-      actionLabel: "Review issues",
+        "Return to this variant, confirm the assigned sources, then fill or create the missing tokens.",
+      actionLabel: "Return to variant",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: [],
     });
   }
 
-  issues.sort((left, right) => {
-    const weightDelta =
-      THEME_ISSUE_KIND_WEIGHT[left.kind] - THEME_ISSUE_KIND_WEIGHT[right.kind];
-    if (weightDelta !== 0) return weightDelta;
-    return right.count - left.count;
-  });
-
-  return issues;
+  return sortThemeIssuesByPriority(issues);
 }
 
 export function summarizeThemeWorkflow(

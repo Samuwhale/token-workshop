@@ -1,15 +1,15 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NoticeFieldMessage } from "../../shared/noticeSystem";
-import type {
-  ThemeIssueSummary,
-  ThemeRoleNavigationTarget,
+import {
+  summarizeThemeIssueHealth,
+  type ThemeIssueSummary,
+  type ThemeRoleNavigationTarget,
 } from "../../shared/themeWorkflow";
 import type {
   ThemeRoleState,
 } from "../themeManagerTypes";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
-import { ThemeIssueEntryCard } from "./ThemeIssueEntryCard";
 import { ThemeSetRoleRow } from "./ThemeSetRoleRow";
 
 interface ThemeOptionWorkspaceProps {
@@ -28,6 +28,8 @@ interface ThemeOptionWorkspaceProps {
   savingKeys: Set<string>;
   setTokenCounts: Record<string, number | null>;
   fillableCount: number;
+  shouldOpenAdvancedSetup: boolean;
+  onAdvancedSetupRequestHandled: () => void;
   onAutoFill: () => void;
   onStartRenameOption: () => void;
   onRenameOptionValueChange: (value: string) => void;
@@ -41,10 +43,6 @@ interface ThemeOptionWorkspaceProps {
   onOpenCoverageView: (
     target?: ThemeRoleNavigationTarget | null,
     allAxes?: boolean,
-  ) => void;
-  onFocusRoleTarget: (
-    target: ThemeRoleNavigationTarget | null | undefined,
-    openEditor?: boolean,
   ) => void;
   onHandleSetState: (setName: string, nextState: ThemeRoleState) => void;
   onHandleCopyAssignmentsFrom: (sourceOptionName: string) => void;
@@ -66,6 +64,8 @@ export function ThemeOptionWorkspace({
   savingKeys,
   setTokenCounts,
   fillableCount,
+  shouldOpenAdvancedSetup,
+  onAdvancedSetupRequestHandled,
   onAutoFill,
   onStartRenameOption,
   onRenameOptionValueChange,
@@ -77,7 +77,6 @@ export function ThemeOptionWorkspace({
   canMoveLeft,
   canMoveRight,
   onOpenCoverageView,
-  onFocusRoleTarget,
   onHandleSetState,
   onHandleCopyAssignmentsFrom,
 }: ThemeOptionWorkspaceProps) {
@@ -112,6 +111,10 @@ export function ThemeOptionWorkspace({
   const unusedSetCount = disabledSets.length;
   const sharedCandidates = sets.filter((setName) => !foundationSets.includes(setName));
   const variantCandidates = sets.filter((setName) => !overrideSets.includes(setName));
+  const selectedOptionHealth = useMemo(
+    () => summarizeThemeIssueHealth(selectedOptionIssues),
+    [selectedOptionIssues],
+  );
 
   useEffect(() => {
     if (!pendingSharedSet || sharedCandidates.includes(pendingSharedSet)) return;
@@ -133,37 +136,14 @@ export function ThemeOptionWorkspace({
     });
   }, [showAdvancedSetup]);
 
+  useEffect(() => {
+    if (!shouldOpenAdvancedSetup) return;
+    setShowAdvancedSetup(true);
+    onAdvancedSetupRequestHandled();
+  }, [onAdvancedSetupRequestHandled, shouldOpenAdvancedSetup]);
+
   const openAdvancedSetup = () => {
     setShowAdvancedSetup(true);
-  };
-
-  const renderIssueAction = (issue: ThemeIssueSummary) => {
-    const actionLabel =
-      issue.kind === "stale-set" || issue.kind === "empty-override"
-        ? "Edit advanced setup"
-        : "Review issues";
-    const handleAction = () => {
-      const target = {
-        dimId: issue.dimensionId,
-        optionName: issue.optionName,
-        preferredSetName: issue.preferredSetName,
-      };
-      if (issue.kind === "stale-set" || issue.kind === "empty-override") {
-        openAdvancedSetup();
-        onFocusRoleTarget(target, false);
-        return;
-      }
-      onOpenCoverageView(target, false);
-    };
-
-    return (
-      <ThemeIssueEntryCard
-        key={issue.key}
-        issue={issue}
-        actionLabel={actionLabel}
-        onAction={handleAction}
-      />
-    );
   };
 
   const renderRoleSection = (
@@ -459,10 +439,38 @@ export function ThemeOptionWorkspace({
           </div>
         )}
 
-        {selectedOptionIssues.length > 0 && (
+        {selectedOptionHealth && (
           <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
-            <div className="flex flex-col gap-1.5">
-              {selectedOptionIssues.map((issue) => renderIssueAction(issue))}
+            <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/8 px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
+                    Variant health
+                  </span>
+                  <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[var(--color-figma-warning)]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--color-figma-warning)]">
+                    {selectedOptionHealth.totalCount}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                  {selectedOptionHealth.description}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenCoverageView(
+                    {
+                      dimId: dimension.id,
+                      optionName: option.name,
+                      preferredSetName: selectedOptionIssues[0]?.preferredSetName ?? null,
+                    },
+                    false,
+                  )
+                }
+                className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Review issues
+              </button>
             </div>
           </div>
         )}

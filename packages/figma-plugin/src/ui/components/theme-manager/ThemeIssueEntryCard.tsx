@@ -3,7 +3,7 @@ import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 
 interface ThemeIssueEntryCardProps {
   issue: ThemeIssueSummary;
-  actionLabel: string;
+  actionLabel?: string;
   onAction: () => void;
 }
 
@@ -37,8 +37,14 @@ export function ThemeIssueEntryCard({
               className="min-w-[18px] px-1.5 font-semibold"
             />
           </div>
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            {issue.dimensionName} / {issue.optionName}
+          </div>
           <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
             {issue.summary}
+          </div>
+          <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+            Next: {issue.recommendedNextAction}
           </div>
         </div>
         <button
@@ -46,7 +52,7 @@ export function ThemeIssueEntryCard({
           onClick={onAction}
           className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
         >
-          {actionLabel}
+          {actionLabel ?? issue.actionLabel}
         </button>
       </div>
     </div>

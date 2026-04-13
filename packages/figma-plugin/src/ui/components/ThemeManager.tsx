@@ -33,13 +33,15 @@ import { apiFetch } from "../shared/apiFetch";
 import {
   NoticeInlineAlert,
 } from "../shared/noticeSystem";
-import type {
-  ThemeAuthoringStage,
-  ThemeAuthoringMode,
-  ThemeIssueSummary,
-  ThemeManagerView,
-  ThemeRoleNavigationTarget,
-  ThemeWorkspaceShellState,
+import {
+  sortThemeIssuesByPriority,
+  themeIssueRequiresAdvancedSetup,
+  type ThemeAuthoringStage,
+  type ThemeAuthoringMode,
+  type ThemeIssueSummary,
+  type ThemeManagerView,
+  type ThemeRoleNavigationTarget,
+  type ThemeWorkspaceShellState,
 } from "../shared/themeWorkflow";
 import { ThemeCoverageScreen } from "./theme-manager/ThemeCoverageScreen";
 import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
@@ -154,9 +156,10 @@ export function ThemeManager({
 
   useEffect(() => {
     if (!themeManagerHandle) return;
-    themeManagerHandle.current = workspaceRef.current;
+    const currentWorkspace = workspaceRef.current;
+    themeManagerHandle.current = currentWorkspace;
     return () => {
-      if (themeManagerHandle.current === workspaceRef.current) {
+      if (themeManagerHandle.current === currentWorkspace) {
         themeManagerHandle.current = null;
       }
     };
@@ -237,6 +240,9 @@ const ThemeManagerWorkspace = React.forwardRef<
     dimId: null,
     optionName: null,
   });
+  const [advancedSetupRequestKey, setAdvancedSetupRequestKey] = useState<
+    string | null
+  >(null);
 
   // --- Domain hooks ---
   const {
@@ -420,7 +426,7 @@ const ThemeManagerWorkspace = React.forwardRef<
     return counts;
   }, [setTokenValues, sets]);
 
-  const { optionIssues, totalFillableGaps } = useThemeCoverage(
+  const { optionIssues, allIssues, totalFillableGaps } = useThemeCoverage(
     {
       dimensions,
       coverage,
@@ -482,6 +488,14 @@ const ThemeManagerWorkspace = React.forwardRef<
     });
   }, []);
 
+  const buildOptionRequestKey = useCallback(
+    (target: ThemeRoleNavigationTarget | null | undefined) =>
+      target?.dimId && target.optionName
+        ? `${target.dimId}:${target.optionName}`
+        : null,
+    [],
+  );
+
   const focusRoleTarget = useCallback(
     (
       target: ThemeRoleNavigationTarget | null | undefined,
@@ -518,7 +532,10 @@ const ThemeManagerWorkspace = React.forwardRef<
   );
 
   const returnToAuthoring = useCallback(
-    (target?: ThemeRoleNavigationTarget | string | null) => {
+    (
+      target?: ThemeRoleNavigationTarget | string | null,
+      options?: { openAdvancedSetup?: boolean },
+    ) => {
       setShowCompare(false);
       setAuthoringMode("roles");
       setActiveView("authoring");
@@ -533,6 +550,10 @@ const ThemeManagerWorkspace = React.forwardRef<
                 ? compareContext
                 : null));
 
+      setAdvancedSetupRequestKey(
+        options?.openAdvancedSetup ? buildOptionRequestKey(resolvedTarget) : null,
+      );
+
       if (resolvedTarget?.dimId) {
         focusRoleTarget(resolvedTarget, activeView === "coverage");
         return;
@@ -542,17 +563,22 @@ const ThemeManagerWorkspace = React.forwardRef<
     },
     [
       activeView,
+      buildOptionRequestKey,
       compareContext,
       coverageContext,
       focusRoleTarget,
       focusedDimensionId,
       scrollToDimension,
+      setActiveView,
+      setAdvancedSetupRequestKey,
+      setAuthoringMode,
       setShowCompare,
     ],
   );
 
   const focusAuthoringStage = useCallback(
     (stage: ThemeAuthoringStage) => {
+      setAdvancedSetupRequestKey(null);
       setShowCompare(false);
       setActiveView("authoring");
       setAuthoringMode(stage === "preview" ? "preview" : "roles");
@@ -670,9 +696,13 @@ const ThemeManagerWorkspace = React.forwardRef<
       optionSetOrders,
       coverage,
       missingOverrides,
+      scrollToDimension,
+      setActiveView,
       setAuthoringMode,
+      setAdvancedSetupRequestKey,
       setShowAddOption,
       setShowCompare,
+      setTokenCounts,
       sets,
     ],
   );
@@ -761,7 +791,7 @@ const ThemeManagerWorkspace = React.forwardRef<
   // Sync showCompare (set by external navigateToCompare calls) → activeView
   useEffect(() => {
     if (showCompare) setActiveView("compare");
-  }, [showCompare]);
+  }, [setActiveView, showCompare]);
 
   const openCoverageView = useCallback(
     (target?: ThemeRoleNavigationTarget | null, allAxes = false) => {
@@ -770,6 +800,7 @@ const ThemeManagerWorkspace = React.forwardRef<
         targetDimension,
         target?.optionName ?? null,
       );
+      setAdvancedSetupRequestKey(null);
       if (targetDimension) setFocusedDimensionId(targetDimension.id);
       setCoverageContext({
         dimId: targetDimension?.id ?? null,
@@ -784,13 +815,16 @@ const ThemeManagerWorkspace = React.forwardRef<
     [
       getDimensionForContext,
       getOptionNameForContext,
+      setActiveView,
       setAuthoringMode,
+      setAdvancedSetupRequestKey,
       setShowCompare,
     ],
   );
 
   const openCompareView = useCallback(
     (dimension?: ThemeDimension, optionName?: string) => {
+      setAdvancedSetupRequestKey(null);
       setCompareMode("theme-options");
       const contextualDimension = getDimensionForContext(dimension?.id ?? null);
       const compareDimension =
@@ -852,16 +886,24 @@ const ThemeManagerWorkspace = React.forwardRef<
       setCompareThemeDefaultA,
       setCompareThemeDefaultB,
       setCompareThemeKey,
+      setActiveView,
       setAuthoringMode,
+      setAdvancedSetupRequestKey,
       setShowCompare,
     ],
   );
 
   const openAdvancedView = useCallback(() => {
+    setAdvancedSetupRequestKey(null);
     setShowCompare(false);
     setAuthoringMode("roles");
     setActiveView("advanced");
-  }, [setAuthoringMode, setShowCompare]);
+  }, [
+    setActiveView,
+    setAuthoringMode,
+    setAdvancedSetupRequestKey,
+    setShowCompare,
+  ]);
 
   const handleNavigateToCompare = useCallback(
     (
@@ -871,6 +913,7 @@ const ThemeManagerWorkspace = React.forwardRef<
       optionA?: string,
       optionB?: string,
     ) => {
+      setAdvancedSetupRequestKey(null);
       if (mode === "theme-options" && optionA) {
         const separator = optionA.indexOf(":");
         const dimId = separator === -1 ? optionA : optionA.slice(0, separator);
@@ -905,6 +948,7 @@ const ThemeManagerWorkspace = React.forwardRef<
       navigateToCompare: handleNavigateToCompare,
       focusStage: focusAuthoringStage,
       openCreateAxis: () => {
+        setAdvancedSetupRequestKey(null);
         setShowCompare(false);
         setActiveView("authoring");
         openCreateDim();
@@ -922,6 +966,8 @@ const ThemeManagerWorkspace = React.forwardRef<
       openAdvancedView,
       openCreateDim,
       returnToAuthoring,
+      setActiveView,
+      setAdvancedSetupRequestKey,
       setShowCompare,
     ],
   );
@@ -1065,17 +1111,18 @@ const ThemeManagerWorkspace = React.forwardRef<
   );
   const coverageReviewIssues = useMemo(() => {
     if (showAllCoverageAxes) {
-      return Object.values(optionIssues)
-        .flat()
-        .sort((left, right) => right.count - left.count);
+      return allIssues;
     }
     if (coverageFocusIssues.length > 0) return coverageFocusIssues;
     if (!coverageFocusDimension) return [];
-    return coverageFocusDimension.options.flatMap(
-      (option: ThemeDimension["options"][number]) =>
-        optionIssues[`${coverageFocusDimension.id}:${option.name}`] ?? [],
+    return sortThemeIssuesByPriority(
+      coverageFocusDimension.options.flatMap(
+        (option: ThemeDimension["options"][number]) =>
+          optionIssues[`${coverageFocusDimension.id}:${option.name}`] ?? [],
+      ),
     );
   }, [
+    allIssues,
     coverageFocusDimension,
     coverageFocusIssues,
     optionIssues,
@@ -1219,14 +1266,17 @@ const ThemeManagerWorkspace = React.forwardRef<
               }
               onBack={returnToAuthoring}
               onAutoFill={handleCoverageAutoFill}
-              onSelectIssue={(issue) => {
-                openCoverageView(
+              onResolveIssue={(issue) => {
+                returnToAuthoring(
                   {
                     dimId: issue.dimensionId,
                     optionName: issue.optionName,
                     preferredSetName: issue.preferredSetName,
                   },
-                  false,
+                  {
+                    openAdvancedSetup:
+                      themeIssueRequiresAdvancedSetup(issue),
+                  },
                 );
               }}
               onSelectOption={(dimId, optionName, preferredSetName) => {
@@ -1325,6 +1375,7 @@ const ThemeManagerWorkspace = React.forwardRef<
               renameOption={renameOption}
               renameOptionValue={renameOptionValue}
               renameOptionError={renameOptionError}
+              advancedSetupRequestKey={advancedSetupRequestKey}
               roleStates={roleStates}
               onGenerateForDimension={onGenerateForDimension}
               setRenameValue={setRenameValue}
@@ -1365,7 +1416,11 @@ const ThemeManagerWorkspace = React.forwardRef<
               onOpenCoverageView={openCoverageView}
               onOpenCompareView={openCompareView}
               onOpenAdvancedView={openAdvancedView}
-              onFocusRoleTarget={focusRoleTarget}
+              onConsumeAdvancedSetupRequest={(requestKey) =>
+                setAdvancedSetupRequestKey((current) =>
+                  current === requestKey ? null : current,
+                )
+              }
             />
           )}
         </>

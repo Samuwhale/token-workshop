@@ -9,7 +9,6 @@ interface ThemeCoverageMatrixProps {
   missingOverrides: MissingOverridesMap;
   setTokenValues: Record<string, Record<string, any>>;
   issueEntries: ThemeIssueSummary[];
-  onSelectIssue: (issue: ThemeIssueSummary) => void;
   onSelectOption: (
     dimId: string,
     optionName: string,
@@ -39,33 +38,12 @@ interface DimMatrixData {
   hasGaps: boolean;
 }
 
-const issueToneClassByKind: Record<ThemeIssueSummary["kind"], string> = {
-  "stale-set":
-    "border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10",
-  "empty-override":
-    "border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/8",
-  "missing-override": "border-violet-500/25 bg-violet-500/8",
-  "coverage-gap":
-    "border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/8",
-};
-
-const issueCountToneClassByKind: Record<ThemeIssueSummary["kind"], string> = {
-  "stale-set":
-    "bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]",
-  "empty-override":
-    "bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]",
-  "missing-override": "bg-violet-500/15 text-violet-600",
-  "coverage-gap":
-    "bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]",
-};
-
 export function ThemeCoverageMatrix({
   dimensions,
   coverage,
   missingOverrides,
   setTokenValues,
   issueEntries,
-  onSelectIssue,
   onSelectOption,
 }: ThemeCoverageMatrixProps) {
   const [showAllGroups, setShowAllGroups] = useState(false);
@@ -149,72 +127,6 @@ export function ThemeCoverageMatrix({
 
   return (
     <div className="flex flex-col gap-3 px-3 py-2">
-      {issueEntries.length > 0 && (
-        <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30">
-          <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-            <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-              Issue handoff
-            </div>
-            <div className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Review each issue, then jump straight back into the matching
-              option role editor.
-            </div>
-          </div>
-          <div className="flex flex-col gap-2 p-2">
-            {issueEntries.map((issue) => (
-              <div
-                key={issue.key}
-                className={`rounded-lg border px-2.5 py-2 ${issueToneClassByKind[issue.kind]}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
-                        {issue.title}
-                      </span>
-                      <span
-                        className={`inline-flex items-center justify-center min-w-[18px] rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${issueCountToneClassByKind[issue.kind]}`}
-                      >
-                        {issue.count}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                      {issue.dimensionName} / {issue.optionName}
-                    </div>
-                    <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                      {issue.summary}
-                    </div>
-                    <div className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                      Next: {issue.recommendedNextAction}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <button
-                      onClick={() =>
-                        onSelectOption(
-                          issue.dimensionId,
-                          issue.optionName,
-                          issue.preferredSetName,
-                        )
-                      }
-                      className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/35 hover:text-[var(--color-figma-text)]"
-                    >
-                      Edit set roles
-                    </button>
-                    <button
-                      onClick={() => onSelectIssue(issue)}
-                      className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/35 hover:text-[var(--color-figma-text)]"
-                    >
-                      Focus issue
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center gap-3 text-[9px] text-[var(--color-figma-text-tertiary)]">
         <span className="flex items-center gap-1">
           <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
@@ -348,10 +260,7 @@ export function ThemeCoverageMatrix({
                       Group
                     </th>
                     {dim.options.map(
-                      (
-                        option: ThemeDimension["options"][number],
-                        optionIndex: number,
-                      ) => {
+                      (option: ThemeDimension["options"][number]) => {
                         const optionIssues = issueEntries.filter(
                           (issue) =>
                             issue.dimensionId === dim.id &&

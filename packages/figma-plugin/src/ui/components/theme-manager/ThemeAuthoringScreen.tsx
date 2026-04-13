@@ -76,6 +76,7 @@ interface ThemeAuthoringScreenProps {
   renameOption: OptionRenameTarget | null;
   renameOptionValue: string;
   renameOptionError: string | null;
+  advancedSetupRequestKey: string | null;
   roleStates: ThemeRoleState[];
   onGenerateForDimension?: (info: {
     dimensionName: string;
@@ -147,10 +148,7 @@ interface ThemeAuthoringScreenProps {
   ) => void;
   onOpenCompareView: (dimension?: ThemeDimension, optionName?: string) => void;
   onOpenAdvancedView: () => void;
-  onFocusRoleTarget: (
-    target: ThemeRoleNavigationTarget | null | undefined,
-    openEditor?: boolean,
-  ) => void;
+  onConsumeAdvancedSetupRequest: (requestKey: string) => void;
 }
 
 export const ThemeAuthoringScreen = forwardRef<
@@ -189,6 +187,7 @@ export const ThemeAuthoringScreen = forwardRef<
     renameOption,
     renameOptionValue,
     renameOptionError,
+    advancedSetupRequestKey,
     roleStates,
     onGenerateForDimension,
     setRenameValue,
@@ -229,7 +228,7 @@ export const ThemeAuthoringScreen = forwardRef<
     onOpenCoverageView,
     onOpenCompareView,
     onOpenAdvancedView,
-    onFocusRoleTarget,
+    onConsumeAdvancedSetupRequest,
   },
   ref,
 ) {
@@ -552,6 +551,12 @@ export const ThemeAuthoringScreen = forwardRef<
                       renameOption={renameOption}
                       renameOptionValue={renameOptionValue}
                       renameOptionError={renameOptionError}
+                      shouldOpenAdvancedSetup={
+                        advancedSetupRequestKey === optionKey
+                      }
+                      onAdvancedSetupRequestHandled={() =>
+                        onConsumeAdvancedSetupRequest(optionKey)
+                      }
                       newlyCreatedDim={newlyCreatedDim}
                       isDuplicatingDim={isDuplicatingDim}
                       copySourceOptions={copySourceOptions}
@@ -626,7 +631,6 @@ export const ThemeAuthoringScreen = forwardRef<
                         })
                       }
                       onOpenCoverageView={onOpenCoverageView}
-                      onFocusRoleTarget={onFocusRoleTarget}
                       onHandleSetState={(setName, nextState) =>
                         handleSetState(dimension.id, selectedOption, setName, nextState)
                       }

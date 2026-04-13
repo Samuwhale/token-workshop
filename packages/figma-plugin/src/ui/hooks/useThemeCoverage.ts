@@ -6,6 +6,7 @@ import type {
 } from "../components/themeManagerTypes";
 import {
   collectThemeOptionIssues,
+  sortThemeIssuesByPriority,
   type ThemeIssueSummary,
 } from "../shared/themeWorkflow";
 
@@ -20,6 +21,7 @@ export interface UseThemeCoverageParams {
 
 export interface UseThemeCoverageReturn {
   optionIssues: Record<string, ThemeIssueSummary[]>;
+  allIssues: ThemeIssueSummary[];
   totalIssueCount: number;
   totalFillableGaps: number;
 }
@@ -74,6 +76,11 @@ export function useThemeCoverage({
     }, 0);
   }, [optionIssues]);
 
+  const allIssues = useMemo(
+    () => sortThemeIssuesByPriority(Object.values(optionIssues).flat()),
+    [optionIssues],
+  );
+
   const totalFillableGaps = useMemo(() => {
     let total = 0;
     for (const dimCoverage of Object.values(coverage)) {
@@ -88,6 +95,7 @@ export function useThemeCoverage({
 
   return {
     optionIssues,
+    allIssues,
     totalIssueCount,
     totalFillableGaps,
   };

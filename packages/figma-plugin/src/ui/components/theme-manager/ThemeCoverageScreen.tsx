@@ -1,9 +1,13 @@
 import type { ThemeDimension } from "@tokenmanager/core";
 import { ThemeCoverageMatrix } from "../ThemeCoverageMatrix";
 import type { CoverageMap, MissingOverridesMap } from "../themeManagerTypes";
-import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
-import type { ThemeRoleNavigationTarget } from "../../shared/themeWorkflow";
 import type { ThemeAutoFillAction } from "./themeAutoFillTargets";
+import {
+  groupThemeIssuesForReview,
+  type ThemeRoleNavigationTarget,
+  type ThemeIssueSummary,
+} from "../../shared/themeWorkflow";
+import { ThemeIssueEntryCard } from "./ThemeIssueEntryCard";
 
 interface ThemeCoverageScreenProps {
   dimensions: ThemeDimension[];
@@ -23,7 +27,7 @@ interface ThemeCoverageScreenProps {
   onToggleShowAllAxes: () => void;
   onBack: (target?: ThemeRoleNavigationTarget | null) => void;
   onAutoFill: () => void;
-  onSelectIssue: (issue: ThemeIssueSummary) => void;
+  onResolveIssue: (issue: ThemeIssueSummary) => void;
   onSelectOption: (
     dimId: string,
     optionName: string,
@@ -49,7 +53,7 @@ export function ThemeCoverageScreen({
   onToggleShowAllAxes,
   onBack,
   onAutoFill,
-  onSelectIssue,
+  onResolveIssue,
   onSelectOption,
 }: ThemeCoverageScreenProps) {
   const focusedIssueLabel =
@@ -64,6 +68,7 @@ export function ThemeCoverageScreen({
       ? `${autoFillLabel} in ${autoFillAction.optionName}. Auto-fill opens the same preview and strategy confirmation used in authoring.`
       : `${autoFillLabel} across ${autoFillAction.optionCount} options in ${autoFillAction.dimensionName}. Auto-fill opens the same preview and strategy confirmation used in authoring.`
     : null;
+  const reviewGroups = groupThemeIssuesForReview(issueEntries);
 
   return (
     <>
@@ -72,19 +77,19 @@ export function ThemeCoverageScreen({
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
               {showAllAxes || !focusDimension
-                ? "Coverage review"
-                : `Coverage for ${focusDimension.name}`}
+                ? "Review issues"
+                : `Review ${focusDimension.name}`}
             </p>
             <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
               {autoFillDescription
                 ? autoFillDescription
                 : showAllAxes || !focusDimension
-                ? "Started from the current theme context and expanded to every axis. Focus any issue, then jump straight back into the matching role editor."
+                ? "Started from the current theme context and expanded to every family. Review the grouped issues, then jump back into the affected variant."
                 : primaryIssue
                   ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} -> ${primaryIssue.optionName}. ${primaryIssue.recommendedNextAction}`
                   : focusOptionName
-                    ? `${focusedIssueLabel} in ${focusDimension.name} -> ${focusOptionName}. Review issue summaries, then jump straight back into that option's set roles.`
-                    : `${focusedIssueLabel} in ${focusDimension.name}. Review issue summaries, then jump back into authoring to fix the mapping.`}
+                    ? `${focusedIssueLabel} in ${focusDimension.name} -> ${focusOptionName}. Review the grouped issues, then jump back into that variant.`
+                    : `${focusedIssueLabel} in ${focusDimension.name}. Review the grouped issues, then jump back into authoring to fix the variant.`}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -130,20 +135,50 @@ export function ThemeCoverageScreen({
               >
                 <path d="M15 18l-6-6 6-6" />
               </svg>
-              Back to set roles
+              Back to authoring
             </button>
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {reviewGroups.length > 0 && (
+          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-3 py-3">
+            <div className="flex flex-col gap-3">
+              {reviewGroups.map((group) => (
+                <section
+                  key={group.kind}
+                  className="overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
+                >
+                  <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+                    <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                      {group.title}
+                    </div>
+                    <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                      {group.description}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 p-2">
+                    {group.issues.map((issue) => (
+                      <ThemeIssueEntryCard
+                        key={issue.key}
+                        issue={issue}
+                        onAction={() => onResolveIssue(issue)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        )}
+
         <ThemeCoverageMatrix
           dimensions={dimensions}
           coverage={coverage}
           missingOverrides={missingOverrides}
           setTokenValues={setTokenValues}
           issueEntries={issueEntries}
-          onSelectIssue={onSelectIssue}
           onSelectOption={onSelectOption}
         />
       </div>
