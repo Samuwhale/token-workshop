@@ -14,7 +14,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { AliasPicker } from "./AliasPicker";
-import { isAlias } from "../../shared/resolveAlias";
+import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
 import { MetadataEditor, ModeValuesEditor } from "./MetadataEditor";
@@ -49,336 +49,6 @@ import { SaveChangesDialog } from "./token-editor/SaveChangesDialog";
 import { TokenEditorValueSection } from "./token-editor/TokenEditorValueSection";
 import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
 import { TokenEditorInfoSection } from "./token-editor/TokenEditorInfoSection";
-
-/**
- * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
- * from `currentTokenPath` would create a cycle, or null if no cycle.
- */
-function detectAliasCycle(
-  ref: string,
-  currentTokenPath: string,
-  allTokensFlat: Record<string, TokenMapEntry>,
-): string[] | null {
-  const visited = new Set<string>([currentTokenPath]);
-  const chain: string[] = [currentTokenPath];
-  let current = isAlias(ref) ? extractAliasPath(ref)! : ref;
-  while (true) {
-    if (visited.has(current)) {
-      const cycleStart = chain.indexOf(current);
-      return [...chain.slice(cycleStart), current];
-    }
-    visited.add(current);
-    chain.push(current);
-    const entry = allTokensFlat[current];
-    if (!entry) return null;
-    const v = entry.$value;
-    if (isAlias(v)) {
-      current = extractAliasPath(v)!;
-    } else {
-      return null;
-    }
-  }
-}
-
-/** Compact picker for selecting a base token to extend. */
-function ExtendsTokenPicker({
-  tokenType,
-  allTokensFlat,
-  pathToSet,
-  currentPath,
-  onSelect,
-}: {
-  tokenType: string;
-  allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
-  currentPath: string;
-  onSelect: (path: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const candidates = useMemo(() => {
-    return Object.entries(allTokensFlat)
-      .filter(([p, e]) => e.$type === tokenType && p !== currentPath)
-      .map(([p]) => p);
-  }, [allTokensFlat, tokenType, currentPath]);
-  const filteredAll = useMemo(() => {
-    if (!search) return candidates;
-    const q = search.toLowerCase();
-    return candidates.filter((p) => p.toLowerCase().includes(q));
-  }, [candidates, search]);
-  const filtered = useMemo(() => filteredAll.slice(0, 50), [filteredAll]);
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setOpen(true);
-          setTimeout(() => inputRef.current?.focus(), 0);
-        }}
-        className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors text-left"
-      >
-        + Set base token to inherit from…
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex gap-1">
-        <input
-          ref={inputRef}
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={`Search ${tokenType} tokens…`}
-          className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setOpen(false);
-              setSearch("");
-            }
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false);
-            setSearch("");
-          }}
-          className="px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-        >
-          Cancel
-        </button>
-      </div>
-      {filteredAll.length > 50 && (
-        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-0.5">
-          Showing 50 of {filteredAll.length} — refine search to narrow results
-        </p>
-      )}
-      <div className="max-h-32 overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-        {filtered.length === 0 && (
-          <p className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            No matching {tokenType} tokens
-          </p>
-        )}
-        {filtered.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => {
-              onSelect(p);
-              setOpen(false);
-              setSearch("");
-            }}
-            className={`${LONG_TEXT_CLASSES.monoPrimary} w-full px-2 py-1 text-left text-[11px] hover:bg-[var(--color-figma-bg-hover)]`}
-            title={`${p} (${pathToSet[p] || ""})`}
-          >
-            {p}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** Parse a raw clipboard/initial string value into the shape the editor expects for the given type. */
-function parseInitialValueForType(type: string, raw: string): any {
-  const v = raw.trim();
-  if (type === "color") return v;
-  if (type === "dimension") {
-    const m = v.match(
-      /^(-?\d*\.?\d+)\s*(px|rem|em|%|vw|vh|pt|dp|sp|cm|mm|fr|ch|ex)?$/,
-    );
-    if (m) return { value: parseFloat(m[1]), unit: m[2] || "px" };
-    return v;
-  }
-  if (type === "duration") {
-    const m = v.match(/^(-?\d*\.?\d+)\s*(ms|s)?$/);
-    if (m) return { value: parseFloat(m[1]), unit: m[2] || "ms" };
-    const n = parseFloat(v);
-    return isNaN(n) ? 0 : n;
-  }
-  if (type === "number" || type === "fontWeight") {
-    const n = parseFloat(v);
-    return isNaN(n) ? v : n;
-  }
-  if (type === "boolean") {
-    return v.toLowerCase() === "true";
-  }
-  return v;
-}
-
-function getInitialCreateValue(type: string, raw?: string): any {
-  if (raw && !isAlias(raw)) {
-    return parseInitialValueForType(type, raw);
-  }
-  if (type === "color") return "#000000";
-  if (type === "dimension") return { value: 0, unit: "px" };
-  if (type === "number" || type === "duration") return 0;
-  if (type === "boolean") return false;
-  if (type === "shadow") {
-    return {
-      x: 0,
-      y: 0,
-      blur: 4,
-      spread: 0,
-      color: "#000000",
-      type: "dropShadow",
-    };
-  }
-  return "";
-}
-
-/**
- * Try to parse clipboard text as a structured value for the given token type.
- * Returns the parsed value on success, or null if no valid parse was found.
- * Used by the container-level onPaste handler in TokenEditor.
- */
-function parsePastedValue(type: string, text: string): any | null {
-  const v = text.trim();
-  if (!v) return null;
-
-  // Try JSON parse first (DTCG export format or raw object)
-  if (v.startsWith("{") || v.startsWith("[")) {
-    try {
-      const parsed = JSON.parse(v);
-      // DTCG token format: { $value: ..., $type: ... }
-      const rawValue =
-        parsed &&
-        typeof parsed === "object" &&
-        !Array.isArray(parsed) &&
-        parsed.$value !== undefined
-          ? parsed.$value
-          : parsed;
-      // Complex types accept the parsed object/array directly
-      if (
-        [
-          "typography",
-          "shadow",
-          "border",
-          "gradient",
-          "transition",
-          "composition",
-        ].includes(type)
-      ) {
-        return typeof rawValue === "object" ? rawValue : null;
-      }
-      if (
-        type === "cubicBezier" &&
-        Array.isArray(rawValue) &&
-        rawValue.length === 4
-      ) {
-        return rawValue;
-      }
-      // Primitive types: convert rawValue via string parsing
-      if (rawValue !== undefined && rawValue !== null) {
-        return parseInitialValueForType(
-          type,
-          typeof rawValue === "string" ? rawValue : JSON.stringify(rawValue),
-        );
-      }
-      return null;
-    } catch {
-      // Not valid JSON — fall through to string parsing
-    }
-  }
-
-  // String parsing per type
-  switch (type) {
-    case "color":
-      if (
-        /^#[0-9a-fA-F]{3,8}$/.test(v) ||
-        /^rgba?\s*\(/.test(v) ||
-        /^hsla?\s*\(/.test(v) ||
-        /^oklch\s*\(/.test(v) ||
-        /^oklab\s*\(/.test(v) ||
-        /^color\s*\(/.test(v)
-      )
-        return v;
-      return null;
-
-    case "dimension": {
-      const m = v.match(
-        /^(-?\d*\.?\d+)\s*(px|rem|em|%|vw|vh|pt|dp|sp|cm|mm|fr|ch|ex)?$/,
-      );
-      if (m) return { value: parseFloat(m[1]), unit: m[2] || "px" };
-      return null;
-    }
-
-    case "duration": {
-      const m = v.match(/^(-?\d*\.?\d+)\s*(ms|s)$/);
-      if (m) return { value: parseFloat(m[1]), unit: m[2] };
-      return null;
-    }
-
-    case "letterSpacing": {
-      const m = v.match(/^(-?\d*\.?\d+)\s*(px|em|rem|%)?$/);
-      if (m) return { value: parseFloat(m[1]), unit: m[2] || "px" };
-      return null;
-    }
-
-    case "cubicBezier": {
-      // Accept "x1,y1,x2,y2" comma-separated format
-      const parts = v.split(",").map((s) => parseFloat(s.trim()));
-      if (parts.length === 4 && parts.every((n) => !isNaN(n))) return parts;
-      return null;
-    }
-
-    case "number":
-    case "fontWeight":
-    case "lineHeight":
-    case "percentage": {
-      const cleaned =
-        type === "percentage" && v.endsWith("%") ? v.slice(0, -1) : v;
-      const n = parseFloat(cleaned);
-      return isNaN(n) ? null : n;
-    }
-
-    case "boolean":
-      if (v.toLowerCase() === "true") return true;
-      if (v.toLowerCase() === "false") return false;
-      return null;
-
-    case "string":
-    case "fontFamily":
-    case "link":
-    case "asset":
-    case "fontStyle":
-    case "textDecoration":
-    case "textTransform":
-    case "strokeStyle":
-    case "custom":
-      return v || null;
-
-    default:
-      return null;
-  }
-}
-
-/** Suggested namespace prefixes per token type to help new users build consistent hierarchies. */
-const NAMESPACE_SUGGESTIONS: Record<
-  string,
-  { prefixes: string[]; example: string }
-> = {
-  color: { prefixes: ["color."], example: "color.brand.primary" },
-  dimension: {
-    prefixes: ["spacing.", "sizing.", "radius."],
-    example: "spacing.md",
-  },
-  typography: { prefixes: ["typography."], example: "typography.heading.lg" },
-  shadow: { prefixes: ["shadow."], example: "shadow.md" },
-  border: { prefixes: ["border."], example: "border.default" },
-  gradient: { prefixes: ["gradient."], example: "gradient.brand" },
-  duration: { prefixes: ["duration."], example: "duration.fast" },
-  fontFamily: { prefixes: ["fontFamily."], example: "fontFamily.body" },
-  fontWeight: { prefixes: ["fontWeight."], example: "fontWeight.bold" },
-  number: { prefixes: ["scale.", "opacity."], example: "scale.ratio" },
-  string: { prefixes: [], example: "label.heading" },
-  boolean: { prefixes: [], example: "feature.darkMode" },
-  strokeStyle: { prefixes: ["strokeStyle."], example: "strokeStyle.dashed" },
-};
 
 interface TokenEditorProps {
   tokenPath: string;
@@ -429,85 +99,6 @@ interface TokenEditorProps {
   onQuickCreateMode?: (modeName: string, variantNames: string[]) => Promise<void>;
   /** Push an undo slot after a successful token save or create */
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
-}
-
-function SaveChangesDialog({
-  canSave,
-  isCreateMode,
-  editPath,
-  saving,
-  onSave,
-  onDiscard,
-  onCancel,
-}: {
-  canSave: boolean;
-  isCreateMode: boolean;
-  editPath: string;
-  saving: boolean;
-  onSave: () => void;
-  onDiscard: () => void;
-  onCancel: () => void;
-}) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(dialogRef);
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onCancel]);
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCancel();
-      }}
-    >
-      <div
-        ref={dialogRef}
-        className="w-[240px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="save-changes-title"
-      >
-        <div className="px-4 pt-4 pb-3">
-          <h3
-            id="save-changes-title"
-            className="text-[12px] font-semibold text-[var(--color-figma-text)]"
-          >
-            Save changes?
-          </h3>
-          <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-            Your edits have not been saved and will be lost if you close.
-          </p>
-        </div>
-        <div className="px-4 pb-4 flex flex-col gap-2">
-          {canSave && (!isCreateMode || editPath.trim() !== "") && (
-            <button
-              onClick={onSave}
-              disabled={saving}
-              className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-          )}
-          <button
-            onClick={onDiscard}
-            className="w-full px-3 py-1.5 rounded text-[11px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-border)]"
-          >
-            Discard
-          </button>
-          <button
-            onClick={onCancel}
-            className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            Keep editing
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export function TokenEditor({
@@ -1654,220 +1245,34 @@ export function TokenEditor({
 
         {/* Type-specific editor */}
         {!reference && (
-          <div
-            className="flex flex-col gap-2"
-            ref={valueEditorContainerRef}
+          <TokenEditorValueSection
+            tokenPath={tokenPath}
+            tokenType={tokenType}
+            value={value}
+            setValue={setValue}
+            isCreateMode={isCreateMode}
+            extendsPath={extendsPath}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            initialValue={initialRef.current?.value ?? null}
+            fontFamilyRef={fontFamilyRef}
+            fontSizeRef={fontSizeRef}
+            availableFonts={availableFonts}
+            fontWeightsByFamily={fontWeightsByFamily}
+            canSave={canSave}
+            saveBlockReason={saveBlockReason}
+            focusBlockedField={focusBlockedField}
+            pasteFlash={pasteFlash}
             onPaste={handlePaste}
-          >
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between">
-                <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
-                  {extendsPath ? "Overrides" : "Value"}
-                </label>
-                <div className="flex items-center gap-1.5">
-                  {pasteFlash && (
-                    <span className="text-[10px] text-[var(--color-figma-accent)] font-medium animate-pulse">
-                      Pasted
-                    </span>
-                  )}
-                  {!canSave &&
-                    tokenType === "typography" &&
-                    saveBlockReason && (
-                      <button
-                        type="button"
-                        onClick={focusBlockedField}
-                        className="text-[10px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0"
-                      >
-                        {saveBlockReason}
-                      </button>
-                    )}
-                </div>
-              </div>
-              {VALUE_FORMAT_HINTS[tokenType] && (
-                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">
-                  {VALUE_FORMAT_HINTS[tokenType]}
-                </span>
-              )}
-            </div>
-            {initialRef.current &&
-              !isCreateMode &&
-              (JSON.stringify(value) !==
-              JSON.stringify(initialRef.current.value) ? (
-                <ValueDiff
-                  type={tokenType}
-                  before={initialRef.current.value}
-                  after={value}
-                />
-              ) : (
-                <OriginalValuePreview
-                  type={tokenType}
-                  value={initialRef.current.value}
-                />
-              ))}
-            {(() => {
-              const baseValue: TokenMapEntry["$value"] | undefined = extendsPath
-                ? allTokensFlat[extendsPath]?.$value
-                : undefined;
-              return (
-                <>
-                  {tokenType === "color" && (
-                    <ColorEditor
-                      value={value}
-                      onChange={setValue}
-                      autoFocus={!isCreateMode}
-                      allTokensFlat={allTokensFlat}
-                    />
-                  )}
-                  {tokenType === "dimension" && (
-                    <DimensionEditor
-                      key={tokenPath}
-                      value={value}
-                      onChange={setValue}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                      autoFocus={!isCreateMode}
-                    />
-                  )}
-                  {tokenType === "typography" && (
-                    <TypographyEditor
-                      value={value}
-                      onChange={setValue}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                      fontFamilyRef={fontFamilyRef}
-                      fontSizeRef={fontSizeRef}
-                      baseValue={baseValue}
-                      availableFonts={availableFonts}
-                      fontWeightsByFamily={fontWeightsByFamily}
-                    />
-                  )}
-                  {tokenType === "shadow" && (
-                    <ShadowEditor
-                      value={value}
-                      onChange={setValue}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                      baseValue={baseValue}
-                    />
-                  )}
-                  {tokenType === "border" && (
-                    <BorderEditor
-                      value={value}
-                      onChange={setValue}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                      baseValue={baseValue}
-                    />
-                  )}
-                  {tokenType === "gradient" && (
-                    <GradientEditor
-                      value={value}
-                      onChange={setValue}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                    />
-                  )}
-                  {tokenType === "number" && (
-                    <NumberEditor
-                      key={tokenPath}
-                      value={value}
-                      onChange={setValue}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                      autoFocus={!isCreateMode}
-                    />
-                  )}
-                  {tokenType === "duration" && (
-                    <DurationEditor
-                      value={value}
-                      onChange={setValue}
-                      autoFocus={!isCreateMode}
-                    />
-                  )}
-                  {tokenType === "fontFamily" && (
-                    <FontFamilyEditor
-                      value={value}
-                      onChange={setValue}
-                      autoFocus={!isCreateMode}
-                      availableFonts={availableFonts}
-                    />
-                  )}
-                  {tokenType === "fontWeight" && (
-                    <FontWeightEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "strokeStyle" && (
-                    <StrokeStyleEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "string" && (
-                    <StringEditor
-                      value={value}
-                      onChange={setValue}
-                      autoFocus={!isCreateMode}
-                    />
-                  )}
-                  {tokenType === "boolean" && (
-                    <BooleanEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "composition" && (
-                    <CompositionEditor
-                      value={value}
-                      onChange={setValue}
-                      baseValue={baseValue}
-                    />
-                  )}
-                  {tokenType === "cubicBezier" && (
-                    <CubicBezierEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "transition" && (
-                    <TransitionEditor
-                      value={value}
-                      onChange={setValue}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                    />
-                  )}
-                  {tokenType === "fontStyle" && (
-                    <FontStyleEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "lineHeight" && (
-                    <LineHeightEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "letterSpacing" && (
-                    <LetterSpacingEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "percentage" && (
-                    <PercentageEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "link" && (
-                    <LinkEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "textDecoration" && (
-                    <TextDecorationEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "textTransform" && (
-                    <TextTransformEditor value={value} onChange={setValue} />
-                  )}
-                  {tokenType === "custom" && (
-                    <CustomEditor value={value} onChange={setValue} />
-                  )}
-                </>
-              );
-            })()}
-            {tokenType === "asset" && (
-              <AssetEditor value={value} onChange={setValue} />
-            )}
-            {/* Smart alias suggestion — exact & near matches */}
-            <TokenNudge
-              matches={nearbyMatches}
-              tokenType={tokenType}
-              onAccept={(path) => {
-                preAliasValueRef.current = value;
-                setAliasMode(true);
-                setReference(`{${path}}`);
-                setTimeout(() => refInputRef.current?.focus(), 0);
-              }}
-            />
-          </div>
+            nearbyMatches={nearbyMatches}
+            onAcceptNudge={(path) => {
+              preAliasValueRef.current = value;
+              setAliasMode(true);
+              setReference(`{${path}}`);
+              setTimeout(() => refInputRef.current?.focus(), 0);
+            }}
+            valueEditorContainerRef={valueEditorContainerRef}
+          />
         )}
 
         {/* Contrast checker (color tokens only) */}
@@ -1880,21 +1285,6 @@ export function TokenEditor({
             colorFlatMap={colorFlatMap}
           />
         )}
-
-        {/* Per-mode values — always shown; QuickModeCreator when no modes exist */}
-        <ModeValuesEditor
-          dimensions={dimensions}
-          modeValues={modeValues}
-          onModeValuesChange={setModeValues}
-          tokenType={tokenType}
-          aliasMode={aliasMode}
-          reference={reference}
-          value={value}
-          allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          onNavigateToThemes={onNavigateToThemes}
-          onQuickCreateMode={onQuickCreateMode}
-        />
 
         {/* Details — Modifiers, Extends, Metadata, Scopes, Lifecycle, Mode values */}
         {showAdvancedCreateFields && (
@@ -2021,7 +1411,7 @@ export function TokenEditor({
                 </div>
               </div>
 
-              {/* Description, Scopes, Mode Values, Extensions */}
+              {/* Description, Scopes, Extensions */}
               <MetadataEditor
                 description={description}
                 onDescriptionChange={setDescription}
@@ -2035,484 +1425,66 @@ export function TokenEditor({
                 isCreateMode={isCreateMode}
               />
 
+              {/* Per-mode value overrides */}
+              <ModeValuesEditor
+                dimensions={dimensions}
+                modeValues={modeValues}
+                onModeValuesChange={setModeValues}
+                tokenType={tokenType}
+                aliasMode={aliasMode}
+                reference={reference}
+                value={value}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                onNavigateToThemes={onNavigateToThemes}
+                onQuickCreateMode={onQuickCreateMode}
+              />
+
             </div>
           </Collapsible>
         )}
 
         {/* Generator groups */}
         {canBeGeneratorSource && !aliasMode && (
-          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-            <button
-              onClick={() => {
-                openGeneratorEditor({
-                  mode: 'create',
-                  sourceTokenPath: tokenPath,
-                  sourceTokenName: tokenName,
-                  sourceTokenType: tokenType,
-                  sourceTokenValue: value,
-                });
-              }}
-              className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span className="flex items-center gap-1.5">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="5" cy="2" r="1.5" />
-                  <circle cx="2" cy="8" r="1.5" />
-                  <circle cx="8" cy="8" r="1.5" />
-                  <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
-                </svg>
-                {existingGeneratorsForToken.length > 0
-                  ? `Derived groups (${existingGeneratorsForToken.length})`
-                  : "Derived groups"}
-              </span>
-              {existingGeneratorsForToken.length === 0 ? (
-                <span className="text-[10px] text-[var(--color-figma-accent)]">
-                  + Create
-                </span>
-              ) : (
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M7 2L3 5l4 3" />
-                </svg>
-              )}
-            </button>
-            {existingGeneratorsForToken.length > 0 && (
-              <div className="px-3 py-2 flex flex-col gap-1.5 border-t border-[var(--color-figma-border)]">
-                {existingGeneratorsForToken.map((gen) => (
-                  <div
-                    key={gen.id}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                          gen.type === "colorRamp"
-                            ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                            : gen.type === "typeScale"
-                              ? "bg-purple-500/15 text-purple-600"
-                              : gen.type === "spacingScale"
-                                ? "bg-green-500/15 text-green-600"
-                                : "bg-orange-500/15 text-orange-600"
-                        }`}
-                      >
-                        {gen.type === "colorRamp"
-                          ? "Ramp"
-                          : gen.type === "typeScale"
-                            ? "Scale"
-                            : gen.type === "spacingScale"
-                              ? "Spacing"
-                              : "Opacity"}
-                      </span>
-                      <span className={LONG_TEXT_CLASSES.monoPrimary}>
-                        {gen.targetGroup}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openGeneratorEditor({
-                            mode: 'edit',
-                            id: gen.id,
-                          });
-                        }}
-                        className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openGeneratorEditor({
-                            mode: 'create',
-                            sourceTokenPath: tokenPath,
-                            sourceTokenName: tokenName,
-                            sourceTokenType: tokenType,
-                            sourceTokenValue: value,
-                            template: {
-                              id: `dup-${gen.id}`,
-                              label: `${gen.name} (copy)`,
-                              description: "",
-                              defaultPrefix: gen.targetGroup,
-                              generatorType: gen.type,
-                              config: gen.config,
-                              requiresSource: false,
-                            },
-                          });
-                        }}
-                        title="Duplicate generator"
-                        className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
-                      >
-                        Duplicate
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                <button
-                  onClick={() => {
-                    openGeneratorEditor({
-                      mode: 'create',
-                      sourceTokenPath: tokenPath,
-                      sourceTokenName: tokenName,
-                      sourceTokenType: tokenType,
-                      sourceTokenValue: value,
-                    });
-                  }}
-                  className="mt-0.5 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors text-left"
-                >
-                  + Add another group
-                </button>
-              </div>
-            )}
-          </div>
+          <TokenEditorDerivedGroups
+            tokenPath={tokenPath}
+            tokenName={tokenName}
+            tokenType={tokenType}
+            value={value}
+            existingGeneratorsForToken={existingGeneratorsForToken}
+            openGeneratorEditor={openGeneratorEditor}
+          />
         )}
 
         {/* Info section — Dependencies, Usage, History (read-only reference data) */}
         {!isCreateMode && (
-          <div className="mt-1 border-t border-[var(--color-figma-border)] pt-2">
-            <div className="flex gap-0.5">
-              {[
-                { key: 'dependencies' as const, label: 'Dependencies', count: referenceTrace.length + dependentTrace.length },
-                { key: 'usage' as const, label: 'Usage' },
-                { key: 'history' as const, label: 'History' },
-              ].map(({ key, label, count }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleInfoTab(key)}
-                  className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
-                    infoTab === key
-                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-                      : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                  }`}
-                >
-                  {label}{count ? ` (${count})` : ''}
-                </button>
-              ))}
-            </div>
-
-            {infoTab === 'dependencies' && (
-              <div className="flex flex-col gap-1.5 mt-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {referenceTrace.length > 0 && (
-                      <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
-                        References {referenceTrace.length}
-                      </span>
-                    )}
-                    {(dependentTrace.length > 0 || dependentsLoading) && (
-                      <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
-                        {dependentsLoading
-                          ? "Dependents…"
-                          : `Dependents ${dependentTrace.length}`}
-                      </span>
-                    )}
-                    {dependencySnapshot?.hasCycles && (
-                      <span className="rounded-full bg-[var(--color-figma-error)]/10 px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-error)]">
-                        Cycle detected
-                      </span>
-                    )}
-                  </div>
-                  {onShowReferences && (
-                    <button
-                      type="button"
-                      onClick={() => onShowReferences(tokenPath)}
-                      className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:underline transition-colors"
-                      title="Open advanced dependency graph"
-                    >
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
-                      </svg>
-                      Open graph
-                    </button>
-                  )}
-                </div>
-
-                {dependencySnapshot?.hasCycles && (
-                  <div className="rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
-                    Circular aliases are part of this token's trace. Use the
-                    advanced graph if you need to inspect the full loop.
-                  </div>
-                )}
-
-                {/* Outgoing: walk the full reference chain inline */}
-                {referenceTrace.length > 0 && (
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60">
-                      Reference trace
-                    </span>
-                    {referenceTrace.slice(0, 8).map((node) => {
-                      const resolvedColor =
-                        node.$type === "color"
-                          ? resolveRefValue(node.path, colorFlatMap)
-                          : null;
-                      return (
-                        <button
-                          key={node.path}
-                          type="button"
-                          onClick={() =>
-                            onNavigateToToken?.(node.path, tokenPath)
-                          }
-                          disabled={!onNavigateToToken}
-                          className="flex items-center gap-1.5 px-1.5 py-1 rounded text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-default group"
-                          title={
-                            onNavigateToToken
-                              ? `Navigate to ${node.path}`
-                              : node.path
-                          }
-                          style={{
-                            paddingLeft: `${6 + Math.max(0, node.depth - 1) * 12}px`,
-                          }}
-                        >
-                          <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                            {node.depth === 1 ? "Direct" : `+${node.depth - 1}`}
-                          </span>
-                          {resolvedColor ? (
-                            <span
-                              className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
-                              style={{ backgroundColor: resolvedColor }}
-                            />
-                          ) : (
-                            <svg
-                              width="10"
-                              height="10"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                              className="shrink-0 opacity-40"
-                            >
-                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                            </svg>
-                          )}
-                          <span className={`${LONG_TEXT_CLASSES.mono} flex-1 text-[var(--color-figma-accent)] group-hover:underline`}>
-                            {node.path}
-                          </span>
-                          {node.setName && node.setName !== setName && (
-                            <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                              {node.setName}
-                            </span>
-                          )}
-                          {onNavigateToToken && (
-                            <svg
-                              width="8"
-                              height="8"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                              className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity"
-                            >
-                              <path d="M5 12h14M12 5l7 7-7 7" />
-                            </svg>
-                          )}
-                        </button>
-                      );
-                    })}
-                    {referenceTrace.length > 8 && (
-                      <div className="px-1.5 pt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                        + {referenceTrace.length - 8} more reference step
-                        {referenceTrace.length - 8 === 1 ? "" : "s"}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Incoming: direct and downstream impact */}
-                {(dependentsLoading || dependentTrace.length > 0) && (
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setRefsExpanded((v) => !v)}
-                      disabled={
-                        dependentsLoading ? false : dependentTrace.length === 0
-                      }
-                      className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
-                    >
-                      {dependentsLoading ? (
-                        <span>Dependent impact…</span>
-                      ) : (
-                        <>
-                          <svg
-                            width="8"
-                            height="8"
-                            viewBox="0 0 8 8"
-                            fill="currentColor"
-                            className={`transition-transform shrink-0 ${refsExpanded ? "rotate-90" : ""}`}
-                            aria-hidden="true"
-                          >
-                            <path d="M2 1l4 3-4 3V1z" />
-                          </svg>
-                          Direct{" "}
-                          {dependencySnapshot?.directDependents.length ?? 0} ·
-                          Downstream {dependentTrace.length}
-                        </>
-                      )}
-                    </button>
-                    {refsExpanded && dependentTrace.length > 0 && (
-                      <div className="flex flex-col gap-0.5 mt-0.5">
-                        {dependentTrace.slice(0, 20).map((dep) => {
-                          const depColor =
-                            dep.$type === "color"
-                              ? resolveRefValue(dep.path, colorFlatMap)
-                              : null;
-                          return (
-                            <button
-                              key={dep.path}
-                              type="button"
-                              onClick={() =>
-                                onNavigateToToken?.(dep.path, tokenPath)
-                              }
-                              disabled={!onNavigateToToken}
-                              className="flex items-center gap-1.5 px-1.5 py-1 rounded text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-default group"
-                              title={
-                                onNavigateToToken
-                                  ? `Navigate to ${dep.path}`
-                                  : dep.path
-                              }
-                              style={{
-                                paddingLeft: `${6 + Math.max(0, dep.depth - 1) * 12}px`,
-                              }}
-                            >
-                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                                {dep.depth === 1
-                                  ? "Direct"
-                                  : `+${dep.depth - 1}`}
-                              </span>
-                              {depColor ? (
-                                <span
-                                  className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
-                                  style={{ backgroundColor: depColor }}
-                                />
-                              ) : (
-                                <svg
-                                  width="10"
-                                  height="10"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  aria-hidden="true"
-                                  className="shrink-0 opacity-40"
-                                >
-                                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                                </svg>
-                              )}
-                              <span className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1 group-hover:underline`}>
-                                {dep.path}
-                              </span>
-                              {dep.setName && dep.setName !== setName && (
-                                <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                                  {dep.setName}
-                                </span>
-                              )}
-                              {onNavigateToToken && (
-                                <svg
-                                  width="8"
-                                  height="8"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  aria-hidden="true"
-                                  className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity"
-                                >
-                                  <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                              )}
-                            </button>
-                          );
-                        })}
-                        {dependentTrace.length > 20 && (
-                          <div className="px-1.5 pt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                            + {dependentTrace.length - 20} more downstream
-                            dependent
-                            {dependentTrace.length - 20 === 1 ? "" : "s"}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {infoTab === 'usage' && (
-              <div className="mt-2">
-                <TokenUsages
-                  dependents={dependents}
-                  dependentsLoading={dependentsLoading}
-                  setName={setName}
-                  tokenPath={tokenPath}
-                  tokenType={tokenType}
-                  value={value}
-                  isDirty={isDirty}
-                  aliasMode={aliasMode}
-                  allTokensFlat={allTokensFlat}
-                  colorFlatMap={colorFlatMap}
-                  pathToSet={pathToSet}
-                  initialValue={initialRef.current?.value}
-                  producingGenerator={activeProducingGenerator}
-                  sourceGenerators={existingGeneratorsForToken}
-                  onNavigateToToken={onNavigateToToken}
-                  onShowReferences={onShowReferences}
-                  onNavigateToGenerator={onNavigateToGenerator}
-                />
-              </div>
-            )}
-
-            {infoTab === 'history' && (
-              <div className="mt-2">
-                <TokenHistorySection
-                  tokenPath={tokenPath}
-                  serverUrl={serverUrl}
-                  tokenType={tokenType}
-                />
-              </div>
-            )}
-          </div>
+          <TokenEditorInfoSection
+            tokenPath={tokenPath}
+            setName={setName}
+            serverUrl={serverUrl}
+            tokenType={tokenType}
+            value={value}
+            isDirty={isDirty}
+            aliasMode={aliasMode}
+            referenceTrace={referenceTrace}
+            dependentTrace={dependentTrace}
+            dependencySnapshot={dependencySnapshot}
+            dependents={dependents}
+            dependentsLoading={dependentsLoading}
+            colorFlatMap={colorFlatMap}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            initialValue={initialRef.current?.value}
+            activeProducingGenerator={activeProducingGenerator}
+            existingGeneratorsForToken={existingGeneratorsForToken}
+            infoTab={infoTab}
+            onInfoTabChange={handleInfoTab}
+            refsExpanded={refsExpanded}
+            onRefsExpandedChange={setRefsExpanded}
+            onShowReferences={onShowReferences}
+            onNavigateToToken={onNavigateToToken}
+            onNavigateToGenerator={onNavigateToGenerator}
+          />
         )}
       </EditorShell>
 

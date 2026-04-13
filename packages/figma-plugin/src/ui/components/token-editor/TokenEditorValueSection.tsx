@@ -43,8 +43,8 @@ export interface TokenEditorValueSectionProps {
   /** The initial server value (for showing diffs). Null when creating. */
   initialValue: any | null;
   // Typography-specific
-  fontFamilyRef: React.RefObject<HTMLSelectElement | null>;
-  fontSizeRef: React.RefObject<HTMLInputElement | null>;
+  fontFamilyRef: React.RefObject<HTMLInputElement>;
+  fontSizeRef: React.RefObject<HTMLInputElement>;
   availableFonts: string[];
   fontWeightsByFamily: Record<string, number[]>;
   // Validation
@@ -58,7 +58,7 @@ export interface TokenEditorValueSectionProps {
   nearbyMatches: NearbyMatch[];
   onAcceptNudge: (path: string) => void;
   // Ref for container
-  valueEditorContainerRef: React.RefObject<HTMLDivElement | null>;
+  valueEditorContainerRef: React.RefObject<HTMLDivElement>;
 }
 
 export function TokenEditorValueSection({

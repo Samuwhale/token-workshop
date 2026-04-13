@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { resolveRefValue } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import type {
@@ -24,7 +23,7 @@ export interface TokenEditorInfoSectionProps {
   dependencySnapshot: TokenDependencySnapshot | null;
   dependents: Array<{ path: string; setName: string }>;
   dependentsLoading: boolean;
-  colorFlatMap: Record<string, string>;
+  colorFlatMap: Record<string, unknown>;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   initialValue: any | undefined;
