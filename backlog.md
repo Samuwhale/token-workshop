@@ -205,8 +205,10 @@
 - [x] Replace truncation-first path rendering across authoring surfaces with narrow-width wrapping rules
 - [x] Strip tutorial chrome from CanvasAnalysisPanel so the scan/suggest/fix tools are the primary content
 - [x] Remove 'Sections' eyebrow label and breadcrumb meta-labels from WorkspaceSummaryHeader to reduce persistent chrome across all workspaces
-- [ ] Paste tokens modal resets all per-row overwrite decisions on any textarea edit and undo after overwrite deletes the pre-existing token instead of restoring it
+- [x] Paste tokens modal resets all per-row overwrite decisions on any textarea edit and undo after overwrite deletes the pre-existing token instead of restoring it
+- [ ] Strip eyebrow labels, On/Off badge, and layered instructional text from LintConfigPanel
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient
 - [x] ThemeCoverageScreen axis/option/issues pill row restates information already in the heading and subtitle
+- [ ] Remove eyebrow labels from FigmaVariablesPanel filter row

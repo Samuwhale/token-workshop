@@ -2089,3 +2089,18 @@
   - Parsed-row UI decisions should be reconciled against stable row identities and pruned only when those identities disappear; resetting per-row state on every source edit makes review-heavy flows unusable.
   - Undo for mixed create/overwrite batches should restore overwritten snapshots first and only then delete newly created paths, otherwise freshly pasted aliases can block cleanup or destroy prior data.
 ---
+## 2026-04-13 - interface-pass
+- Areas explored: LintConfigPanel.tsx (panel header, preset section, per-rule row, expanded rule detail sections), FigmaVariablesPanel.tsx (filter toolbar row, variable list rows)
+- Interface themes: chrome discipline (eyebrow labels, redundant status badges, layered instructional text), minimalism (filter controls self-labeling via placeholder options)
+- Found 2 items — written to backlog/inbox.jsonl
+- Considered but rejected: FigmaVariablesPanel type badge + color swatch redundancy — the type badge carries type name text that the color swatch alone cannot convey for non-color types, so it earns its place; TokenFlowPanel structural sparseness — not enough chrome to file; CompareView — not explored this session (file is 1670 lines, saving for a future pass with deeper read)
+- Notable: LintConfigPanel is the most chrome-heavy uninspected surface so far — five eyebrow labels plus an On/Off badge that purely mirrors the adjacent toggle make the rules themselves hard to scan. Removing those layers is the highest-leverage cleanup available in this surface.
+---
+## 2026-04-13 - Strip eyebrow labels, On/Off badge, and layered instructional text from LintConfigPanel
+- Flattened LintConfigPanel so the shell header is a simple `Lint rules` bar, presets read as the setup step via a compact base-preset status line, each rule row relies on the switch as its only enabled-state signal, and the expanded cards drop redundant section headers and explanatory copy.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` passed (Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for `eslint.config.js`, but lint succeeded).
+- Files changed: `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` ~L245, ~L257, ~L345, ~L381, ~L410, ~L454; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Dense configuration panels scan better when section boundaries come from card structure and spacing; repeating uppercase eyebrow labels at every nesting level quickly buries the actual controls.
+  - If a switch already communicates binary state directly, adjacent `On`/`Off` badges rarely add information and usually just compete with the rule label for attention.
+---

@@ -243,12 +243,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
   return (
     <div className="overflow-hidden rounded border border-[var(--color-figma-border)]">
       <div className="flex items-center justify-between bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-        <div>
-          <span className="block text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">Quality policy</span>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-            Start from a preset, then tune where each rule applies with set pickers and exception chips.
-          </p>
-        </div>
+        <span className="text-[11px] font-medium text-[var(--color-figma-text)]">Lint rules</span>
         <button
           onClick={async () => { await onReset(); onLintRefresh(); }}
           disabled={saving}
@@ -260,15 +255,10 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
       </div>
 
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div>
-            <span className="block text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">Start with a preset</span>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              {presetBaseId
-                ? `Current base policy matches ${LINT_PRESETS.find(preset => preset.id === presetBaseId)?.label ?? 'a preset'}.`
-                : 'Current policy is custom. Reapply a preset anytime, then refine exceptions below.'}
-            </p>
-          </div>
+        <div className="mb-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+          {presetBaseId
+            ? `Base preset: ${LINT_PRESETS.find(preset => preset.id === presetBaseId)?.label ?? 'Custom'}`
+            : 'Base preset: Custom'}
         </div>
 
         <div className="grid grid-cols-3 gap-2">
@@ -357,18 +347,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   className="min-w-0 flex-1 text-left"
                   title={rule.description}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{rule.label}</span>
-                    <span
-                      className="rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide"
-                      style={{
-                        backgroundColor: ruleConfig.enabled ? 'color-mix(in srgb, var(--color-figma-accent) 14%, transparent)' : 'var(--color-figma-bg-secondary)',
-                        color: ruleConfig.enabled ? 'var(--color-figma-accent)' : 'var(--color-figma-text-secondary)',
-                      }}
-                    >
-                      {ruleConfig.enabled ? 'On' : 'Off'}
-                    </span>
-                  </div>
+                  <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{rule.label}</span>
                   <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">{rule.description}</p>
                   <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
                     {describeCoverage(ruleConfig, sets.length)}
@@ -401,8 +380,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                 <div className="ml-10 mt-3 space-y-3">
                   {hasOptions && (
                     <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                      <span className="block text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">Rule tuning</span>
-                      <div className="mt-2 space-y-1.5">
+                      <div className="space-y-1.5">
                         {rule.options!.map(option => (
                           <label key={option.key} className="flex items-center gap-2">
                             <span className="w-28 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">{option.label}</span>
@@ -430,17 +408,8 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   )}
 
                   <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <span className="block text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">Token-group exceptions</span>
-                        <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                          Skip this rule for specific token groups when a branch is intentionally different from the rest of the library.
-                        </p>
-                      </div>
-                    </div>
-
                     {currentPathExceptions.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5">
                         {currentPathExceptions.map(path => (
                           <button
                             key={path}
@@ -455,7 +424,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">No token-group exceptions yet.</p>
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No token-group exceptions yet.</p>
                     )}
 
                     <div className="mt-2 flex items-center gap-2">
@@ -483,15 +452,8 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   </div>
 
                   <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                    <div>
-                      <span className="block text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">Set-specific treatment</span>
-                      <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                        Pick the sets that should behave differently. Add a set, then decide whether this rule should be skipped there or use a different severity.
-                      </p>
-                    </div>
-
                     {Object.entries(ruleConfig.setOverrides ?? {}).length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5">
                         {Object.entries(ruleConfig.setOverrides ?? {}).map(([setName, override]) => {
                           const isSelected = selectedSetName === setName;
                           return (
@@ -511,7 +473,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         })}
                       </div>
                     ) : (
-                      <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">No set exceptions yet.</p>
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No set exceptions yet.</p>
                     )}
 
                     <div className="mt-2 flex items-center gap-2">
@@ -538,12 +500,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                     {selectedSetName && selectedSetOverride && (
                       <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2">
                         <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <span className="block text-[10px] font-medium text-[var(--color-figma-text)]">{selectedSetName}</span>
-                            <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                              Override how this rule behaves for the {selectedSetName} set.
-                            </p>
-                          </div>
+                          <span className="block text-[10px] font-medium text-[var(--color-figma-text)]">{selectedSetName}</span>
                           <button
                             onClick={() => handleRemoveSetException(rule.id, ruleConfig, selectedSetName)}
                             disabled={saving}
@@ -554,7 +511,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         </div>
 
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Rule applies in this set</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Applies in this set</span>
                           <button
                             onClick={() => handleSetExceptionChange(rule.id, ruleConfig, selectedSetName, { enabled: !(selectedSetOverride.enabled ?? ruleConfig.enabled) })}
                             disabled={saving}
