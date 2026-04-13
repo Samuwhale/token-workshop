@@ -13,11 +13,12 @@ capabilities: []
 validation_profile: repo
 status_notes:
   - "Context: Generator ownership indicators were added (group header badge, detail preview deep link, active-row glyph), but the token edit path has no protection. Users can directly edit a generated token's value with no warning that the next generator run will silently overwrite their change. There is also no detach-from-generator workflow, meaning the only way to permanently break the ownership contract is to delete the generator entirely."
-state: ready
+  - "Completed: stale — already done"
+state: done
 acceptance_criteria:
   - Editing a generated token's value inline shows a warning explaining the change will be overwritten on the next generator run
   - A detach-from-generator operation exists at the token or group level, converting generator-owned tokens to independently editable manual tokens and removing the generator-ownership association
   - Generator group headers clearly communicate 'these N tokens are managed by this generator — edit the generator to change them' rather than allowing silent manual overrides
 source: product-pass
 created_at: 2026-04-12T20:29:57.907Z
-updated_at: 2026-04-12T20:29:57.907Z
+updated_at: 2026-04-13T02:48:40.830Z

@@ -537,7 +537,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
         {isTokenMode && showHelp && (
           <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2 overflow-y-auto" style={{ maxHeight: '220px' }}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider">Filter syntax</span>
+              <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">Filter syntax</span>
               <button
                 className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] opacity-60 hover:opacity-100 transition-opacity"
                 onClick={() => setShowHelp(false)}
@@ -547,7 +547,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </div>
             {/* Group: type & value */}
             <div className="mb-2">
-              <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] opacity-50 uppercase tracking-wider mb-1">Type &amp; content</div>
+              <div className="mb-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Type &amp; content</div>
               {[
                 { qual: 'type:color', desc: 'Filter by token type (color, dimension, number, string…)', insert: '>type:' },
                 { qual: 'value:#ff0000', desc: 'Tokens whose value contains the given string', insert: '>value:' },
@@ -566,7 +566,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </div>
             {/* Group: path & name */}
             <div className="mb-2">
-              <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] opacity-50 uppercase tracking-wider mb-1">Path &amp; name</div>
+              <div className="mb-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Path &amp; name</div>
               {[
                 { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
                 { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
@@ -586,7 +586,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </div>
             {/* Group: has: */}
             <div className="mb-1.5">
-              <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] opacity-50 uppercase tracking-wider mb-1">Presence filters (has:)</div>
+              <div className="mb-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Presence filters (has:)</div>
               <div className="grid grid-cols-2 gap-x-3">
                 {[
                   { val: 'alias', desc: 'Reference tokens only' },

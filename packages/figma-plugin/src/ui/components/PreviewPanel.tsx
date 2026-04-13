@@ -41,6 +41,10 @@ const TEMPLATES: { id: Template; label: string }[] = [
   { id: 'effects', label: 'Effects' },
 ];
 
+function previewSectionLabelClassName(darkMode: boolean): string {
+  return `text-[10px] font-medium mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`;
+}
+
 /** Convert a token path to a CSS custom property name */
 function toCssVar(path: string): string {
   return `--${path.replace(/\./g, '-')}`;
@@ -548,7 +552,7 @@ function ColorGroup({ group, tokens, darkMode, onNavigateToToken }: { group: str
 
   return (
     <div>
-      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+      <div className={previewSectionLabelClassName(darkMode)}>
         {group}
         <span className={`ml-1 font-normal normal-case tracking-normal ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>({tokens.length})</span>
       </div>
@@ -593,7 +597,7 @@ function ColorsTemplate({ groups, gradients, darkMode, onGoToTokens, onNavigateT
       ))}
       {gradients.length > 0 && (
         <div>
-          <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+          <div className={previewSectionLabelClassName(darkMode)}>
             Gradients
             <span className={`ml-1 font-normal normal-case tracking-normal ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>({gradients.length})</span>
           </div>
@@ -1163,7 +1167,7 @@ function EffectsTemplate({ shadows, timings, darkMode, onGoToTokens, onNavigateT
     <div className="p-3 flex flex-col gap-5">
       {shadows.length > 0 && (
         <div>
-          <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+          <div className={previewSectionLabelClassName(darkMode)}>
             Shadows
             <span className={`ml-1 font-normal normal-case tracking-normal ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>({shadows.length})</span>
           </div>
@@ -1176,7 +1180,7 @@ function EffectsTemplate({ shadows, timings, darkMode, onGoToTokens, onNavigateT
       )}
       {timings.length > 0 && (
         <div>
-          <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+          <div className={previewSectionLabelClassName(darkMode)}>
             Transitions &amp; Durations
             <span className={`ml-1 font-normal normal-case tracking-normal ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>({timings.length}) — hover arrows to preview</span>
           </div>
@@ -1255,7 +1259,7 @@ function CopyButton({ text, label, darkMode }: { text: string; label: string; da
 function PreviewSection({ label, darkMode, children }: { label: string; darkMode: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{label}</div>
+      <div className={previewSectionLabelClassName(darkMode)}>{label}</div>
       <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );

@@ -1896,3 +1896,11 @@
 - **Learnings for future iterations:**
   - Generator ownership work is already split across the tree row, editor panel, generator dialog, and detach route/service; verify all four surfaces before re-opening follow-up backlog items in this area.
 ---
+## 2026-04-13 - Replace uppercase tracking-wide eyebrow labels with plain section headings across token preview, theme authoring, and command palette
+- Replaced PreviewPanel's section and token-group eyebrow labels with one shared plain secondary heading style, and removed uppercase/tracking treatment from the command palette filter-syntax help headings. `ThemeAuthoringScreen.tsx` already matched the new rule, so no source change was needed there.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/PreviewPanel.tsx packages/figma-plugin/src/ui/components/CommandPalette.tsx packages/figma-plugin/src/ui/components/theme-manager/ThemeAuthoringScreen.tsx` passed.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L44, ~L555, ~L600, ~L1170, ~L1262; `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L540, ~L550, ~L569, ~L589; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Preview section labels stay consistent when one helper owns the shared secondary heading treatment instead of repeating ad hoc uppercase utility stacks across each template block.
+  - Theme empty-state cleanup can already be complete even when a backlog item still names the old copy, so targeted `rg` checks are worth doing before editing the surface.
+---

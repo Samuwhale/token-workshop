@@ -188,7 +188,7 @@
 - [x] Coverage view offers no way to act on reviewed gaps, forcing a round-trip back to Authoring before auto-fill
 - [x] Unify theme coverage computation and remove the unused `/api/themes/coverage` fork
 - [x] Add resolver-targeted orphan cleanup for mapped publish modes
-- [ ] Add an explicit ownership contract for generated tokens: warn before manual edits and provide a detach-from-generator operation
+- [x] Add an explicit ownership contract for generated tokens: warn before manual edits and provide a detach-from-generator operation
 - [ ] Replace uppercase tracking-wide eyebrow labels with plain section headings across token preview, theme authoring, and command palette
 - [ ] Hide the Semantic layer section on generator cards when no aliases are configured
 - [ ] Centralize git-backed token diff extraction so commit, pull, push, working-tree, and restore paths share one parser
