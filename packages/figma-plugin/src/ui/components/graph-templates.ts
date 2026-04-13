@@ -1,38 +1,46 @@
-import type { ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig } from '../hooks/useGenerators';
+import type {
+  AccessibleColorPairConfig,
+  BorderRadiusScaleConfig,
+  ColorRampConfig,
+  ContrastCheckConfig,
+  CustomScaleConfig,
+  DarkModeInversionConfig,
+  GeneratorTemplate,
+  OpacityScaleConfig,
+  ShadowScaleConfig,
+  SpacingScaleConfig,
+  TypeScaleConfig,
+  ZIndexScaleConfig,
+} from "../hooks/useGenerators";
 
-export interface SemanticMapping {
-  semantic: string;
-  step: string;
-  type: 'color' | 'dimension' | 'number' | 'shadow';
-}
-
-export interface SemanticLayer {
+export interface SemanticStarter {
   prefix: string;
-  mappings: SemanticMapping[];
+  mappings: Array<{ semantic: string; step: string }>;
+  patternId?: string | null;
 }
 
-export interface GraphTemplate {
-  id: string;
-  label: string;
-  description: string;
+export interface GraphTemplate extends GeneratorTemplate {
   whenToUse: string;
   stages: string[];
-  generatorType: GeneratorType;
-  defaultPrefix: string;
-  requiresSource: boolean;
-  config: GeneratorConfig;
-  semanticLayers: SemanticLayer[];
+  starterPreset: string;
+  sourceRequirement: string;
+  sourceTokenTypes?: string[];
+  semanticStarter?: SemanticStarter;
 }
 
 export const GRAPH_TEMPLATES: GraphTemplate[] = [
   {
-    id: 'material-color',
-    label: 'Material color palette',
-    description: '11-step perceptual color ramp with semantic action map',
-    whenToUse: 'Use for brand primary or secondary colors — gives you action.default, action.hover, action.active, and action.disabled aliases out of the box.',
-    stages: ['Source color', '11-step ramp', 'Semantic map'],
-    generatorType: 'colorRamp',
-    defaultPrefix: 'brand',
+    id: "brand-color-palette",
+    label: "Brand color palette",
+    description: "Turn one brand color into a usable 11-step palette.",
+    whenToUse:
+      "Use when you need a core brand scale for UI states, fills, and accents without hand-tuning every shade.",
+    stages: ["Goal", "Base color", "11-step palette", "Action aliases"],
+    starterPreset: "11-step ramp with action.default, hover, active, and disabled starters.",
+    sourceRequirement: "Best with a color token or hex value.",
+    sourceTokenTypes: ["color"],
+    defaultPrefix: "brand",
+    generatorType: "colorRamp",
     requiresSource: true,
     config: {
       steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
@@ -40,209 +48,320 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
       darkEnd: 8,
       chromaBoost: 1.0,
       includeSource: false,
-    } as ColorRampConfig,
-    semanticLayers: [
-      {
-        prefix: 'semantic',
-        mappings: [
-          { semantic: 'action.default', step: '500', type: 'color' },
-          { semantic: 'action.hover', step: '600', type: 'color' },
-          { semantic: 'action.active', step: '700', type: 'color' },
-          { semantic: 'action.disabled', step: '300', type: 'color' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'tailwind-spacing',
-    label: 'Tailwind spacing',
-    description: 'Tailwind-style spacing scale with component spacing map',
-    whenToUse: 'Use when starting a new project or matching a Tailwind layout — generates semantic component.padding and component.gap aliases for small, medium, and large sizes.',
-    stages: ['Base unit', 'Spacing scale', 'Component map'],
-    generatorType: 'spacingScale',
-    defaultPrefix: 'spacing',
-    requiresSource: true,
-    config: {
-      steps: [
-        { name: '1', multiplier: 1 },
-        { name: '2', multiplier: 2 },
-        { name: '3', multiplier: 3 },
-        { name: '4', multiplier: 4 },
-        { name: '5', multiplier: 5 },
-        { name: '6', multiplier: 6 },
-        { name: '8', multiplier: 8 },
-        { name: '10', multiplier: 10 },
-        { name: '12', multiplier: 12 },
-        { name: '16', multiplier: 16 },
-        { name: '20', multiplier: 20 },
-        { name: '24', multiplier: 24 },
+    } satisfies ColorRampConfig,
+    semanticStarter: {
+      prefix: "semantic",
+      mappings: [
+        { semantic: "action.default", step: "500" },
+        { semantic: "action.hover", step: "600" },
+        { semantic: "action.active", step: "700" },
+        { semantic: "action.disabled", step: "300" },
       ],
-      unit: 'px',
-    } as SpacingScaleConfig,
-    semanticLayers: [
-      {
-        prefix: 'component',
-        mappings: [
-          { semantic: 'padding.sm', step: '2', type: 'dimension' },
-          { semantic: 'padding.md', step: '4', type: 'dimension' },
-          { semantic: 'padding.lg', step: '6', type: 'dimension' },
-          { semantic: 'gap.sm', step: '2', type: 'dimension' },
-          { semantic: 'gap.md', step: '4', type: 'dimension' },
-        ],
-      },
-    ],
+    },
   },
   {
-    id: 'modular-type',
-    label: 'Modular type scale',
-    description: 'Base size × ratio (1.333) → 7-step type scale',
-    whenToUse: 'Use to create a harmonious type scale from a single base size — steps grow by a 4:3 ratio, giving you xs through 3xl for body copy, headings, and display text.',
-    stages: ['Base size', 'Type scale ×1.333'],
-    generatorType: 'typeScale',
-    defaultPrefix: 'fontSize',
+    id: "spacing-foundation",
+    label: "Spacing foundation",
+    description: "Generate a spacing ladder from one base unit.",
+    whenToUse:
+      "Use when you want layout spacing, padding, and gaps to stay proportional across components and pages.",
+    stages: ["Goal", "Base unit", "Spacing ladder", "Component spacing"],
+    starterPreset: "Tailwind-style spacing scale plus component.padding and component.gap starters.",
+    sourceRequirement: "Best with a dimension token such as 4px or 8px.",
+    sourceTokenTypes: ["dimension"],
+    defaultPrefix: "spacing",
+    generatorType: "spacingScale",
     requiresSource: true,
     config: {
       steps: [
-        { name: 'xs', exponent: -2 },
-        { name: 'sm', exponent: -1 },
-        { name: 'base', exponent: 0 },
-        { name: 'lg', exponent: 1 },
-        { name: 'xl', exponent: 2 },
-        { name: '2xl', exponent: 3 },
-        { name: '3xl', exponent: 4 },
+        { name: "1", multiplier: 1 },
+        { name: "2", multiplier: 2 },
+        { name: "3", multiplier: 3 },
+        { name: "4", multiplier: 4 },
+        { name: "5", multiplier: 5 },
+        { name: "6", multiplier: 6 },
+        { name: "8", multiplier: 8 },
+        { name: "10", multiplier: 10 },
+        { name: "12", multiplier: 12 },
+        { name: "16", multiplier: 16 },
+        { name: "20", multiplier: 20 },
+        { name: "24", multiplier: 24 },
+      ],
+      unit: "px",
+    } satisfies SpacingScaleConfig,
+    semanticStarter: {
+      prefix: "component",
+      mappings: [
+        { semantic: "padding.sm", step: "2" },
+        { semantic: "padding.md", step: "4" },
+        { semantic: "padding.lg", step: "6" },
+        { semantic: "gap.sm", step: "2" },
+        { semantic: "gap.md", step: "4" },
+      ],
+    },
+  },
+  {
+    id: "type-scale",
+    label: "Type scale",
+    description: "Create a modular font-size progression from one base size.",
+    whenToUse:
+      "Use when body copy and headings need a predictable rhythm instead of individually-picked sizes.",
+    stages: ["Goal", "Base size", "Ratio", "xs to 3xl scale"],
+    starterPreset: "4:3 modular scale with xs, sm, base, lg, xl, 2xl, and 3xl steps.",
+    sourceRequirement: "Best with a font-size or dimension token such as 16px or 1rem.",
+    sourceTokenTypes: ["fontSize", "dimension"],
+    defaultPrefix: "fontSize",
+    generatorType: "typeScale",
+    requiresSource: true,
+    config: {
+      steps: [
+        { name: "xs", exponent: -2 },
+        { name: "sm", exponent: -1 },
+        { name: "base", exponent: 0 },
+        { name: "lg", exponent: 1 },
+        { name: "xl", exponent: 2 },
+        { name: "2xl", exponent: 3 },
+        { name: "3xl", exponent: 4 },
       ],
       ratio: 1.333,
-      unit: 'rem',
-      baseStep: 'base',
+      unit: "rem",
+      baseStep: "base",
       roundTo: 3,
-    } as TypeScaleConfig,
-    semanticLayers: [],
+    } satisfies TypeScaleConfig,
   },
   {
-    id: 'elevation-shadow',
-    label: 'Elevation shadow scale',
-    description: '5-step shadow scale (sm → 2xl) with semantic component aliases',
-    whenToUse: 'Use to add consistent depth to cards, modals, and dropdowns — generates semantic component.card, component.modal, and component.dropdown shadow aliases.',
-    stages: ['Shadow config', '5-step scale', 'Component map'],
-    generatorType: 'shadowScale',
-    defaultPrefix: 'shadow',
+    id: "corner-radius",
+    label: "Corner radius scale",
+    description: "Build a small-to-full radius system from one base value.",
+    whenToUse:
+      "Use when cards, inputs, buttons, and containers should share a consistent rounding language.",
+    stages: ["Goal", "Base radius", "none to full scale"],
+    starterPreset: "none, sm, md, lg, xl, 2xl, and full radius steps.",
+    sourceRequirement: "Best with a dimension token such as 4px or 8px.",
+    sourceTokenTypes: ["dimension"],
+    defaultPrefix: "borderRadius",
+    generatorType: "borderRadiusScale",
+    requiresSource: true,
+    config: {
+      steps: [
+        { name: "none", multiplier: 0, exactValue: 0 },
+        { name: "sm", multiplier: 0.5 },
+        { name: "md", multiplier: 1 },
+        { name: "lg", multiplier: 2 },
+        { name: "xl", multiplier: 3 },
+        { name: "2xl", multiplier: 4 },
+        { name: "full", multiplier: 0, exactValue: 9999 },
+      ],
+      unit: "px",
+    } satisfies BorderRadiusScaleConfig,
+  },
+  {
+    id: "opacity-states",
+    label: "Opacity states",
+    description: "Set up reusable opacity values for overlays and disabled states.",
+    whenToUse:
+      "Use when you want shared transparency values for hovers, scrims, disabled UI, or subtle layering effects.",
+    stages: ["Goal", "Opacity ladder"],
+    starterPreset: "0 to 100 opacity levels with common intermediate stops.",
+    sourceRequirement: "No source token required.",
+    defaultPrefix: "opacity",
+    generatorType: "opacityScale",
     requiresSource: false,
     config: {
-      color: '#000000',
       steps: [
-        { name: 'sm',  offsetX: 0, offsetY: 1,  blur: 2,  spread: 0,  opacity: 0.05 },
-        { name: 'md',  offsetX: 0, offsetY: 4,  blur: 6,  spread: -1, opacity: 0.1  },
-        { name: 'lg',  offsetX: 0, offsetY: 10, blur: 15, spread: -3, opacity: 0.1  },
-        { name: 'xl',  offsetX: 0, offsetY: 20, blur: 25, spread: -5, opacity: 0.1  },
-        { name: '2xl', offsetX: 0, offsetY: 25, blur: 50, spread: -12, opacity: 0.25 },
+        { name: "0", value: 0 },
+        { name: "10", value: 10 },
+        { name: "20", value: 20 },
+        { name: "30", value: 30 },
+        { name: "40", value: 40 },
+        { name: "50", value: 50 },
+        { name: "60", value: 60 },
+        { name: "70", value: 70 },
+        { name: "80", value: 80 },
+        { name: "90", value: 90 },
+        { name: "95", value: 95 },
+        { name: "100", value: 100 },
       ],
-    } as ShadowScaleConfig,
-    semanticLayers: [
-      {
-        prefix: 'component',
-        mappings: [
-          { semantic: 'card', step: 'md', type: 'shadow' },
-          { semantic: 'modal', step: 'xl', type: 'shadow' },
-          { semantic: 'dropdown', step: 'lg', type: 'shadow' },
-        ],
-      },
-    ],
+    } satisfies OpacityScaleConfig,
   },
   {
-    id: 'full-semantic-color',
-    label: 'Full semantic color system',
-    description: 'Brand color → ramp → semantic surfaces, text, borders & actions',
-    whenToUse: 'Use when building a design system from scratch — generates a complete set of color.surface, color.text, color.border, and color.action tokens from one brand color.',
-    stages: ['Brand color', 'Color ramp', 'Semantic layers'],
-    generatorType: 'colorRamp',
-    defaultPrefix: 'brand',
-    requiresSource: true,
+    id: "layer-stack",
+    label: "Layer stack",
+    description: "Create semantic z-index layers for interface depth.",
+    whenToUse:
+      "Use when overlays, sticky UI, dropdowns, modals, and toasts need a stable stacking order across the product.",
+    stages: ["Goal", "Named layers"],
+    starterPreset: "below, base, raised, dropdown, sticky, overlay, modal, and toast layers.",
+    sourceRequirement: "No source token required.",
+    defaultPrefix: "zIndex",
+    generatorType: "zIndexScale",
+    requiresSource: false,
     config: {
-      steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
-      lightEnd: 97,
-      darkEnd: 8,
-      chromaBoost: 1.0,
-      includeSource: false,
-    } as ColorRampConfig,
-    semanticLayers: [
-      {
-        prefix: 'color',
-        mappings: [
-          { semantic: 'surface.page', step: '50', type: 'color' },
-          { semantic: 'surface.raised', step: '100', type: 'color' },
-          { semantic: 'surface.overlay', step: '200', type: 'color' },
-          { semantic: 'text.primary', step: '900', type: 'color' },
-          { semantic: 'text.secondary', step: '700', type: 'color' },
-          { semantic: 'text.disabled', step: '400', type: 'color' },
-          { semantic: 'text.inverse', step: '50', type: 'color' },
-          { semantic: 'border.default', step: '200', type: 'color' },
-          { semantic: 'border.strong', step: '400', type: 'color' },
-          { semantic: 'action.default', step: '500', type: 'color' },
-          { semantic: 'action.hover', step: '600', type: 'color' },
-          { semantic: 'action.active', step: '700', type: 'color' },
-          { semantic: 'action.disabled', step: '300', type: 'color' },
-        ],
-      },
-    ],
+      steps: [
+        { name: "below", value: -1 },
+        { name: "base", value: 0 },
+        { name: "raised", value: 10 },
+        { name: "dropdown", value: 100 },
+        { name: "sticky", value: 200 },
+        { name: "overlay", value: 300 },
+        { name: "modal", value: 400 },
+        { name: "toast", value: 500 },
+      ],
+    } satisfies ZIndexScaleConfig,
   },
   {
-    id: 'dark-mode-palette',
-    label: 'Dark mode palette',
-    description: 'Perceptually invert a light-mode color into its dark-mode equivalent using OKLab lightness inversion',
-    whenToUse: 'Use when you already have a light-mode color token and need a matching dark-mode version — inversion preserves hue and chroma while flipping lightness, so the two palettes feel like a matched pair.',
-    stages: ['Light color', 'OKLab invert', 'Dark color'],
-    generatorType: 'darkModeInversion',
-    defaultPrefix: 'dark',
+    id: "elevation-shadows",
+    label: "Elevation shadows",
+    description: "Generate consistent depth tokens for surfaces and overlays.",
+    whenToUse:
+      "Use when cards, modals, and menus need repeatable shadow recipes instead of one-off effects.",
+    stages: ["Goal", "Shadow recipe", "Depth scale", "Surface aliases"],
+    starterPreset: "Five shadow levels plus component.card, modal, and dropdown starters.",
+    sourceRequirement: "No source token required.",
+    defaultPrefix: "shadow",
+    generatorType: "shadowScale",
+    requiresSource: false,
+    config: {
+      color: "#000000",
+      steps: [
+        { name: "sm", offsetX: 0, offsetY: 1, blur: 2, spread: 0, opacity: 0.05 },
+        { name: "md", offsetX: 0, offsetY: 4, blur: 6, spread: -1, opacity: 0.1 },
+        { name: "lg", offsetX: 0, offsetY: 10, blur: 15, spread: -3, opacity: 0.1 },
+        { name: "xl", offsetX: 0, offsetY: 20, blur: 25, spread: -5, opacity: 0.1 },
+        { name: "2xl", offsetX: 0, offsetY: 25, blur: 50, spread: -12, opacity: 0.25 },
+      ],
+    } satisfies ShadowScaleConfig,
+    semanticStarter: {
+      prefix: "component",
+      mappings: [
+        { semantic: "card", step: "md" },
+        { semantic: "modal", step: "xl" },
+        { semantic: "dropdown", step: "lg" },
+      ],
+    },
+  },
+  {
+    id: "custom-formula",
+    label: "Custom formula scale",
+    description: "Start from a flexible formula when the built-in scales do not fit.",
+    whenToUse:
+      "Use when you need a bespoke numeric system or want to prototype a non-standard scale before locking it in.",
+    stages: ["Goal", "Formula", "Named steps"],
+    starterPreset: "A numeric base × multiplier formula with editable sm, md, and lg steps.",
+    sourceRequirement: "Works standalone, or you can point it at any compatible base token later.",
+    sourceTokenTypes: ["number", "dimension"],
+    defaultPrefix: "scale",
+    generatorType: "customScale",
+    requiresSource: false,
+    config: {
+      outputType: "number",
+      steps: [
+        { name: "sm", index: -2, multiplier: 0.5 },
+        { name: "md", index: 0, multiplier: 1 },
+        { name: "lg", index: 2, multiplier: 2 },
+      ],
+      formula: "base * multiplier",
+      roundTo: 2,
+    } satisfies CustomScaleConfig,
+  },
+  {
+    id: "accessible-color-pair",
+    label: "Accessible brand surface",
+    description: "Generate a background and foreground pair that meets WCAG contrast.",
+    whenToUse:
+      "Use when buttons, badges, or highlighted surfaces need guaranteed text contrast from a brand color.",
+    stages: ["Goal", "Brand color", "AA-safe pair", "On-brand aliases"],
+    starterPreset: "AA-safe bg and fg pair plus surface.brand and text.onBrand starters.",
+    sourceRequirement: "Best with a color token or hex value.",
+    sourceTokenTypes: ["color"],
+    defaultPrefix: "accessible",
+    generatorType: "accessibleColorPair",
     requiresSource: true,
     config: {
-      stepName: 'inverted',
+      contrastLevel: "AA",
+      backgroundStep: "bg",
+      foregroundStep: "fg",
+    } satisfies AccessibleColorPairConfig,
+    semanticStarter: {
+      prefix: "semantic",
+      mappings: [
+        { semantic: "surface.brand", step: "bg" },
+        { semantic: "text.onBrand", step: "fg" },
+      ],
+    },
+  },
+  {
+    id: "dark-mode-palette",
+    label: "Dark mode counterpart",
+    description: "Create a dark-mode version of an existing light color.",
+    whenToUse:
+      "Use when you already trust a light token and want a perceptually related dark-mode counterpart instead of picking a separate swatch.",
+    stages: ["Goal", "Light color", "OKLab inversion", "Dark alias"],
+    starterPreset: "Single inverted step with a theme.dark surface starter.",
+    sourceRequirement: "Best with a light-mode color token or hex value.",
+    sourceTokenTypes: ["color"],
+    defaultPrefix: "dark",
+    generatorType: "darkModeInversion",
+    requiresSource: true,
+    config: {
+      stepName: "inverted",
       chromaBoost: 0.15,
-    } as DarkModeInversionConfig,
-    semanticLayers: [
-      {
-        prefix: 'theme.dark',
-        mappings: [
-          { semantic: 'surface.page', step: 'inverted', type: 'color' },
-        ],
-      },
-    ],
+    } satisfies DarkModeInversionConfig,
+    semanticStarter: {
+      prefix: "theme.dark",
+      mappings: [{ semantic: "surface.page", step: "inverted" }],
+    },
   },
   {
-    id: 'accessible-color-pair',
-    label: 'Accessible color pair',
-    description: 'WCAG AA foreground/background pair from a brand color — guaranteed 4.5:1 contrast ratio',
-    whenToUse: 'Use when you need a button, badge, or callout color with guaranteed legibility — generates a background and foreground color that meet WCAG AA contrast requirements.',
-    stages: ['Brand color', 'WCAG AA check', 'fg + bg'],
-    generatorType: 'accessibleColorPair',
-    defaultPrefix: 'accessible',
-    requiresSource: true,
+    id: "contrast-audit",
+    label: "Contrast audit",
+    description: "Check multiple foreground swatches against one background color.",
+    whenToUse:
+      "Use when you need a quick accessibility readout before committing to semantic aliases or publishing a palette.",
+    stages: ["Goal", "Background", "Sample swatches", "AA and AAA check"],
+    starterPreset: "A neutral surface background with sample text, icon, and muted foreground checks.",
+    sourceRequirement: "No source token required.",
+    defaultPrefix: "contrast",
+    generatorType: "contrastCheck",
+    requiresSource: false,
     config: {
-      contrastLevel: 'AA',
-      backgroundStep: 'bg',
-      foregroundStep: 'fg',
-    } as AccessibleColorPairConfig,
-    semanticLayers: [
-      {
-        prefix: 'semantic',
-        mappings: [
-          { semantic: 'text.onBrand', step: 'fg', type: 'color' },
-          { semantic: 'surface.brand', step: 'bg', type: 'color' },
-        ],
-      },
-    ],
+      backgroundHex: "#FFFFFF",
+      steps: [
+        { name: "text.primary", hex: "#111827" },
+        { name: "text.secondary", hex: "#4B5563" },
+        { name: "icon.default", hex: "#6B7280" },
+        { name: "text.inverse", hex: "#FFFFFF" },
+      ],
+      levels: ["AA", "AAA"],
+    } satisfies ContrastCheckConfig,
   },
 ];
 
 export function getTemplateStepCount(template: GraphTemplate): number {
-  const cfg = template.config as unknown as Record<string, unknown>;
+  const cfg = template.config as Record<string, unknown>;
   const steps = cfg.steps;
   if (Array.isArray(steps)) return steps.length;
+  if (
+    typeof cfg.backgroundStep === "string" &&
+    typeof cfg.foregroundStep === "string"
+  ) {
+    return 2;
+  }
+  if (typeof cfg.stepName === "string") return 1;
   return 0;
 }
 
-/** Map a DTCG token $type to the best-fit template id. */
-export function templateIdForTokenType(tokenType: string | null | undefined): string {
-  if (tokenType === 'color') return 'material-color';
-  if (tokenType === 'dimension') return 'tailwind-spacing';
-  return 'modular-type';
+export function getTemplateSemanticCount(template: GraphTemplate): number {
+  return template.semanticStarter?.mappings.length ?? 0;
+}
+
+/** Map a DTCG token $type to the best-fit intent id. */
+export function templateIdForTokenType(
+  tokenType: string | null | undefined,
+): string {
+  if (tokenType === "color") return "brand-color-palette";
+  if (tokenType === "fontSize") return "type-scale";
+  if (tokenType === "dimension") return "spacing-foundation";
+  if (tokenType === "number") return "custom-formula";
+  return "brand-color-palette";
 }

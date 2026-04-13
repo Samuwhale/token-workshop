@@ -48,6 +48,10 @@ interface UseGeneratorSaveParams {
     info: GeneratorSaveSuccessInfo,
   ) => ToastAction | undefined;
   pushUndo?: (slot: UndoSlot) => void;
+  initialSemanticEnabled: boolean;
+  initialSemanticPrefix: string;
+  initialSemanticMappings: Array<{ semantic: string; step: string }>;
+  initialSelectedSemanticPatternId: string | null;
 }
 
 export interface UseGeneratorSaveReturn {
@@ -93,6 +97,10 @@ export function useGeneratorSave({
   onInterceptSemanticMapping,
   getSuccessToastAction,
   pushUndo,
+  initialSemanticEnabled,
+  initialSemanticPrefix,
+  initialSemanticMappings,
+  initialSelectedSemanticPatternId,
 }: UseGeneratorSaveParams): UseGeneratorSaveReturn {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -102,18 +110,14 @@ export function useGeneratorSave({
   );
   const [overwriteCheckLoading, setOverwriteCheckLoading] = useState(false);
   const [overwriteCheckError, setOverwriteCheckError] = useState("");
-  const [semanticEnabled, setSemanticEnabled] = useState(
-    Boolean(existingGenerator?.semanticLayer?.mappings.length),
-  );
-  const [semanticPrefix, setSemanticPrefix] = useState(
-    existingGenerator?.semanticLayer?.prefix ?? "semantic",
-  );
+  const [semanticEnabled, setSemanticEnabled] = useState(initialSemanticEnabled);
+  const [semanticPrefix, setSemanticPrefix] = useState(initialSemanticPrefix);
   const [semanticMappings, setSemanticMappings] = useState<
     Array<{ semantic: string; step: string }>
-  >(existingGenerator?.semanticLayer?.mappings ?? []);
+  >(initialSemanticMappings);
   const [selectedSemanticPatternId, setSelectedSemanticPatternId] = useState<
     string | null
-  >(existingGenerator?.semanticLayer?.patternId ?? null);
+  >(initialSelectedSemanticPatternId);
   const overwriteCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );

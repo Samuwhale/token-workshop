@@ -1,16 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
-import type { GeneratedTokenResult, GeneratorType, GeneratorTemplate } from '../hooks/useGenerators';
-import {
-  QUICK_START_TEMPLATES,
-  TemplateIcon,
-  getTemplateStepNames,
-  getTokenCount,
-  formatStepPreview,
-} from './QuickStartDialog';
+import type { GeneratedTokenResult, GeneratorType } from '../hooks/useGenerators';
+import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { apiFetch } from '../shared/apiFetch';
+import {
+  GeneratorIntentCatalog,
+} from './TemplatePicker';
+import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratorDialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -391,51 +389,6 @@ function StepperBar({ currentStep, completedSteps, onStepClick }: {
 }
 
 // ---------------------------------------------------------------------------
-// Template list for step 1 (inlined from QuickStartDialog)
-// ---------------------------------------------------------------------------
-
-function TemplateButton({ template, onClick }: { template: GeneratorTemplate; onClick: () => void }) {
-  const count = getTokenCount(template);
-  const stepNames = getTemplateStepNames(template);
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
-    >
-      <div className="flex items-center gap-3">
-        <div className="shrink-0 w-14">
-          <TemplateIcon id={template.id} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
-            {count > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
-                {count} tokens
-              </span>
-            )}
-          </div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</div>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[10px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
-              {template.defaultPrefix}.*
-            </span>
-            {stepNames.length > 0 && (
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
-                {formatStepPreview(stepNames)}
-              </span>
-            )}
-          </div>
-        </div>
-        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
-          <path d="M4.5 2.5L8 6l-3.5 3.5" />
-        </svg>
-      </div>
-    </button>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Prereq indicator bar (shown at top when in connect/create-set phase)
 // ---------------------------------------------------------------------------
 
@@ -538,7 +491,7 @@ export function QuickStartWizard({
   const [semanticData, setSemanticData] = useState<SemanticData | null>(null);
 
   // Step 1: selected template for generator dialog
-  const [selectedTemplate, setSelectedTemplate] = useState<GeneratorTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(null);
 
   const markCompleted = useCallback((step: WizardStep) => {
     setCompletedSteps(prev => new Set([...prev, step]));
@@ -675,21 +628,17 @@ export function QuickStartWizard({
 
   // If a template is selected in step 1, show TokenGeneratorDialog as overlay
   if (selectedTemplate) {
-    const stepNames = getTemplateStepNames(selectedTemplate);
     return (
       <TokenGeneratorDialog
         serverUrl={serverUrl}
         activeSet={effectiveActiveSet}
         allSets={allSets}
         template={selectedTemplate}
+        initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
         onBack={() => setSelectedTemplate(null)}
         onClose={onClose}
         onInterceptSemanticMapping={handleStep1InterceptSemantic}
-        onSaved={(info) => {
-          const firstStep = stepNames[0];
-          const _firstPath = info?.targetGroup && firstStep
-            ? `${info.targetGroup}.${firstStep}`
-            : undefined;
+        onSaved={() => {
           handleStep1Complete();
         }}
       />
@@ -712,9 +661,6 @@ export function QuickStartWizard({
   }
 
   // Main wizard shell
-  const sourceTemplates = QUICK_START_TEMPLATES.filter(t => t.requiresSource);
-  const standaloneTemplates = QUICK_START_TEMPLATES.filter(t => !t.requiresSource);
-
   const wizardContent = (
     <>
       {!embedded && (
@@ -737,32 +683,23 @@ export function QuickStartWizard({
       <div className="flex-1 overflow-y-auto">
           {currentStep === 1 && (
             <>
-              {/* Template list — inlined directly as step 1 */}
-              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between">
+              <div className="px-4 py-3 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
                 <div>
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Seeded from a source token</div>
-                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Use an existing token as the starting point for a reusable foundation</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Pick a foundation goal</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+                    Start from the outcome you want. Each intent opens the same composer with a mapped type, preset config, and any starter semantics already filled in.
+                  </div>
                 </div>
               </div>
-              {sourceTemplates.map(template => (
-                <TemplateButton
-                  key={template.id}
-                  template={template}
-                  onClick={() => setSelectedTemplate(template)}
+              <div className="px-3 py-3">
+                <GeneratorIntentCatalog
+                  templates={GRAPH_TEMPLATES}
+                  connected={connected}
+                  onSelectTemplate={setSelectedTemplate}
+                  emptyStateTitle="No generator intents"
+                  emptyStateDescription="Generator intents are unavailable right now."
                 />
-              ))}
-              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Ready-made foundations</div>
-                <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Start with a complete scale and refine it after generation</div>
               </div>
-              {standaloneTemplates.map(template => (
-                <TemplateButton
-                  key={template.id}
-                  template={template}
-                  onClick={() => setSelectedTemplate(template)}
-                />
-              ))}
-              {/* Skip button at bottom */}
               <div className="px-4 py-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
                 <button
                   onClick={handleStep1Skip}

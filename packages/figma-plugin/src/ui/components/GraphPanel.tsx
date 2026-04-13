@@ -21,11 +21,7 @@ import {
 } from "./GeneratorPipelineCard";
 import { SkeletonGeneratorCard } from "./Skeleton";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
-import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
-import {
-  createTokenBody,
-  upsertToken,
-} from "../shared/tokenMutations";
+import { createGeneratorDraftFromTemplate } from "../hooks/useGeneratorDialog";
 
 // ---------------------------------------------------------------------------
 // SVG export
@@ -153,19 +149,22 @@ export function GraphPanel({
   const setGenerators = generators.filter((g) => g.targetSet === activeSet);
   const focusRef = useRef<HTMLDivElement>(null);
 
-  const initialTemplate = pendingGroupPath
+  const suggestedTemplateId = pendingGroupPath
     ? (GRAPH_TEMPLATES.find(
         (t) => t.id === templateIdForTokenType(pendingGroupTokenType),
-      ) ??
-      GRAPH_TEMPLATES[0] ??
+      )?.id ??
+      GRAPH_TEMPLATES[0]?.id ??
       null)
     : pendingTemplateId
-      ? (GRAPH_TEMPLATES.find((t) => t.id === pendingTemplateId) ?? null)
+      ? (GRAPH_TEMPLATES.find((t) => t.id === pendingTemplateId)?.id ?? null)
       : null;
 
-  const [selectedTemplate, setSelectedTemplate] =
-    useState<GraphTemplate | null>(initialTemplate);
-  const [browsingTemplates, setBrowsingTemplates] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(
+    null,
+  );
+  const [browsingTemplates, setBrowsingTemplates] = useState(
+    Boolean(openTemplatePicker || suggestedTemplateId),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<GeneratorType | null>(null);
   // Default to graph view when there are enough generators to make it useful.
@@ -190,12 +189,12 @@ export function GraphPanel({
 
   // Auto-open template picker when navigating from ThemeManager "Generate tokens" action
   useEffect(() => {
-    if (!openTemplatePicker) return;
+    if (!openTemplatePicker && !suggestedTemplateId) return;
     setBrowsingTemplates(true);
     setSelectedTemplate(null);
-    onClearPendingGroup?.();
+    if (openTemplatePicker) onClearPendingGroup?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openTemplatePicker]);
+  }, [openTemplatePicker, suggestedTemplateId]);
 
   // Scroll to and highlight a focused generator (from token badge click)
   useEffect(() => {
@@ -317,7 +316,6 @@ export function GraphPanel({
     onRefresh();
   };
 
-  // Memoize template object so TokenGeneratorDialog receives a stable prop reference.
   const generatorTemplate = useMemo<GeneratorTemplate | undefined>(() => {
     if (!selectedTemplate) return undefined;
     return {
@@ -330,31 +328,6 @@ export function GraphPanel({
       requiresSource: selectedTemplate.requiresSource,
     };
   }, [selectedTemplate]);
-
-  // Stable callback — must be at hook scope, not inside the conditional render branch.
-  const handleTemplateSaved = useCallback(
-    async (info?: GeneratorSaveSuccessInfo) => {
-      if (!selectedTemplate) return;
-      const targetGroup = info?.targetGroup ?? selectedTemplate.defaultPrefix;
-      for (const layer of selectedTemplate.semanticLayers) {
-        for (const mapping of layer.mappings) {
-          const fullPath = `${layer.prefix}.${mapping.semantic}`;
-          const tokenBody = createTokenBody({
-            $type: mapping.type,
-            $value: `{${targetGroup}.${mapping.step}}`,
-            $description: `Semantic alias for ${targetGroup}.${mapping.step}`,
-          });
-          try {
-            await upsertToken(serverUrl, activeSet, fullPath, tokenBody);
-          } catch {
-            // best-effort — skip if the semantic alias cannot be created or updated
-          }
-        }
-      }
-      handleApplied();
-    },
-    [selectedTemplate, serverUrl, activeSet, handleApplied],
-  );
 
   const q = searchQuery.trim().toLowerCase();
   const filteredGenerators = setGenerators.filter((g) => {
@@ -382,7 +355,9 @@ export function GraphPanel({
           t.label.toLowerCase().includes(q) ||
           t.description.toLowerCase().includes(q) ||
           t.whenToUse.toLowerCase().includes(q) ||
-          t.generatorType.toLowerCase().includes(q),
+          t.generatorType.toLowerCase().includes(q) ||
+          t.sourceRequirement.toLowerCase().includes(q) ||
+          t.starterPreset.toLowerCase().includes(q),
       )
     : GRAPH_TEMPLATES;
   const getViewTokensToastAction = useCallback(
@@ -405,11 +380,14 @@ export function GraphPanel({
         allSets={allSets}
         activeSet={activeSet}
         template={generatorTemplate}
+        initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, activeSet, {
+          sourceTokenPath: pendingGroupPath ?? undefined,
+        })}
         sourceTokenPath={pendingGroupPath ?? undefined}
         sourceTokenType={pendingGroupTokenType ?? undefined}
         onBack={handleBack}
         onClose={handleBack}
-        onSaved={handleTemplateSaved}
+        onSaved={handleApplied}
         getSuccessToastAction={getViewTokensToastAction}
         onInterceptSemanticMapping={() => {}}
         onPushUndo={onPushUndo}
@@ -972,6 +950,8 @@ export function GraphPanel({
       onBack={handleBack}
       activeSet={activeSet}
       justApplied={justApplied}
+      sourceTokenType={pendingGroupTokenType ?? undefined}
+      suggestedTemplateId={suggestedTemplateId}
     />
   );
 }

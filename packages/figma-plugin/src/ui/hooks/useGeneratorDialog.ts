@@ -59,25 +59,58 @@ export interface GeneratorDialogInitialDraft {
   inlineValue?: unknown;
   configs?: Partial<Record<GeneratorType, GeneratorConfig>>;
   pendingOverrides?: Record<string, { value: unknown; locked: boolean }>;
+  semanticEnabled?: boolean;
+  semanticPrefix?: string;
+  semanticMappings?: Array<{ semantic: string; step: string }>;
+  selectedSemanticPatternId?: string | null;
 }
 
 function cloneGeneratorDraftValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+type GeneratorTemplateDraftSource = GeneratorTemplate & {
+  semanticStarter?: {
+    prefix: string;
+    mappings: Array<{ semantic: string; step: string }>;
+    patternId?: string | null;
+  };
+};
+
+interface GeneratorDraftTemplateOptions {
+  sourceTokenPath?: string;
+  sourceTokenName?: string;
+  targetGroup?: string;
+}
+
 export function createGeneratorDraftFromTemplate(
-  template: GeneratorTemplate,
+  template: GeneratorTemplateDraftSource,
   activeSet: string,
+  options: GeneratorDraftTemplateOptions = {},
 ): GeneratorDialogInitialDraft {
+  const targetGroup =
+    options.targetGroup ??
+    (options.sourceTokenPath
+      ? suggestTargetGroup(options.sourceTokenPath, options.sourceTokenName)
+      : template.defaultPrefix);
+  const semanticStarter = template.semanticStarter;
   return {
     selectedType: template.generatorType,
-    name: template.label,
-    nameIsAuto: false,
+    name: options.sourceTokenPath
+      ? autoName(options.sourceTokenPath, template.generatorType)
+      : template.label,
+    nameIsAuto: Boolean(options.sourceTokenPath),
     targetSet: activeSet,
-    targetGroup: template.defaultPrefix,
+    targetGroup,
     configs: {
       [template.generatorType]: cloneGeneratorDraftValue(template.config),
     },
+    semanticEnabled: Boolean(semanticStarter?.mappings.length),
+    semanticPrefix: semanticStarter?.prefix,
+    semanticMappings: semanticStarter?.mappings
+      ? cloneGeneratorDraftValue(semanticStarter.mappings)
+      : undefined,
+    selectedSemanticPatternId: semanticStarter?.patternId ?? null,
   };
 }
 
@@ -103,6 +136,17 @@ function mergeGeneratorDrafts(
       : baseDraft?.pendingOverrides
         ? cloneGeneratorDraftValue(baseDraft.pendingOverrides)
         : undefined,
+    semanticEnabled:
+      overrideDraft?.semanticEnabled ?? baseDraft?.semanticEnabled,
+    semanticPrefix: overrideDraft?.semanticPrefix ?? baseDraft?.semanticPrefix,
+    semanticMappings: overrideDraft?.semanticMappings
+      ? cloneGeneratorDraftValue(overrideDraft.semanticMappings)
+      : baseDraft?.semanticMappings
+        ? cloneGeneratorDraftValue(baseDraft.semanticMappings)
+        : undefined,
+    selectedSemanticPatternId:
+      overrideDraft?.selectedSemanticPatternId ??
+      baseDraft?.selectedSemanticPatternId,
   };
 }
 
@@ -479,6 +523,21 @@ export function useGeneratorDialog({
     onInterceptSemanticMapping,
     getSuccessToastAction,
     pushUndo,
+    initialSemanticEnabled:
+      resolvedInitialDraft?.semanticEnabled ??
+      Boolean(existingGenerator?.semanticLayer?.mappings.length),
+    initialSemanticPrefix:
+      resolvedInitialDraft?.semanticPrefix ??
+      existingGenerator?.semanticLayer?.prefix ??
+      "semantic",
+    initialSemanticMappings:
+      resolvedInitialDraft?.semanticMappings ??
+      existingGenerator?.semanticLayer?.mappings ??
+      [],
+    initialSelectedSemanticPatternId:
+      resolvedInitialDraft?.selectedSemanticPatternId ??
+      existingGenerator?.semanticLayer?.patternId ??
+      null,
   });
 
   // --- Config handlers ---
