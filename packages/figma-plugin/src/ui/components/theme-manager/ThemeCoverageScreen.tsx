@@ -65,8 +65,8 @@ export function ThemeCoverageScreen({
     : null;
   const autoFillDescription = autoFillAction
     ? autoFillAction.mode === "single-option" && autoFillAction.optionName
-      ? `${autoFillLabel} in ${autoFillAction.optionName}. Auto-fill opens the same preview and strategy confirmation used in authoring.`
-      : `${autoFillLabel} across ${autoFillAction.optionCount} options in ${autoFillAction.dimensionName}. Auto-fill opens the same preview and strategy confirmation used in authoring.`
+      ? `${autoFillLabel} in ${autoFillAction.optionName}. Auto-fill uses the same preview and confirmation as authoring.`
+      : `${autoFillLabel} across ${autoFillAction.optionCount} options in ${autoFillAction.dimensionName}. Auto-fill uses the same preview and confirmation as authoring.`
     : null;
   const reviewGroups = groupThemeIssuesForReview(issueEntries);
 
@@ -84,11 +84,11 @@ export function ThemeCoverageScreen({
               {autoFillDescription
                 ? autoFillDescription
                 : showAllAxes || !focusDimension
-                ? "Started from the current mode context and expanded to every variant. Review the grouped issues, then jump back into the affected variant."
+                ? "Review grouped issues, then jump straight back into the affected variant."
                 : primaryIssue
-                  ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} -> ${primaryIssue.optionName}. ${primaryIssue.recommendedNextAction}`
+                  ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} / ${primaryIssue.optionName}. ${primaryIssue.recommendedNextAction}`
                   : focusOptionName
-                    ? `${focusedIssueLabel} in ${focusDimension.name} -> ${focusOptionName}. Review the grouped issues, then jump back into that variant.`
+                    ? `${focusedIssueLabel} in ${focusDimension.name} / ${focusOptionName}. Review the grouped issues, then jump back into that variant.`
                     : `${focusedIssueLabel} in ${focusDimension.name}. Review the grouped issues, then jump back into authoring to fix the variant.`}
             </p>
           </div>
@@ -143,22 +143,22 @@ export function ThemeCoverageScreen({
 
       <div className="flex-1 overflow-y-auto">
         {reviewGroups.length > 0 && (
-          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-3 py-3">
+          <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
             <div className="flex flex-col gap-3">
               {reviewGroups.map((group) => (
                 <section
                   key={group.kind}
-                  className="overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
+                  className="border-t border-[var(--color-figma-border)] pt-3 first:border-t-0 first:pt-0"
                 >
-                  <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+                  <div>
                     <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
                       {group.title}
                     </div>
-                    <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                    <p className="mt-0.5 max-w-[34ch] text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                       {group.description}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2 p-2">
+                  <div className="mt-2 divide-y divide-[var(--color-figma-border)]">
                     {group.issues.map((issue) => (
                       <ThemeIssueEntryCard
                         key={issue.key}

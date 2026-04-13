@@ -1,10 +1,17 @@
-import type { GeneratorType } from "../hooks/useGenerators";
-import type { GraphTemplate } from "./graph-templates";
+/**
+ * Reusable template intent cards and catalog for recipe creation.
+ */
+import type { GeneratorType } from "../../hooks/useGenerators";
+import type { GraphTemplate } from "../graph-templates";
 import {
   getTemplateSemanticCount,
   getTemplateStepCount,
-} from "./graph-templates";
-import { getGeneratorTypeLabel } from "./GeneratorPipelineCard";
+} from "../graph-templates";
+import { getGeneratorTypeLabel } from "../GeneratorPipelineCard";
+
+// ---------------------------------------------------------------------------
+// Pipeline stage visualization
+// ---------------------------------------------------------------------------
 
 function PipelineStages({ stages }: { stages: string[] }) {
   return (
@@ -32,7 +39,11 @@ function PipelineStages({ stages }: { stages: string[] }) {
   );
 }
 
-function TemplateIcon({ id }: { id: string }) {
+// ---------------------------------------------------------------------------
+// Template icons
+// ---------------------------------------------------------------------------
+
+export function TemplateIcon({ id }: { id: string }) {
   switch (id) {
     case "brand-color-palette":
       return (
@@ -198,6 +209,10 @@ function TemplateIcon({ id }: { id: string }) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Relevance scoring and sorting
+// ---------------------------------------------------------------------------
+
 function getRelevanceScore(
   template: GraphTemplate,
   sourceTokenType?: string,
@@ -230,6 +245,10 @@ export function sortTemplatesForIntentPicker(
     return left.label.localeCompare(right.label);
   });
 }
+
+// ---------------------------------------------------------------------------
+// Intent card
+// ---------------------------------------------------------------------------
 
 export function GeneratorIntentCard({
   template,
@@ -291,7 +310,7 @@ export function GeneratorIntentCard({
             </span>
             {semanticCount > 0 && (
               <>
-                <span aria-hidden="true">•</span>
+                <span aria-hidden="true">&bull;</span>
                 <span>
                   {semanticCount} semantic starter
                   {semanticCount === 1 ? "" : "s"}
@@ -304,6 +323,10 @@ export function GeneratorIntentCard({
     </button>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Intent catalog (list of cards)
+// ---------------------------------------------------------------------------
 
 export function GeneratorIntentCatalog({
   templates,
@@ -353,161 +376,6 @@ export function GeneratorIntentCatalog({
           </p>
           <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {emptyStateDescription}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export interface TemplatePickerProps {
-  templates: GraphTemplate[];
-  connected: boolean;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  onSelectTemplate: (template: GraphTemplate) => void;
-  browsingTemplates: boolean;
-  onBack: () => void;
-  activeSet: string;
-  justApplied: string | null;
-  sourceTokenType?: string;
-  recommendedType?: GeneratorType;
-  suggestedTemplateId?: string | null;
-}
-
-export function TemplatePicker({
-  templates,
-  connected,
-  searchQuery,
-  onSearchChange,
-  onSelectTemplate,
-  browsingTemplates,
-  onBack,
-  activeSet,
-  justApplied,
-  sourceTokenType,
-  recommendedType,
-  suggestedTemplateId,
-}: TemplatePickerProps) {
-  return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="flex items-start gap-2 px-3 pt-4 pb-3 shrink-0">
-        {browsingTemplates && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-0.5 shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-            aria-label="Back to pipeline"
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path d="M7.5 9.5L4 6l3.5-3.5" />
-            </svg>
-          </button>
-        )}
-        <div className="flex-1">
-          <div className="mb-0.5 text-[12px] font-medium text-[var(--color-figma-text)]">
-            Recipe templates
-          </div>
-          <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-            Choose what you want to create. The recipe editor will be pre-seeded for{" "}
-            <span className="font-mono">{activeSet}</span>.
-          </p>
-        </div>
-      </div>
-
-      <div className="px-3 pb-2 shrink-0">
-        <div className="relative">
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search templates…"
-            aria-label="Search templates"
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] py-1 pl-6 pr-6 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange("")}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text)]"
-              aria-label="Clear search"
-            >
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {justApplied && (
-        <div className="mx-3 mb-2 flex items-center gap-1.5 rounded border border-[var(--color-figma-success,#22c55e)]/20 bg-[var(--color-figma-success,#22c55e)]/10 px-2.5 py-2 text-[10px] text-[var(--color-figma-success,#16a34a)]">
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          <span>
-            <strong>{justApplied}</strong> applied
-          </span>
-        </div>
-      )}
-
-      <div className="px-3 pb-3">
-        <GeneratorIntentCatalog
-          templates={templates}
-          connected={connected}
-          onSelectTemplate={onSelectTemplate}
-          sourceTokenType={sourceTokenType}
-          recommendedType={recommendedType}
-          suggestedTemplateId={suggestedTemplateId}
-        />
-      </div>
-
-      {!connected && (
-        <div className="px-3 pb-3">
-          <p className="text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-            Connect to the server to create recipes.
           </p>
         </div>
       )}

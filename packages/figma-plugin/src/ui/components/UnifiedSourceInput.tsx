@@ -1,6 +1,6 @@
 /**
- * UnifiedSourceInput — Replaces the broken two-section source/inline layout
- * in generator StepWhat with a single "Base value" section.
+ * UnifiedSourceInput — Replaces the old split source/inline layout
+ * with a single "Base value" section.
  *
  * Two equal modes via segmented control:
  * - "Pick token" — Uses TokenPickerField to browse/search tokens

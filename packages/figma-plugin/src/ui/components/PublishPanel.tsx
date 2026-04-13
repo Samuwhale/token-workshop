@@ -11,7 +11,7 @@ import { SyncSubPanel } from './publish/SyncSubPanel';
 import { SyncPreflightStep } from './publish/SyncPreflightStep';
 import { SyncDiffSummary } from './publish/PublishShared';
 import type { PreviewRow } from './publish/PublishShared';
-import { NoticeBanner, NoticePill, type NoticeSeverity } from '../shared/noticeSystem';
+import { NoticeBanner, type NoticeSeverity } from '../shared/noticeSystem';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
 import { useReadinessChecks } from '../hooks/useReadinessChecks';
@@ -978,7 +978,7 @@ export function PublishPanel({
       )}
 
       <div className="flex-1 overflow-y-auto px-3 py-3">
-        <div className="mx-auto flex max-w-[1080px] flex-col gap-2.5">
+        <div className="mx-auto flex max-w-[1080px] flex-col">
           <div ref={preflightRef}>
             <WorkflowStageCard
               title="Preflight"
@@ -991,7 +991,7 @@ export function PublishPanel({
                 <button
                   onClick={handleRunPreflight}
                   disabled={readinessLoading}
-                  className="rounded-full bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {readinessLoading ? 'Running…' : isReadinessOutdated || preflightStage === 'idle' ? 'Run preflight' : 'Re-run preflight'}
                 </button>
@@ -1026,7 +1026,7 @@ export function PublishPanel({
                 <button
                   onClick={() => void handleCompareTargets()}
                   disabled={compareAllLoading || varSync.loading || styleSync.loading}
-                  className="rounded-full border border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)]/35 hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-md border border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)]/35 hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {compareAllLoading || varSync.loading || styleSync.loading ? 'Comparing…' : hasComparedAnything ? 'Re-run compare' : 'Compare Figma'}
                 </button>
@@ -1040,7 +1040,7 @@ export function PublishPanel({
                       type="button"
                       onClick={() => handleSelectCompareTarget(target.id)}
                       className={[
-                        'rounded-full border px-3 py-1.5 text-[10px] font-medium transition-colors',
+                        'rounded-md border px-3 py-1.5 text-[10px] font-medium transition-colors',
                         activeCompareTarget === target.id
                           ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                           : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/25 hover:text-[var(--color-figma-text)]',
@@ -1052,7 +1052,7 @@ export function PublishPanel({
                   ))}
                 </div>
 
-                <div className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+                <div className="overflow-hidden border-t border-[var(--color-figma-border)]">
                   {activeCompareConfig.id === 'variables' ? (
                     <SyncSubPanel
                       sync={varSync}
@@ -1100,7 +1100,7 @@ export function PublishPanel({
                 <button
                   onClick={() => void handleOpenApplyReview()}
                   disabled={compareAllLoading || publishAllBusy || quickSyncing || !publishAllAvailable}
-                  className="rounded-full bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {publishAllBusy || quickSyncing ? 'Applying…' : publishAllAvailable ? 'Review sync plan' : 'Nothing to apply'}
                 </button>
@@ -1130,7 +1130,7 @@ export function PublishPanel({
                       <button
                         onClick={quickSync}
                         title="Apply all changes to Figma without opening the review modal."
-                        className="rounded-full border border-[var(--color-figma-accent)]/35 px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
+                        className="rounded-md border border-[var(--color-figma-accent)]/35 px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
                       >
                         Sync now
                       </button>
@@ -1584,6 +1584,15 @@ function buildApplyCardState({
   return { label: 'In sync', severity: 'success' };
 }
 
+function stageStatusTextClass(severity: NoticeSeverity): string {
+  if (severity === 'error') return 'text-[var(--color-figma-error)]';
+  if (severity === 'warning' || severity === 'stale') {
+    return 'text-[var(--color-figma-warning)]';
+  }
+  if (severity === 'success') return 'text-[var(--color-figma-success)]';
+  return 'text-[var(--color-figma-text-secondary)]';
+}
+
 function WorkflowStageCard({
   title,
   statusLabel,
@@ -1606,16 +1615,25 @@ function WorkflowStageCard({
   helpToggle?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[18px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-      <div className="flex items-center justify-between gap-2 px-4 py-2.5">
+    <section
+      className={[
+        'border-b border-[var(--color-figma-border)] py-3',
+        disabled ? 'opacity-70' : '',
+      ].join(' ')}
+    >
+      <div className="flex items-start justify-between gap-3">
         <button
           type="button"
           onClick={onSelect}
           disabled={disabled}
-          className="flex items-center gap-2 min-w-0 text-left disabled:cursor-not-allowed"
+          className="min-w-0 flex-1 text-left disabled:cursor-not-allowed"
         >
-          <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
-          <NoticePill severity={statusSeverity}>{statusLabel}</NoticePill>
+          <div className="min-w-0">
+            <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
+            <p className={`mt-0.5 text-[10px] ${stageStatusTextClass(statusSeverity)}`}>
+              {statusLabel}
+            </p>
+          </div>
         </button>
         <div className="flex items-center gap-1.5 shrink-0">
           {helpToggle}
@@ -1624,7 +1642,7 @@ function WorkflowStageCard({
       </div>
 
       {expanded && children ? (
-        <div className="border-t border-[var(--color-figma-border)] px-4 py-3">{children}</div>
+        <div className="mt-3 border-l border-[var(--color-figma-border)] pl-4">{children}</div>
       ) : null}
     </section>
   );
@@ -1648,26 +1666,27 @@ function DisclosureCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[18px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+    <section className="border-b border-[var(--color-figma-border)] py-3">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left"
+        className="flex w-full items-start justify-between gap-3 text-left"
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="min-w-0">
           <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
-          <NoticePill severity={statusSeverity}>{statusLabel}</NoticePill>
-          {!expanded && (
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">{summary}</span>
-          )}
+          <p className={`mt-0.5 text-[10px] ${stageStatusTextClass(statusSeverity)}`}>
+            {statusLabel}
+            <span className="mx-1 text-[var(--color-figma-text-tertiary)]">·</span>
+            <span className="text-[var(--color-figma-text-secondary)]">{summary}</span>
+          </p>
         </div>
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 text-[var(--color-figma-text-tertiary)] ${expanded ? 'rotate-90' : ''} transition-transform`} aria-hidden="true">
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`mt-1 shrink-0 text-[var(--color-figma-text-tertiary)] ${expanded ? 'rotate-90' : ''} transition-transform`} aria-hidden="true">
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
       </button>
 
       {expanded ? (
-        <div className="border-t border-[var(--color-figma-border)] px-4 py-3">{children}</div>
+        <div className="mt-3 border-l border-[var(--color-figma-border)] pl-4">{children}</div>
       ) : null}
     </section>
   );

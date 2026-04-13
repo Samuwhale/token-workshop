@@ -74,10 +74,8 @@ import { AliasAutocomplete } from "./AliasAutocomplete";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 import { matchesShortcut } from "../shared/shortcutRegistry";
 import type { GeneratorType, TokenGenerator } from "../hooks/useGenerators";
-import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratorDialog";
 import { getGeneratorTypeLabel } from "./GeneratorPipelineCard";
 import { detectGeneratorType } from "./generators/generatorUtils";
-import { QuickGeneratorPopover } from "./QuickGeneratorPopover";
 import { ConfirmModal } from "./ConfirmModal";
 
 // ---------------------------------------------------------------------------
@@ -1866,10 +1864,6 @@ const TokenLeafNode = memo(
     const [contextMenuPos, setContextMenuPos] = useState<MenuPosition | null>(
       null,
     );
-    const [quickGeneratorPopover, setQuickGeneratorPopover] = useState<{
-      position: MenuPosition;
-      type: GeneratorType;
-    } | null>(null);
     const [refsPopover, setRefsPopover] = useState<{
       pos: { x: number; y: number };
       refs: string[];
@@ -1973,36 +1967,19 @@ const TokenLeafNode = memo(
     }, []);
 
     const openQuickGenerator = useCallback(() => {
-      if (!quickGeneratorType) return;
-      const rect = nodeRef.current?.getBoundingClientRect();
-      const rawX = rect ? rect.right + 8 : window.innerWidth / 2 - 180;
-      const rawY = rect ? rect.top : 64;
+      if (!quickGeneratorType || !onOpenGeneratorEditor) return;
       closeTokenMenus();
-      setQuickGeneratorPopover({
-        type: quickGeneratorType,
-        position: clampMenuPosition(rawX, rawY, 360, 520),
+      onOpenGeneratorEditor({
+        mode: "create",
+        sourceTokenPath: node.path,
+        sourceTokenName: node.name,
+        sourceTokenType: node.$type,
+        sourceTokenValue: node.$value,
+        initialDraft: {
+          selectedType: quickGeneratorType,
+        },
       });
-    }, [closeTokenMenus, quickGeneratorType]);
-
-    const handleQuickGeneratorCreated = useCallback(() => {
-      setQuickGeneratorPopover(null);
-      onRefresh();
-    }, [onRefresh]);
-
-    const handleOpenAdvancedGenerator = useCallback(
-      (draft: GeneratorDialogInitialDraft) => {
-        setQuickGeneratorPopover(null);
-        onOpenGeneratorEditor?.({
-          mode: "create",
-          sourceTokenPath: node.path,
-          sourceTokenName: node.name,
-          sourceTokenType: node.$type,
-          sourceTokenValue: node.$value,
-          initialDraft: draft,
-        });
-      },
-      [node.$type, node.$value, node.name, node.path, onOpenGeneratorEditor],
-    );
+    }, [closeTokenMenus, node.$type, node.$value, node.name, node.path, onOpenGeneratorEditor, quickGeneratorType]);
 
     // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
     useEffect(() => {
@@ -2497,12 +2474,10 @@ const TokenLeafNode = memo(
 
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
       e.preventDefault();
-      setQuickGeneratorPopover(null);
       setContextMenuPos(clampMenuPosition(e.clientX, e.clientY, 192, 420));
     }, []);
 
     const handleOpenTokenActions = useCallback((anchor: HTMLElement) => {
-      setQuickGeneratorPopover(null);
       const rect = anchor.getBoundingClientRect();
       setContextMenuPos(
         clampMenuPosition(rect.left, rect.bottom + 2, 192, 420),
@@ -3616,7 +3591,7 @@ const TokenLeafNode = memo(
                   <span className={MENU_SHORTCUT_CLASS}>E</span>
                 </button>
               )}
-              {!isAlias(node.$value) && quickGeneratorType && (
+              {!isAlias(node.$value) && quickGeneratorType && onOpenGeneratorEditor && (
                 <button
                   role="menuitem"
                   tabIndex={-1}
@@ -3706,23 +3681,6 @@ const TokenLeafNode = memo(
                 <span className={MENU_SHORTCUT_CLASS}>⌫</span>
               </button>
             </div>
-          )}
-
-          {quickGeneratorPopover && quickGeneratorType && (
-            <QuickGeneratorPopover
-              serverUrl={serverUrl}
-              position={quickGeneratorPopover.position}
-              generatorType={quickGeneratorPopover.type}
-              sourceTokenPath={node.path}
-              sourceTokenName={node.name}
-              sourceTokenType={node.$type}
-              sourceTokenValue={node.$value}
-              activeSet={setName}
-              onClose={() => setQuickGeneratorPopover(null)}
-              onCreated={handleQuickGeneratorCreated}
-              onOpenAdvanced={handleOpenAdvancedGenerator}
-              onPushUndo={onPushUndo}
-            />
           )}
 
           {/* Inline alias picker popover — opened via "Link to token…" context menu item */}

@@ -1258,7 +1258,7 @@ export function PanelRouter(): ReactNode {
           }}
           onPushUndo={controller.pushUndo}
           pendingTemplateId={controller.pendingGraphTemplate}
-          onApplyTemplate={() => controller.setPendingGraphTemplate(null)}
+          onClearPendingTemplate={() => controller.setPendingGraphTemplate(null)}
           pendingGroupPath={controller.pendingGraphFromGroup?.groupPath ?? null}
           pendingGroupTokenType={
             controller.pendingGraphFromGroup?.tokenType ?? null
@@ -1270,7 +1270,7 @@ export function PanelRouter(): ReactNode {
           focusGeneratorId={controller.focusGeneratorId}
           onClearFocusGenerator={() => controller.setFocusGeneratorId(null)}
           onViewTokens={openGeneratedTokens}
-          openTemplatePicker={controller.pendingOpenPicker}
+          openCreateDialog={controller.pendingOpenPicker}
         />
       </ErrorBoundary>
     );

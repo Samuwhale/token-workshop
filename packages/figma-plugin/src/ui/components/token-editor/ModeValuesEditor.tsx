@@ -75,161 +75,189 @@ export function ModeValuesEditor({
   if (dimensions.length === 0) {
     if (!onNavigateToThemes) return null;
     return (
-      <div className="rounded-lg border border-[var(--color-figma-border)] overflow-hidden">
-        <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+      <div className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
             Variant values
-          </span>
-        </div>
-        <div className="px-3 py-2 flex items-center justify-between gap-2">
+          </p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
             No variant groups configured yet.
           </p>
-          <button
-            type="button"
-            onClick={onNavigateToThemes}
-            className="shrink-0 text-[10px] text-[var(--color-figma-accent)] hover:underline"
-          >
-            Set up variants
-          </button>
         </div>
+        <button
+          type="button"
+          onClick={onNavigateToThemes}
+          className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+        >
+          Set up variants
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-[var(--color-figma-border)] overflow-hidden">
-      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-          Variant values
-        </span>
-        <span className="flex items-center gap-2">
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            Variant values
+          </p>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Override the base value for specific variants.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
           {setCount > 0 && (
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{setCount} overridden</span>
+            <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+              {setCount} overridden
+            </span>
           )}
           {onNavigateToThemes && (
             <button
               type="button"
               onClick={onNavigateToThemes}
-              className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
+              className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
             >
-              Edit variants
+              Manage variants
             </button>
           )}
-        </span>
+        </div>
       </div>
-      <div className="px-3 py-2 flex flex-col gap-2.5">
+      <div className="flex flex-col gap-3">
         {dimensions.map(dim => (
-          <div key={dim.id}>
+          <div key={dim.id} className="flex flex-col gap-2 border-t border-[var(--color-figma-border)]/70 pt-3 first:border-t-0 first:pt-0">
             {dimensions.length > 1 && (
-              <div className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide mb-1.5">{dim.name}</div>
+              <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                {dim.name}
+              </div>
             )}
-            {dim.options.map(option => {
-              const modeVal = modeValues[dim.id]?.[option.name] ?? '';
-              const modeValStr = typeof modeVal === 'string' ? modeVal : '';
-              const acKey = `${dim.id}:${option.name}`;
-              const showingAutocomplete = autocompleteModeKey === acKey;
-              const baseStr = aliasMode ? reference : String(value ?? '');
-              const isOverridden = modeVal !== '' && modeValStr !== baseStr;
-              const isAlias = isAliasValue(modeVal);
-              const forceAliasInput = aliasInputKeys.has(acKey);
-              // Use rich editor when: token type supports it, value is not an alias, and user hasn't toggled to alias mode
-              const showRichEditor = useRichEditor && !isAlias && !forceAliasInput && !showingAutocomplete;
+            <div className="flex flex-col gap-2">
+              {dim.options.map(option => {
+                const modeVal = modeValues[dim.id]?.[option.name] ?? '';
+                const modeValStr = typeof modeVal === 'string' ? modeVal : '';
+                const acKey = `${dim.id}:${option.name}`;
+                const showingAutocomplete = autocompleteModeKey === acKey;
+                const baseStr = aliasMode ? reference : String(value ?? '');
+                const isOverridden = modeVal !== '' && modeValStr !== baseStr;
+                const isAlias = isAliasValue(modeVal);
+                const forceAliasInput = aliasInputKeys.has(acKey);
+                const showRichEditor =
+                  useRichEditor && !isAlias && !forceAliasInput && !showingAutocomplete;
 
-              return (
-                <div key={option.name} className={`flex flex-col gap-1 mb-1.5 rounded-sm pl-1.5 ${isOverridden ? 'border-l-2 border-[var(--color-figma-accent)]' : ''}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-[var(--color-figma-text)] truncate" title={option.name}>{option.name}</span>
-                    <span className="flex items-center gap-1">
-                      {useRichEditor && hasTokens && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAliasInputKeys(prev => {
-                              const next = new Set(prev);
-                              if (next.has(acKey)) {
-                                next.delete(acKey);
-                              } else {
-                                next.add(acKey);
-                              }
-                              return next;
-                            });
-                          }}
-                          title={forceAliasInput || isAlias ? "Switch to value editor" : "Switch to alias reference"}
-                          className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                return (
+                  <div
+                    key={option.name}
+                    className={`rounded-md border px-2.5 py-2 ${
+                      isOverridden
+                        ? 'border-[var(--color-figma-accent)]/45 bg-[var(--color-figma-accent)]/8'
+                        : 'border-[var(--color-figma-border)]/65 bg-[var(--color-figma-bg-secondary)]/20'
+                    }`}
+                  >
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <span
+                          className="block truncate text-[10px] font-medium text-[var(--color-figma-text)]"
+                          title={option.name}
                         >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                          </svg>
-                        </button>
-                      )}
-                      {modeVal !== '' && (
-                        <button
-                          type="button"
-                          onClick={() => onModeValuesChange(clearNestedMode(modeValues, dim.id, option.name))}
-                          title={`Clear ${option.name} override`}
-                          aria-label={`Clear ${option.name} override`}
-                          className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
-                        >
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            <path d="M18 6L6 18M6 6l12 12"/>
-                          </svg>
-                        </button>
-                      )}
-                    </span>
-                  </div>
-                  {showRichEditor ? (
-                    <ModeValueEditor
-                      tokenType={tokenType}
-                      value={modeVal === '' ? undefined : modeVal}
-                      onChange={v => onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, v))}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                    />
-                  ) : (
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={modeValStr}
-                        onChange={e => {
-                          const v = e.target.value;
-                          onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, v));
-                          if (hasTokens) {
-                            const hasOpen = v.includes('{') && !v.endsWith('}');
-                            setAutocompleteModeKey(hasOpen ? acKey : null);
-                          }
-                        }}
-                        onFocus={() => {
-                          if (hasTokens && modeValStr.includes('{') && !modeValStr.endsWith('}')) {
-                            setAutocompleteModeKey(acKey);
-                          }
-                        }}
-                        onBlur={() => setTimeout(() => setAutocompleteModeKey(k => k === acKey ? null : k), 150)}
-                        onKeyDown={e => {
-                          if (hasTokens && e.key === '{') setAutocompleteModeKey(acKey);
-                        }}
-                        placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
-                        className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
-                      />
-                      {showingAutocomplete && (
-                        <AliasAutocomplete
-                          query={modeValStr.includes('{') ? modeValStr.slice(modeValStr.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
-                          allTokensFlat={allTokensFlat}
-                          pathToSet={pathToSet}
-                          filterType={tokenType}
-                          onSelect={path => {
-                            onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, `{${path}}`));
-                            setAutocompleteModeKey(null);
-                          }}
-                          onClose={() => setAutocompleteModeKey(null)}
-                        />
-                      )}
+                          {option.name}
+                        </span>
+                        {!isOverridden && (
+                          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                            Inherits the base value
+                          </span>
+                        )}
+                      </div>
+                      <span className="flex shrink-0 items-center gap-1">
+                        {useRichEditor && hasTokens && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAliasInputKeys(prev => {
+                                const next = new Set(prev);
+                                if (next.has(acKey)) {
+                                  next.delete(acKey);
+                                } else {
+                                  next.add(acKey);
+                                }
+                                return next;
+                              });
+                            }}
+                            title={forceAliasInput || isAlias ? "Switch to value editor" : "Switch to alias reference"}
+                            className="rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                          </button>
+                        )}
+                        {modeVal !== '' && (
+                          <button
+                            type="button"
+                            onClick={() => onModeValuesChange(clearNestedMode(modeValues, dim.id, option.name))}
+                            title={`Clear ${option.name} override`}
+                            aria-label={`Clear ${option.name} override`}
+                            className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                              <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        )}
+                      </span>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                    {showRichEditor ? (
+                      <ModeValueEditor
+                        tokenType={tokenType}
+                        value={modeVal === '' ? undefined : modeVal}
+                        onChange={v => onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, v))}
+                        allTokensFlat={allTokensFlat}
+                        pathToSet={pathToSet}
+                      />
+                    ) : (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={modeValStr}
+                          onChange={e => {
+                            const v = e.target.value;
+                            onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, v));
+                            if (hasTokens) {
+                              const hasOpen = v.includes('{') && !v.endsWith('}');
+                              setAutocompleteModeKey(hasOpen ? acKey : null);
+                            }
+                          }}
+                          onFocus={() => {
+                            if (hasTokens && modeValStr.includes('{') && !modeValStr.endsWith('}')) {
+                              setAutocompleteModeKey(acKey);
+                            }
+                          }}
+                          onBlur={() => setTimeout(() => setAutocompleteModeKey(k => k === acKey ? null : k), 150)}
+                          onKeyDown={e => {
+                            if (hasTokens && e.key === '{') setAutocompleteModeKey(acKey);
+                          }}
+                          placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
+                          className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+                        />
+                        {showingAutocomplete && (
+                          <AliasAutocomplete
+                            query={modeValStr.includes('{') ? modeValStr.slice(modeValStr.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
+                            allTokensFlat={allTokensFlat}
+                            pathToSet={pathToSet}
+                            filterType={tokenType}
+                            onSelect={path => {
+                              onModeValuesChange(updateNestedMode(modeValues, dim.id, option.name, `{${path}}`));
+                              setAutocompleteModeKey(null);
+                            }}
+                            onClose={() => setAutocompleteModeKey(null)}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>

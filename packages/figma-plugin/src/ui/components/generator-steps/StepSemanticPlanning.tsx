@@ -24,6 +24,8 @@ export interface StepSemanticPlanningProps {
   onSemanticPrefixChange: (value: string) => void;
   onSemanticMappingsChange: (value: SemanticDraftMapping[]) => void;
   onSemanticPatternSelect: (value: string | null) => void;
+  /** When true, suppresses the outer section wrapper (used when embedded in StepSave). */
+  inline?: boolean;
 }
 
 function StateButton({
@@ -94,6 +96,7 @@ export function StepSemanticPlanning({
   onSemanticPrefixChange,
   onSemanticMappingsChange,
   onSemanticPatternSelect,
+  inline = false,
 }: StepSemanticPlanningProps) {
   const availableSteps = useMemo(
     () => previewTokens.map((token) => String(token.stepName)),
@@ -139,16 +142,8 @@ export function StepSemanticPlanning({
     onSemanticMappingsChange([createEmptySemanticMapping(availableSteps)]);
   };
 
-  return (
-    <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
-      <div className={AUTHORING.generatorTitleBlock}>
-        <h3 className={AUTHORING.generatorTitle}>Semantic aliases</h3>
-        <p className={AUTHORING.generatorDescription}>
-          Decide whether this recipe should also publish role-based aliases
-          before you review the final output.
-        </p>
-      </div>
-
+  const content = (
+    <>
       <div className={AUTHORING.generatorButtonGrid}>
         <StateButton
           label="Skip"
@@ -364,6 +359,21 @@ export function StepSemanticPlanning({
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (inline) return content;
+
+  return (
+    <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
+      <div className={AUTHORING.generatorTitleBlock}>
+        <h3 className={AUTHORING.generatorTitle}>Semantic aliases</h3>
+        <p className={AUTHORING.generatorDescription}>
+          Decide whether this recipe should also publish role-based aliases
+          before you review the final output.
+        </p>
+      </div>
+      {content}
     </section>
   );
 }

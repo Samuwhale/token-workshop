@@ -39,6 +39,8 @@ interface UseGeneratorDialogParams {
   existingGenerator?: TokenGenerator;
   template?: GeneratorTemplate;
   initialDraft?: GeneratorDialogInitialDraft;
+  /** Flat token map for source path lookups (used by recommendedType). */
+  allTokensFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
   onSaved: (info?: GeneratorSaveSuccessInfo) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog internally */
   onInterceptSemanticMapping?: (data: {
@@ -243,6 +245,7 @@ export function useGeneratorDialog({
   existingGenerator,
   template,
   initialDraft,
+  allTokensFlat,
   onSaved,
   onInterceptSemanticMapping,
   getSuccessToastAction,
@@ -264,16 +267,25 @@ export function useGeneratorDialog({
   );
 
   const recommendedType = useMemo(() => {
-    const effectivePath = existingGenerator?.sourceToken ?? sourceTokenPath;
-    if (effectivePath && sourceTokenType) {
-      return detectGeneratorType(sourceTokenType, sourceTokenValue);
+    // Use the current editable source path so the recommendation reacts to
+    // user changes, falling back to the initial props.
+    const effectivePath = editableSourcePath || existingGenerator?.sourceToken || sourceTokenPath;
+    if (!effectivePath) return undefined;
+    // Look up the live token entry so we react to path edits in the dialog.
+    const liveEntry = allTokensFlat?.[effectivePath];
+    const effectiveType = liveEntry?.$type ?? sourceTokenType;
+    const effectiveValue = liveEntry?.$value ?? sourceTokenValue;
+    if (effectiveType) {
+      return detectGeneratorType(effectiveType, effectiveValue);
     }
     return undefined;
   }, [
+    editableSourcePath,
     existingGenerator?.sourceToken,
     sourceTokenPath,
     sourceTokenType,
     sourceTokenValue,
+    allTokensFlat,
   ]);
 
   const initialType: GeneratorType =

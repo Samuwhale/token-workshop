@@ -28,7 +28,7 @@ export const AUTHORING = {
   fieldStack: 'flex flex-col gap-1',
   section: 'flex flex-col gap-2',
   sectionCard:
-    'flex flex-col gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5',
+    'flex flex-col gap-2 border-t border-[var(--color-figma-border)] pt-3',
 
   // --- Title blocks ---
   titleBlock: 'flex flex-col gap-1',
@@ -37,11 +37,11 @@ export const AUTHORING = {
 
   // --- Summary cards ---
   summaryCard:
-    'flex flex-col gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5',
+    'flex flex-col gap-1.5 border-l-2 border-[var(--color-figma-border)] pl-3 py-0.5 min-w-0',
   summaryRow:
     'flex flex-wrap items-start gap-x-2 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]',
   summaryLabel:
-    'shrink-0 font-medium uppercase tracking-[0.02em] text-[var(--color-figma-text-tertiary)]',
+    'shrink-0 font-medium text-[var(--color-figma-text-secondary)]',
   summaryValue: LONG_TEXT_CLASSES.textPrimary,
   summaryMono: LONG_TEXT_CLASSES.monoPrimary,
 
@@ -61,10 +61,10 @@ export const AUTHORING = {
   // --- Preview ---
   /** Compact preview container for before/after grids and similar lists */
   previewCard:
-    'rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5',
+    'rounded-md border border-[var(--color-figma-border)]/80 bg-[var(--color-figma-bg)] px-2 py-1.5 space-y-1',
   /** Larger preview container for visual previews (color ramps, dimension bars, etc.) */
   previewSurface:
-    'rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5',
+    'rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2.5',
 
   // --- Generator authoring (CSS-class based for container-query responsive grids) ---
   /** Root wrapper — sets up container query context. Apply on the outermost generator content element. */

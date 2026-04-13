@@ -1,6 +1,10 @@
 export { StepperHeader } from './StepperHeader';
 export type { GeneratorStep } from './StepperHeader';
+export { StepIntent } from './StepIntent';
+export { StepSource } from './StepSource';
 export { StepWhere } from './StepWhere';
-export { StepWhat } from './StepWhat';
+export { StepSave } from './StepSave';
 export { StepSemanticPlanning } from './StepSemanticPlanning';
-export { StepReview } from './StepReview';
+export { ImpactMetrics } from './ImpactMetrics';
+export { RiskDetailSections } from './RiskDetailSections';
+export { GeneratorIntentCard, GeneratorIntentCatalog, sortTemplatesForIntentPicker } from './IntentCatalog';

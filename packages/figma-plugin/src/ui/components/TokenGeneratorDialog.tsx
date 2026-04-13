@@ -6,17 +6,16 @@ import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import type { TokenGenerator, GeneratorTemplate } from "../hooks/useGenerators";
 import type { SemanticStarter } from "./graph-templates";
+import type { GraphTemplate } from "./graph-templates";
 import {
   useGeneratorDialog,
   type GeneratorDialogInitialDraft,
 } from "../hooks/useGeneratorDialog";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
-import {
-  StepSemanticPlanning,
-  StepWhere,
-  StepWhat,
-  StepReview,
-} from "./generator-steps";
+import { StepIntent } from "./generator-steps/StepIntent";
+import { StepSource } from "./generator-steps/StepSource";
+import { StepWhere } from "./generator-steps/StepWhere";
+import { StepSave } from "./generator-steps/StepSave";
 import { Spinner } from "./Spinner";
 import type { ToastAction } from "../shared/toastBus";
 
@@ -91,6 +90,9 @@ export function TokenGeneratorDialog({
   onDirtyChange,
   closeRef,
 }: TokenGeneratorDialogProps) {
+  const [appliedTemplate, setAppliedTemplate] = useState<GraphTemplate | undefined>(undefined);
+  const activeTemplate = appliedTemplate ?? template;
+
   const dialog = useGeneratorDialog({
     serverUrl,
     sourceTokenPath,
@@ -101,6 +103,7 @@ export function TokenGeneratorDialog({
     existingGenerator,
     template,
     initialDraft,
+    allTokensFlat,
     onSaved,
     onInterceptSemanticMapping,
     getSuccessToastAction,
@@ -317,7 +320,7 @@ export function TokenGeneratorDialog({
             )}
 
           {dialog.showConfirmation ? (
-            <StepReview
+            <StepSave
               selectedType={dialog.selectedType}
               name={dialog.name}
               targetGroup={dialog.targetGroup}
@@ -329,6 +332,11 @@ export function TokenGeneratorDialog({
               semanticEnabled={dialog.semanticEnabled}
               semanticPrefix={dialog.semanticPrefix}
               semanticMappings={dialog.semanticMappings}
+              templateStarter={activeTemplate?.semanticStarter}
+              onSemanticEnabledChange={dialog.setSemanticEnabled}
+              onSemanticPrefixChange={dialog.setSemanticPrefix}
+              onSemanticMappingsChange={dialog.setSemanticMappings}
+              onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
               previewTokens={dialog.previewTokens}
               previewAnalysis={dialog.previewAnalysis}
               existingOverwritePathSet={dialog.existingOverwritePathSet}
@@ -340,24 +348,52 @@ export function TokenGeneratorDialog({
             />
           ) : (
             <>
-              <StepWhat
-                isEditing={dialog.isEditing}
+              <StepIntent
                 selectedType={dialog.selectedType}
                 recommendedType={dialog.recommendedType}
+                connected
+                activeSet={activeSet}
+                sourceTokenPath={sourceTokenPath}
+                sourceTokenName={sourceTokenName}
+                sourceTokenType={sourceTokenType}
+                prefilled={Boolean(initialDraft?.selectedType || existingGenerator || template)}
+                onTypeChange={dialog.handleTypeChange}
+                onTemplateApply={(tmpl, draft) => {
+                  setAppliedTemplate(tmpl);
+                  if (draft.selectedType) dialog.handleTypeChange(draft.selectedType);
+                  if (draft.configs) {
+                    const type = draft.selectedType ?? dialog.selectedType;
+                    const cfg = draft.configs[type];
+                    if (cfg) dialog.handleConfigChange(type, cfg);
+                  }
+                  if (draft.name && draft.nameIsAuto) dialog.handleNameChange(draft.name);
+                  if (draft.targetGroup) dialog.setTargetGroup(draft.targetGroup);
+                  if (draft.semanticEnabled !== undefined) dialog.setSemanticEnabled(draft.semanticEnabled);
+                  if (draft.semanticPrefix) dialog.setSemanticPrefix(draft.semanticPrefix);
+                  if (draft.semanticMappings) dialog.setSemanticMappings(draft.semanticMappings);
+                  if (draft.selectedSemanticPatternId !== undefined) dialog.setSelectedSemanticPatternId(draft.selectedSemanticPatternId);
+                }}
+                onConfigChange={dialog.handleConfigChange}
+              />
+
+              <StepSource
+                isEditing={dialog.isEditing}
+                selectedType={dialog.selectedType}
                 currentConfig={dialog.currentConfig}
                 typeNeedsValue={dialog.typeNeedsValue}
-                hasSource={dialog.hasSource}
                 hasValue={dialog.hasValue}
-                isMultiBrand={dialog.isMultiBrand}
                 sourceTokenPath={sourceTokenPath}
                 sourceTokenValue={sourceTokenValue}
                 inlineValue={dialog.inlineValue}
+                isMultiBrand={dialog.isMultiBrand}
+                inputTable={dialog.inputTable}
+                onToggleMultiBrand={dialog.handleToggleMultiBrand}
+                onInputTableChange={dialog.setInputTable}
                 previewTokens={dialog.previewTokens}
                 previewLoading={dialog.previewLoading}
                 previewError={dialog.previewError}
                 previewBrand={dialog.previewBrand}
                 multiBrandPreviews={dialog.multiBrandPreviews}
-                previewAnalysis={dialog.previewAnalysis}
                 pendingOverrides={dialog.pendingOverrides}
                 lockedCount={dialog.lockedCount}
                 overwrittenEntries={dialog.overwrittenEntries}
@@ -368,7 +404,6 @@ export function TokenGeneratorDialog({
                 onUndo={dialog.handleUndo}
                 onRedo={dialog.handleRedo}
                 onConfigInteractionStart={dialog.handleConfigInteractionStart}
-                onTypeChange={dialog.handleTypeChange}
                 onConfigChange={dialog.handleConfigChange}
                 onSourcePathChange={dialog.setEditableSourcePath}
                 onInlineValueChange={dialog.setInlineValue}
@@ -383,31 +418,12 @@ export function TokenGeneratorDialog({
                 targetGroup={dialog.targetGroup}
                 allSets={allSets}
                 isMultiBrand={dialog.isMultiBrand}
-                inputTable={dialog.inputTable}
                 targetSetTemplate={dialog.targetSetTemplate}
                 onNameChange={dialog.handleNameChange}
                 onTargetSetChange={dialog.setTargetSet}
                 onTargetGroupChange={dialog.setTargetGroup}
-                onToggleMultiBrand={dialog.handleToggleMultiBrand}
-                onInputTableChange={dialog.setInputTable}
                 onTargetSetTemplateChange={dialog.setTargetSetTemplate}
               />
-
-              {!dialog.isEditing && dialog.previewTokens.length > 0 && (
-                <StepSemanticPlanning
-                  selectedType={dialog.selectedType}
-                  targetGroup={dialog.targetGroup}
-                  previewTokens={dialog.previewTokens}
-                  templateStarter={template?.semanticStarter}
-                  semanticEnabled={dialog.semanticEnabled}
-                  semanticPrefix={dialog.semanticPrefix}
-                  semanticMappings={dialog.semanticMappings}
-                  onSemanticEnabledChange={dialog.setSemanticEnabled}
-                  onSemanticPrefixChange={dialog.setSemanticPrefix}
-                  onSemanticMappingsChange={dialog.setSemanticMappings}
-                  onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
-                />
-              )}
             </>
           )}
         </EditorShell>

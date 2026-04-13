@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { NoticeBanner } from "../shared/noticeSystem";
-import { QuickStartDialog } from "./QuickStartDialog";
+import { TokenGeneratorDialog } from "./TokenGeneratorDialog";
 import { QuickStartWizard } from "./QuickStartWizard";
 
 export type StartHereBranch =
@@ -18,7 +18,8 @@ type StartHereBranchCopy = {
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
     title: "Get started",
-    description: "",
+    description:
+      "Start with a foundation, bring in existing tokens, or make a quick change.",
   },
   import: {
     title: "Import existing tokens",
@@ -68,49 +69,75 @@ interface WelcomePromptProps {
 interface ActionCardProps {
   title: string;
   description: string;
-  accent?: boolean;
   disabled?: boolean;
   onClick: () => void;
   icon: ReactNode;
+  emphasized?: boolean;
 }
 
-function ActionCard({
+function ActionRow({
   title,
   description,
-  accent = false,
   disabled = false,
   onClick,
   icon,
+  emphasized = false,
 }: ActionCardProps) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={[
-        "w-full rounded-lg border px-3 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-        accent
-          ? "border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/5 hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
-          : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]",
+        "w-full text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        emphasized
+          ? "border-t-0 px-0 pb-2.5 pt-0"
+          : "border-t border-[var(--color-figma-border)] px-0 py-2.5 first:border-t-0 first:pt-0 last:pb-0",
       ].join(" ")}
     >
       <div className="flex items-start gap-3">
         <div
           className={[
-            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
-            accent
+            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+            emphasized
               ? "border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-              : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]",
+              : "border-transparent bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]",
           ].join(" ")}
         >
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
-            {title}
-          </span>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-            {description}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <span
+                className={[
+                  "text-[11px] font-medium",
+                  emphasized
+                    ? "text-[var(--color-figma-accent)]"
+                    : "text-[var(--color-figma-text)]",
+                ].join(" ")}
+              >
+                {title}
+              </span>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                {description}
+              </p>
+            </div>
+            <span className="shrink-0 pt-0.5 text-[var(--color-figma-text-tertiary)]">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </span>
+          </div>
         </div>
       </div>
     </button>
@@ -145,11 +172,11 @@ export function WelcomePrompt({
   };
 
   const renderRoot = () => (
-    <div className="flex flex-col gap-2.5">
-      <ActionCard
+    <div className="flex flex-col gap-3">
+      <ActionRow
         title="Guided setup"
         description="Build color, spacing, type, and mode foundations step by step."
-        accent
+        emphasized
         onClick={() => setBranch("guided-setup")}
         icon={
           <svg
@@ -167,80 +194,82 @@ export function WelcomePrompt({
           </svg>
         }
       />
-      <ActionCard
-        title="Recipe templates"
-        description="Create a palette, type scale, or spacing system for your token set."
-        disabled={!connected}
-        onClick={() => setBranch("template-library")}
-        icon={
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M4 6h16" />
-            <path d="M4 12h16" />
-            <path d="M4 18h10" />
-          </svg>
-        }
-      />
-      <ActionCard
-        title="Import existing tokens"
-        description="Bring in Figma variables or paste a token file."
-        onClick={() => setBranch("import")}
-        icon={
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 3v12" />
-            <path d="M7 10l5 5 5-5" />
-            <path d="M5 21h14" />
-          </svg>
-        }
-      />
-      <ActionCard
-        title="Create a token"
-        description="Add a single token or group directly."
-        disabled={!connected}
-        onClick={() => handleAction(onCreateToken)}
-        icon={
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-        }
-      />
+      <div>
+        <ActionRow
+          title="Recipe templates"
+          description="Create a palette, type scale, or spacing system for your token set."
+          disabled={!connected}
+          onClick={() => setBranch("template-library")}
+          icon={
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 6h16" />
+              <path d="M4 12h16" />
+              <path d="M4 18h10" />
+            </svg>
+          }
+        />
+        <ActionRow
+          title="Import existing tokens"
+          description="Bring in Figma variables or paste a token file."
+          onClick={() => setBranch("import")}
+          icon={
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3v12" />
+              <path d="M7 10l5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+          }
+        />
+        <ActionRow
+          title="Create a token"
+          description="Add a single token or group directly."
+          disabled={!connected}
+          onClick={() => handleAction(onCreateToken)}
+          icon={
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
+            </svg>
+          }
+        />
+      </div>
     </div>
   );
 
   const renderImport = () => (
-    <div className="flex flex-col gap-2.5">
+    <div>
       {onImportFigma && (
-        <ActionCard
+        <ActionRow
           title="Import from Figma variables"
           description="Pull your existing variables and modes into token sets."
           disabled={!connected}
@@ -263,7 +292,7 @@ export function WelcomePrompt({
           }
         />
       )}
-      <ActionCard
+      <ActionRow
         title="Paste token JSON"
         description="Import a DTCG, Style Dictionary, or Tokens Studio file."
         disabled={!connected}
@@ -289,8 +318,8 @@ export function WelcomePrompt({
   );
 
   const showBack = branch !== "root";
-  const branchTitle =
-    branch === "root" ? "Get started" : getStartHereBranchCopy(branch).title;
+  const branchCopy = getStartHereBranchCopy(branch);
+  const branchTitle = branchCopy.title;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
@@ -339,6 +368,11 @@ export function WelcomePrompt({
               </svg>
             </button>
           </div>
+          {branchCopy.description ? (
+            <p className="mt-1.5 max-w-[28ch] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              {branchCopy.description}
+            </p>
+          ) : null}
           {!connected && (
             <NoticeBanner
               severity={checking ? "info" : "error"}
@@ -366,16 +400,14 @@ export function WelcomePrompt({
           {branch === "import" && renderImport()}
           {branch === "template-library" && (
             <div className="h-full min-h-[360px]">
-              <QuickStartDialog
+              <TokenGeneratorDialog
                 serverUrl={serverUrl}
                 activeSet={activeSet}
                 allSets={allSets}
-                embedded
-                title="Foundation templates"
-                description="Choose a foundation, then refine it in the recipe editor."
+                presentation="panel"
                 onBack={() => setBranch("root")}
-                onClose={onClose}
-                onConfirm={onTemplateCreated}
+                onClose={() => setBranch("root")}
+                onSaved={() => onTemplateCreated()}
               />
             </div>
           )}
