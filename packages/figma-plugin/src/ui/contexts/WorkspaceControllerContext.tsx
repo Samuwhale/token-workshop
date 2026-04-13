@@ -125,7 +125,7 @@ export interface ApplyWorkspaceController {
   triggerCreateToken: number;
 }
 
-export interface ShipWorkspaceController {
+export interface SyncWorkspaceController {
   validationIssues: ValidationIssue[] | null;
   validationSummary: ValidationSummary | null;
   validationLoading: boolean;
@@ -233,7 +233,7 @@ export interface WorkspaceControllerValue {
   tokens: TokensWorkspaceController;
   themes: ThemeWorkspaceController;
   apply: ApplyWorkspaceController;
-  ship: ShipWorkspaceController;
+  sync: SyncWorkspaceController;
   setManager: SetManagerWorkspaceController;
 }
 
@@ -284,8 +284,8 @@ export function useApplyWorkspaceController(): ApplyWorkspaceController {
   return useWorkspaceControllerContext().apply;
 }
 
-export function useShipWorkspaceController(): ShipWorkspaceController {
-  return useWorkspaceControllerContext().ship;
+export function useSyncWorkspaceController(): SyncWorkspaceController {
+  return useWorkspaceControllerContext().sync;
 }
 
 export function useSetManagerWorkspaceController(): SetManagerWorkspaceController {

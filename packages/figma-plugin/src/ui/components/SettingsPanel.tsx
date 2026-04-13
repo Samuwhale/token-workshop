@@ -938,7 +938,7 @@ export function SettingsPanel({
 
           <Section title="Export defaults" defaultOpen={false}>
             <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Change these only when your handoff defaults have shifted. The
+              Change these only when your export defaults have shifted. The
               Export panel reads them as a starting point for future export
               runs.
             </p>

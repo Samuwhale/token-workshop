@@ -22,7 +22,7 @@ export function GitWorkflowPanel({ serverUrl, connected }: GitWorkflowPanelProps
         <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
           <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Repository workflow</div>
           <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-            Use this for commit, push, pull, and merge-resolution when downstream delivery needs saved files or branch coordination. Figma publish and handoff file generation live above.
+            Use this for commit, push, pull, and merge-resolution when downstream delivery needs saved files or branch coordination. Figma publish and export file generation live above.
           </div>
         </div>
 

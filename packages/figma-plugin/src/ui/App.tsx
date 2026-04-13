@@ -232,7 +232,7 @@ function getFallbackPostImportRecommendation(
   }
 
   return createFallbackWorkspaceRecommendation(
-    "ship",
+    "sync",
     "publish",
     "Open Sync next to confirm mapping for the imported changes before more edits pile on.",
   );
@@ -1527,10 +1527,10 @@ export function App() {
       dismissEphemeralOverlays();
       navigateTo("apply", "inspect");
     }
-    if (matchesShortcut(e, "GO_TO_SHIP")) {
+    if (matchesShortcut(e, "GO_TO_SYNC")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("ship", "publish");
+      navigateTo("sync", "publish");
     }
     if (matchesShortcut(e, "TOGGLE_QUICK_APPLY")) {
       e.preventDefault();
@@ -1885,7 +1885,7 @@ export function App() {
     apply: {
       triggerCreateToken,
     },
-    ship: {
+    sync: {
       validationIssues,
       validationSummary,
       validationLoading,
@@ -2087,7 +2087,7 @@ export function App() {
             pills.push({ label: "No Figma changes pending", tone: "success" });
           }
         } else if (activeWorkspaceSection?.id === "export") {
-          pills.push({ label: "Repo / handoff tools", tone: "info" });
+          pills.push({ label: "Repo / export tools", tone: "info" });
         }
         break;
       case "audit":
@@ -2285,7 +2285,7 @@ export function App() {
   const handleSelectSyncStage = useCallback(
     (stage: SyncWorkflowStage) => {
       guardEditorAction(() => {
-        navigateTo("ship", "publish");
+        navigateTo("sync", "publish");
         closeSecondarySurface();
         publishPanelHandleRef.current?.focusStage(stage);
       });

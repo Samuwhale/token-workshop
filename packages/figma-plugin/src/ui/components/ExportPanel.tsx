@@ -179,8 +179,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         </div>
         {help.expanded && (
           <PanelHelpBanner
-            title="Handoff files"
-            description="Generate platform-specific handoff files or inspect Figma variables for import. For commit, push, pull, and merge work, expand the Repository workflow section at the bottom."
+            title="Export"
+            description="Export platform-specific token files or inspect Figma variables for import. For commit, push, pull, and merge work, expand the Repository workflow section at the bottom."
             onDismiss={help.dismiss}
           />
         )}
@@ -208,7 +208,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
               </svg>
-              Handoff files
+              Export
             </button>
             <button
               onClick={() => setMode('figma-variables')}

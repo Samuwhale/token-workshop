@@ -25,7 +25,7 @@ import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
 import {
   useShellWorkspaceController,
-  useShipWorkspaceController,
+  useSyncWorkspaceController,
   useThemeWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
@@ -57,7 +57,7 @@ export function useCommandPaletteCommands(): {
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
   const themes = useThemeWorkspaceController();
-  const ship = useShipWorkspaceController();
+  const sync = useSyncWorkspaceController();
 
   const [exportPresetRev, setExportPresetRev] = useState(0);
   const [tokenListViewRev, setTokenListViewRev] = useState(0);
@@ -235,8 +235,8 @@ export function useCommandPaletteCommands(): {
           "Refresh validation across references, duplicates, and generator output",
         category: "Audit",
         handler: () => {
-          navigateTo("ship", "health");
-          void ship.refreshValidation();
+          navigateTo("sync", "health");
+          void sync.refreshValidation();
         },
       },
       {
@@ -331,7 +331,7 @@ export function useCommandPaletteCommands(): {
     closeSecondarySurface,
     tokens,
     themes,
-    ship,
+    sync,
     tokenListViewRev,
   ]);
 
@@ -526,7 +526,7 @@ export function useCommandPaletteCommands(): {
 
   const undoRedoCommands = useMemo<Command[]>(() => {
     return [
-      ...ship.recentOperations
+      ...sync.recentOperations
         .filter((operation) => !operation.rolledBack)
         .slice(0, 5)
         .map((operation, index) => ({
@@ -537,35 +537,35 @@ export function useCommandPaletteCommands(): {
               : `Rollback: ${operation.description}`,
           description: `${operation.affectedPaths.length} path(s) · ${operation.setName} · ${timeAgo(operation.timestamp)}`,
           category: "History" as const,
-          handler: () => ship.handleRollback(operation.id),
+          handler: () => sync.handleRollback(operation.id),
         })),
-      ...(ship.canRedo && ship.redoSlot
+      ...(sync.canRedo && sync.redoSlot
         ? [
             {
               id: "redo-local",
-              label: `Redo: ${ship.redoSlot.description}`,
+              label: `Redo: ${sync.redoSlot.description}`,
               description: "Re-apply the last undone action",
               category: "History" as const,
               shortcut: "⇧⌘Z",
-              handler: ship.executeRedo,
+              handler: sync.executeRedo,
             },
           ]
         : []),
-      ...[...ship.redoableItems]
+      ...[...sync.redoableItems]
         .reverse()
         .slice(0, 5)
         .map((item, index) => ({
           id: `redo-op-${item.origOpId}`,
           label:
-            index === 0 && !ship.canRedo
+            index === 0 && !sync.canRedo
               ? `Redo: ${item.description}`
               : `Re-apply: ${item.description}`,
           description: "Re-apply a rolled-back server operation",
           category: "History" as const,
-          handler: () => ship.handleServerRedo(item.origOpId),
+          handler: () => sync.handleServerRedo(item.origOpId),
         })),
     ];
-  }, [ship]);
+  }, [sync]);
 
   const exportPresetCommands = useMemo<Command[]>(() => {
     const presets = lsGetJson<Array<{ id: string; name: string }>>(
@@ -580,7 +580,7 @@ export function useCommandPaletteCommands(): {
       category: "Export" as const,
       handler: () => {
         lsSet(STORAGE_KEYS.EXPORT_PRESET_APPLY, preset.id);
-        navigateTo("ship", "export");
+        navigateTo("sync", "export");
         window.dispatchEvent(new CustomEvent("applyExportPreset"));
       },
     }));

@@ -791,7 +791,7 @@ export function PublishPanel({
             'Review the audit findings behind these blockers, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('ship', 'health', { preserveHandoff: true });
+        navigateTo('sync', 'health', { preserveHandoff: true });
         return;
       }
 
@@ -869,7 +869,7 @@ export function PublishPanel({
     };
   }, [compareAll, focusStage, publishPanelHandle, runReadinessChecks]);
 
-  // ── Broadcast pending count to Ship tab badge ────────────────────────────
+  // ── Broadcast pending count to Sync tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
   useEffect(() => {
     const varCount = canProceedToCompare && varSync.checked && !isResolverPublishCompareActive ? varSync.syncCount : 0;

@@ -59,7 +59,7 @@ import {
   useEditorShellController,
   useSetManagerWorkspaceController,
   useShellWorkspaceController,
-  useShipWorkspaceController,
+  useSyncWorkspaceController,
   useThemeWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
@@ -123,7 +123,7 @@ export function PanelRouter(): ReactNode {
   const tokensController = useTokensWorkspaceController();
   const themeController = useThemeWorkspaceController();
   const applyController = useApplyWorkspaceController();
-  const shipController = useShipWorkspaceController();
+  const syncController = useSyncWorkspaceController();
   const setManagerController = useSetManagerWorkspaceController();
   const controller = {
     ...shell,
@@ -131,7 +131,7 @@ export function PanelRouter(): ReactNode {
     ...tokensController,
     ...themeController,
     ...applyController,
-    ...shipController,
+    ...syncController,
     onShowPasteModal: shell.openPasteModal,
     onShowImportPanel: shell.openImportPanel,
     onOpenShortcutsPanelFromSettings: shell.openShortcutsPanelFromSettings,
@@ -509,7 +509,7 @@ export function PanelRouter(): ReactNode {
     onNavigateToSet: controller.handleNavigateToSet,
     onViewTokenHistory: (path: string) => {
       setHistoryFilterPath(path);
-      navigateTo("ship", "history");
+      navigateTo("sync", "history");
     },
     onEditGenerator: (generatorId: string) =>
       controller.guardEditorAction(() => {
@@ -1132,11 +1132,11 @@ export function PanelRouter(): ReactNode {
       "canvas-analysis": renderApplyCanvasAnalysis,
       dependencies: renderApplyDependencies,
     },
-    ship: {
-      publish: renderShipPublish,
-      export: renderShipExport,
-      history: renderShipHistory,
-      health: renderShipHealth,
+    sync: {
+      publish: renderSyncPublish,
+      export: renderSyncExport,
+      history: renderSyncHistory,
+      health: renderSyncHealth,
     },
   };
 
@@ -1484,7 +1484,7 @@ export function PanelRouter(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Dependencies"
-        onReset={() => navigateTo("ship", "health")}
+        onReset={() => navigateTo("sync", "health")}
       >
         <TokenFlowPanel
           allTokensFlat={themedAllTokensFlat}
@@ -1526,11 +1526,11 @@ export function PanelRouter(): ReactNode {
     );
   }
 
-  function renderShipPublish(): ReactNode {
+  function renderSyncPublish(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Figma Sync"
-        onReset={() => navigateTo("ship", "publish")}
+        onReset={() => navigateTo("sync", "publish")}
       >
         <PublishPanel
           serverUrl={serverUrl}
@@ -1546,22 +1546,22 @@ export function PanelRouter(): ReactNode {
     );
   }
 
-  function renderShipExport(): ReactNode {
+  function renderSyncExport(): ReactNode {
     return (
       <ErrorBoundary
-        panelName="Handoff files"
-        onReset={() => navigateTo("ship", "export")}
+        panelName="Export"
+        onReset={() => navigateTo("sync", "export")}
       >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );
   }
 
-  function renderShipHistory(): ReactNode {
+  function renderSyncHistory(): ReactNode {
     return (
       <ErrorBoundary
         panelName="History"
-        onReset={() => navigateTo("ship", "health")}
+        onReset={() => navigateTo("sync", "health")}
       >
         <HistoryPanel
           serverUrl={serverUrl}
@@ -1585,11 +1585,11 @@ export function PanelRouter(): ReactNode {
     );
   }
 
-  function renderShipHealth(): ReactNode {
+  function renderSyncHealth(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Audit"
-        onReset={() => navigateTo("ship", "history")}
+        onReset={() => navigateTo("sync", "history")}
       >
         <HealthPanel
           serverUrl={serverUrl}

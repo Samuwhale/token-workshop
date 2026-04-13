@@ -246,7 +246,7 @@ export interface HealthPanelProps {
   dimensions?: ThemeDimension[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
-  onNavigateTo: (topTab: "define" | "apply" | "ship", subTab?: string) => void;
+  onNavigateTo: (topTab: "define" | "apply" | "sync", subTab?: string) => void;
   onNavigateToToken?: (path: string, set: string) => void;
   onTriggerHeatmap: () => void;
   /** Shared validation cache — avoids re-fetching when switching from Analytics tab */

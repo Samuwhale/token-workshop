@@ -14,7 +14,7 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "define" | "apply" | "ship";
+      topTab: "define" | "apply" | "sync";
       subTab:
         | "tokens"
         | "themes"
@@ -160,7 +160,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open publish",
-      target: { kind: "workspace", topTab: "ship", subTab: "publish" },
+      target: { kind: "workspace", topTab: "sync", subTab: "publish" },
     };
   }
   if (
@@ -169,8 +169,8 @@ function inferWorkspaceAction(message: string): InboxAction {
     lower.includes("pull")
   ) {
     return {
-      label: "Open handoff",
-      target: { kind: "workspace", topTab: "ship", subTab: "export" },
+      label: "Open export",
+      target: { kind: "workspace", topTab: "sync", subTab: "export" },
     };
   }
   if (
@@ -183,7 +183,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open history",
-      target: { kind: "workspace", topTab: "ship", subTab: "history" },
+      target: { kind: "workspace", topTab: "sync", subTab: "history" },
     };
   }
   if (

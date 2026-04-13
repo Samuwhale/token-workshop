@@ -62,7 +62,7 @@ export const SHORTCUT_KEYS = {
   // Navigation
   GO_TO_DEFINE:          '⌘1',
   GO_TO_APPLY:           '⌘2',
-  GO_TO_SHIP:            '⌘3',
+  GO_TO_SYNC:            '⌘3',
   GO_TO_RESOLVER:        '⌘⇧R',
   // Apply / Selection
   CREATE_FROM_SELECTION: '⌘T',
@@ -143,7 +143,7 @@ export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
   // Navigation
   GO_TO_DEFINE:          { key: '1',          meta: true,  shift: false, alt: false },
   GO_TO_APPLY:           { key: '2',          meta: true,  shift: false, alt: false },
-  GO_TO_SHIP:            { key: '3',          meta: true,  shift: false, alt: false },
+  GO_TO_SYNC:            { key: '3',          meta: true,  shift: false, alt: false },
   GO_TO_RESOLVER:        { key: 'r',          meta: true,  shift: true,  alt: false },
   // Apply
   CREATE_FROM_SELECTION: { key: 't',          meta: true,  shift: false, alt: false },
@@ -241,7 +241,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   // ── Navigation ──────────────────────────────────────────────────────────
   { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Tokens workspace',         mac: SHORTCUT_KEYS.GO_TO_DEFINE },
   { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Apply workspace',          mac: SHORTCUT_KEYS.GO_TO_APPLY },
-  { id: 'GO_TO_SHIP',            group: 'Navigation',      description: 'Go to Sync workspace',           mac: SHORTCUT_KEYS.GO_TO_SHIP },
+  { id: 'GO_TO_SYNC',            group: 'Navigation',      description: 'Go to Sync workspace',           mac: SHORTCUT_KEYS.GO_TO_SYNC },
   { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open DTCG Resolver (in Modes)',   mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
   { id: 'QUICK_SWITCH_SET',      group: 'Navigation',      description: 'Quick-switch token set',         mac: SHORTCUT_KEYS.QUICK_SWITCH_SET },
 

@@ -8,11 +8,11 @@ import { STORAGE_KEYS } from "./storage";
 import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratorDialog";
 import type { GeneratorTemplate } from "../hooks/useGenerators";
 
-export type TopTab = "define" | "apply" | "ship";
+export type TopTab = "define" | "apply" | "sync";
 type DefineSubTab = "tokens" | "themes" | "generators";
 type ApplySubTab = "inspect" | "canvas-analysis" | "dependencies";
-type ShipSubTab = "publish" | "export" | "history" | "health";
-export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
+type SyncSubTab = "publish" | "export" | "history" | "health";
+export type SubTab = DefineSubTab | ApplySubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
   | "sets"
@@ -97,11 +97,11 @@ export const TOP_TABS: {
     ],
   },
   {
-    id: "ship",
+    id: "sync",
     label: "Sync",
     subTabs: [
       { id: "publish", label: "Figma Sync" },
-      { id: "export", label: "Handoff files" },
+      { id: "export", label: "Export" },
       { id: "history", label: "History" },
       { id: "health", label: "Audit" },
     ],
@@ -111,13 +111,13 @@ export const TOP_TABS: {
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   define: "tokens",
   apply: "inspect",
-  ship: "publish",
+  sync: "publish",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   define: STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE,
   apply: STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY,
-  ship: STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP,
+  sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
 };
 
 // ---------------------------------------------------------------------------
@@ -237,7 +237,7 @@ export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
     id: "sync",
     label: "Sync",
     stepNumber: 4,
-    role: "Run preflight, publish to Figma, and prepare handoff files.",
+    role: "Run preflight, publish to Figma, and export platform files.",
   },
 ];
 
@@ -521,36 +521,36 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     id: "sync",
     label: "Sync",
     summaryTitle: "Sync delivery",
-    topTab: "ship",
+    topTab: "sync",
     subTab: "publish",
-    transition: workspaceTransition("Sync to Figma and prepare handoff files."),
+    transition: workspaceTransition("Sync to Figma and export platform files."),
     sections: [
       {
         id: "publish",
         label: "Figma Sync",
         summaryTitle: "Figma Sync",
-        topTab: "ship",
+        topTab: "sync",
         subTab: "publish",
         transition: workspaceTransition("Review and run your next Figma sync."),
       },
       {
         id: "export",
-        label: "Handoff files",
-        summaryTitle: "Handoff files",
-        topTab: "ship",
+        label: "Export",
+        summaryTitle: "Export",
+        topTab: "sync",
         subTab: "export",
         transition: workspaceTransition(
-          "Set up and export the files your team hands off.",
+          "Configure and export platform-specific token files.",
         ),
       },
     ],
-    matchRoutes: [route("ship", "publish"), route("ship", "export")],
+    matchRoutes: [route("sync", "publish"), route("sync", "export")],
   },
   {
     id: "audit",
     label: "Audit",
     summaryTitle: "Quality review",
-    topTab: "ship",
+    topTab: "sync",
     subTab: "health",
     transition: workspaceTransition(
       "Review quality checks, history, and dependencies.",
@@ -560,7 +560,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         id: "health",
         label: "Issues",
         summaryTitle: "Issues",
-        topTab: "ship",
+        topTab: "sync",
         subTab: "health",
         transition: workspaceTransition("Review quality checks and blockers."),
       },
@@ -568,7 +568,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         id: "history",
         label: "History",
         summaryTitle: "Change history",
-        topTab: "ship",
+        topTab: "sync",
         subTab: "history",
         transition: workspaceTransition(
           "Review recent changes and restore points.",
@@ -586,8 +586,8 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       },
     ],
     matchRoutes: [
-      route("ship", "health"),
-      route("ship", "history"),
+      route("sync", "health"),
+      route("sync", "history"),
       route("apply", "dependencies"),
     ],
   },
@@ -802,7 +802,7 @@ export function getImportResultNextStepRecommendations(
   if (isLargeInitialImport(summary)) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "ship",
+        "sync",
         "publish",
         "Open Sync next. A large first import is the right time to confirm sync mapping before more edits pile on.",
       ),
