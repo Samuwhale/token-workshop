@@ -47,6 +47,8 @@ export interface ThemeAuthoringContextValue {
   handleOptDragEnd: () => void;
   draggingOpt: OptionDragTarget | null;
   dragOverOpt: OptionDragTarget | null;
+  /** Navigate to the Tokens workspace with a specific set selected */
+  onNavigateToTokenSet?: (setName: string) => void;
 }
 
 const ThemeAuthoringContext =

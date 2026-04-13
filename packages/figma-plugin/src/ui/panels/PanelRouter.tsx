@@ -599,6 +599,7 @@ export function PanelRouter(): ReactNode {
         onNavigateToToken: handleNavigateToAlias,
         onNavigateToGenerator: controller.handleNavigateToGenerator,
         onOpenGeneratorEditor: openGeneratorEditor,
+        onNavigateToThemes: () => navigateTo("define", "themes"),
       }
     : null;
 
@@ -1318,6 +1319,10 @@ export function PanelRouter(): ReactNode {
                 setActiveSet(name);
               }}
               onGoToTokens={() => navigateTo("define", "tokens")}
+              onNavigateToTokenSet={(setName) => {
+                navigateTo("define", "tokens");
+                controller.handleNavigateToSet(setName, "");
+              }}
               themeManagerHandle={controller.themeManagerHandleRef}
               onSuccess={controller.setSuccessToast}
               onGenerateForDimension={({ dimensionName: _name, targetSet }) => {

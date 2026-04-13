@@ -144,6 +144,8 @@ interface ThemeAuthoringScreenProps {
   onOpenAdvancedSetup: (
     target?: ThemeRoleNavigationTarget | null,
   ) => void;
+  /** Navigate to Tokens workspace with a specific set selected */
+  onNavigateToTokenSet?: (setName: string) => void;
 }
 
 export const ThemeAuthoringScreen = forwardRef<
@@ -218,6 +220,7 @@ export const ThemeAuthoringScreen = forwardRef<
     handleAutoFillAllOptions,
     onOpenCoverageView,
     onOpenAdvancedSetup,
+    onNavigateToTokenSet,
   },
   ref,
 ) {
@@ -345,6 +348,7 @@ export const ThemeAuthoringScreen = forwardRef<
       handleOptDragEnd,
       draggingOpt,
       dragOverOpt,
+      onNavigateToTokenSet,
     }),
     [
       collapsedDisabled,
@@ -361,6 +365,7 @@ export const ThemeAuthoringScreen = forwardRef<
       handleOptDragEnd,
       draggingOpt,
       dragOverOpt,
+      onNavigateToTokenSet,
     ],
   );
 

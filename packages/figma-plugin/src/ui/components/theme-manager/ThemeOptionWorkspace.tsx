@@ -52,7 +52,7 @@ export function ThemeOptionWorkspace({
   onOpenCoverageView,
   onHandleSetState,
 }: ThemeOptionWorkspaceProps) {
-  const { setRoleRefs } = useThemeAuthoringContext();
+  const { setRoleRefs, onNavigateToTokenSet } = useThemeAuthoringContext();
   const [pendingSharedSet, setPendingSharedSet] = useState("");
   const [pendingVariantSet, setPendingVariantSet] = useState("");
   const sharedCandidates = sets.filter((setName) => !foundationSets.includes(setName));
@@ -94,7 +94,18 @@ export function ThemeOptionWorkspace({
               className="inline-flex items-center gap-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)]"
               title={setTokenCounts[setName] != null ? `${setTokenCounts[setName]} tokens` : setName}
             >
-              <span className="truncate max-w-[100px]">{setName}</span>
+              {onNavigateToTokenSet ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigateToTokenSet(setName)}
+                  className="truncate max-w-[100px] hover:text-[var(--color-figma-accent)] hover:underline"
+                  title={`View tokens in "${setName}"`}
+                >
+                  {setName}
+                </button>
+              ) : (
+                <span className="truncate max-w-[100px]">{setName}</span>
+              )}
               <button
                 type="button"
                 onClick={() => onRemove(setName)}

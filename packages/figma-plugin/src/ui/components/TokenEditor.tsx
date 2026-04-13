@@ -559,6 +559,7 @@ export function TokenEditor({
   onNavigateToToken,
   onNavigateToGenerator,
   onOpenGeneratorEditor,
+  onNavigateToThemes,
   pushUndo,
 }: TokenEditorProps) {
   // 1. Fields hook — all editable state
@@ -1914,6 +1915,7 @@ export function TokenEditor({
             value={value}
             allTokensFlat={allTokensFlat}
             pathToSet={pathToSet}
+            onNavigateToThemes={onNavigateToThemes}
           />
         )}
 

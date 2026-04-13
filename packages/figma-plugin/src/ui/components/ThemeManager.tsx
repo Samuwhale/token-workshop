@@ -96,6 +96,8 @@ interface ThemeManagerProps {
   onSetCreated?: (name: string) => void;
   /** Navigate to the Tokens sub-tab (used in Compare empty states). */
   onGoToTokens?: () => void;
+  /** Navigate to Tokens workspace with a specific set selected */
+  onNavigateToTokenSet?: (setName: string) => void;
   /** Ref populated with imperative actions for cross-component control (e.g. command palette). */
   themeManagerHandle?: React.MutableRefObject<ThemeManagerHandle | null>;
   /** Called with a success message after a mutation completes (dimension/option create, rename). */
@@ -135,6 +137,7 @@ export function ThemeManager({
   onGapsDetected,
   onTokensCreated,
   onGoToTokens,
+  onNavigateToTokenSet,
   themeManagerHandle,
   onSuccess,
   onGenerateForDimension,
@@ -177,6 +180,7 @@ export function ThemeManager({
       onGapsDetected={onGapsDetected}
       onTokensCreated={onTokensCreated}
       onGoToTokens={onGoToTokens}
+      onNavigateToTokenSet={onNavigateToTokenSet}
       onSuccess={onSuccess}
       onGenerateForDimension={onGenerateForDimension}
       onSetCreated={onSetCreated}
@@ -206,6 +210,7 @@ const ThemeManagerWorkspace = React.forwardRef<
     onGapsDetected,
     onTokensCreated,
     onGoToTokens,
+    onNavigateToTokenSet,
     onSuccess,
     onGenerateForDimension,
     onSetCreated,
@@ -1209,6 +1214,7 @@ const ThemeManagerWorkspace = React.forwardRef<
               handleAutoFillAllOptions={handleAutoFillAllOptions}
               onOpenCoverageView={openCoverageView}
               onOpenAdvancedSetup={openAdvancedSetupView}
+              onNavigateToTokenSet={onNavigateToTokenSet}
             />
           )}
         </>
