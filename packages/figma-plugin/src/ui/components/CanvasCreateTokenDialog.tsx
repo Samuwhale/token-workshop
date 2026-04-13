@@ -191,8 +191,8 @@ export function CanvasCreateTokenDialog({
             className="rounded p-1 text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-40"
             aria-label="Close"
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-              <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" />
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
@@ -291,9 +291,11 @@ export function CanvasCreateTokenDialog({
         <div className="tm-authoring-surface__footer">
           <div className={AUTHORING_SURFACE_CLASSES.footer}>
             {error && (
-              <p role="alert" className={AUTHORING.error}>
-                {error}
-              </p>
+              <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
+                <p role="alert" className={AUTHORING.error}>
+                  {error}
+                </p>
+              </div>
             )}
             <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
               <button

@@ -53,6 +53,41 @@ export const AUTHORING = {
 
   // --- Feedback ---
   error: 'text-[10px] text-[var(--color-figma-error)] break-words',
+
+  // --- Footer links ---
+  footerLink:
+    'text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors',
+
+  // --- Preview ---
+  /** Compact preview container for before/after grids and similar lists */
+  previewCard:
+    'rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5',
+  /** Larger preview container for visual previews (color ramps, dimension bars, etc.) */
+  previewSurface:
+    'rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5',
+
+  // --- Generator authoring (CSS-class based for container-query responsive grids) ---
+  /** Root wrapper — sets up container query context. Apply on the outermost generator content element. */
+  generatorRoot: 'tm-generator-authoring',
+  generatorSection: 'tm-generator-authoring__section',
+  generatorSectionCard: 'tm-generator-authoring__section-card',
+  generatorTitleBlock: 'tm-generator-authoring__title-block',
+  generatorTitle: 'tm-generator-authoring__title',
+  generatorDescription: 'tm-generator-authoring__description',
+  generatorFieldStack: 'tm-generator-authoring__field-stack',
+  generatorFieldGrid: 'tm-generator-authoring__field-grid',
+  generatorButtonGrid: 'tm-generator-authoring__button-grid',
+  generatorControl: 'tm-generator-authoring__control',
+  generatorControlMono: 'tm-generator-authoring__control tm-generator-authoring__control--mono',
+  generatorSummaryCard: 'tm-generator-authoring__summary-card',
+  generatorSummaryRow: 'tm-generator-authoring__summary-row',
+  generatorSummaryLabel: 'tm-generator-authoring__summary-label',
+  generatorSummaryValue: 'tm-generator-authoring__summary-value',
+  generatorSummaryMono: 'tm-generator-authoring__summary-mono',
+  generatorMetricGrid: 'tm-generator-authoring__metric-grid',
+  generatorMetricCard: 'tm-generator-authoring__metric-card',
+  generatorMetricValue: 'tm-generator-authoring__metric-value',
+  generatorCardList: 'tm-generator-authoring__card-list',
 } as const;
 
 // Backward-compatible aliases — used by 26+ value editor files

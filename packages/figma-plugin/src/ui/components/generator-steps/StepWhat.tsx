@@ -41,7 +41,7 @@ import { UnifiedSourceInput } from '../UnifiedSourceInput';
 import { Spinner } from '../Spinner';
 import { ValueDiff } from '../ValueDiff';
 import { AUTHORING_SURFACE_CLASSES } from '../EditorShell';
-import { GENERATOR_AUTHORING_CLASSES } from '../generatorAuthoringSurface';
+import { AUTHORING } from '../../shared/editorClasses';
 import {
   cloneStarterConfigForGeneratorType,
   getStarterTemplateForGeneratorType,
@@ -244,9 +244,9 @@ function PreviewImpactCard({
   }[tone];
 
   return (
-    <div className={`${GENERATOR_AUTHORING_CLASSES.metricCard} ${toneClassName}`}>
+    <div className={`${AUTHORING.generatorMetricCard} ${toneClassName}`}>
       <div className="text-[9px] uppercase tracking-wide opacity-80">{label}</div>
-      <div className={GENERATOR_AUTHORING_CLASSES.metricValue}>{count}</div>
+      <div className={AUTHORING.generatorMetricValue}>{count}</div>
       <div className="text-[9.5px] leading-snug opacity-85">{detail}</div>
     </div>
   );
@@ -319,10 +319,10 @@ export function StepWhat({
   const starterTemplate = getStarterTemplateForGeneratorType(selectedType);
 
   return (
-    <section className={`${GENERATOR_AUTHORING_CLASSES.root} ${GENERATOR_AUTHORING_CLASSES.section}`}>
-      <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
-        <h3 className={GENERATOR_AUTHORING_CLASSES.title}>Generator setup</h3>
-        <p className={GENERATOR_AUTHORING_CLASSES.description}>
+    <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
+      <div className={AUTHORING.generatorTitleBlock}>
+        <h3 className={AUTHORING.generatorTitle}>Generator setup</h3>
+        <p className={AUTHORING.generatorDescription}>
           Choose the generator type, provide a source value when needed, and review the live output preview.
         </p>
       </div>
@@ -330,9 +330,9 @@ export function StepWhat({
       <div className={AUTHORING_SURFACE_CLASSES.splitLayout}>
         {/* ---- LEFT: Config column ---- */}
         <div className={AUTHORING_SURFACE_CLASSES.splitConfig}>
-          <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
-            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Generator type</label>
+          <div className={AUTHORING.generatorSectionCard}>
+            <div className={AUTHORING.generatorFieldStack}>
+              <label className={AUTHORING.generatorSummaryLabel}>Generator type</label>
               <TypeSelector
                 selectedType={selectedType}
                 recommendedType={recommendedType}
@@ -343,7 +343,7 @@ export function StepWhat({
 
           {/* Base value — unified source token / inline value input */}
           {typeNeedsValue && (
-            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+            <div className={AUTHORING.generatorSectionCard}>
               <UnifiedSourceInput
                 expectedType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : null}
                 sourceTokenPath={sourceTokenPath}
@@ -359,10 +359,10 @@ export function StepWhat({
           )}
 
           {starterTemplate && (
-            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+            <div className={AUTHORING.generatorSectionCard}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Starter preset</div>
+                  <div className={AUTHORING.generatorSummaryLabel}>Starter preset</div>
                   <div className="mt-1 text-[12px] font-semibold text-[var(--color-figma-text)]">
                     {starterTemplate.starterPresetName}
                   </div>
@@ -405,9 +405,9 @@ export function StepWhat({
           )}
 
           {/* Config editor */}
-          <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <div className={AUTHORING.generatorSectionCard}>
             <div className="flex items-center justify-between mb-3">
-              <span className={GENERATOR_AUTHORING_CLASSES.title}>{TYPE_LABELS[selectedType]} settings</span>
+              <span className={AUTHORING.generatorTitle}>{TYPE_LABELS[selectedType]} settings</span>
               {(canUndo || canRedo) && (
                 <div className="flex items-center gap-0.5">
                   <button
@@ -449,9 +449,9 @@ export function StepWhat({
         <div className={AUTHORING_SURFACE_CLASSES.splitPreview}>
 
           {/* Preview */}
-          <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+          <div className={AUTHORING.generatorSectionCard}>
             <div className="flex items-center justify-between mb-1.5">
-              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>
+              <label className={AUTHORING.generatorSummaryLabel}>
                 Preview
                 {isMultiBrand && multiBrandPreviews && multiBrandPreviews.size > 0
                   ? <span className="ml-1 text-[var(--color-figma-text)]">({multiBrandPreviews.size} brand{multiBrandPreviews.size !== 1 ? 's' : ''})</span>
@@ -555,7 +555,7 @@ export function StepWhat({
             )}
 
             {!previewError && !isMultiBrand && previewAnalysis && (
-              <div className={`${GENERATOR_AUTHORING_CLASSES.metricGrid} mt-3`}>
+              <div className={`${AUTHORING.generatorMetricGrid} mt-3`}>
                 <PreviewImpactCard
                   label="Safe creates"
                   count={safeCreateCount}
@@ -598,21 +598,21 @@ export function StepWhat({
 
           {/* Applied preview — shows tokens in context */}
           {!previewError && previewTokens.length > 0 && (
-            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
-              <div className={GENERATOR_AUTHORING_CLASSES.title}>Applied preview</div>
+            <div className={AUTHORING.generatorSectionCard}>
+              <div className={AUTHORING.generatorTitle}>Applied preview</div>
               <AppliedPreview type={selectedType} tokens={previewTokens} />
             </div>
           )}
 
           {nonGeneratorOverwriteEntries.length > 0 && (
-            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+            <div className={AUTHORING.generatorSectionCard}>
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
                 Overwrite risks{' '}
                 <span className="text-[var(--color-figma-warning)]">
                   {nonGeneratorOverwriteEntries.length} token{nonGeneratorOverwriteEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
-              <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
+              <div className={AUTHORING.generatorCardList}>
                 {nonGeneratorOverwriteEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                     <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
@@ -633,14 +633,14 @@ export function StepWhat({
           )}
 
           {manualConflictEntries.length > 0 && (
-            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+            <div className={AUTHORING.generatorSectionCard}>
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
                 Manual-edit conflicts{' '}
                 <span className="text-[var(--color-figma-error)]">
                   {manualConflictEntries.length} token{manualConflictEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
-              <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
+              <div className={AUTHORING.generatorCardList}>
                 {manualConflictEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                     <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
@@ -654,14 +654,14 @@ export function StepWhat({
           )}
 
           {deletedOutputEntries.length > 0 && (
-            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+            <div className={AUTHORING.generatorSectionCard}>
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
                 Deleted outputs{' '}
                 <span className="text-[var(--color-figma-warning)]">
                   {deletedOutputEntries.length} token{deletedOutputEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
-              <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
+              <div className={AUTHORING.generatorCardList}>
                 {deletedOutputEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-wrap items-start gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
                     <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.setName}:${entry.path}`}>
@@ -676,14 +676,14 @@ export function StepWhat({
           )}
 
           {detachedOutputEntries.length > 0 && (
-            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+            <div className={AUTHORING.generatorSectionCard}>
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
                 Detached outputs{' '}
                 <span className="text-[var(--color-figma-warning)]">
                   {detachedOutputEntries.length} token{detachedOutputEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
-              <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
+              <div className={AUTHORING.generatorCardList}>
                 {recreatedDetachedEntries.map(entry => (
                   <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
                     <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>

@@ -11,6 +11,7 @@ import { isAlias } from '../../shared/resolveAlias';
 import { PanelHelpHint } from './PanelHelpHint';
 import { LONG_TEXT_CLASSES } from '../shared/longTextStyles';
 import { AUTHORING } from '../shared/editorClasses';
+import { AUTHORING_SURFACE_CLASSES } from './EditorShell';
 
 const typeValidator = new TokenValidator();
 
@@ -1030,14 +1031,15 @@ export function BatchEditor({
   }, []);
 
   return (
-    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-      <div className="flex items-center justify-between px-2 pt-2 pb-1">
-        <div className="min-w-0">
-          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+    <div className="tm-authoring-surface border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col">
+      {/* Header */}
+      <div className="tm-authoring-surface__header flex items-center justify-between shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
             Bulk edit {selectedPaths.size} token{selectedPaths.size !== 1 ? 's' : ''}
           </div>
           {selectionScope && (
-            <div className="mt-1 flex min-w-0 flex-wrap items-start gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+            <div className="mt-1 flex min-w-0 flex-wrap items-start gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
               <span className="shrink-0 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 font-medium text-[var(--color-figma-text-secondary)]">
                 {selectionScope.source === 'saved-preset' ? 'Saved scope' : 'Current scope'}
               </span>
@@ -1052,7 +1054,10 @@ export function BatchEditor({
           description="Edit multiple tokens at once — set a shared description, change their type, update Figma variable scopes, or apply a new alias value across all selected tokens simultaneously."
         />
       </div>
-      <div className="px-2 pb-2 space-y-1.5">
+
+      {/* Scrollable body */}
+      <div className="tm-authoring-surface__body min-h-0 flex-1 overflow-y-auto max-h-[60vh]">
+      <div className={AUTHORING_SURFACE_CLASSES.bodyStack}>
       {/* Description */}
       <BatchSection label="Description">
         <input
@@ -1301,7 +1306,7 @@ export function BatchEditor({
             </div>
           </div>
           {opacityPreview && opacityPreview.length > 0 && (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            <div className={AUTHORING.previewCard}>
               {(expandedPreviews['opacity'] ? opacityPreview : opacityPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
                 <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
                   <BatchPreviewPath path={path} />
@@ -1370,7 +1375,7 @@ export function BatchEditor({
             )}
           </div>
           {colorAdjustPreview && colorAdjustPreview.length > 0 && (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            <div className={AUTHORING.previewCard}>
               {(expandedPreviews['colorAdjust'] ? colorAdjustPreview : colorAdjustPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
                 <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
                   <BatchPreviewPath path={path} />
@@ -1450,7 +1455,7 @@ export function BatchEditor({
             ) : null}
           </div>
           {scaleAliasCount > 0 && numericTransformActive && (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            <div className={AUTHORING.previewCard}>
               <span className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] leading-tight font-medium">
                 {scaleAliasCount === scalableCount
                   ? 'All numeric tokens use reference values and cannot be transformed:'
@@ -1470,7 +1475,7 @@ export function BatchEditor({
             </div>
           )}
           {scalePreview && scalePreview.length > 0 && (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            <div className={AUTHORING.previewCard}>
               {(expandedPreviews['scale'] ? scalePreview : scalePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
                 <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
                   <BatchPreviewPath path={path} />
@@ -1539,7 +1544,7 @@ export function BatchEditor({
             </div>
           )}
           {compositeSubPropPreview && compositeSubPropPreview.length > 0 && (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            <div className={AUTHORING.previewCard}>
               {(expandedPreviews['compositeSub'] ? compositeSubPropPreview : compositeSubPropPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to, arrayLen }) => (
                 <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -1607,7 +1612,7 @@ export function BatchEditor({
           </div>
         )}
         {setValuePreview && setValuePreview.length > 0 && (
-          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+          <div className={AUTHORING.previewCard}>
             {(expandedPreviews['setValue'] ? setValuePreview : setValuePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
               <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
                 <BatchPreviewPath path={path} />
@@ -1689,7 +1694,7 @@ export function BatchEditor({
               Alias cannot be combined with value transforms — disable one to apply
             </div>
           ) : aliasPreview && aliasPreview.length > 0 ? (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            <div className={AUTHORING.previewCard}>
               {(expandedPreviews['alias'] ? aliasPreview : aliasPreview.slice(0, PREVIEW_MAX)).map(({ path, from }) => (
                 <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
                   <BatchPreviewPath path={path} />
@@ -1716,39 +1721,7 @@ export function BatchEditor({
         )}
       </BatchSection>
 
-      {/* Footer: feedback + Apply button */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-        {(applying || moving || renaming || aliasReplacing) ? (
-          <span className="min-w-0 flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            {applying ? 'Applying…' : moving ? 'Moving…' : renaming ? 'Renaming…' : 'Replacing…'}
-          </span>
-        ) : feedback ? (
-          <span className={`min-w-0 flex-1 text-[10px] ${feedback.ok ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
-            {feedback.msg}
-          </span>
-        ) : !hasOp ? (
-          <span className="min-w-0 flex-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {!connected
-              ? 'Not connected to server'
-              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColorTarget ? ', opacity or color adjust' : ''}${hasNumericTarget ? ', transform' : ''}${hasComposite ? ', sub-property' : ''}, value, or alias to apply`}
-          </span>
-        ) : (
-          <span className="min-w-0 flex-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'} selected
-          </span>
-        )}
-        <button
-          onClick={handleApply}
-          disabled={applying || !connected || !hasOp}
-          title={!connected ? 'Not connected to server' : !hasOp ? 'Fill in at least one field above' : newType !== '' && !showTypeConfirm ? `Change type of ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to ${newType} — click to review` : `Apply changes to ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'}`}
-          className={`${AUTHORING.footerBtnPrimary} hover:opacity-90`}
-        >
-          {applying ? 'Applying…' : `Apply to ${selectedPaths.size}`}
-        </button>
-      </div>
-
-      {/* Divider */}
-      <div className="border-t border-[var(--color-figma-border)] pt-1 space-y-1.5">
+      {/* Path operations */}
         {/* Find / Replace rename */}
         <BatchSection label="Find/replace">
           <div className="space-y-1">
@@ -1802,7 +1775,7 @@ export function BatchEditor({
             </div>
           )}
           {renameChanges.length > 0 && (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            <div className={AUTHORING.previewCard}>
               <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
                 {renameChanges.length} path{renameChanges.length === 1 ? '' : 's'} will change
                 {renamePreview > renameChanges.length && (
@@ -1861,7 +1834,7 @@ export function BatchEditor({
             </button>
           </div>
           {aliasFindText && aliasFindChanges.length > 0 && (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+            <div className={AUTHORING.previewCard}>
               <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
                 {aliasFindChanges.length} alias reference{aliasFindChanges.length === 1 ? '' : 's'} will change:
               </div>
@@ -1923,7 +1896,7 @@ export function BatchEditor({
               </div>
             </div>
             {movePreview && movePreview.items.length > 0 && (
-              <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 space-y-0.5">
+              <div className={AUTHORING.previewCard}>
                 {(expandedPreviews['move'] ? movePreview.items : movePreview.items.slice(0, PREVIEW_MAX)).map(({ path, conflict }) => (
                   <div key={path} className="text-[10px] leading-snug space-y-0.5">
                     <BatchPreviewPath path={path} className="text-[var(--color-figma-text-secondary)]" />
@@ -1953,23 +1926,52 @@ export function BatchEditor({
           </BatchSection>
         </>)}
 
-        {/* Delete selected — destructive action, separated visually */}
-        {onRequestDelete && (
-          <div className="border-t border-[var(--color-figma-border)] pt-1.5">
-            <BatchSection label="Delete" className="border-[var(--color-figma-error,#ef4444)] bg-[rgba(239,68,68,0.04)]">
-              <button
-                type="button"
-                onClick={onRequestDelete}
-                disabled={!connected || selectedPaths.size === 0}
-                title={!connected ? 'Not connected to server' : `Delete ${selectedPaths.size} selected token${selectedPaths.size === 1 ? '' : 's'}`}
-                className="w-full px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-error,#ef4444)] text-[var(--color-figma-error,#ef4444)] hover:bg-[rgba(239,68,68,0.08)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Delete {selectedPaths.size} selected
-              </button>
-            </BatchSection>
+      </div>{/* end bodyStack */}
+      </div>{/* end scrollable body */}
+
+      {/* Sticky footer */}
+      <div className="tm-authoring-surface__footer shrink-0 border-t border-[var(--color-figma-border)]">
+        <div className={AUTHORING_SURFACE_CLASSES.footer}>
+          <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
+            {(applying || moving || renaming || aliasReplacing) ? (
+              <span className="text-[var(--color-figma-text-secondary)]">
+                {applying ? 'Applying…' : moving ? 'Moving…' : renaming ? 'Renaming…' : 'Replacing…'}
+              </span>
+            ) : feedback ? (
+              <span className={feedback.ok ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}>
+                {feedback.msg}
+              </span>
+            ) : null}
           </div>
-        )}
-      </div>
+          <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+            {onRequestDelete && (
+              <div className={AUTHORING_SURFACE_CLASSES.footerIcon}>
+                <button
+                  type="button"
+                  onClick={onRequestDelete}
+                  disabled={!connected || selectedPaths.size === 0}
+                  title={!connected ? 'Not connected to server' : `Delete ${selectedPaths.size} selected token${selectedPaths.size === 1 ? '' : 's'}`}
+                  className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label={`Delete ${selectedPaths.size} selected tokens`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
+              <button
+                onClick={handleApply}
+                disabled={applying || !connected || !hasOp}
+                title={!connected ? 'Not connected to server' : !hasOp ? 'Fill in at least one field above' : newType !== '' && !showTypeConfirm ? `Change type of ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to ${newType} — click to review` : `Apply changes to ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'}`}
+                className={AUTHORING.footerBtnPrimary}
+              >
+                {applying ? 'Applying…' : `Apply to ${selectedPaths.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

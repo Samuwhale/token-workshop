@@ -22,6 +22,8 @@ import {
 } from "./generators/TypeScaleGenerator";
 import { GRAPH_TEMPLATES, type GraphTemplate } from "./graph-templates";
 import { GeneratorIntentCatalog } from "./TemplatePicker";
+import { AUTHORING } from "../shared/editorClasses";
+import { AUTHORING_SURFACE_CLASSES } from "./EditorShell";
 
 const POPOVER_CLASS =
   "fixed z-50 w-[360px] max-w-[calc(100vw-16px)] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl";
@@ -192,16 +194,15 @@ function QuickGeneratorIntentPicker({
       </div>
 
       <div className="space-y-3 px-3 py-3">
-        <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
-          <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-            Source token
-          </div>
-          <div className="mt-0.5 text-[11px] font-mono text-[var(--color-figma-text)]">
-            {sourceTokenPath}
+        <div className={AUTHORING.summaryCard}>
+          <div className={AUTHORING.summaryRow}>
+            <span className={AUTHORING.summaryLabel}>Source token</span>
+            <span className={AUTHORING.summaryMono}>{sourceTokenPath}</span>
           </div>
           {sourceTokenType && (
-            <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-              Current type: <span className="font-medium">{sourceTokenType}</span>
+            <div className={AUTHORING.summaryRow}>
+              <span className={AUTHORING.summaryLabel}>Type</span>
+              <span className={AUTHORING.summaryValue}>{sourceTokenType}</span>
             </div>
           )}
         </div>
@@ -342,15 +343,17 @@ function QuickGeneratorSetup({
             aria-label="Back to generator intents"
           >
             <svg
-              width="10"
-              height="10"
-              viewBox="0 0 12 12"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.5"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               aria-hidden="true"
             >
-              <path d="M7.5 9.5L4 6l3.5-3.5" />
+              <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
           <div className="min-w-0">
@@ -383,34 +386,22 @@ function QuickGeneratorSetup({
       </div>
 
       <div className="max-h-[min(70vh,540px)] space-y-3 overflow-y-auto px-3 py-3">
-        <div className="space-y-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
-          <div>
-            <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-              Source token
-            </div>
-            <div className="mt-0.5 text-[11px] font-mono text-[var(--color-figma-text)]">
-              {sourceTokenPath}
-            </div>
+        <div className={AUTHORING.summaryCard}>
+          <div className={AUTHORING.summaryRow}>
+            <span className={AUTHORING.summaryLabel}>Source token</span>
+            <span className={AUTHORING.summaryMono}>{sourceTokenPath}</span>
           </div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
             {template.whenToUse}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-                Target set
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--color-figma-text)]">
-                {dialog.targetSet}
-              </div>
+            <div className={AUTHORING.summaryRow}>
+              <span className={AUTHORING.summaryLabel}>Target set</span>
+              <span className={AUTHORING.summaryValue}>{dialog.targetSet}</span>
             </div>
-            <div>
-              <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-                Target group
-              </div>
-              <div className="mt-0.5 text-[10px] font-mono text-[var(--color-figma-text)]">
-                {dialog.targetGroup}
-              </div>
+            <div className={AUTHORING.summaryRow}>
+              <span className={AUTHORING.summaryLabel}>Target group</span>
+              <span className={AUTHORING.summaryMono}>{dialog.targetGroup}</span>
             </div>
           </div>
         </div>
@@ -625,7 +616,7 @@ function QuickGeneratorSetup({
               </span>
             )}
           </div>
-          <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+          <div className={AUTHORING.previewSurface}>
             {dialog.previewError ? (
               <div className="text-[10px] text-[var(--color-figma-error)]">
                 {dialog.previewError}
@@ -641,7 +632,7 @@ function QuickGeneratorSetup({
         </div>
 
         {dialog.semanticEnabled && dialog.semanticMappings.length > 0 && (
-          <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+          <div className={AUTHORING.previewSurface}>
             <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
               Semantic starters
             </div>
@@ -663,32 +654,40 @@ function QuickGeneratorSetup({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-[var(--color-figma-border)] px-3 py-2.5">
-        <button
-          type="button"
-          onClick={() => onOpenAdvanced(advancedDraft)}
-          className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-        >
-          Advanced options…
-        </button>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={!canCreate || dialog.saving}
-            onClick={() => {
-              void dialog.handleQuickSave();
-            }}
-            className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {dialog.saving ? "Creating…" : "Create"}
-          </button>
+      <div className="border-t border-[var(--color-figma-border)]">
+        <div className={AUTHORING_SURFACE_CLASSES.footer}>
+          <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
+            <button
+              type="button"
+              onClick={() => onOpenAdvanced(advancedDraft)}
+              className={AUTHORING.footerLink}
+            >
+              Advanced options…
+            </button>
+          </div>
+          <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+            <div className={AUTHORING_SURFACE_CLASSES.footerSecondary}>
+              <button
+                type="button"
+                onClick={onClose}
+                className={AUTHORING.footerBtnSecondary}
+              >
+                Cancel
+              </button>
+            </div>
+            <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
+              <button
+                type="button"
+                disabled={!canCreate || dialog.saving}
+                onClick={() => {
+                  void dialog.handleQuickSave();
+                }}
+                className={AUTHORING.footerBtnPrimary}
+              >
+                {dialog.saving ? "Creating…" : "Create"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

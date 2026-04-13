@@ -3,7 +3,7 @@
  * Designers decide WHERE tokens go first (set, group, name).
  */
 import type { InputTable, InputTableRow } from '../../hooks/useGenerators';
-import { GENERATOR_AUTHORING_CLASSES } from '../generatorAuthoringSurface';
+import { AUTHORING } from '../../shared/editorClasses';
 
 // ---------------------------------------------------------------------------
 // InputTableEditor (moved from TokenGeneratorDialog)
@@ -27,20 +27,20 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
     onChange({ ...table, rows: table.rows.filter((_, i) => i !== idx) });
 
   return (
-    <div className={GENERATOR_AUTHORING_CLASSES.section}>
-      <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-        <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Input column name</label>
+    <div className={AUTHORING.generatorSection}>
+      <div className={AUTHORING.generatorFieldStack}>
+        <label className={AUTHORING.generatorSummaryLabel}>Input column name</label>
         <input
           value={table.inputKey}
           onChange={e => updateInputKey(e.target.value)}
           placeholder="brandColor"
-          className={GENERATOR_AUTHORING_CLASSES.controlMono}
+          className={AUTHORING.generatorControlMono}
         />
       </div>
       <div className="flex flex-col gap-2">
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_20px] gap-2 px-0.5">
-          <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Brand</span>
-          <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>{table.inputKey || 'value'}</span>
+          <span className={AUTHORING.generatorSummaryLabel}>Brand</span>
+          <span className={AUTHORING.generatorSummaryLabel}>{table.inputKey || 'value'}</span>
           <span className="w-5" />
         </div>
         {table.rows.map((row, i) => (
@@ -49,13 +49,13 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
               value={row.brand}
               onChange={e => updateRow(i, { brand: e.target.value })}
               placeholder="berry"
-              className={GENERATOR_AUTHORING_CLASSES.controlMono}
+              className={AUTHORING.generatorControlMono}
             />
             <input
               value={String(row.inputs[table.inputKey] ?? '')}
               onChange={e => updateRowInput(i, e.target.value)}
               placeholder="#8B5CF6"
-              className={GENERATOR_AUTHORING_CLASSES.controlMono}
+              className={AUTHORING.generatorControlMono}
             />
             <button
               type="button"
@@ -111,63 +111,63 @@ export function StepWhere({
   onTargetSetTemplateChange,
 }: StepWhereProps) {
   return (
-    <section className={`${GENERATOR_AUTHORING_CLASSES.root} ${GENERATOR_AUTHORING_CLASSES.section}`}>
-      <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
-        <h3 className={GENERATOR_AUTHORING_CLASSES.title}>Destination</h3>
-        <p className={GENERATOR_AUTHORING_CLASSES.description}>
+    <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
+      <div className={AUTHORING.generatorTitleBlock}>
+        <h3 className={AUTHORING.generatorTitle}>Destination</h3>
+        <p className={AUTHORING.generatorDescription}>
           Choose the generator name, output group, and token set before review.
         </p>
       </div>
 
-      <div className={`${GENERATOR_AUTHORING_CLASSES.sectionCard} ${GENERATOR_AUTHORING_CLASSES.fieldGrid}`}>
-        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-          <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Output path</label>
+      <div className={`${AUTHORING.generatorSectionCard} ${AUTHORING.generatorFieldGrid}`}>
+        <div className={AUTHORING.generatorFieldStack}>
+          <label className={AUTHORING.generatorSummaryLabel}>Output path</label>
           <input
             type="text"
             value={targetGroup}
             onChange={e => onTargetGroupChange(e.target.value)}
             placeholder="colors.primary"
             autoFocus
-            className={`${GENERATOR_AUTHORING_CLASSES.controlMono} ${
+            className={`${AUTHORING.generatorControlMono} ${
               !targetGroup.trim() ? 'border-[var(--color-figma-error)]/50' : 'border-[var(--color-figma-border)]'
             }`}
           />
           {targetGroup.trim() && (
-            <p className={GENERATOR_AUTHORING_CLASSES.description}>
+            <p className={AUTHORING.generatorDescription}>
               <span className="font-mono text-[var(--color-figma-text)]">{targetGroup}.<span className="text-[var(--color-figma-accent)]">{'{'}</span>step<span className="text-[var(--color-figma-accent)]">{'}'}</span></span>
             </p>
           )}
         </div>
-        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-          <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Generator name</label>
+        <div className={AUTHORING.generatorFieldStack}>
+          <label className={AUTHORING.generatorSummaryLabel}>Generator name</label>
           <input
             type="text"
             value={name}
             onChange={e => onNameChange(e.target.value)}
             placeholder="Primary colors"
-            className={`${GENERATOR_AUTHORING_CLASSES.control} ${
+            className={`${AUTHORING.generatorControl} ${
               !name.trim() ? 'border-[var(--color-figma-error)]/50' : 'border-[var(--color-figma-border)]'
             }`}
           />
         </div>
       </div>
 
-      <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
-        <div className={GENERATOR_AUTHORING_CLASSES.fieldGrid}>
+      <div className={AUTHORING.generatorSectionCard}>
+        <div className={AUTHORING.generatorFieldGrid}>
           {!isMultiBrand && (
-            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Token set</label>
+            <div className={AUTHORING.generatorFieldStack}>
+              <label className={AUTHORING.generatorSummaryLabel}>Token set</label>
               <select
                 value={targetSet}
                 onChange={e => onTargetSetChange(e.target.value)}
-                className={GENERATOR_AUTHORING_CLASSES.control}
+                className={AUTHORING.generatorControl}
               >
                 {allSets.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           )}
-          <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-            <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Publishing mode</span>
+          <div className={AUTHORING.generatorFieldStack}>
+            <span className={AUTHORING.generatorSummaryLabel}>Publishing mode</span>
             <button
               type="button"
               onClick={onToggleMultiBrand}
@@ -181,7 +181,7 @@ export function StepWhere({
             </button>
           </div>
         </div>
-        <p className={GENERATOR_AUTHORING_CLASSES.description}>
+        <p className={AUTHORING.generatorDescription}>
           {isMultiBrand
             ? 'Generate the same scale into multiple brand-specific token sets.'
             : 'Switch to multi-brand when this generator should publish one scale across several sets.'}
@@ -189,24 +189,24 @@ export function StepWhere({
       </div>
 
       {isMultiBrand && inputTable && (
-        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
-          <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
-            <div className={GENERATOR_AUTHORING_CLASSES.title}>Brand rows</div>
-            <p className={GENERATOR_AUTHORING_CLASSES.description}>
+        <div className={AUTHORING.generatorSectionCard}>
+          <div className={AUTHORING.generatorTitleBlock}>
+            <div className={AUTHORING.generatorTitle}>Brand rows</div>
+            <p className={AUTHORING.generatorDescription}>
               Each row publishes the generator into a distinct set template.
             </p>
           </div>
           <InputTableEditor table={inputTable} onChange={onInputTableChange} />
-          <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-            <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Set template</label>
+          <div className={AUTHORING.generatorFieldStack}>
+            <label className={AUTHORING.generatorSummaryLabel}>Set template</label>
             <input
               type="text"
               value={targetSetTemplate}
               onChange={e => onTargetSetTemplateChange(e.target.value)}
               placeholder="brands/{brand}"
-              className={GENERATOR_AUTHORING_CLASSES.controlMono}
+              className={AUTHORING.generatorControlMono}
             />
-            <p className={GENERATOR_AUTHORING_CLASSES.description}>
+            <p className={AUTHORING.generatorDescription}>
               {'{brand}'} replaced per row
             </p>
           </div>

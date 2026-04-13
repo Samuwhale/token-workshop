@@ -8,7 +8,7 @@ import {
   type SemanticDraftMapping,
   type SemanticSuggestion,
 } from '../semanticPlanning';
-import { GENERATOR_AUTHORING_CLASSES } from '../generatorAuthoringSurface';
+import { AUTHORING } from '../../shared/editorClasses';
 
 type SemanticPlanState = 'skip' | 'suggested' | 'custom';
 
@@ -140,16 +140,16 @@ export function StepSemanticPlanning({
   };
 
   return (
-    <section className={`${GENERATOR_AUTHORING_CLASSES.root} ${GENERATOR_AUTHORING_CLASSES.section}`}>
-      <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
-        <h3 className={GENERATOR_AUTHORING_CLASSES.title}>Semantic aliases</h3>
-        <p className={GENERATOR_AUTHORING_CLASSES.description}>
+    <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
+      <div className={AUTHORING.generatorTitleBlock}>
+        <h3 className={AUTHORING.generatorTitle}>Semantic aliases</h3>
+        <p className={AUTHORING.generatorDescription}>
           Decide whether this generator should also publish role-based aliases
           before you review the final output.
         </p>
       </div>
 
-      <div className={GENERATOR_AUTHORING_CLASSES.buttonGrid}>
+      <div className={AUTHORING.generatorButtonGrid}>
         <StateButton
           label="Skip"
           description="Create only the generated scale."
@@ -186,10 +186,10 @@ export function StepSemanticPlanning({
       )}
 
       {canPlanAliases && semanticEnabled && (
-        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+        <div className={AUTHORING.generatorSectionCard}>
           {suggestions.length > 0 && (
-            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>
+            <div className={AUTHORING.generatorFieldStack}>
+              <label className={AUTHORING.generatorSummaryLabel}>
                 Suggested starters
               </label>
               <div className="flex flex-wrap gap-1.5">
@@ -214,8 +214,8 @@ export function StepSemanticPlanning({
             </div>
           )}
 
-          <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
-            <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>
+          <div className={AUTHORING.generatorFieldStack}>
+            <label className={AUTHORING.generatorSummaryLabel}>
               Prefix
             </label>
             <input
@@ -226,13 +226,13 @@ export function StepSemanticPlanning({
                 onSemanticPrefixChange(event.target.value);
               }}
               placeholder="semantic"
-              className={GENERATOR_AUTHORING_CLASSES.controlMono}
+              className={AUTHORING.generatorControlMono}
             />
           </div>
 
-          <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+          <div className={AUTHORING.generatorFieldStack}>
             <div className="flex items-center justify-between gap-2">
-              <label className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>
+              <label className={AUTHORING.generatorSummaryLabel}>
                 Alias mappings
               </label>
               <button
@@ -249,10 +249,10 @@ export function StepSemanticPlanning({
                 + Add alias
               </button>
             </div>
-            <div className={GENERATOR_AUTHORING_CLASSES.cardList}>
+            <div className={AUTHORING.generatorCardList}>
               {semanticMappings.length > 0 ? (
                 semanticMappings.map((mapping, index) => (
-                  <div key={`${mapping.semantic}-${index}`} className={`${GENERATOR_AUTHORING_CLASSES.fieldGrid} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2`}>
+                  <div key={`${mapping.semantic}-${index}`} className={`${AUTHORING.generatorFieldGrid} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2`}>
                     <input
                       type="text"
                       value={mapping.semantic}
@@ -267,9 +267,9 @@ export function StepSemanticPlanning({
                         );
                       }}
                       placeholder="action.default"
-                      className={GENERATOR_AUTHORING_CLASSES.controlMono}
+                      className={AUTHORING.generatorControlMono}
                     />
-                    <div className={`${GENERATOR_AUTHORING_CLASSES.fieldGrid} items-start`}>
+                    <div className={`${AUTHORING.generatorFieldGrid} items-start`}>
                       <select
                         value={mapping.step}
                         onChange={(event) => {
@@ -282,7 +282,7 @@ export function StepSemanticPlanning({
                             ),
                           );
                         }}
-                        className={GENERATOR_AUTHORING_CLASSES.control}
+                        className={AUTHORING.generatorControl}
                       >
                         {availableSteps.map((step) => (
                           <option key={step} value={step}>
@@ -316,9 +316,9 @@ export function StepSemanticPlanning({
         </div>
       )}
 
-      <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+      <div className={AUTHORING.generatorSectionCard}>
         <div className="flex items-center justify-between gap-2">
-          <div className={GENERATOR_AUTHORING_CLASSES.title}>
+          <div className={AUTHORING.generatorTitle}>
             Alias output preview
           </div>
           <span

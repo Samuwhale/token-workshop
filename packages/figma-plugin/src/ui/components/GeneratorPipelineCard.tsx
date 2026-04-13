@@ -23,7 +23,7 @@ import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
 import { VALUE_REQUIRED_TYPES } from "./generators/generatorUtils";
 import { OverrideRow, formatValue } from "./generators/generatorShared";
 import { AUTHORING_SURFACE_CLASSES } from "./EditorShell";
-import { GENERATOR_AUTHORING_CLASSES } from "./generatorAuthoringSurface";
+import { AUTHORING } from "../shared/editorClasses";
 import { swatchBgColor } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
 import type { ToastAction } from "../shared/toastBus";
@@ -499,9 +499,9 @@ function LiveDiffPreview({
 // Quick edit panel
 // ---------------------------------------------------------------------------
 
-const QE_INPUT = GENERATOR_AUTHORING_CLASSES.control;
-const QE_MONO_INPUT = GENERATOR_AUTHORING_CLASSES.controlMono;
-const QE_LABEL = GENERATOR_AUTHORING_CLASSES.summaryLabel;
+const QE_INPUT = AUTHORING.generatorControl;
+const QE_MONO_INPUT = AUTHORING.generatorControlMono;
+const QE_LABEL = AUTHORING.generatorSummaryLabel;
 
 const RATIO_PRESETS = [
   { label: "Minor Third (1.2)", value: 1.2 },
@@ -881,17 +881,17 @@ function QuickEditPanel({
   };
 
   return (
-    <div className={`mt-2 border-t border-[var(--color-figma-border)] pt-2 ${GENERATOR_AUTHORING_CLASSES.root}`}>
-      <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
-        <div className={GENERATOR_AUTHORING_CLASSES.title}>Quick edit</div>
-        <p className={GENERATOR_AUTHORING_CLASSES.description}>
+    <div className={`mt-2 border-t border-[var(--color-figma-border)] pt-2 ${AUTHORING.generatorRoot}`}>
+      <div className={AUTHORING.generatorTitleBlock}>
+        <div className={AUTHORING.generatorTitle}>Quick edit</div>
+        <p className={AUTHORING.generatorDescription}>
           Adjust the core generator inputs inline, then save and re-run with the updated preview.
         </p>
       </div>
 
       {needsSource && (
-        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
-          <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+        <div className={AUTHORING.generatorSectionCard}>
+          <div className={AUTHORING.generatorFieldStack}>
             <label className={QE_LABEL}>Source token</label>
             <input
               type="text"
@@ -904,8 +904,8 @@ function QuickEditPanel({
         </div>
       )}
 
-      <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
-        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+      <div className={AUTHORING.generatorSectionCard}>
+        <div className={AUTHORING.generatorFieldStack}>
           <label className={QE_LABEL}>Generator settings</label>
           <QuickEditTypeFields
             type={generator.type}
@@ -915,8 +915,8 @@ function QuickEditPanel({
         </div>
       </div>
 
-      <div className={`${GENERATOR_AUTHORING_CLASSES.sectionCard} ${GENERATOR_AUTHORING_CLASSES.fieldGrid}`}>
-        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+      <div className={`${AUTHORING.generatorSectionCard} ${AUTHORING.generatorFieldGrid}`}>
+        <div className={AUTHORING.generatorFieldStack}>
           <label className={QE_LABEL}>Name</label>
           <input
             type="text"
@@ -925,7 +925,7 @@ function QuickEditPanel({
             className={QE_INPUT}
           />
         </div>
-        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+        <div className={AUTHORING.generatorFieldStack}>
           <label className={QE_LABEL}>Target group</label>
           <input
             type="text"
@@ -934,7 +934,7 @@ function QuickEditPanel({
             className={QE_MONO_INPUT}
           />
         </div>
-        <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+        <div className={AUTHORING.generatorFieldStack}>
           <label className={QE_LABEL}>Target set</label>
           <select
             value={targetSet}
@@ -952,7 +952,7 @@ function QuickEditPanel({
 
       {/* Live preview diff */}
       {!isMultiBrand && (
-        <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+        <div className={AUTHORING.generatorSectionCard}>
           <div className="flex items-center justify-between mb-1">
             <span className={QE_LABEL}>Preview changes</span>
             {previewLoading && previewDiff && (
@@ -1483,22 +1483,22 @@ export function GeneratorPipelineCard({
             )}
           </div>
           <div className="mt-2">
-            <div className={GENERATOR_AUTHORING_CLASSES.summaryCard}>
-              <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
-                <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Source</span>
-                <span className={generator.sourceToken ? GENERATOR_AUTHORING_CLASSES.summaryMono : GENERATOR_AUTHORING_CLASSES.summaryValue}>
+            <div className={AUTHORING.generatorSummaryCard}>
+              <div className={AUTHORING.generatorSummaryRow}>
+                <span className={AUTHORING.generatorSummaryLabel}>Source</span>
+                <span className={generator.sourceToken ? AUTHORING.generatorSummaryMono : AUTHORING.generatorSummaryValue}>
                   {sourceSummary}
                 </span>
               </div>
-              <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
-                <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Output</span>
-                <span className={GENERATOR_AUTHORING_CLASSES.summaryMono}>{generator.targetGroup}.*</span>
+              <div className={AUTHORING.generatorSummaryRow}>
+                <span className={AUTHORING.generatorSummaryLabel}>Output</span>
+                <span className={AUTHORING.generatorSummaryMono}>{generator.targetGroup}.*</span>
               </div>
-              <div className={GENERATOR_AUTHORING_CLASSES.summaryRow}>
-                <span className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Set</span>
-                <span className={GENERATOR_AUTHORING_CLASSES.summaryValue}>{generator.targetSet}</span>
+              <div className={AUTHORING.generatorSummaryRow}>
+                <span className={AUTHORING.generatorSummaryLabel}>Set</span>
+                <span className={AUTHORING.generatorSummaryValue}>{generator.targetSet}</span>
                 <span className="text-[var(--color-figma-text-tertiary)]">·</span>
-                <span className={GENERATOR_AUTHORING_CLASSES.summaryValue}>{stepCount} token{stepCount === 1 ? "" : "s"}</span>
+                <span className={AUTHORING.generatorSummaryValue}>{stepCount} token{stepCount === 1 ? "" : "s"}</span>
               </div>
             </div>
           </div>
@@ -2080,15 +2080,15 @@ export function GeneratorPipelineCard({
       )}
 
       {showClonePanel && (
-        <div className={`mt-2 border-t border-[var(--color-figma-border)] pt-2 ${GENERATOR_AUTHORING_CLASSES.root}`}>
-          <div className={GENERATOR_AUTHORING_CLASSES.titleBlock}>
-            <span className={GENERATOR_AUTHORING_CLASSES.title}>Clone generator</span>
-            <p className={GENERATOR_AUTHORING_CLASSES.description}>
+        <div className={`mt-2 border-t border-[var(--color-figma-border)] pt-2 ${AUTHORING.generatorRoot}`}>
+          <div className={AUTHORING.generatorTitleBlock}>
+            <span className={AUTHORING.generatorTitle}>Clone generator</span>
+            <p className={AUTHORING.generatorDescription}>
               Start from the current generator and adjust the destination details for the clone.
             </p>
           </div>
-          <div className={`${GENERATOR_AUTHORING_CLASSES.sectionCard} ${GENERATOR_AUTHORING_CLASSES.fieldGrid}`}>
-            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+          <div className={`${AUTHORING.generatorSectionCard} ${AUTHORING.generatorFieldGrid}`}>
+            <div className={AUTHORING.generatorFieldStack}>
               <label className={QE_LABEL}>Name</label>
               <input
                 type="text"
@@ -2098,7 +2098,7 @@ export function GeneratorPipelineCard({
                 autoFocus
               />
             </div>
-            <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+            <div className={AUTHORING.generatorFieldStack}>
               <label className={QE_LABEL}>Target group</label>
               <input
                 type="text"
@@ -2110,8 +2110,8 @@ export function GeneratorPipelineCard({
             </div>
           </div>
           {generator.sourceToken !== undefined && (
-            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
-              <div className={GENERATOR_AUTHORING_CLASSES.fieldStack}>
+            <div className={AUTHORING.generatorSectionCard}>
+              <div className={AUTHORING.generatorFieldStack}>
                 <label className={QE_LABEL}>Source token</label>
                 <input
                   type="text"
