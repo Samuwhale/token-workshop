@@ -1,7 +1,6 @@
 import { buildReconciliationContext, buildWorkspaceRepairContext } from '../context.js';
 import type { RunnerLogger } from '../logger.js';
 import type {
-  BacklogDrainResult,
   BacklogRunnerConfig,
   BacklogStore,
   BacklogTaskClaim,
@@ -17,15 +16,20 @@ import {
   changedFiles,
   drainCandidateQueuePhase,
   diffForPaths,
-  persistLifecyclePhase,
   readPrompt,
-  runLoggedAgentPhase,
   runValidationPhase,
   scopeViolations,
   stagedFiles,
 } from './helpers.js';
-import { classifyValidationFailure, queueNonBlockingValidationFollowup } from './validation-classify.js';
-import { containsSharedInstallPolicyCode } from '../workspace/shared-install.js';
+import {
+  appendRepairNotes,
+  persistTaskLifecyclePhase,
+  reconciliationFailureResult,
+  reconciliationSuccessResult,
+  resolveValidationFailureDisposition,
+  runLifecycleAgentPhase,
+  withFailureReason,
+} from './task-lifecycle.js';
 
 export function reconciliationPrompt(basePrompt: string): string {
   return `${basePrompt}
@@ -85,22 +89,6 @@ export async function collectWorkspaceSnapshot(
   };
 }
 
-export async function appendRepairNotes(
-  store: BacklogStore,
-  taskId: string,
-  note: string | undefined,
-  drainResult: BacklogDrainResult,
-): Promise<void> {
-  if (note) {
-    await store.appendTaskNote(taskId, `Recovered by remediation: ${note}`);
-  } else {
-    await store.appendTaskNote(taskId, 'Recovered by remediation');
-  }
-  if (drainResult.createdTasks > 0) {
-    await store.appendTaskNote(taskId, `Follow-up queued by remediation: ${drainResult.createdTasks} task(s)`);
-  }
-}
-
 export async function attemptWorkspaceRemediation(
   config: BacklogRunnerConfig,
   store: BacklogStore,
@@ -138,25 +126,25 @@ export async function attemptWorkspaceRemediation(
       originalDiff: await diffForPaths(commandRunner, remediation.cwd),
     },
   );
-  const result = await runLoggedAgentPhase({
+  const agentPhase = await runLifecycleAgentPhase({
     commandRunner,
     options,
     logger,
-    role: 'task',
     label: 'workspace repair',
     context,
     prompt: workspaceRepairPrompt(await readPrompt(config.prompts.agent), options.worktrees),
     cwd: remediation.cwd,
     maxTurns: RECONCILIATION_MAX_TURNS,
+    failureReason: 'workspace repair agent reported failure',
   });
 
   const drainResult = await drainCandidateQueuePhase(store, logger);
 
-  if (result.status !== 'done') {
+  if (!agentPhase.ok) {
     return {
       recovered: false,
-      deferred: !shouldFailFromRepairReason(result.note),
-      failureReason: result.note || 'workspace repair agent reported failure',
+      deferred: !shouldFailFromRepairReason(agentPhase.failureReason),
+      failureReason: agentPhase.failureReason,
       queuedFollowups: drainResult.createdTasks,
     };
   }
@@ -172,7 +160,7 @@ export async function attemptWorkspaceRemediation(
     };
   }
 
-  await appendRepairNotes(store, claim.task.id, result.note, drainResult);
+  await appendRepairNotes(store, claim.task.id, agentPhase.agentResult.note, drainResult.createdTasks);
   logger.line('  ✓ Workspace repair recovered the task');
   return {
     recovered: true,
@@ -281,22 +269,22 @@ export async function attemptTaskReconciliation(
       failureReason,
       originalDiff,
     );
-    const result = await runLoggedAgentPhase({
+    const agentPhase = await runLifecycleAgentPhase({
       commandRunner,
       options,
       logger,
-      role: 'task',
       label: 'reconciliation',
       context,
       prompt: reconciliationPrompt(await readPrompt(config.prompts.agent)),
       cwd: reconciliationCwd,
       maxTurns: RECONCILIATION_MAX_TURNS,
+      failureReason: 'reconciliation agent reported failure',
     });
-    if (result.status !== 'done') {
+    if (!agentPhase.ok) {
       return {
         recovered: false,
-        deferred: !shouldFailFromRepairReason(result.note),
-        failureReason: result.note || 'reconciliation agent reported failure',
+        deferred: !shouldFailFromRepairReason(agentPhase.failureReason),
+        failureReason: agentPhase.failureReason,
         queuedFollowups: 0,
       };
     }
@@ -311,77 +299,60 @@ export async function attemptTaskReconciliation(
     );
     if (!validation.ok) {
       const failureReason = validation.failureReason ?? 'reconciliation validation failed';
-      if (containsSharedInstallPolicyCode(failureReason)) {
-        logger.line(`  ⚠ reconciliation deferred: ${failureReason}`);
-        return {
-          recovered: false,
-          deferred: true,
-          failureReason,
-          queuedFollowups: 0,
-        };
-      }
-      const classification = classifyValidationFailure(
+      const disposition = await resolveValidationFailureDisposition({
+        store,
+        logger,
         claim,
+        commandRunner,
+        cwd: reconciliationCwd,
         failureReason,
-        await changedFiles(commandRunner, reconciliationCwd),
-      );
-      if (classification.blocking) {
+      });
+      if (disposition.kind !== 'non_blocking') {
         logger.line(`  ✗ reconciliation validation failed: ${validation.summary}`);
-        return {
-          recovered: false,
-          deferred: true,
-          failureReason,
-          queuedFollowups: 0,
-        };
+        return reconciliationFailureResult(disposition.failureReason);
       }
-      await queueNonBlockingValidationFollowup(store, logger, claim, classification);
     }
 
     if (reconciliationSession) {
       const mergeResult = await reconciliationSession.merge();
       if (!mergeResult.ok) {
         logger.line(`  ✗ reconciliation merge failed: ${mergeResult.reason ?? 'merge failed'}`);
-        return {
-          recovered: false,
-          deferred: true,
-          failureReason: mergeResult.reason ?? 'reconciliation merge failed',
-          queuedFollowups: 0,
-        };
+        return reconciliationFailureResult(mergeResult.reason ?? 'reconciliation merge failed');
       }
       logger.line('  ✓ Reconciled changes merged to main');
     }
 
-    const finalize = await persistLifecyclePhase({
+    const finalize = await persistTaskLifecyclePhase({
       store,
       workspaceStrategy,
       logger,
       config,
       commitMessage,
+      transition: taskAlreadyCompleted
+        ? {
+          type: 'append-repair-notes',
+          taskId: claim.task.id,
+          note: agentPhase.agentResult.note,
+        }
+        : {
+          type: 'complete-claim',
+          claim,
+          note: `completed after reconciliation: ${agentPhase.agentResult.note || 'reconciled successfully'}`,
+          recordFollowupNote: true,
+        },
       retryPendingPush: priorFinalizeResult?.pendingPush === true,
       sleep,
-      onPersisted: async drainResult => {
-        if (!taskAlreadyCompleted) {
-          await store.completeClaim(claim, `completed after reconciliation: ${result.note || 'reconciled successfully'}`);
-          if (drainResult.createdTasks > 0) {
-            await store.appendTaskNote(claim.task.id, `Follow-up queued by remediation: ${drainResult.createdTasks} task(s)`);
-          }
-          return;
-        }
-        await appendRepairNotes(store, claim.task.id, result.note, drainResult);
-      },
     });
     if (!finalize.ok) {
       logger.line(`  ✗ reconciliation finalize failed: ${finalize.finalizeResult.reason ?? 'commit/push failed'}`);
-      return {
-        recovered: false,
-        deferred: true,
-        failureReason: finalize.finalizeResult.reason ?? 'reconciliation finalize failed',
-        queuedFollowups: finalize.queuedFollowups,
-      };
+      return reconciliationFailureResult(
+        withFailureReason(finalize.finalizeResult, 'reconciliation finalize failed'),
+        finalize.queuedFollowups,
+      );
     }
 
     logger.line('  ✓ Reconciliation finalized successfully');
-    return { recovered: true, deferred: false, queuedFollowups: finalize.queuedFollowups };
+    return reconciliationSuccessResult(finalize.queuedFollowups);
   } finally {
     if (reconciliationSession) {
       await reconciliationSession.teardown();

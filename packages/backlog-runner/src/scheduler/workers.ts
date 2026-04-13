@@ -30,17 +30,14 @@ import {
 import { PREFLIGHT_DEFERRAL_MS } from './constants.js';
 import {
   bookkeepingPaths,
-  changedFiles,
   classifyAgentError,
   diffForPaths,
   formatDuration,
   genericWorkerResult,
   getRunnerConfig,
   logDrainResult,
-  persistLifecyclePhase,
   readPrompt,
   retryTime,
-  runLoggedAgentPhase,
   runValidationPhase,
   taskExecutionPaths,
   taskWorkerResult,
@@ -53,7 +50,12 @@ import {
   attemptTaskReconciliation,
   tryWithRemediation,
 } from './remediation.js';
-import { classifyValidationFailure, queueNonBlockingValidationFollowup } from './validation-classify.js';
+import {
+  persistTaskLifecyclePhase,
+  resolveValidationFailureDisposition,
+  runLifecycleAgentPhase,
+  withFailureReason,
+} from './task-lifecycle.js';
 
 async function runSingleDiscoveryPass(
   config: BacklogRunnerConfig,
@@ -373,17 +375,17 @@ async function runTaskExecutionPhase(
     await store.getTaskDependencies(claim.task.id),
     await store.getActiveReservations(claim.task.id),
   );
-  const agentResult = await runLoggedAgentPhase({
+  const agentPhase = await runLifecycleAgentPhase({
     commandRunner,
     options,
     logger,
-    role: 'task',
     label: 'task run',
     context,
     prompt: await readPrompt(config.prompts.agent),
     cwd: session.cwd,
     maxTurns: 50,
     includeMeta: true,
+    failureReason: 'agent reported failure',
     onProgress: async event => {
       if (transcriptRecorder) {
         await transcriptRecorder.record(event);
@@ -400,16 +402,16 @@ async function runTaskExecutionPhase(
     },
   });
 
-  if (agentResult.status !== 'done') {
-    await store.failClaim(claim, agentResult.note || 'agent reported failure');
+  if (!agentPhase.ok) {
+    await store.failClaim(claim, agentPhase.failureReason);
     return stopTaskPhase(taskWorkerResult('failed', claim, startedAt, {
-      note: agentResult.note || 'agent reported failure',
+      note: agentPhase.failureReason,
     }));
   }
 
   return continueTaskPhase({
     ...preflight,
-    agentResult,
+    agentResult: agentPhase.agentResult,
     validationCommand: config.validationProfiles[claim.task.validationProfile] ?? config.validationCommand,
   });
 }
@@ -479,15 +481,17 @@ async function runTaskValidationPhase(
     });
   }
 
-  const classification = classifyValidationFailure(
+  const validationDisposition = await resolveValidationFailureDisposition({
+    store,
+    logger,
     claim,
-    outcome.note ?? failureReason,
-    await changedFiles(commandRunner, session.cwd),
-  );
-  if (classification.blocking) {
+    commandRunner,
+    cwd: session.cwd,
+    failureReason: outcome.note ?? failureReason,
+  });
+  if (validationDisposition.kind !== 'non_blocking') {
     return stopTaskPhase(outcome);
   }
-  await queueNonBlockingValidationFollowup(store, logger, claim, classification);
   return continueTaskPhase({
     ...execution,
     validationSummary,
@@ -512,7 +516,7 @@ async function runTaskFinalizePhase(
   } = phaseContext;
   const message = `chore(backlog): done – ${validation.agentResult.item || claim.task.title}`;
 
-  const finalizationResult = await withLock(lockPath(config, 'git'), 30, async (): Promise<BacklogWorkerResult | undefined> => {
+  return withLock(lockPath(config, 'git'), 30, async (): Promise<BacklogWorkerResult> => {
     logger.line('');
 
     if (options.worktrees) {
@@ -543,23 +547,29 @@ async function runTaskFinalizePhase(
             validationSummary: validation.validationSummary,
           });
         }
-        return undefined;
+        return taskWorkerResult('completed', claim, startedAt, {
+          note: validation.agentResult.note || 'completed',
+          queuedFollowups: recovered.queuedFollowups,
+          validationSummary: validation.validationSummary,
+        });
       }
       logger.line('  ✓ Merged code changes to main');
     } else {
       logger.line(`  Finalizing code changes: ${claim.task.title}`);
     }
 
-    const persisted = await persistLifecyclePhase({
+    const persisted = await persistTaskLifecyclePhase({
       store,
       workspaceStrategy,
       logger,
       config,
       commitMessage: message,
-      sleep,
-      onPersisted: async () => {
-        await store.completeClaim(claim, validation.agentResult.note || 'completed');
+      transition: {
+        type: 'complete-claim',
+        claim,
+        note: validation.agentResult.note || 'completed',
       },
+      sleep,
     });
     if (!persisted.ok) {
       const failReason = options.worktrees ? 'finalize failed after merge' : 'commit/push failed';
@@ -579,14 +589,18 @@ async function runTaskFinalizePhase(
         sleep,
       );
       if (!recovered.recovered) {
-        await applyClaimRepairOutcome(store, logger, claim, recovered, persisted.finalizeResult.reason ?? failReason);
+        await applyClaimRepairOutcome(store, logger, claim, recovered, withFailureReason(persisted.finalizeResult, failReason));
         return taskWorkerResult(recovered.deferred ? 'deferred' : 'failed', claim, startedAt, {
-          note: recovered.failureReason ?? persisted.finalizeResult.reason ?? failReason,
+          note: recovered.failureReason ?? withFailureReason(persisted.finalizeResult, failReason),
           queuedFollowups: recovered.queuedFollowups,
           validationSummary: validation.validationSummary,
         });
       }
-      return undefined;
+      return taskWorkerResult('completed', claim, startedAt, {
+        note: validation.agentResult.note || 'completed',
+        queuedFollowups: recovered.queuedFollowups,
+        validationSummary: validation.validationSummary,
+      });
     }
 
     logger.line(`  ✓ Marked done after ${options.worktrees ? 'merge' : 'finalize'}`);
@@ -595,11 +609,6 @@ async function runTaskFinalizePhase(
       queuedFollowups: persisted.queuedFollowups,
       validationSummary: validation.validationSummary,
     });
-  });
-
-  return finalizationResult ?? taskWorkerResult('completed', claim, startedAt, {
-    note: validation.agentResult.note || 'completed',
-    validationSummary: validation.validationSummary,
   });
 }
 

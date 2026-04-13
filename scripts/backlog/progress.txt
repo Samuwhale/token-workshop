@@ -1959,3 +1959,11 @@
   - Preview deletions and persisted cleanup stay aligned when both consume the same cross-set desired-output inventory instead of letting semantic aliases clean themselves up inside only the current target set.
   - Any generator cleanup that can delete from old sets must snapshot every set already owned by that generator before writing, or rollback will miss target-set and brand-template moves.
 ---
+## 2026-04-13 - Split backlog-runner task execution into shared lifecycle phases so remediation and reconciliation stop reimplementing scheduler semantics
+- Added a dedicated scheduler lifecycle helper module for task-agent execution, validation-failure disposition, repair-note appends, and persisted claim transitions. `runTaskWorker()` now delegates execute, validation follow-up classification, and finalize persistence to shared lifecycle helpers, while remediation and reconciliation reuse the same agent and finalize paths instead of carrying their own copies.
+- Validation: `pnpm exec eslint packages/backlog-runner/src/scheduler/workers.ts packages/backlog-runner/src/scheduler/remediation.ts packages/backlog-runner/src/scheduler/task-lifecycle.ts` passed with the existing Node module-type warning from `eslint.config.js`. `pnpm --filter @tokenmanager/backlog-runner exec vitest run src/__tests__/e2e.test.ts` passed.
+- Files changed: `packages/backlog-runner/src/scheduler/task-lifecycle.ts` ~L19, ~L89, ~L114, ~L154; `packages/backlog-runner/src/scheduler/workers.ts` ~L378, ~L484, ~L519, ~L561; `packages/backlog-runner/src/scheduler/remediation.ts` ~L129, ~L163, ~L272, ~L325; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - When worker, remediation, and reconciliation flows all drive the same provider and persistence semantics, a small dedicated lifecycle module is easier to evolve than spreading identical store transitions across each caller.
+  - Returning completed worker results directly from reconciliation recovery avoids hidden “success but no result payload” branches and keeps queued follow-up counts consistent after finalize recovery.
+---
