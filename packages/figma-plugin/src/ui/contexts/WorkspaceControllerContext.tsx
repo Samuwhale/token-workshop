@@ -35,7 +35,6 @@ export interface ShellWorkspaceController {
   openCommandPaletteWithQuery: (query: string) => void;
   openPasteModal: () => void;
   openImportPanel: () => void;
-  openShortcutsPanelFromSettings: () => void;
   openColorScaleGenerator: () => void;
   toggleQuickApply: () => void;
   toggleSetSwitcher: () => void;

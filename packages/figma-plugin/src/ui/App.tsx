@@ -374,6 +374,7 @@ export function App() {
     setThemeStatusMap,
   } = useThemeSwitcherContext();
   const resolverState = useResolverContext();
+  const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const { triggerHeatmapScan } = useHeatmapContext();
   const { triggerUsageScan } = useUsageContext();
@@ -417,9 +418,10 @@ export function App() {
   // undoMaxHistory is managed by SettingsPanel; App re-reads from localStorage when it changes
   const undoHistoryRev = useSettingsListener(STORAGE_KEYS.UNDO_MAX_HISTORY);
   const undoMaxHistory = useMemo(
-    () => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20) ?? 20,
-    // undoHistoryRev triggers re-read from localStorage; not used directly
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => {
+      void undoHistoryRev;
+      return lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20) ?? 20;
+    },
     [undoHistoryRev],
   );
   const [pendingPublishCount, setPendingPublishCount] = useState(0);
@@ -591,13 +593,11 @@ export function App() {
   } = useUndo(undoMaxHistory, setErrorToast);
   // Wire pushUndo into the resolver context so deleteResolver can push undo slots
   useEffect(() => {
-    resolverState.setPushUndo(pushUndo);
+    setResolverPushUndo(pushUndo);
     return () => {
-      resolverState.setPushUndo(undefined);
+      setResolverPushUndo(undefined);
     };
-    // resolverState.setPushUndo is stable (useCallback with no deps); pushUndo is stable
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pushUndo, setResolverPushUndo]);
   const onGeneratorError = useCallback(
     ({ generatorId, message }: { generatorId?: string; message: string }) => {
       const label = generatorId
@@ -1444,19 +1444,6 @@ export function App() {
     },
     [clearHandoff, dismissEphemeralOverlays, openSecondarySurface],
   );
-  const openSettingsHelpPanel = useCallback(
-    (panel: Extract<SecondarySurfaceId, "shortcuts">) => {
-      dismissEphemeralOverlays();
-      beginHandoff({
-        reason:
-          "Review the keyboard reference, then jump back into settings if you still need to adjust preferences or recovery tools.",
-        returnLabel: "Back to Settings",
-        returnSecondarySurfaceId: "settings",
-      });
-      openSecondarySurface(panel);
-    },
-    [beginHandoff, dismissEphemeralOverlays, openSecondarySurface],
-  );
   const toggleSecondarySurface = useCallback(
     (panel: SecondarySurfaceId) => {
       guardEditorAction(() => {
@@ -1798,7 +1785,6 @@ export function App() {
       },
       openPasteModal: () => setShowPasteModal(true),
       openImportPanel: () => openSecondaryPanel("import"),
-      openShortcutsPanelFromSettings: () => openSettingsHelpPanel("shortcuts"),
       openColorScaleGenerator: () => setShowColorScaleGen(true),
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
       toggleSetSwitcher: () => setShowSetSwitcher((visible) => !visible),

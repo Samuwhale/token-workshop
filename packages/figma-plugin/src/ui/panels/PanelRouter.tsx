@@ -134,7 +134,6 @@ export function PanelRouter(): ReactNode {
     ...syncController,
     onShowPasteModal: shell.openPasteModal,
     onShowImportPanel: shell.openImportPanel,
-    onOpenShortcutsPanelFromSettings: shell.openShortcutsPanelFromSettings,
     onShowColorScaleGen: shell.openColorScaleGenerator,
     onOpenStartHere: shell.openStartHere,
     onRestartGuidedSetup: shell.restartGuidedSetup,
@@ -142,6 +141,12 @@ export function PanelRouter(): ReactNode {
     onImportComplete: shell.handleImportComplete,
     onOpenCommandPaletteWithQuery: shell.openCommandPaletteWithQuery,
   };
+  const {
+    showPreviewSplit,
+    setShowPreviewSplit,
+    refreshAll,
+    handleEditorSave,
+  } = controller;
   // Navigation and editor state from contexts (previously passed as props)
   const {
     activeTopTab,
@@ -260,20 +265,15 @@ export function PanelRouter(): ReactNode {
   }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
 
   useEffect(() => {
-    if (!controller.showPreviewSplit) return;
+    if (!showPreviewSplit) return;
     if (
       activeTokensContextualSurface === "compare" ||
       activeTokensContextualSurface === "token-editor" ||
       activeTokensContextualSurface === "generator-editor"
     ) {
-      controller.setShowPreviewSplit(false);
+      setShowPreviewSplit(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs accessed via dot notation
-  }, [
-    activeTokensContextualSurface,
-    controller.showPreviewSplit,
-    controller.setShowPreviewSplit,
-  ]);
+  }, [activeTokensContextualSurface, setShowPreviewSplit, showPreviewSplit]);
 
   const editingTokenType = editingToken
     ? (allTokensFlat[editingToken.path]?.$type ?? editingToken.initialType)
@@ -312,7 +312,7 @@ export function PanelRouter(): ReactNode {
 
   const openTokenEditor = useCallback(
     (options: { path: string; set: string; name?: string }) => {
-      controller.setShowPreviewSplit(false);
+      setShowPreviewSplit(false);
       setPreviewingToken(null);
       setHighlightedToken(options.path);
       if (options.set !== activeSet) {
@@ -327,32 +327,30 @@ export function PanelRouter(): ReactNode {
         },
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
     [
       activeSet,
-      controller.setShowPreviewSplit,
       setActiveSet,
       setHighlightedToken,
       setPreviewingToken,
+      setShowPreviewSplit,
       switchContextualSurface,
     ],
   );
 
   const openGeneratorEditor = useCallback(
     (target: TokensLibraryGeneratorEditorTarget) => {
-      controller.setShowPreviewSplit(false);
+      setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "generator-editor",
         generator: target,
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
-    [controller.setShowPreviewSplit, switchContextualSurface],
+    [setShowPreviewSplit, switchContextualSurface],
   );
 
   const openGeneratedTokens = useCallback(
     (targetGroup: string, targetSet: string) => {
-      controller.setShowPreviewSplit(false);
+      setShowPreviewSplit(false);
       switchContextualSurface({ surface: null });
       setPendingHighlightForSet(targetGroup, targetSet);
       if (targetSet !== activeSet) {
@@ -360,13 +358,12 @@ export function PanelRouter(): ReactNode {
       }
       navigateTo("define", "tokens");
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
     [
       activeSet,
       navigateTo,
-      controller.setShowPreviewSplit,
       setActiveSet,
       setPendingHighlightForSet,
+      setShowPreviewSplit,
       switchContextualSurface,
     ],
   );
@@ -384,13 +381,12 @@ export function PanelRouter(): ReactNode {
       setCreateFromEmpty(false);
     }
     setEditingToken(null);
-    controller.refreshAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
+    refreshAll();
   }, [
     editingToken?.isCreate,
-    controller.refreshAll,
     setCreateFromEmpty,
     setEditingToken,
+    refreshAll,
   ]);
 
   const handleTokenEditorSaved = useCallback(
@@ -399,10 +395,9 @@ export function PanelRouter(): ReactNode {
         persistLastCreateGroup(savedPath);
         setCreateFromEmpty(false);
       }
-      controller.handleEditorSave(savedPath);
+      handleEditorSave(savedPath);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
-    [editingToken?.isCreate, controller.handleEditorSave, setCreateFromEmpty],
+    [editingToken?.isCreate, handleEditorSave, setCreateFromEmpty],
   );
 
   const handleTokenEditorSaveAndCreateAnother = useCallback(
@@ -411,7 +406,7 @@ export function PanelRouter(): ReactNode {
       persistLastCreateType(savedType);
       setCreateFromEmpty(false);
       setHighlightedToken(savedPath);
-      controller.refreshAll();
+      refreshAll();
       const segments = savedPath.split(".");
       const parentPrefix =
         segments.length > 1 ? `${segments.slice(0, -1).join(".")}.` : "";
@@ -423,14 +418,13 @@ export function PanelRouter(): ReactNode {
         createPresentation: "launcher",
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
     [
       activeSet,
       editingToken?.set,
-      controller.refreshAll,
       setCreateFromEmpty,
       setEditingToken,
       setHighlightedToken,
+      refreshAll,
     ],
   );
 
@@ -443,16 +437,15 @@ export function PanelRouter(): ReactNode {
       showTokensCompare
     )
       return;
-    controller.setShowPreviewSplit(false);
+    setShowPreviewSplit(false);
     openCreateLauncher();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- controller methods are stable refs
   }, [
     createFromEmpty,
     editingGenerator,
     editingToken,
     openCreateLauncher,
-    controller.setShowPreviewSplit,
     previewingToken,
+    setShowPreviewSplit,
     showTokensCompare,
   ]);
 
@@ -1104,7 +1097,6 @@ export function PanelRouter(): ReactNode {
         updateServerUrlAndConnect={updateServerUrlAndConnect}
         onRestartGuidedSetup={controller.onRestartGuidedSetup}
         onClearAllComplete={controller.onClearAllComplete}
-        onOpenShortcuts={controller.onOpenShortcutsPanelFromSettings}
         onClose={closeSecondarySurface}
       />
     ),

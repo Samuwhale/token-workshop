@@ -56,35 +56,32 @@ export function useSettingsListener(key: string): number {
 }
 
 // ---------------------------------------------------------------------------
-// Section component
+// Section component (collapsible, for infrequent settings)
 // ---------------------------------------------------------------------------
 
 function Section({
   title,
   children,
   defaultOpen = true,
-  danger = false,
+  suffix,
 }: {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
-  danger?: boolean;
+  suffix?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div
-      className={`rounded border overflow-hidden ${danger ? "border-[var(--color-figma-error)] opacity-80" : "border-[var(--color-figma-border)]"}`}
-    >
+    <div className="rounded border overflow-hidden border-[var(--color-figma-border)]">
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex w-full items-center justify-between bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-out outline-none hover:bg-[var(--color-figma-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px ${open ? "bg-[var(--color-figma-bg)]" : ""} ${danger ? "text-[var(--color-figma-error)]" : ""}`}
+        className={`flex w-full items-center justify-between bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-out outline-none hover:bg-[var(--color-figma-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px ${open ? "bg-[var(--color-figma-bg)]" : ""}`}
       >
         <div className="flex items-center gap-2">
-          <span
-            className={`text-[10px] font-medium uppercase tracking-wide ${danger ? "" : "text-[var(--color-figma-text-secondary)]"}`}
-          >
+          <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
             {title}
           </span>
+          {suffix}
         </div>
         <svg
           width="8"
@@ -110,35 +107,26 @@ function Toggle({
   checked,
   onChange,
   label,
-  description,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
-  description?: string;
 }) {
   return (
-    <label className="flex items-start gap-2 cursor-pointer group">
+    <label className="flex items-center gap-2 cursor-pointer group">
       <button
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`mt-0.5 relative shrink-0 w-7 h-4 rounded-full transition-colors ${checked ? "bg-[var(--color-figma-accent)]" : "bg-[var(--color-figma-border)]"}`}
+        className={`relative shrink-0 w-7 h-4 rounded-full transition-colors ${checked ? "bg-[var(--color-figma-accent)]" : "bg-[var(--color-figma-border)]"}`}
       >
         <span
           className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${checked ? "translate-x-3" : ""}`}
         />
       </button>
-      <div className="flex-1 min-w-0">
-        <span className="text-[11px] text-[var(--color-figma-text)] block">
-          {label}
-        </span>
-        {description && (
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] block leading-relaxed">
-            {description}
-          </span>
-        )}
-      </div>
+      <span className="text-[11px] text-[var(--color-figma-text)]">
+        {label}
+      </span>
     </label>
   );
 }
@@ -180,17 +168,12 @@ function SegmentedControl<T extends string>({
 // ---------------------------------------------------------------------------
 
 export interface SettingsPanelProps {
-  // Server connection
   serverUrl: string;
   connected: boolean;
   checking: boolean;
   updateServerUrlAndConnect: (url: string) => Promise<boolean>;
-  // Guided setup
   onRestartGuidedSetup: () => void;
-  /** Called after deleting workspace data so the caller can refresh into recovery. */
   onClearAllComplete?: () => void;
-  onOpenShortcuts?: () => void;
-  // Close
   onClose: () => void;
 }
 
@@ -267,15 +250,14 @@ export function SettingsPanel({
   updateServerUrlAndConnect,
   onRestartGuidedSetup,
   onClearAllComplete,
-  onOpenShortcuts,
   onClose,
 }: SettingsPanelProps) {
-  // --- Connection state (owned here, not lifted) ---
+  // --- Connection state ---
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<"ok" | "fail" | null>(
     null,
   );
-  // --- Undo history (owned here; dispatches event so App.tsx re-reads) ---
+  // --- Undo history ---
   const [undoMaxHistory, setUndoMaxHistoryState] = useState(() =>
     lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20),
   );
@@ -284,7 +266,7 @@ export function SettingsPanel({
     lsSetJson(STORAGE_KEYS.UNDO_MAX_HISTORY, v);
     dispatchSettingsChanged(STORAGE_KEYS.UNDO_MAX_HISTORY);
   };
-  // --- Danger zone state (owned here) ---
+  // --- Danger zone ---
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearConfirmText, setClearConfirmText] = useState("");
   const [clearing, setClearing] = useState(false);
@@ -316,7 +298,7 @@ export function SettingsPanel({
     resetToDefaults: lintResetDefaults,
   } = useLintConfig(serverUrl, connected);
 
-  // ---- UI Preferences (local state from localStorage) ----
+  // ---- UI Preferences ----
   const [density, setDensity] = useState<Density>(() => {
     const stored = lsGet(STORAGE_KEYS.DENSITY);
     return stored === "compact" ? "compact" : "comfortable";
@@ -356,15 +338,12 @@ export function SettingsPanel({
   const [importSuccess, setImportSuccess] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const importFileRef = useRef<HTMLInputElement | null>(null);
-
-  // Pending import diff — set after parsing file, cleared on apply/cancel
   const [pendingImport, setPendingImport] = useState<{
     data: Record<string, string>;
     diff: ImportDiffEntry[];
   } | null>(null);
 
   const handleExportSettings = useCallback(() => {
-    // Keys that represent user-configurable preferences (not navigation or ephemeral state)
     const preferenceKeys: string[] = [
       STORAGE_KEYS.DENSITY,
       STORAGE_KEYS.COLOR_FORMAT,
@@ -385,14 +364,10 @@ export function SettingsPanel({
     ];
 
     const out: Record<string, string> = {};
-
-    // Fixed preference keys
     for (const key of preferenceKeys) {
       const value = lsGet(key);
       if (value !== null) out[key] = value;
     }
-
-    // Dynamic per-set keys: token-sort:*, token-type-filter:*, tm_pinned:*
     for (const [key, value] of lsEntries()) {
       if (
         key.startsWith(STORAGE_PREFIXES.TOKEN_SORT) ||
@@ -442,7 +417,6 @@ export function SettingsPanel({
         ) {
           throw new Error("Invalid settings file: expected a JSON object");
         }
-        // Collect valid (non-metadata, string-valued, whitelisted) entries
         const data: Record<string, string> = {};
         for (const [key, value] of Object.entries(parsed)) {
           if (key.startsWith("_")) continue;
@@ -453,11 +427,10 @@ export function SettingsPanel({
         if (Object.keys(data).length === 0)
           throw new Error("No preferences found in backup file");
 
-        // Build diff: only entries that differ from current localStorage
         const diff: ImportDiffEntry[] = [];
         for (const [key, newValue] of Object.entries(data)) {
           const oldValue = lsGet(key);
-          if (oldValue === newValue) continue; // unchanged
+          if (oldValue === newValue) continue;
           let label = IMPORT_KEY_LABELS[key];
           if (!label) {
             if (key.startsWith(STORAGE_PREFIXES.TOKEN_SORT))
@@ -474,7 +447,6 @@ export function SettingsPanel({
               label = `Resolved values: ${key.slice(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES.length)}`;
             else label = key;
           }
-          // For presets, show a human-friendly count instead of raw JSON
           let displayOld = oldValue;
           let displayNew = newValue;
           if (key === STORAGE_KEYS.EXPORT_PRESETS) {
@@ -527,7 +499,7 @@ export function SettingsPanel({
     if (!pendingImport) return;
     let applied = 0;
     for (const [key, value] of Object.entries(pendingImport.data)) {
-      if (!isAllowedImportKey(key)) continue; // defense-in-depth: skip any non-whitelisted keys
+      if (!isAllowedImportKey(key)) continue;
       lsSet(key, value);
       applied++;
     }
@@ -546,7 +518,7 @@ export function SettingsPanel({
     }, 800);
   }, [pendingImport]);
 
-  // ---- Export defaults (local state from localStorage) ----
+  // ---- Export defaults ----
   const [exportPlatforms, setExportPlatforms] = useState<Set<string>>(() => {
     const parsed = lsGetJson<string[]>(STORAGE_KEYS.EXPORT_PLATFORMS, []);
     return Array.isArray(parsed) && parsed.length > 0
@@ -603,6 +575,18 @@ export function SettingsPanel({
     lsSet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, v);
   };
 
+  // ---- Connection status suffix for section header ----
+  const serverStatusSuffix = (
+    <span
+      className={`flex items-center gap-1 text-[10px] font-medium normal-case tracking-normal ${connected ? "text-[var(--color-figma-success)]" : checking ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}
+    >
+      <span
+        className={`inline-block h-1.5 w-1.5 rounded-full ${connected ? "bg-[var(--color-figma-success)]" : checking ? "bg-[var(--color-figma-text-secondary)] animate-pulse" : "bg-[var(--color-figma-error)]"}`}
+      />
+      {connected ? "Connected" : checking ? "Checking..." : "Disconnected"}
+    </span>
+  );
+
   return (
     <>
       <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -633,56 +617,13 @@ export function SettingsPanel({
 
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-3 p-3">
-          <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-            Adjust how TokenManager feels on this machine. Most changes apply
-            right away.
-          </p>
 
-          <Section title="Help">
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Use help surfaces when you need a quick reminder, then return to
-              settings for the lower-frequency admin work.
-            </p>
-            <button
-              onClick={onOpenShortcuts}
-              className="flex w-full items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-            >
-              <span>Open keyboard shortcuts</span>
-              <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                ?
-              </span>
-            </button>
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Shortcut search, navigation, and editing commands live there so
-              settings can stay focused on preferences, recovery, and server
-              configuration.
-            </p>
-          </Section>
-
-          <Section title="Workspace behavior">
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Tune the library so everyday review feels faster and easier to
-              scan.
-            </p>
+          {/* ── Everyday preferences (always visible) ── */}
+          <div className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">
-                    Density
-                  </span>
-                  {density !== "comfortable" && (
-                    <button
-                      onClick={() => handleDensityChange("comfortable")}
-                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Controls row height in token lists and inspectors
-                </span>
-              </div>
+              <span className="text-[11px] text-[var(--color-figma-text)]">
+                Density
+              </span>
               <SegmentedControl
                 options={[
                   { value: "compact" as Density, label: "Compact" },
@@ -692,38 +633,17 @@ export function SettingsPanel({
                 onChange={handleDensityChange}
               />
             </div>
+
             <Toggle
               checked={hideDeprecated}
               onChange={handleHideDeprecatedChange}
               label="Hide deprecated tokens"
-              description="Keeps superseded tokens out of the main list so active options stay easier to scan."
             />
-          </Section>
 
-          <Section title="Color and copy defaults">
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Use these when you want copied values and color previews to match
-              the format your team reaches for most often.
-            </p>
             <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">
-                    Color format
-                  </span>
-                  {colorFormat !== "hex" && (
-                    <button
-                      onClick={() => handleColorFormatChange("hex")}
-                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Default display format for color values across the UI
-                </span>
-              </div>
+              <span className="text-[11px] text-[var(--color-figma-text)]">
+                Color format
+              </span>
               <SegmentedControl
                 options={[
                   { value: "hex" as ColorFormat, label: "HEX" },
@@ -741,32 +661,15 @@ export function SettingsPanel({
                 className="h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
                 style={{ backgroundColor: "#3B82F6" }}
               />
-              <span className="shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Sample
-              </span>
               <span className="truncate select-all font-mono text-[10px] text-[var(--color-figma-text)]">
                 {formatHexAs("#3B82F6", colorFormat)}
               </span>
             </div>
+
             <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">
-                    Preferred copy format
-                  </span>
-                  {preferredCopyFormat !== "css-var" && (
-                    <button
-                      onClick={() => handlePreferredCopyFormatChange("css-var")}
-                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Default output for the copy shortcut and quick copy actions
-                </span>
-              </div>
+              <span className="text-[11px] text-[var(--color-figma-text)]">
+                Copy format
+              </span>
               <SegmentedControl
                 options={[
                   { value: "css-var" as PreferredCopyFormat, label: "CSS" },
@@ -779,8 +682,9 @@ export function SettingsPanel({
                 onChange={handlePreferredCopyFormatChange}
               />
             </div>
-            <div>
-              <div className="mb-1 flex items-center justify-between">
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
                 <span className="text-[11px] text-[var(--color-figma-text)]">
                   Contrast background
                 </span>
@@ -793,7 +697,7 @@ export function SettingsPanel({
                   </button>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <input
                   type="color"
                   value={contrastBg || "#ffffff"}
@@ -804,38 +708,39 @@ export function SettingsPanel({
                   type="text"
                   value={contrastBg}
                   onChange={(e) => handleContrastBgChange(e.target.value)}
-                  placeholder="e.g. #ffffff"
-                  className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                  placeholder="#ffffff"
+                  className="w-20 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                 />
               </div>
-              <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Used only for contrast checks in color pickers and previews.
-                Leave empty to use the plugin default background.
-              </p>
             </div>
-          </Section>
 
-          <Section title="Local server connection" defaultOpen={false}>
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Update this only when you want to work with token files on your
-              machine or use server-backed tools like lint rules.
-            </p>
-            <div className="mb-1 flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[var(--color-figma-text)]">
+                Max undo steps
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={200}
+                value={undoMaxHistory}
+                onChange={(e) => {
+                  const v = Math.max(
+                    1,
+                    Math.min(200, Math.round(Number(e.target.value) || 20)),
+                  );
+                  setUndoMaxHistory(v);
+                }}
+                className="w-16 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-right text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+              />
+            </div>
+          </div>
+
+          {/* ── Collapsible sections (infrequent config) ── */}
+          <Section title="Server connection" defaultOpen={false} suffix={serverStatusSuffix}>
+            <div className="flex items-center justify-between mb-1">
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 Server URL
               </label>
-              <span
-                className={`flex items-center gap-1 text-[10px] font-medium ${connected ? "text-[var(--color-figma-success)]" : checking ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}
-              >
-                <span
-                  className={`inline-block h-1.5 w-1.5 rounded-full ${connected ? "bg-[var(--color-figma-success)]" : checking ? "bg-[var(--color-figma-text-secondary)] animate-pulse" : "bg-[var(--color-figma-error)]"}`}
-                />
-                {connected
-                  ? "Connected"
-                  : checking
-                    ? "Checking…"
-                    : "Disconnected"}
-              </span>
             </div>
             <input
               type="text"
@@ -855,12 +760,6 @@ export function SettingsPanel({
               placeholder="http://localhost:9400"
               className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Start the local server with{" "}
-              <span className="font-mono">npm start</span>, then connect here.
-              The default address is{" "}
-              <span className="font-mono">http://localhost:9400</span>.
-            </p>
             {connectResult === "ok" && (
               <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
                 <svg
@@ -931,37 +830,16 @@ export function SettingsPanel({
                 disabled={checking}
                 className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white transition-opacity hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
               >
-                {checking ? "Connecting…" : "Connect"}
+                {checking ? "Connecting..." : "Connect"}
               </button>
             </div>
           </Section>
 
           <Section title="Export defaults" defaultOpen={false}>
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Change these only when your export defaults have shifted. The
-              Export panel reads them as a starting point for future export
-              runs.
-            </p>
             <div>
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-[11px] text-[var(--color-figma-text)]">
-                  Default platforms
-                </span>
-                {!(
-                  exportPlatforms.size === 1 && exportPlatforms.has("css")
-                ) && (
-                  <button
-                    onClick={() => {
-                      const defaultPlatforms = new Set(["css"]);
-                      setExportPlatforms(defaultPlatforms);
-                      lsSetJson(STORAGE_KEYS.EXPORT_PLATFORMS, ["css"]);
-                    }}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Reset to default
-                  </button>
-                )}
-              </div>
+              <span className="text-[11px] text-[var(--color-figma-text)] mb-1 block">
+                Default platforms
+              </span>
               <div className="flex flex-wrap gap-1">
                 {PLATFORMS.map((platform) => (
                   <button
@@ -980,19 +858,9 @@ export function SettingsPanel({
               </div>
             </div>
             <div>
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-[11px] text-[var(--color-figma-text)]">
-                  CSS selector
-                </span>
-                {cssSelector !== ":root" && (
-                  <button
-                    onClick={() => handleCssSelectorChange(":root")}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Reset to :root
-                  </button>
-                )}
-              </div>
+              <span className="text-[11px] text-[var(--color-figma-text)] mb-1 block">
+                CSS selector
+              </span>
               <input
                 type="text"
                 value={cssSelector}
@@ -1000,28 +868,17 @@ export function SettingsPanel({
                 placeholder=":root"
                 className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               />
-              <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Wraps exported custom properties. Leave this at{" "}
-                <code className="font-mono">:root</code> unless your codebase
-                expects a scoped selector.
-              </p>
             </div>
           </Section>
 
           <Section title="Validation rules" defaultOpen={false}>
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Change these when your team needs different lint rules or when you
-              need to troubleshoot validation. The rules are saved with the
-              local server.
-            </p>
             {!connected ? (
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Connect to the local server first to inspect or change lint
-                rules.
+                Connect to the local server to manage lint rules.
               </p>
             ) : !lintConfig ? (
               <p className="animate-pulse text-[10px] text-[var(--color-figma-text-secondary)]">
-                Loading lint config…
+                Loading lint config...
               </p>
             ) : (
               <LintConfigPanel
@@ -1035,344 +892,206 @@ export function SettingsPanel({
             )}
           </Section>
 
-          <Section title="Guided setup" defaultOpen={false}>
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Run setup again to reconnect the server, rebuild foundations, or
-              reset mode configuration from a clean start.
-            </p>
+          {/* ── Utilities ── */}
+          <div className="flex gap-2">
             <button
               onClick={onRestartGuidedSetup}
-              className="flex w-full items-center justify-center gap-1.5 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+              className="flex-1 rounded border border-[var(--color-figma-border)] px-2 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
             >
+              Re-run setup
+            </button>
+            <button
+              onClick={handleExportSettings}
+              className="flex-1 rounded border border-[var(--color-figma-border)] px-2 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+            >
+              Export backup
+            </button>
+            <button
+              onClick={() => {
+                setImportError(null);
+                setImportSuccess(false);
+                importFileRef.current?.click();
+              }}
+              disabled={importLoading}
+              className="flex-1 rounded border border-[var(--color-figma-border)] px-2 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-60"
+            >
+              {importLoading ? "Parsing..." : "Import backup"}
+            </button>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".json,application/json"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImportFile(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          {importSuccess && (
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
               <svg
                 width="10"
                 height="10"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <path d="M23 4v6h-6M1 20v-6h6" />
-                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                <path d="M20 6L9 17l-5-5" />
               </svg>
-              Open guided setup
-            </button>
-          </Section>
-
-          <Section title="Backup and restore" defaultOpen={false}>
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Save a copy of your settings or restore them later. This covers
-              preferences only, not tokens, themes, or sets.
+              Preferences restored, reloading...
+            </div>
+          )}
+          {importError && (
+            <p className="text-[10px] text-[var(--color-figma-error)]">
+              {importError}
             </p>
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Use it before switching machines or before a big round of setup
-              changes.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={handleExportSettings}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-              >
+          )}
+          {pendingImport && (
+            <div className="overflow-hidden rounded border border-[var(--color-figma-border)]">
+              <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                  Preview changes ({pendingImport.diff.length}{" "}
+                  setting{pendingImport.diff.length !== 1 ? "s" : ""})
+                </span>
+                <button
+                  onClick={() => setPendingImport(null)}
+                  className="text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                  aria-label="Dismiss preview"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="max-h-48 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                {pendingImport.diff.map((entry) => (
+                  <div
+                    key={entry.key}
+                    className="flex flex-col gap-0.5 px-2 py-1.5"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`rounded px-1 text-[9px] font-medium ${entry.status === "added" ? "bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]" : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"}`}
+                      >
+                        {entry.status === "added" ? "NEW" : "CHANGED"}
+                      </span>
+                      <span className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
+                        {entry.label}
+                      </span>
+                    </div>
+                    {entry.status === "changed" &&
+                      entry.oldValue !== null && (
+                        <span className="truncate pl-0.5 font-mono text-[9px] text-[var(--color-figma-text-secondary)]">
+                          <span className="text-[var(--color-figma-error)]">
+                            -
+                          </span>{" "}
+                          {entry.oldValue}
+                        </span>
+                      )}
+                    <span className="truncate pl-0.5 font-mono text-[9px] text-[var(--color-figma-text-secondary)]">
+                      <span className="text-[var(--color-figma-success)]">
+                        +
+                      </span>{" "}
+                      {entry.newValue}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[#FFF3CD]/30 px-2 py-2 dark:bg-amber-900/20">
                 <svg
-                  width="10"
-                  height="10"
+                  width="12"
+                  height="12"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="mt-px shrink-0 text-amber-500"
                   aria-hidden="true"
                 >
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                Export preferences backup
-              </button>
+                <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                  Restoring reloads the plugin. Unsaved edits will be lost.
+                </p>
+              </div>
+              <div className="flex gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                <button
+                  onClick={() => setPendingImport(null)}
+                  className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApplyImport}
+                  className="flex-1 rounded bg-amber-500 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-amber-600"
+                >
+                  Restore & reload
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Danger zone ── */}
+          <div className="border-t border-[var(--color-figma-border)] pt-3">
+            {!showClearConfirm ? (
               <button
                 onClick={() => {
-                  setImportError(null);
-                  setImportSuccess(false);
-                  importFileRef.current?.click();
+                  setShowClearConfirm(true);
+                  setClearConfirmText("");
                 }}
-                disabled={importLoading}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
               >
-                {importLoading ? (
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="animate-spin"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                  </svg>
-                ) : (
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-                  </svg>
-                )}
-                {importLoading
-                  ? "Parsing backup…"
-                  : "Restore preferences backup"}
+                Delete workspace data...
               </button>
-              <input
-                ref={importFileRef}
-                type="file"
-                accept=".json,application/json"
-                className="sr-only"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImportFile(file);
-                  e.target.value = "";
-                }}
-              />
-            </div>
-            {importSuccess && (
-              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-                Preferences restored, reloading…
-              </div>
-            )}
-            {importError && (
-              <p className="text-[10px] text-[var(--color-figma-error)]">
-                {importError}
-              </p>
-            )}
-            {pendingImport && (
-              <div className="overflow-hidden rounded border border-[var(--color-figma-border)]">
-                <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                    Preview preference changes ({pendingImport.diff.length}{" "}
-                    setting{pendingImport.diff.length !== 1 ? "s" : ""})
-                  </span>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                  Type{" "}
+                  <span className="font-mono font-bold text-[var(--color-figma-error)]">
+                    DELETE
+                  </span>{" "}
+                  to permanently remove tokens, themes, sets, generators,
+                  resolvers, and history.
+                </p>
+                <input
+                  type="text"
+                  value={clearConfirmText}
+                  onChange={(e) => setClearConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  autoFocus
+                  aria-label="Type DELETE to confirm"
+                  className="w-full rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] outline-none"
+                />
+                <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      setPendingImport(null);
-                    }}
-                    className="text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
-                    aria-label="Dismiss preview"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="max-h-48 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-                  {pendingImport.diff.map((entry) => (
-                    <div
-                      key={entry.key}
-                      className="flex flex-col gap-0.5 px-2 py-1.5"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`rounded px-1 text-[9px] font-medium ${entry.status === "added" ? "bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]" : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"}`}
-                        >
-                          {entry.status === "added" ? "NEW" : "CHANGED"}
-                        </span>
-                        <span className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
-                          {entry.label}
-                        </span>
-                      </div>
-                      {entry.status === "changed" &&
-                        entry.oldValue !== null && (
-                          <span className="truncate pl-0.5 font-mono text-[9px] text-[var(--color-figma-text-secondary)]">
-                            <span className="text-[var(--color-figma-error)]">
-                              -
-                            </span>{" "}
-                            {entry.oldValue}
-                          </span>
-                        )}
-                      <span className="truncate pl-0.5 font-mono text-[9px] text-[var(--color-figma-text-secondary)]">
-                        <span className="text-[var(--color-figma-success)]">
-                          +
-                        </span>{" "}
-                        {entry.newValue}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[#FFF3CD]/30 px-2 py-2 dark:bg-amber-900/20">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="mt-px shrink-0 text-amber-500"
-                    aria-hidden="true"
-                  >
-                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                    <line x1="12" y1="9" x2="12" y2="13" />
-                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                  </svg>
-                  <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                    Restoring this backup reloads the plugin immediately.
-                    Unsaved token or mode edits, selection state, and expanded
-                    panel state will be lost when the reload happens.
-                  </p>
-                </div>
-                <div className="flex gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                  <button
-                    onClick={() => {
-                      setPendingImport(null);
+                      setShowClearConfirm(false);
+                      setClearConfirmText("");
                     }}
                     className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleApplyImport}
-                    className="flex-1 rounded bg-amber-500 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-amber-600"
+                    onClick={handleClearAll}
+                    disabled={clearConfirmText !== "DELETE" || clearing}
+                    className="flex-1 rounded bg-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                   >
-                    Restore preferences & reload
+                    {clearing ? "Clearing..." : "Delete workspace data"}
                   </button>
                 </div>
               </div>
             )}
-          </Section>
-
-          <Section title="Undo history" defaultOpen={false}>
-            <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Increase this only if you regularly make long editing runs and
-              need a deeper local undo stack. Higher values keep more history in
-              browser storage.
-            </p>
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <span className="block text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Max undo steps
-                </span>
-                {undoMaxHistory !== 20 && (
-                  <button
-                    onClick={() => {
-                      setUndoMaxHistory(20);
-                    }}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Reset to 20
-                  </button>
-                )}
-              </div>
-              <input
-                type="number"
-                min={1}
-                max={200}
-                value={undoMaxHistory}
-                onChange={(e) => {
-                  const v = Math.max(
-                    1,
-                    Math.min(200, Math.round(Number(e.target.value) || 20)),
-                  );
-                  setUndoMaxHistory(v);
-                }}
-                className="w-16 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-right text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-              />
-            </div>
-          </Section>
-
-          <div className="mt-1 border-t border-[var(--color-figma-border)] pt-3">
-            <div className="mb-3 rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/5 px-3 py-2.5">
-              <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                Workspace reset
-              </h2>
-              <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Use this only when you need to clear local data and start setup
-                again.
-              </p>
-            </div>
-
-            <Section title="Danger zone" defaultOpen={false} danger>
-              {!showClearConfirm ? (
-                <>
-                  <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                    This removes local tokens, themes, sets, generators,
-                    resolvers, and undo history. Saved preferences stay in
-                    place, then setup opens again.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setShowClearConfirm(true);
-                      setClearConfirmText("");
-                    }}
-                    className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
-                  >
-                    Delete workspace data\u2026
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                    Type{" "}
-                    <span className="font-mono font-bold text-[var(--color-figma-error)]">
-                      DELETE
-                    </span>{" "}
-                    to permanently remove local tokens, themes, sets,
-                    generators, resolvers, and history. Setup opens again after
-                    the reset.
-                  </p>
-                  <input
-                    type="text"
-                    value={clearConfirmText}
-                    onChange={(e) => setClearConfirmText(e.target.value)}
-                    placeholder="DELETE"
-                    autoFocus
-                    aria-label="Type DELETE to confirm"
-                    className="w-full rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] outline-none"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setShowClearConfirm(false);
-                        setClearConfirmText("");
-                      }}
-                      className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleClearAll}
-                      disabled={clearConfirmText !== "DELETE" || clearing}
-                      className="flex-1 rounded bg-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-                    >
-                      {clearing ? "Clearing\u2026" : "Delete workspace data"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </Section>
           </div>
+
         </div>
       </div>
     </>
