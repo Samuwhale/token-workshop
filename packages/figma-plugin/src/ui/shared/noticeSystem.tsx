@@ -4,7 +4,12 @@ import type { ReactNode } from 'react';
 /*  Severity                                                          */
 /* ------------------------------------------------------------------ */
 
-export type NoticeSeverity = 'error' | 'warning' | 'info' | 'success';
+export type NoticeSeverity =
+  | 'error'
+  | 'warning'
+  | 'stale'
+  | 'info'
+  | 'success';
 
 /* ------------------------------------------------------------------ */
 /*  Tone class helpers                                                */
@@ -13,6 +18,7 @@ export type NoticeSeverity = 'error' | 'warning' | 'info' | 'success';
 const BANNER_TONE: Record<NoticeSeverity, string> = {
   error:   'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]',
   warning: 'border-amber-500/60 bg-amber-500/10 text-amber-700',
+  stale:   'border-amber-500/45 bg-amber-500/8 text-amber-700',
   info:    'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
   success: 'border-[var(--color-figma-success)]/40 bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]',
 };
@@ -20,6 +26,7 @@ const BANNER_TONE: Record<NoticeSeverity, string> = {
 const PILL_TONE: Record<NoticeSeverity, string> = {
   error:   'border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/12 text-[var(--color-figma-error)]',
   warning: 'border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/12 text-[var(--color-figma-warning)]',
+  stale:   'border-amber-500/35 bg-amber-500/12 text-amber-700',
   info:    'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
   success: 'border-[var(--color-figma-success)]/30 bg-[var(--color-figma-success)]/12 text-[var(--color-figma-success)]',
 };
@@ -27,6 +34,7 @@ const PILL_TONE: Record<NoticeSeverity, string> = {
 const FIELD_TONE: Record<NoticeSeverity, string> = {
   error:   'text-[var(--color-figma-error)]',
   warning: 'text-amber-500',
+  stale:   'text-amber-600',
   info:    'text-[var(--color-figma-text-tertiary)]',
   success: 'text-[var(--color-figma-success)]',
 };
@@ -34,6 +42,7 @@ const FIELD_TONE: Record<NoticeSeverity, string> = {
 const FIELD_BORDER_TONE: Record<NoticeSeverity, string> = {
   error: 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]',
   warning: 'border-[var(--color-figma-warning)] focus-visible:border-[var(--color-figma-warning)]',
+  stale: 'border-amber-500 focus-visible:border-amber-500',
   info: 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]',
   success: 'border-[var(--color-figma-success)] focus-visible:border-[var(--color-figma-success)]',
 };
@@ -41,6 +50,7 @@ const FIELD_BORDER_TONE: Record<NoticeSeverity, string> = {
 const ICON_TONE: Record<NoticeSeverity, string> = {
   error: 'text-[var(--color-figma-error)]',
   warning: 'text-[var(--color-figma-warning)]',
+  stale: 'text-amber-600',
   info: 'text-[var(--color-figma-text-secondary)]',
   success: 'text-[var(--color-figma-success)]',
 };
@@ -110,7 +120,9 @@ function DismissIcon({ size = 8 }: { size?: number }) {
 
 function severityIcon(severity: NoticeSeverity, size?: number) {
   if (severity === 'error') return <ErrorIcon size={size} />;
-  if (severity === 'warning') return <WarningIcon size={size} />;
+  if (severity === 'warning' || severity === 'stale') {
+    return <WarningIcon size={size} />;
+  }
   return null;
 }
 
@@ -202,6 +214,8 @@ export function NoticeCountBadge({ severity, count, title, className }: NoticeCo
     ? 'bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]'
     : severity === 'warning'
     ? 'bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]'
+    : severity === 'stale'
+    ? 'bg-amber-500/15 text-amber-700'
     : severity === 'info'
     ? 'bg-[var(--color-figma-text-tertiary)]/20 text-[var(--color-figma-text-tertiary)]'
     : 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]';

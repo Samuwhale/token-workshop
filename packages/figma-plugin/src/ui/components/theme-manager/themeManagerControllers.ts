@@ -47,7 +47,7 @@ export function useThemeWorkspaceController({
     serverUrl,
     connected,
     sets,
-    setError: feedback.reportError,
+    setError: feedback.setError,
     onPushUndo,
     onSuccess: feedback.reportSuccess,
   });
@@ -79,7 +79,7 @@ export function useThemeWorkspaceController({
     dimensions,
     setDimensions,
     debouncedFetchDimensions,
-    setError: feedback.reportError,
+    setError: feedback.setError,
     onSuccess: feedback.reportSuccess,
   });
 
@@ -88,7 +88,7 @@ export function useThemeWorkspaceController({
     dimensions,
     coverage,
     debouncedFetchDimensions,
-    setError: feedback.reportError,
+    setError: feedback.setError,
     onSuccess: feedback.reportSuccess,
   });
 
@@ -104,7 +104,7 @@ export function useThemeWorkspaceController({
     setSelectedOptions,
     optionSetOrders,
     setOptionSetOrders,
-    setError: feedback.reportError,
+    setError: feedback.setError,
     onSuccess: feedback.reportSuccess,
     onPushUndo,
     copyFromNewOption: bulkOps.copyFromNewOption,

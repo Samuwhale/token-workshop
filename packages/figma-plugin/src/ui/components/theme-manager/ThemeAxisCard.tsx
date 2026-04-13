@@ -7,6 +7,7 @@ import {
 import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 import type {
   ThemeOptionRoleSummary,
+  ThemeRoleState,
 } from "../themeManagerTypes";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 import { ThemeOptionRail } from "./ThemeOptionRail";

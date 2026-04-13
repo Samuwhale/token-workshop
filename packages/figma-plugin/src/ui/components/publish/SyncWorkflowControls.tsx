@@ -1,12 +1,10 @@
-import type { SyncWorkflowStage, SyncWorkflowTone } from '../../shared/syncWorkflow';
+import type {
+  SyncWorkflowItem,
+  SyncWorkflowStage,
+} from '../../shared/syncWorkflow';
 import {
   WorkflowStageIndicators,
-  type WorkflowStageIndicatorItem,
 } from '../../shared/WorkflowStageIndicators';
-
-type SyncWorkflowItem = WorkflowStageIndicatorItem<SyncWorkflowStage> & {
-  tone: SyncWorkflowTone;
-};
 
 interface SyncWorkflowControlsProps {
   stages: SyncWorkflowItem[];

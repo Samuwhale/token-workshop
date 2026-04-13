@@ -26,6 +26,7 @@ import { TokenGeneratorDialog } from "../components/TokenGeneratorDialog";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
 import { ThemeManager } from "../components/ThemeManager";
 import type { ThemeManagerHandle } from "../components/ThemeManager";
+import { SetManager } from "../components/SetSwitcher";
 import { PublishPanel } from "../components/PublishPanel";
 import type { PublishPanelHandle } from "../components/PublishPanel";
 import { ImportPanel } from "../components/ImportPanel";
@@ -222,6 +223,8 @@ export function PanelRouter(): ReactNode {
     activeSet,
     setActiveSet,
     tokens,
+    setTokenCounts,
+    setDescriptions,
     setCollectionNames,
     setModeNames,
     fetchError,

@@ -521,13 +521,17 @@ export function WelcomePrompt({
           {!connected && (
             <NoticeBanner
               severity={checking ? "info" : "error"}
-              action={
-                onRetryConnection
-                  ? {
-                      label: checking ? "Checking…" : "Retry",
-                      onClick: onRetryConnection,
-                    }
-                  : undefined
+              actions={
+                onRetryConnection ? (
+                  <button
+                    type="button"
+                    onClick={onRetryConnection}
+                    disabled={checking}
+                    className="shrink-0 rounded-full border border-current/20 px-2.5 py-1 text-[10px] font-medium text-current transition-colors hover:bg-current/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {checking ? "Checking…" : "Retry"}
+                  </button>
+                ) : undefined
               }
               className="mt-3"
             >

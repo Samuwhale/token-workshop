@@ -20,6 +20,7 @@ import {
   GeneratorPipelineCard,
   getGeneratorTypeLabel,
 } from "./GeneratorPipelineCard";
+import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
 import { SkeletonGeneratorCard } from "./Skeleton";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { createGeneratorDraftFromTemplate } from "../hooks/useGeneratorDialog";

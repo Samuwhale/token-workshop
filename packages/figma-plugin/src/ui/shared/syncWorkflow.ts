@@ -11,10 +11,15 @@ import type {
 } from '../../shared/types';
 import { apiFetch, createFetchSignal } from './apiFetch';
 import { stableStringify } from './utils';
+import type {
+  WorkflowStageIndicatorItem,
+  WorkflowStageTone,
+} from './WorkflowStageIndicators';
 
 export type SyncWorkflowStage = 'preflight' | 'compare' | 'apply';
 
-export type SyncWorkflowTone = 'current' | 'complete' | 'pending' | 'blocked';
+export type SyncWorkflowTone = WorkflowStageTone;
+export type SyncWorkflowItem = WorkflowStageIndicatorItem<SyncWorkflowStage>;
 
 export type PublishPreflightStage = 'idle' | 'running' | 'blocked' | 'advisory' | 'ready';
 
@@ -143,10 +148,13 @@ interface SyncBuildersSpec<TEntry extends SyncEntry> {
   displayValue: (raw: unknown, type: string) => string;
 }
 
-interface BuildSyncRowsFromMapsParams<TLocal, TFigma, TRow extends DiffRowBase>
-  extends SyncDiffConfig<TLocal, TFigma, TRow> {
+interface BuildSyncRowsFromMapsParams<TLocal, TFigma, TRow extends DiffRowBase> {
   localMap: Map<string, TLocal>;
   figmaMap: Map<string, TFigma>;
+  buildLocalOnlyRow: (path: string, local: TLocal) => TRow;
+  buildFigmaOnlyRow: (path: string, figma: TFigma) => TRow;
+  buildConflictRow: (path: string, local: TLocal, figma: TFigma) => TRow;
+  isConflict: (local: TLocal, figma: TFigma) => boolean;
   resolvePath?: (key: string, local?: TLocal, figma?: TFigma) => string;
   decorateRow?: (row: TRow, key: string, local?: TLocal, figma?: TFigma) => TRow;
   defaultDirection?: (row: TRow, key: string, local?: TLocal, figma?: TFigma) => SyncDirection;
@@ -327,7 +335,11 @@ async function loadResolverVariablePublishSnapshot({
   signal,
   figmaTimeoutMs,
   figmaTimeoutMessage,
-}: Required<Pick<VariablePublishSnapshotParams, 'serverUrl' | 'resolverName' | 'readFigmaTokens'>> &
+}: {
+  serverUrl: string;
+  resolverName: string;
+  readFigmaTokens: () => Promise<unknown[]>;
+} &
   Pick<VariablePublishSnapshotParams, 'signal' | 'figmaTimeoutMs' | 'figmaTimeoutMessage'> & {
     resolverPublishMappings: ResolverPublishSyncMapping[];
   }): Promise<SyncSnapshot<PublishSyncEntry, PublishSyncEntry, PublishDiffRow>> {
@@ -428,7 +440,9 @@ export const variablePublishDiffConfig = createPublishSyncBuilders<PublishSyncEn
   fromLocalToken: (token) => {
     const scopes =
       Array.isArray(token.$extensions?.['com.figma.scopes']) ? token.$extensions['com.figma.scopes'] :
-      Array.isArray((token as { $scopes?: unknown[] }).$scopes) ? (token as { $scopes: string[] }).$scopes :
+      Array.isArray((token as unknown as { $scopes?: unknown[] }).$scopes)
+        ? (token as unknown as { $scopes: string[] }).$scopes
+        :
       undefined;
     return {
       raw: String(token.$value),

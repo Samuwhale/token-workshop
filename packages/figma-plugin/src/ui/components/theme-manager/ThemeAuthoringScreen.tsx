@@ -15,6 +15,7 @@ import { NoticeFieldMessage } from "../../shared/noticeSystem";
 import type {
   CoverageMap,
   ThemeOptionRoleSummary,
+  ThemeRoleState,
 } from "../themeManagerTypes";
 import type {
   ThemeIssueSummary,

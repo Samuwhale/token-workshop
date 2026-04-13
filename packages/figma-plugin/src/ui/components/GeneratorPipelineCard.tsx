@@ -844,6 +844,7 @@ function QuickEditPanel({
     pendingOverrides: generator.overrides ?? {},
     isMultiBrand,
     inputTable: generator.inputTable,
+    targetSetTemplate: generator.targetSetTemplate ?? "brands/{brand}",
   });
 
   const handleSave = async () => {

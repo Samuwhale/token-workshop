@@ -1,27 +1,12 @@
-import type { ImportSource, ImportWorkflowStage, SourceFamily } from './importPanelTypes';
 import {
+  type ImportSource,
+  type ImportWorkflowItem,
+  type ImportWorkflowStage,
+  type ImportWorkflowTone,
+  type SourceFamily,
   getFamilyDefinition,
   getSourceDefinition,
 } from './importPanelTypes';
-
-type ImportWorkflowTone = 'current' | 'complete' | 'pending' | 'blocked';
-type ImportWorkflowStage = 'family' | 'format' | 'destination';
-
-interface WorkflowStep {
-  id: ImportWorkflowStage;
-  step: number;
-  label: string;
-  detail: string;
-  tone: ImportWorkflowTone;
-}
-
-interface ImportWorkflowStepsProps {
-  sourceFamily: SourceFamily | null;
-  source: ImportSource | null;
-  workflowStage: ImportWorkflowStage;
-  destinationReady: boolean;
-  destinationLabel?: string;
-}
 
 const stageToneClasses: Record<ImportWorkflowTone, string> = {
   current: 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-text)]',
@@ -37,13 +22,21 @@ const badgeToneClasses: Record<ImportWorkflowTone, string> = {
   blocked: 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]',
 };
 
+interface ImportWorkflowStepsProps {
+  sourceFamily: SourceFamily | null;
+  source: ImportSource | null;
+  workflowStage: ImportWorkflowStage;
+  destinationReady: boolean;
+  destinationLabel?: string;
+}
+
 function buildSteps(
   sourceFamily: SourceFamily | null,
   source: ImportSource | null,
   workflowStage: ImportWorkflowStage,
   destinationReady: boolean,
   destinationLabel?: string,
-): WorkflowStep[] {
+): ImportWorkflowItem[] {
   const family = getFamilyDefinition(sourceFamily);
   const format = getSourceDefinition(source);
 

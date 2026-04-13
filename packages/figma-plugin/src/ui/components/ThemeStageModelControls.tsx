@@ -1,17 +1,16 @@
-import type { ThemeAuthoringStage } from '../shared/themeWorkflow';
+import type {
+  ThemeAuthoringStage,
+  ThemeWorkflowAction,
+  ThemeWorkflowItem,
+} from '../shared/themeWorkflow';
 import {
   WorkflowStageIndicators,
-  type WorkflowStageIndicatorAction,
-  type WorkflowStageIndicatorItem,
 } from '../shared/WorkflowStageIndicators';
 
-type ThemeStageItem = WorkflowStageIndicatorItem<ThemeAuthoringStage>;
-type ThemeStageAction = WorkflowStageIndicatorAction;
-
 interface ThemeStageModelControlsProps {
-  stages: ThemeStageItem[];
+  stages: ThemeWorkflowItem[];
   onSelectStage: (stage: ThemeAuthoringStage) => void;
-  actions?: ThemeStageAction[];
+  actions?: ThemeWorkflowAction[];
 }
 
 export function ThemeStageModelControls({

@@ -55,12 +55,14 @@ import {
 } from "./shared/navigationTypes";
 import type {
   ThemeAuthoringStage,
+  ThemeWorkflowItem,
   ThemeWorkspaceShellState,
 } from "./shared/themeWorkflow";
 import { summarizeThemeWorkflow } from "./shared/themeWorkflow";
 import {
   DEFAULT_PUBLISH_PREFLIGHT_STATE,
   type PublishPreflightState,
+  type SyncWorkflowItem,
   type SyncWorkflowStage,
 } from "./shared/syncWorkflow";
 import type { NoticeSeverity } from "./shared/noticeSystem";
@@ -2228,7 +2230,7 @@ export function App() {
     if (activeSecondarySurface !== null || activeWorkspace.id !== "themes")
       return null;
 
-    const stages = [
+    const stages: ThemeWorkflowItem[] = [
       {
         id: "axes" as const,
         step: 1,
@@ -2371,7 +2373,7 @@ export function App() {
     )
       return null;
 
-    const stages = [
+    const stages: SyncWorkflowItem[] = [
       {
         id: "preflight" as const,
         step: 1,
@@ -2498,10 +2500,7 @@ export function App() {
 
       if (themeWorkflowSummary.currentStage === "preview") {
         return {
-          label:
-            themeShellState.authoringMode === "preview"
-              ? "Review preview"
-              : "Preview combination",
+          label: "Preview combination",
           onClick: () => {
             guardEditorAction(() => {
               navigateTo("define", "themes");

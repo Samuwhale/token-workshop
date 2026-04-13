@@ -6,6 +6,11 @@ import {
   type MissingOverridesMap,
   type ThemeOptionRolePriority,
 } from "../components/themeManagerTypes";
+import type {
+  WorkflowStageIndicatorAction,
+  WorkflowStageIndicatorItem,
+  WorkflowStageTone,
+} from "./WorkflowStageIndicators";
 
 export type ThemeAuthoringStage = "axes" | "options" | "set-roles" | "preview";
 export type ThemeManagerView =
@@ -15,6 +20,9 @@ export type ThemeManagerView =
   | "advanced-setup"
   | "advanced";
 export type ThemeAuthoringMode = "roles" | "preview";
+export type ThemeWorkflowTone = WorkflowStageTone;
+export type ThemeWorkflowItem = WorkflowStageIndicatorItem<ThemeAuthoringStage>;
+export type ThemeWorkflowAction = WorkflowStageIndicatorAction;
 
 export interface ThemeRoleNavigationTarget {
   dimId: string | null;
