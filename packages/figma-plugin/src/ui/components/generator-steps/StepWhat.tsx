@@ -42,6 +42,10 @@ import { Spinner } from '../Spinner';
 import { ValueDiff } from '../ValueDiff';
 import { AUTHORING_SURFACE_CLASSES } from '../EditorShell';
 import { GENERATOR_AUTHORING_CLASSES } from '../generatorAuthoringSurface';
+import {
+  cloneStarterConfigForGeneratorType,
+  getStarterTemplateForGeneratorType,
+} from '../graph-templates';
 
 
 // ---------------------------------------------------------------------------
@@ -311,6 +315,7 @@ export function StepWhat({
 
   const typeExpectsColor = selectedType === 'colorRamp' || selectedType === 'accessibleColorPair' || selectedType === 'darkModeInversion';
   const typeExpectsDimension = selectedType === 'typeScale' || selectedType === 'spacingScale' || selectedType === 'borderRadiusScale';
+  const starterTemplate = getStarterTemplateForGeneratorType(selectedType);
 
   return (
     <section className={`${GENERATOR_AUTHORING_CLASSES.root} ${GENERATOR_AUTHORING_CLASSES.section}`}>
@@ -349,6 +354,52 @@ export function StepWhat({
                 onSourcePathChange={onSourcePathChange}
                 onInlineValueChange={onInlineValueChange}
               />
+            </div>
+          )}
+
+          {starterTemplate && (
+            <div className={GENERATOR_AUTHORING_CLASSES.sectionCard}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className={GENERATOR_AUTHORING_CLASSES.summaryLabel}>Starter preset</div>
+                  <div className="mt-1 text-[12px] font-semibold text-[var(--color-figma-text)]">
+                    {starterTemplate.starterPresetName}
+                  </div>
+                  <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    {starterTemplate.whenToUse}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const starterConfig = cloneStarterConfigForGeneratorType(selectedType);
+                    if (!starterConfig) return;
+                    onConfigInteractionStart();
+                    onConfigChange(selectedType, starterConfig);
+                  }}
+                  className="shrink-0 px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                >
+                  Restore preset
+                </button>
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
+                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                    Starts with
+                  </div>
+                  <div className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text)]">
+                    {starterTemplate.starterPreset}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
+                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                    Source guidance
+                  </div>
+                  <div className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text)]">
+                    {starterTemplate.sourceRequirement}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

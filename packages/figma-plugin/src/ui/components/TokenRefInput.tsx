@@ -109,29 +109,13 @@ export function TokenRefInput({
             onClick={openPicker}
             title="Link to a token"
             aria-label="Link to a token"
-            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
-            {/* Chain-link icon */}
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
             </svg>
-          </button>
-        )}
-        {tokenRef && (
-          <button
-            type="button"
-            onClick={onUnlink}
-            title="Unlink token — edit value directly"
-            aria-label="Unlink token"
-            className="p-0.5 rounded text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            {/* Broken chain icon */}
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
-              <line x1="4" y1="4" x2="20" y2="20"/>
-            </svg>
+            <span>Link token</span>
           </button>
         )}
       </div>
@@ -154,6 +138,20 @@ export function TokenRefInput({
               {linkedValueLabel}
             </span>
           )}
+          <button
+            type="button"
+            onClick={onUnlink}
+            title="Unlink token — edit value directly"
+            aria-label="Unlink token"
+            className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+              <line x1="4" y1="4" x2="20" y2="20"/>
+            </svg>
+            <span>Unlink</span>
+          </button>
         </div>
       ) : (
         children

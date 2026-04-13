@@ -5,7 +5,9 @@ import type {
   ContrastCheckConfig,
   CustomScaleConfig,
   DarkModeInversionConfig,
+  GeneratorConfig,
   GeneratorTemplate,
+  GeneratorType,
   OpacityScaleConfig,
   ShadowScaleConfig,
   SpacingScaleConfig,
@@ -22,6 +24,7 @@ export interface SemanticStarter {
 export interface GraphTemplate extends GeneratorTemplate {
   whenToUse: string;
   stages: string[];
+  starterPresetName: string;
   starterPreset: string;
   sourceRequirement: string;
   sourceTokenTypes?: string[];
@@ -36,6 +39,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when you need a core brand scale for UI states, fills, and accents without hand-tuning every shade.",
     stages: ["Goal", "Base color", "11-step palette", "Action aliases"],
+    starterPresetName: "Balanced brand ramp",
     starterPreset: "11-step ramp with action.default, hover, active, and disabled starters.",
     sourceRequirement: "Best with a color token or hex value.",
     sourceTokenTypes: ["color"],
@@ -66,6 +70,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when you want layout spacing, padding, and gaps to stay proportional across components and pages.",
     stages: ["Goal", "Base unit", "Spacing ladder", "Component spacing"],
+    starterPresetName: "Product spacing starter",
     starterPreset: "Tailwind-style spacing scale plus component.padding and component.gap starters.",
     sourceRequirement: "Best with a dimension token such as 4px or 8px.",
     sourceTokenTypes: ["dimension"],
@@ -107,6 +112,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when body copy and headings need a predictable rhythm instead of individually-picked sizes.",
     stages: ["Goal", "Base size", "Ratio", "xs to 3xl scale"],
+    starterPresetName: "4:3 text starter",
     starterPreset: "4:3 modular scale with xs, sm, base, lg, xl, 2xl, and 3xl steps.",
     sourceRequirement: "Best with a font-size or dimension token such as 16px or 1rem.",
     sourceTokenTypes: ["fontSize", "dimension"],
@@ -136,6 +142,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when cards, inputs, buttons, and containers should share a consistent rounding language.",
     stages: ["Goal", "Base radius", "none to full scale"],
+    starterPresetName: "Interface radius starter",
     starterPreset: "none, sm, md, lg, xl, 2xl, and full radius steps.",
     sourceRequirement: "Best with a dimension token such as 4px or 8px.",
     sourceTokenTypes: ["dimension"],
@@ -162,6 +169,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when you want shared transparency values for hovers, scrims, disabled UI, or subtle layering effects.",
     stages: ["Goal", "Opacity ladder"],
+    starterPresetName: "UI state opacity starter",
     starterPreset: "0 to 100 opacity levels with common intermediate stops.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "opacity",
@@ -191,6 +199,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when overlays, sticky UI, dropdowns, modals, and toasts need a stable stacking order across the product.",
     stages: ["Goal", "Named layers"],
+    starterPresetName: "App layer stack starter",
     starterPreset: "below, base, raised, dropdown, sticky, overlay, modal, and toast layers.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "zIndex",
@@ -216,6 +225,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when cards, modals, and menus need repeatable shadow recipes instead of one-off effects.",
     stages: ["Goal", "Shadow recipe", "Depth scale", "Surface aliases"],
+    starterPresetName: "Elevation starter",
     starterPreset: "Five shadow levels plus component.card, modal, and dropdown starters.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "shadow",
@@ -247,6 +257,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when you need a bespoke numeric system or want to prototype a non-standard scale before locking it in.",
     stages: ["Goal", "Formula", "Named steps"],
+    starterPresetName: "Formula sandbox starter",
     starterPreset: "A numeric base × multiplier formula with editable sm, md, and lg steps.",
     sourceRequirement: "Works standalone, or you can point it at any compatible base token later.",
     sourceTokenTypes: ["number", "dimension"],
@@ -271,6 +282,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when buttons, badges, or highlighted surfaces need guaranteed text contrast from a brand color.",
     stages: ["Goal", "Brand color", "AA-safe pair", "On-brand aliases"],
+    starterPresetName: "Brand surface pair",
     starterPreset: "AA-safe bg and fg pair plus surface.brand and text.onBrand starters.",
     sourceRequirement: "Best with a color token or hex value.",
     sourceTokenTypes: ["color"],
@@ -297,6 +309,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when you already trust a light token and want a perceptually related dark-mode counterpart instead of picking a separate swatch.",
     stages: ["Goal", "Light color", "OKLab inversion", "Dark alias"],
+    starterPresetName: "Single dark counterpart",
     starterPreset: "Single inverted step with a theme.dark surface starter.",
     sourceRequirement: "Best with a light-mode color token or hex value.",
     sourceTokenTypes: ["color"],
@@ -319,6 +332,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     whenToUse:
       "Use when you need a quick accessibility readout before committing to semantic aliases or publishing a palette.",
     stages: ["Goal", "Background", "Sample swatches", "AA and AAA check"],
+    starterPresetName: "Surface contrast audit",
     starterPreset: "A neutral surface background with sample text, icon, and muted foreground checks.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "contrast",
@@ -353,6 +367,20 @@ export function getTemplateStepCount(template: GraphTemplate): number {
 
 export function getTemplateSemanticCount(template: GraphTemplate): number {
   return template.semanticStarter?.mappings.length ?? 0;
+}
+
+export function getStarterTemplateForGeneratorType(
+  generatorType: GeneratorType,
+): GraphTemplate | undefined {
+  return GRAPH_TEMPLATES.find((template) => template.generatorType === generatorType);
+}
+
+export function cloneStarterConfigForGeneratorType(
+  generatorType: GeneratorType,
+): GeneratorConfig | undefined {
+  const template = getStarterTemplateForGeneratorType(generatorType);
+  if (!template) return undefined;
+  return JSON.parse(JSON.stringify(template.config)) as GeneratorConfig;
 }
 
 /** Map a DTCG token $type to the best-fit intent id. */

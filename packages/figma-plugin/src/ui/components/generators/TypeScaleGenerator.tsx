@@ -19,7 +19,7 @@ export const DEFAULT_TYPE_SCALE_CONFIG: TypeScaleConfig = {
     { name: '2xl', exponent: 3 },
     { name: '3xl', exponent: 4 },
   ],
-  ratio: 1.25,
+  ratio: 1.333,
   unit: 'rem',
   baseStep: 'base',
   roundTo: 3,
@@ -394,6 +394,27 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
             );
           })}
         </div>
+        <TokenRefInput
+          label="Scale ratio"
+          tokenRef={config.$tokenRefs?.ratio}
+          valueLabel={String(config.ratio)}
+          filterType="number"
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onLink={setRatioTokenRef}
+          onUnlink={clearRatioTokenRef}
+        >
+          <div className="mt-3 flex items-center justify-between rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span>
+              Ratio <span className="font-mono text-[var(--color-figma-text)]">{config.ratio}</span>
+            </span>
+            {activePresetRatio && (
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                {activePresetRatio.label}
+              </span>
+            )}
+          </div>
+        </TokenRefInput>
         <button
           type="button"
           onClick={() => setShowFullEditor(v => !v)}
@@ -405,17 +426,8 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
       </div>
 
       {showFullEditor && <>
-      <TokenRefInput
-        label="Scale ratio"
-        tokenRef={config.$tokenRefs?.ratio}
-        valueLabel={String(config.ratio)}
-        filterType="number"
-        allTokensFlat={allTokensFlat}
-        pathToSet={pathToSet}
-        onLink={setRatioTokenRef}
-        onUnlink={clearRatioTokenRef}
-      >
       <div>
+        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Scale ratio</label>
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Current: {config.ratio}</span>
           <button
@@ -547,7 +559,6 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
           </div>
         )}
       </div>
-      </TokenRefInput>
       {!compareMode && (
         <TypeScaleStaircaseEditor
           config={config}

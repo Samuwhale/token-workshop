@@ -11,7 +11,12 @@ import { TokenRefInput } from '../TokenRefInput';
 
 export const DEFAULT_CONTRAST_CHECK_CONFIG: ContrastCheckConfig = {
   backgroundHex: '#ffffff',
-  steps: [],
+  steps: [
+    { name: 'text.primary', hex: '#111827' },
+    { name: 'text.secondary', hex: '#4B5563' },
+    { name: 'icon.default', hex: '#6B7280' },
+    { name: 'text.inverse', hex: '#FFFFFF' },
+  ],
   levels: ['AA', 'AAA'],
 };
 

@@ -8,9 +8,7 @@ import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 
 export const DEFAULT_SPACING_SCALE_CONFIG: SpacingScaleConfig = {
   steps: [
-    { name: '0.5', multiplier: 0.5 },
     { name: '1', multiplier: 1 },
-    { name: '1.5', multiplier: 1.5 },
     { name: '2', multiplier: 2 },
     { name: '3', multiplier: 3 },
     { name: '4', multiplier: 4 },
@@ -33,7 +31,7 @@ export const DEFAULT_SPACING_SCALE_CONFIG: SpacingScaleConfig = {
 export const SPACING_STEP_PRESETS = [
   {
     label: 'Tailwind',
-    description: '14 steps (0.5–24× base unit) matching the Tailwind CSS spacing scale',
+    description: '12 steps (1–24× base unit) for a broad product spacing ladder',
     steps: DEFAULT_SPACING_SCALE_CONFIG.steps,
   },
   {

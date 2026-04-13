@@ -384,6 +384,65 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
             );
           })}
         </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <TokenRefInput
+            label="Light end L*"
+            tokenRef={config.$tokenRefs?.lightEnd}
+            valueLabel={String(config.lightEnd)}
+            filterType="number"
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            onLink={(path, val) => setTokenRef('lightEnd', path, val)}
+            onUnlink={() => clearTokenRef('lightEnd')}
+          >
+            <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+              <span
+                className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
+                style={{ background: lstarToSwatchHex(config.lightEnd) }}
+                title={`L* ${config.lightEnd} neutral gray`}
+              />
+              <span className="text-[var(--color-figma-text)]">L* {config.lightEnd}</span>
+            </div>
+          </TokenRefInput>
+          <TokenRefInput
+            label="Dark end L*"
+            tokenRef={config.$tokenRefs?.darkEnd}
+            valueLabel={String(config.darkEnd)}
+            filterType="number"
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            onLink={(path, val) => setTokenRef('darkEnd', path, val)}
+            onUnlink={() => clearTokenRef('darkEnd')}
+          >
+            <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+              <span
+                className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
+                style={{ background: lstarToSwatchHex(config.darkEnd) }}
+                title={`L* ${config.darkEnd} neutral gray`}
+              />
+              <span className="text-[var(--color-figma-text)]">L* {config.darkEnd}</span>
+            </div>
+          </TokenRefInput>
+        </div>
+        <TokenRefInput
+          label="Chroma boost"
+          tokenRef={config.$tokenRefs?.chromaBoost}
+          valueLabel={`${config.chromaBoost.toFixed(1)}x`}
+          filterType="number"
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onLink={(path, val) => setTokenRef('chromaBoost', path, val)}
+          onUnlink={() => clearTokenRef('chromaBoost')}
+        >
+          <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span
+              className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
+              style={{ background: chromaBoostToSwatchHex(config.chromaBoost) }}
+              title={`Chroma boost ${config.chromaBoost.toFixed(1)}x (reference hue)`}
+            />
+            <span className="text-[var(--color-figma-text)]">{config.chromaBoost.toFixed(1)}x</span>
+          </div>
+        </TokenRefInput>
         <button
           type="button"
           onClick={() => setShowFullEditor(v => !v)}
@@ -406,16 +465,8 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <TokenRefInput
-          label="Light end L*"
-          tokenRef={config.$tokenRefs?.lightEnd}
-          valueLabel={String(config.lightEnd)}
-          filterType="number"
-          allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          onLink={(path, val) => setTokenRef('lightEnd', path, val)}
-          onUnlink={() => clearTokenRef('lightEnd')}
-        >
+        <div>
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Light end L*</label>
           <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
@@ -425,17 +476,9 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
             <span className="text-[var(--color-figma-text)]">{config.lightEnd}</span>
           </div>
           <input type="range" min={80} max={99} step={1} value={config.lightEnd} onPointerDown={onInteractionStart} onChange={e => onChange({ ...config, lightEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
-        </TokenRefInput>
-        <TokenRefInput
-          label="Dark end L*"
-          tokenRef={config.$tokenRefs?.darkEnd}
-          valueLabel={String(config.darkEnd)}
-          filterType="number"
-          allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          onLink={(path, val) => setTokenRef('darkEnd', path, val)}
-          onUnlink={() => clearTokenRef('darkEnd')}
-        >
+        </div>
+        <div>
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Dark end L*</label>
           <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
@@ -445,7 +488,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
             <span className="text-[var(--color-figma-text)]">{config.darkEnd}</span>
           </div>
           <input type="range" min={2} max={30} step={1} value={config.darkEnd} onPointerDown={onInteractionStart} onChange={e => onChange({ ...config, darkEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
-        </TokenRefInput>
+        </div>
       </div>
       <BezierCurveEditor
         curve={config.lightnessCurve ?? [0.42, 0, 0.58, 1]}
@@ -457,16 +500,8 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
         sourceHex={sourceHex}
         chromaBoost={config.chromaBoost}
       />
-      <TokenRefInput
-        label="Chroma boost"
-        tokenRef={config.$tokenRefs?.chromaBoost}
-        valueLabel={`${config.chromaBoost.toFixed(1)}x`}
-        filterType="number"
-        allTokensFlat={allTokensFlat}
-        pathToSet={pathToSet}
-        onLink={(path, val) => setTokenRef('chromaBoost', path, val)}
-        onUnlink={() => clearTokenRef('chromaBoost')}
-      >
+      <div>
+        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Chroma boost</label>
         <div>
           <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
             <span
@@ -482,7 +517,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
             <span className="text-[8px] text-[var(--color-figma-text-secondary)]">2.0 vivid</span>
           </div>
         </div>
-      </TokenRefInput>
+      </div>
       <div>
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <input type="checkbox" checked={config.includeSource} onChange={e => onChange({ ...config, includeSource: e.target.checked })} className="accent-[var(--color-figma-accent)] w-3 h-3" />

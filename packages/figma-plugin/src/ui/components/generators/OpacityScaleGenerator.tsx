@@ -9,7 +9,6 @@ import { OverrideRow } from './generatorShared';
 export const DEFAULT_OPACITY_SCALE_CONFIG: OpacityScaleConfig = {
   steps: [
     { name: '0', value: 0 },
-    { name: '5', value: 5 },
     { name: '10', value: 10 },
     { name: '20', value: 20 },
     { name: '30', value: 30 },
@@ -29,7 +28,7 @@ export const DEFAULT_OPACITY_SCALE_CONFIG: OpacityScaleConfig = {
 // ---------------------------------------------------------------------------
 
 const OPACITY_PRESETS = [
-  { label: 'Full range (13)', description: '13 steps: 0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100% — fine-grained opacity control', steps: DEFAULT_OPACITY_SCALE_CONFIG.steps },
+  { label: 'Full range (12)', description: '12 steps: 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100% — fine-grained opacity control', steps: DEFAULT_OPACITY_SCALE_CONFIG.steps },
   {
     label: 'Compact (5)',
     description: '5 steps: 0, 25, 50, 75, 100% — simple quarter increments',
