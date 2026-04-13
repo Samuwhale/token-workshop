@@ -32,8 +32,8 @@ function makeConfig() {
       runners: {
         taskUi: { tool: 'claude', model: 'claude-opus-4-6' },
         taskCode: { tool: 'codex', model: 'gpt-5.4' },
-        planner: { tool: 'claude', model: 'claude-opus-4-6' },
-        product: { tool: 'claude', model: 'claude-opus-4-6' },
+        planner: { tool: 'codex', model: 'gpt-5.4' },
+        product: { tool: 'codex', model: 'gpt-5.4' },
         interface: { tool: 'claude', model: 'claude-opus-4-6' },
         ux: { tool: 'claude', model: 'claude-opus-4-6' },
         code: { tool: 'codex', model: 'gpt-5.4' },

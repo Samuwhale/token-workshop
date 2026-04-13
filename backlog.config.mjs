@@ -40,12 +40,12 @@ export default {
       model: 'gpt-5.4',
     },
     planner: {
-      tool: 'claude',
-      model: 'claude-opus-4-6',
+      tool: 'codex',
+      model: 'gpt-5.4',
     },
     product: {
-      tool: 'claude',
-      model: 'claude-opus-4-6',
+      tool: 'codex',
+      model: 'gpt-5.4',
     },
     interface: {
       tool: 'claude',
