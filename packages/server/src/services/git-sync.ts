@@ -1,12 +1,14 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { flattenTokenGroup, type Token } from "@tokenmanager/core";
 import { BadRequestError, GitTimeoutError } from "../errors.js";
 import type { TokenStore } from "./token-store.js";
 import type { DimensionsStore } from "../routes/themes.js";
 import type { GeneratorService } from "./generator-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
+import { stableStringify } from "./stable-stringify.js";
 
 /**
  * Timeout (ms) applied to all git network operations (fetch, pull, push).
@@ -84,6 +86,41 @@ function parseStatusLine(
     return { status, filePath: parts[parts.length - 1] };
   }
   return { status, filePath: parts.slice(1).join("\t") };
+}
+
+export type GitTokenFileStatus = "A" | "M" | "D";
+
+export interface GitTokenChange {
+  path: string;
+  set: string;
+  type: string;
+  status: "added" | "modified" | "removed";
+  before?: unknown;
+  after?: unknown;
+}
+
+export interface GitTokenFileDiff {
+  file: string;
+  set: string;
+  status: GitTokenFileStatus;
+  before: string | null;
+  after: string | null;
+  beforeTokens: Map<string, Token>;
+  afterTokens: Map<string, Token>;
+  changes: GitTokenChange[];
+}
+
+interface TokenDiffLoadOptions {
+  diffArgs: string[];
+  loadBefore: (
+    filePath: string,
+    status: GitTokenFileStatus,
+  ) => Promise<string | null>;
+  loadAfter: (
+    filePath: string,
+    status: GitTokenFileStatus,
+  ) => Promise<string | null>;
+  includeUntrackedWorkingTree?: boolean;
 }
 
 /** Result of applyDiffChoices with partial-failure details. */
@@ -553,88 +590,207 @@ export class GitSync {
     }
   }
 
+  private getSetNameForFile(filePath: string): string {
+    return filePath.replace(/\.tokens\.json$/, "");
+  }
+
+  private parseTokenContent(content: string | null): Map<string, Token> {
+    const tokens = new Map<string, Token>();
+    if (!content) return tokens;
+
+    try {
+      for (const [tokenPath, token] of flattenTokenGroup(JSON.parse(content))) {
+        tokens.set(tokenPath, token as Token);
+      }
+    } catch {
+      // Skip unreadable or non-token JSON payloads so previews can still load.
+    }
+
+    return tokens;
+  }
+
+  private buildTokenChanges(
+    setName: string,
+    beforeTokens: Map<string, Token>,
+    afterTokens: Map<string, Token>,
+  ): GitTokenChange[] {
+    const changes: GitTokenChange[] = [];
+
+    for (const [tokenPath, token] of afterTokens) {
+      if (!beforeTokens.has(tokenPath)) {
+        changes.push({
+          path: tokenPath,
+          set: setName,
+          type: token.$type || "unknown",
+          status: "added",
+          after: token.$value,
+        });
+      }
+    }
+
+    for (const [tokenPath, token] of beforeTokens) {
+      if (!afterTokens.has(tokenPath)) {
+        changes.push({
+          path: tokenPath,
+          set: setName,
+          type: token.$type || "unknown",
+          status: "removed",
+          before: token.$value,
+        });
+      }
+    }
+
+    for (const [tokenPath, afterToken] of afterTokens) {
+      const beforeToken = beforeTokens.get(tokenPath);
+      if (!beforeToken) continue;
+
+      if (
+        stableStringify(beforeToken.$value) !==
+        stableStringify(afterToken.$value)
+      ) {
+        changes.push({
+          path: tokenPath,
+          set: setName,
+          type: afterToken.$type || beforeToken.$type || "unknown",
+          status: "modified",
+          before: beforeToken.$value,
+          after: afterToken.$value,
+        });
+      }
+    }
+
+    return changes;
+  }
+
+  private async readWorkingTreeFile(filePath: string): Promise<string | null> {
+    const absPath = path.resolve(this.dir, filePath);
+    try {
+      return await fs.readFile(absPath, "utf-8");
+    } catch {
+      return null;
+    }
+  }
+
+  private async buildTokenFileDiff(
+    filePath: string,
+    status: GitTokenFileStatus,
+    loadBefore: (
+      filePath: string,
+      status: GitTokenFileStatus,
+    ) => Promise<string | null>,
+    loadAfter: (
+      filePath: string,
+      status: GitTokenFileStatus,
+    ) => Promise<string | null>,
+  ): Promise<GitTokenFileDiff> {
+    const [before, after] = await Promise.all([
+      loadBefore(filePath, status),
+      loadAfter(filePath, status),
+    ]);
+    const beforeTokens = this.parseTokenContent(before);
+    const afterTokens = this.parseTokenContent(after);
+    const setName = this.getSetNameForFile(filePath);
+
+    return {
+      file: filePath,
+      set: setName,
+      status,
+      before,
+      after,
+      beforeTokens,
+      afterTokens,
+      changes: this.buildTokenChanges(setName, beforeTokens, afterTokens),
+    };
+  }
+
+  private async loadTokenFileDiffs({
+    diffArgs,
+    loadBefore,
+    loadAfter,
+    includeUntrackedWorkingTree = false,
+  }: TokenDiffLoadOptions): Promise<GitTokenFileDiff[]> {
+    const raw = await this.git.raw(diffArgs);
+    const lines = raw.trim().split("\n").filter(Boolean);
+    const fileDiffs: GitTokenFileDiff[] = [];
+    const seenFiles = new Set<string>();
+
+    for (const line of lines) {
+      const parsed = parseStatusLine(line);
+      if (!parsed) continue;
+
+      const { filePath } = parsed;
+      if (!filePath.endsWith(".tokens.json")) continue;
+
+      const status = normalizeGitStatus(parsed.status);
+      if (!status || seenFiles.has(filePath)) continue;
+
+      seenFiles.add(filePath);
+      fileDiffs.push(
+        await this.buildTokenFileDiff(filePath, status, loadBefore, loadAfter),
+      );
+    }
+
+    if (!includeUntrackedWorkingTree) {
+      return fileDiffs;
+    }
+
+    const untrackedRaw = await this.git.raw([
+      "ls-files",
+      "--others",
+      "--exclude-standard",
+    ]);
+    const untrackedFiles = untrackedRaw.trim().split("\n").filter(Boolean);
+
+    for (const filePath of untrackedFiles) {
+      if (!filePath.endsWith(".tokens.json") || seenFiles.has(filePath)) {
+        continue;
+      }
+
+      seenFiles.add(filePath);
+      fileDiffs.push(
+        await this.buildTokenFileDiff(
+          filePath,
+          "A",
+          async () => null,
+          async () => this.readWorkingTreeFile(filePath),
+        ),
+      );
+    }
+
+    return fileDiffs;
+  }
+
   /** Get token file diffs between two arbitrary commits (fromHash → toHash). */
   async diffBetweenCommits(
     fromHash: string,
     toHash: string,
-  ): Promise<
-    Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }>
-  > {
-    const raw = await this.git.raw(["diff", "--name-status", fromHash, toHash]);
-    const lines = raw.trim().split("\n").filter(Boolean);
-    const results: Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }> = [];
-
-    for (const line of lines) {
-      const parsed = parseStatusLine(line);
-      if (!parsed) continue;
-      const { filePath } = parsed;
-      if (!filePath.endsWith(".tokens.json")) continue;
-
-      const s = normalizeGitStatus(parsed.status);
-      if (!s) continue;
-      const before =
-        s !== "A" ? await this.showFileAtCommit(fromHash, filePath) : null;
-      const after =
-        s !== "D" ? await this.showFileAtCommit(toHash, filePath) : null;
-      results.push({ file: filePath, status: s, before, after });
-    }
-
-    return results;
+  ): Promise<GitTokenFileDiff[]> {
+    return this.loadTokenFileDiffs({
+      diffArgs: ["diff", "--name-status", fromHash, toHash],
+      loadBefore: async (filePath, status) =>
+        status === "A" ? null : this.showFileAtCommit(fromHash, filePath),
+      loadAfter: async (filePath, status) =>
+        status === "D" ? null : this.showFileAtCommit(toHash, filePath),
+    });
   }
 
   /** Get the list of changed .tokens.json files in a commit with their before/after JSON content. */
-  async getTokenFileDiffs(commitHash: string): Promise<
-    Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }>
-  > {
-    // Get list of changed files with status
-    const raw = await this.git.raw([
-      "diff-tree",
-      "--no-commit-id",
-      "-r",
-      "--name-status",
-      commitHash,
-    ]);
-    const lines = raw.trim().split("\n").filter(Boolean);
-    const results: Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }> = [];
-
-    for (const line of lines) {
-      const parsed = parseStatusLine(line);
-      if (!parsed) continue;
-      const { filePath } = parsed;
-      if (!filePath.endsWith(".tokens.json")) continue;
-
-      const s = normalizeGitStatus(parsed.status);
-      if (!s) continue;
-      const after =
-        s !== "D" ? await this.showFileAtCommit(commitHash, filePath) : null;
-      const before =
-        s !== "A"
-          ? await this.showFileAtCommit(`${commitHash}~1`, filePath)
-          : null;
-      results.push({ file: filePath, status: s, before, after });
-    }
-
-    return results;
+  async getTokenFileDiffs(commitHash: string): Promise<GitTokenFileDiff[]> {
+    return this.loadTokenFileDiffs({
+      diffArgs: [
+        "diff-tree",
+        "--no-commit-id",
+        "-r",
+        "--name-status",
+        commitHash,
+      ],
+      loadBefore: async (filePath, status) =>
+        status === "A"
+          ? null
+          : this.showFileAtCommit(`${commitHash}~1`, filePath),
+      loadAfter: async (filePath, status) =>
+        status === "D" ? null : this.showFileAtCommit(commitHash, filePath),
+    });
   }
 
   async setRemote(url: string): Promise<void> {
@@ -663,73 +819,15 @@ export class GitSync {
 
   /** Get token-level diffs for uncommitted changes in .tokens.json files.
    *  Compares working tree against HEAD. */
-  async getWorkingTreeTokenDiff(): Promise<
-    Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }>
-  > {
-    // Get both staged and unstaged changes
-    const raw = await this.git.raw(["diff", "HEAD", "--name-status"]);
-    // Also include untracked .tokens.json files
-    const untrackedRaw = await this.git.raw([
-      "ls-files",
-      "--others",
-      "--exclude-standard",
-    ]);
-    const lines = raw.trim().split("\n").filter(Boolean);
-    const results: Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }> = [];
-
-    for (const line of lines) {
-      const parsed = parseStatusLine(line);
-      if (!parsed) continue;
-      const { filePath } = parsed;
-      if (!filePath.endsWith(".tokens.json")) continue;
-
-      const s = normalizeGitStatus(parsed.status);
-      if (!s) continue;
-      const before =
-        s !== "A" ? await this.showFileAtCommit("HEAD", filePath) : null;
-      let after: string | null = null;
-      if (s !== "D") {
-        const absPath = path.resolve(this.dir, filePath);
-        try {
-          after = await fs.readFile(absPath, "utf-8");
-        } catch {
-          after = null;
-        }
-      }
-      results.push({ file: filePath, status: s, before, after });
-    }
-
-    // Add untracked .tokens.json files as 'A' (added)
-    const untrackedFiles = untrackedRaw.trim().split("\n").filter(Boolean);
-    for (const filePath of untrackedFiles) {
-      if (!filePath.endsWith(".tokens.json")) continue;
-      // Skip if already in diff results
-      if (results.some((r) => r.file === filePath)) continue;
-      const absPath = path.resolve(this.dir, filePath);
-      try {
-        const content = await fs.readFile(absPath, "utf-8");
-        results.push({
-          file: filePath,
-          status: "A",
-          before: null,
-          after: content,
-        });
-      } catch {
-        // skip unreadable files
-      }
-    }
-
-    return results;
+  async getWorkingTreeTokenDiff(): Promise<GitTokenFileDiff[]> {
+    return this.loadTokenFileDiffs({
+      diffArgs: ["diff", "HEAD", "--name-status"],
+      loadBefore: async (filePath, status) =>
+        status === "A" ? null : this.showFileAtCommit("HEAD", filePath),
+      loadAfter: async (filePath, status) =>
+        status === "D" ? null : this.readWorkingTreeFile(filePath),
+      includeUntrackedWorkingTree: true,
+    });
   }
 
   /** Token-level diff of what a push would send (local HEAD vs remote tracking branch).
@@ -741,12 +839,7 @@ export class GitSync {
       message: string;
       author: string;
     }>;
-    fileDiffs: Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }>;
+    fileDiffs: GitTokenFileDiff[];
   }> {
     await this.fetch();
     const branch = await this.getCurrentBranch();
@@ -761,34 +854,13 @@ export class GitSync {
       author: e.author_name,
     }));
 
-    // File-level diff (with content) for token files
-    const raw = await this.git.raw([
-      "diff",
-      "--name-status",
-      `${remote}..HEAD`,
-    ]);
-    const lines = raw.trim().split("\n").filter(Boolean);
-    const fileDiffs: Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }> = [];
-
-    for (const line of lines) {
-      const parsed = parseStatusLine(line);
-      if (!parsed) continue;
-      const { filePath } = parsed;
-      if (!filePath.endsWith(".tokens.json")) continue;
-
-      const s = normalizeGitStatus(parsed.status);
-      if (!s) continue;
-      const before =
-        s !== "A" ? await this.showFileAtCommit(remote, filePath) : null;
-      const after =
-        s !== "D" ? await this.showFileAtCommit("HEAD", filePath) : null;
-      fileDiffs.push({ file: filePath, status: s, before, after });
-    }
+    const fileDiffs = await this.loadTokenFileDiffs({
+      diffArgs: ["diff", "--name-status", `${remote}..HEAD`],
+      loadBefore: async (filePath, status) =>
+        status === "A" ? null : this.showFileAtCommit(remote, filePath),
+      loadAfter: async (filePath, status) =>
+        status === "D" ? null : this.showFileAtCommit("HEAD", filePath),
+    });
 
     return { commits, fileDiffs };
   }
@@ -802,12 +874,7 @@ export class GitSync {
       message: string;
       author: string;
     }>;
-    fileDiffs: Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }>;
+    fileDiffs: GitTokenFileDiff[];
   }> {
     await this.fetch();
     const branch = await this.getCurrentBranch();
@@ -822,35 +889,13 @@ export class GitSync {
       author: e.author_name,
     }));
 
-    // File-level diff: what remote has that local doesn't
-    const raw = await this.git.raw([
-      "diff",
-      "--name-status",
-      `HEAD..${remote}`,
-    ]);
-    const lines = raw.trim().split("\n").filter(Boolean);
-    const fileDiffs: Array<{
-      file: string;
-      status: "A" | "M" | "D";
-      before: string | null;
-      after: string | null;
-    }> = [];
-
-    for (const line of lines) {
-      const parsed = parseStatusLine(line);
-      if (!parsed) continue;
-      const { filePath } = parsed;
-      if (!filePath.endsWith(".tokens.json")) continue;
-
-      const s = normalizeGitStatus(parsed.status);
-      if (!s) continue;
-      // "before" = current local state (HEAD), "after" = what remote has
-      const before =
-        s !== "A" ? await this.showFileAtCommit("HEAD", filePath) : null;
-      const after =
-        s !== "D" ? await this.showFileAtCommit(remote, filePath) : null;
-      fileDiffs.push({ file: filePath, status: s, before, after });
-    }
+    const fileDiffs = await this.loadTokenFileDiffs({
+      diffArgs: ["diff", "--name-status", `HEAD..${remote}`],
+      loadBefore: async (filePath, status) =>
+        status === "A" ? null : this.showFileAtCommit("HEAD", filePath),
+      loadAfter: async (filePath, status) =>
+        status === "D" ? null : this.showFileAtCommit(remote, filePath),
+    });
 
     return { commits, fileDiffs };
   }

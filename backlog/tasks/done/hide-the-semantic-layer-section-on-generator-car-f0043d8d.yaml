@@ -9,11 +9,12 @@ capabilities: []
 validation_profile: plugin
 status_notes:
   - "Context: Progressive disclosure and minimalism: every generator card currently renders the Semantic layer section even when unused, adding a section heading, an 'Optional' status text, and an instructional description paragraph ('Attach semantic aliases so this scale and its role tokens stay in one generator workflow.') to the default card read. This is an optional advanced feature being surfaced at primary card level for all generators. The persistent chrome dilutes hierarchy between the card's always-relevant information (type, name, status, source→target summary, run actions) and the secondary optional feature."
-state: ready
+  - "Completed: Conditionalized the semantic layer card section to render only when aliases exist and moved add/edit access into the overflow menu; logged progress and validated with targeted eslint."
+state: done
 acceptance_criteria:
   - When a generator has no semantic layer (semanticAliasCount === 0), the 'Semantic layer' section including its label, 'Optional' text, and instructional description paragraph is not rendered in the card body
   - The ability to add a semantic layer is reachable from the existing ⋮ overflow menu or a collapsed/minimal trigger rather than as a persistent always-visible section
   - When semanticAliasCount > 0 the section remains visible as it does today, showing the alias count badge and alias chip list
 source: interface-pass
 created_at: 2026-04-12T20:35:32.225Z
-updated_at: 2026-04-12T20:35:32.225Z
+updated_at: 2026-04-13T02:53:07.667Z

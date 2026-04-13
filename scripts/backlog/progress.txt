@@ -1911,3 +1911,11 @@
 - **Learnings for future iterations:**
   - Optional generator capabilities should live behind the card actions menu until the feature is configured; once active, the card can promote a concise summary with inline edit affordances.
 ---
+## 2026-04-13 - Centralize git-backed token diff extraction so commit, pull, push, working-tree, and restore paths share one parser
+- Added one shared git token diff loader in `GitSync` that normalizes git status lines, filters `.tokens.json` files, loads before/after contents, folds in untracked working-tree files, and precomputes flattened token snapshots plus token-level changes for every diff consumer. Updated sync compare, preview, commit-log diff, and restore routes to reuse that normalized output instead of reparsing token files per route.
+- Validation: `pnpm exec eslint packages/server/src/services/git-sync.ts packages/server/src/routes/sync.ts` passed. `pnpm --filter @tokenmanager/server build` passed.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L91, ~L593, ~L706, ~L763, ~L820, ~L833; `packages/server/src/routes/sync.ts` ~L239, ~L264, ~L285, ~L479, ~L494, ~L509; `scripts/backlog/patterns.md`; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - Git-backed token previews stay aligned when the service returns one normalized file-diff shape that already includes parsed token snapshots and token-level changes, instead of making each route rebuild maps from raw JSON strings.
+  - Restore flows can derive both selective and full rollback plans from the same normalized diff payload the compare surfaces use, which avoids drift when status normalization or token parsing rules change.
+---

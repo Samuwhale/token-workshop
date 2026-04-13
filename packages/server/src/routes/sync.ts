@@ -1,102 +1,10 @@
 import fs from "node:fs/promises";
 import type { FastifyPluginAsync } from "fastify";
-import type { Token, DTCGToken } from "@tokenmanager/core";
+import type { Token } from "@tokenmanager/core";
 import { flattenTokenGroup } from "@tokenmanager/core";
 import { snapshotPaths } from "../services/operation-log.js";
-import { stableStringify } from "../services/stable-stringify.js";
 import { handleRouteError } from "../errors.js";
-
-interface TokenChange {
-  path: string;
-  set: string;
-  type: string;
-  status: "added" | "modified" | "removed";
-  before?: unknown;
-  after?: unknown;
-}
-
-interface FileDiff {
-  file: string;
-  before: string | null;
-  after: string | null;
-}
-
-/** Flatten before/after token files and diff them into a list of token-level changes. */
-function buildTokenDiff(fileDiffs: FileDiff[]): TokenChange[] {
-  const changes: TokenChange[] = [];
-
-  for (const diff of fileDiffs) {
-    const setName = diff.file.replace(".tokens.json", "");
-    const beforeTokens = new Map<string, DTCGToken>();
-    const afterTokens = new Map<string, DTCGToken>();
-
-    if (diff.before) {
-      try {
-        for (const [p, t] of flattenTokenGroup(JSON.parse(diff.before))) {
-          beforeTokens.set(p, t);
-        }
-      } catch {
-        /* skip unparseable */
-      }
-    }
-    if (diff.after) {
-      try {
-        for (const [p, t] of flattenTokenGroup(JSON.parse(diff.after))) {
-          afterTokens.set(p, t);
-        }
-      } catch {
-        /* skip unparseable */
-      }
-    }
-
-    // Added tokens (in after but not before)
-    for (const [p, token] of afterTokens) {
-      if (!beforeTokens.has(p)) {
-        changes.push({
-          path: p,
-          set: setName,
-          type: token.$type || "unknown",
-          status: "added",
-          after: token.$value,
-        });
-      }
-    }
-
-    // Removed tokens (in before but not after)
-    for (const [p, token] of beforeTokens) {
-      if (!afterTokens.has(p)) {
-        changes.push({
-          path: p,
-          set: setName,
-          type: token.$type || "unknown",
-          status: "removed",
-          before: token.$value,
-        });
-      }
-    }
-
-    // Modified tokens (in both, but value changed)
-    for (const [p, afterToken] of afterTokens) {
-      const beforeToken = beforeTokens.get(p);
-      if (beforeToken) {
-        const bVal = stableStringify(beforeToken.$value);
-        const aVal = stableStringify(afterToken.$value);
-        if (bVal !== aVal) {
-          changes.push({
-            path: p,
-            set: setName,
-            type: afterToken.$type || beforeToken.$type || "unknown",
-            status: "modified",
-            before: beforeToken.$value,
-            after: afterToken.$value,
-          });
-        }
-      }
-    }
-  }
-
-  return changes;
-}
+import type { GitTokenChange as TokenChange } from "../services/git-sync.js";
 
 export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
@@ -330,7 +238,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
 
       try {
         const fileDiffs = await fastify.gitSync.getTokenFileDiffs(hash);
-        const changes = buildTokenDiff(fileDiffs);
+        const changes = fileDiffs.flatMap((diff) => diff.changes);
         return { hash, changes, fileCount: fileDiffs.length };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to get commit diff");
@@ -354,7 +262,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       }
       try {
         const fileDiffs = await fastify.gitSync.diffBetweenCommits(from, to);
-        const changes = buildTokenDiff(fileDiffs);
+        const changes = fileDiffs.flatMap((diff) => diff.changes);
         return { from, to, changes, fileCount: fileDiffs.length };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to compare commits");
@@ -376,35 +284,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
 
     try {
       const fileDiffs = await fastify.gitSync.getTokenFileDiffs(hash);
-
-      // Build before/after maps per set
-      const beforeBySet = new Map<string, Map<string, Token>>();
-      const afterBySet = new Map<string, Map<string, Token>>();
-      for (const diff of fileDiffs) {
-        const setName = diff.file.replace(".tokens.json", "");
-        const beforeTokens = new Map<string, Token>();
-        const afterTokens = new Map<string, Token>();
-        if (diff.before) {
-          try {
-            for (const [p, t] of flattenTokenGroup(JSON.parse(diff.before))) {
-              beforeTokens.set(p, t as Token);
-            }
-          } catch {
-            /* skip */
-          }
-        }
-        if (diff.after) {
-          try {
-            for (const [p, t] of flattenTokenGroup(JSON.parse(diff.after))) {
-              afterTokens.set(p, t as Token);
-            }
-          } catch {
-            /* skip */
-          }
-        }
-        beforeBySet.set(setName, beforeTokens);
-        afterBySet.set(setName, afterTokens);
-      }
+      const diffBySet = new Map(fileDiffs.map((diff) => [diff.set, diff]));
 
       // Determine which tokens to restore
       const requested = request.body?.tokens;
@@ -417,47 +297,29 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       if (requested && requested.length > 0) {
         // Restore specific tokens
         for (const { path: tokenPath, set: setName } of requested) {
-          const before = beforeBySet.get(setName);
-          const after = afterBySet.get(setName);
-          if (!before && !after) continue;
-          // The "before" state of this commit is what we want to restore to
-          const beforeToken = before?.get(tokenPath) ?? null;
-          const afterToken = after?.get(tokenPath) ?? null;
-          // Only restore if the token actually changed in this commit
-          if (beforeToken || afterToken) {
+          const diff = diffBySet.get(setName);
+          if (!diff) continue;
+
+          const changed = diff.changes.some(
+            (change) => change.path === tokenPath,
+          );
+          if (changed) {
             toRestore.push({
               path: tokenPath,
               set: setName,
-              token: beforeToken,
+              token: diff.beforeTokens.get(tokenPath) ?? null,
             });
           }
         }
       } else {
         // Restore all changed tokens
-        for (const [setName, beforeTokens] of beforeBySet) {
-          const afterTokens = afterBySet.get(setName) ?? new Map();
-          // Added in this commit → remove (restore to null)
-          for (const [p] of afterTokens) {
-            if (!beforeTokens.has(p)) {
-              toRestore.push({ path: p, set: setName, token: null });
-            }
-          }
-          // Removed in this commit → restore
-          for (const [p, t] of beforeTokens) {
-            if (!afterTokens.has(p)) {
-              toRestore.push({ path: p, set: setName, token: t });
-            }
-          }
-          // Modified → restore to before
-          for (const [p, afterToken] of afterTokens) {
-            const beforeToken = beforeTokens.get(p);
-            if (
-              beforeToken &&
-              stableStringify(beforeToken.$value) !==
-                stableStringify(afterToken.$value)
-            ) {
-              toRestore.push({ path: p, set: setName, token: beforeToken });
-            }
+        for (const diff of fileDiffs) {
+          for (const change of diff.changes) {
+            toRestore.push({
+              path: change.path,
+              set: diff.set,
+              token: diff.beforeTokens.get(change.path) ?? null,
+            });
           }
         }
       }
@@ -622,7 +484,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: "Not a git repository" });
 
       const { commits, fileDiffs } = await fastify.gitSync.getPushPreview();
-      const changes = buildTokenDiff(fileDiffs);
+      const changes = fileDiffs.flatMap((diff) => diff.changes);
       return { commits, changes, fileCount: fileDiffs.length };
     } catch (err) {
       return handleRouteError(reply, err, "Failed to compute push preview");
@@ -637,7 +499,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: "Not a git repository" });
 
       const { commits, fileDiffs } = await fastify.gitSync.getPullPreview();
-      const changes = buildTokenDiff(fileDiffs);
+      const changes = fileDiffs.flatMap((diff) => diff.changes);
       return { commits, changes, fileCount: fileDiffs.length };
     } catch (err) {
       return handleRouteError(reply, err, "Failed to compute pull preview");
@@ -652,7 +514,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: "Not a git repository" });
 
       const fileDiffs = await fastify.gitSync.getWorkingTreeTokenDiff();
-      const changes = buildTokenDiff(fileDiffs);
+      const changes = fileDiffs.flatMap((diff) => diff.changes);
       return { changes, fileCount: fileDiffs.length };
     } catch (err) {
       return handleRouteError(reply, err, "Failed to compute token diff");
