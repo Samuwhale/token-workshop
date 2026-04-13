@@ -20,7 +20,7 @@ import type {
   DarkModeInversionConfig,
 } from '../../hooks/useGenerators';
 import type { TokenMapEntry } from '../../../shared/types';
-import type { OverwrittenEntry } from '../../hooks/useGeneratorPreview';
+import type { GeneratorPreviewAnalysis, OverwrittenEntry } from '../../hooks/useGeneratorPreview';
 
 import { ColorRampConfigEditor, ColorSwatchPreview } from '../generators/ColorRampGenerator';
 import { TypeScaleConfigEditor, TypeScalePreview } from '../generators/TypeScaleGenerator';
@@ -65,6 +65,7 @@ export interface StepWhatProps {
   previewError: string;
   previewBrand: string | undefined;
   multiBrandPreviews?: Map<string, GeneratedTokenResult[]>;
+  previewAnalysis: GeneratorPreviewAnalysis | null;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   lockedCount: number;
   overwrittenEntries: OverwrittenEntry[];
@@ -217,6 +218,33 @@ function TypeSelector({
   );
 }
 
+function PreviewImpactCard({
+  label,
+  count,
+  tone,
+  detail,
+}: {
+  label: string;
+  count: number;
+  tone: 'neutral' | 'success' | 'warning' | 'error';
+  detail: string;
+}) {
+  const toneClassName = {
+    neutral: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]',
+    success: 'border-[var(--color-figma-success)]/30 bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]',
+    warning: 'border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]',
+    error: 'border-[var(--color-figma-error)]/35 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]',
+  }[tone];
+
+  return (
+    <div className={`rounded-lg border px-3 py-2.5 ${toneClassName}`}>
+      <div className="text-[9px] uppercase tracking-wide opacity-80">{label}</div>
+      <div className="mt-1 text-[14px] font-semibold">{count}</div>
+      <div className="mt-0.5 text-[9.5px] leading-snug opacity-85">{detail}</div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // StepWhat
 // ---------------------------------------------------------------------------
@@ -237,6 +265,7 @@ export function StepWhat({
   previewError,
   previewBrand,
   multiBrandPreviews,
+  previewAnalysis,
   pendingOverrides,
   lockedCount,
   overwrittenEntries,
@@ -260,6 +289,14 @@ export function StepWhat({
     () => new Set(overwrittenEntries.map(e => e.path)),
     [overwrittenEntries],
   );
+  const safeUpdateEntries = previewAnalysis?.safeUpdates ?? [];
+  const nonGeneratorOverwriteEntries = previewAnalysis?.nonGeneratorOverwrites ?? [];
+  const manualConflictEntries = previewAnalysis?.manualEditConflicts ?? [];
+  const deletedOutputEntries = previewAnalysis?.deletedOutputs ?? [];
+  const detachedOutputEntries = previewAnalysis?.detachedOutputs ?? [];
+  const recreatedDetachedEntries = detachedOutputEntries.filter(entry => entry.state === 'recreated');
+  const preservedDetachedEntries = detachedOutputEntries.filter(entry => entry.state === 'preserved');
+  const safeCreateCount = previewAnalysis?.safeCreateCount ?? 0;
 
   // Effective source value for config editors (still needed by ColorRamp, TypeScale, etc.)
   const effectiveSourceHex = typeof sourceTokenValue === 'string' ? sourceTokenValue : typeof inlineValue === 'string' ? inlineValue : undefined;
@@ -452,6 +489,47 @@ export function StepWhat({
                     : 'Configure settings to generate a preview.'}
               </div>
             )}
+
+            {!previewError && !isMultiBrand && previewAnalysis && (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                <PreviewImpactCard
+                  label="Safe creates"
+                  count={safeCreateCount}
+                  tone="success"
+                  detail={safeCreateCount === 0 ? 'No new output paths yet.' : 'New outputs with no existing collision.'}
+                />
+                <PreviewImpactCard
+                  label="Safe updates"
+                  count={safeUpdateEntries.length}
+                  tone="neutral"
+                  detail={safeUpdateEntries.length === 0 ? 'No generator-owned outputs need updating.' : 'Existing outputs this generator can update cleanly.'}
+                />
+                <PreviewImpactCard
+                  label="Overwrite risks"
+                  count={nonGeneratorOverwriteEntries.length}
+                  tone={nonGeneratorOverwriteEntries.length > 0 ? 'warning' : 'neutral'}
+                  detail={nonGeneratorOverwriteEntries.length === 0 ? 'No manual or foreign tokens are in the way.' : 'Manual tokens or other generators would be overwritten.'}
+                />
+                <PreviewImpactCard
+                  label="Manual conflicts"
+                  count={manualConflictEntries.length}
+                  tone={manualConflictEntries.length > 0 ? 'error' : 'neutral'}
+                  detail={manualConflictEntries.length === 0 ? 'No drifted generator outputs detected.' : 'Generator-owned outputs were manually edited since the last run.'}
+                />
+                <PreviewImpactCard
+                  label="Deleted outputs"
+                  count={deletedOutputEntries.length}
+                  tone={deletedOutputEntries.length > 0 ? 'warning' : 'neutral'}
+                  detail={deletedOutputEntries.length === 0 ? 'No managed outputs will be removed.' : 'Current managed outputs no longer appear in this draft.'}
+                />
+                <PreviewImpactCard
+                  label="Detached outputs"
+                  count={detachedOutputEntries.length}
+                  tone={detachedOutputEntries.length > 0 ? 'warning' : 'neutral'}
+                  detail={detachedOutputEntries.length === 0 ? 'No detached outputs are affected.' : 'Detached outputs stay manual unless this draft recreates them.'}
+                />
+              </div>
+            )}
           </div>
 
           {/* Applied preview — shows tokens in context */}
@@ -459,22 +537,103 @@ export function StepWhat({
             <AppliedPreview type={selectedType} tokens={previewTokens} />
           )}
 
-          {/* Overwrites diff */}
-          {overwrittenEntries.length > 0 && (
+          {nonGeneratorOverwriteEntries.length > 0 && (
             <div>
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
-                Overwrites{' '}
+                Overwrite risks{' '}
                 <span className="text-[var(--color-figma-warning)]">
-                  {overwrittenEntries.length} existing token{overwrittenEntries.length !== 1 ? 's' : ''}
+                  {nonGeneratorOverwriteEntries.length} token{nonGeneratorOverwriteEntries.length !== 1 ? 's' : ''}
                 </span>
               </label>
               <div className="flex flex-col gap-1.5">
-                {overwrittenEntries.map(entry => (
-                  <div key={entry.path} className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={entry.path}>
+                {nonGeneratorOverwriteEntries.map(entry => (
+                  <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                      {entry.path}
+                      <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>
+                    </span>
+                    {entry.changesValue ? (
+                      <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+                    ) : (
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        Existing value matches the preview, but this path would switch ownership.
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {manualConflictEntries.length > 0 && (
+            <div>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+                Manual-edit conflicts{' '}
+                <span className="text-[var(--color-figma-error)]">
+                  {manualConflictEntries.length} token{manualConflictEntries.length !== 1 ? 's' : ''}
+                </span>
+              </label>
+              <div className="flex flex-col gap-1.5">
+                {manualConflictEntries.map(entry => (
+                  <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
                       {entry.path}
                     </span>
-                    <ValueDiff type={entry.type} before={entry.oldValue} after={entry.newValue} />
+                    <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {deletedOutputEntries.length > 0 && (
+            <div>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+                Deleted outputs{' '}
+                <span className="text-[var(--color-figma-warning)]">
+                  {deletedOutputEntries.length} token{deletedOutputEntries.length !== 1 ? 's' : ''}
+                </span>
+              </label>
+              <div className="flex flex-col gap-1.5">
+                {deletedOutputEntries.map(entry => (
+                  <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                      {entry.path}
+                      <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>
+                    </span>
+                    <span className="text-[10px] text-[var(--color-figma-warning)] shrink-0">Removed on save</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {detachedOutputEntries.length > 0 && (
+            <div>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+                Detached outputs{' '}
+                <span className="text-[var(--color-figma-warning)]">
+                  {detachedOutputEntries.length} token{detachedOutputEntries.length !== 1 ? 's' : ''}
+                </span>
+              </label>
+              <div className="flex flex-col gap-1.5">
+                {recreatedDetachedEntries.map(entry => (
+                  <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                      {entry.path}
+                    </span>
+                    <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+                    <span className="text-[10px] text-[var(--color-figma-warning)]">
+                      Saving will recreate this detached output and return it to generator ownership.
+                    </span>
+                  </div>
+                ))}
+                {preservedDetachedEntries.map(entry => (
+                  <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                      {entry.path}
+                    </span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Stays manual</span>
                   </div>
                 ))}
               </div>

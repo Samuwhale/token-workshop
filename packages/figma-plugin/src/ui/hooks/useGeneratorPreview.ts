@@ -1,8 +1,12 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
-import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
-import type { GeneratorType, GeneratorConfig, GeneratedTokenResult, InputTable } from './useGenerators';
+import type {
+  GeneratorType,
+  GeneratorConfig,
+  GeneratedTokenResult,
+  InputTable,
+} from './useGenerators';
 
 export interface OverwrittenEntry {
   path: string;
@@ -14,8 +18,115 @@ export interface OverwrittenEntry {
 export interface GeneratorPreviewDiff {
   created: Array<{ path: string; value: unknown; type: string }>;
   updated: Array<{ path: string; currentValue: unknown; newValue: unknown; type: string }>;
-  deleted: Array<{ path: string; currentValue: unknown }>;
+  deleted: Array<{ path: string; currentValue: unknown; type: string }>;
   unchanged: Array<{ path: string; value: unknown; type: string }>;
+}
+
+export interface GeneratorPreviewChangeEntry {
+  path: string;
+  setName: string;
+  type: string;
+  currentValue: unknown;
+  newValue: unknown;
+  changesValue: boolean;
+}
+
+export interface GeneratorPreviewOverwriteEntry extends GeneratorPreviewChangeEntry {
+  owner: 'manual' | 'generator';
+  generatorId?: string;
+}
+
+export interface GeneratorPreviewManualConflictEntry extends GeneratorPreviewChangeEntry {
+  baselineValue: unknown;
+}
+
+export interface GeneratorPreviewDeletedEntry {
+  path: string;
+  setName: string;
+  type: string;
+  currentValue: unknown;
+}
+
+export interface GeneratorPreviewDetachedEntry {
+  path: string;
+  setName: string;
+  type: string;
+  currentValue: unknown;
+  newValue?: unknown;
+  state: 'preserved' | 'recreated';
+}
+
+export interface GeneratorPreviewAnalysis {
+  fingerprint: string;
+  safeCreateCount: number;
+  unchangedCount: number;
+  existingPathSet: string[];
+  safeUpdates: GeneratorPreviewChangeEntry[];
+  nonGeneratorOverwrites: GeneratorPreviewOverwriteEntry[];
+  manualEditConflicts: GeneratorPreviewManualConflictEntry[];
+  deletedOutputs: GeneratorPreviewDeletedEntry[];
+  detachedOutputs: GeneratorPreviewDetachedEntry[];
+  diff: GeneratorPreviewDiff;
+}
+
+export interface GeneratorPreviewResponse {
+  count: number;
+  tokens: GeneratedTokenResult[];
+  analysis: GeneratorPreviewAnalysis;
+}
+
+export interface GeneratorPreviewRequest {
+  serverUrl: string;
+  selectedType: GeneratorType;
+  sourceTokenPath?: string;
+  inlineValue?: unknown;
+  targetGroup: string;
+  targetSet: string;
+  config: GeneratorConfig;
+  pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
+  sourceValue?: unknown;
+  baseGeneratorId?: string;
+  detachedPaths?: string[];
+  signal?: AbortSignal;
+}
+
+export async function requestGeneratorPreview({
+  serverUrl,
+  selectedType,
+  sourceTokenPath,
+  inlineValue,
+  targetGroup,
+  targetSet,
+  config,
+  pendingOverrides,
+  sourceValue,
+  baseGeneratorId,
+  detachedPaths,
+  signal,
+}: GeneratorPreviewRequest): Promise<GeneratorPreviewResponse> {
+  const body: Record<string, unknown> = {
+    type: selectedType,
+    targetGroup,
+    targetSet,
+    config,
+    overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
+    sourceValue,
+    baseGeneratorId,
+    detachedPaths,
+  };
+
+  if (sourceTokenPath) {
+    body.sourceToken = sourceTokenPath;
+  } else if (inlineValue !== undefined && inlineValue !== '') {
+    body.inlineValue = inlineValue;
+  }
+
+  return apiFetch<GeneratorPreviewResponse>(`${serverUrl}/api/generators/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: signal ? createFetchSignal(signal) : undefined,
+  });
 }
 
 interface UseGeneratorPreviewParams {
@@ -29,6 +140,9 @@ interface UseGeneratorPreviewParams {
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   isMultiBrand: boolean;
   inputTable?: InputTable;
+  existingGeneratorId?: string;
+  detachedPaths?: string[];
+  refreshNonce?: number;
 }
 
 export interface UseGeneratorPreviewReturn {
@@ -37,15 +151,31 @@ export interface UseGeneratorPreviewReturn {
   previewError: string;
   existingTokensError: string;
   overwrittenEntries: OverwrittenEntry[];
-  /** All preview token paths that already exist in the target set (value-changed or unchanged) */
   existingOverwritePathSet: Set<string>;
-  /** Full diff categorising every token as created/updated/deleted/unchanged. Null when preview is empty or multi-brand. */
   previewDiff: GeneratorPreviewDiff | null;
-  /** Brand name used for the preview sample, if multi-brand */
   previewBrand: string | undefined;
-  /** Preview tokens for ALL brand rows, keyed by brand name (populated only when multi-brand) */
   multiBrandPreviews: Map<string, GeneratedTokenResult[]>;
+  previewFingerprint: string;
+  previewAnalysis: GeneratorPreviewAnalysis | null;
 }
+
+const EMPTY_ANALYSIS: GeneratorPreviewAnalysis = {
+  fingerprint: '',
+  safeCreateCount: 0,
+  unchangedCount: 0,
+  existingPathSet: [],
+  safeUpdates: [],
+  nonGeneratorOverwrites: [],
+  manualEditConflicts: [],
+  deletedOutputs: [],
+  detachedOutputs: [],
+  diff: {
+    created: [],
+    updated: [],
+    deleted: [],
+    unchanged: [],
+  },
+};
 
 export function useGeneratorPreview({
   serverUrl,
@@ -58,39 +188,36 @@ export function useGeneratorPreview({
   pendingOverrides,
   isMultiBrand,
   inputTable,
+  existingGeneratorId,
+  detachedPaths,
+  refreshNonce = 0,
 }: UseGeneratorPreviewParams): UseGeneratorPreviewReturn {
   const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
+  const [previewAnalysis, setPreviewAnalysis] = useState<GeneratorPreviewAnalysis | null>(null);
   const [multiBrandPreviews, setMultiBrandPreviews] = useState<Map<string, GeneratedTokenResult[]>>(new Map());
-
-  const [existingSetTokens, setExistingSetTokens] = useState<Record<string, { $value: unknown; $type: string }>>({});
-  const [existingTokensError, setExistingTokensError] = useState('');
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const multiBrandAbortRef = useRef<AbortController | null>(null);
 
-  // For multi-brand, find the first row with a usable input value
   const firstBrandRow = useMemo(() => {
     if (!isMultiBrand || !inputTable || inputTable.rows.length === 0) return undefined;
-    return inputTable.rows.find(r => r.brand.trim() && r.inputs[inputTable.inputKey] !== undefined);
+    return inputTable.rows.find((row) => row.brand.trim() && row.inputs[inputTable.inputKey] !== undefined);
   }, [isMultiBrand, inputTable]);
 
-  // Debounced preview fetch
   const fetchPreview = useCallback(() => {
-    // For multi-brand without any usable brand row, skip preview.
-    // Must clear any pending timer and abort any in-flight fetch so that
-    // setPreviewLoading(false) isn't lost (the timer's finally block won't
-    // run if the timer was already cancelled by an effect cleanup).
     if (isMultiBrand && !firstBrandRow) {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       abortRef.current?.abort();
       setPreviewTokens([]);
+      setPreviewAnalysis(null);
       setPreviewError('');
       setPreviewLoading(false);
       return;
     }
+
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     setPreviewLoading(true);
     debounceTimerRef.current = setTimeout(async () => {
@@ -99,51 +226,61 @@ export function useGeneratorPreview({
       abortRef.current = controller;
       setPreviewError('');
       try {
-        const body: Record<string, unknown> = {
-          type: selectedType,
+        const response = await requestGeneratorPreview({
+          serverUrl,
+          selectedType,
+          sourceTokenPath,
+          inlineValue,
           targetGroup,
           targetSet,
           config,
-          overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
-        };
-        if (isMultiBrand && firstBrandRow) {
-          // Use the first brand's input value as the source for a representative preview
-          body.sourceValue = firstBrandRow.inputs[inputTable!.inputKey];
-        } else if (sourceTokenPath) {
-          body.sourceToken = sourceTokenPath;
-        } else if (inlineValue !== undefined && inlineValue !== '') {
-          // Use inline value as sourceValue for preview
-          body.sourceValue = inlineValue;
-        }
-        const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(
-          `${serverUrl}/api/generators/preview`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: createFetchSignal(controller.signal) },
-        );
-        if (!controller.signal.aborted) setPreviewTokens(data.tokens ?? []);
+          pendingOverrides,
+          sourceValue: isMultiBrand && firstBrandRow ? firstBrandRow.inputs[inputTable!.inputKey] : undefined,
+          baseGeneratorId: existingGeneratorId,
+          detachedPaths,
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        setPreviewTokens(response.tokens ?? []);
+        setPreviewAnalysis(response.analysis ?? EMPTY_ANALYSIS);
       } catch (err) {
         if (isAbortError(err)) return;
-        if (!controller.signal.aborted) {
-          setPreviewError(getErrorMessage(err, 'Preview failed'));
-          setPreviewTokens([]);
-        }
+        if (controller.signal.aborted) return;
+        setPreviewError(getErrorMessage(err, 'Preview failed'));
+        setPreviewTokens([]);
+        setPreviewAnalysis(null);
       } finally {
         if (!controller.signal.aborted) setPreviewLoading(false);
       }
     }, 300);
-  }, [serverUrl, selectedType, sourceTokenPath, inlineValue, targetGroup, targetSet, config, pendingOverrides, isMultiBrand, firstBrandRow, inputTable]);
+  }, [
+    config,
+    detachedPaths,
+    existingGeneratorId,
+    firstBrandRow,
+    inlineValue,
+    inputTable,
+    isMultiBrand,
+    pendingOverrides,
+    selectedType,
+    serverUrl,
+    sourceTokenPath,
+    targetGroup,
+    targetSet,
+  ]);
 
   useEffect(() => {
     fetchPreview();
-    return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current); };
-  }, [fetchPreview]);
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [fetchPreview, refreshNonce]);
 
-  // All usable brand rows for multi-brand preview
   const allBrandRows = useMemo(() => {
     if (!isMultiBrand || !inputTable || inputTable.rows.length === 0) return [];
-    return inputTable.rows.filter(r => r.brand.trim() && r.inputs[inputTable.inputKey] !== undefined);
+    return inputTable.rows.filter((row) => row.brand.trim() && row.inputs[inputTable.inputKey] !== undefined);
   }, [isMultiBrand, inputTable]);
 
-  // Fetch preview for ALL brands when multi-brand is active
   useEffect(() => {
     multiBrandAbortRef.current?.abort();
 
@@ -157,43 +294,54 @@ export function useGeneratorPreview({
 
     const fetchAll = async () => {
       const results = new Map<string, GeneratedTokenResult[]>();
-      // Fetch all brand previews in parallel
-      const promises = allBrandRows.map(async (row) => {
-        const body: Record<string, unknown> = {
-          type: selectedType,
-          targetGroup,
-          targetSet,
-          config,
-          overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
-          sourceValue: row.inputs[inputTable!.inputKey],
-        };
+      const requests = allBrandRows.map(async (row) => {
         try {
-          const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(
-            `${serverUrl}/api/generators/preview`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: createFetchSignal(controller.signal) },
-          );
-          return { brand: row.brand, tokens: data.tokens ?? [] };
+          const response = await requestGeneratorPreview({
+            serverUrl,
+            selectedType,
+            targetGroup,
+            targetSet,
+            config,
+            pendingOverrides,
+            sourceValue: row.inputs[inputTable!.inputKey],
+            baseGeneratorId: existingGeneratorId,
+            detachedPaths,
+            signal: controller.signal,
+          });
+          return { brand: row.brand, tokens: response.tokens ?? [] };
         } catch (err) {
           if (isAbortError(err)) return null;
-          // Silently skip failed brand previews — the single-brand preview already shows errors
           return { brand: row.brand, tokens: [] as GeneratedTokenResult[] };
         }
       });
-      const settled = await Promise.all(promises);
+
+      const settled = await Promise.all(requests);
       if (controller.signal.aborted) return;
       for (const result of settled) {
-        if (result) results.set(result.brand, result.tokens);
+        if (!result) continue;
+        results.set(result.brand, result.tokens);
       }
       setMultiBrandPreviews(results);
     };
 
-    // Debounce to match the single-preview debounce timing
     const timer = setTimeout(fetchAll, 350);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [serverUrl, selectedType, targetGroup, targetSet, config, pendingOverrides, isMultiBrand, allBrandRows, inputTable]);
+  }, [
+    allBrandRows,
+    config,
+    detachedPaths,
+    existingGeneratorId,
+    inputTable,
+    isMultiBrand,
+    pendingOverrides,
+    selectedType,
+    serverUrl,
+    targetGroup,
+    targetSet,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -203,85 +351,54 @@ export function useGeneratorPreview({
     };
   }, []);
 
-  // Fetch existing tokens in the target set
-  useEffect(() => {
-    if (!targetSet) return;
-    const controller = new AbortController();
-    setExistingTokensError('');
-    apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: createFetchSignal(controller.signal) })
-      .then(data => {
-        if (controller.signal.aborted) return;
-        const map = flattenTokenGroup(data.tokens || {});
-        const obj: Record<string, { $value: unknown; $type: string }> = {};
-        for (const [path, token] of map) {
-          obj[path] = { $value: token.$value, $type: token.$type || 'unknown' };
-        }
-        setExistingSetTokens(obj);
-      })
-      .catch(err => {
-        if (isAbortError(err)) return;
-        if (!controller.signal.aborted) setExistingTokensError(getErrorMessage(err, 'Could not load existing tokens — save is blocked to prevent overwriting unknown values'));
-      });
-    return () => controller.abort();
-  }, [serverUrl, targetSet]);
+  const overwrittenEntries = useMemo<OverwrittenEntry[]>(() => {
+    const analysis = previewAnalysis;
+    if (!analysis) return [];
+    return [
+      ...analysis.safeUpdates,
+      ...analysis.nonGeneratorOverwrites.filter((entry) => entry.changesValue),
+      ...analysis.manualEditConflicts,
+      ...analysis.detachedOutputs
+        .filter((entry) => entry.state === 'recreated' && entry.newValue !== undefined && stableValueChanged(entry.currentValue, entry.newValue))
+        .map((entry) => ({
+          path: entry.path,
+          setName: entry.setName,
+          type: entry.type,
+          currentValue: entry.currentValue,
+          newValue: entry.newValue,
+          changesValue: true,
+        })),
+    ].map((entry) => ({
+      path: entry.path,
+      type: entry.type,
+      oldValue: entry.currentValue,
+      newValue: entry.newValue,
+    }));
+  }, [previewAnalysis]);
 
-  // Compute overwritten entries and full diff (skip for multi-brand since each brand writes to different sets)
-  const { overwrittenEntries, existingOverwritePathSet, previewDiff } = useMemo<{
-    overwrittenEntries: OverwrittenEntry[];
-    existingOverwritePathSet: Set<string>;
-    previewDiff: GeneratorPreviewDiff | null;
-  }>(() => {
-    if (isMultiBrand || previewTokens.length === 0) {
-      return { overwrittenEntries: [], existingOverwritePathSet: new Set<string>(), previewDiff: null };
-    }
-    const pathSet = new Set<string>();
-    const entries: OverwrittenEntry[] = [];
-    const diffCreated: GeneratorPreviewDiff['created'] = [];
-    const diffUpdated: GeneratorPreviewDiff['updated'] = [];
-    const diffUnchanged: GeneratorPreviewDiff['unchanged'] = [];
-    const previewPathsSet = new Set(previewTokens.map(t => t.path));
+  const existingOverwritePathSet = useMemo(
+    () => new Set(previewAnalysis?.existingPathSet ?? []),
+    [previewAnalysis],
+  );
 
-    for (const pt of previewTokens) {
-      const existing = existingSetTokens[pt.path];
-      if (existing !== undefined) {
-        pathSet.add(pt.path);
-        if (JSON.stringify(existing.$value) !== JSON.stringify(pt.value)) {
-          entries.push({ path: pt.path, type: pt.type, oldValue: existing.$value, newValue: pt.value });
-          diffUpdated.push({ path: pt.path, currentValue: existing.$value, newValue: pt.value, type: pt.type });
-        } else {
-          diffUnchanged.push({ path: pt.path, value: pt.value, type: pt.type });
-        }
-      } else {
-        diffCreated.push({ path: pt.path, value: pt.value, type: pt.type });
-      }
-    }
-
-    // Deleted = tokens in existing set under the target group that are no longer produced
-    const groupPrefix = targetGroup ? `${targetGroup}.` : '';
-    const diffDeleted: GeneratorPreviewDiff['deleted'] = groupPrefix
-      ? Object.entries(existingSetTokens)
-          .filter(([path]) => path.startsWith(groupPrefix) && !previewPathsSet.has(path))
-          .map(([path, token]) => ({ path, currentValue: token.$value }))
-      : [];
-
-    return {
-      overwrittenEntries: entries,
-      existingOverwritePathSet: pathSet,
-      previewDiff: { created: diffCreated, updated: diffUpdated, deleted: diffDeleted, unchanged: diffUnchanged },
-    };
-  }, [previewTokens, existingSetTokens, isMultiBrand, targetGroup]);
-
+  const previewDiff = previewAnalysis?.diff ?? null;
   const previewBrand = isMultiBrand && firstBrandRow ? firstBrandRow.brand : undefined;
 
   return {
     previewTokens,
     previewLoading,
     previewError,
-    existingTokensError,
+    existingTokensError: '',
     overwrittenEntries,
     existingOverwritePathSet,
     previewDiff,
     previewBrand,
     multiBrandPreviews,
+    previewFingerprint: previewAnalysis?.fingerprint ?? '',
+    previewAnalysis,
   };
+}
+
+function stableValueChanged(before: unknown, after: unknown): boolean {
+  return JSON.stringify(before) !== JSON.stringify(after);
 }

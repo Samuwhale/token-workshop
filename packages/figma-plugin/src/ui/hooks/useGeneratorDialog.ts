@@ -15,7 +15,10 @@ import {
   ALL_TYPES,
   VALUE_REQUIRED_TYPES,
 } from "../components/generators/generatorUtils";
-import { useGeneratorPreview } from "./useGeneratorPreview";
+import {
+  useGeneratorPreview,
+  type GeneratorPreviewAnalysis,
+} from "./useGeneratorPreview";
 import {
   useGeneratorSave,
   type GeneratorSaveSuccessInfo,
@@ -186,12 +189,15 @@ interface UseGeneratorDialogReturn {
   previewError: string;
   previewBrand: string | undefined;
   multiBrandPreviews: Map<string, GeneratedTokenResult[]>;
+  previewFingerprint: string;
+  previewAnalysis: GeneratorPreviewAnalysis | null;
   overwrittenEntries: OverwrittenEntry[];
   existingOverwritePathSet: Set<string>;
   existingTokensError: string;
   saving: boolean;
   saveError: string;
   showConfirmation: boolean;
+  previewReviewStale: boolean;
   overwritePendingPaths: string[];
   overwriteCheckLoading: boolean;
   overwriteCheckError: string;
@@ -455,6 +461,7 @@ export function useGeneratorDialog({
   const lockedCount = Object.values(pendingOverrides).filter(
     (o) => o.locked,
   ).length;
+  const [previewRefreshNonce, setPreviewRefreshNonce] = useState(0);
 
   // --- Sub-hooks ---
 
@@ -467,6 +474,8 @@ export function useGeneratorDialog({
     existingTokensError,
     overwrittenEntries,
     existingOverwritePathSet,
+    previewFingerprint,
+    previewAnalysis,
     previewBrand,
     multiBrandPreviews,
   } = useGeneratorPreview({
@@ -480,12 +489,16 @@ export function useGeneratorDialog({
     pendingOverrides,
     isMultiBrand,
     inputTable,
+    existingGeneratorId: existingGenerator?.id,
+    detachedPaths: existingGenerator?.detachedPaths,
+    refreshNonce: previewRefreshNonce,
   });
 
   const {
     saving,
     saveError,
     showConfirmation,
+    previewReviewStale,
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,
@@ -519,10 +532,14 @@ export function useGeneratorDialog({
     typeNeedsValue,
     hasValue,
     previewTokens,
+    previewFingerprint,
+    previewAnalysis,
     onSaved,
     onInterceptSemanticMapping,
     getSuccessToastAction,
     pushUndo,
+    requestPreviewRefresh: () =>
+      setPreviewRefreshNonce((current) => current + 1),
     initialSemanticEnabled:
       resolvedInitialDraft?.semanticEnabled ??
       Boolean(existingGenerator?.semanticLayer?.mappings.length),
@@ -695,6 +712,8 @@ export function useGeneratorDialog({
     previewTokens,
     previewLoading,
     previewError,
+    previewFingerprint,
+    previewAnalysis,
     previewBrand,
     multiBrandPreviews,
     overwrittenEntries,
@@ -703,6 +722,7 @@ export function useGeneratorDialog({
     saving,
     saveError,
     showConfirmation,
+    previewReviewStale,
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,

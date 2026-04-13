@@ -1,0 +1,18 @@
+id: clean-up-stale-semantic-generator-outputs-across-1907863f
+title: Clean up stale semantic generator outputs across set and brand moves
+priority: normal
+task_kind: implementation
+depends_on: []
+touch_paths:
+  - packages/server/src/services/generator-service.ts
+capabilities: []
+validation_profile: repo
+status_notes:
+  - "Context: This task unified live preview conflicts and added stale scale-output cleanup, but semantic alias cleanup still only runs inside the current target set during syncSemanticLayer."
+state: ready
+acceptance_criteria:
+  - Editing a generator that changes target sets, target set templates, or brand rows removes semantic alias outputs that are no longer part of the generator run.
+  - Preview/review surfaces report semantic alias deletions using the same live conflict model as scale outputs.
+source: task-followup
+created_at: 2026-04-13T00:58:38.175Z
+updated_at: 2026-04-13T00:58:38.175Z

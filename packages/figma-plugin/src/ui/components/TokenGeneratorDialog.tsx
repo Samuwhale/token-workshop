@@ -137,6 +137,7 @@ export function TokenGeneratorDialog({
     if (dialog.saving)
       return dialog.isEditing ? "Saving\u2026" : "Creating\u2026";
     if (dialog.overwriteCheckLoading) return "Checking\u2026";
+    if (dialog.previewReviewStale) return "Review Updated Preview";
     const aliasCount = dialog.semanticEnabled
       ? dialog.semanticMappings.filter((m) => m.semantic.trim()).length
       : 0;
@@ -326,12 +327,13 @@ export function TokenGeneratorDialog({
               semanticPrefix={dialog.semanticPrefix}
               semanticMappings={dialog.semanticMappings}
               previewTokens={dialog.previewTokens}
-              overwrittenEntries={dialog.overwrittenEntries}
+              previewAnalysis={dialog.previewAnalysis}
               existingOverwritePathSet={dialog.existingOverwritePathSet}
               overwritePendingPaths={dialog.overwritePendingPaths}
               overwriteCheckLoading={dialog.overwriteCheckLoading}
               overwriteCheckError={dialog.overwriteCheckError}
               saveError={dialog.saveError}
+              previewReviewStale={dialog.previewReviewStale}
             />
           ) : (
             <>
@@ -351,6 +353,7 @@ export function TokenGeneratorDialog({
                 previewError={dialog.previewError}
                 previewBrand={dialog.previewBrand}
                 multiBrandPreviews={dialog.multiBrandPreviews}
+                previewAnalysis={dialog.previewAnalysis}
                 pendingOverrides={dialog.pendingOverrides}
                 lockedCount={dialog.lockedCount}
                 overwrittenEntries={dialog.overwrittenEntries}

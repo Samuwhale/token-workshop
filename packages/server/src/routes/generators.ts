@@ -291,7 +291,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'type is required' });
     }
     try {
-      const results = await fastify.generatorService.preview(
+      const preview = await fastify.generatorService.previewWithAnalysis(
         {
           type: body.type,
           sourceToken: body.sourceToken,
@@ -300,11 +300,13 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           targetSet: body.targetSet ?? '',
           config: body.config,
           overrides: body.overrides,
+          baseGeneratorId: body.baseGeneratorId,
+          detachedPaths: body.detachedPaths,
         },
         fastify.tokenStore,
         body.sourceValue,
       );
-      return { count: results.length, tokens: results };
+      return { count: preview.tokens.length, tokens: preview.tokens, analysis: preview.analysis };
     } catch (err) {
       return handleRouteError(reply, err);
     }

@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { getErrorMessage } from "../shared/utils";
-import { apiFetch, createFetchSignal } from "../shared/apiFetch";
+import { apiFetch } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
 import type { ToastAction } from "../shared/toastBus";
 import type { UndoSlot } from "./useUndo";
@@ -12,6 +12,10 @@ import type {
   GeneratedTokenResult,
   InputTable,
 } from "./useGenerators";
+import {
+  requestGeneratorPreview,
+  type GeneratorPreviewAnalysis,
+} from "./useGeneratorPreview";
 
 export interface GeneratorSaveSuccessInfo {
   targetGroup: string;
@@ -36,6 +40,8 @@ interface UseGeneratorSaveParams {
   typeNeedsValue: boolean;
   hasValue: boolean;
   previewTokens: GeneratedTokenResult[];
+  previewFingerprint: string;
+  previewAnalysis: GeneratorPreviewAnalysis | null;
   onSaved: (info?: GeneratorSaveSuccessInfo) => void;
   onInterceptSemanticMapping?: (data: {
     tokens: GeneratedTokenResult[];
@@ -47,6 +53,7 @@ interface UseGeneratorSaveParams {
     info: GeneratorSaveSuccessInfo,
   ) => ToastAction | undefined;
   pushUndo?: (slot: UndoSlot) => void;
+  requestPreviewRefresh: () => void;
   initialSemanticEnabled: boolean;
   initialSemanticPrefix: string;
   initialSemanticMappings: Array<{ semantic: string; step: string }>;
@@ -57,6 +64,7 @@ export interface UseGeneratorSaveReturn {
   saving: boolean;
   saveError: string;
   showConfirmation: boolean;
+  previewReviewStale: boolean;
   overwritePendingPaths: string[];
   overwriteCheckLoading: boolean;
   overwriteCheckError: string;
@@ -91,11 +99,14 @@ export function useGeneratorSave({
   targetSetTemplate,
   typeNeedsValue,
   hasValue,
-  previewTokens,
+  previewTokens: _previewTokens,
+  previewFingerprint,
+  previewAnalysis,
   onSaved,
   onInterceptSemanticMapping: _onInterceptSemanticMapping,
   getSuccessToastAction,
   pushUndo,
+  requestPreviewRefresh,
   initialSemanticEnabled,
   initialSemanticPrefix,
   initialSemanticMappings,
@@ -104,8 +115,10 @@ export function useGeneratorSave({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [previewReviewStale, setPreviewReviewStale] = useState(false);
+  const [reviewedPreviewFingerprint, setReviewedPreviewFingerprint] = useState("");
   const [overwritePendingPaths, setOverwritePendingPaths] = useState<string[]>(
-    [],
+    () => previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
   );
   const [overwriteCheckLoading, setOverwriteCheckLoading] = useState(false);
   const [overwriteCheckError, setOverwriteCheckError] = useState("");
@@ -117,10 +130,6 @@ export function useGeneratorSave({
   const [selectedSemanticPatternId, setSelectedSemanticPatternId] = useState<
     string | null
   >(initialSelectedSemanticPatternId);
-  const overwriteCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const overwriteCheckAbortRef = useRef<AbortController | null>(null);
   const overwriteCheckRequestIdRef = useRef(0);
   const getToastAction = useCallback(
     (targetGroupAtSave: string, targetSetAtSave: string) =>
@@ -321,121 +330,86 @@ export function useGeneratorSave({
     ],
   );
 
-  const runOverwriteCheck = useCallback(async () => {
-    if (!isEditing || !existingGenerator) return;
-
+  const revalidatePreview = useCallback(async () => {
     const requestId = overwriteCheckRequestIdRef.current + 1;
     overwriteCheckRequestIdRef.current = requestId;
-    overwriteCheckAbortRef.current?.abort();
-
-    const controller = new AbortController();
-    overwriteCheckAbortRef.current = controller;
     setOverwriteCheckLoading(true);
     setOverwriteCheckError("");
 
     try {
-      const { modified } = await apiFetch<{ modified: { path: string }[] }>(
-        `${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`,
-        {
-          method: "POST",
-          signal: createFetchSignal(controller.signal),
-        },
+      const latestPreview = await requestGeneratorPreview({
+        serverUrl,
+        selectedType,
+        sourceTokenPath: isMultiBrand ? undefined : sourceTokenPath,
+        inlineValue,
+        targetGroup,
+        targetSet,
+        config,
+        pendingOverrides,
+        baseGeneratorId: existingGenerator?.id,
+        detachedPaths: existingGenerator?.detachedPaths,
+      });
+      if (overwriteCheckRequestIdRef.current !== requestId) return false;
+      setOverwritePendingPaths(
+        latestPreview.analysis.manualEditConflicts.map((entry) => entry.path),
       );
       if (
-        controller.signal.aborted ||
-        overwriteCheckRequestIdRef.current !== requestId
-      )
-        return;
-      setOverwritePendingPaths(modified.map((m) => m.path));
-    } catch (err) {
-      if (
-        controller.signal.aborted ||
-        overwriteCheckRequestIdRef.current !== requestId
-      )
-        return;
-      setOverwritePendingPaths([]);
-      setOverwriteCheckError(
-        `Could not check for manually-edited tokens: ${getErrorMessage(err)}`,
-      );
-    } finally {
-      if (
-        !controller.signal.aborted &&
-        overwriteCheckRequestIdRef.current === requestId
+        reviewedPreviewFingerprint &&
+        latestPreview.analysis.fingerprint !== reviewedPreviewFingerprint
       ) {
+        requestPreviewRefresh();
+        setPreviewReviewStale(true);
+        setSaveError(
+          "Preview changed since you reviewed it. Review the updated conflicts before saving.",
+        );
+        return false;
+      }
+      return true;
+    } catch (err) {
+      if (overwriteCheckRequestIdRef.current !== requestId) return false;
+      setOverwriteCheckError(
+        `Could not revalidate the latest preview: ${getErrorMessage(err)}`,
+      );
+      return false;
+    } finally {
+      if (overwriteCheckRequestIdRef.current === requestId) {
         setOverwriteCheckLoading(false);
       }
     }
-  }, [isEditing, existingGenerator, serverUrl]);
-
-  useEffect(() => {
-    if (!isEditing || !existingGenerator) {
-      overwriteCheckAbortRef.current?.abort();
-      if (overwriteCheckTimerRef.current)
-        clearTimeout(overwriteCheckTimerRef.current);
-      setOverwritePendingPaths([]);
-      setOverwriteCheckLoading(false);
-      setOverwriteCheckError("");
-      return;
-    }
-
-    const hasReviewData = previewTokens.length > 0 || isMultiBrand;
-    if (!hasReviewData) {
-      overwriteCheckAbortRef.current?.abort();
-      if (overwriteCheckTimerRef.current)
-        clearTimeout(overwriteCheckTimerRef.current);
-      setOverwritePendingPaths([]);
-      setOverwriteCheckLoading(false);
-      setOverwriteCheckError("");
-      return;
-    }
-
-    if (overwriteCheckTimerRef.current)
-      clearTimeout(overwriteCheckTimerRef.current);
-    overwriteCheckTimerRef.current = setTimeout(() => {
-      void runOverwriteCheck();
-    }, 350);
-
-    return () => {
-      if (overwriteCheckTimerRef.current)
-        clearTimeout(overwriteCheckTimerRef.current);
-    };
   }, [
     config,
     existingGenerator,
     inlineValue,
-    inputTable,
-    isEditing,
     isMultiBrand,
-    name,
     pendingOverrides,
-    previewTokens.length,
-    runOverwriteCheck,
+    requestPreviewRefresh,
+    reviewedPreviewFingerprint,
     selectedType,
+    serverUrl,
     sourceTokenPath,
     targetGroup,
     targetSet,
-    targetSetTemplate,
   ]);
 
-  useEffect(() => {
-    return () => {
-      overwriteCheckAbortRef.current?.abort();
-      if (overwriteCheckTimerRef.current)
-        clearTimeout(overwriteCheckTimerRef.current);
-    };
-  }, []);
-
   /** Step 1: Validate inputs and show the confirmation preview.
-   *  Background overwrite checks stay live while the draft changes.
+   *  Save captures the reviewed preview fingerprint so confirm can detect staleness.
    */
   const handleSave = useCallback(async () => {
     if (!validateBeforeSave()) return;
-
+    setReviewedPreviewFingerprint(previewFingerprint);
+    setPreviewReviewStale(false);
+    setOverwritePendingPaths(
+      previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
+    );
+    setOverwriteCheckError("");
     setShowConfirmation(true);
-  }, [validateBeforeSave]);
+  }, [previewAnalysis, previewFingerprint, validateBeforeSave]);
 
   const handleQuickSave = useCallback(async () => {
     if (!validateBeforeSave()) return;
+    setReviewedPreviewFingerprint(previewFingerprint);
+    const revalidated = await revalidatePreview();
+    if (!revalidated) return;
     await commitSave(
       semanticEnabled,
       semanticPrefix,
@@ -446,6 +420,8 @@ export function useGeneratorSave({
   }, [
     validateBeforeSave,
     commitSave,
+    previewFingerprint,
+    revalidatePreview,
     semanticEnabled,
     semanticPrefix,
     semanticMappings,
@@ -457,6 +433,18 @@ export function useGeneratorSave({
    *  The server applies semantic aliases together with the generator run.
    */
   const handleConfirmSave = useCallback(async () => {
+    if (previewReviewStale) {
+      if (!previewFingerprint) {
+        setSaveError("Refreshing preview…");
+        return;
+      }
+      setReviewedPreviewFingerprint(previewFingerprint);
+      setPreviewReviewStale(false);
+      setSaveError("");
+      return;
+    }
+    const revalidated = await revalidatePreview();
+    if (!revalidated) return;
     await commitSave(
       semanticEnabled,
       semanticPrefix,
@@ -466,6 +454,9 @@ export function useGeneratorSave({
     );
   }, [
     commitSave,
+    previewFingerprint,
+    previewReviewStale,
+    revalidatePreview,
     semanticEnabled,
     semanticPrefix,
     semanticMappings,
@@ -475,15 +466,20 @@ export function useGeneratorSave({
 
   const handleCancelConfirmation = useCallback(() => {
     setShowConfirmation(false);
-    setOverwritePendingPaths([]);
+    setPreviewReviewStale(false);
+    setReviewedPreviewFingerprint("");
+    setOverwritePendingPaths(
+      previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
+    );
     setOverwriteCheckLoading(false);
     setOverwriteCheckError("");
-  }, []);
+  }, [previewAnalysis]);
 
   return {
     saving,
     saveError,
     showConfirmation,
+    previewReviewStale,
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,

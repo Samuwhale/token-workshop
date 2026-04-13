@@ -7,7 +7,7 @@ import type {
   GeneratedTokenResult,
   InputTable,
 } from '../../hooks/useGenerators';
-import type { OverwrittenEntry } from '../../hooks/useGeneratorPreview';
+import type { GeneratorPreviewAnalysis } from '../../hooks/useGeneratorPreview';
 import { swatchBgColor } from '../../shared/colorUtils';
 import { ValueDiff } from '../ValueDiff';
 import { Spinner } from '../Spinner';
@@ -32,7 +32,7 @@ export interface StepReviewProps {
   semanticMappings: Array<{ semantic: string; step: string }>;
   // Preview data
   previewTokens: GeneratedTokenResult[];
-  overwrittenEntries: OverwrittenEntry[];
+  previewAnalysis: GeneratorPreviewAnalysis | null;
   existingOverwritePathSet: Set<string>;
   // Overwrite check (for edits)
   overwritePendingPaths: string[];
@@ -40,6 +40,7 @@ export interface StepReviewProps {
   overwriteCheckError: string;
   // Error
   saveError: string;
+  previewReviewStale: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -51,7 +52,7 @@ export function StepReview({
   name,
   targetGroup,
   targetSet,
-  isEditing,
+  isEditing: _isEditing,
   isMultiBrand,
   inputTable,
   targetSetTemplate,
@@ -59,20 +60,22 @@ export function StepReview({
   semanticPrefix,
   semanticMappings,
   previewTokens,
-  overwrittenEntries,
+  previewAnalysis,
   existingOverwritePathSet,
   overwritePendingPaths,
   overwriteCheckLoading,
   overwriteCheckError,
   saveError,
+  previewReviewStale,
 }: StepReviewProps) {
-  const overwritePaths = useMemo(
-    () => new Set(overwrittenEntries.map(e => e.path)),
-    [overwrittenEntries],
-  );
-
   const newTokens = previewTokens.filter(pt => !existingOverwritePathSet.has(pt.path));
-  const unchangedOverwriteTokens = previewTokens.filter(pt => existingOverwritePathSet.has(pt.path) && !overwritePaths.has(pt.path));
+  const safeUpdateEntries = previewAnalysis?.safeUpdates ?? [];
+  const nonGeneratorOverwriteEntries = previewAnalysis?.nonGeneratorOverwrites ?? [];
+  const manualConflictEntries = previewAnalysis?.manualEditConflicts ?? [];
+  const deletedOutputEntries = previewAnalysis?.deletedOutputs ?? [];
+  const detachedOutputEntries = previewAnalysis?.detachedOutputs ?? [];
+  const recreatedDetachedEntries = detachedOutputEntries.filter(entry => entry.state === 'recreated');
+  const preservedDetachedEntries = detachedOutputEntries.filter(entry => entry.state === 'preserved');
   const validSemanticMappings = useMemo(
     () => semanticMappings.filter((mapping) => mapping.semantic.trim() && mapping.step),
     [semanticMappings],
@@ -153,31 +156,54 @@ export function StepReview({
         </div>
       )}
 
-      {/* Overwrite warning — new generator overwriting existing tokens */}
-      {!isEditing && !isMultiBrand && existingOverwritePathSet.size > 0 && (
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-          <span className="text-[10px] leading-snug">
-            <strong>{existingOverwritePathSet.size} existing token{existingOverwritePathSet.size !== 1 ? 's' : ''}</strong> in <span className="font-mono">{targetGroup}.*</span> will be overwritten
-            {unchangedOverwriteTokens.length > 0 && overwrittenEntries.length === 0 && ' (no value changes)'}
-            {unchangedOverwriteTokens.length > 0 && overwrittenEntries.length > 0 && ` (${overwrittenEntries.length} with value changes, ${unchangedOverwriteTokens.length} unchanged)`}
-          </span>
+      {previewReviewStale && (
+        <div className="rounded-lg border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 px-3 py-2.5 text-[10px] text-[var(--color-figma-warning)]">
+          The live token store changed after you opened review. Refresh the summary, then confirm again.
         </div>
       )}
 
-      {/* Manually-edited overwrite warning — for edits */}
-      {isEditing && overwriteCheckLoading && (
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
-          <Spinner size="sm" />
-          <span className="text-[10px]">Checking for manually edited tokens...</span>
+      {!isMultiBrand && previewAnalysis && (
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="rounded-lg border border-[var(--color-figma-success)]/30 bg-[var(--color-figma-success)]/10 px-3 py-2.5">
+            <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-success)]/80">Safe creates</div>
+            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-success)]">{previewAnalysis.safeCreateCount}</div>
+          </div>
+          <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+            <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">Safe updates</div>
+            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-text)]">{safeUpdateEntries.length}</div>
+          </div>
+          <div className="rounded-lg border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-3 py-2.5">
+            <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-warning)]/80">Overwrite risks</div>
+            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-warning)]">{nonGeneratorOverwriteEntries.length}</div>
+          </div>
+          <div className="rounded-lg border border-[var(--color-figma-error)]/35 bg-[var(--color-figma-error)]/10 px-3 py-2.5">
+            <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-error)]/80">Manual conflicts</div>
+            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-error)]">{manualConflictEntries.length}</div>
+          </div>
+          <div className="rounded-lg border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-3 py-2.5">
+            <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-warning)]/80">Deleted outputs</div>
+            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-warning)]">{deletedOutputEntries.length}</div>
+          </div>
+          <div className="rounded-lg border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-3 py-2.5">
+            <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-warning)]/80">Detached outputs</div>
+            <div className="mt-1 text-[13px] font-semibold text-[var(--color-figma-warning)]">{detachedOutputEntries.length}</div>
+          </div>
         </div>
       )}
-      {isEditing && !overwriteCheckLoading && overwriteCheckError && (
+
+      {overwriteCheckLoading && (
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
+          <Spinner size="sm" />
+          <span className="text-[10px]">Revalidating the latest preview…</span>
+        </div>
+      )}
+      {!overwriteCheckLoading && overwriteCheckError && (
         <div className="text-[10px] text-[var(--color-figma-text-secondary)] px-3 py-2.5 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           {overwriteCheckError}
         </div>
       )}
-      {isEditing && !overwriteCheckLoading && overwritePendingPaths.length > 0 && (
+
+      {!overwriteCheckLoading && overwritePendingPaths.length > 0 && (
         <div className="flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10">
           <span className="text-[10px] font-medium text-[var(--color-figma-warning)]">
             {overwritePendingPaths.length} manually edited token{overwritePendingPaths.length !== 1 ? 's' : ''} will be overwritten
@@ -190,19 +216,88 @@ export function StepReview({
         </div>
       )}
 
-      {/* Modified tokens (diffs) */}
-      {overwrittenEntries.length > 0 && (
+      {nonGeneratorOverwriteEntries.length > 0 && (
         <div>
           <label className="block text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
-            Modified tokens
+            Overwrite risks
           </label>
           <div className="flex flex-col gap-1.5">
-            {overwrittenEntries.map(entry => (
-              <div key={entry.path} className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={entry.path}>
+            {nonGeneratorOverwriteEntries.map(entry => (
+              <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                  {entry.path}
+                  {entry.setName !== targetSet && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
+                </span>
+                {entry.changesValue ? (
+                  <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+                ) : (
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    Existing value matches the preview, but this path would change ownership.
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {manualConflictEntries.length > 0 && (
+        <div>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-error)] mb-1.5">
+            Manual-edit conflicts
+          </label>
+          <div className="flex flex-col gap-1.5">
+            {manualConflictEntries.map(entry => (
+              <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
                   {entry.path}
                 </span>
-                <ValueDiff type={entry.type} before={entry.oldValue} after={entry.newValue} />
+                <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {deletedOutputEntries.length > 0 && (
+        <div>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
+            Deleted outputs
+          </label>
+          <div className="flex flex-col gap-1">
+            {deletedOutputEntries.map(entry => (
+              <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                  {entry.path}
+                  {entry.setName !== targetSet && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
+                </span>
+                <span className="text-[10px] text-[var(--color-figma-warning)] shrink-0">Removed on save</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {detachedOutputEntries.length > 0 && (
+        <div>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
+            Detached outputs
+          </label>
+          <div className="flex flex-col gap-1.5">
+            {recreatedDetachedEntries.map(entry => (
+              <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                  {entry.path}
+                </span>
+                <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+              </div>
+            ))}
+            {preservedDetachedEntries.map(entry => (
+              <div key={`${entry.setName}:${entry.path}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${entry.setName}:${entry.path}`}>
+                  {entry.path}
+                </span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Stays manual</span>
               </div>
             ))}
           </div>
