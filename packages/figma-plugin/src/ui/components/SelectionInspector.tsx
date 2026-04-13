@@ -46,7 +46,11 @@ import {
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { SelectionSyncStatusPill } from "./SelectionSyncStatusPill";
 import { DeepInspectSection } from "./DeepInspectSection";
-import { RemapBindingsPanel } from "./RemapBindingsPanel";
+import {
+  RemapBindingsPanel,
+  buildRemapRowsFromPaths,
+  type RemapBindingsRow,
+} from "./RemapBindingsPanel";
 import { ExtractTokensPanel } from "./ExtractTokensPanel";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
@@ -341,7 +345,6 @@ export function SelectionInspector({
       setNoMoreSiblings(false);
       setDeepRemoveError(null);
       setShowExtractPanel(false);
-      setShowRemapPanel(false);
       setShowClearConfirm(false);
     }
   }, [selectedNodes, rootNodes]);
@@ -816,6 +819,50 @@ export function SelectionInspector({
   const [showExtractPanel, setShowExtractPanel] = useState(false);
   const [showRemapPanel, setShowRemapPanel] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [remapDraftRows, setRemapDraftRows] = useState<RemapBindingsRow[]>(
+    () => buildRemapRowsFromPaths(undefined),
+  );
+
+  const remapMissingTokens = useMemo(() => {
+    if (syncResult?.missingTokens.length) return syncResult.missingTokens;
+    if (freshSyncResult?.missingTokens.length)
+      return freshSyncResult.missingTokens;
+    return [];
+  }, [freshSyncResult, syncResult]);
+
+  const staleBindingPaths = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...selectedNodes.flatMap((node) => Object.values(node.bindings)),
+            ...remapMissingTokens,
+          ].filter((path) => Boolean(path) && !tokenMap[path]),
+        ),
+      ),
+    [remapMissingTokens, selectedNodes, tokenMap],
+  );
+
+  const openRemapPanel = useCallback(
+    (prefillPaths?: string[], replaceDraft = false) => {
+      setRemapDraftRows((currentRows) => {
+        const hasDraftInput = currentRows.some(
+          (row) => row.from.trim() || row.to.trim(),
+        );
+        if (prefillPaths && prefillPaths.length > 0) {
+          if (replaceDraft || !hasDraftInput) {
+            return buildRemapRowsFromPaths(prefillPaths);
+          }
+        }
+        return currentRows.length > 0
+          ? currentRows
+          : buildRemapRowsFromPaths(undefined);
+      });
+      setShowExtractPanel(false);
+      setShowRemapPanel(true);
+    },
+    [],
+  );
 
 
   if (selectionLoading) {
@@ -903,6 +950,7 @@ export function SelectionInspector({
             freshSyncResult={freshSyncResult}
             connected={connected}
             totalBindings={totalBindings}
+            onRemapClick={() => openRemapPanel(remapMissingTokens, true)}
           />
           {totalBindings > 0 && connected && (
             <button
@@ -1186,7 +1234,10 @@ export function SelectionInspector({
             )}
             {connected && activeSet && (
               <button
-                onClick={() => { setShowExtractPanel((p) => !p); setShowRemapPanel(false); }}
+                onClick={() => {
+                  setShowExtractPanel((p) => !p);
+                  setShowRemapPanel(false);
+                }}
                 className={`rounded px-2 py-1 text-[9px] transition-colors ${
                   showExtractPanel
                     ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
@@ -1197,7 +1248,13 @@ export function SelectionInspector({
               </button>
             )}
             <button
-              onClick={() => { setShowRemapPanel((p) => !p); setShowExtractPanel(false); }}
+              onClick={() => {
+                if (showRemapPanel) {
+                  setShowRemapPanel(false);
+                } else {
+                  openRemapPanel(remapMissingTokens);
+                }
+              }}
               className={`rounded px-2 py-1 text-[9px] transition-colors ${
                 showRemapPanel
                   ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
@@ -1266,7 +1323,9 @@ export function SelectionInspector({
           <div className="border-t border-[var(--color-figma-border)] p-3">
             <RemapBindingsPanel
               tokenMap={tokenMap}
-              initialMissingTokens={freshSyncResult?.missingTokens}
+              rows={remapDraftRows}
+              onRowsChange={setRemapDraftRows}
+              fromSuggestions={staleBindingPaths}
               onClose={() => setShowRemapPanel(false)}
               embedded
             />

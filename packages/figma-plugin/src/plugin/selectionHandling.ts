@@ -592,7 +592,13 @@ export async function highlightLayersByToken(tokenPath: string) {
 export async function remapBindings(remapMap: Record<string, string>, scope: 'selection' | 'page', deepInspectEnabled: boolean) {
   const entries = Object.entries(remapMap).filter(([oldPath, newPath]) => oldPath && newPath && oldPath !== newPath);
   if (entries.length === 0) {
-    figma.ui.postMessage({ type: 'remap-complete', updatedBindings: 0, updatedNodes: 0 });
+    figma.ui.postMessage({
+      type: 'remap-complete',
+      updatedBindings: 0,
+      updatedNodes: 0,
+      scannedNodes: 0,
+      nodesWithBindings: 0,
+    });
     return;
   }
 
@@ -606,6 +612,7 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
 
     let updatedBindings = 0;
     let updatedNodes = 0;
+    let nodesWithBindings = 0;
     const REMAP_BATCH = 100;
 
     for (let i = 0; i < nodes.length; i++) {
@@ -617,6 +624,9 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
       for (const prop of ALL_BINDABLE_PROPERTIES) {
         const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
         if (val) currentBindings[prop] = val;
+      }
+      if (Object.keys(currentBindings).length > 0) {
+        nodesWithBindings++;
       }
       nodeSnapshots.set(node.id, { node, bindings: currentBindings });
 
@@ -637,10 +647,26 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
       }
     }
 
-    figma.ui.postMessage({ type: 'remap-complete', updatedBindings, updatedNodes });
+    figma.ui.postMessage({
+      type: 'remap-complete',
+      updatedBindings,
+      updatedNodes,
+      scannedNodes: total,
+      nodesWithBindings,
+    });
 
     const label = `Remapped ${updatedBindings} binding${updatedBindings !== 1 ? 's' : ''} across ${updatedNodes} layer${updatedNodes !== 1 ? 's' : ''}`;
-    figma.notify(updatedBindings > 0 ? label : 'No matching bindings found');
+    if (updatedBindings > 0) {
+      figma.notify(label);
+    } else if (nodesWithBindings === 0) {
+      figma.notify(
+        scope === 'selection'
+          ? 'No selected layers had token bindings to remap'
+          : 'No layers on this page had token bindings to remap',
+      );
+    } else {
+      figma.notify('No bound layers used the selected source paths');
+    }
 
     // Refresh selection so the inspector shows updated paths
     await getSelection(deepInspectEnabled);
@@ -657,7 +683,14 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
       }
     }
     const message = getErrorMessage(err, 'Unknown error');
-    figma.ui.postMessage({ type: 'remap-complete', updatedBindings: 0, updatedNodes: 0, error: message });
+    figma.ui.postMessage({
+      type: 'remap-complete',
+      updatedBindings: 0,
+      updatedNodes: 0,
+      scannedNodes: nodeSnapshots.size,
+      nodesWithBindings: 0,
+      error: message,
+    });
     figma.notify(`Remap failed: ${message}`, { error: true });
   }
 }

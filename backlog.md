@@ -100,6 +100,8 @@
 - [x] [HIGH] Refactor canvas quick-create and token quick-create launcher onto the shared authoring contract
 - [x] [HIGH] Rebuild BatchEditor for stacked compact layout below 360px
 - [x] [HIGH] Align generator dialog steps and pipeline quick edit with one authoring form system
+- [ ] [HIGH] Remap bindings task drops context at every handoff: sync warning gives no signpost to Remap, pre-fill clears on deselect, from-field autocomplete cannot find stale paths, and ambiguous completion feedback leaves users unsure whether the remap worked
+- [ ] [HIGH] Resolve the competing extraction models in Apply: remove or gate the silent 'Extract & bind' fast-path in favor of the review-first ExtractTokensPanel
 - [x] Replace the current search / filter discoverability model with a progressive filter builder that still supports power-user qualifiers, but no longer expects users to infer syntax like `type:` and `has:` from placeholder text alone
 - [x] Add a dedicated collection-and-mode mapping manager in `packages/figma-plugin/src/ui/components/SetSwitcher.tsx`, `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts`, and the Sync workspace so maintainers can review and edit how all sets map into Figma collections and modes without opening one per-set dialog at a time.
 - [x] Add first-class folder operations to `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` and `packages/server/src/routes/sets.ts` so set folders can be renamed, reordered, merged, and deleted as units instead of acting as display-only prefixes on individual set names.
@@ -199,7 +201,8 @@
 - [x] Move raw theme matrix tools and compare behind an Advanced setup route
 - [x] Replace truncation-first path rendering across authoring surfaces with narrow-width wrapping rules
 - [x] Strip tutorial chrome from CanvasAnalysisPanel so the scan/suggest/fix tools are the primary content
-- [ ] Remove 'Sections' eyebrow label and breadcrumb meta-labels from WorkspaceSummaryHeader to reduce persistent chrome across all workspaces
+- [x] Remove 'Sections' eyebrow label and breadcrumb meta-labels from WorkspaceSummaryHeader to reduce persistent chrome across all workspaces
+- [ ] Paste tokens modal resets all per-row overwrite decisions on any textarea edit and undo after overwrite deletes the pre-existing token instead of restoring it
 - [x] Make multi-set folder operations fully rollbackable in the operation log
 - [x] Add regression coverage for uncapped operation history and rename propagation persistence
 - [x] Remove explanatory rationale from View options popover header — title alone is sufficient

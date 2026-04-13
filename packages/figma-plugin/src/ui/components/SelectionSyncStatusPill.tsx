@@ -13,12 +13,14 @@ interface SelectionSyncStatusPillProps {
   totalBindings: number;
   visibility?: SelectionSyncStatusVisibility;
   className?: string;
+  onRemapClick?: () => void;
 }
 
 interface SelectionSyncStatusState {
   label: string;
   toneClass: string;
   visible: boolean;
+  remapCount: number;
 }
 
 export function useSelectionSyncStatus({
@@ -32,6 +34,10 @@ export function useSelectionSyncStatus({
   visibility = "always",
 }: Omit<SelectionSyncStatusPillProps, "className">): SelectionSyncStatusState {
   return useMemo(() => {
+    const activeMissingCount =
+      syncResult?.missingTokens.length ??
+      freshSyncResult?.missingTokens.length ??
+      0;
     const toneClass = syncing
       ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
       : syncError
@@ -42,7 +48,9 @@ export function useSelectionSyncStatus({
             : syncResult.missingTokens.length > 0
               ? "bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]"
               : "bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]"
-          : freshSyncResult && freshSyncResult.missingTokens.length === 0
+          : freshSyncResult && freshSyncResult.missingTokens.length > 0
+            ? "bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]"
+            : freshSyncResult && freshSyncResult.missingTokens.length === 0
             ? "bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]"
             : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]";
 
@@ -54,10 +62,14 @@ export function useSelectionSyncStatus({
           : syncResult
             ? syncResult.errors > 0
               ? `${syncResult.errors} failed`
+              : activeMissingCount > 0
+                ? `${activeMissingCount} missing`
               : syncResult.updated === 0 &&
                   syncResult.missingTokens.length === 0
                 ? "Up to date"
                 : `Updated ${syncResult.updated}`
+            : activeMissingCount > 0
+              ? `${activeMissingCount} missing`
             : freshSyncResult && freshSyncResult.missingTokens.length === 0
               ? "Selection in sync"
               : totalBindings > 0 && connected
@@ -75,7 +87,7 @@ export function useSelectionSyncStatus({
           Boolean(freshSyncResult) ||
           (connected && totalBindings > 0);
 
-    return { label, toneClass, visible };
+    return { label, toneClass, visible, remapCount: activeMissingCount };
   }, [
     connected,
     freshSyncResult,
@@ -90,16 +102,29 @@ export function useSelectionSyncStatus({
 
 export function SelectionSyncStatusPill({
   className = "",
+  onRemapClick,
   ...statusProps
 }: SelectionSyncStatusPillProps) {
   const status = useSelectionSyncStatus(statusProps);
   if (!status.visible) return null;
 
   return (
-    <span
-      className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${status.toneClass} ${className}`.trim()}
-    >
-      {status.label}
-    </span>
+    <div className={`shrink-0 flex items-center gap-1 ${className}`.trim()}>
+      <span
+        className={`rounded-full px-2 py-1 text-[9px] font-medium ${status.toneClass}`.trim()}
+      >
+        {status.label}
+      </span>
+      {status.remapCount > 0 && onRemapClick ? (
+        <button
+          type="button"
+          onClick={onRemapClick}
+          className="rounded-full bg-[var(--color-figma-warning,#f5a623)]/12 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-warning,#b45309)] transition-colors hover:bg-[var(--color-figma-warning,#f5a623)]/20"
+          title={`Open Remap with ${status.remapCount} missing token path${status.remapCount !== 1 ? "s" : ""}`}
+        >
+          Remap
+        </button>
+      ) : null}
+    </div>
   );
 }

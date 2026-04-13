@@ -2007,3 +2007,36 @@
   - Shared shell headers read cleaner when breadcrumb structure comes from pills and separators alone; repeated taxonomy labels add chrome faster than they add orientation.
   - If a tab already signals a secondary context through placement and copy, a plain inline qualifier is usually enough; badge styling should be reserved for state that needs stronger emphasis.
 ---
+
+## 2026-04-13 - ux-pass
+- Tasks explored: (1) Remap bindings after token rename/restructure [RemapBindingsPanel.tsx, RemapAutocompleteInput.tsx, SelectionInspector.tsx, SelectionSyncStatusPill.tsx], (2) Extract tokens from canvas selection [ExtractTokensPanel.tsx, CanvasCreateTokenDialog.tsx, SelectionInspector.tsx], (3) Paste token JSON with conflict resolution [PasteTokensModal.tsx, tokenParsers.ts]
+- Walkthrough themes: handoffs (sync→remap pre-fill fragility), feedback (ambiguous remap completion, silent row filtering), recovery (paste undo destroys pre-existing tokens), task load (paste overwrite decisions reset on input edit)
+- Found 2 items — written to backlog/inbox.jsonl
+- Considered but rejected:
+  - Extract panel two-button confusion ("Extract & bind N unbound" fast-path vs "Extract" review panel): real discoverability issue — two adjacent buttons with radically different consequences (auto-create vs. review). However, the fast-path's silent overwrite and lack of undo is more of a product-pass question about whether the fast-path should exist or require confirmation, not a task-flow fix within the current design. The review-panel flow itself works correctly end to end.
+  - Extract panel post-creation done state has no navigation to created tokens: real but low severity. The inspector refreshes bindings after creation, so the user sees the result in context. A "go to token" link would help but is polish, not a task-flow breakdown.
+  - Remap panel "No undo" for successful remap: the controller implements rollback on errors, and the operation targets binding metadata not document structure. Lack of undo is a product limitation, not a task-flow failure in the current design.
+  - Paste modal no set picker: the header shows the target set but offers no way to change it. Closing, switching sets, and re-opening is the recovery path. Low severity because the set context is shown before commit, and users typically know which set is active before opening paste.
+  - Paste modal clipboard auto-read failure is silent: if permission is denied, the textarea stays empty with no message. Edge case in Figma iframe context — most users will manually paste rather than relying on auto-read.
+- Notable: The remap bindings flow has the most compounding handoff failures of any inspected task — every transition (sync→remap entry, pre-fill→deselect, autocomplete→stale paths, submit→completion) loses context the user previously had. The paste modal's overwrite-reset-on-edit is the clearest task-load violation: careful per-row decisions are destroyed by a single keystroke in the textarea.
+---
+
+## 2026-04-13 - product-pass
+- Areas explored: SelectionInspector.tsx (~L716-808, ~L1184), ExtractTokensPanel.tsx (~L621), CanvasCreateTokenDialog.tsx, ResolverPanel.tsx, ThemeAdvancedScreen.tsx, ThemeManager.tsx, PanelRouter.tsx, backlog tasks (all 36 active + superseded task graph)
+- Found 1 item — written to backlog/inbox.jsonl
+- Considered but rejected:
+  - Resolver editing surface fragmentation: ResolverPanel.tsx exports a standalone panel, but it is dead code — only ResolverContent is actively used (embedded in ThemeAdvancedScreen). No actual duplication.
+  - Token creation entry point fragmentation: already covered by the active rework-token-creation-entry-points and unify-manual-token-creation-entry-points backlog cluster (superseded but has live children).
+  - Audit/health surface fragmentation (HealthPanel, DuplicateDetectionPanel, UnusedTokensPanel split across ship/health and apply/canvas): already partially covered by turn-audit-and-validation-signals-into-actionable-product-feedback and define-a-shared-pattern-for-warnings-lint-results. The surface-ownership dimension is real but the remaining gap is about feedback quality and UX consistency, not a structural workflow-model change.
+  - CanvasCreateTokenDialog as a competing creation entry point: it serves a distinct job (create from a detected canvas anomaly, not bulk extraction), so it is a legitimate separate surface, not a duplicate.
+  - Generator-to-publish handoff gaps: partially covered by reframe-generators-as-a-supporting-creation-tool and simplify-generator-discovery-naming-and-editing.
+- Notable: The fast-path/review-path coexistence in SelectionInspector is the clearest unresolved product-model question in the Apply workspace — the ux-pass explicitly left it here, and no active task covers the product decision. The fix requires choosing one canonical model, not just cleaning up the UI of the existing one.
+---
+## 2026-04-13 - Remap bindings task drops context at every handoff: sync warning gives no signpost to Remap, pre-fill clears on deselect, from-field autocomplete cannot find stale paths, and ambiguous completion feedback leaves users unsure whether the remap worked
+- Wired the selection sync warning into a direct Remap CTA, hoisted remap draft rows into `SelectionInspector`, preserved them across deselect/reselect cycles, expanded the from-side autocomplete to include stale binding paths, and made the remap panel surface inline invalid-row feedback plus explicit success/zero-match outcomes with a done action after successful runs.
+- Validation: `pnpm exec eslint packages/figma-plugin/src/ui/components/RemapBindingsPanel.tsx packages/figma-plugin/src/ui/components/RemapAutocompleteInput.tsx packages/figma-plugin/src/ui/components/SelectionInspector.tsx packages/figma-plugin/src/ui/components/SelectionSyncStatusPill.tsx packages/figma-plugin/src/plugin/selectionHandling.ts packages/figma-plugin/src/shared/types.ts`; `pnpm --filter @tokenmanager/figma-plugin build`
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L822, ~L846, ~L945, ~L1250, ~L1322; `packages/figma-plugin/src/ui/components/RemapBindingsPanel.tsx` ~L29, ~L40, ~L71, ~L139, ~L180, ~L248; `packages/figma-plugin/src/ui/components/RemapAutocompleteInput.tsx` ~L45, ~L133; `packages/figma-plugin/src/ui/components/SelectionSyncStatusPill.tsx` ~L37, ~L57, ~L111; `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L592, ~L650; `packages/figma-plugin/src/shared/types.ts` ~L378, ~L775; `scripts/backlog/progress.txt`
+- **Learnings for future iterations:**
+  - If a maintenance tool depends on data discovered in another workflow step, keep that draft state above transient selection-empty renders so accidental deselects do not destroy the handoff.
+  - Zero-result bulk operations need controller-side scope stats, not just `0 updated`, or the UI cannot distinguish “nothing in scope was eligible” from “eligible layers existed but none used these source paths.”
+---

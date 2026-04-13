@@ -1,41 +1,87 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { TokenMapEntry } from "../../shared/types";
+import { InlineBanner } from "./InlineBanner";
 import { RemapAutocompleteInput } from "./RemapAutocompleteInput";
+
+export interface RemapBindingsRow {
+  from: string;
+  to: string;
+}
 
 interface RemapBindingsPanelProps {
   tokenMap: Record<string, TokenMapEntry>;
-  initialMissingTokens?: string[];
+  rows: RemapBindingsRow[];
+  onRowsChange: (rows: RemapBindingsRow[]) => void;
+  fromSuggestions?: string[];
   onClose: () => void;
   embedded?: boolean;
 }
 
+interface RemapResultState {
+  updatedBindings: number;
+  updatedNodes: number;
+  scannedNodes: number;
+  nodesWithBindings: number;
+}
+
+const EMPTY_REMAP_ROW: RemapBindingsRow = { from: "", to: "" };
+
+export function buildRemapRowsFromPaths(
+  paths?: readonly string[],
+): RemapBindingsRow[] {
+  const uniquePaths = Array.from(
+    new Set(paths?.map((path) => path.trim()).filter(Boolean) ?? []),
+  );
+  return uniquePaths.length > 0
+    ? uniquePaths.map((path) => ({ from: path, to: "" }))
+    : [{ ...EMPTY_REMAP_ROW }];
+}
+
+function describeRemapResult(
+  result: RemapResultState,
+  scope: "selection" | "page",
+): string {
+  if (result.updatedBindings > 0) {
+    return `Remapped ${result.updatedBindings} binding${result.updatedBindings !== 1 ? "s" : ""} across ${result.updatedNodes} layer${result.updatedNodes !== 1 ? "s" : ""}.`;
+  }
+
+  if (result.scannedNodes === 0) {
+    return scope === "selection"
+      ? "Select at least one layer before remapping bindings."
+      : "No layers were available on this page to scan.";
+  }
+
+  if (result.nodesWithBindings === 0) {
+    return scope === "selection"
+      ? "No selected layers had token bindings to remap."
+      : "No layers on this page had token bindings to remap.";
+  }
+
+  return `Scanned ${result.nodesWithBindings} bound layer${result.nodesWithBindings !== 1 ? "s" : ""}, but none used the selected source paths.`;
+}
+
 export function RemapBindingsPanel({
   tokenMap,
-  initialMissingTokens,
+  rows,
+  onRowsChange,
+  fromSuggestions,
   onClose,
   embedded = false,
 }: RemapBindingsPanelProps) {
-  const [remapRows, setRemapRows] = useState<{ from: string; to: string }[]>(
-    () => {
-      const prefill = initialMissingTokens;
-      return prefill && prefill.length > 0
-        ? prefill.map((p) => ({ from: p, to: "" }))
-        : [{ from: "", to: "" }];
-    },
-  );
+  const remapRows =
+    rows.length > 0 ? rows : buildRemapRowsFromPaths(undefined);
   const [remapScope, setRemapScope] = useState<"selection" | "page">("page");
   const [remapRunning, setRemapRunning] = useState(false);
   const [remapProgress, setRemapProgress] = useState<{
     processed: number;
     total: number;
   } | null>(null);
-  const [remapResult, setRemapResult] = useState<{
-    updatedBindings: number;
-    updatedNodes: number;
-  } | null>(null);
+  const [remapResult, setRemapResult] = useState<RemapResultState | null>(null);
   const [remapError, setRemapError] = useState<string | null>(null);
+  const [remapValidationMessage, setRemapValidationMessage] = useState<
+    string | null
+  >(null);
 
-  // Listen for remap-progress and remap-complete messages from the plugin controller
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const msg = event.data?.pluginMessage;
@@ -48,38 +94,82 @@ export function RemapBindingsPanel({
           setRemapError(msg.error);
           setRemapResult(null);
         } else {
-          setRemapResult({
+          const nextResult: RemapResultState = {
             updatedBindings: msg.updatedBindings,
             updatedNodes: msg.updatedNodes,
-          });
+            scannedNodes: msg.scannedNodes ?? 0,
+            nodesWithBindings: msg.nodesWithBindings ?? 0,
+          };
+          setRemapResult(nextResult);
           setRemapError(null);
+          if (nextResult.updatedBindings > 0) {
+            onRowsChange(buildRemapRowsFromPaths(undefined));
+          }
         }
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, []);
+  }, [onRowsChange]);
+
+  useEffect(() => {
+    setRemapValidationMessage(null);
+    setRemapError(null);
+  }, [remapRows, remapScope]);
+
+  const fromAutocompletePaths = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...Object.keys(tokenMap),
+            ...(fromSuggestions ?? []),
+            ...remapRows.map((row) => row.from.trim()).filter(Boolean),
+          ].filter(Boolean),
+        ),
+      ),
+    [fromSuggestions, remapRows, tokenMap],
+  );
+
+  const updateRows = (nextRows: RemapBindingsRow[]) => {
+    setRemapResult(null);
+    onRowsChange(nextRows);
+  };
 
   const handleRemap = () => {
-    const validEntries: Record<string, string> = {};
-    for (const row of remapRows) {
-      if (
-        row.from.trim() &&
-        row.to.trim() &&
-        row.from.trim() !== row.to.trim()
-      ) {
-        validEntries[row.from.trim()] = row.to.trim();
+    const normalizedRows = remapRows.map((row) => ({
+      from: row.from.trim(),
+      to: row.to.trim(),
+    }));
+    const hasAnyInput = normalizedRows.some((row) => row.from || row.to);
+    const validEntries = normalizedRows.filter(
+      (row) => row.from && row.to && row.from !== row.to,
+    );
+
+    if (validEntries.length === 0) {
+      if (hasAnyInput) {
+        setRemapValidationMessage(
+          "Add at least one row with both paths filled and different values.",
+        );
       }
+      return;
     }
-    if (Object.keys(validEntries).length === 0) return;
+
+    const remapMap = Object.fromEntries(
+      validEntries.map((row) => [row.from, row.to]),
+    );
+
     setRemapRunning(true);
+    setRemapProgress(null);
     setRemapResult(null);
     setRemapError(null);
+    setRemapValidationMessage(null);
+
     parent.postMessage(
       {
         pluginMessage: {
           type: "remap-bindings",
-          remapMap: validEntries,
+          remapMap,
           scope: remapScope,
         },
       },
@@ -87,9 +177,42 @@ export function RemapBindingsPanel({
     );
   };
 
+  const statusBanner = remapRunning ? (
+    <InlineBanner variant="loading" size="sm">
+      Remapping {remapProgress ? `${remapProgress.processed}/${remapProgress.total}` : "bindings"}…
+    </InlineBanner>
+  ) : remapError ? (
+    <InlineBanner variant="error" size="sm">
+      <span title={remapError}>{remapError}</span>
+    </InlineBanner>
+  ) : remapValidationMessage ? (
+    <InlineBanner variant="warning" size="sm">
+      {remapValidationMessage}
+    </InlineBanner>
+  ) : remapResult ? (
+    <InlineBanner
+      variant={remapResult.updatedBindings > 0 ? "success" : "info"}
+      size="sm"
+      action={
+        remapResult.updatedBindings > 0
+          ? {
+              label: embedded ? "Done" : "Close",
+              onClick: onClose,
+            }
+          : undefined
+      }
+    >
+      {describeRemapResult(remapResult, remapScope)}
+    </InlineBanner>
+  ) : null;
+
+  const remapDisabled =
+    remapRunning ||
+    remapRows.every((row) => !row.from.trim() && !row.to.trim());
+
   return (
     <div
-      className={`${embedded ? "" : "border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"} px-3 py-2 shrink-0`}
+      className={`${embedded ? "" : "border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"} shrink-0 px-3 py-2`}
     >
       {!embedded && (
         <div className="mb-1 flex items-center justify-between">
@@ -116,24 +239,27 @@ export function RemapBindingsPanel({
           </button>
         </div>
       )}
-      <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5 leading-relaxed">
-        Find-and-replace token paths — enter the old path on the left and the
-        replacement on the right, then click Remap.
+
+      <p className="mb-1.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+        Find and replace token paths. The left side can search both live tokens
+        and stale paths seen in the current bindings or the latest sync result.
       </p>
 
-      {/* Mapping rows */}
-      <div className="flex flex-col gap-1 mb-1.5">
+      <div className="mb-1.5 flex flex-col gap-1">
         {remapRows.map((row, idx) => (
           <div key={idx} className="flex items-center gap-1">
             <RemapAutocompleteInput
               value={row.from}
-              onChange={(v) =>
-                setRemapRows((rows) =>
-                  rows.map((r, i) => (i === idx ? { ...r, from: v } : r)),
+              onChange={(nextValue) =>
+                updateRows(
+                  remapRows.map((existingRow, rowIdx) =>
+                    rowIdx === idx ? { ...existingRow, from: nextValue } : existingRow,
+                  ),
                 )
               }
               placeholder="old.token.path"
               tokenMap={tokenMap}
+              additionalPaths={fromAutocompletePaths}
             />
             <svg
               width="8"
@@ -151,9 +277,11 @@ export function RemapBindingsPanel({
             </svg>
             <RemapAutocompleteInput
               value={row.to}
-              onChange={(v) =>
-                setRemapRows((rows) =>
-                  rows.map((r, i) => (i === idx ? { ...r, to: v } : r)),
+              onChange={(nextValue) =>
+                updateRows(
+                  remapRows.map((existingRow, rowIdx) =>
+                    rowIdx === idx ? { ...existingRow, to: nextValue } : existingRow,
+                  ),
                 )
               }
               placeholder="new.token.path"
@@ -162,9 +290,9 @@ export function RemapBindingsPanel({
             {remapRows.length > 1 && (
               <button
                 onClick={() =>
-                  setRemapRows((rows) => rows.filter((_, i) => i !== idx))
+                  updateRows(remapRows.filter((_, rowIdx) => rowIdx !== idx))
                 }
-                className="shrink-0 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-error,#f56565)]"
                 title="Remove row"
                 aria-label="Remove row"
               >
@@ -185,60 +313,33 @@ export function RemapBindingsPanel({
         ))}
       </div>
 
-      <div className="flex items-center justify-between">
+      {statusBanner ? <div className="mb-1.5">{statusBanner}</div> : null}
+
+      <div className="flex items-center justify-between gap-2">
         <button
-          onClick={() =>
-            setRemapRows((rows) => [...rows, { from: "", to: "" }])
-          }
+          onClick={() => updateRows([...remapRows, { ...EMPTY_REMAP_ROW }])}
           className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
         >
           + Add row
         </button>
+
         <div className="flex items-center gap-1.5">
           <button
             onClick={() =>
-              setRemapScope((s) => (s === "selection" ? "page" : "selection"))
+              setRemapScope((currentScope) => {
+                setRemapResult(null);
+                return currentScope === "selection" ? "page" : "selection";
+              })
             }
-            className="text-[8px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors"
-            title="Toggle scope between selection (including children) and entire page"
+            className="rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)]"
+            title="Toggle scope between selection and entire page"
           >
             {remapScope === "selection" ? "Selection" : "Page"}
           </button>
-          {remapRunning && remapProgress && (
-            <span
-              className="text-[10px] text-[var(--color-figma-text-secondary)]"
-              aria-live="polite"
-            >
-              {remapProgress.processed}/{remapProgress.total} layers
-            </span>
-          )}
-          {remapError && !remapRunning && (
-            <span
-              className="text-[10px] text-[var(--color-figma-error)]"
-              title={remapError}
-            >
-              Error:{" "}
-              {remapError.length > 40
-                ? remapError.slice(0, 40) + "…"
-                : remapError}
-            </span>
-          )}
-          {!remapError && !remapRunning && remapResult && (
-            <span
-              className={`text-[10px] ${remapResult.updatedBindings > 0 ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-text-secondary)]"}`}
-            >
-              {remapResult.updatedBindings > 0
-                ? `${remapResult.updatedBindings} binding${remapResult.updatedBindings !== 1 ? "s" : ""} remapped`
-                : "No matches found"}
-            </span>
-          )}
           <button
             onClick={handleRemap}
-            disabled={
-              remapRunning ||
-              remapRows.every((r) => !r.from.trim() || !r.to.trim())
-            }
-            className="text-[10px] px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+            disabled={remapDisabled}
+            className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {remapRunning ? "Remapping…" : "Remap"}
           </button>

@@ -378,6 +378,8 @@ export interface RemapCompleteMessage {
   type: 'remap-complete';
   updatedBindings: number;
   updatedNodes: number;
+  scannedNodes: number;
+  nodesWithBindings: number;
   error?: string;
 }
 
@@ -773,6 +775,8 @@ export interface RemapCompleteResponseMessage {
   type: 'remap-complete';
   updatedBindings: number;
   updatedNodes: number;
+  scannedNodes: number;
+  nodesWithBindings: number;
   error?: string;
 }
 

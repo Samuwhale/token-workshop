@@ -1,30 +1,31 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import type { TokenMapEntry } from '../../shared/types';
-import { fuzzyScore } from '../shared/fuzzyMatch';
+import { useState, useRef, useEffect, useMemo } from "react";
+import type { TokenMapEntry } from "../../shared/types";
+import { fuzzyScore } from "../shared/fuzzyMatch";
 
 interface RemapAutocompleteInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   tokenMap: Record<string, TokenMapEntry>;
+  additionalPaths?: string[];
 }
 
 const MAX_SUGGESTIONS = 16;
 
 /** Format a token value as a short preview string. */
 function formatValuePreview(value: unknown): string {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'object') {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
     const parts: string[] = [];
     for (const [k, v] of Object.entries(obj)) {
-      if (k.startsWith('$')) continue;
-      if (typeof v === 'string' || typeof v === 'number') parts.push(String(v));
+      if (k.startsWith("$")) continue;
+      if (typeof v === "string" || typeof v === "number") parts.push(String(v));
       if (parts.length >= 3) break;
     }
-    return parts.join(' / ') || '';
+    return parts.join(" / ") || "";
   }
   return String(value);
 }
@@ -34,6 +35,7 @@ export function RemapAutocompleteInput({
   onChange,
   placeholder,
   tokenMap,
+  additionalPaths,
 }: RemapAutocompleteInputProps) {
   const [focused, setFocused] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(-1);
@@ -43,14 +45,29 @@ export function RemapAutocompleteInput({
   const suggestions = useMemo(() => {
     const q = value.trim();
     if (!q) return [];
-    const scored: [string, TokenMapEntry, number][] = [];
+
+    const candidateEntries = new Map<string, TokenMapEntry | null>();
     for (const [path, entry] of Object.entries(tokenMap)) {
-      const score = fuzzyScore(q, path);
-      if (score >= 0) scored.push([path, entry, score]);
+      candidateEntries.set(path, entry);
     }
-    scored.sort((a, b) => b[2] - a[2]);
-    return scored.slice(0, MAX_SUGGESTIONS).map(([p, e]) => [p, e] as [string, TokenMapEntry]);
-  }, [tokenMap, value]);
+    for (const path of additionalPaths ?? []) {
+      const normalizedPath = path.trim();
+      if (!normalizedPath || candidateEntries.has(normalizedPath)) continue;
+      candidateEntries.set(normalizedPath, null);
+    }
+
+    const scored: Array<{
+      path: string;
+      entry: TokenMapEntry | null;
+      score: number;
+    }> = [];
+    for (const [path, entry] of candidateEntries.entries()) {
+      const score = fuzzyScore(q, path);
+      if (score >= 0) scored.push({ path, entry, score });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, MAX_SUGGESTIONS);
+  }, [additionalPaths, tokenMap, value]);
 
   const showDropdown = focused && value.trim().length > 0 && suggestions.length > 0;
 
@@ -61,8 +78,10 @@ export function RemapAutocompleteInput({
   // Scroll active item into view
   useEffect(() => {
     if (selectedIdx >= 0) {
-      const el = listRef.current?.querySelector(`[data-ridx="${selectedIdx}"]`) as HTMLElement | null;
-      el?.scrollIntoView({ block: 'nearest' });
+      const el = listRef.current?.querySelector(
+        `[data-ridx="${selectedIdx}"]`,
+      ) as HTMLElement | null;
+      el?.scrollIntoView({ block: "nearest" });
     }
   }, [selectedIdx]);
 
@@ -74,17 +93,17 @@ export function RemapAutocompleteInput({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showDropdown) return;
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIdx(i => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
+      setSelectedIdx((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setSelectedIdx(i => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter') {
+      setSelectedIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
       e.preventDefault();
       const target = selectedIdx >= 0 ? suggestions[selectedIdx] : suggestions[0];
-      if (target) selectItem(target[0]);
-    } else if (e.key === 'Escape') {
+      if (target) selectItem(target.path);
+    } else if (e.key === "Escape") {
       setFocused(false);
     }
   };
@@ -95,7 +114,7 @@ export function RemapAutocompleteInput({
         ref={inputRef}
         type="text"
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => {
           // Delay to allow mousedown on suggestions
@@ -111,17 +130,23 @@ export function RemapAutocompleteInput({
           ref={listRef}
           className="absolute z-50 mt-0.5 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-[140px]"
         >
-          {suggestions.map(([path, entry], idx) => {
+          {suggestions.map(({ path, entry }, idx) => {
             const isSelected = idx === selectedIdx;
+            const preview = entry ? formatValuePreview(entry.$value) : "";
             return (
               <button
                 key={path}
                 data-ridx={idx}
-                onMouseDown={e => { e.preventDefault(); selectItem(path); }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  selectItem(path);
+                }}
                 onMouseEnter={() => setSelectedIdx(idx)}
-                className={`w-full flex items-center gap-1.5 px-1.5 py-1 text-left transition-colors ${isSelected ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
+                className={`w-full flex items-center gap-1.5 px-1.5 py-1 text-left transition-colors ${isSelected ? "bg-[var(--color-figma-bg-hover)]" : ""}`}
               >
-                {entry.$type === 'color' && typeof entry.$value === 'string' && entry.$value.startsWith('#') ? (
+                {entry?.$type === "color" &&
+                typeof entry.$value === "string" &&
+                entry.$value.startsWith("#") ? (
                   <div
                     className="w-2.5 h-2.5 rounded-sm border border-[var(--color-figma-border)] shrink-0"
                     style={{ backgroundColor: entry.$value }}
@@ -132,12 +157,17 @@ export function RemapAutocompleteInput({
                   </div>
                 )}
                 <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text)] truncate">{path}</span>
-                {formatValuePreview(entry.$value) && (
-                  <span className="text-[8px] text-[var(--color-figma-text-secondary)] truncate max-w-[100px] shrink-0" title={formatValuePreview(entry.$value)}>
-                    {formatValuePreview(entry.$value)}
+                {preview ? (
+                  <span
+                    className="max-w-[100px] shrink-0 truncate text-[8px] text-[var(--color-figma-text-secondary)]"
+                    title={preview}
+                  >
+                    {preview}
                   </span>
-                )}
-                <span className="text-[7px] text-[var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
+                ) : null}
+                <span className="shrink-0 text-[7px] text-[var(--color-figma-text-secondary)]">
+                  {entry?.$type ?? "stale"}
+                </span>
               </button>
             );
           })}
