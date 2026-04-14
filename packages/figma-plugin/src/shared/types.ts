@@ -780,6 +780,7 @@ export interface StylesAppliedMessage {
   count: number;
   total: number;
   failures: { path: string; error: string }[];
+  skipped?: Array<{ path: string; $type: string }>;
   /** Pre-sync snapshot for revert support. */
   styleSnapshot?: StyleSnapshot;
   correlationId?: string;
@@ -876,6 +877,7 @@ export interface CanvasHeatmapResultMessage {
     id: string;
     name: string;
     type: string;
+    pageName?: string;
     status: string;
     boundCount: number;
     totalCheckable: number;

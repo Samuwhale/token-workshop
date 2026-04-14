@@ -28,17 +28,12 @@ interface QualifierHint {
   kind: "replacement" | "hint";
 }
 
-type LibraryViewMode = "library" | "theme-options" | "active-theme" | "json";
+import type { LibraryViewMode } from "./TokenListOverflowMenu";
 
 export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
   navHistoryLength?: number;
   setName: string;
-  totalTokenCount: number;
-  visibleTokenCount: number;
-  groupCount: number;
-  staleRecipeCount: number;
-  activeThemeSelectionCount: number;
   zoomRootPath?: string | null;
   searchRef: RefObject<HTMLInputElement | null>;
   searchQuery: string;
@@ -67,9 +62,6 @@ export interface TokenListToolbarProps {
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
   onOpenSetSwitcher?: () => void;
-  onOpenSetManager?: () => void;
-  onNavigateToRecipesWorkspace?: () => void;
-  onNavigateToThemesWorkspace?: () => void;
   hasDimensions: boolean;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
@@ -85,51 +77,6 @@ export interface TokenListToolbarProps {
   applyingOrLoading?: boolean;
   tokensExist?: boolean;
   overflowMenuProps: TokenListOverflowMenuProps | null;
-}
-
-function GhostButton({
-  label,
-  onClick,
-  disabled = false,
-}: {
-  label: string;
-  onClick?: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || !onClick}
-      className="inline-flex min-h-[24px] items-center rounded px-2 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      {label}
-    </button>
-  );
-}
-
-function ModeButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex min-h-[24px] items-center rounded px-2 text-[10px] font-medium transition-colors ${
-        active
-          ? "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)]"
-          : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-      }`}
-    >
-      {label}
-    </button>
-  );
 }
 
 function ToolbarSummaryLine({
@@ -199,11 +146,6 @@ export function TokenListToolbar({
   onNavigateBack,
   navHistoryLength,
   setName,
-  totalTokenCount,
-  visibleTokenCount,
-  groupCount,
-  staleRecipeCount,
-  activeThemeSelectionCount,
   zoomRootPath,
   searchRef,
   searchQuery,
@@ -232,9 +174,6 @@ export function TokenListToolbar({
   onShowPasteModal,
   onOpenImportPanel,
   onOpenSetSwitcher,
-  onOpenSetManager,
-  onNavigateToRecipesWorkspace,
-  onNavigateToThemesWorkspace,
   hasDimensions,
   multiModeEnabled,
   onToggleMultiMode,
@@ -330,26 +269,6 @@ export function TokenListToolbar({
   const viewItems = toolbarStateChips.filter((chip) => chip.tone === "view");
   const canClearFilters = hasStructuredFilters || filterItems.length > 0;
   const canClearView = viewItems.length > 0;
-  const summaryParts = [
-    `${totalTokenCount} token${totalTokenCount === 1 ? "" : "s"}`,
-    `${groupCount} group${groupCount === 1 ? "" : "s"}`,
-  ];
-
-  if (visibleTokenCount !== totalTokenCount || searchQuery.trim()) {
-    summaryParts.push(
-      `${visibleTokenCount} visible`,
-    );
-  }
-  if (staleRecipeCount > 0) {
-    summaryParts.push(
-      `${staleRecipeCount} stale recipe${staleRecipeCount === 1 ? "" : "s"}`,
-    );
-  }
-  if (activeThemeSelectionCount > 0) {
-    summaryParts.push(
-      `${activeThemeSelectionCount} active theme${activeThemeSelectionCount === 1 ? "" : "s"}`,
-    );
-  }
 
   const activateViewMode = useCallback(
     (nextMode: LibraryViewMode) => {
@@ -390,7 +309,7 @@ export function TokenListToolbar({
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
       <div className="flex flex-col gap-2 px-2 py-2">
-        <div className="flex flex-wrap items-start gap-2">
+        <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1">
               {(navHistoryLength ?? 0) > 0 && (
@@ -439,26 +358,9 @@ export function TokenListToolbar({
                 </span>
               )}
             </div>
-            <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-              {summaryParts.join(" · ")}
-            </div>
           </div>
 
-          <div className="flex min-w-0 basis-full flex-wrap items-center gap-1">
-            <GhostButton
-              label="Sets"
-              onClick={onOpenSetManager}
-            />
-            <GhostButton
-              label="Recipes"
-              onClick={onNavigateToRecipesWorkspace}
-            />
-            <GhostButton
-              label="Themes"
-              onClick={onNavigateToThemesWorkspace}
-              disabled={!hasDimensions}
-            />
-
+          <div className="flex shrink-0 items-center gap-1">
             <div className="relative shrink-0" ref={createToolsMenuContainerRef}>
               <button
                 ref={createToolsMenuButtonRef}
@@ -649,7 +551,7 @@ export function TokenListToolbar({
 
             {overflowMenuProps && (
               <>
-                <ViewMenu {...overflowMenuProps} />
+                <ViewMenu {...overflowMenuProps} currentLibraryViewMode={currentLibraryViewMode} onActivateViewMode={activateViewMode} />
                 <FilterMenu {...overflowMenuProps} />
               </>
             )}
@@ -832,32 +734,6 @@ export function TokenListToolbar({
                 )}
             </div>
 
-            <div className="inline-flex shrink-0 items-center rounded bg-[var(--color-figma-bg)] p-0.5 shadow-[inset_0_0_0_1px_var(--color-figma-border)]">
-              <ModeButton
-                label="Library"
-                active={currentLibraryViewMode === "library"}
-                onClick={() => activateViewMode("library")}
-              />
-              {hasDimensions && (
-                <>
-                  <ModeButton
-                    label="Theme Options"
-                    active={currentLibraryViewMode === "theme-options"}
-                    onClick={() => activateViewMode("theme-options")}
-                  />
-                  <ModeButton
-                    label="Active Theme"
-                    active={currentLibraryViewMode === "active-theme"}
-                    onClick={() => activateViewMode("active-theme")}
-                  />
-                </>
-              )}
-              <ModeButton
-                label="JSON"
-                active={currentLibraryViewMode === "json"}
-                onClick={() => activateViewMode("json")}
-              />
-            </div>
           </div>
         )}
 

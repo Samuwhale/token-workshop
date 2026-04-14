@@ -183,9 +183,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
           (Array.isArray(token.$scopes) ? token.$scopes : null) ??
           []
         );
-        if (scopeOverrides.length > 0) {
-          variable.scopes = scopeOverrides as VariableScope[];
-        }
+        variable.scopes = scopeOverrides as VariableScope[];
 
         // Store mapping in shared plugin data
         variable.setPluginData('tokenPath', token.path);

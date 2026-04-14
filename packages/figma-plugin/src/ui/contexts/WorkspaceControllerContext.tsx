@@ -24,7 +24,6 @@ import type { StarredTokensState } from "../hooks/useStarredTokens";
 import type { NotificationEntry } from "../hooks/useToastStack";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import type {
-  ImportNextStepRecommendation,
   SurfaceTransition,
 } from "../shared/navigationTypes";
 import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
@@ -41,10 +40,7 @@ export interface ShellWorkspaceController {
   openStartHere: (branch?: StartHereBranch) => void;
   restartGuidedSetup: () => void;
   handleClearAllComplete: () => void;
-  handleImportComplete: (
-    result: ImportCompletionResult,
-    destinationRecommendation: ImportNextStepRecommendation | null,
-  ) => void;
+  handleImportComplete: (result: ImportCompletionResult) => void;
   notificationHistory: NotificationEntry[];
   clearNotificationHistory: () => void;
 }

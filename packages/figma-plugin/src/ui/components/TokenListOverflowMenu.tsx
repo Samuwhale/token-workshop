@@ -4,6 +4,8 @@ import type { Density } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 
+export type LibraryViewMode = "library" | "theme-options" | "active-theme" | "json";
+
 export interface ViewMenuProps {
   sortOrder: SortOrder;
   onSortOrderChange: (order: SortOrder) => void;
@@ -195,7 +197,7 @@ function useDropdownMenu() {
   return { open, setOpen, containerRef, buttonRef, menuRef, runAndClose };
 }
 
-export function ViewMenu(props: ViewMenuProps) {
+export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: LibraryViewMode; onActivateViewMode: (mode: LibraryViewMode) => void }) {
   const { open, setOpen, containerRef, buttonRef, menuRef, runAndClose } =
     useDropdownMenu();
   const [groupsExpanded, setGroupsExpanded] = useState(true);
@@ -232,7 +234,15 @@ export function ViewMenu(props: ViewMenuProps) {
           <rect x="3" y="14" width="7" height="7" rx="1" />
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
-        <span>View</span>
+        <span>
+          {props.currentLibraryViewMode === "library"
+            ? "View"
+            : props.currentLibraryViewMode === "theme-options"
+              ? "View: Options"
+              : props.currentLibraryViewMode === "active-theme"
+                ? "View: Theme"
+                : "View: JSON"}
+        </span>
       </button>
 
       {open && (
@@ -242,6 +252,31 @@ export function ViewMenu(props: ViewMenuProps) {
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">
+            <MenuItem
+              label="Library"
+              checked={props.currentLibraryViewMode === "library"}
+              onClick={() => runAndClose(() => props.onActivateViewMode("library"))}
+            />
+            {props.hasDimensions && (
+              <MenuItem
+                label="Theme Options"
+                checked={props.currentLibraryViewMode === "theme-options"}
+                onClick={() => runAndClose(() => props.onActivateViewMode("theme-options"))}
+              />
+            )}
+            {props.hasDimensions && (
+              <MenuItem
+                label="Active Theme"
+                checked={props.currentLibraryViewMode === "active-theme"}
+                onClick={() => runAndClose(() => props.onActivateViewMode("active-theme"))}
+              />
+            )}
+            <MenuItem
+              label="JSON"
+              checked={props.currentLibraryViewMode === "json"}
+              onClick={() => runAndClose(() => props.onActivateViewMode("json"))}
+            />
+            <div className={MENU_SECTION_BORDER} />
             <MenuItem
               label={
                 props.sortOrder === "default"
@@ -475,12 +510,3 @@ export function FilterMenu(props: FilterMenuProps) {
   );
 }
 
-/** @deprecated Use ViewMenu and FilterMenu directly */
-export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
-  return (
-    <>
-      <ViewMenu {...props} />
-      <FilterMenu {...props} />
-    </>
-  );
-}

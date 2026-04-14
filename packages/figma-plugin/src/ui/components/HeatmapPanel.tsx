@@ -18,6 +18,7 @@ export interface HeatmapNode {
   id: string;
   name: string;
   type: string;
+  pageName?: string;
   status: 'green' | 'yellow' | 'red';
   boundCount: number;
   totalCheckable: number;
@@ -362,7 +363,13 @@ export function HeatmapPanel({
             <line x1="9" y1="9" x2="15" y2="15"/>
             <line x1="15" y1="9" x2="9" y2="15"/>
           </svg>
-          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No bindable layers on this page.</p>
+          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+            {scope === 'all-pages'
+              ? 'No bindable layers found in this file.'
+              : scope === 'selection'
+                ? 'No bindable layers found in the selection.'
+                : 'No bindable layers on this page.'}
+          </p>
           <button
             onClick={() => onRescan()}
             className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -549,7 +556,12 @@ function NodeRow({
         aria-label={`Select ${node.name}`}
       >
         <StatusIcon status={node.status} size={8} />
-        <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">{node.name}</span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[10px] text-[var(--color-figma-text)] truncate">{node.name}</span>
+          {node.pageName ? (
+            <span className="block text-[9px] text-[var(--color-figma-text-tertiary)] truncate">{node.pageName}</span>
+          ) : null}
+        </span>
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
         {node.totalCheckable > 0 && (
           <span className={`text-[10px] shrink-0 ${cfg.text}`}>{node.boundCount}/{node.totalCheckable}</span>

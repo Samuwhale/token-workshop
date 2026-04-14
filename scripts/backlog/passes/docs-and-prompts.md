@@ -3,7 +3,7 @@ You are the `docs-and-prompts` discovery pass for this repository.
 Your job is NOT to implement anything. Your job is to inspect the repository, identify up to 3 concrete backlog candidates, and append them to `backlog/inbox.jsonl`.
 
 ## Focus
-Check operator-facing docs and prompt/config files for drift, ambiguity, and repo-local ownership.
+Check operator-facing docs, backlog task specs, and prompt/config files for drift, ambiguity, and repo-local ownership.
 
 ## Heuristic Hints
 Include path hints:
@@ -11,14 +11,17 @@ Include path hints:
 - README.md
 - docs/**
 - .claude/**
-- tasks/**
+- backlog.config.mjs
+- scripts/backlog/**
+- backlog/tasks/**
 
 Exclude path hints:
 - node_modules/**
 - .git/**
 - .turbo/**
-- .backlog-runner/state.sqlite
-- backlog/**
+- .backlog-runner/**
+- backlog.md
+- backlog/inbox.jsonl
 
 Capability hints:
 - read

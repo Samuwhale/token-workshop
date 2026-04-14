@@ -167,12 +167,6 @@ export interface TokenListActions {
   onOpenImportPanel?: () => void;
   /** Open the set switcher from the Tokens workspace */
   onOpenSetSwitcher?: () => void;
-  /** Open the dedicated set structure manager */
-  onOpenSetManager?: () => void;
-  /** Navigate to the Recipes workspace */
-  onNavigateToRecipesWorkspace?: () => void;
-  /** Navigate to the Themes workspace */
-  onNavigateToThemesWorkspace?: () => void;
   /** Open the cross-set "where is this token defined" overlay for the given path */
   onFindInAllSets?: (path: string) => void;
   /** Called when a cross-set token drag starts — lets the parent expose drop zones on set tabs */

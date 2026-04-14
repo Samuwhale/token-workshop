@@ -1,6 +1,6 @@
 import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type BindableProperty, type ScanScope, type ResolvedTokenValue } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
-import { applyToSelection } from './selectionHandling.js';
+import { applyToNodes } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
 import { rgbToHex } from './colorUtils.js';
 
@@ -53,12 +53,42 @@ export async function scanComponentCoverage(correlationId?: string, signal?: { a
 export async function selectNode(nodeId: string) {
   try {
     const node = await figma.getNodeByIdAsync(nodeId);
-    if (node && 'parent' in node) {
-      figma.currentPage.selection = [node as SceneNode];
-      figma.viewport.scrollAndZoomIntoView([node as SceneNode]);
-    }
+    const selectable = getSelectableSceneNode(node);
+    if (!selectable) return;
+
+    await setCurrentPageIfNeeded(selectable.page);
+    figma.currentPage.selection = [selectable.node];
+    figma.viewport.scrollAndZoomIntoView([selectable.node]);
   } catch (_error) {
     // Silently ignore — node might not be accessible
+  }
+}
+
+function getParentPage(node: BaseNode | null): PageNode | null {
+  let current = node;
+  while (current && current.type !== 'DOCUMENT') {
+    if (current.type === 'PAGE') {
+      return current;
+    }
+    current = ('parent' in current ? current.parent : null) ?? null;
+  }
+  return null;
+}
+
+function getSelectableSceneNode(node: BaseNode | null): { node: SceneNode; page: PageNode } | null {
+  if (!node || !('parent' in node)) {
+    return null;
+  }
+  const page = getParentPage(node);
+  if (!page) {
+    return null;
+  }
+  return { node: node as SceneNode, page };
+}
+
+async function setCurrentPageIfNeeded(page: PageNode): Promise<void> {
+  if (figma.currentPage.id !== page.id) {
+    await figma.setCurrentPageAsync(page);
   }
 }
 
@@ -250,6 +280,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
       id: string;
       name: string;
       type: string;
+      pageName?: string;
       status: HeatmapStatus;
       boundCount: number;
       totalCheckable: number;
@@ -297,7 +328,18 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
         }
       }
 
-      result.push({ id: node.id, name: node.name, type: node.type, status, boundCount, totalCheckable, missingProperties, missingValueEntries });
+      const page = getParentPage(node);
+      result.push({
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        pageName: scope === 'all-pages' ? page?.name : undefined,
+        status,
+        boundCount,
+        totalCheckable,
+        missingProperties,
+        missingValueEntries,
+      });
 
       // Yield between batches to prevent freezing
       if ((i + 1) % BATCH_SIZE === 0) {
@@ -328,14 +370,27 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
 // Select nodes by ID and zoom to them
 export async function selectHeatmapNodes(nodeIds: string[]) {
   try {
-    const nodes: SceneNode[] = [];
+    const selections: Array<{ node: SceneNode; page: PageNode }> = [];
     for (const id of nodeIds) {
       const node = await figma.getNodeByIdAsync(id);
-      if (node && 'parent' in node) nodes.push(node as SceneNode);
+      const selectable = getSelectableSceneNode(node);
+      if (selectable) selections.push(selectable);
     }
-    if (nodes.length > 0) {
-      figma.currentPage.selection = nodes;
-      figma.viewport.scrollAndZoomIntoView(nodes);
+    if (selections.length === 0) return;
+
+    const firstPage = selections[0].page;
+    const samePageNodes = selections
+      .filter((entry) => entry.page.id === firstPage.id)
+      .map((entry) => entry.node);
+
+    await setCurrentPageIfNeeded(firstPage);
+    figma.currentPage.selection = samePageNodes;
+    figma.viewport.scrollAndZoomIntoView(samePageNodes);
+
+    if (samePageNodes.length < selections.length) {
+      figma.notify(`Selected ${samePageNodes.length} layer(s) on "${firstPage.name}". Other matches are on different pages.`, {
+        timeout: 2500,
+      });
     }
   } catch (e) {
     console.debug('[heatmapScanning] failed to select/zoom to nodes:', e);
@@ -414,17 +469,30 @@ export async function scanTokenUsage(tokenPath: string, signal?: { aborted: bool
 }
 
 export async function batchBindHeatmapNodes(nodeIds: string[], tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: ResolvedTokenValue, skipNavigation = false) {
-  // First select the nodes so applyToSelection operates on them
-  const nodes: SceneNode[] = [];
+  const selections: Array<{ node: SceneNode; page: PageNode }> = [];
   for (const id of nodeIds) {
     const node = await figma.getNodeByIdAsync(id);
-    if (node && 'parent' in node) nodes.push(node as SceneNode);
+    const selectable = getSelectableSceneNode(node);
+    if (selectable) selections.push(selectable);
   }
-  if (nodes.length > 0) {
-    figma.currentPage.selection = nodes;
-    if (!skipNavigation) {
-      figma.viewport.scrollAndZoomIntoView(nodes);
-    }
+  await applyToNodes(nodeIds, tokenPath, tokenType, targetProperty, resolvedValue);
+
+  if (skipNavigation || selections.length === 0) {
+    return;
   }
-  await applyToSelection(tokenPath, tokenType, targetProperty, resolvedValue);
+
+  const firstPage = selections[0].page;
+  const samePageNodes = selections
+    .filter((entry) => entry.page.id === firstPage.id)
+    .map((entry) => entry.node);
+
+  await setCurrentPageIfNeeded(firstPage);
+  figma.currentPage.selection = samePageNodes;
+  figma.viewport.scrollAndZoomIntoView(samePageNodes);
+
+  if (samePageNodes.length < selections.length) {
+    figma.notify(`Applied bindings across ${selections.length} layer(s). Showing the ${samePageNodes.length} layer(s) on "${firstPage.name}".`, {
+      timeout: 2500,
+    });
+  }
 }

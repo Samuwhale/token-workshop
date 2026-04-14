@@ -194,9 +194,6 @@ export function TokenList({
     onShowPasteModal,
     onOpenImportPanel,
     onOpenSetSwitcher,
-    onOpenSetManager,
-    onNavigateToRecipesWorkspace,
-    onNavigateToThemesWorkspace,
     onTokenDragStart,
     onTokenDragEnd,
     onOpenStartHere,
@@ -757,11 +754,6 @@ export function TokenList({
 
   // --- Custom hooks for extracted state groups ---
   const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
-  const totalLeafCount = useMemo(() => flattenLeafNodes(tokens).length, [tokens]);
-  const activeThemeSelectionCount = useMemo(
-    () => Object.values(activeThemes).filter(Boolean).length,
-    [activeThemes],
-  );
 
   const { handleOpenCreateSibling } = useTokenCreate({
     selectedNodes,
@@ -3752,19 +3744,12 @@ export function TokenList({
         )}
 
 
-        {/* Compact toolbar — single row: [back?] [search (filter badge)] [+] [...] */}
+        {/* Toolbar — row 1: [set name] [create] [tools] [view] [filter], row 2: [search] */}
         {!selectMode && (
           <TokenListToolbar
             onNavigateBack={onNavigateBack}
             navHistoryLength={navHistoryLength}
             setName={setName}
-            totalTokenCount={totalLeafCount}
-            visibleTokenCount={
-              crossSetResults !== null ? crossSetResults.length : displayedLeafNodes.length
-            }
-            groupCount={allGroupPaths.length}
-            staleRecipeCount={staleRecipesForSet.length}
-            activeThemeSelectionCount={activeThemeSelectionCount}
             zoomRootPath={zoomRootPath}
             searchRef={searchRef}
             searchQuery={searchQuery}
@@ -3793,9 +3778,6 @@ export function TokenList({
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
             onOpenSetSwitcher={onOpenSetSwitcher}
-            onOpenSetManager={onOpenSetManager}
-            onNavigateToRecipesWorkspace={onNavigateToRecipesWorkspace}
-            onNavigateToThemesWorkspace={onNavigateToThemesWorkspace}
             onCreateRecipe={onNavigateToNewRecipe}
             hasDimensions={dimensions.length > 0}
             multiModeEnabled={multiModeEnabled}

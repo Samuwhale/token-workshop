@@ -3,12 +3,23 @@ export default {
   "validation": {
     "default": "bash scripts/backlog/validate.sh",
     "profiles": {
+      "docs": "bash scripts/backlog/validate-docs.sh",
       "core": "pnpm --filter @tokenmanager/core build",
       "server": "pnpm --filter @tokenmanager/server build",
       "plugin": "pnpm preview:build",
       "backlog": "pnpm --filter backlog-runner build"
     },
     "routing": [
+      {
+        "profile": "docs",
+        "pathPrefixes": [
+          "AGENTS.md",
+          "README.md",
+          "docs",
+          ".claude",
+          "backlog/tasks"
+        ]
+      },
       {
         "profile": "core",
         "pathPrefixes": [
@@ -150,7 +161,7 @@ export default {
         }
       },
       "docs-and-prompts": {
-        "description": "Check operator-facing docs and prompt/config files for drift, ambiguity, and repo-local ownership.",
+        "description": "Check operator-facing docs, backlog task specs, and prompt/config files for drift, ambiguity, and repo-local ownership.",
         "runner": {
           "tool": "claude",
           "model": "opus"
@@ -161,14 +172,17 @@ export default {
             "README.md",
             "docs/**",
             ".claude/**",
-            "tasks/**"
+            "backlog.config.mjs",
+            "scripts/backlog/**",
+            "backlog/tasks/**"
           ],
           "excludePaths": [
             "node_modules/**",
             ".git/**",
             ".turbo/**",
-            ".backlog-runner/state.sqlite",
-            "backlog/**"
+            ".backlog-runner/**",
+            "backlog.md",
+            "backlog/inbox.jsonl"
           ],
           "capabilities": [
             "read",

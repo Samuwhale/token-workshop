@@ -35,6 +35,13 @@ interface ShadowStyleToken extends BaseStyleToken {
 
 export type StyleToken = ColorStyleToken | GradientStyleToken | TypographyStyleToken | ShadowStyleToken;
 
+function isStyleToken(token: BaseStyleToken & { $type: string }): token is StyleToken {
+  return token.$type === 'color'
+    || token.$type === 'gradient'
+    || token.$type === 'typography'
+    || token.$type === 'shadow';
+}
+
 // ---------------------------------------------------------------------------
 // Cached style lists — fetched once per applyStyles() call.
 // ---------------------------------------------------------------------------
@@ -50,7 +57,10 @@ interface StyleCache {
 // ---------------------------------------------------------------------------
 
 
-export async function applyStyles(tokens: StyleToken[], correlationId?: string) {
+export async function applyStyles(
+  tokens: Array<BaseStyleToken & { $type: string; $value: unknown }>,
+  correlationId?: string,
+) {
   // Fetch all local styles once upfront instead of per-token.
   const cache: StyleCache = {
     paintStyles: await figma.getLocalPaintStylesAsync(),
@@ -64,12 +74,18 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
   const createdStyleIds: string[] = [];
 
   let successCount = 0;
+  const skipped: Array<{ path: string; $type: string }> = [];
   const failures: { path: string; error: string }[] = [];
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     // Emit incremental progress so the UI can show "Syncing N / M styles…"
     if (i % 5 === 0 || i === tokens.length - 1) {
       figma.ui.postMessage({ type: 'style-sync-progress', current: i + 1, total: tokens.length, correlationId });
+    }
+
+    if (!isStyleToken(token)) {
+      skipped.push({ path: token.path, $type: token.$type });
+      continue;
     }
 
     // Snapshot existing style before modifying it (for revert support)
@@ -132,6 +148,7 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
     count: successCount,
     total: tokens.length,
     failures,
+    skipped,
     correlationId,
     styleSnapshot: { snapshots: styleSnapshots, createdIds: createdStyleIds },
   });
@@ -213,21 +230,7 @@ function applyPaintStyle(token: ColorStyleToken, cache: StyleCache): void {
     cache.paintStyles.push(style);
   }
   const newSolid: SolidPaint = { type: 'SOLID', color: color.rgb, opacity: color.a };
-  const existing = style.paints;
-  if (existing.length === 0) {
-    style.paints = [newSolid];
-  } else {
-    // Update only the first solid paint; preserve gradients, images, and other layers
-    const solidIdx = existing.findIndex(p => p.type === 'SOLID');
-    if (solidIdx >= 0) {
-      const updated = [...existing];
-      updated[solidIdx] = newSolid;
-      style.paints = updated;
-    } else {
-      // No existing solid — prepend the token color while keeping other paint layers
-      style.paints = [newSolid, ...existing];
-    }
-  }
+  style.paints = [newSolid];
   style.setPluginData('tokenPath', token.path);
 }
 

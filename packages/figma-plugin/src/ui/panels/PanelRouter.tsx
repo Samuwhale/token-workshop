@@ -610,9 +610,6 @@ export function PanelRouter(): ReactNode {
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
     onOpenSetSwitcher: controller.toggleSetSwitcher,
-    onOpenSetManager: () => openSecondarySurface("sets"),
-    onNavigateToRecipesWorkspace: () => navigateTo("recipes", "recipes"),
-    onNavigateToThemesWorkspace: () => navigateTo("themes", "themes"),
     onOpenStartHere: controller.onOpenStartHere,
     onTogglePreviewSplit: () => controller.setShowPreviewSplit((v) => !v),
     onTokenDragStart: controller.onTokenDragStart,
@@ -1080,12 +1077,12 @@ export function PanelRouter(): ReactNode {
               connected={connected}
               onImported={refreshTokens}
               onImportComplete={(result) => {
+                controller.onImportComplete(result);
                 const nextWorkspaceStep = getImportResultNextStepRecommendations(
                   result,
                 ).find(
                   (recommendation) => recommendation.target.kind === "workspace",
                 );
-                controller.onImportComplete(result, nextWorkspaceStep ?? null);
                 if (nextWorkspaceStep) {
                   openImportNextStep(result, nextWorkspaceStep, {
                     preserveSecondarySurface: true,

@@ -4,9 +4,8 @@ import type { ThemeManagerHandle } from "./components/ThemeManager";
 import type { PublishPanelHandle } from "./components/PublishPanel";
 import { ToastStack } from "./components/ToastStack";
 import { useToastStack } from "./hooks/useToastStack";
-import { useToastBusListener } from "./shared/toastBus";
+import { useToastBusListener, dispatchToast } from "./shared/toastBus";
 import { ConfirmModal } from "./components/ConfirmModal";
-import { InlineBanner } from "./components/InlineBanner";
 import { PasteTokensModal } from "./components/PasteTokensModal";
 import { ProgressOverlay } from "./components/ProgressOverlay";
 import type { ImportCompletionResult } from "./components/ImportPanelContext";
@@ -30,7 +29,6 @@ import { useAvailableFonts } from "./hooks/useAvailableFonts";
 import { useWindowExpand } from "./hooks/useWindowExpand";
 import { useWindowResize } from "./hooks/useWindowResize";
 import type {
-  ImportNextStepRecommendation,
   SecondarySurfaceId,
   SubTab,
   TopTab,
@@ -40,10 +38,7 @@ import {
   APP_SHELL_NAVIGATION,
   CONTEXTUAL_PANEL_MIN_WIDTH,
   CONTEXTUAL_PANEL_TRANSITIONS,
-  getImportResultNextStepRecommendations,
-  getMostRelevantImportDestinationSet,
   resolveWorkspaceSummary,
-  toWorkspaceId,
 } from "./shared/navigationTypes";
 import type {
   ThemeWorkspaceShellState,
@@ -101,138 +96,12 @@ import {
 } from "./shared/shellControlStyles";
 import { findLeafByPath } from "./components/tokenListUtils";
 
-const LAST_IMPORT_RESULT_DISMISS_MS = 30_000;
-
-type WorkspaceRouteTarget = {
-  topTab: TopTab;
-  subTab: SubTab;
-};
-
-type PostImportBannerState = {
-  result: ImportCompletionResult;
-  destination: WorkspaceRouteTarget;
-  nextRecommendation: ImportNextStepRecommendation | null;
-  visible: boolean;
-};
-
 function formatCount(
   count: number,
   singular: string,
   plural = `${singular}s`,
 ): string {
   return `${count} ${count === 1 ? singular : plural}`;
-}
-
-function getWorkspaceRouteLabel(topTab: TopTab, subTab: SubTab): string {
-  const summary = resolveWorkspaceSummary(topTab, subTab);
-  return summary.section?.label ?? summary.workspaceLabel;
-}
-
-function matchesWorkspaceRoute(
-  route: WorkspaceRouteTarget,
-  target: WorkspaceRouteTarget,
-): boolean {
-  return route.topTab === target.topTab && route.subTab === target.subTab;
-}
-
-function createFallbackWorkspaceRecommendation(
-  topTab: TopTab,
-  subTab: SubTab,
-  rationale: string,
-): ImportNextStepRecommendation {
-  return {
-    label: getWorkspaceRouteLabel(topTab, subTab),
-    rationale,
-    target: {
-      kind: "workspace",
-      workspaceId: toWorkspaceId(topTab, subTab),
-      topTab,
-      subTab,
-    },
-  };
-}
-
-function getPostImportDestination(
-  result: ImportCompletionResult,
-  destinationRecommendation: ImportNextStepRecommendation | null,
-): WorkspaceRouteTarget {
-  if (destinationRecommendation?.target.kind === "workspace") {
-    return {
-      topTab: destinationRecommendation.target.topTab,
-      subTab: destinationRecommendation.target.subTab,
-    };
-  }
-
-  const firstWorkspaceRecommendation = getImportResultNextStepRecommendations(
-    result,
-  ).find((recommendation) => recommendation.target.kind === "workspace");
-
-  if (firstWorkspaceRecommendation?.target.kind === "workspace") {
-    return {
-      topTab: firstWorkspaceRecommendation.target.topTab,
-      subTab: firstWorkspaceRecommendation.target.subTab,
-    };
-  }
-
-  return { topTab: "tokens", subTab: "tokens" };
-}
-
-function getFallbackPostImportRecommendation(
-  result: ImportCompletionResult,
-  destination: WorkspaceRouteTarget,
-): ImportNextStepRecommendation | null {
-  if (destination.topTab !== "tokens" || destination.subTab !== "tokens") {
-    return createFallbackWorkspaceRecommendation(
-      "tokens",
-      "tokens",
-      "Review imported tokens.",
-    );
-  }
-
-  if (
-    result.sourceType === "variables" &&
-    (result.sourceCollectionCount ?? 0) > 1
-  ) {
-    return createFallbackWorkspaceRecommendation(
-      "themes",
-      "themes",
-      "Multiple collections — set up theme structure.",
-    );
-  }
-
-  return createFallbackWorkspaceRecommendation(
-    "sync",
-    "publish",
-    "Confirm sync mapping.",
-  );
-}
-
-function getPostImportNextRecommendation(
-  result: ImportCompletionResult,
-  destination: WorkspaceRouteTarget,
-): ImportNextStepRecommendation | null {
-  const nextRecommendation = getImportResultNextStepRecommendations(result).find(
-    (recommendation) =>
-      recommendation.target.kind !== "workspace" ||
-      !matchesWorkspaceRoute(destination, {
-        topTab: recommendation.target.topTab,
-        subTab: recommendation.target.subTab,
-      }),
-  );
-
-  return nextRecommendation ?? getFallbackPostImportRecommendation(result, destination);
-}
-
-function buildPostImportBannerMessage(result: ImportCompletionResult): string {
-  const failureNote = result.hadFailures ? " Some items still need follow-up." : "";
-
-  return `Imported ${formatCount(
-    result.totalImportedCount,
-    "token",
-  )} into ${formatCount(
-    result.destinationSets.length,
-    "set",
-  )}.${failureNote}`;
 }
 
 export function App() {
@@ -348,8 +217,6 @@ export function App() {
     showSetSwitcher,
     setShowSetSwitcher,
   } = useModalVisibility();
-  const [postImportBanner, setPostImportBanner] =
-    useState<PostImportBannerState | null>(null);
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] =
     useState("");
   const recentlyTouched = useRecentlyTouched();
@@ -397,106 +264,14 @@ export function App() {
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
     setStartHereState({ open: false, initialBranch: "root" });
   }, [allTokensFlat, initialFirstRun, startHereState.open]);
-  useEffect(() => {
-    if (!postImportBanner?.visible || LAST_IMPORT_RESULT_DISMISS_MS <= 0) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setPostImportBanner(null);
-    }, LAST_IMPORT_RESULT_DISMISS_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [postImportBanner]);
-  const previousSecondarySurfaceRef = useRef<SecondarySurfaceId | null>(
-    activeSecondarySurface,
-  );
-  useEffect(() => {
-    const previousSecondarySurface = previousSecondarySurfaceRef.current;
-    if (
-      previousSecondarySurface === "import" &&
-      activeSecondarySurface !== "import"
-    ) {
-      setPostImportBanner((current) =>
-        current === null || current.visible
-          ? current
-          : { ...current, visible: true },
-      );
-    }
-    previousSecondarySurfaceRef.current = activeSecondarySurface;
-  }, [activeSecondarySurface]);
-  useEffect(() => {
-    if (
-      !postImportBanner?.visible ||
-      matchesWorkspaceRoute(postImportBanner.destination, {
-        topTab: activeTopTab,
-        subTab: activeSubTab,
-      })
-    ) {
-      return;
-    }
-
-    setPostImportBanner(null);
-  }, [activeSubTab, activeTopTab, postImportBanner]);
   const handleImportComplete = useCallback(
-    (
-      result: ImportCompletionResult,
-      destinationRecommendation: ImportNextStepRecommendation | null,
-    ) => {
-      const destination = getPostImportDestination(
-        result,
-        destinationRecommendation,
-      );
-      setPostImportBanner({
-        result,
-        destination,
-        nextRecommendation: getPostImportNextRecommendation(
-          result,
-          destination,
-        ),
-        visible: false,
-      });
+    (result: ImportCompletionResult) => {
+      const failureNote = result.hadFailures ? " Some items still need follow-up." : "";
+      const message = `Imported ${formatCount(result.totalImportedCount, "token")} into ${formatCount(result.destinationSets.length, "set")}.${failureNote}`;
+      dispatchToast(message, result.hadFailures ? "warning" : "success");
     },
     [],
   );
-  const dismissPostImportBanner = useCallback(() => {
-    setPostImportBanner(null);
-  }, []);
-  const handlePostImportBannerAction = useCallback(() => {
-    if (!postImportBanner?.nextRecommendation) {
-      return;
-    }
-
-    if (postImportBanner.nextRecommendation.target.kind === "secondary-surface") {
-      setPostImportBanner(null);
-      openSecondarySurface(
-        postImportBanner.nextRecommendation.target.secondarySurfaceId,
-      );
-      return;
-    }
-
-    const targetSet = getMostRelevantImportDestinationSet(postImportBanner.result);
-    if (targetSet) {
-      setActiveSet(targetSet);
-    }
-
-    beginHandoff({
-      reason: postImportBanner.nextRecommendation.rationale,
-      returnSecondarySurfaceId: "import",
-    });
-    setPostImportBanner(null);
-    navigateTo(
-      postImportBanner.nextRecommendation.target.topTab,
-      postImportBanner.nextRecommendation.target.subTab,
-      { preserveHandoff: true },
-    );
-  }, [
-    beginHandoff,
-    navigateTo,
-    openSecondarySurface,
-    postImportBanner,
-    setActiveSet,
-  ]);
   const {
     toasts: toastStack,
     dismiss: dismissStackToast,
@@ -1406,9 +1181,6 @@ export function App() {
   const openSecondaryPanel = useCallback(
     (panel: SecondarySurfaceId) => {
       dismissEphemeralOverlays();
-      if (panel === "import") {
-        setPostImportBanner(null);
-      }
       clearHandoff();
       openSecondarySurface(panel);
     },
@@ -2275,39 +2047,14 @@ export function App() {
       </div>
 
       {visibleHandoff && returnFromHandoff && (
-        <div className="absolute left-2 right-2 top-[36px] z-30 flex items-center justify-between gap-3 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 shadow-sm">
-          <span className="min-w-0 truncate text-[10px] text-[var(--color-figma-text-secondary)]" title={visibleHandoff.reason}>
-            From {visibleHandoff.origin.secondarySurfaceLabel ?? (visibleHandoff.origin.sectionLabel ? `${visibleHandoff.origin.workspaceLabel} · ${visibleHandoff.origin.sectionLabel}` : visibleHandoff.origin.workspaceLabel)}
-          </span>
+        <div className="absolute right-2 top-[36px] z-30">
           <button
             onClick={returnFromHandoff}
-            className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] shadow-sm transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             &larr; {visibleHandoff.returnLabel}
           </button>
         </div>
-      )}
-
-      {activeSecondarySurface === null && postImportBanner?.visible && (
-        <InlineBanner
-          variant={postImportBanner.result.hadFailures ? "warning" : "success"}
-          layout="strip"
-          size="sm"
-          action={
-            postImportBanner.nextRecommendation
-              ? {
-                  label: `Open ${postImportBanner.nextRecommendation.label}`,
-                  onClick: handlePostImportBannerAction,
-                  title: postImportBanner.nextRecommendation.rationale,
-                }
-              : undefined
-          }
-          onDismiss={dismissPostImportBanner}
-        >
-          <span className="block truncate text-[var(--color-figma-text)]">
-            {buildPostImportBannerMessage(postImportBanner.result)}
-          </span>
-        </InlineBanner>
       )}
 
       <WorkspaceControllerProvider value={workspaceControllers}>
@@ -2390,7 +2137,7 @@ export function App() {
                           const activeOption = activeThemes[dim.id];
                           const previewOption = previewThemes[dim.id];
                           const isOpen = openDimDropdown === dim.id;
-                          if (dim.options.length <= 5) {
+                          if (dim.options.length <= 3) {
                             return (
                               <div
                                 key={dim.id}

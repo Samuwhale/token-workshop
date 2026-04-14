@@ -3,14 +3,67 @@ import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, Selectio
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
-import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
+import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
 import { resolveFontStyle, fontStyleToWeight } from './fontLoading.js';
 import { walkNodes } from './walkNodes.js';
 
 let selectionDeepInspectEnabled = false;
 
+const LEGACY_KEYS_BY_PROPERTY = Object.entries(LEGACY_KEY_MAP).reduce<Record<string, string[]>>((acc, [legacyKey, property]) => {
+  if (!acc[property]) acc[property] = [];
+  acc[property].push(legacyKey);
+  return acc;
+}, {});
+
 export function setSelectionDeepInspectEnabled(enabled: boolean): void {
   selectionDeepInspectEnabled = enabled;
+}
+
+function getLegacyKeysForProperty(property: string): string[] {
+  return LEGACY_KEYS_BY_PROPERTY[property] ?? [];
+}
+
+function hasStoredBinding(node: SceneNode, property: string): boolean {
+  if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, property)) {
+    return true;
+  }
+  return getLegacyKeysForProperty(property).some((legacyKey) =>
+    Boolean(node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey)),
+  );
+}
+
+function clearStoredBinding(node: SceneNode, property: string): void {
+  node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
+  for (const legacyKey of getLegacyKeysForProperty(property)) {
+    node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
+  }
+}
+
+function setStoredBinding(node: SceneNode, property: string, tokenPath: string): void {
+  node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, tokenPath);
+  for (const legacyKey of getLegacyKeysForProperty(property)) {
+    node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
+  }
+}
+
+function parseRequiredDimensionValue(
+  value: string | number | DimensionValue | null | undefined,
+  property: string,
+): number {
+  let parsed: number;
+  if (typeof value === 'number') {
+    parsed = value;
+  } else if (typeof value === 'string') {
+    parsed = Number.parseFloat(value);
+  } else if (value != null && typeof value === 'object' && 'value' in value) {
+    parsed = Number((value as DimensionValue).value);
+  } else {
+    parsed = Number.NaN;
+  }
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Invalid ${property} value`);
+  }
+  return parsed;
 }
 
 // Apply a resolved token value to a specific node property
@@ -20,9 +73,10 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
       if ('fills' in node) {
         const colorVal = value as (Record<string, unknown> | string | null);
         const color = parseColor(typeof value === 'string' ? value : (colorVal as { color?: string })?.color as string || value as string);
-        if (color) {
-          (node as GeometryMixin & SceneNode).fills = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
+        if (!color) {
+          throw new Error('Invalid fill color value');
         }
+        (node as GeometryMixin & SceneNode).fills = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
       }
       break;
 
@@ -32,11 +86,12 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
         if (tokenType === 'border' && typeof value === 'object' && value !== null) {
           const borderVal = value as BorderValue;
           const color = parseColor(borderVal.color);
-          if (color) {
-            strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
+          if (!color) {
+            throw new Error('Invalid border color value');
           }
+          strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
           if ('strokeWeight' in node && borderVal.width != null) {
-            (node as unknown as Record<string, unknown>)['strokeWeight'] = parseDimValue(borderVal.width);
+            (node as unknown as Record<string, unknown>)['strokeWeight'] = parseRequiredDimensionValue(borderVal.width, 'strokeWeight');
           }
           if ('dashPattern' in node) {
             (node as unknown as Record<string, unknown>)['dashPattern'] = borderVal.style === 'dashed' ? [8, 8] : [];
@@ -44,16 +99,17 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
         } else {
           const colorVal = value as (Record<string, unknown> | string | null);
           const color = parseColor(typeof value === 'string' ? value : (colorVal as { color?: string })?.color as string || value as string);
-          if (color) {
-            strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
+          if (!color) {
+            throw new Error('Invalid stroke color value');
           }
+          strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
         }
       }
       break;
 
     case 'width':
       if ('resize' in node) {
-        const w = parseDimValue(value as string | number | DimensionValue | null);
+        const w = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'width');
         const resizableW = node as SceneNode & { resize(w: number, h: number): void; height: number };
         resizableW.resize(w, resizableW.height);
       }
@@ -61,35 +117,35 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 
     case 'height':
       if ('resize' in node) {
-        const h = parseDimValue(value as string | number | DimensionValue | null);
+        const h = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'height');
         const resizableH = node as SceneNode & { resize(w: number, h: number): void; width: number };
         resizableH.resize(resizableH.width, h);
       }
       break;
 
     case 'paddingTop':
-      if ('paddingTop' in node) (node as unknown as Record<string, unknown>)['paddingTop'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('paddingTop' in node) (node as unknown as Record<string, unknown>)['paddingTop'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'paddingTop');
       break;
     case 'paddingRight':
-      if ('paddingRight' in node) (node as unknown as Record<string, unknown>)['paddingRight'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('paddingRight' in node) (node as unknown as Record<string, unknown>)['paddingRight'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'paddingRight');
       break;
     case 'paddingBottom':
-      if ('paddingBottom' in node) (node as unknown as Record<string, unknown>)['paddingBottom'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('paddingBottom' in node) (node as unknown as Record<string, unknown>)['paddingBottom'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'paddingBottom');
       break;
     case 'paddingLeft':
-      if ('paddingLeft' in node) (node as unknown as Record<string, unknown>)['paddingLeft'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('paddingLeft' in node) (node as unknown as Record<string, unknown>)['paddingLeft'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'paddingLeft');
       break;
 
     case 'itemSpacing':
-      if ('itemSpacing' in node) (node as unknown as Record<string, unknown>)['itemSpacing'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('itemSpacing' in node) (node as unknown as Record<string, unknown>)['itemSpacing'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'itemSpacing');
       break;
 
     case 'cornerRadius':
-      if ('cornerRadius' in node) (node as unknown as Record<string, unknown>)['cornerRadius'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('cornerRadius' in node) (node as unknown as Record<string, unknown>)['cornerRadius'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'cornerRadius');
       break;
 
     case 'strokeWeight':
-      if ('strokeWeight' in node) (node as unknown as Record<string, unknown>)['strokeWeight'] = parseDimValue(value as string | number | DimensionValue | null);
+      if ('strokeWeight' in node) (node as unknown as Record<string, unknown>)['strokeWeight'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'strokeWeight');
       break;
 
     case 'opacity':
@@ -132,7 +188,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
             textNode.letterSpacing = { unit: 'PIXELS', value: typeof val.letterSpacing === 'object' ? val.letterSpacing.value : val.letterSpacing };
           }
         } catch (err) {
-          figma.notify(`Font not available: ${err}`);
+          throw new Error(`Font not available: ${getErrorMessage(err)}`);
         }
       }
       break;
@@ -185,7 +241,7 @@ export async function applyToSelection(tokenPath: string, tokenType: string, tar
     const snap = captureNodeProps(node, [targetProperty]);
     try {
       await applyTokenValue(node, targetProperty, resolvedValue, tokenType);
-      node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
+      setStoredBinding(node, targetProperty, tokenPath);
       applied++;
     } catch (err) {
       const msg = getErrorMessage(err);
@@ -215,7 +271,7 @@ export async function removeBinding(property: string) {
   const errors: string[] = [];
   for (const node of selection) {
     try {
-      node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
+      clearStoredBinding(node, property);
     } catch (err) {
       const msg = getErrorMessage(err);
       errors.push(`${node.name}: ${msg}`);
@@ -233,7 +289,10 @@ export async function clearAllBindings() {
   const selection = figma.currentPage.selection;
   const errors: string[] = [];
   for (const node of selection) {
-    for (const prop of ALL_BINDABLE_PROPERTIES) {
+    for (const prop of new Set<string>([
+      ...ALL_BINDABLE_PROPERTIES,
+      ...Object.keys(LEGACY_KEY_MAP),
+    ])) {
       try {
         node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, prop, '');
       } catch (err) {
@@ -843,8 +902,7 @@ export async function syncBindings(tokenMap: Record<string, TokenMapEntry>, scop
             if (val) {
               bindings[newKey] = val;
               // Migrate legacy key to new key
-              node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, newKey, val);
-              node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
+              setStoredBinding(node, newKey, val);
             }
           }
         }
@@ -1049,8 +1107,7 @@ export function findPeersForProperty(nodeId: string, property: string) {
     if (child.id === nodeId) continue;
     if (!nodeSupportsProperty(child as SceneNode, property)) continue;
     // Skip if already bound to this property
-    const existing = child.getSharedPluginData(PLUGIN_DATA_NAMESPACE, property);
-    if (existing) continue;
+    if (hasStoredBinding(child as SceneNode, property)) continue;
     peerIds.push(child.id);
   }
 
@@ -1085,7 +1142,7 @@ export async function applyToNodes(
         await restoreNodeProps(sceneNode, snapshot);
         throw error;
       }
-      sceneNode.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
+      setStoredBinding(sceneNode, targetProperty, tokenPath);
       applied++;
     } catch (err) {
       errors.push(getErrorMessage(err));
@@ -1115,7 +1172,7 @@ export async function removeBindingFromNode(nodeId: string, property: string) {
       return;
     }
     const sceneNode = node as SceneNode;
-    sceneNode.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
+    clearStoredBinding(sceneNode, property);
     figma.ui.postMessage({ type: 'removed-binding-from-node', success: true, nodeId, property });
   } catch (err) {
     const msg = getErrorMessage(err);
