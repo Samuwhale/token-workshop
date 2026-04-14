@@ -494,6 +494,10 @@ export function PanelRouter(): ReactNode {
       controller.setPendingGraphFromGroup({ groupPath, tokenType });
       navigateTo("define", "recipes");
     },
+    onNavigateToNewRecipe: () => {
+      controller.setPendingOpenPicker(true);
+      navigateTo("define", "recipes");
+    },
     onRefreshRecipes: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredSetCount,

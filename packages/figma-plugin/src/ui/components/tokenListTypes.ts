@@ -147,6 +147,8 @@ export interface TokenListActions {
   onEditRecipe?: (recipeId: string) => void;
   onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
+  /** Navigate to Recipes tab with the create dialog open */
+  onNavigateToNewRecipe?: () => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */

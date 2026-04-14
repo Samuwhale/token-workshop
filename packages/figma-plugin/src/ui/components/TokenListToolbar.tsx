@@ -58,6 +58,9 @@ export interface TokenListToolbarProps {
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
 
+  // Recipe creation
+  onCreateRecipe?: () => void;
+
   // Overflow menu (pass-through)
   overflowMenuProps: TokenListOverflowMenuProps | null;
 }
@@ -92,6 +95,7 @@ export function TokenListToolbar({
   hasDimensions,
   multiModeEnabled,
   onToggleMultiMode,
+  onCreateRecipe,
   overflowMenuProps,
 }: TokenListToolbarProps) {
   // --- Create menu state (internal) ---
@@ -320,6 +324,11 @@ export function TokenListToolbar({
             <button role="menuitem" onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)} disabled={!connected} className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
               Group
             </button>
+            {onCreateRecipe && (
+              <button role="menuitem" onClick={() => runCreateToolsAction(onCreateRecipe)} disabled={!connected} className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+                Recipe
+              </button>
+            )}
             <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
             <button role="menuitem" onClick={() => runCreateToolsAction(() => onShowPasteModal?.())} disabled={!connected} className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
               Paste JSON

@@ -185,6 +185,7 @@ export function TokenList({
     onEditRecipe,
     onOpenRecipeEditor,
     onNavigateToRecipe: _onNavigateToRecipe,
+    onNavigateToNewRecipe,
     onShowReferences: _onShowReferences,
     onDisplayedLeafNodesChange,
     onSelectionChange,
@@ -3581,6 +3582,7 @@ export function TokenList({
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
+            onCreateRecipe={onNavigateToNewRecipe}
             hasDimensions={dimensions.length > 0}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
