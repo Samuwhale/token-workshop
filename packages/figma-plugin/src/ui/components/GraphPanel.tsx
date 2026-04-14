@@ -15,13 +15,6 @@ import { SkeletonRecipeCard } from "./Skeleton";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { ConfirmModal } from "./ConfirmModal";
 
-/** Quick-start template definitions for the empty state */
-const QUICK_START_TEMPLATES = [
-  { label: "Color Ramp", templateId: "brand-color-palette" },
-  { label: "Type Scale", templateId: "type-scale" },
-  { label: "Spacing Scale", templateId: "spacing-foundation" },
-] as const;
-
 interface ContextMenuState {
   recipe: TokenRecipe;
   x: number;
@@ -74,14 +67,12 @@ export function GraphPanel({
     [activeSet, recipes],
   );
   const focusRef = useRef<HTMLDivElement>(null);
-  const [quickStartTemplateId, setQuickStartTemplateId] = useState<string | null>(null);
-  const suggestedTemplateId = quickStartTemplateId
-    ?? (pendingGroupPath
-      ? (GRAPH_TEMPLATES.find((template) => template.id === (pendingGroupTokenType ? GRAPH_TEMPLATES.find((t) => t.sourceTokenTypes?.includes(pendingGroupTokenType))?.id : undefined))?.id ??
-        GRAPH_TEMPLATES[0]?.id ??
-        null)
-      : pendingTemplateId ??
-        null);
+  const suggestedTemplateId = pendingGroupPath
+    ? (GRAPH_TEMPLATES.find((template) => template.id === (pendingGroupTokenType ? GRAPH_TEMPLATES.find((t) => t.sourceTokenTypes?.includes(pendingGroupTokenType))?.id : undefined))?.id ??
+      GRAPH_TEMPLATES[0]?.id ??
+      null)
+    : pendingTemplateId ??
+      null;
   const pendingTemplate = useMemo<GraphTemplate | undefined>(
     () => GRAPH_TEMPLATES.find((template) => template.id === suggestedTemplateId),
     [suggestedTemplateId],
@@ -146,7 +137,6 @@ export function GraphPanel({
   const clearPendingState = useCallback(() => {
     onClearPendingTemplate?.();
     onClearPendingGroup?.();
-    setQuickStartTemplateId(null);
   }, [onClearPendingGroup, onClearPendingTemplate]);
 
   const handleCreateClose = useCallback(() => {
@@ -348,14 +338,6 @@ export function GraphPanel({
     dispatchToast("Recipe updated", "success");
   }, [onRefresh]);
 
-  const handleQuickStart = useCallback(
-    (templateId: string) => {
-      setQuickStartTemplateId(templateId);
-      setShowCreateDialog(true);
-    },
-    [],
-  );
-
   // Editing dialog from context menu
   const editingRecipe = editingRecipeId
     ? setRecipes.find((r) => r.id === editingRecipeId)
@@ -415,35 +397,14 @@ export function GraphPanel({
           variant="empty"
           size="section"
           className="w-full max-w-[320px]"
-          title="No recipes"
-          description="Generate color palettes, type scales, and spacing systems from your tokens."
+          title="No recipes in this set"
+          description={!connected ? "Connect to create recipes." : undefined}
+          primaryAction={{
+            label: "Create recipe",
+            onClick: () => setShowCreateDialog(true),
+            disabled: !connected,
+          }}
         />
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {QUICK_START_TEMPLATES.map((qs) => (
-            <button
-              key={qs.templateId}
-              type="button"
-              onClick={() => handleQuickStart(qs.templateId)}
-              disabled={!connected}
-              className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-accent)]/5 hover:text-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {qs.label}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowCreateDialog(true)}
-          disabled={!connected}
-          className="mt-3 rounded-md bg-[var(--color-figma-accent)] px-3 py-1 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          New recipe
-        </button>
-        {!connected && (
-          <p className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            Connect to create recipes.
-          </p>
-        )}
       </div>
     );
   }
