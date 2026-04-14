@@ -21,8 +21,6 @@ export function ContrastMatrixPanel({
   pathToSet,
   onNavigateToToken,
 }: ContrastMatrixPanelProps) {
-  const contrastRequirementSummary =
-    "AA 4.5:1 · AAA 7:1";
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
   const [contrastPage, setContrastPage] = useState(0);
   const [contrastFailuresOnly, setContrastFailuresOnly] = useState(false);
@@ -338,21 +336,13 @@ export function ContrastMatrixPanel({
         onClick={() => setShowContrastMatrix((v) => !v)}
         className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
       >
-        <span className="flex flex-col items-start gap-0.5 text-left">
-          <span className="text-[var(--color-figma-text)]">
-            Color Contrast Matrix (
-            {contrastGroupFilter === "all"
+        <span className="text-[var(--color-figma-text)] text-left">
+            Contrast Matrix ({contrastGroupFilter === "all"
               ? sourceTokens.length
               : displayTokens.length}{" "}
-            tokens
-            {isMultiMode
+            tokens{isMultiMode
               ? ` · ${activeContrastThemeKeys.size} theme${activeContrastThemeKeys.size !== 1 ? "s" : ""}`
-              : ""}
-            )
-          </span>
-          <span className="normal-case font-normal tracking-normal text-[9px] text-[var(--color-figma-text-secondary)]/80">
-            {contrastRequirementSummary}
-          </span>
+              : ""})
         </span>
         <svg
           width="8"

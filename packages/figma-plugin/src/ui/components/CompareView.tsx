@@ -13,10 +13,6 @@ import { apiFetch } from '../shared/apiFetch';
 import { ConfirmModal } from './ConfirmModal';
 import { useTokensWorkspaceController } from '../contexts/WorkspaceControllerContext';
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Shared primitives
-// ──────────────────────────────────────────────────────────────────────────────
-
 function ColorSwatch({ value }: { value: string }) {
   if (typeof value !== 'string' || value === '') return null;
   if (value.startsWith('#') && !/^#[0-9a-fA-F]{3,8}$/.test(value)) return null;
@@ -29,7 +25,6 @@ function ColorSwatch({ value }: { value: string }) {
   );
 }
 
-/** Copy-to-clipboard with "Copied!" feedback. Optional onError for notification side-effects. */
 function useCopyFeedback(onError?: () => void): [boolean, (text: string) => Promise<void>] {
   const [copied, setCopied] = useState(false);
   const triggerCopy = useCallback(async (text: string) => {
@@ -82,10 +77,8 @@ function dedupeCompareBatchTokens(tokens: CompareBulkCreateToken[]): CompareBulk
 }
 
 function formatCompareTokenPathList(paths: string[], maxVisible = 3): string {
-  if (paths.length <= maxVisible) {
-    return paths.join(', ');
-  }
-  return `${paths.slice(0, maxVisible).join(', ')} +${paths.length - maxVisible} more`;
+  if (paths.length <= maxVisible) return paths.join(', ');
+  return `${paths.slice(0, maxVisible).join(', ')} (+${paths.length - maxVisible})`;
 }
 
 function countCompareBatchTokens(batches: CompareBulkCreateBatch[]): number {
@@ -174,14 +167,11 @@ async function executeCompareBulkCreate(params: {
   }
 
   if (failures.length === 0) {
-    const targetLabel = successes.length === 1
-      ? successes[0]?.targetSet ?? 'the target set'
-      : `${successes.length} sets`;
     return {
       createdCount,
       status: {
         kind: 'success',
-        message: `Created ${createdCount} missing token${createdCount === 1 ? '' : 's'} in ${targetLabel}. Undo available.`,
+        message: `Created ${createdCount} token${createdCount === 1 ? '' : 's'}. Undo available.`,
       },
     };
   }
@@ -195,7 +185,7 @@ async function executeCompareBulkCreate(params: {
       createdCount,
       status: {
         kind: 'error',
-        message: `Created ${createdCount} missing token${createdCount === 1 ? '' : 's'}, but failed for ${failureSummary} Undo can revert the created tokens.`,
+        message: `Created ${createdCount} token${createdCount === 1 ? '' : 's'}, but failed for ${failureSummary}`,
       },
     };
   }
@@ -266,10 +256,6 @@ function CompareBulkCreateConfirmModal({
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Module-level helpers (used by specific modes)
-// ──────────────────────────────────────────────────────────────────────────────
-
 /** Extract all property keys from a composite value object. */
 function getPropertyKeys(value: unknown): string[] {
   if (value === null || value === undefined || typeof value !== 'object' || Array.isArray(value)) return ['$value'];
@@ -306,9 +292,7 @@ function buildFlatOptions(dimensions: ThemeDimension[]): FlatOption[] {
   return result;
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Mode 1 – Token values (multiple selected tokens, side-by-side properties)
-// ──────────────────────────────────────────────────────────────────────────────
 
 interface ResolvedToken {
   path: string;
@@ -641,9 +625,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Mode 2 – Token × themes (one token, value for every theme option)
-// ──────────────────────────────────────────────────────────────────────────────
 
 interface OptionResult {
   dimId: string;
@@ -929,9 +911,7 @@ function CrossThemeMode({
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Mode 3 – Theme options A vs B (diff list)
-// ──────────────────────────────────────────────────────────────────────────────
 
 interface ThemeOptionsModeProps {
   dimensions: ThemeDimension[];
@@ -1332,9 +1312,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Mode 4 – Set diff (compare two token sets side-by-side)
-// ──────────────────────────────────────────────────────────────────────────────
 
 type SetDiffStatus = 'only-a' | 'only-b' | 'changed';
 
@@ -1760,9 +1738,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 // CompareView – main export (mode selector + routing)
-// ──────────────────────────────────────────────────────────────────────────────
 
 export type CompareMode = 'tokens' | 'cross-theme' | 'theme-options' | 'set-diff';
 

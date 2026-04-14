@@ -77,7 +77,7 @@ function GeneratorReferenceChip({
       type="button"
       onClick={() => onNavigateToGenerator(generator.id)}
       className={`${className} text-[var(--color-figma-accent)] hover:underline`}
-      title={`Open recipe "${generator.name}"`}
+      title={generator.name}
     >
       <svg
         className="shrink-0"
@@ -387,9 +387,6 @@ export function TokenDetailPreview({
 
         {lintViolations.length > 0 && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">
-              Issues
-            </div>
             <div className="flex flex-col gap-1.5">
               {lintViolations.map((violation, index) => (
                 <div
@@ -430,25 +427,14 @@ export function TokenDetailPreview({
           derivedGenerator ||
           usageCount > 0) && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">
-              Details
-            </div>
             <div className="flex flex-col gap-2">
               {entryMeta.$description && (
-                <div>
-                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] mb-0.5">
-                    Description
-                  </div>
-                  <div className="text-[10px] text-[var(--color-figma-text)] whitespace-pre-wrap break-words">
-                    {entryMeta.$description}
-                  </div>
+                <div className="text-[10px] text-[var(--color-figma-text)] whitespace-pre-wrap break-words">
+                  {entryMeta.$description}
                 </div>
               )}
               {directAliasPath && (
                 <div>
-                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] mb-0.5">
-                    Alias target
-                  </div>
                   <button
                     onClick={() => onNavigateToAlias?.(directAliasPath)}
                     className="text-[10px] font-mono text-left text-[var(--color-figma-accent)] hover:underline break-all"
@@ -463,9 +449,6 @@ export function TokenDetailPreview({
               )}
               {sourceGenerators.length > 0 && (
                 <div>
-                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] mb-0.5">
-                    Generator source
-                  </div>
                   <div className="flex flex-wrap gap-1">
                     {sourceGenerators.map((generator) => (
                       <GeneratorReferenceChip
@@ -479,9 +462,6 @@ export function TokenDetailPreview({
               )}
               {derivedGenerator && (
                 <div>
-                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] mb-0.5">
-                    Derived from
-                  </div>
                   <GeneratorReferenceChip
                     generator={derivedGenerator}
                     onNavigateToGenerator={onNavigateToGenerator}
@@ -530,9 +510,6 @@ export function TokenDetailPreview({
 
         {/* Value section */}
         <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-          <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">
-            Value
-          </div>
           <div className="text-[10px] font-mono text-[var(--color-figma-text)] break-all whitespace-pre-wrap bg-[var(--color-figma-bg-secondary)] rounded px-2 py-1.5 max-h-24 overflow-y-auto">
             {valueStr}
           </div>
@@ -544,20 +521,8 @@ export function TokenDetailPreview({
           dependencySnapshot?.hasCycles) && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
             <div className="flex items-center justify-between gap-2 mb-1.5">
-              <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider">
+              <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">
                 Dependencies
-              </div>
-              <div className="flex items-center gap-1 flex-wrap justify-end">
-                {resolutionSteps && resolutionSteps.length >= 2 && (
-                  <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
-                    Chain {resolutionSteps.length - 1}
-                  </span>
-                )}
-                {dependentNodes.length > 0 && (
-                  <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
-                    Dependents {dependentNodes.length}
-                  </span>
-                )}
               </div>
             </div>
 
@@ -569,9 +534,6 @@ export function TokenDetailPreview({
 
             {resolutionSteps && resolutionSteps.length >= 2 && (
               <div className="mb-2 flex flex-col gap-1">
-                <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-                  Chain
-                </div>
                 {resolutionSteps.map((step, i) => {
                   const isFirst = i === 0;
                   const isLast = i === resolutionSteps.length - 1;
@@ -660,11 +622,8 @@ export function TokenDetailPreview({
             {dependentNodes.length > 0 && (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-                    Dependents
-                  </div>
                   <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                    {dependencySnapshot?.directDependents.length ?? 0} direct · {dependentNodes.length} total
+                    {dependentNodes.length} dependent{dependentNodes.length !== 1 ? "s" : ""}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -708,9 +667,6 @@ export function TokenDetailPreview({
         {/* Large visual preview for color tokens */}
         {type === "color" && typeof resolvedValue === "string" && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">
-              Preview
-            </div>
             <div
               className="w-full h-16 rounded border border-[var(--color-figma-border)]"
               style={{ backgroundColor: resolvedValue }}
@@ -734,9 +690,6 @@ export function TokenDetailPreview({
               | undefined;
             return (
               <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-                <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">
-                  Preview
-                </div>
                 <div
                   className="p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden"
                   style={{

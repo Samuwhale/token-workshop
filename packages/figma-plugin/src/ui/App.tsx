@@ -1948,105 +1948,65 @@ export function App() {
       tone: NoticeSeverity;
     }> = [];
     if (checking) {
-      pills.push({ label: "Server checking…", tone: "info" });
+      pills.push({ label: "Connecting…", tone: "info" });
     } else if (!connected) {
-      pills.push({ label: "Server offline", tone: "error" });
+      pills.push({ label: "Offline", tone: "error" });
     }
     switch (activeWorkspace.id) {
       case "tokens":
-        pills.push({
-          label: `${sets.length} set${sets.length === 1 ? "" : "s"}`,
-          tone: "info",
-        });
         if (lintViolations.length > 0)
           pills.push({
-            label: `${lintViolations.length} issue${lintViolations.length === 1 ? "" : "s"}`,
+            label: `${lintViolations.length} issues`,
             tone: "warning",
           });
         if (staleGeneratorCount > 0)
           pills.push({
-            label: `${staleGeneratorCount} stale recipe${staleGeneratorCount === 1 ? "" : "s"}`,
+            label: `${staleGeneratorCount} stale`,
             tone: "stale",
           });
         break;
       case "themes":
-        pills.push({
-          label: `${dimensions.length} dimension${dimensions.length === 1 ? "" : "s"}`,
-          tone: "info",
-        });
         if (themeGapCount > 0)
           pills.push({
-            label: `${themeGapCount} gap${themeGapCount === 1 ? "" : "s"}`,
+            label: `${themeGapCount} gaps`,
             tone: "warning",
           });
-        if (
-          themeShellState.activeView === "authoring" &&
-          themeShellState.authoringMode === "preview"
-        ) {
-          pills.push({ label: "Preview stage", tone: "info" });
-        }
-        if (themeShellState.activeView === "coverage")
-          pills.push({ label: "Coverage review", tone: "info" });
-        if (themeShellState.activeView === "compare")
-          pills.push({ label: "Compare mode", tone: "info" });
-        if (themeShellState.activeView === "advanced-setup")
-          pills.push({ label: "Advanced setup", tone: "info" });
-        if (themeShellState.activeView === "advanced")
-          pills.push({ label: "Resolver mode", tone: "info" });
         break;
       case "apply":
         pills.push({
-          label: `${selectedNodes.length} layer${selectedNodes.length === 1 ? "" : "s"} selected`,
+          label: `${selectedNodes.length} selected`,
           tone: "info",
         });
-        if (deepInspect) {
-          pills.push({ label: "Deep inspect on", tone: "info" });
-        }
-        if (propFilter !== "" || propFilterMode !== "all") {
-          const activeFilterCount =
-            Number(propFilter !== "") + Number(propFilterMode !== "all");
-          pills.push({
-            label:
-              activeFilterCount === 1
-                ? "1 filter active"
-                : `${activeFilterCount} filters active`,
-            tone: "info",
-          });
-        }
         break;
       case "sync":
         if (activeWorkspaceSection?.id === "publish") {
           if (publishPreflightState.stage === "running") {
-            pills.push({ label: "Preflight running", tone: "info" });
+            pills.push({ label: "Checking…", tone: "info" });
           } else if (
             publishPreflightState.isOutdated ||
             publishPreflightState.stage === "idle"
           ) {
-            pills.push({ label: "Run preflight", tone: "info" });
+            pills.push({ label: "Run checks", tone: "info" });
           } else if (publishPreflightState.stage === "blocked") {
             pills.push({
-              label: `${publishPreflightState.blockingCount} blocking cluster${publishPreflightState.blockingCount === 1 ? "" : "s"}`,
+              label: `${publishPreflightState.blockingCount} blockers`,
               tone: "error",
             });
           } else if (publishPreflightState.stage === "advisory") {
             pills.push({
-              label: `${publishPreflightState.advisoryCount} advisory cluster${publishPreflightState.advisoryCount === 1 ? "" : "s"}`,
+              label: `${publishPreflightState.advisoryCount} advisories`,
               tone: "warning",
             });
           } else {
-            pills.push({ label: "Preflight ready", tone: "success" });
+            pills.push({ label: "Ready", tone: "success" });
           }
 
           if (publishPreflightState.canProceed && pendingPublishCount > 0) {
             pills.push({
-              label: `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? "" : "s"} pending`,
+              label: `${pendingPublishCount} pending`,
               tone: "info",
             });
-          } else if (publishPreflightState.canProceed) {
-            pills.push({ label: "No Figma changes pending", tone: "success" });
           }
-        } else if (activeWorkspaceSection?.id === "export") {
-          pills.push({ label: "Repo / export tools", tone: "info" });
         }
         break;
       case "audit":
@@ -2056,21 +2016,10 @@ export function App() {
           pills.push({ label: "Run audit", tone: "info" });
         } else if (healthIssueCount > 0) {
           pills.push({
-            label: `${healthIssueCount} audit issue${healthIssueCount === 1 ? "" : "s"}`,
+            label: `${healthIssueCount} issues`,
             tone: "warning",
           });
         }
-        if (undoDescriptions.length > 0)
-          pills.push({
-            label: `${undoDescriptions.length} undo step${undoDescriptions.length === 1 ? "" : "s"}`,
-            tone: "info",
-          });
-        if (
-          validationSummary !== null &&
-          healthIssueCount === 0 &&
-          undoDescriptions.length === 0
-        )
-          pills.push({ label: "No active alerts", tone: "success" });
         break;
     }
     return pills;
@@ -2080,24 +2029,16 @@ export function App() {
     selectedNodes.length,
     checking,
     connected,
-    deepInspect,
-    dimensions.length,
     healthIssueCount,
     lintViolations.length,
-    propFilter,
-    propFilterMode,
     pendingPublishCount,
     publishPreflightState.advisoryCount,
     publishPreflightState.blockingCount,
     publishPreflightState.canProceed,
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
-    sets.length,
     staleGeneratorCount,
     themeGapCount,
-    themeShellState.activeView,
-    themeShellState.authoringMode,
-    undoDescriptions.length,
     validationLoading,
     validationSummary,
   ]);
@@ -2124,8 +2065,8 @@ export function App() {
         label: "Families",
         detail:
           themeWorkflowSummary.axisCount === 0
-            ? "Start by creating the first theme family"
-            : `${themeWorkflowSummary.axisCount} famil${themeWorkflowSummary.axisCount === 1 ? "y" : "ies"} defined`,
+            ? ""
+            : `${themeWorkflowSummary.axisCount} families`,
         tone:
           themeWorkflowSummary.axisCount === 0
             ? "current"
@@ -2139,10 +2080,10 @@ export function App() {
         label: "Variants",
         detail:
           themeWorkflowSummary.axisCount === 0
-            ? "Create a family first"
+            ? ""
             : themeWorkflowSummary.axesMissingOptionsCount > 0
-              ? `${themeWorkflowSummary.axesMissingOptionsCount} famil${themeWorkflowSummary.axesMissingOptionsCount === 1 ? "y still needs variants" : "ies still need variants"}`
-              : `${themeWorkflowSummary.optionCount} variant${themeWorkflowSummary.optionCount === 1 ? "" : "s"} ready`,
+              ? "Needs variants"
+              : `${themeWorkflowSummary.optionCount} variants`,
         tone:
           themeWorkflowSummary.axisCount === 0
             ? "blocked"
@@ -2160,16 +2101,12 @@ export function App() {
         label: "Token sources",
         detail:
           themeWorkflowSummary.optionCount === 0
-            ? "Add variants before connecting token sources"
+            ? ""
             : themeWorkflowSummary.unmappedOptionCount > 0
-              ? themeWorkflowSummary.nextSetRoleTarget
-                ? `${themeWorkflowSummary.unmappedOptionCount} variant${themeWorkflowSummary.unmappedOptionCount === 1 ? "" : "s"} still need shared or variant-specific token sources. Start with ${themeWorkflowSummary.nextSetRoleTarget.dimensionName} -> ${themeWorkflowSummary.nextSetRoleTarget.optionName}.`
-                : `${themeWorkflowSummary.unmappedOptionCount} variant${themeWorkflowSummary.unmappedOptionCount === 1 ? "" : "s"} still need shared or variant-specific token sources`
+              ? `${themeWorkflowSummary.unmappedOptionCount} unmapped`
               : themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0
-                ? themeWorkflowSummary.nextSetRoleTarget
-                  ? `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} variant${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? "" : "s"} still need token-source fixes. Start with ${themeWorkflowSummary.nextSetRoleTarget.dimensionName} -> ${themeWorkflowSummary.nextSetRoleTarget.optionName}.`
-                  : `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} variant${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount === 1 ? "" : "s"} still need token-source fixes`
-                : `${themeWorkflowSummary.mappedSetCount} token source${themeWorkflowSummary.mappedSetCount === 1 ? "" : "s"} connected`,
+                ? `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} to fix`
+                : `${themeWorkflowSummary.mappedSetCount} mapped`,
         tone:
           themeWorkflowSummary.optionCount === 0
             ? "blocked"
@@ -2187,11 +2124,11 @@ export function App() {
         step: 4,
         label: "Preview",
         detail: !themeWorkflowSummary.previewReady
-          ? "Connect token sources before previewing"
+          ? ""
           : themeShellState.activeView === "authoring" &&
               themeShellState.authoringMode === "preview"
-            ? "Preview stage is active"
-            : "Review the resolved combination",
+            ? "Active"
+            : "Ready",
         tone: !themeWorkflowSummary.previewReady
           ? "blocked"
           : themeWorkflowSummary.currentStage === "preview" ||
@@ -2262,15 +2199,15 @@ export function App() {
         label: "Preflight",
         detail:
           publishPreflightState.stage === "running"
-            ? "Checks are running against the current file"
+            ? "Running…"
             : publishPreflightState.isOutdated ||
                 publishPreflightState.stage === "idle"
-              ? "Run the readiness pass first"
+              ? "Not run"
               : publishPreflightState.stage === "blocked"
-                ? `${publishPreflightState.blockingCount} blocking cluster${publishPreflightState.blockingCount === 1 ? "" : "s"} found`
+                ? `${publishPreflightState.blockingCount} blockers`
                 : publishPreflightState.stage === "advisory"
-                  ? `${publishPreflightState.advisoryCount} advisory cluster${publishPreflightState.advisoryCount === 1 ? "" : "s"} remain`
-                  : "Preflight is clear",
+                  ? `${publishPreflightState.advisoryCount} advisories`
+                  : "Clear",
         tone:
           publishPreflightState.stage === "running" ||
           publishPreflightState.isOutdated ||
@@ -2285,10 +2222,10 @@ export function App() {
         step: 2,
         label: "Compare",
         detail: !publishPreflightState.canProceed
-          ? "Locked until preflight is clear"
+          ? ""
           : pendingPublishCount > 0
-            ? `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? "" : "s"} ready to review`
-            : "Compare variables and styles against Figma",
+            ? `${pendingPublishCount} changes`
+            : "",
         tone: !publishPreflightState.canProceed
           ? "blocked"
           : pendingPublishCount > 0
@@ -2301,10 +2238,10 @@ export function App() {
         step: 3,
         label: "Apply",
         detail: !publishPreflightState.canProceed
-          ? "Still blocked by preflight"
+          ? ""
           : pendingPublishCount > 0
-            ? "Apply the reviewed sync plan"
-            : "Apply unlocks after compare finds changes",
+            ? "Ready"
+            : "",
         tone: !publishPreflightState.canProceed
           ? "blocked"
           : pendingPublishCount > 0
@@ -2498,38 +2435,20 @@ export function App() {
       case "import":
         return [
           {
-            label: connected ? "Server connected" : "Server required",
+            label: connected ? "Connected" : "Server required",
             tone: connected ? "success" : "error",
           },
         ];
       case "sets":
-        return [
-          {
-            label: `${sets.length} authoring set${sets.length === 1 ? "" : "s"}`,
-            tone: "info",
-          },
-        ];
+        return [];
       case "notifications":
-        return [
-          {
-            label:
-              notificationHistory.length === 0
-                ? "No notifications"
-                : `${notificationHistory.length} entr${notificationHistory.length === 1 ? "y" : "ies"}`,
-            tone: notificationHistory.length === 0 ? "info" : "info",
-          },
-        ];
+        return [];
       case "shortcuts":
-        return [
-          {
-            label: adaptShortcut(SHORTCUT_KEYS.SHOW_SHORTCUTS),
-            tone: "info",
-          },
-        ];
+        return [];
       case "settings":
         return [
           {
-            label: connected ? "Connected" : "Offline recovery visible",
+            label: connected ? "Connected" : "Offline",
             tone: connected ? "success" : "info",
           },
         ];
@@ -2539,8 +2458,6 @@ export function App() {
   }, [
     activeSecondarySurface,
     connected,
-    notificationHistory.length,
-    sets.length,
     workspacePills,
   ]);
 
@@ -2875,9 +2792,6 @@ export function App() {
                     )}
                     {showConnectionEditor && (
                       <div className="mt-2 flex flex-col gap-1.5">
-                        <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                          Server URL
-                        </label>
                         <div className="flex gap-1.5">
                           <input
                             type="text"
@@ -2956,11 +2870,6 @@ export function App() {
                         <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                           {section.label}
                         </div>
-                        {section.description && (
-                          <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                            {section.description}
-                          </div>
-                        )}
                       </div>
                       {section.actions.map((action) => (
                         <button
@@ -3194,12 +3103,6 @@ export function App() {
                 )}
               </div>
             </div>
-            {tokenDragState && (
-              <div className="border-t border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                Drop on a set to move {tokenDragState.paths.length} token
-                {tokenDragState.paths.length !== 1 ? "s" : ""}.
-              </div>
-            )}
           </div>
         )}
 
@@ -3556,7 +3459,7 @@ export function App() {
       {paletteDeleteConfirm && (
         <ConfirmModal
           title={paletteDeleteConfirm.label}
-          description={`This will permanently delete ${paletteDeleteConfirm.paths.length === 1 ? "this token" : `these ${paletteDeleteConfirm.paths.length} tokens`} from the "${activeSet}" set. This cannot be undone without the undo command.`}
+          description={`Delete from "${activeSet}"? Use undo to restore.`}
           confirmLabel={`Delete ${paletteDeleteConfirm.paths.length === 1 ? "token" : `${paletteDeleteConfirm.paths.length} tokens`}`}
           danger
           onConfirm={handlePaletteDeleteConfirm}
@@ -3586,7 +3489,7 @@ export function App() {
       {syncGroupPending && (
         <ConfirmModal
           title={`Create variables from "${syncGroupPending.groupPath}"?`}
-          description={`This will create or update ${syncGroupPending.tokenCount} Figma variable${syncGroupPending.tokenCount !== 1 ? "s" : ""} from this group.`}
+          description={`Create or update ${syncGroupPending.tokenCount} Figma variables?`}
           confirmLabel="Create variables"
           onConfirm={handleSyncGroup}
           onCancel={() => setSyncGroupPending(null)}
@@ -3597,7 +3500,7 @@ export function App() {
       {syncGroupStylesPending && (
         <ConfirmModal
           title={`Create styles from "${syncGroupStylesPending.groupPath}"?`}
-          description={`This will create or update ${syncGroupStylesPending.tokenCount} Figma style${syncGroupStylesPending.tokenCount !== 1 ? "s" : ""} from this group.`}
+          description={`Create or update ${syncGroupStylesPending.tokenCount} Figma styles?`}
           confirmLabel="Create styles"
           onConfirm={handleSyncGroupStyles}
           onCancel={() => setSyncGroupStylesPending(null)}
@@ -3648,12 +3551,7 @@ export function App() {
                 </svg>
               </button>
             </div>
-            <div className="p-4 flex flex-col gap-2">
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Select scopes for all tokens in{" "}
-                <span className="font-mono font-medium">{groupScopesPath}</span>
-                . Empty = All scopes.
-              </p>
+            <div className="p-3 flex flex-col gap-1.5">
               {(
                 [
                   { label: "Fill Color", value: "FILL_COLOR" },

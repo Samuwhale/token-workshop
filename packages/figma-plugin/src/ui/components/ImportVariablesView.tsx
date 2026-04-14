@@ -38,10 +38,7 @@ export function ImportVariablesView() {
         </span>
       </div>
 
-      <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-        Map to Token Sets
-      </div>
-      <div className="text-[10px] text-[var(--color-figma-text-secondary)] -mt-2">
+      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
         {destinationDescription}
       </div>
 
@@ -49,7 +46,7 @@ export function ImportVariablesView() {
         <div key={col.name} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
           {/* Collection header */}
           <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center gap-2">
-            <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wide flex-1 truncate">
+            <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 truncate">
               {col.name}
             </span>
             <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -95,19 +92,6 @@ export function ImportVariablesView() {
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                     <div className="flex items-center gap-1.5">
                       <span className={`text-[10px] font-medium ${enabled ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] line-through'}`}>{mode.modeName}</span>
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                        {mode.tokens.length} token{mode.tokens.length !== 1 ? 's' : ''}
-                      </span>
-                      {enabled && !inputError && (sets.includes(trimmedName) ? (
-                        <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#e8a100)] font-medium">existing</span>
-                      ) : trimmedName ? (
-                        <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-success,#22c55e)]/10 text-[var(--color-figma-success,#16a34a)] font-medium">new</span>
-                      ) : null)}
-                      {isSharedDestination && (
-                        <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)] font-medium">
-                          combined
-                        </span>
-                      )}
                     </div>
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">

@@ -189,11 +189,10 @@ export function DuplicateDetectionPanel({
       >
         <span className="flex flex-wrap items-center gap-1.5 text-left">
           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-          <span>Duplicate Values</span>
+          <span>Duplicates</span>
           <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">
-            {lintDuplicateGroups.length} group{lintDuplicateGroups.length !== 1 ? 's' : ''} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
+            {lintDuplicateGroups.length} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
           </span>
-          <span className="normal-case font-normal opacity-60">shared values</span>
         </span>
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
       </button>
@@ -203,7 +202,7 @@ export function DuplicateDetectionPanel({
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  {configuredGroupCount}/{lintDuplicateGroups.length} groups configured · {configuredAliasCount} aliases ready to create
+                  {configuredGroupCount}/{lintDuplicateGroups.length} configured · {configuredAliasCount} aliases
                 </div>
                 {confirmBulkDedup ? (
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -231,11 +230,6 @@ export function DuplicateDetectionPanel({
                   </button>
                 )}
               </div>
-              {!allGroupsConfigured && (
-                <p className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Pick a canonical token in each group to enable batch resolve.
-                </p>
-              )}
             </div>
           </div>
           {lintDuplicateGroups.map(group => {
@@ -320,9 +314,8 @@ export function DuplicateDetectionPanel({
                         <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 p-2.5 flex flex-col gap-2">
                           <div className="flex items-center justify-between gap-2">
                             <div>
-                              <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Metadata preview</p>
                               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                Keeping <span className="font-mono text-[var(--color-figma-text)]">{canonical.path}</span> and aliasing {others.length} token{others.length !== 1 ? 's' : ''} to it.
+                                Keep <span className="font-mono text-[var(--color-figma-text)]">{canonical.path}</span>, alias {others.length} to it
                               </p>
                             </div>
                             <button
@@ -352,7 +345,7 @@ export function DuplicateDetectionPanel({
                                     </div>
                                   ) : (
                                     <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                      Metadata matches canonical.
+                                      Matches canonical
                                     </p>
                                   )}
                                 </div>
@@ -362,7 +355,7 @@ export function DuplicateDetectionPanel({
                         </div>
                       ) : (
                         <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 p-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          Select a canonical token to resolve this group.
+                          Select a canonical token above.
                         </div>
                       )}
 

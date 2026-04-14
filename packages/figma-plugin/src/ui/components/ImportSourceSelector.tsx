@@ -120,47 +120,6 @@ const SOURCE_META: Record<ImportSource, Pick<SelectorOption, 'iconBgClass' | 'ic
   'tokens-studio': FAMILY_META.migration,
 };
 
-const FAMILY_NOTES: Record<SourceFamily, React.ReactNode> = {
-  figma: (
-    <>
-      <strong className="font-medium text-[var(--color-figma-text)]">Variables</strong> require a Professional plan and at least one local collection.
-    </>
-  ),
-  'token-files': (
-    <>
-      Accepts DTCG-compatible JSON files. Drag and drop supported.
-    </>
-  ),
-  code: (
-    <>
-      Static values only. Dynamic expressions (<code className="font-mono text-[9px]">calc()</code>, functions, arrays) are skipped.
-    </>
-  ),
-  migration: (
-    <>
-      Supports single-set and multi-set Tokens Studio exports.
-    </>
-  ),
-};
-
-const FAMILY_PARSER_LIMITS: Record<SourceFamily, string[]> = {
-  figma: [
-    'Requires a Professional plan or above.',
-    'File must contain local variables or styles.',
-  ],
-  'token-files': [
-    'Expects DTCG or top-level "tokens" object.',
-    'Tokens Studio exports auto-route to migration.',
-  ],
-  code: [
-    'Only static values are imported.',
-    'Dynamic expressions, arrays, and functions are skipped.',
-  ],
-  migration: [
-    'Multi-set exports keep their set boundaries.',
-    'Only groups with $value fields are imported.',
-  ],
-};
 
 function ValidationStatusBadge({ status }: { status: 'ready' | 'partial' | 'error' | 'unsupported' }) {
   const className = status === 'partial'
@@ -178,22 +137,6 @@ function ValidationStatusBadge({ status }: { status: 'ready' | 'partial' | 'erro
   return <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${className}`}>{label}</span>;
 }
 
-function ParserLimitsCard({ items }: { items: string[] }) {
-  return (
-    <div className="border-t border-[var(--color-figma-border)] px-2 py-1.5">
-      <div className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-        Parser Limits
-      </div>
-      <div className="mt-0.5 flex flex-col gap-0.5">
-        {items.map((item) => (
-          <div key={item} className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {item}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function FileValidationCard({
   validation,
@@ -309,7 +252,7 @@ function FileIntakeBox({
         </svg>
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{title}</div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{description}</div>
+          {description && <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{description}</div>}
         </div>
       </div>
 
@@ -330,18 +273,6 @@ function FileIntakeBox({
   );
 }
 
-function InfoCallout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-1.5 px-2 py-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-[1px] shrink-0" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-      <span>{children}</span>
-    </div>
-  );
-}
 
 export function ImportSourceSelector() {
   const {
@@ -431,30 +362,19 @@ export function ImportSourceSelector() {
       formats: activeFamilyFileFormats,
     }]
     : [];
-  const parserLimitItems = activeFamily
-    ? FAMILY_PARSER_LIMITS[activeFamily]
-    : ['Expects DTCG or Tokens Studio JSON.', 'CSS and Tailwind: static values only.'];
   const validationFamily = fileImportValidation?.source ? IMPORT_SOURCE_DEFINITIONS[fileImportValidation.source].family : null;
   const showValidationCard = !!fileImportValidation && (!activeFamily || validationFamily === activeFamily || fileImportValidation.source === null);
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-        Import Source
-      </div>
-
       {!activeFamily ? (
         <>
-          <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
-            Choose a source type.
-          </div>
           <FileIntakeBox
-            title={isDragging ? 'Release to import a supported file' : 'File Intake'}
-            description="Pick a source below or drag a file here."
+            title={isDragging ? 'Release to import' : 'Drop a file or pick a source'}
+            description=""
             entries={familyFileEntries}
             isDragging={isDragging}
           />
-          <ParserLimitsCard items={parserLimitItems} />
           {showValidationCard && fileImportValidation && <FileValidationCard validation={fileImportValidation} />}
           <div className="flex flex-col gap-2">
             {familyOptions.map((option) => (
@@ -471,27 +391,25 @@ export function ImportSourceSelector() {
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="rotate-180 text-current">
               <path d="M2 1l4 3-4 3V1z" />
             </svg>
-            Back to source families
+            Back
           </button>
-          <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
-            {IMPORT_FAMILY_DEFINITIONS[activeFamily].title}:
+          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+            {IMPORT_FAMILY_DEFINITIONS[activeFamily].title}
           </div>
           {activeFamilyFileEntries.length > 0 && (
             <FileIntakeBox
-              title={isDragging ? 'Release to import this file' : 'Pick or drop a file'}
-              description="Pick a format below or drop a file."
+              title={isDragging ? 'Release to import' : 'Drop a file or pick a format'}
+              description=""
               entries={activeFamilyFileEntries}
               isDragging={isDragging}
             />
           )}
-          <ParserLimitsCard items={parserLimitItems} />
           {showValidationCard && fileImportValidation && <FileValidationCard validation={fileImportValidation} />}
           <div className="flex flex-col gap-2">
             {formatOptions.map((option) => (
               <SelectorCard key={option.id} {...option} />
             ))}
           </div>
-          <InfoCallout>{FAMILY_NOTES[activeFamily]}</InfoCallout>
         </>
       )}
 

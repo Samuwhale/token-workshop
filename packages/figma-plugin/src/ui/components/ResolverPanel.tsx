@@ -13,7 +13,6 @@ import { useState, useCallback, useMemo } from 'react';
 import type { ResolverFile } from '@tokenmanager/core';
 import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
-import { usePanelHelp, PanelHelpIcon } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
 import { Spinner } from './Spinner';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
@@ -88,7 +87,6 @@ function ResolverInner({
   onSuccess,
   showHeader: _showHeader,
 }: ResolverContentProps & { showHeader: boolean }) {
-  const help = usePanelHelp('resolvers');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
   const [, setMigrateError] = useState<string | null>(null);
@@ -340,13 +338,9 @@ function ResolverInner({
       {/* Header */}
       <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)]">
         <div className="flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-              Resolver Composition
-            </span>
-            <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">DTCG v2025.10</span>
-            <PanelHelpIcon panelKey="resolvers" title="Resolvers" expanded={help.expanded} onToggle={help.toggle} />
-          </div>
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+            Resolvers
+          </span>
           <div className="flex items-center gap-1">
             <button
               onClick={handleMigrate}
@@ -364,12 +358,6 @@ function ResolverInner({
             </button>
           </div>
         </div>
-        <p className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/60 px-2 py-1.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-          Modes stay the default workflow for light/dark, brand, and
-          similar variants. Use resolvers only when publish output needs
-          explicit merge order, modifier defaults, or contexts that do not map
-          1:1 to those modes.
-        </p>
       </div>
 
       {/* Create form */}
@@ -421,9 +409,6 @@ function ResolverInner({
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-snug">
-                Assign your token sets to each resolver role. Change any that were detected incorrectly.
-              </p>
               {(['foundation', 'light', 'dark'] as const).map(role => (
                 <div key={role} className="flex items-center gap-2">
                   <span className="w-[64px] shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] capitalize">{role}</span>
@@ -474,99 +459,37 @@ function ResolverInner({
               <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
             </svg>
 
-            <div className="flex flex-col gap-1">
-              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No resolver configs yet</p>
-              <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
-                Resolvers add publish-time merge logic when modes are
-                not enough, replacing per-combination files with a single
-                config.
-              </p>
-            </div>
+            <p className="text-[11px] font-medium text-[var(--color-figma-text)]">No resolvers yet</p>
 
-            {/* How it works */}
-            <div className="w-full max-w-[260px]">
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left mb-2">How resolvers work</p>
-              <div className="flex items-start gap-0 w-full">
-                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <path d="M3 9h18M9 21V9" />
-                    </svg>
-                  </div>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Dimensions</p>
-                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Brand, Mode</p>
-                </div>
-                <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
-                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 6L4 12l4 6M16 6l4 6-4 6" />
-                    </svg>
-                  </div>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Resolve</p>
-                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Merge sets</p>
-                </div>
-                <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
-                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3" />
-                    </svg>
-                  </div>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Tokens</p>
-                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Final output</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2 w-full max-w-[260px]">
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">Get started</p>
+            <div className="flex flex-col gap-1.5 w-full max-w-[240px]">
               <button
                 onClick={handleMigrate}
                 disabled={migrating || !connected}
-                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <path d="M3 9h18M9 21V9" />
-                  </svg>
-                  <span className="text-[11px] font-medium">Convert from Modes</span>
-                </div>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-                  Migrate your existing mode layers into a resolver config
-                </p>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M3 9h18M9 21V9" />
+                </svg>
+                <span className="text-[11px] font-medium">Convert from modes</span>
               </button>
               <button
                 onClick={() => setCreating(true)}
-                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                    <path d="M6 1v10M1 6h10" />
-                  </svg>
-                  <span className="text-[11px] font-medium">Create from scratch</span>
-                </div>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-                  Define dimensions and set mappings manually
-                </p>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0">
+                  <path d="M6 1v10M1 6h10" />
+                </svg>
+                <span className="text-[11px] font-medium">Create from scratch</span>
               </button>
               <button
                 onClick={() => { setCreatingFromTemplate(true); setTemplateError(null); setTemplateStep('name'); }}
-                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] border-dashed text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] border-dashed text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                  </svg>
-                  <span className="text-[11px] font-medium">Light / Dark preset</span>
-                </div>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-                  Pre-built resolver with a <code className="font-mono">mode</code> modifier (light / dark)
-                </p>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+                <span className="text-[11px] font-medium">Light / dark preset</span>
               </button>
             </div>
           </div>
@@ -666,7 +589,7 @@ function ResolverInner({
                     <div className="flex flex-col gap-2 pt-2">
                       {/* Description */}
                       <div className="flex flex-col gap-0.5">
-                        <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wider">Description</label>
+                        <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Description</label>
                         <input
                           type="text"
                           value={editForm.description}
@@ -679,7 +602,7 @@ function ResolverInner({
                       {/* Modifiers */}
                       {Object.keys(editForm.modifiers).length > 0 && (
                         <div className="flex flex-col gap-1.5">
-                          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wider">Modifiers</div>
+                          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Modifiers</div>
                           {Object.entries(editForm.modifiers).map(([modName, modEdit]) => {
                             const resolverMeta = resolvers.find(r => r.name === resolver.name);
                             const contexts = resolverMeta?.modifiers[modName]?.contexts ?? [];
@@ -687,7 +610,7 @@ function ResolverInner({
                               <div key={modName} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 flex flex-col gap-1.5">
                                 <div className="text-[10px] font-medium text-[var(--color-figma-text)] capitalize">{modName}</div>
                                 <div className="flex flex-col gap-0.5">
-                                  <label className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">Description</label>
+                                  <label className="text-[9px] text-[var(--color-figma-text-tertiary)]">Description</label>
                                   <input
                                     type="text"
                                     value={modEdit.description}
@@ -701,7 +624,7 @@ function ResolverInner({
                                 </div>
                                 {contexts.length > 0 && (
                                   <div className="flex flex-col gap-0.5">
-                                    <label className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">Default option</label>
+                                    <label className="text-[9px] text-[var(--color-figma-text-tertiary)]">Default option</label>
                                     <div className="flex flex-wrap gap-0.5">
                                       {contexts.map(ctx => (
                                         <button
@@ -759,7 +682,7 @@ function ResolverInner({
                   {/* Modifier selectors */}
                   {modNames.length > 0 ? (
                     <div className="flex flex-col gap-1.5 mb-2">
-                      <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wider">
+                      <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                         Modifier Inputs
                       </div>
                       {modNames.map(modName => {
@@ -826,9 +749,6 @@ function ResolverInner({
                   {/* Resolved preview */}
                   {previewEntries.length > 0 && !loading && (
                     <div className="mt-2">
-                      <div className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide mb-1">
-                        Resolved preview
-                      </div>
                       <div className="flex flex-col divide-y divide-[var(--color-figma-border)] rounded border border-[var(--color-figma-border)] overflow-hidden">
                         {previewEntries.map(({ path, entry, rawStr, resolvedStr }) => {
                           const isColor = entry.$type === 'color' && typeof entry.$value === 'string';
@@ -875,13 +795,6 @@ function ResolverInner({
                     </div>
                   )}
 
-                  {/* Sets info */}
-                  {resolver.modifiers && Object.keys(resolver.modifiers).length > 0 && (
-                    <div className="mt-2 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                      Resolution order merges sets and applies modifier overrides in sequence.
-                      Tokens from later entries override earlier ones.
-                    </div>
-                  )}
                 </div>
               )}
             </div>

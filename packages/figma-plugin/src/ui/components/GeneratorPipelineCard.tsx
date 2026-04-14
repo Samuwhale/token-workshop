@@ -68,9 +68,9 @@ function formatInlineValue(value: unknown): string {
 
 function getRecipeStatusDetail(generator: TokenGenerator, status: DashboardStatus): string {
   if (status === "blocked") {
-    const blockedBy = generator.blockedByGenerators?.map((dependency) => dependency.name).filter(Boolean) ?? [];
+    const blockedBy = generator.blockedByGenerators?.filter((dependency) => dependency.name) ?? [];
     if (blockedBy.length > 0) {
-      return `Blocked by ${blockedBy.join(", ")}`;
+      return `${blockedBy.length} blocked`;
     }
   }
   if (generator.lastRunError?.message) return generator.lastRunError.message;
@@ -78,17 +78,13 @@ function getRecipeStatusDetail(generator: TokenGenerator, status: DashboardStatu
   if (generator.staleReason) return generator.staleReason;
   switch (status) {
     case "stale":
-      return "Source changed.";
     case "failed":
-      return "Last run failed.";
     case "neverRun":
-      return "Not run yet.";
     case "upToDate":
-      return "Up to date.";
     case "blocked":
-      return "Waiting on upstream dependency.";
+      return "";
     default:
-      return generator.enabled === false ? "Paused." : "Recipe state available.";
+      return "";
   }
 }
 
@@ -244,7 +240,7 @@ export function GeneratorPipelineCard({
 
   const supportMessage = actionError
     ? actionError
-    : status === "failed" || status === "blocked"
+    : (status === "failed" || status === "blocked") && statusDetail
       ? statusDetail
       : null;
 

@@ -28,9 +28,9 @@ function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }
     commit: 'bg-[color-mix(in_srgb,#a855f7_14%,transparent)] text-[#a855f7]',
     snapshot: 'bg-[color-mix(in_srgb,var(--color-figma-success)_14%,transparent)] text-[var(--color-figma-success)]',
   };
-  const labels: Record<string, string> = { local: 'This session', action: 'Saved edit', commit: 'Git', snapshot: 'Snapshot' };
+  const labels: Record<string, string> = { local: 'Session', action: 'Edit', commit: 'Git', snapshot: 'Snapshot' };
   return (
-    <span className={`shrink-0 text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded ${styles[kind]}`}>
+    <span className={`shrink-0 text-[9px] font-medium px-1 py-0.5 rounded ${styles[kind]}`}>
       {labels[kind]}
     </span>
   );
@@ -38,7 +38,6 @@ function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }
 
 function RecoverySection({
   title,
-  countLabel,
   action,
   children,
 }: {
@@ -49,17 +48,8 @@ function RecoverySection({
 }) {
   return (
     <section className="border-b border-[var(--color-figma-border)]">
-      <div className="flex items-start gap-3 px-3 py-3 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_78%,transparent)]">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-[11px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
-            {countLabel ? (
-              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]">
-                {countLabel}
-              </span>
-            ) : null}
-          </div>
-        </div>
+      <div className="flex items-center gap-3 px-3 py-2 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_78%,transparent)]">
+        <h2 className="flex-1 min-w-0 text-[11px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {children}
@@ -76,8 +66,8 @@ function RecoverySubsection({
 }) {
   return (
     <div className="border-t border-[var(--color-figma-border)] first:border-t-0">
-      <div className="px-3 py-2 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_42%,transparent)]">
-        <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">{title}</p>
+      <div className="px-3 py-1.5 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_42%,transparent)]">
+        <p className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">{title}</p>
       </div>
       {children}
     </div>
@@ -491,7 +481,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
               countLabel={`${filteredLocalEntries.length + filteredOperations.length} option${filteredLocalEntries.length + filteredOperations.length !== 1 ? 's' : ''}`}
             >
               <RecoverySubsection
-                title="This session"
+                title="Session"
               >
                 {filteredLocalEntries.length > 0 ? filteredLocalEntries.map(({ description, stepsToUndo }) => {
                   const isTop = stepsToUndo === 1;

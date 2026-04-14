@@ -120,7 +120,7 @@ function CategorySection({
               <div key={type}>
                 {typeGroups.size > 1 && (
                   <div className="px-3 py-0.5 bg-[var(--color-figma-bg)]">
-                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{type} ({groupRows.length})</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{type}</span>
                   </div>
                 )}
                 {groupRows.map(row => (

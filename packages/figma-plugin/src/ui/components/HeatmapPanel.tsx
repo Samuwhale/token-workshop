@@ -8,7 +8,6 @@ import {
   type ScanScope,
   type ResolvedTokenValue,
 } from '../../shared/types';
-import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
 export interface HeatmapMissingValueEntry {
   property: BindableProperty;
@@ -109,7 +108,6 @@ export function HeatmapPanel({
   canCreateToken,
   onCreateToken,
 }: HeatmapPanelProps) {
-  const help = usePanelHelp('heatmap');
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
   const [quickBind, setQuickBind] = useState<QuickBindState | null>(null);
@@ -205,7 +203,6 @@ export function HeatmapPanel({
                 ? `${result.green}/${result.total} layers fully bound (${Math.round((result.green / result.total) * 100)}%)`
                 : `${result.total} layers scanned`}
             </span>
-            <PanelHelpIcon panelKey="heatmap" title="Heatmap" expanded={help.expanded} onToggle={help.toggle} />
             <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={exportCSV}
@@ -282,24 +279,16 @@ export function HeatmapPanel({
                   key={s}
                   onClick={() => setFilter(prev => prev === s ? 'all' : s)}
                   className={`flex items-center gap-1 text-[10px] transition-opacity ${filter !== 'all' && filter !== s ? 'opacity-40' : ''}`}
+                  title={cfg.label}
                 >
                   <StatusIcon status={s} size={8} />
                   <span className={cfg.text}>{count}</span>
-                  <span className="text-[var(--color-figma-text-secondary)]">{cfg.label}</span>
                 </button>
               );
             })}
           </div>
         </div>
       )}
-      {help.expanded && result && !loading && (
-        <PanelHelpBanner
-          title="Heatmap"
-          description="Shows which layers use tokens vs. hardcoded values. Green = fully bound, yellow = partial, red = unbound."
-          onDismiss={help.dismiss}
-        />
-      )}
-
       {/* Loading state */}
       {loading && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--color-figma-text-secondary)]">
@@ -355,20 +344,6 @@ export function HeatmapPanel({
             </p>
           </div>
 
-          <div className="w-full max-w-[260px] flex flex-col gap-1.5">
-            {[
-              { color: 'bg-emerald-500', label: 'Fully bound', desc: 'Fully bound' },
-              { color: 'bg-amber-400', label: 'Partially bound', desc: 'Partially bound' },
-              { color: 'bg-red-500', label: 'No bindings', desc: 'Unbound' },
-            ].map(({ color, label, desc }) => (
-              <div key={label} className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <div className={`w-2 h-2 rounded-full ${color} shrink-0`} />
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{label}</span>
-                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] ml-auto">{desc}</span>
-              </div>
-            ))}
-          </div>
-
           {/* CTA */}
           <button
             onClick={() => onRescan()}
@@ -387,12 +362,7 @@ export function HeatmapPanel({
             <line x1="9" y1="9" x2="15" y2="15"/>
             <line x1="15" y1="9" x2="9" y2="15"/>
           </svg>
-          <div className="flex flex-col gap-1">
-            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No bindable layers</p>
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
-              No bindable layers on this page.
-            </p>
-          </div>
+          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No bindable layers on this page.</p>
           <button
             onClick={() => onRescan()}
             className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"

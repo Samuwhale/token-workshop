@@ -8,7 +8,6 @@ import { apiFetch } from '../shared/apiFetch';
 import { FIGMA_SCOPES } from './MetadataEditor';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { isAlias } from '../../shared/resolveAlias';
-import { PanelHelpHint } from './PanelHelpHint';
 import { LONG_TEXT_CLASSES } from '../shared/longTextStyles';
 import { AUTHORING } from '../shared/editorClasses';
 import { AUTHORING_SURFACE_CLASSES } from './EditorShell';
@@ -44,7 +43,6 @@ interface BatchEditorProps {
 type NumericOpMode = 'multiply' | 'divide' | 'add' | 'subtract';
 type ColorAdjustOp = 'lighten' | 'darken' | 'saturate' | 'desaturate' | 'hue';
 
-/** Set the alpha channel on a hex color string. Handles both #RRGGBB and #RRGGBBAA. */
 function applyColorOpacity(colorValue: unknown, opacityPercent: number): string | null {
   if (typeof colorValue !== 'string') return null;
   const hex = colorValue.replace('#', '');
@@ -57,7 +55,6 @@ function applyColorOpacity(colorValue: unknown, opacityPercent: number): string 
   return `#${rgb}${alphaHex}`;
 }
 
-/** Apply an arithmetic operation to a dimension or number value. */
 function applyNumericTransform(value: unknown, op: NumericOpMode, operand: number): unknown {
   if (typeof value === 'number') {
     let result: number;
@@ -84,7 +81,6 @@ function applyNumericTransform(value: unknown, op: NumericOpMode, operand: numbe
   return null;
 }
 
-// Pure HSL ↔ RGB math (no external imports).
 function rgbToHslLocal(r: number, g: number, b: number): { h: number; s: number; l: number } {
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   const l = (max + min) / 2;
@@ -115,7 +111,6 @@ function hslToRgbLocal(h: number, s: number, l: number): { r: number; g: number;
   return { r: hue2rgb(h + 1 / 3), g: hue2rgb(h), b: hue2rgb(h - 1 / 3) };
 }
 
-/** Adjust a hex color's hue/saturation/lightness. Returns new hex or null if not a plain hex color. */
 function applyColorAdjust(colorValue: unknown, op: ColorAdjustOp, amount: number): string | null {
   if (typeof colorValue !== 'string') return null;
   const raw = colorValue.replace('#', '');
@@ -138,29 +133,27 @@ function applyColorAdjust(colorValue: unknown, op: ColorAdjustOp, amount: number
   return `#${toHex2(nr)}${toHex2(ng)}${toHex2(nb)}${alphaHex}`;
 }
 
-// Sub-property definitions for composite token types (shadow, typography, border, transition).
-// Each entry declares which sub-properties can be targeted by batch transforms.
-const COMPOSITE_SUB_PROPS_BY_TYPE: Record<string, Array<{ key: string; kind: 'color' | 'numeric'; label: string }>> = {
+const COMPOSITE_SUB_PROPS_BY_TYPE: Record<string, Array<{ key: string; kind: 'color' | 'numeric' }>> = {
   shadow: [
-    { key: 'color', kind: 'color', label: 'color' },
-    { key: 'offsetX', kind: 'numeric', label: 'offsetX' },
-    { key: 'offsetY', kind: 'numeric', label: 'offsetY' },
-    { key: 'blur', kind: 'numeric', label: 'blur' },
-    { key: 'spread', kind: 'numeric', label: 'spread' },
+    { key: 'color', kind: 'color' },
+    { key: 'offsetX', kind: 'numeric' },
+    { key: 'offsetY', kind: 'numeric' },
+    { key: 'blur', kind: 'numeric' },
+    { key: 'spread', kind: 'numeric' },
   ],
   typography: [
-    { key: 'fontSize', kind: 'numeric', label: 'fontSize' },
-    { key: 'fontWeight', kind: 'numeric', label: 'fontWeight' },
-    { key: 'lineHeight', kind: 'numeric', label: 'lineHeight' },
-    { key: 'letterSpacing', kind: 'numeric', label: 'letterSpacing' },
+    { key: 'fontSize', kind: 'numeric' },
+    { key: 'fontWeight', kind: 'numeric' },
+    { key: 'lineHeight', kind: 'numeric' },
+    { key: 'letterSpacing', kind: 'numeric' },
   ],
   border: [
-    { key: 'color', kind: 'color', label: 'color' },
-    { key: 'width', kind: 'numeric', label: 'width' },
+    { key: 'color', kind: 'color' },
+    { key: 'width', kind: 'numeric' },
   ],
   transition: [
-    { key: 'duration', kind: 'numeric', label: 'duration' },
-    { key: 'delay', kind: 'numeric', label: 'delay' },
+    { key: 'duration', kind: 'numeric' },
+    { key: 'delay', kind: 'numeric' },
   ],
 };
 
@@ -1048,11 +1041,6 @@ export function BatchEditor({
             </div>
           )}
         </div>
-        <PanelHelpHint
-          panelKey="batch-editor"
-          title="Batch Editor"
-          description="Batch-edit description, type, scopes, or alias across selected tokens."
-        />
       </div>
 
       {/* Scrollable body */}
@@ -1521,7 +1509,7 @@ export function BatchEditor({
                 if (!defs) return [];
                 return defs.map(def => (
                   <option key={`${type}.${def.key}`} value={`${type}.${def.key}`}>
-                    {type}: {def.label} ({typeEntries.length} token{typeEntries.length !== 1 ? 's' : ''})
+                    {type}: {def.key} ({typeEntries.length} token{typeEntries.length !== 1 ? 's' : ''})
                   </option>
                 ));
               })}

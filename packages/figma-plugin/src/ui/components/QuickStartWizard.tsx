@@ -63,20 +63,19 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div>
-        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Start the Token Manager server</p>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-          Run the following in your project directory:
+        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Start the server</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+          Run in your project directory:
         </p>
       </div>
 
-      <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-3 py-2">
+      <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-2.5 py-1.5">
         <code className="text-[11px] font-mono text-[var(--color-figma-accent)]">token-manager start</code>
       </div>
 
       <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-        <span>Connecting to:</span>
         <code className="font-mono px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)]">{serverUrl}</code>
       </div>
 
@@ -134,11 +133,11 @@ function CreateSetStep({ serverUrl, onCreated }: {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div>
         <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token set</p>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-          Token sets are JSON files that hold your design foundations. Add more later for semantics, themes, or brands.
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+          A JSON file for your design foundations.
         </p>
       </div>
 
@@ -159,8 +158,8 @@ function CreateSetStep({ serverUrl, onCreated }: {
         {error && <p className="mt-1 text-[10px] text-[var(--color-figma-error)]">{error}</p>}
       </div>
 
-      <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-        Will create <code className="font-mono text-[var(--color-figma-accent)]">{name.trim() || 'primitives'}.tokens.json</code> in your token directory.
+      <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+        Creates <code className="font-mono text-[var(--color-figma-accent)]">{name.trim() || 'primitives'}.tokens.json</code>
       </div>
 
       <button
@@ -232,16 +231,11 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-3 py-6 text-center">
-        <div className="w-8 h-8 rounded-full bg-[var(--color-figma-accent)]/10 flex items-center justify-center">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-        </div>
-        <div>
-          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Mode created</p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-            "{dimName}" with "{lightName}" and "{darkName}" options
-          </p>
-        </div>
+      <div className="flex flex-col items-center gap-2 py-4 text-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">
+          Created "{dimName}" with {lightName} / {darkName}
+        </p>
         <button
           onClick={onDone}
           className="px-4 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
@@ -672,10 +666,8 @@ export function QuickStartWizard({
         )}
 
         {checklistView === 'modes-inline' && (
-          <div className="p-4 flex flex-col gap-3">
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Create a theme dimension (e.g. color mode) with variants like light and dark.
-            </p>
+          <div className="p-3 flex flex-col gap-2">
+
             <ThemeStep
               serverUrl={serverUrl}
               activeSet={effectiveActiveSet}

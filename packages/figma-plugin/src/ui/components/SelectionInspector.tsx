@@ -70,7 +70,6 @@ interface SelectionInspectorProps {
   onPushUndo?: (slot: UndoSlot) => void;
   onToast?: (message: string) => void;
   onGoToTokens?: () => void;
-  /** Increment to trigger create-from-first-property (Cmd+T shortcut) */
   triggerCreateToken?: number;
 }
 
@@ -109,19 +108,16 @@ export function SelectionInspector({
   const [freshSyncResult, setFreshSyncResult] =
     useState<SyncCompleteMessage | null>(null);
 
-  // Inline bind-existing-token state
   const [bindingFromProp, setBindingFromProp] =
     useState<BindableProperty | null>(null);
   const [lastBoundProp, setLastBoundProp] = useState<BindableProperty | null>(
     null,
   );
 
-  // Binding error feedback from the plugin sandbox
   const [bindingErrors, setBindingErrors] = useState<
     Partial<Record<BindableProperty, string>>
   >({});
 
-  // Persistent peer suggestion — survives until dismissed or selection changes
   const [peerSuggestion, setPeerSuggestion] = useState<{
     property: BindableProperty;
     peerIds: string[];
@@ -130,9 +126,6 @@ export function SelectionInspector({
     resolvedValue: any;
   } | null>(null);
 
-  // Persistent prop-type suggestion — offer to apply the same token to all other
-  // unbound properties of the same type (e.g., after binding color.primary to fill,
-  // offer to also apply it to stroke and any other unbound color properties)
   const [propTypeSuggestion, setPropTypeSuggestion] = useState<{
     tokenPath: string;
     tokenType: string;
@@ -140,12 +133,9 @@ export function SelectionInspector({
     targetProps: BindableProperty[];
   } | null>(null);
 
-  // Feedback for select-next-sibling (no more siblings)
   const [noMoreSiblings, setNoMoreSiblings] = useState(false);
-  // Error feedback for remove-binding-from-node failures
   const [deepRemoveError, setDeepRemoveError] = useState<string | null>(null);
 
-  // Progress tracking for apply-to-nodes operations (e.g. apply to all peers)
   const [applyProgress, setApplyProgress] = useState<{
     processed: number;
     total: number;
@@ -218,7 +208,6 @@ export function SelectionInspector({
     parent.postMessage({ pluginMessage: { type: "select-node", nodeId } }, "*");
   }, []);
 
-  // Listen for binding results from the plugin sandbox
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const msg = event.data?.pluginMessage;
@@ -259,7 +248,6 @@ export function SelectionInspector({
     return () => window.removeEventListener("message", handler);
   }, []);
 
-  // Cmd+T: open create-from-first-unbound-property
   useEffect(() => {
     if (!triggerCreateToken) return;
     const nodes = selectedNodes.filter((n) => (n.depth ?? 0) === 0);
@@ -297,7 +285,6 @@ export function SelectionInspector({
     setNewTokenName,
   ]);
 
-  // Split selected nodes into directly-selected (depth 0) vs deep children (depth 1+)
   const rootNodes = selectedNodes.filter((n) => (n.depth ?? 0) === 0);
   const deepChildNodes = selectedNodes.filter((n) => (n.depth ?? 0) > 0);
 
@@ -308,12 +295,10 @@ export function SelectionInspector({
     [selectedNodes, tokenMap],
   );
 
-  // Capture sync result for freshness badge (outlives the 3s global clear)
   useEffect(() => {
     if (syncResult) setFreshSyncResult(syncResult);
   }, [syncResult]);
 
-  // Clear freshness and cancel any open inline panels when the selected nodes change
   useEffect(() => {
     const ids = rootNodes.map((n) => n.id).join(",");
     if (ids !== prevNodeIdsRef.current) {
@@ -547,12 +532,8 @@ export function SelectionInspector({
       1500,
     );
 
-    // Auto-advance: open bind panel on next unbound property
-    // We need to treat the just-bound property as bound for the advance check,
-    // so pass afterProp to skip past it and find the next unbound one.
     const nextUnbound = getNextUnboundProperty(prop, rootNodes, caps);
     if (nextUnbound) {
-      // Small delay so the "Bound" flash is visible before the next panel opens
       setTimeout(() => {
         setBindingFromProp((prev) => {
           // Only advance if user hasn't manually opened a different panel
@@ -562,8 +543,6 @@ export function SelectionInspector({
       }, 300);
     }
 
-    // "Apply to all [type] properties" — detect other visible unbound properties
-    // that accept the same token type and offer to apply the same token to all of them
     {
       const compatUnboundProps = ALL_BINDABLE_PROPERTIES.filter((p) => {
         if (p === prop) return false;
@@ -581,13 +560,10 @@ export function SelectionInspector({
           targetProps: compatUnboundProps,
         });
       } else {
-        // Clear any stale suggestion from a previous bind
         setPropTypeSuggestion(null);
       }
     }
 
-    // "Apply to peers" fast path: for single-layer selection, check if sibling
-    // layers support the same property and offer to apply the binding persistently
     if (rootNodes.length === 1) {
       const nodeId = rootNodes[0].id;
       parent.postMessage(
@@ -601,7 +577,6 @@ export function SelectionInspector({
         "*",
       );
 
-      // One-shot listener for the response
       const handler = (event: MessageEvent) => {
         const msg = event.data?.pluginMessage;
         if (msg?.type !== "peers-for-property-result" || msg.property !== prop)
@@ -609,7 +584,6 @@ export function SelectionInspector({
         window.removeEventListener("message", handler);
         const peerIds: string[] = msg.nodeIds;
         if (peerIds.length === 0) return;
-        // Store as persistent state — banner stays until dismissed or selection changes
         setPeerSuggestion({
           property: prop,
           peerIds,
@@ -619,7 +593,6 @@ export function SelectionInspector({
         });
       };
       window.addEventListener("message", handler);
-      // Clean up listener after 5s if no response
       setTimeout(() => window.removeEventListener("message", handler), 5000);
     }
   };
@@ -647,7 +620,6 @@ export function SelectionInspector({
     setCreatedTokenPath(tokenPath);
     onTokenCreated();
 
-    // Auto-advance: open bind panel on next unbound property
     const nextUnbound = getNextUnboundProperty(prop, rootNodes, caps);
     if (nextUnbound) {
       setTimeout(() => {
@@ -671,7 +643,6 @@ export function SelectionInspector({
 
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
 
-  // Context-aware token suggestions for the current selection
   const suggestions = useMemo(
     () =>
       hasSelection && hasAnyTokens
@@ -681,13 +652,11 @@ export function SelectionInspector({
     [hasSelection, hasAnyTokens, rootNodes, tokenMap, caps],
   );
 
-  // Check if all visible properties with values are bound (no more unbound to advance to)
   const allPropertiesBound =
     hasSelection &&
     totalBindings > 0 &&
     getNextUnboundProperty(null, rootNodes, caps) === null;
 
-  // Count unbound properties that have a current value (candidates for the fast-path batch action)
   const unboundWithValueCount = useMemo(() => {
     if (!hasSelection) return 0;
     return ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
@@ -699,12 +668,10 @@ export function SelectionInspector({
     }, 0);
   }, [hasSelection, rootNodes]);
 
-  // Suggestions panel collapse (persisted)
   const [showSuggestions, setShowSuggestions] = useState(
     () => lsGet("inspector-suggestions-open") !== "false",
   );
 
-  // Maintenance action panels
   const [showExtractPanel, setShowExtractPanel] = useState(false);
   const [extractFilterProperties, setExtractFilterProperties] = useState<
     BindableProperty[]
@@ -788,7 +755,6 @@ export function SelectionInspector({
     });
   });
 
-  // Property filter helpers
   const COLOR_PROPS = new Set<BindableProperty>(["fill", "stroke"]);
   const DIMENSION_PROPS = new Set<BindableProperty>([
     "width",
@@ -985,7 +951,7 @@ export function SelectionInspector({
         )}
 
         {/* Property list */}
-        <div className="px-1.5 py-1.5">
+        <div className="px-1 py-1">
           {!hasVisibleProperties && totalBindings === 0 ? (
             <FeedbackPlaceholder
               variant="empty"

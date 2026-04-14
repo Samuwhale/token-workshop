@@ -106,8 +106,7 @@ export function ImportTokenListView() {
 
   const [searchText, setSearchText] = useState('');
   const sourceDefinition = getSourceDefinition(source);
-  const sourceLabel = sourceDefinition?.label
-    ?? (source === 'json' ? 'JSON File' : source === 'css' ? 'CSS File' : source === 'tailwind' ? 'Tailwind Config' : 'Imported Tokens');
+  const sourceLabel = sourceDefinition?.label ?? 'Tokens';
   const validation = fileImportValidation?.source === source ? fileImportValidation : null;
   const skippedCount = validation?.skippedCount ?? skippedEntries.length;
   const previewSkippedEntries = validation?.skippedEntries ?? skippedEntries;
@@ -145,17 +144,17 @@ export function ImportTokenListView() {
         </span>
       </div>
 
-      {/* Preview header */}
+      {/* Select all / count */}
       <div className="flex items-center justify-between">
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-          Tokens ({selectedTokens.size}/{tokens.length})
-        </div>
-        <button
-          onClick={toggleAll}
-          className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-        >
-          {selectedTokens.size === tokens.length ? 'Deselect all' : 'Select all'}
-        </button>
+        <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={selectedTokens.size === tokens.length}
+            onChange={toggleAll}
+            className="accent-[var(--color-figma-accent)]"
+          />
+          {selectedTokens.size}/{tokens.length} selected
+        </label>
       </div>
 
       {validation && (

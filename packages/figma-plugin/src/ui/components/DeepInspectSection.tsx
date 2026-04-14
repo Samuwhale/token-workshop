@@ -29,7 +29,6 @@ interface DeepInspectSectionProps {
   showHeader?: boolean;
 }
 
-/** Inline bind panel for a single deep-inspect property row */
 function DeepBindPanel({
   childNode,
   prop,
@@ -58,7 +57,7 @@ function DeepBindPanel({
     .slice(0, 12);
 
   return (
-    <div className="ml-3 mr-1 mb-1 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
+    <div className="ml-2 mr-1 mb-1 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
       <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-accent)]/5">
         <svg
           width="8"
@@ -76,10 +75,7 @@ function DeepBindPanel({
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
         <span className="text-[9px] text-[var(--color-figma-accent)] font-medium flex-1 truncate">
-          {currentBinding
-            ? `Remap ${PROPERTY_LABELS[prop]}`
-            : `Bind ${PROPERTY_LABELS[prop]}`}{" "}
-          on {childNode.name}
+          {currentBinding ? 'Remap' : 'Bind'} on {childNode.name}
         </span>
         <button
           onClick={onClose}
@@ -129,7 +125,7 @@ function DeepBindPanel({
               if (target) onBind(childNode.id, prop, target[0]);
             }
           }}
-          placeholder={`Search ${compatibleTypes.join(" / ")} tokens…`}
+          placeholder="Search tokens\u2026"
           aria-autocomplete="list"
           aria-label="Search token candidates"
           className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
@@ -400,8 +396,8 @@ export function DeepInspectSection({
                             onClick={() =>
                               setActiveBindKey(isBindOpen ? null : bindKey)
                             }
-                            title="Remap to another token"
-                            aria-label="Remap to another token"
+                            title="Remap"
+                            aria-label="Remap binding"
                             className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                           >
                             <svg

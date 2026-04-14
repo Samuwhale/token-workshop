@@ -1,10 +1,5 @@
 import { useState } from "react";
 import {
-  AUDIT_WORKSPACE_GUIDE,
-  PRIMARY_WORKSPACE_SEQUENCE,
-  PRIMARY_WORKSPACE_SEQUENCE_LABEL,
-} from "../shared/navigationTypes";
-import {
   IMPORT_REVIEW_ACTION_COPY,
   useImportResultContext,
   useImportSourceContext,
@@ -46,7 +41,7 @@ export function ImportSuccessView() {
 
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-3">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
         <circle cx="10" cy="10" r="9" stroke={statusColor} strokeWidth="1.5" />
         {hasFailedWrites ? (
           <>
@@ -77,100 +72,39 @@ export function ImportSuccessView() {
         {successMessage}
       </div>
       {lastImportReviewSummary && (
-        <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-              Review applied to{" "}
-              {lastImportReviewSummary.destinationLabel}
-            </div>
-            <span
-              className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
-                hasFailedWrites
-                  ? "bg-[var(--color-figma-warning,#e8a100)]/15 text-[var(--color-figma-warning,#e8a100)]"
-                  : "bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]"
-              }`}
-            >
-              {hasFailedWrites ? "Needs follow-up" : "Applied"}
-            </span>
-          </div>
-          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            {lastImportReviewSummary.newCount} new
-            {lastImportReviewSummary.overwriteCount > 0 &&
-              ` · ${lastImportReviewSummary.overwriteCount} overwrite`}
-            {lastImportReviewSummary.mergeCount > 0 &&
-              ` · ${lastImportReviewSummary.mergeCount} merge`}
-            {lastImportReviewSummary.keepExistingCount > 0 &&
-              ` · ${lastImportReviewSummary.keepExistingCount} keep existing`}
-          </div>
-          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Next:{" "}
-            {hasFailedWrites
-              ? "Retry failed writes below, or copy paths to continue."
-              : "Import more or undo to revise."}
-          </div>
+        <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">
+          {lastImportReviewSummary.destinationLabel}
+          {' — '}
+          {lastImportReviewSummary.newCount > 0 && `${lastImportReviewSummary.newCount} imported`}
+          {lastImportReviewSummary.overwriteCount > 0 &&
+            `${lastImportReviewSummary.newCount > 0 ? ', ' : ''}${lastImportReviewSummary.overwriteCount} updated`}
+          {lastImportReviewSummary.mergeCount > 0 &&
+            `${(lastImportReviewSummary.newCount > 0 || lastImportReviewSummary.overwriteCount > 0) ? ', ' : ''}${lastImportReviewSummary.mergeCount} merged`}
+          {lastImportReviewSummary.keepExistingCount > 0 &&
+            `${(lastImportReviewSummary.newCount > 0 || lastImportReviewSummary.overwriteCount > 0 || lastImportReviewSummary.mergeCount > 0) ? ', ' : ''}${lastImportReviewSummary.keepExistingCount} kept`}
         </div>
       )}
-      <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
-        <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-          Workflow
-        </div>
-        <div className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-          Follow the workspace order: {PRIMARY_WORKSPACE_SEQUENCE_LABEL}.{" "}
-          {AUDIT_WORKSPACE_GUIDE.label} is available at every stage.
-        </div>
-        <div className="mt-2 flex flex-col gap-1.5">
-          {PRIMARY_WORKSPACE_SEQUENCE.map((workspace) => (
-            <div key={workspace.id} className="flex items-start gap-2">
-              <span className="inline-flex min-w-[58px] items-center justify-center rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--color-figma-text)]">
-                {workspace.stepNumber}. {workspace.label}
-              </span>
-              <span className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                {workspace.role}
-              </span>
-            </div>
-          ))}
-          <div className="flex items-start gap-2 rounded border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
-            <span className="inline-flex min-w-[58px] items-center justify-center rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--color-figma-text)]">
-              {AUDIT_WORKSPACE_GUIDE.label}
-            </span>
-            <span className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              {AUDIT_WORKSPACE_GUIDE.role}
-            </span>
-          </div>
-        </div>
-      </div>
       {importNextStepRecommendations.length > 0 && (
-        <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
-          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Next steps
-          </div>
-          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Continue in the workspace that fits this import.
-          </div>
-          <div className="mt-2 flex flex-col gap-2">
-            {importNextStepRecommendations
-              .slice(0, 3)
-              .map((recommendation, index) => (
-                <button
-                  key={`${recommendation.label}-${index}`}
-                  onClick={() => openImportNextStep(recommendation)}
-                  className={`rounded border px-2 py-1.5 text-left transition-colors ${
-                    index === 0
-                      ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8 hover:bg-[var(--color-figma-accent)]/12"
-                      : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-secondary)]"
-                  }`}
-                >
-                  <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                    {index === 0
-                      ? `Continue in ${recommendation.label}`
-                      : `Open ${recommendation.label}`}
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    {recommendation.rationale}
-                  </div>
-                </button>
-              ))}
-          </div>
+        <div className="w-full mt-1 flex flex-col gap-1.5">
+          {importNextStepRecommendations
+            .slice(0, 2)
+            .map((recommendation, index) => (
+              <button
+                key={`${recommendation.label}-${index}`}
+                onClick={() => openImportNextStep(recommendation)}
+                className={`rounded border px-2 py-1.5 text-left transition-colors ${
+                  index === 0
+                    ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8 hover:bg-[var(--color-figma-accent)]/12"
+                    : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-secondary)]"
+                }`}
+              >
+                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                  {index === 0
+                    ? `Continue in ${recommendation.label}`
+                    : recommendation.label}
+                </div>
+              </button>
+            ))}
         </div>
       )}
       {fileImportValidation && (

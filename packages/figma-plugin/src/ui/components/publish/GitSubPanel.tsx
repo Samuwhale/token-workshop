@@ -111,9 +111,8 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
       )}
 
       {git.gitLoading && (
-        <div className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
-          <div className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" aria-hidden="true" />
-          Loading Git status...
+        <div className="flex items-center justify-center py-4">
+          <div className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" aria-hidden="true" aria-label="Loading Git status" />
         </div>
       )}
 
@@ -121,7 +120,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
         <div className="flex flex-col items-center justify-center py-3 gap-3 px-3">
           <p className="text-[12px] text-[var(--color-figma-text-secondary)]">No Git repository initialized</p>
           <div className="w-full flex flex-col gap-2">
-            <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote URL (optional)</label>
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote URL</label>
             <input
               type="text"
               value={git.remoteUrl}

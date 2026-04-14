@@ -13,22 +13,14 @@ export function KeyboardShortcutsPanel() {
       <div className="flex-1 overflow-y-auto py-1">
         {SHORTCUT_SECTIONS.map((section) => (
           <div key={section.header}>
-            <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
-              {section.header === "Token Search"
-                ? "Search Qualifiers"
-                : section.header}
+            <div className="px-3 pt-2 pb-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+              {section.header}
             </div>
-            {section.header === "Token Search" && (
-              <div className="px-3 pb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Use in the command palette after typing{" "}
-                <code className="font-mono">{">"}</code>
-              </div>
-            )}
             {section.shortcuts.map(
               ({ mac, altMac, description, qualifier }) => (
                 <div
                   key={description}
-                  className="flex items-center justify-between px-3 py-1.5"
+                  className="flex items-center justify-between px-3 py-1"
                 >
                   <span className="pr-3 text-[11px] text-[var(--color-figma-text)]">
                     {description}

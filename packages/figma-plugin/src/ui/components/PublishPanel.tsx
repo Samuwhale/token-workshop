@@ -12,7 +12,6 @@ import { SyncPreflightStep } from './publish/SyncPreflightStep';
 import { SyncDiffSummary } from './publish/PublishShared';
 import type { PreviewRow } from './publish/PublishShared';
 import { NoticeBanner, type NoticeSeverity } from '../shared/noticeSystem';
-import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
 import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import type { ValidationSnapshot } from '../hooks/useValidationCache';
@@ -235,7 +234,6 @@ export function PublishPanel({
   tokenChangeKey,
   publishPanelHandle,
 }: PublishPanelProps) {
-  const help = usePanelHelp('publish', { defaultExpanded: false });
   const { navigateTo, beginHandoff } = useNavigationContext();
   const {
     activeResolver,
@@ -1006,14 +1004,6 @@ export function PublishPanel({
   return (
     <>
     <div className="flex h-full flex-col bg-[var(--color-figma-bg)]">
-      {help.expanded && (
-        <PanelHelpBanner
-          title="Figma Sync"
-          description="Preflight, compare, then apply."
-          onDismiss={help.dismiss}
-        />
-      )}
-
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="mx-auto flex max-w-[1080px] flex-col">
           <div ref={preflightRef}>
@@ -1023,7 +1013,7 @@ export function PublishPanel({
               onSelect={() => setSelectedStage('preflight')}
               statusSeverity={preflightCardState.severity}
               statusLabel={preflightCardState.label}
-              helpToggle={<PanelHelpIcon panelKey="publish" title="Figma Sync" expanded={help.expanded} onToggle={help.toggle} />}
+              helpToggle={undefined}
               action={(
                 <button
                   onClick={handleRunPreflight}

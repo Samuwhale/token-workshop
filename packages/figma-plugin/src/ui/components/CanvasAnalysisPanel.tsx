@@ -32,30 +32,22 @@ type CanvasTab = 'coverage' | 'suggestions' | 'components';
 
 const CLEANUP_SECTIONS: Array<{
   id: CanvasTab;
-  step: string;
   label: string;
-  title: string;
   panelHeightClassName: string;
 }> = [
   {
     id: 'coverage',
-    step: '1',
     label: 'Coverage',
-    title: 'Coverage',
     panelHeightClassName: 'h-[420px]',
   },
   {
     id: 'suggestions',
-    step: '2',
     label: 'Suggestions',
-    title: 'Suggestions',
     panelHeightClassName: 'h-[400px]',
   },
   {
     id: 'components',
-    step: '3',
     label: 'Components',
-    title: 'Components',
     panelHeightClassName: 'h-[360px]',
   },
 ];
@@ -277,35 +269,25 @@ export function CanvasAnalysisPanel({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-3 border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg)]">
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[13px] font-semibold text-[var(--color-figma-text)]">
-              Canvas analysis
-            </h2>
-          </div>
-          <div className="shrink-0">
-            <ScanScopeSelector value={heatmapScope} onChange={setHeatmapScope} showLabel />
-          </div>
-        </div>
-      </div>
-
-      <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg-secondary)]">
-        <div className="flex flex-wrap gap-1.5">
+      <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg)] flex items-center gap-2">
+        <div className="flex flex-wrap gap-1.5 flex-1">
           {CLEANUP_SECTIONS.map(section => (
             <button
               key={section.id}
               onClick={() => scrollToSection(section.id)}
               className="px-2.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              {section.step}. {section.label}
+              {section.label}
             </button>
           ))}
         </div>
+        <div className="shrink-0">
+          <ScanScopeSelector value={heatmapScope} onChange={setHeatmapScope} showLabel />
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3" style={{ scrollbarWidth: 'thin' }}>
-        <div className="flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto p-2" style={{ scrollbarWidth: 'thin' }}>
+        <div className="flex flex-col gap-3">
           {CLEANUP_SECTIONS.map(section => (
             <section
               key={section.id}
@@ -318,9 +300,9 @@ export function CanvasAnalysisPanel({
               }
               className="rounded-xl border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden"
             >
-              <div className="px-4 py-3 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                  {section.step}. {section.title}
+              <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+                <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                  {section.label}
                 </h3>
               </div>
 

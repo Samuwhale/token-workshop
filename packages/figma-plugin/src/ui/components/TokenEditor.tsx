@@ -24,7 +24,6 @@ import { PathAutocomplete } from "./PathAutocomplete";
 import { useNearbyTokenMatch } from "../hooks/useNearbyTokenMatch";
 import { Collapsible } from "./Collapsible";
 
-// Hooks
 import { useTokenEditorFields } from "../hooks/useTokenEditorFields";
 import { useTokenEditorLoad } from "../hooks/useTokenEditorLoad";
 import { useTokenDependents } from "../hooks/useTokenDependents";
@@ -44,7 +43,6 @@ import { lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 
-// Extracted sub-components
 import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
 import { SaveChangesDialog } from "./token-editor/SaveChangesDialog";
@@ -61,41 +59,25 @@ interface TokenEditorProps {
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
   generators?: TokenGenerator[];
-  /** When true, the editor creates a new token instead of editing an existing one. */
   isCreateMode?: boolean;
-  /** Initial token type for create mode. */
   initialType?: string;
-  /** Initial value for create mode — when it looks like an alias (e.g. "{color.primary}"), alias mode is activated automatically. */
+  /** When alias-shaped (e.g. "{color.primary}"), alias mode activates automatically. */
   initialValue?: string;
-  /** Called whenever the dirty state changes so the parent can guard backdrop clicks. */
   onDirtyChange?: (dirty: boolean) => void;
-  /** Called with the final saved path on a successful save so the parent can highlight it. */
   onSaved?: (savedPath: string) => void;
-  /** Theme dimensions used to show per-mode value overrides. */
   dimensions?: ThemeDimension[];
-  /** Called after a save to trigger a data refresh. */
   onRefresh?: () => void;
-  /** Called after a successful create when the user wants to immediately create another token. Receives the saved path so the parent can derive a sibling prefix. */
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
-  /** Available font families from Figma for the font picker. */
   availableFonts?: string[];
-  /** Available numeric weights per font family (keyed by family name). */
   fontWeightsByFamily?: Record<string, number[]>;
-  /** Map of derived token paths to the generator that produces them. */
   derivedTokenPaths?: Map<string, TokenGenerator>;
-  /** Ref that will be assigned the handleBack function so parents can trigger guarded close (e.g. from a backdrop click). */
+  /** Assigned handleBack so parents can trigger guarded close from backdrop clicks. */
   closeRef?: MutableRefObject<() => void>;
-  /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
-  /** Navigate to a token by path in the token list (highlight it, switch sets if needed) */
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  /** Navigate to a generator in GraphPanel */
   onNavigateToGenerator?: (generatorId: string) => void;
-  /** Open the shared Tokens > Library generator editor contextual surface. */
   onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
-  /** Navigate to Modes workspace to configure modes */
   onNavigateToThemes?: () => void;
-  /** Push an undo slot after a successful token save or create */
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
 
@@ -127,10 +109,8 @@ export function TokenEditor({
   onNavigateToThemes,
   pushUndo,
 }: TokenEditorProps) {
-  // Theme switcher for quick-flip bar
   const themeSwitcher = useThemeSwitcherContext();
 
-  // 1. Fields hook — all editable state
   const fields = useTokenEditorFields({
     isCreateMode,
     initialType,
@@ -173,8 +153,6 @@ export function TokenEditor({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionsRef = useRef(new Map<string, number>());
 
-  // Alias editor hook — needed by load hook (refInputRef) and save hook (handleToggleAlias)
-  // We initialize it early since load hook needs refInputRef
   const aliasEditor = useTokenAliasEditor({
     aliasMode,
     setAliasMode,
@@ -193,10 +171,8 @@ export function TokenEditor({
     handleToggleAlias,
   } = aliasEditor;
 
-  // Transient error state — also needed by load hook
   const [error, setError] = useState<string | null>(null);
 
-  // 2. Load hook — fetches token, populates fields
   const loadResult = useTokenEditorLoad({
     serverUrl,
     setName,
@@ -222,7 +198,6 @@ export function TokenEditor({
   const { loading, pendingDraft, setPendingDraft, initialServerSnapshotRef } =
     loadResult;
 
-  // 3. Dependents hook
   const { dependents, dependentsLoading } = useTokenDependents({
     serverUrl,
     setName,
@@ -230,7 +205,6 @@ export function TokenEditor({
     isCreateMode,
   });
 
-  // 5. Type parsing hook
   const typeParsing = useTokenTypeParsing({
     tokenType,
     setTokenType,
@@ -265,7 +239,6 @@ export function TokenEditor({
     focusBlockedField,
   } = typeParsing;
 
-  // 6. UI state hook
   const uiState = useTokenEditorUIState({
     isDirty,
     onBack,
@@ -292,7 +265,6 @@ export function TokenEditor({
     handlePasteInValueEditor,
   } = uiState;
 
-  // showDiscardConfirm managed here since it's referenced by both UIState and Save
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const handleBack = useCallback(() => {
@@ -303,10 +275,8 @@ export function TokenEditor({
     }
   }, [isDirty, onBack]);
 
-  // Keep the ref up-to-date so App.tsx's backdrop click can call handleBack()
   if (closeRef) closeRef.current = handleBack;
 
-  // 7. Save hook
   const saveHook = useTokenEditorSave({
     serverUrl,
     setName,
@@ -349,7 +319,6 @@ export function TokenEditor({
     handleDelete,
   } = saveHook;
 
-  // Merge errors from load and save hooks
   const displayError = error || saveError;
   const setDisplayError = useCallback((v: string | null) => {
     setError(v);
@@ -416,7 +385,6 @@ export function TokenEditor({
     lsSet('tm_last_token_type', tokenType);
   }, [isCreateMode, tokenType]);
 
-  // 8. Generators hook
   const generators$ = useTokenEditorGenerators({
     tokenPath,
     tokenType,
@@ -489,7 +457,6 @@ export function TokenEditor({
     }
   }, [initialServerSnapshotRef, onRefresh, producingGenerator, serverUrl, tokenPath]);
 
-  // Cross-cutting: re-compute type parsing with actual editPath
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
     const trimmed = editPath.trim();
@@ -497,14 +464,11 @@ export function TokenEditor({
     return trimmed in allTokensFlat;
   }, [isCreateMode, editPath, allTokensFlat]);
 
-  // onDirtyChange cross-cut effect
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  // Restore scroll position when navigating between tokens.
-  // Uses a per-session Map keyed by token path so returning to a previously-
-  // scrolled token restores the saved position; first visits start at 0.
+  // Restore scroll position when navigating between tokens
   useEffect(() => {
     const saved = scrollPositionsRef.current.get(tokenPath) ?? 0;
     const raf = requestAnimationFrame(() => {
@@ -515,7 +479,6 @@ export function TokenEditor({
     return () => cancelAnimationFrame(raf);
   }, [tokenPath]);
 
-  // Auto-save draft to sessionStorage whenever the editor has unsaved changes.
   useEffect(() => {
     if (!isDirty || isCreateMode) return;
     saveEditorDraft(setName, tokenPath, {
@@ -547,7 +510,6 @@ export function TokenEditor({
     extendsPath,
   ]);
 
-  // Smart alias suggestion: find tokens whose value is near the current value
   const currentPathForMatch = isCreateMode ? editPath.trim() : tokenPath;
   const nearbyMatches = useNearbyTokenMatch(
     value,
@@ -607,7 +569,6 @@ export function TokenEditor({
     [handlePasteInValueEditor, setValue],
   );
 
-  // Progressive disclosure: collapsible section state
   const [detailsOpen, setDetailsOpen] = useState(() => {
     return lsGet('tm_editor_details') === '1';
   });
@@ -658,7 +619,7 @@ export function TokenEditor({
             New token
           </div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            New in {setName}
+            {setName}
           </div>
         </div>
       ) : (

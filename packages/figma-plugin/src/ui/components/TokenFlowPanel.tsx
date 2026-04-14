@@ -7,7 +7,6 @@ import {
   resolveTokenValue,
 } from "../../shared/resolveAlias";
 import type { TokenValue, TokenReference } from "@tokenmanager/core";
-import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from "./PanelHelpHint";
 import { edgePath } from "../shared/graphUtils";
 import { SkeletonFlowRow } from "./Skeleton";
 
@@ -541,7 +540,6 @@ export function TokenFlowPanel({
   initialPath,
   loading = false,
 }: TokenFlowPanelProps) {
-  const help = usePanelHelp("token-flow");
   const [selectedPath, setSelectedPath] = useState<string | null>(
     initialPath ?? null,
   );
@@ -870,28 +868,12 @@ export function TokenFlowPanel({
             <path d="M8 12h4m0 0l4-6m-4 6l4 6" />
           </svg>
           <span className="text-xs font-semibold">Dependencies</span>
-          <PanelHelpIcon
-            panelKey="token-flow"
-            title="Dependencies"
-            expanded={help.expanded}
-            onToggle={help.toggle}
-          />
           <span className="ml-auto text-[10px] opacity-40">
             {stats.totalTokens} tokens · {stats.aliasCount} aliases
           </span>
         </div>
         <TokenSearch tokenMap={allTokensFlat} onSelect={setSelectedPath} />
-        <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          Use this graph for long chains, wide branches, and cycle debugging.
-        </p>
       </div>
-      {help.expanded && (
-        <PanelHelpBanner
-          title="Dependencies"
-          description="Search a token to see upstream references (left) and downstream dependents (right). Click nodes to navigate. Scroll to zoom, drag to pan."
-          onDismiss={help.dismiss}
-        />
-      )}
 
       {/* Cycle warning banner */}
       {graphData?.hasCycles && (

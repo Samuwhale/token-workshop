@@ -22,15 +22,15 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   },
   import: {
     title: "Import existing tokens",
-    description: "Import Figma variables or token files.",
+    description: "",
   },
   "guided-setup": {
     title: "Guided setup",
-    description: "Build token foundations step by step.",
+    description: "",
   },
   "template-library": {
     title: "Recipe templates",
-    description: "Generate a palette, type scale, or spacing system.",
+    description: "",
   },
 };
 
@@ -95,7 +95,7 @@ function ActionRow({
       <div className="flex items-start gap-3">
         <div
           className={[
-            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded border",
             emphasized
               ? "border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
               : "border-transparent bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]",
@@ -322,7 +322,7 @@ export function WelcomePrompt({
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
       <div className="flex max-h-[85vh] w-full max-w-[320px] flex-col overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="dialog" aria-modal="true" aria-labelledby="welcome-dialog-title">
-        <div className="border-b border-[var(--color-figma-border)] px-4 py-4">
+        <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               {showBack && (
@@ -395,7 +395,7 @@ export function WelcomePrompt({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {branch === "root" && renderRoot()}
           {branch === "import" && renderImport()}
           {branch === "template-library" && (

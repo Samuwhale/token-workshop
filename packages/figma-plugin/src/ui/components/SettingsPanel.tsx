@@ -75,10 +75,10 @@ function Section({
     <div className="rounded border overflow-hidden border-[var(--color-figma-border)]">
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex w-full items-center justify-between bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-out outline-none hover:bg-[var(--color-figma-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px ${open ? "bg-[var(--color-figma-bg)]" : ""}`}
+        className={`flex w-full items-center justify-between bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-out outline-none hover:bg-[var(--color-figma-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px ${open ? "bg-[var(--color-figma-bg)]" : ""}`}
       >
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
             {title}
           </span>
           {suffix}
@@ -94,7 +94,7 @@ function Section({
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
       </button>
-      {open && <div className="p-3 flex flex-col gap-2">{children}</div>}
+      {open && <div className="p-2.5 flex flex-col gap-2">{children}</div>}
     </div>
   );
 }
@@ -616,7 +616,7 @@ export function SettingsPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-3 p-3">
+        <div className="flex flex-col gap-2.5 p-2.5">
 
           {/* ── Everyday preferences (always visible) ── */}
           <div className="flex flex-col gap-2.5">
@@ -740,11 +740,6 @@ export function SettingsPanel({
 
           {/* ── Collapsible sections (infrequent config) ── */}
           <Section title="Server connection" defaultOpen={false} suffix={serverStatusSuffix}>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Server URL
-              </label>
-            </div>
             <input
               type="text"
               value={serverUrlInput}

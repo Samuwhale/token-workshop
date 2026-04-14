@@ -1158,7 +1158,7 @@ export function HealthPanel({
     <div className="flex flex-col h-full overflow-hidden">
       {/* Body */}
       <div
-        className="flex-1 overflow-y-auto px-3 py-3"
+        className="flex-1 overflow-y-auto px-2 py-2"
         style={{ scrollbarWidth: "thin" }}
       >
         {!connected ? (
@@ -1207,10 +1207,10 @@ export function HealthPanel({
                   )}
                   <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
                     {validationIssuesProp === null
-                      ? "Run audit to check health"
+                      ? "Run audit"
                       : overallStatus === "healthy"
                         ? "All clear"
-                        : `${totalAllIssues} active issue${totalAllIssues !== 1 ? "s" : ""}`}
+                        : `${totalAllIssues} issue${totalAllIssues !== 1 ? "s" : ""}`}
                   </span>
                   {validating && (
                     <NoticePill severity="info">Auditing…</NoticePill>

@@ -51,10 +51,8 @@ interface PropertyRowProps {
   onTokenCreated: (tokenPath: string, prop: BindableProperty, tokenType: string, tokenValue: any) => void;
   onRemoveBinding: (prop: BindableProperty) => void;
   onDismissBindingError: (prop: BindableProperty) => void;
-  /** Inline error message from the plugin sandbox when binding fails */
   bindingError: string | null;
   onNavigateToToken?: (tokenPath: string) => void;
-  /** Controlled state for inline create */
   newTokenName: string;
   onNewTokenNameChange: (name: string) => void;
 }
@@ -161,16 +159,16 @@ export function PropertyRow({
             ? 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]'
             : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
   const statusLabel = bindingFromProp === prop
-    ? 'Picking token'
+    ? 'Picking'
     : creatingFromProp === prop
-      ? 'Creating token'
+      ? 'Creating'
       : lastBoundProp === prop
-        ? 'Bound now'
+        ? 'Bound'
         : isBound
           ? 'Bound'
           : isMixed
             ? 'Mixed'
-            : 'Value only';
+            : '';
   const showActionRail = canBind || canChangeBind || hasExtractableValue || isBound || isMixed;
 
   // Resolve binding display
@@ -357,9 +355,11 @@ export function PropertyRow({
                   )}
                 </div>
               </div>
-              <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${statusBadgeClass}`}>
-                {statusLabel}
-              </span>
+              {statusLabel && (
+                <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${statusBadgeClass}`}>
+                  {statusLabel}
+                </span>
+              )}
             </div>
             {isBound && (
               <div className="flex items-center gap-1 mt-1">
@@ -516,7 +516,7 @@ export function PropertyRow({
               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
             </svg>
             <span className="text-[10px] text-[var(--color-figma-accent)] font-medium flex-1">
-              {isBound ? `Remap ${PROPERTY_LABELS[prop]}` : `Bind ${PROPERTY_LABELS[prop]}`}
+              {isBound ? 'Remap' : 'Bind'} {PROPERTY_LABELS[prop]}
             </span>
             <button
               onClick={onCancelBind}
@@ -556,7 +556,7 @@ export function PropertyRow({
                   if (target) handleBindToken(target[0]);
                 }
               }}
-              placeholder={`Search ${compatibleTypesForBind.join(' / ')} tokens…`}
+              placeholder="Search tokens\u2026"
               aria-autocomplete="list"
               aria-controls="bind-candidates-listbox"
               aria-activedescendant={bindSelectedIndex >= 0 ? `bind-option-${[...recentBindCandidates, ...mainBindCandidates][bindSelectedIndex]?.[0]}` : undefined}

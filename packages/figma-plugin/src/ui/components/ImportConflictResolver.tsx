@@ -57,14 +57,8 @@ export function ImportConflictResolver() {
           : null;
   const recommendedAction = recommendedActionKey ? reviewActionCopy[recommendedActionKey] : null;
   const reviewSummary = recommendedAction
-    ? {
-        title: `Next: ${recommendedAction.buttonLabel.toLowerCase()}`,
-        detail: `${recommendedAction.consequence}${newCount > 0 ? ` +${newCount} new.` : ''}`,
-      }
-    : {
-        title: 'Next: apply mixed review',
-        detail: `${overwriteCount} overwrite, ${mergeCount} merge, ${keepExistingCount} keep. +${newCount} new.`,
-      };
+    ? { detail: `${recommendedAction.consequence}${newCount > 0 ? ` +${newCount} new.` : ''}` }
+    : { detail: `${overwriteCount} overwrite, ${mergeCount} merge, ${keepExistingCount} keep.${newCount > 0 ? ` +${newCount} new.` : ''}` };
 
   const getFilteredPaths = () => conflictPaths.filter(path => {
     if (searchLower && !path.toLowerCase().includes(searchLower)) return false;
@@ -144,22 +138,8 @@ export function ImportConflictResolver() {
         </div>
       </div>
 
-      <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            {reviewSummary.title}
-          </div>
-          <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${
-            isUniformReview
-              ? 'bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]'
-              : 'bg-[var(--color-figma-border)]/40 text-[var(--color-figma-text-secondary)]'
-          }`}>
-            {isUniformReview ? 'Ready to apply' : 'Mixed review'}
-          </span>
-        </div>
-        <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-          {reviewSummary.detail}
-        </div>
+      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+        {reviewSummary.detail}
       </div>
 
       {/* Search + filters */}
@@ -293,11 +273,6 @@ export function ImportConflictResolver() {
       )}
 
       {/* Import action */}
-      <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-        <span className="text-[var(--color-figma-success,#16a34a)]">{overwriteCount} overwrite</span>
-        {mergeCount > 0 && <><span>·</span><span className="text-[var(--color-figma-accent)]">{mergeCount} merge</span></>}
-        {keepExistingCount > 0 && <><span>·</span><span>{keepExistingCount} keep existing</span></>}
-      </div>
       <button
         onClick={() => {
           const rejected = new Set(

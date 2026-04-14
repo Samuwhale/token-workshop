@@ -31,20 +31,15 @@ export function SyncPreflightStep({
 
       {!running && isOutdated && !error && (
         <NoticeBanner severity="warning">
-          Data changed. Run preflight again.
+          Data changed — rerun.
         </NoticeBanner>
       )}
 
-      {!running && blockingClusters.length === 0 && advisoryClusters.length === 0 && stage === 'idle' && !error && (
-        <div className="rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          Run preflight first to unlock compare.
-        </div>
-      )}
+      {/* idle state: no message needed — compare button is disabled until preflight runs */}
 
       {running && (
-        <div className="flex items-center gap-2 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="flex items-center justify-center py-3">
           <Spinner size="sm" />
-          Running preflight checks…
         </div>
       )}
 

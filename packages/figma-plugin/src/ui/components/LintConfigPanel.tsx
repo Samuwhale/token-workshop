@@ -12,9 +12,9 @@ const SEVERITY_COLORS: Record<Severity, string> = {
 };
 
 const SEVERITY_HELP: Record<Severity, string> = {
-  error: 'Blocks publishing.',
-  warning: 'Warns without blocking.',
-  info: 'Informational only.',
+  error: 'Blocks',
+  warning: 'Warns',
+  info: 'Info only',
 };
 
 interface LintConfigPanelProps {
@@ -109,17 +109,17 @@ function describeCoverage(ruleConfig: LintRuleConfig, totalSets: number): string
 
   if (ruleConfig.enabled) {
     if (disabledSets === 0) {
-      return `All ${totalSets} sets`;
+      return `${totalSets} / ${totalSets} sets`;
     }
     const coveredSetCount = Math.max(totalSets - disabledSets, 0);
-    return `${coveredSetCount} of ${totalSets} sets`;
+    return `${coveredSetCount} / ${totalSets} sets`;
   }
 
   if (enabledSets === 0) {
     return 'Disabled';
   }
 
-  return `${enabledSets} of ${totalSets} sets`;
+  return `${enabledSets} / ${totalSets} sets`;
 }
 
 function describeOverrideChip(ruleConfig: LintRuleConfig, setName: string, override: LintRuleSetOverride): string {
@@ -127,10 +127,10 @@ function describeOverrideChip(ruleConfig: LintRuleConfig, setName: string, overr
   const severity = override.severity ?? ruleConfig.severity ?? 'warning';
 
   if (enabled !== ruleConfig.enabled) {
-    return enabled ? `Only in ${setName}` : `Skip ${setName}`;
+    return enabled ? setName : `${setName} off`;
   }
   if (severity !== (ruleConfig.severity ?? 'warning')) {
-    return `${setName} · ${severity}`;
+    return `${setName} ${severity}`;
   }
   return setName;
 }
@@ -280,7 +280,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{preset.label}</span>
                     {isActive && (
-                      <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white">
+                      <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] font-medium text-white">
                         Active
                       </span>
                     )}

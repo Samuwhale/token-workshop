@@ -14,21 +14,23 @@ function ContextualReviewPanel({
   footer,
 }: {
   title: string;
-  description: string;
+  description?: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
 }) {
   return (
     <div className="flex flex-col h-full bg-[var(--color-figma-bg)]">
-      <div className="flex items-start justify-between gap-3 px-3 py-3 shrink-0">
+      <div className="flex items-start justify-between gap-3 px-3 py-2 shrink-0">
         <div className="min-w-0">
           <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
             {title}
           </div>
-          <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-            {description}
-          </p>
+          {description && (
+            <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              {description}
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -51,10 +53,6 @@ function ContextualReviewPanel({
   );
 }
 
-/**
- * Wraps a review panel in a right-side overlay that slides over the token tree.
- * The token list remains visible underneath on the left for context.
- */
 export function ReviewPanelOverlay({
   onClose,
   children,
@@ -92,7 +90,7 @@ export function VariableDiffReviewPanel({
   return (
     <ContextualReviewPanel
       title="Apply as Figma Variables"
-      description="Review the variable sync impact before pushing the current token scope into Figma."
+      description="Review sync impact before pushing to Figma."
       onClose={onClose}
       footer={
         <>
@@ -115,8 +113,7 @@ export function VariableDiffReviewPanel({
     >
       <div className="space-y-2 text-[10px] text-[var(--color-figma-text-secondary)]">
         <p>
-          {pending.flat.length} token{pending.flat.length !== 1 ? "s" : ""} will
-          be pushed to Figma.
+          {pending.flat.length} token{pending.flat.length !== 1 ? "s" : ""}
         </p>
         <div className="overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           {pending.added > 0 && (
@@ -125,7 +122,7 @@ export function VariableDiffReviewPanel({
                 +{pending.added}
               </span>
               <span>
-                new variable{pending.added !== 1 ? "s" : ""} will be created
+                new
               </span>
             </div>
           )}
@@ -135,7 +132,6 @@ export function VariableDiffReviewPanel({
                 ~{pending.modified}
               </span>
               <span>
-                existing variable{pending.modified !== 1 ? "s" : ""} will be
                 updated
               </span>
             </div>
@@ -171,7 +167,7 @@ export function PromoteReviewPanel({
   return (
     <ContextualReviewPanel
       title="Link to tokens"
-      description="Review each proposed alias before replacing raw values with references."
+      description="Replace raw values with aliases?"
       onClose={onClose}
       footer={
         <>
@@ -296,7 +292,7 @@ export function RelocateTokenReviewPanel({
   return (
     <ContextualReviewPanel
       title={`${isMove ? "Move" : "Copy"} token to set`}
-      description={`${isMove ? "Move" : "Copy"} ${tokenPath} ${isMove ? "from" : "out of"} ${setName}.`}
+      description={`${tokenPath} \u2192 ${targetSet || '...'}`}
       onClose={onClose}
       footer={
         <>

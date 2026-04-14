@@ -98,7 +98,7 @@ export function ComponentCoveragePanel() {
     <div className="flex flex-col h-full overflow-y-auto p-3 gap-3" style={{ scrollbarWidth: 'thin' }}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Coverage</span>
+        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Coverage</span>
         {coverageLoading ? (
           <button
             onClick={() => coverageCancelRef.current?.()}
@@ -120,20 +120,20 @@ export function ComponentCoveragePanel() {
       {coverageResult && (
         <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
           <div className="grid grid-cols-4 divide-x divide-[var(--color-figma-border)]">
-            <div className="px-2 py-3 text-center">
-              <div className="text-[16px] font-bold text-[var(--color-figma-text)]">{coverageResult.totalComponents}</div>
+            <div className="px-2 py-2 text-center">
+              <div className="text-[14px] font-bold text-[var(--color-figma-text)]">{coverageResult.totalComponents}</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Total</div>
             </div>
-            <div className="px-2 py-3 text-center">
-              <div className="text-[16px] font-bold text-[var(--color-figma-success)]">{coverageResult.tokenizedComponents}</div>
+            <div className="px-2 py-2 text-center">
+              <div className="text-[14px] font-bold text-[var(--color-figma-success)]">{coverageResult.tokenizedComponents}</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Tokenized</div>
             </div>
-            <div className="px-2 py-3 text-center">
-              <div className="text-[16px] font-bold text-[var(--color-figma-warning)]">{coverageResult.totalUntokenized}</div>
+            <div className="px-2 py-2 text-center">
+              <div className="text-[14px] font-bold text-[var(--color-figma-warning)]">{coverageResult.totalUntokenized}</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Untokenized</div>
             </div>
-            <div className="px-2 py-3 text-center">
-              <div className="text-[16px] font-bold text-[var(--color-figma-text)]">
+            <div className="px-2 py-2 text-center">
+              <div className="text-[14px] font-bold text-[var(--color-figma-text)]">
                 {coverageResult.totalComponents > 0
                   ? Math.round((coverageResult.tokenizedComponents / coverageResult.totalComponents) * 100)
                   : 0}%
@@ -147,7 +147,7 @@ export function ComponentCoveragePanel() {
                 onClick={() => setShowUntokenized(v => !v)}
                 className="w-full px-3 py-2 flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)]"
               >
-                <span>Untokenized components ({coverageResult.totalUntokenized})</span>
+                <span>Untokenized ({coverageResult.totalUntokenized})</span>
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showUntokenized ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
               </button>
               {showUntokenized && (
@@ -187,7 +187,7 @@ export function ComponentCoveragePanel() {
 
       {!coverageLoading && !coverageResult && !coverageError && (
         <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          Scan to check tokenization.
+          Scan to check coverage.
         </p>
       )}
     </div>

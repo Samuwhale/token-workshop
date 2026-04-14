@@ -446,16 +446,15 @@ export function ExtractTokensPanel({
 
       {/* Loading state */}
       {loading && (
-        <div className="px-3 py-6 text-center">
+        <div className="px-3 py-4 text-center">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
             Reading selection...
           </span>
         </div>
       )}
 
-      {/* Timeout / error state (no response from plugin) */}
       {!loading && tokens === null && error && (
-        <div className="px-3 py-6 text-center">
+        <div className="px-3 py-4 text-center">
           <p className="text-[10px] text-[var(--color-figma-error)] mb-2">
             {error}
           </p>
@@ -470,11 +469,11 @@ export function ExtractTokensPanel({
 
       {/* Empty state */}
       {tokens && tokens.length === 0 && (
-        <div className="px-3 py-6 text-center">
+        <div className="px-3 py-4 text-center">
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
             {propertyFilter?.length
-              ? `No ${propertyFilterLabel ?? "matching"} properties to extract.`
-              : "Nothing to extract from this selection."}
+              ? `No ${propertyFilterLabel ?? "matching"} properties found.`
+              : "Nothing to extract."}
           </p>
           <button
             onClick={onClose}
@@ -488,13 +487,6 @@ export function ExtractTokensPanel({
       {/* Token list */}
       {tokens && tokens.length > 0 && (
         <>
-          {propertyFilter?.length ? (
-            <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 shrink-0">
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Review {propertyFilterLabel ?? "filtered"} properties before creating tokens.
-              </p>
-            </div>
-          ) : null}
           {/* Select all */}
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
             <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] cursor-pointer">

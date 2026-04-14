@@ -33,16 +33,16 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   description: string;
 }> = {
   full: {
-    container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-3 py-3 text-center',
-    content: 'w-full max-w-[280px] space-y-2.5',
-    title: 'text-[11px] font-semibold',
-    description: 'text-[10px] leading-relaxed',
+    container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-2 py-2 text-center',
+    content: 'w-full max-w-[260px] space-y-2',
+    title: 'text-[11px] font-medium',
+    description: 'text-[10px] leading-snug',
   },
   section: {
-    container: 'flex w-full flex-col items-center justify-center px-3 py-3 text-center',
-    content: 'w-full max-w-[260px] space-y-2',
+    container: 'flex w-full flex-col items-center justify-center px-2 py-2 text-center',
+    content: 'w-full max-w-[240px] space-y-1.5',
     title: 'text-[10px] font-medium',
-    description: 'text-[10px] leading-relaxed',
+    description: 'text-[10px] leading-snug',
   },
 };
 
