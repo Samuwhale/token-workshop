@@ -182,10 +182,9 @@ export function TokenListFilteredEmptyState({
         variant="no-results"
         size="section"
         className="w-full max-w-[260px]"
-        title="No tokens match your filters"
-        description="Try different search terms or clear your filters."
+        title="No matches"
         secondaryAction={{
-          label: "Clear filters",
+          label: "Clear",
           onClick: onClearFilters,
         }}
       />
@@ -233,7 +232,7 @@ export function TokenListFilteredEmptyState({
             );
           if (matchingType && typeFilter !== matchingType) {
             suggestions.push({
-              label: `Filter by type: ${matchingType}`,
+              label: `Type: ${matchingType}`,
               icon: "filter",
               action: () => {
                 onSetSearchQuery("");
@@ -247,7 +246,7 @@ export function TokenListFilteredEmptyState({
             /^\d+(\.\d+)?(px|rem|em|%)?$/.test(q);
           if (looksLikeValue) {
             suggestions.push({
-              label: `Add value filter for "${q}"`,
+              label: `Value: "${q}"`,
               icon: "value",
               action: () => {
                 onAddQueryQualifierValue("value", q);
@@ -283,7 +282,7 @@ export function TokenListFilteredEmptyState({
               matchingSections.entries(),
             ).slice(0, 2)) {
               suggestions.push({
-                label: `Open ${label} filter`,
+                label: `${label} filter`,
                 icon: "hint",
                 action: () => onInsertSearchQualifier(sectionKey),
               });
@@ -293,12 +292,12 @@ export function TokenListFilteredEmptyState({
           if (suggestions.length === 0) return null;
 
           return (
-            <div className="mt-3 flex flex-col gap-0.5 w-full max-w-[240px]">
+            <div className="mt-2 flex flex-col gap-0.5 w-full max-w-[240px]">
               {suggestions.map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={suggestion.action}
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] text-left hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-accent)] transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-left hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-accent)] transition-colors"
                 >
                   {suggestion.icon === "create" && (
                     <svg

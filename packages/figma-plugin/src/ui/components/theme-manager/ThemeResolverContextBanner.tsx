@@ -12,9 +12,9 @@ interface ThemeResolverContextBannerProps {
 function getBannerDescription(context: ThemeResolverAuthoringContext): string {
   if (context.issueCount === 0) {
     if (context.autoSelected && context.resolverCount > 1) {
-      return "Showing the closest resolver match because no resolver is currently selected.";
+      return "Auto-selected closest match.";
     }
-    return "The current modes and selected variants align with this resolver.";
+    return "";
   }
 
   const reviewTargets: string[] = [];
@@ -47,13 +47,13 @@ export function ThemeResolverContextBanner({
   context,
   actionLabel,
   description,
-  title = "Resolver review",
+  title = "Resolver",
   onAction,
 }: ThemeResolverContextBannerProps) {
   const bannerDescription = description ?? getBannerDescription(context);
 
   return (
-    <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/65 px-3 py-2">
+    <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/65 px-2.5 py-1.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -74,11 +74,13 @@ export function ThemeResolverContextBanner({
               <NoticePill severity="info">Closest match</NoticePill>
             )}
           </div>
-          <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-            {context.resolverDescription
-              ? `${context.resolverDescription}. ${bannerDescription}`
-              : bannerDescription}
-          </p>
+          {(context.resolverDescription || bannerDescription) && (
+            <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              {context.resolverDescription && bannerDescription
+                ? `${context.resolverDescription}. ${bannerDescription}`
+                : context.resolverDescription || bannerDescription}
+            </p>
+          )}
         </div>
         {onAction && actionLabel ? (
           <button
@@ -91,11 +93,11 @@ export function ThemeResolverContextBanner({
         ) : null}
       </div>
 
-      <div className="mt-2 grid gap-1.5">
+      <div className="mt-2 grid gap-1">
         {context.axes.map((axis) => (
           <div
             key={axis.dimensionId}
-            className={`rounded border px-2 py-1.5 ${getAxisTone(axis.status)}`}
+            className={`rounded border px-2 py-1 ${getAxisTone(axis.status)}`}
           >
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
@@ -134,7 +136,7 @@ export function ThemeResolverContextBanner({
       </div>
 
       {context.unmatchedModifiers.length > 0 && (
-        <div className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
+        <div className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
           <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
             Resolver-only dimensions
           </p>

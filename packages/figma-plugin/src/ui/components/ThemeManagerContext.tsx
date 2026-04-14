@@ -141,9 +141,9 @@ function CreateOverrideSetModal({
 
   return (
     <ConfirmModal
-      title={`Create override set from "${setName}"`}
+      title={`Override from "${setName}"`}
       wide
-      confirmLabel={isCreating ? 'Creating…' : 'Create override set'}
+      confirmLabel={isCreating ? 'Creating…' : 'Create override'}
       confirmDisabled={isCreating || !newName.trim() || !optionName}
       onCancel={onClose}
       onConfirm={handleConfirm}
@@ -169,7 +169,7 @@ function CreateOverrideSetModal({
         {/* Mode variant selector */}
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-            Link to mode variant (as Override)
+            Link to variant
           </label>
           {dim ? (
             <select
@@ -185,7 +185,7 @@ function CreateOverrideSetModal({
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">No options found in this dimension.</p>
           )}
           <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-snug">
-            The new set will be added to <strong>{dim?.name ?? dimId}</strong> → <strong>{optionName}</strong> with Override status.
+            Adds to <strong>{dim?.name ?? dimId}</strong> → <strong>{optionName}</strong> as override.
           </p>
         </div>
 
@@ -206,7 +206,7 @@ function CreateOverrideSetModal({
             <div>
               <span className="text-[11px] text-[var(--color-figma-text)]">Empty set</span>
               <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-snug">
-                Recommended — add only the tokens you intend to override.
+                Add only what you override.
               </p>
             </div>
           </label>
@@ -222,7 +222,7 @@ function CreateOverrideSetModal({
             <div>
               <span className="text-[11px] text-[var(--color-figma-text)]">Copy all tokens from <span className="font-mono">{setName}</span></span>
               <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-snug">
-                Creates a full duplicate — delete unwanted tokens afterward.
+                Full copy — remove unwanted later.
               </p>
             </div>
           </label>
@@ -361,9 +361,9 @@ export function ThemeManagerModals() {
         if (!dim) return null;
         return (
           <ConfirmModal
-            title={`Delete axis "${dim.name}"?`}
-            description={`This will remove all ${dim.options.length} variant${dim.options.length !== 1 ? 's' : ''} and their set assignments.`}
-            confirmLabel="Delete axis"
+            title={`Delete "${dim.name}"?`}
+            description={`Removes ${dim.options.length} variant${dim.options.length !== 1 ? 's' : ''} and assignments.`}
+            confirmLabel="Delete"
             danger
             onConfirm={async () => {
               closeDeleteConfirm();
@@ -380,9 +380,9 @@ export function ThemeManagerModals() {
         if (!dim) return null;
         return (
           <ConfirmModal
-            title={`Delete option "${optionDeleteConfirm.optionName}"?`}
-            description={`This will remove all set assignments for this variant.`}
-            confirmLabel="Delete option"
+            title={`Delete "${optionDeleteConfirm.optionName}"?`}
+            description={`Removes all set assignments.`}
+            confirmLabel="Delete"
             danger
             onConfirm={async () => {
               const { dimId, optionName } = optionDeleteConfirm;

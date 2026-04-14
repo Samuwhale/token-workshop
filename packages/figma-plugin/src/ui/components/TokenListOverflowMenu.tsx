@@ -65,7 +65,7 @@ export interface TokenListOverflowMenuProps {
 }
 
 const MENU_SECTION_BORDER =
-  "border-t border-[var(--color-figma-border)] mt-1 pt-1";
+  "border-t border-[var(--color-figma-border)] mt-0.5 pt-0.5";
 
 function CheckIcon() {
   return (
@@ -109,7 +109,7 @@ function MenuItem({
       role="menuitem"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         danger
           ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
           : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
@@ -135,7 +135,7 @@ function MenuItem({
 
 function MenuLabel({ children }: { children: string }) {
   return (
-    <div className="px-3 pt-2 pb-1 text-[9px] font-semibold text-[var(--color-figma-text-tertiary)]">
+    <div className="px-2.5 pt-1.5 pb-0.5 text-[9px] font-semibold text-[var(--color-figma-text-tertiary)]">
       {children}
     </div>
   );
@@ -143,6 +143,7 @@ function MenuLabel({ children }: { children: string }) {
 
 export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
   const [open, setOpen] = useState(false);
+  const [groupsExpanded, setGroupsExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -212,7 +213,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
 
       {open && (
         <div
-          className="absolute right-0 top-full z-50 mt-1 w-[220px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
+          className="absolute right-0 top-full z-50 mt-1 w-[200px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">
@@ -221,10 +222,10 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             <MenuItem
               label={
                 props.sortOrder === "default"
-                  ? "Sort: Default"
+                  ? "Default order"
                   : props.sortOrder === "alpha-asc"
-                    ? "Sort: A-Z"
-                    : "Sort: By type"
+                    ? "A → Z"
+                    : "By type"
               }
               onClick={() =>
                 runAndClose(() => {
@@ -239,19 +240,22 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               }
             />
             {props.hasGroups && (
-              <>
-                <MenuItem
-                  label="Expand all"
-                  onClick={() => runAndClose(props.onExpandAll)}
-                />
-                <MenuItem
-                  label="Collapse all"
-                  onClick={() => runAndClose(props.onCollapseAll)}
-                />
-              </>
+              <MenuItem
+                label="Toggle groups"
+                onClick={() =>
+                  runAndClose(() => {
+                    if (groupsExpanded) {
+                      props.onCollapseAll();
+                    } else {
+                      props.onExpandAll();
+                    }
+                    setGroupsExpanded((v) => !v);
+                  })
+                }
+              />
             )}
             <MenuItem
-              label={props.density === "compact" ? "Rows: Compact" : "Rows: Comfortable"}
+              label={props.density === "compact" ? "Compact" : "Comfortable"}
               onClick={() =>
                 runAndClose(() =>
                   props.onDensityChange(
@@ -261,7 +265,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               }
             />
             <MenuItem
-              label="Condensed groups"
+              label="Condensed"
               checked={props.condensedView}
               onClick={() =>
                 runAndClose(() =>
@@ -271,7 +275,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             />
             {props.hasDimensions && (
               <MenuItem
-                label="Show modes"
+                label="Modes"
                 checked={props.multiModeEnabled}
                 onClick={() => runAndClose(props.onToggleMultiMode)}
               />
@@ -284,7 +288,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               />
             )}
             <MenuItem
-              label="Split preview"
+              label="Split"
               checked={props.showPreviewSplit}
               onClick={() =>
                 runAndClose(() => props.onTogglePreviewSplit?.())
@@ -294,8 +298,8 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               <MenuItem
                 label={
                   props.searchResultPresentation === "grouped"
-                    ? "Group results"
-                    : "Flatten results"
+                    ? "Grouped"
+                    : "Flat"
                 }
                 checked={props.searchResultPresentation === "flat"}
                 onClick={() =>
@@ -316,7 +320,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             </div>
             {props.lintCount > 0 && (
               <MenuItem
-                label="Issues only"
+                label="Issues"
                 checked={props.showIssuesOnly}
                 suffix={`${props.lintCount}`}
                 onClick={() =>
@@ -326,7 +330,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             )}
             {props.recentlyTouchedCount > 0 && (
               <MenuItem
-                label="Recently touched"
+                label="Recent"
                 checked={props.showRecentlyTouched}
                 suffix={`${props.recentlyTouchedCount}`}
                 onClick={() =>
@@ -335,13 +339,13 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               />
             )}
             <MenuItem
-              label="Match selection"
+              label="Selection"
               checked={props.inspectMode}
               onClick={() => runAndClose(props.onToggleInspectMode)}
             />
             {props.hasMultipleSets && (
               <MenuItem
-                label="Search all sets"
+                label="All sets"
                 checked={props.crossSetSearch}
                 onClick={() => runAndClose(props.onToggleCrossSetSearch)}
               />
@@ -349,10 +353,10 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             <MenuItem
               label={
                 props.refFilter === "all"
-                  ? "All values"
+                  ? "All"
                   : props.refFilter === "aliases"
-                    ? "Aliases only"
-                    : "Direct values only"
+                    ? "Aliases"
+                    : "Direct"
               }
               onClick={() =>
                 runAndClose(() => {
@@ -370,7 +374,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               checked={props.refFilter !== "all"}
             />
             <MenuItem
-              label="Duplicate values"
+              label="Duplicates"
               checked={props.showDuplicates}
               onClick={() => runAndClose(props.onToggleDuplicates)}
             />
@@ -398,7 +402,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               <MenuLabel>Tools</MenuLabel>
             </div>
             <MenuItem
-              label="Select tokens..."
+              label="Select"
               shortcut="M"
               onClick={() => runAndClose(props.onSelectTokens)}
             />
@@ -407,7 +411,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               onClick={() => runAndClose(props.onBulkEdit)}
             />
             <MenuItem
-              label="Find & Replace..."
+              label="Find & replace"
               disabled={!props.connected}
               onClick={() => runAndClose(props.onFindReplace)}
             />
@@ -420,12 +424,12 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               />
             )}
             <MenuItem
-              label="Push to variables"
+              label="Push variables"
               disabled={props.applyingOrLoading || !props.tokensExist}
               onClick={() => runAndClose(props.onApplyVariables)}
             />
             <MenuItem
-              label="Push to styles"
+              label="Push styles"
               disabled={props.applyingOrLoading || !props.tokensExist}
               onClick={() => runAndClose(props.onApplyStyles)}
             />

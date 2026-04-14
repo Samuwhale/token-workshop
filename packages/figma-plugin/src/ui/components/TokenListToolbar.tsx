@@ -138,13 +138,13 @@ export function TokenListToolbar({
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-      <div className="flex items-center gap-1 px-1.5 py-0.5">
+      <div className="flex items-center gap-0.5 px-1 py-px">
       {(navHistoryLength ?? 0) > 0 && (
         <button
           onClick={onNavigateBack}
           className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-          title={`Go back to previous token (Alt+←)${(navHistoryLength ?? 0) > 1 ? ` — ${navHistoryLength} in history` : ""}`}
-          aria-label="Go back to previous token"
+          title="Back (Alt+←)"
+          aria-label="Back"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -223,9 +223,9 @@ export function TokenListToolbar({
                 setHintIndex(0);
               }
             }}
-            placeholder="Search tokens..."
+            placeholder="Search..."
             title={searchTooltip}
-            className={`w-full rounded border bg-[var(--color-figma-bg)] py-1 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery ? "pr-8" : "pr-2"} ${structuredFilterChips.length > 0 ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
+            className={`w-full rounded border bg-[var(--color-figma-bg)] py-0.5 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery ? "pr-8" : "pr-2"} ${structuredFilterChips.length > 0 ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
           />
           {searchQuery && (
             <button
@@ -296,9 +296,9 @@ export function TokenListToolbar({
           disabled={!connected}
           aria-expanded={createToolsMenuOpen}
           aria-haspopup="menu"
-          aria-label="Add new"
+          aria-label="Add"
           className={`inline-flex items-center justify-center rounded p-1 transition-colors ${createToolsMenuOpen ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"} disabled:cursor-not-allowed disabled:opacity-40`}
-          title="Add new..."
+          title="Add"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
@@ -308,24 +308,24 @@ export function TokenListToolbar({
         {createToolsMenuOpen && (
           <div
             ref={createToolsMenuRef}
-            className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
+            className="absolute right-0 top-full z-50 mt-1 w-40 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
             role="menu"
           >
-            <button role="menuitem" onClick={() => runCreateToolsAction(() => onCreateNew?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-              New token
+            <button role="menuitem" onClick={() => runCreateToolsAction(() => onCreateNew?.())} disabled={!connected} className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+              Token
             </button>
-            <button role="menuitem" onClick={() => runCreateToolsAction(openTableCreate)} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-              New tokens (bulk)
+            <button role="menuitem" onClick={() => runCreateToolsAction(openTableCreate)} disabled={!connected} className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+              Bulk tokens
             </button>
-            <button role="menuitem" onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-              New group
+            <button role="menuitem" onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)} disabled={!connected} className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+              Group
             </button>
             <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-            <button role="menuitem" onClick={() => runCreateToolsAction(() => onShowPasteModal?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+            <button role="menuitem" onClick={() => runCreateToolsAction(() => onShowPasteModal?.())} disabled={!connected} className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
               Paste JSON
             </button>
-            <button role="menuitem" onClick={() => runCreateToolsAction(() => onOpenImportPanel?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-              Import file...
+            <button role="menuitem" onClick={() => runCreateToolsAction(() => onOpenImportPanel?.())} disabled={!connected} className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
+              Import...
             </button>
           </div>
         )}
@@ -352,11 +352,11 @@ export function TokenListToolbar({
       </div>
 
       {toolbarStateChips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1 px-1.5 pb-1">
+        <div className="flex flex-wrap items-center gap-0.5 px-1 pb-0.5">
           {toolbarStateChips.map((chip) => (
             <span
               key={chip.key}
-              className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] ${
+              className={`inline-flex items-center gap-1 rounded border px-1 py-px text-[9px] ${
                 chip.tone === "filter"
                   ? "border-[var(--color-figma-accent)]/25 text-[var(--color-figma-accent)]"
                   : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"
@@ -383,7 +383,7 @@ export function TokenListToolbar({
               onClick={clearFilters}
               className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
             >
-              Clear filters
+              Clear
             </button>
           )}
         </div>

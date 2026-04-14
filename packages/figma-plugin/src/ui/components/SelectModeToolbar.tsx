@@ -46,7 +46,7 @@ export function SelectModeToolbar({
   onLinkToTokens,
 }: SelectModeToolbarProps) {
   return (
-    <div className="flex items-center gap-1.5 px-1.5 py-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+    <div className="flex items-center gap-1 px-1 py-px border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
       <input
         type="checkbox"
         checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every((p) => selectedPaths.has(p))}
@@ -65,14 +65,14 @@ export function SelectModeToolbar({
         <>
           <button
             onClick={onToggleBatchEditor}
-            className={`shrink-0 px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? "bg-[var(--color-figma-accent)] text-white" : "bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"}`}
+            className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? "bg-[var(--color-figma-accent)] text-white" : "bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"}`}
           >
-            Batch edit
+            Batch
           </button>
           <button
             onClick={onRequestBulkDelete}
             disabled={!!operationLoading}
-            className="shrink-0 px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
           >
             Delete
           </button>
@@ -80,9 +80,12 @@ export function SelectModeToolbar({
       )}
       <button
         onClick={onExitSelectMode}
-        className="shrink-0 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        className="shrink-0 px-1.5 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        aria-label="Exit select mode"
       >
-        Exit
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+          <path d="M2 2l6 6M8 2l-6 6" />
+        </svg>
       </button>
       {selectedPaths.size > 0 && (
         <SelectModeOverflowMenu

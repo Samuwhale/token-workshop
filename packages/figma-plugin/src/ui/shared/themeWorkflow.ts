@@ -130,23 +130,19 @@ const THEME_ISSUE_GROUP_COPY: Record<
 > = {
   "stale-set": {
     title: "Deleted token sources",
-    description:
-      "These variants still point at sets that no longer exist. Expand All Sets to remove or replace those assignments.",
+    description: "Variants reference deleted sets.",
   },
   "empty-override": {
     title: "Empty variant sets",
-    description:
-      "These variants have override sets assigned but those sets do not currently contain any tokens.",
+    description: "Assigned override sets are empty.",
   },
   "missing-override": {
     title: "Missing variant coverage",
-    description:
-      "These variants are missing tokens that exist in the shared layer. Review the gaps, then decide whether each token should stay shared or move into the variant layer.",
+    description: "Shared tokens missing from variant layer.",
   },
   "coverage-gap": {
     title: "Coverage gaps",
-    description:
-      "These variants still resolve to missing values or broken aliases somewhere in their active stack.",
+    description: "Unresolved values in the active stack.",
   },
 };
 
@@ -278,9 +274,9 @@ export function collectThemeOptionIssues({
       optionName: option.name,
       count: summary.staleSetCount,
       title: "Deleted token sources",
-      summary: `${summary.staleSetCount} assigned token source${summary.staleSetCount === 1 ? "" : "s"} no longer exist for this variant.`,
+      summary: `${summary.staleSetCount} deleted source${summary.staleSetCount === 1 ? "" : "s"}.`,
       recommendedNextAction:
-        "Remove or replace the deleted set assignments using All Sets below.",
+        "Remove or replace deleted sources.",
       actionLabel: "View set",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: summary.staleSetNames,
@@ -296,9 +292,9 @@ export function collectThemeOptionIssues({
       optionName: option.name,
       count: summary.emptyOverrideCount,
       title: "Empty variant sets",
-      summary: `${summary.emptyOverrideCount} variant-specific set${summary.emptyOverrideCount === 1 ? "" : "s"} are assigned but currently contain no tokens.`,
+      summary: `${summary.emptyOverrideCount} empty override set${summary.emptyOverrideCount === 1 ? "" : "s"}.`,
       recommendedNextAction:
-        "Add tokens to the empty variant set, or move it back to the shared layer.",
+        "Add tokens or reassign to shared.",
       actionLabel: "View set",
       preferredSetName: pickPreferredSetName(
         orderedSets,
@@ -321,9 +317,9 @@ export function collectThemeOptionIssues({
       optionName: option.name,
       count: missingOverrideCount,
       title: "Missing variant coverage",
-      summary: `${missingOverrideCount} token${missingOverrideCount === 1 ? "" : "s"} exist in shared sets but are missing from the variant-specific layer.`,
+      summary: `${missingOverrideCount} shared token${missingOverrideCount === 1 ? "" : "s"} missing from variant layer.`,
       recommendedNextAction:
-        "Return to this variant, then decide whether the missing tokens belong in the shared layer or the variant-specific layer.",
+        "Review missing tokens.",
       actionLabel: "Return to variant",
       preferredSetName: pickPreferredSetName(
         orderedSets,
@@ -343,9 +339,9 @@ export function collectThemeOptionIssues({
       optionName: option.name,
       count: uncoveredCount,
       title: "Unresolved coverage gaps",
-      summary: `${uncoveredCount} token${uncoveredCount === 1 ? "" : "s"} still resolve to missing values or aliases in the active stack.`,
+      summary: `${uncoveredCount} unresolved value${uncoveredCount === 1 ? "" : "s"} in active stack.`,
       recommendedNextAction:
-        "Return to this variant, confirm the assigned sources, then fill or create the missing tokens.",
+        "Fill or create missing tokens.",
       actionLabel: "Return to variant",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: [],
@@ -422,9 +418,9 @@ export function summarizeThemeWorkflow(
           ? "unmapped"
           : (topIssue?.kind ?? "coverage-gap"),
         recommendedNextAction: summary.isUnmapped
-          ? "Assign at least one shared or variant-specific set so this variant can contribute tokens."
+          ? "Assign a set so this variant can contribute tokens."
           : (topIssue?.recommendedNextAction ??
-            "Resolve the outstanding issue using All Sets below."),
+            "Resolve outstanding issues."),
         actionLabel: summary.isUnmapped
           ? "Assign token sources"
           : (topIssue?.actionLabel ?? "View set"),

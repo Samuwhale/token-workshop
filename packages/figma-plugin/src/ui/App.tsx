@@ -3,8 +3,6 @@ import type { TokenListImperativeHandle } from "./components/tokenListTypes";
 import type { ThemeManagerHandle } from "./components/ThemeManager";
 import type { PublishPanelHandle } from "./components/PublishPanel";
 import { ToastStack } from "./components/ToastStack";
-import { ThemeStageModelControls } from "./components/ThemeStageModelControls";
-import { SyncWorkflowControls } from "./components/publish/SyncWorkflowControls";
 import { useToastStack } from "./hooks/useToastStack";
 import { useToastBusListener } from "./shared/toastBus";
 import { ConfirmModal } from "./components/ConfirmModal";
@@ -50,18 +48,13 @@ import {
   toWorkspaceId,
 } from "./shared/navigationTypes";
 import type {
-  ThemeAuthoringStage,
-  ThemeWorkflowItem,
   ThemeWorkspaceShellState,
 } from "./shared/themeWorkflow";
 import { summarizeThemeWorkflow } from "./shared/themeWorkflow";
 import {
   DEFAULT_PUBLISH_PREFLIGHT_STATE,
   type PublishPreflightState,
-  type SyncWorkflowItem,
-  type SyncWorkflowStage,
 } from "./shared/syncWorkflow";
-import type { NoticeSeverity } from "./shared/noticeSystem";
 import { NoticeFieldMessage } from "./shared/noticeSystem";
 import { useConnectionContext } from "./contexts/ConnectionContext";
 import {
@@ -109,8 +102,6 @@ import { apiFetch, ApiError } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
 import {
   shellControlClass,
-  shellCountBadgeClass,
-  shellMetaTextClass,
 } from "./shared/shellControlStyles";
 import { findLeafByPath } from "./components/tokenListUtils";
 
@@ -1990,341 +1981,8 @@ export function App() {
     },
   };
 
-  const workspacePills = useMemo(() => {
-    const pills: Array<{
-      label: string;
-      tone: NoticeSeverity;
-    }> = [];
-    if (checking) {
-      pills.push({ label: "Connecting…", tone: "info" });
-    } else if (!connected) {
-      pills.push({ label: "Offline", tone: "error" });
-    }
-    switch (activeWorkspace.id) {
-      case "tokens":
-        if (lintViolations.length > 0)
-          pills.push({
-            label: `${lintViolations.length} issues`,
-            tone: "warning",
-          });
-        if (staleRecipeCount > 0)
-          pills.push({
-            label: `${staleRecipeCount} stale`,
-            tone: "stale",
-          });
-        break;
-      case "themes":
-        if (themeGapCount > 0)
-          pills.push({
-            label: `${themeGapCount} gaps`,
-            tone: "warning",
-          });
-        break;
-      case "apply":
-        pills.push({
-          label: `${selectedNodes.length} selected`,
-          tone: "info",
-        });
-        break;
-      case "sync":
-        if (activeWorkspaceSection?.id === "publish") {
-          if (publishPreflightState.stage === "running") {
-            pills.push({ label: "Checking…", tone: "info" });
-          } else if (
-            publishPreflightState.isOutdated ||
-            publishPreflightState.stage === "idle"
-          ) {
-            pills.push({ label: "Run checks", tone: "info" });
-          } else if (publishPreflightState.stage === "blocked") {
-            pills.push({
-              label: `${publishPreflightState.blockingCount} blockers`,
-              tone: "error",
-            });
-          } else if (publishPreflightState.stage === "advisory") {
-            pills.push({
-              label: `${publishPreflightState.advisoryCount} advisories`,
-              tone: "warning",
-            });
-          } else {
-            pills.push({ label: "Ready", tone: "success" });
-          }
-
-          if (publishPreflightState.canProceed && pendingPublishCount > 0) {
-            pills.push({
-              label: `${pendingPublishCount} pending`,
-              tone: "info",
-            });
-          }
-        }
-        break;
-      case "audit":
-        if (validationLoading) {
-          pills.push({ label: "Auditing…", tone: "info" });
-        } else if (validationSummary === null) {
-          pills.push({ label: "Run audit", tone: "info" });
-        } else if (healthIssueCount > 0) {
-          pills.push({
-            label: `${healthIssueCount} issues`,
-            tone: "warning",
-          });
-        }
-        break;
-    }
-    return pills;
-  }, [
-    activeWorkspace.id,
-    activeWorkspaceSection?.id,
-    selectedNodes.length,
-    checking,
-    connected,
-    healthIssueCount,
-    lintViolations.length,
-    pendingPublishCount,
-    publishPreflightState.advisoryCount,
-    publishPreflightState.blockingCount,
-    publishPreflightState.canProceed,
-    publishPreflightState.isOutdated,
-    publishPreflightState.stage,
-    staleRecipeCount,
-    themeGapCount,
-    validationLoading,
-    validationSummary,
-  ]);
-
-  const handleSelectThemeStage = useCallback(
-    (stage: ThemeAuthoringStage) => {
-      guardEditorAction(() => {
-        navigateTo("define", "themes");
-        closeSecondarySurface();
-        themeManagerHandleRef.current?.focusStage(stage);
-      });
-    },
-    [closeSecondarySurface, guardEditorAction, navigateTo],
-  );
-
-  const themeContextualControls = useMemo(() => {
-    if (activeSecondarySurface !== null || activeWorkspace.id !== "themes")
-      return null;
-
-    const stages: ThemeWorkflowItem[] = [
-      {
-        id: "axes" as const,
-        step: 1,
-        label: "Families",
-        detail:
-          themeWorkflowSummary.axisCount === 0
-            ? ""
-            : `${themeWorkflowSummary.axisCount} families`,
-        tone:
-          themeWorkflowSummary.axisCount === 0
-            ? "current"
-            : themeWorkflowSummary.currentStage === "axes"
-              ? "current"
-              : "complete",
-      },
-      {
-        id: "options" as const,
-        step: 2,
-        label: "Variants",
-        detail:
-          themeWorkflowSummary.axisCount === 0
-            ? ""
-            : themeWorkflowSummary.axesMissingOptionsCount > 0
-              ? "Needs variants"
-              : `${themeWorkflowSummary.optionCount} variants`,
-        tone:
-          themeWorkflowSummary.axisCount === 0
-            ? "blocked"
-            : themeWorkflowSummary.currentStage === "options"
-              ? "current"
-              : themeWorkflowSummary.axesMissingOptionsCount === 0 &&
-                  themeWorkflowSummary.optionCount > 0
-                ? "complete"
-                : "pending",
-        disabled: themeWorkflowSummary.axisCount === 0,
-      },
-      {
-        id: "set-roles" as const,
-        step: 3,
-        label: "Sources",
-        detail:
-          themeWorkflowSummary.optionCount === 0
-            ? ""
-            : themeWorkflowSummary.unmappedOptionCount > 0
-              ? `${themeWorkflowSummary.unmappedOptionCount} unmapped`
-              : themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0
-                ? `${themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount} to fix`
-                : `${themeWorkflowSummary.mappedSetCount} mapped`,
-        tone:
-          themeWorkflowSummary.optionCount === 0
-            ? "blocked"
-            : themeWorkflowSummary.currentStage === "set-roles"
-              ? "current"
-              : themeWorkflowSummary.unmappedOptionCount === 0 &&
-                  themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount ===
-                    0
-                ? "complete"
-                : "pending",
-        disabled: themeWorkflowSummary.optionCount === 0,
-      },
-      {
-        id: "preview" as const,
-        step: 4,
-        label: "Preview",
-        detail: !themeWorkflowSummary.previewReady
-          ? ""
-          : themeShellState.activeView === "authoring" &&
-              themeShellState.authoringMode === "preview"
-            ? "Active"
-            : "Ready",
-        tone: !themeWorkflowSummary.previewReady
-          ? "blocked"
-          : themeWorkflowSummary.currentStage === "preview" ||
-              (themeShellState.activeView === "authoring" &&
-                themeShellState.authoringMode === "preview")
-            ? "current"
-            : "pending",
-        disabled: !themeWorkflowSummary.previewReady,
-      },
-    ];
-
-    const actions: Array<{
-      label: string;
-      onClick: () => void;
-      active?: boolean;
-    }> = [];
-    if (
-      themeShellState.activeView !== "authoring" ||
-      themeShellState.authoringMode === "preview"
-    ) {
-      actions.push({
-        label: "Back",
-        onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
-      });
-    } else {
-      actions.push({
-        label: "+ Family",
-        onClick: () => themeManagerHandleRef.current?.openCreateAxis(),
-      });
-    }
-
-    return (
-      <ThemeStageModelControls
-        stages={stages}
-        onSelectStage={handleSelectThemeStage}
-        actions={actions}
-      />
-    );
-  }, [
-    activeWorkspace.id,
-    activeSecondarySurface,
-    handleSelectThemeStage,
-    themeShellState.activeView,
-    themeShellState.authoringMode,
-    themeWorkflowSummary,
-  ]);
-
-  const applyContextualControls = null;
-
-  const handleSelectSyncStage = useCallback(
-    (stage: SyncWorkflowStage) => {
-      guardEditorAction(() => {
-        navigateTo("sync", "publish");
-        closeSecondarySurface();
-        publishPanelHandleRef.current?.focusStage(stage);
-      });
-    },
-    [closeSecondarySurface, guardEditorAction, navigateTo],
-  );
-
-  const syncContextualControls = useMemo(() => {
-    if (
-      activeSecondarySurface !== null ||
-      activeWorkspace.id !== "sync" ||
-      activeWorkspaceSection?.id !== "publish"
-    )
-      return null;
-
-    const stages: SyncWorkflowItem[] = [
-      {
-        id: "preflight" as const,
-        step: 1,
-        label: "Preflight",
-        detail:
-          publishPreflightState.stage === "running"
-            ? "Running…"
-            : publishPreflightState.isOutdated ||
-                publishPreflightState.stage === "idle"
-              ? "Not run"
-              : publishPreflightState.stage === "blocked"
-                ? `${publishPreflightState.blockingCount} blockers`
-                : publishPreflightState.stage === "advisory"
-                  ? `${publishPreflightState.advisoryCount} advisories`
-                  : "Clear",
-        tone:
-          publishPreflightState.stage === "running" ||
-          publishPreflightState.isOutdated ||
-          publishPreflightState.stage === "idle"
-            ? "current"
-            : publishPreflightState.stage === "blocked"
-              ? "blocked"
-              : "complete",
-      },
-      {
-        id: "compare" as const,
-        step: 2,
-        label: "Compare",
-        detail: !publishPreflightState.canProceed
-          ? ""
-          : pendingPublishCount > 0
-            ? `${pendingPublishCount} changes`
-            : "",
-        tone: !publishPreflightState.canProceed
-          ? "blocked"
-          : pendingPublishCount > 0
-            ? "current"
-            : "pending",
-        disabled: !publishPreflightState.canProceed,
-      },
-      {
-        id: "apply" as const,
-        step: 3,
-        label: "Apply",
-        detail: !publishPreflightState.canProceed
-          ? ""
-          : pendingPublishCount > 0
-            ? "Ready"
-            : "",
-        tone: !publishPreflightState.canProceed
-          ? "blocked"
-          : pendingPublishCount > 0
-            ? "current"
-            : "pending",
-        disabled: !publishPreflightState.canProceed,
-      },
-    ];
-
-    return (
-      <SyncWorkflowControls
-        stages={stages}
-        onSelectStage={handleSelectSyncStage}
-      />
-    );
-  }, [
-    activeWorkspace.id,
-    activeWorkspaceSection?.id,
-    activeSecondarySurface,
-    handleSelectSyncStage,
-    pendingPublishCount,
-    publishPreflightState.advisoryCount,
-    publishPreflightState.blockingCount,
-    publishPreflightState.canProceed,
-    publishPreflightState.isOutdated,
-    publishPreflightState.stage,
-  ]);
-
   const workspacePrimaryAction = useMemo(() => {
-    if (activeSecondarySurface === null && activeWorkspace.id === "themes") {
+    if (activeSecondarySurface === null && activeSubTab === "themes") {
       if (
         themeShellState.activeView !== "authoring" ||
         themeShellState.authoringMode === "preview"
@@ -2443,8 +2101,7 @@ export function App() {
 
     if (
       activeSecondarySurface === null &&
-      activeWorkspace.id === "audit" &&
-      activeWorkspaceSection?.id === "health"
+      activeSubTab === "health"
     ) {
       return {
         label: "Refresh audit",
@@ -2455,6 +2112,7 @@ export function App() {
     return null;
   }, [
     activeSecondarySurface,
+    activeSubTab,
     activeWorkspace.id,
     activeWorkspaceSection?.id,
     guardEditorAction,
@@ -2469,49 +2127,6 @@ export function App() {
     themeWorkflowSummary.currentStage,
     themeWorkflowSummary.unmappedOptionCount,
     themeWorkflowSummary.nextSetRoleTarget?.actionLabel,
-  ]);
-
-  const workspaceContextualControls =
-    activeWorkspace.id === "themes"
-      ? themeContextualControls
-      : activeWorkspace.id === "apply"
-        ? applyContextualControls
-        : activeWorkspace.id === "sync"
-          ? syncContextualControls
-          : null;
-
-  const secondarySurfacePills = useMemo((): Array<{
-    label: string;
-    tone: NoticeSeverity;
-  }> => {
-    switch (activeSecondarySurface) {
-      case "import":
-        return [
-          {
-            label: connected ? "Connected" : "Server required",
-            tone: connected ? "success" : "error",
-          },
-        ];
-      case "sets":
-        return [];
-      case "notifications":
-        return [];
-      case "shortcuts":
-        return [];
-      case "settings":
-        return [
-          {
-            label: connected ? "Connected" : "Offline",
-            tone: connected ? "success" : "info",
-          },
-        ];
-      default:
-        return workspacePills;
-    }
-  }, [
-    activeSecondarySurface,
-    connected,
-    workspacePills,
   ]);
 
   const shellSections =
@@ -2545,8 +2160,6 @@ export function App() {
   }, [activeHandoff, activeSecondarySurface, activeSubTab, activeTopTab]);
   const shellPrimaryAction =
     activeSecondarySurface === null ? workspacePrimaryAction : null;
-  const shellContextualControls =
-    activeSecondarySurface === null ? workspaceContextualControls : null;
   const isTokenWorkspacePrimarySurface =
     activeTopTab === "define" &&
     activeSubTab === "tokens" &&
@@ -2632,10 +2245,6 @@ export function App() {
     isTokenWorkspacePrimarySurface &&
     dimensions.length > 0 &&
     !showExpandedTokenThemeBar;
-  const workspaceHeaderStatusPills = isTokenWorkspacePrimarySurface
-    ? []
-    : secondarySurfacePills;
-
   return (
     <div className="relative flex flex-col h-screen">
       {/* Workspace shell — single compact row */}
@@ -2714,14 +2323,6 @@ export function App() {
             </span>
           )}
 
-          {workspaceHeaderStatusPills.length > 0 && (
-            <div className="ml-1 inline-flex min-w-0 items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-              {workspaceHeaderStatusPills.map((pill, index) => (
-                <span key={`${pill.label}-${index}`}>{pill.label}</span>
-              ))}
-            </div>
-          )}
-
           <div className="flex shrink-0 items-center gap-1 ml-auto">
             {shellPrimaryAction && (
               <button
@@ -2747,234 +2348,24 @@ export function App() {
                 {surface.label}
               </button>
             ))}
-            {showNotificationButton && notificationSurface && (
-              <button
-                onClick={() => toggleSecondarySurface(notificationSurface.id)}
-                className={`${shellControlClass({
-                  active: activeSecondarySurface === notificationSurface.id,
-                  size: "xs",
-                  shape: "rounded",
-                })} h-6 w-6 min-h-0 px-0 py-0`}
-                aria-label={`Open notifications (${notificationCount})`}
-                aria-pressed={activeSecondarySurface === notificationSurface.id}
-                title={notificationSurface.transition.usage}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M8 2.5a3 3 0 0 0-3 3v1.1c0 .8-.23 1.58-.67 2.23L3.2 10.5h9.6l-1.13-1.67A4 4 0 0 1 11 6.6V5.5a3 3 0 0 0-3-3Z" />
-                  <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
-                </svg>
-                <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-0.5 text-[8px] font-semibold leading-3.5 text-white">
-                  {notificationCount > 99 ? "99+" : notificationCount}
-                </span>
-              </button>
-            )}
-
-            <div className="relative shrink-0" ref={menuRef}>
-              <button
-                onClick={() => setMenuOpen((v) => !v)}
-                className={`${shellControlClass({
-                  active: shellMenuActive,
-                  size: "xs",
-                  shape: "rounded",
-                })} h-6 w-6 min-h-0 px-0 py-0`}
-                aria-label="Open app menu"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="8" cy="8" r="2.1" />
-                  <path d="M8 1.7v1.6M8 12.7v1.6M3.54 3.54l1.13 1.13M11.33 11.33l1.13 1.13M1.7 8h1.6M12.7 8h1.6M3.54 12.46l1.13-1.13M11.33 4.67l1.13-1.13" />
-                </svg>
-                {utilitiesAttention && (
-                  <span
-                    className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`}
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
-
-              {menuOpen && (
-                <div
-                  className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
-                  role="menu"
-                >
-                  <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                    <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                      {utilitiesStatusLabel}
-                    </div>
-                    {!connected && (
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <button
-                          onClick={retryConnection}
-                          disabled={checking}
-                          className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {checking ? "Checking…" : "Retry"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowConnectionEditor((v) => !v);
-                            setConnectionUrlInput(serverUrl);
-                            setConnectionConnectResult(null);
-                          }}
-                          className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                        >
-                          {showConnectionEditor ? "Hide URL" : "Change URL"}
-                        </button>
-                      </div>
-                    )}
-                    {showConnectionEditor && (
-                      <div className="mt-2 flex flex-col gap-1.5">
-                        <div className="flex gap-1.5">
-                          <input
-                            type="text"
-                            value={connectionUrlInput}
-                            onChange={(e) => {
-                              setConnectionUrlInput(e.target.value);
-                              setConnectionConnectResult(null);
-                            }}
-                            onKeyDown={async (e) => {
-                              if (e.key !== "Enter") return;
-                              const url = connectionUrlInput.trim();
-                              if (!url) return;
-                              setConnectionConnectResult(null);
-                              const ok = await updateServerUrlAndConnect(url);
-                              setConnectionConnectResult(ok ? "ok" : "fail");
-                              if (ok) setShowConnectionEditor(false);
-                            }}
-                            placeholder="http://localhost:9400"
-                            autoFocus
-                            className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
-                          />
-                          <button
-                            onClick={async () => {
-                              const url = connectionUrlInput.trim();
-                              if (!url) return;
-                              setConnectionConnectResult(null);
-                              const ok = await updateServerUrlAndConnect(url);
-                              setConnectionConnectResult(ok ? "ok" : "fail");
-                              if (ok) setShowConnectionEditor(false);
-                            }}
-                            disabled={checking || !connectionUrlInput.trim()}
-                            className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Connect
-                          </button>
-                        </div>
-                        {connectionConnectResult === "fail" && (
-                          <NoticeFieldMessage severity="error">
-                            Cannot reach server. Check the URL and try again.
-                          </NoticeFieldMessage>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {shellMenuSurfaces.length > 0 && (
-                    <div>
-                      <div className="px-3 py-1.5">
-                        <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                          Settings
-                        </div>
-                      </div>
-                      {shellMenuSurfaces.map((surface) => (
-                        <button
-                          key={surface.id}
-                          role="menuitem"
-                          tabIndex={-1}
-                          onClick={() => {
-                            setMenuOpen(false);
-                            toggleSecondarySurface(surface.id);
-                          }}
-                          className="mx-1 mb-1 flex w-[calc(100%-0.5rem)] items-center justify-between rounded-[10px] border border-transparent px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out outline-none hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-border)] focus-visible:bg-[var(--color-figma-bg-secondary)] focus-visible:text-[var(--color-figma-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px active:bg-[var(--color-figma-bg-hover)]"
-                          title={surface.transition.usage}
-                        >
-                          <span>{surface.label}</span>
-                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                            {adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section) => (
-                    <div key={section.id}>
-                      <div className="border-t border-[var(--color-figma-border)]" />
-                      <div className="px-3 py-1.5">
-                        <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                          {section.label}
-                        </div>
-                      </div>
-                      {section.actions.map((action) => (
-                        <button
-                          key={action.id}
-                          role="menuitem"
-                          tabIndex={-1}
-                          onClick={() => handleUtilityAction(action.id)}
-                          className="mx-1 mb-1 flex w-[calc(100%-0.5rem)] items-center justify-between rounded-[10px] border border-transparent px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out outline-none hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-border)] focus-visible:bg-[var(--color-figma-bg-secondary)] focus-visible:text-[var(--color-figma-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px active:bg-[var(--color-figma-bg-hover)]"
-                          title={action.transition?.usage ?? action.description}
-                        >
-                          <span>
-                            {action.id === "window-size"
-                              ? isExpanded
-                                ? "Restore window"
-                                : "Expand window"
-                              : action.label}
-                          </span>
-                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                            {utilityActionDetail(action.id)}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* Handoff return bar — thin conditional row */}
-        {visibleHandoff && returnFromHandoff && (
-          <div className="flex items-center justify-between gap-3 border-t border-[var(--color-figma-border)] px-2 py-0.5">
-            <span className="min-w-0 truncate text-[10px] text-[var(--color-figma-text-secondary)]" title={visibleHandoff.reason}>
-              From {visibleHandoff.origin.secondarySurfaceLabel ?? (visibleHandoff.origin.sectionLabel ? `${visibleHandoff.origin.workspaceLabel} · ${visibleHandoff.origin.sectionLabel}` : visibleHandoff.origin.workspaceLabel)}
-            </span>
-            <button
-              onClick={returnFromHandoff}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              &larr; {visibleHandoff.returnLabel}
-            </button>
-          </div>
-        )}
-
-        {/* Contextual controls — thin conditional row */}
-        {shellContextualControls && (
-          <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-            {shellContextualControls}
-          </div>
-        )}
       </div>
+
+      {visibleHandoff && returnFromHandoff && (
+        <div className="absolute left-2 right-2 top-[36px] z-30 flex items-center justify-between gap-3 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 shadow-sm">
+          <span className="min-w-0 truncate text-[10px] text-[var(--color-figma-text-secondary)]" title={visibleHandoff.reason}>
+            From {visibleHandoff.origin.secondarySurfaceLabel ?? (visibleHandoff.origin.sectionLabel ? `${visibleHandoff.origin.workspaceLabel} · ${visibleHandoff.origin.sectionLabel}` : visibleHandoff.origin.workspaceLabel)}
+          </span>
+          <button
+            onClick={returnFromHandoff}
+            className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            &larr; {visibleHandoff.returnLabel}
+          </button>
+        </div>
+      )}
 
       {activeSecondarySurface === null && postImportBanner?.visible && (
         <InlineBanner
@@ -2997,167 +2388,6 @@ export function App() {
           </span>
         </InlineBanner>
       )}
-
-      {/* Set switching surface */}
-      {activeTopTab === "define" &&
-        activeSubTab === "tokens" &&
-        activeSecondarySurface === null &&
-        sets.length > 1 && (
-          <div
-            className={`border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] ${tokenDragState ? "bg-[var(--color-figma-accent)]/[0.03]" : ""}`}
-          >
-            <div className="relative flex items-center gap-1.5 px-1.5 py-0.5">
-              <button
-                onClick={() => setShowSetSwitcher(true)}
-                className={`${shellControlClass({ size: "xs", shape: "rounded" })} shrink-0 justify-start text-left`}
-                aria-label="Open set switcher"
-              >
-                <div className="flex items-center gap-1">
-                  <span className="max-w-[180px] truncate text-[10px] font-medium text-[var(--color-figma-text)]">
-                    {activeSet}
-                  </span>
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 8 8"
-                    fill="none"
-                    className={shellMetaTextClass(false)}
-                  >
-                    <path
-                      d="M1 3l3 3 3-3"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-              </button>
-
-              <div className="relative min-w-0 flex-1">
-                <div
-                  ref={setTabsScrollRef}
-                  className="flex gap-1 overflow-x-auto pr-6"
-                  style={{ scrollbarWidth: "none" }}
-                >
-                  {sets.map((set) => {
-                    const isActive = activeSet === set;
-                    const isTokenDragSource = tokenDragState?.fromSet === set;
-                    const isTokenDropTarget =
-                      tokenDragState && !isTokenDragSource;
-                    const isTokenHovered =
-                      isTokenDropTarget && dragOverSetName === set;
-                    const themeStatus = setThemeStatusMap[set];
-                    return (
-                      <button
-                        key={set}
-                        data-active-set={isActive}
-                        onClick={() =>
-                          guardEditorAction(() => setActiveSet(set))
-                        }
-                        onDragOver={(e) => handleSetDragOver(e, set)}
-                        onDragLeave={handleSetDragLeave}
-                        onDrop={(e) => handleSetDrop(e, set)}
-                        title={(() => {
-                          const parts: string[] = [setDescriptions[set] || set];
-                          const byType = setByTypeCounts[set];
-                          if (byType) {
-                            const breakdown = Object.entries(byType)
-                              .sort((a, b) => b[1] - a[1])
-                              .map(([t, c]) => `${c} ${t}`)
-                              .join(" · ");
-                            if (breakdown) parts.push(breakdown);
-                          }
-                          if (themeStatus) parts.push(`theme: ${themeStatus}`);
-                          return parts.join("\n");
-                        })()}
-                        className={`${shellControlClass({ active: isActive, size: "xs", shape: "rounded" })} flex shrink-0 justify-start gap-1 ${
-                          isTokenDragSource ? "opacity-40" : ""
-                        } ${
-                          isTokenDropTarget
-                            ? isTokenHovered
-                              ? "ring-2 ring-inset ring-[var(--color-figma-accent)]"
-                              : "ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
-                            : ""
-                        }`}
-                      >
-                        {themeStatus && (
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              themeStatus === "enabled"
-                                ? isActive
-                                  ? "bg-green-500"
-                                  : "bg-green-500"
-                                : themeStatus === "source"
-                                  ? isActive
-                                    ? "bg-sky-500"
-                                    : "bg-sky-500"
-                                  : isActive
-                                    ? "bg-[var(--color-figma-text-secondary)]/50"
-                                    : "bg-gray-400/50"
-                            }`}
-                          />
-                        )}
-                        <span className="max-w-[120px] truncate">{set}</span>
-                        {setTokenCounts[set] !== undefined && (
-                          <span className={shellCountBadgeClass(isActive)}>
-                            {isActive && filteredSetCount !== null
-                              ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}`
-                              : setTokenCounts[set]}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                {setTabsOverflow.left && (
-                  <>
-                    <div
-                      className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[var(--color-figma-bg-secondary)] to-transparent"
-                      aria-hidden="true"
-                    />
-                    <button
-                      onClick={() => scrollSetTabs("left")}
-                      className={`${shellControlClass({ size: "xs", shape: "rounded" })} absolute left-0 top-1/2 z-[2] h-5 w-4 min-h-0 -translate-y-1/2 px-0 py-0`}
-                      aria-label="Scroll sets left"
-                    >
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 8 8"
-                        fill="currentColor"
-                      >
-                        <path d="M6 1L2 4l4 3V1z" />
-                      </svg>
-                    </button>
-                  </>
-                )}
-                {setTabsOverflow.right && (
-                  <>
-                    <div
-                      className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--color-figma-bg-secondary)] to-transparent"
-                      aria-hidden="true"
-                    />
-                    <button
-                      onClick={() => scrollSetTabs("right")}
-                      className={`${shellControlClass({ size: "xs", shape: "rounded" })} absolute right-0 top-1/2 z-[2] h-5 w-4 min-h-0 -translate-y-1/2 px-0 py-0`}
-                      aria-label="Scroll sets right"
-                    >
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 8 8"
-                        fill="currentColor"
-                      >
-                        <path d="M2 1l4 3-4 3V1z" />
-                      </svg>
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
       <WorkspaceControllerProvider value={workspaceControllers}>
         <ErrorBoundary>
@@ -3840,6 +3070,126 @@ export function App() {
           undoCount,
         }}
       />
+
+      {/* Status footer */}
+      <div className="flex items-center gap-1 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px]">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${checking ? "bg-[var(--color-figma-accent)]" : connected ? "bg-emerald-500" : "bg-[var(--color-figma-error)]"}`}
+            title={utilitiesStatusLabel}
+            aria-hidden="true"
+          />
+          {activeTopTab === "define" && activeSubTab === "tokens" && activeSecondarySurface === null && sets.length > 1 ? (
+            <button
+              onClick={() => setShowSetSwitcher(true)}
+              className="min-w-0 truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              aria-label="Switch set"
+            >
+              <span className="truncate">{activeSet}</span>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="ml-0.5 inline-block text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          ) : activeTopTab === "define" && activeSubTab === "tokens" && activeSecondarySurface === null ? (
+            <span className="truncate text-[var(--color-figma-text-tertiary)]">{activeSet}</span>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button onClick={executeUndo} disabled={!canUndo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
+          </button>
+          <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
+          </button>
+          <div className="mx-0.5 h-3 w-px bg-[var(--color-figma-border)]" aria-hidden="true" />
+          {showNotificationButton && notificationSurface && (
+            <button
+              onClick={() => toggleSecondarySurface(notificationSurface.id)}
+              className="relative h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              aria-label={`Notifications (${notificationCount})`}
+              aria-pressed={activeSecondarySurface === notificationSurface.id}
+            >
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M8 2.5a3 3 0 0 0-3 3v1.1c0 .8-.23 1.58-.67 2.23L3.2 10.5h9.6l-1.13-1.67A4 4 0 0 1 11 6.6V5.5a3 3 0 0 0-3-3Z" />
+                <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
+              </svg>
+              <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[12px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-0.5 text-[7px] font-semibold leading-3 text-white">
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </span>
+            </button>
+          )}
+          <button
+            onClick={() => { guardEditorAction(() => { navigateTo("sync", "history"); closeSecondarySurface(); }); }}
+            className={`h-5 w-5 inline-flex items-center justify-center rounded transition-colors ${activeSubTab === "history" ? "text-[var(--color-figma-text)] bg-[var(--color-figma-accent)]/12" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+            aria-label="History"
+            title="Change history"
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6" /><path d="M8 4.5V8l2.5 1.5" /></svg>
+          </button>
+          <div className="relative shrink-0" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="relative h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              aria-label="Settings"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6.8 1.6h2.4l.3 1.8.9.4 1.5-1 1.7 1.7-1 1.5.4.9 1.8.3v2.4l-1.8.3-.4.9 1 1.5-1.7 1.7-1.5-1-.9.4-.3 1.8H6.8l-.3-1.8-.9-.4-1.5 1-1.7-1.7 1-1.5-.4-.9-1.8-.3V6.8l1.8-.3.4-.9-1-1.5L4.1 2.4l1.5 1 .9-.4z" />
+                <circle cx="8" cy="8" r="2" />
+              </svg>
+              {utilitiesAttention && (
+                <span className={`absolute right-0 top-0 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`} aria-hidden="true" />
+              )}
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 bottom-full z-50 mb-1 w-48 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
+                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5">
+                  <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
+                  {!connected && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button onClick={retryConnection} disabled={checking} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50">{checking ? "Checking…" : "Retry"}</button>
+                      <button onClick={() => { setShowConnectionEditor((v) => !v); setConnectionUrlInput(serverUrl); setConnectionConnectResult(null); }} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]">{showConnectionEditor ? "Hide URL" : "Change URL"}</button>
+                    </div>
+                  )}
+                  {showConnectionEditor && (
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <div className="flex gap-1.5">
+                        <input type="text" value={connectionUrlInput} onChange={(e) => { setConnectionUrlInput(e.target.value); setConnectionConnectResult(null); }} onKeyDown={async (e) => { if (e.key !== "Enter") return; const url = connectionUrlInput.trim(); if (!url) return; setConnectionConnectResult(null); const ok = await updateServerUrlAndConnect(url); setConnectionConnectResult(ok ? "ok" : "fail"); if (ok) setShowConnectionEditor(false); }} placeholder="http://localhost:9400" autoFocus className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]" />
+                        <button onClick={async () => { const url = connectionUrlInput.trim(); if (!url) return; setConnectionConnectResult(null); const ok = await updateServerUrlAndConnect(url); setConnectionConnectResult(ok ? "ok" : "fail"); if (ok) setShowConnectionEditor(false); }} disabled={checking || !connectionUrlInput.trim()} className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">Connect</button>
+                      </div>
+                      {connectionConnectResult === "fail" && (<NoticeFieldMessage severity="error">Cannot reach server. Check the URL and try again.</NoticeFieldMessage>)}
+                    </div>
+                  )}
+                </div>
+                {shellMenuSurfaces.length > 0 && (
+                  <div>
+                    <div className="px-2.5 py-1"><div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Settings</div></div>
+                    {shellMenuSurfaces.map((surface) => (
+                      <button key={surface.id} role="menuitem" tabIndex={-1} onClick={() => { setMenuOpen(false); toggleSecondarySurface(surface.id); }} className="mx-1 mb-1 flex w-[calc(100%-0.5rem)] items-center justify-between rounded-[10px] border border-transparent px-2.5 py-1.5 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out outline-none hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-border)] focus-visible:bg-[var(--color-figma-bg-secondary)] focus-visible:text-[var(--color-figma-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px active:bg-[var(--color-figma-bg-hover)]" title={surface.transition.usage}>
+                        <span>{surface.label}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section) => (
+                  <div key={section.id}>
+                    <div className="border-t border-[var(--color-figma-border)]" />
+                    <div className="px-2.5 py-1"><div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{section.label}</div></div>
+                    {section.actions.map((action) => (
+                      <button key={action.id} role="menuitem" tabIndex={-1} onClick={() => handleUtilityAction(action.id)} className="mx-1 mb-1 flex w-[calc(100%-0.5rem)] items-center justify-between rounded-[10px] border border-transparent px-2.5 py-1.5 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out outline-none hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-border)] focus-visible:bg-[var(--color-figma-bg-secondary)] focus-visible:text-[var(--color-figma-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px active:bg-[var(--color-figma-bg-hover)]" title={action.transition?.usage ?? action.description}>
+                        <span>{action.id === "window-size" ? isExpanded ? "Restore window" : "Expand window" : action.label}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{utilityActionDetail(action.id)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Resize handle */}
       <div

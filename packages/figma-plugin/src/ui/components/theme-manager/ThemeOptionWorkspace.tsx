@@ -37,7 +37,7 @@ function CompactAssignment({
 }: CompactAssignmentProps) {
   return (
     <div className="flex items-start gap-2 px-3 py-1.5">
-      <span className="w-[86px] shrink-0 pt-0.5 text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">
+      <span className="w-[60px] shrink-0 pt-0.5 text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">
         {label}
       </span>
       <div className="flex flex-1 flex-wrap items-center gap-1 min-w-0">
@@ -237,7 +237,7 @@ export function ThemeOptionWorkspace({
       )}
 
       {fillableCount > 0 && (
-        <div className="flex items-center justify-between px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 text-[10px]">
+        <div className="flex items-center justify-between px-2.5 py-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 text-[10px]">
           <span className="text-[var(--color-figma-text-secondary)]">
             {fillableCount} token{fillableCount === 1 ? "" : "s"} can be auto-filled
           </span>
@@ -263,11 +263,11 @@ export function ThemeOptionWorkspace({
 
       <div className="border-b border-[var(--color-figma-border)] py-1">
         <CompactAssignment
-          label="Shared tokens"
+          label="Shared"
           setNames={foundationSets}
           addValue={pendingSharedSet}
           addOptions={sharedCandidates}
-          emptyText="No shared sets yet"
+          emptyText="None"
           onAddValueChange={setPendingSharedSet}
           onAdd={() => {
             if (!pendingSharedSet) return;
@@ -279,11 +279,11 @@ export function ThemeOptionWorkspace({
           onNavigateToTokenSet={onNavigateToTokenSet}
         />
         <CompactAssignment
-          label="Variant tokens"
+          label="Variant"
           setNames={overrideSets}
           addValue={pendingVariantSet}
           addOptions={variantCandidates}
-          emptyText="No variant-specific sets yet"
+          emptyText="None"
           onAddValueChange={setPendingVariantSet}
           onAdd={() => {
             if (!pendingVariantSet) return;
@@ -313,7 +313,7 @@ export function ThemeOptionWorkspace({
         <button
           type="button"
           onClick={() => setShowAllSets((prev) => !prev)}
-          className="flex w-full items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="flex w-full items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
           <svg
             width="8"
@@ -334,7 +334,7 @@ export function ThemeOptionWorkspace({
               if (roleSets.length === 0) return null;
               return (
                 <div key={role}>
-                  <div className="px-3 pt-1.5 pb-0.5">
+                  <div className="px-2.5 pt-1 pb-px">
                     <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)]">
                       {STATE_LABELS[role]} ({roleSets.length})
                     </span>

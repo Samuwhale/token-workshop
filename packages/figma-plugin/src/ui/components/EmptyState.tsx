@@ -7,20 +7,20 @@ interface EmptyStateProps {
 
 export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 overflow-y-auto px-2 py-2 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-1.5 overflow-y-auto px-2 py-2 text-center">
       <FeedbackPlaceholder
         variant={connected ? "empty" : "disconnected"}
         size="section"
-        className="w-full max-w-[270px]"
+        className="w-full max-w-[240px]"
         icon={(
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3" />
             <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
           </svg>
         )}
-        title="No tokens yet"
-        description={connected ? "Create your first token or import an existing file." : "Connect to a server to start managing tokens."}
-        primaryAction={{ label: connected ? 'Get started' : 'Connect', onClick: onOpenStartHere }}
+        title="No tokens"
+        description={connected ? "Create a token or import a file." : "Connect a server to begin."}
+        primaryAction={{ label: connected ? 'Create' : 'Connect', onClick: onOpenStartHere }}
       />
     </div>
   );

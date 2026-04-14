@@ -464,7 +464,7 @@ export const ThemeAuthoringScreen = forwardRef<
     <>
       <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
-          <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
+          <div className="flex flex-col items-center justify-center gap-2 px-3 py-2 text-center">
             <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
               Create a theme family
             </p>
@@ -473,14 +473,14 @@ export const ThemeAuthoringScreen = forwardRef<
                 <button
                   key={name}
                   onClick={() => openCreateDim(name)}
-                  className="rounded-full border border-[var(--color-figma-border)] px-3 py-1 text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                  className="rounded-full border border-[var(--color-figma-border)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
                 >
                   {name}
                 </button>
               ))}
               <button
                 onClick={() => openCreateDim()}
-                className="rounded-full border border-dashed border-[var(--color-figma-border)] px-3 py-1 text-[11px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text-secondary)]"
+                className="rounded-full border border-dashed border-[var(--color-figma-border)] px-2.5 py-0.5 text-[11px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text-secondary)]"
               >
                 Custom
               </button>
@@ -493,7 +493,7 @@ export const ThemeAuthoringScreen = forwardRef<
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (
                   <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No families match your filter
+                    No matches
                   </div>
                 )}
                 {filteredDimensions.map((dimension) => {
@@ -552,13 +552,13 @@ export const ThemeAuthoringScreen = forwardRef<
       </div>
 
       {showCreateDim && (
-        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5">
           <div className="flex flex-col gap-2">
             <input
               type="text"
               value={newDimName}
               onChange={(event) => setNewDimName(event.target.value)}
-              placeholder="e.g. Color mode, Brand, Density"
+              placeholder="Color mode, Brand, ..."
               className={`w-full rounded border bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
                 createDimError
                   ? "border-[var(--color-figma-error)]"

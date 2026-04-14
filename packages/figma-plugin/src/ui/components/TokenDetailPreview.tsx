@@ -224,7 +224,7 @@ export function TokenDetailPreview({
   if (!entry) {
     return (
       <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)]">
+        <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-figma-border)]">
           <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">
             Token not found
           </span>
@@ -258,7 +258,7 @@ export function TokenDetailPreview({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
         <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate mr-2">
           {name}
         </span>
@@ -286,7 +286,7 @@ export function TokenDetailPreview({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {/* Token path + type */}
-        <div className="px-3 pt-2 pb-2">
+        <div className="px-3 pt-1.5 pb-1.5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <ValuePreview type={type} value={resolvedValue} />
             <div
@@ -350,7 +350,7 @@ export function TokenDetailPreview({
         </div>
 
         {lintViolations.length > 0 && (
-          <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
             <div className="flex flex-col gap-1.5">
               {lintViolations.map((violation, index) => (
                 <div
@@ -385,7 +385,7 @@ export function TokenDetailPreview({
           sourceRecipes.length > 0 ||
           derivedRecipe ||
           usageCount > 0) && (
-          <div className="px-3 pt-3 pb-2">
+          <div className="px-3 pt-2 pb-1.5">
             <div className="flex flex-col gap-2">
               {entryMeta.$description && (
                 <div className="text-[10px] text-[var(--color-figma-text)] whitespace-pre-wrap break-words">
@@ -429,17 +429,17 @@ export function TokenDetailPreview({
               )}
               <div className="flex flex-wrap gap-1">
                 {lifecycle && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
-                    Lifecycle: {lifecycle}
+                  <span className="px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
+                    {lifecycle}
                   </span>
                 )}
                 {provenanceLabel && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
-                    Source: {provenanceLabel}
+                  <span className="px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
+                    {provenanceLabel}
                   </span>
                 )}
                 {extendsPath && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] break-all">
+                  <span className="px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] break-all">
                     Extends: {extendsPath}
                   </span>
                 )}
@@ -456,7 +456,7 @@ export function TokenDetailPreview({
                         "*",
                       );
                     }}
-                    className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15"
+                    className="px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15"
                     title={`Highlight ${usageCount} bound layer${usageCount === 1 ? "" : "s"} on the canvas`}
                   >
                     Usage: {usageCount}
@@ -468,7 +468,7 @@ export function TokenDetailPreview({
         )}
 
         {/* Value section */}
-        <div className="px-3 pt-2 pb-2">
+        <div className="px-3 pt-1.5 pb-1">
           <div className="text-[10px] font-mono text-[var(--color-figma-text)] break-all whitespace-pre-wrap bg-[var(--color-figma-bg-secondary)] rounded px-2 py-1.5 max-h-24 overflow-y-auto">
             {valueStr}
           </div>
@@ -478,7 +478,7 @@ export function TokenDetailPreview({
         {((resolutionSteps && resolutionSteps.length >= 2) ||
           dependentNodes.length > 0 ||
           dependencySnapshot?.hasCycles) && (
-          <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
             {dependencySnapshot?.hasCycles && (
               <div className="mb-2 rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
                 Circular alias detected. Open the full graph to debug.
@@ -558,15 +558,17 @@ export function TokenDetailPreview({
                     <button
                       key={node.path}
                       onClick={() => onNavigateToAlias?.(node.path)}
-                      className="flex items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-left hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)]"
+                      className="flex items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-left hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)]"
                       style={{
                         marginLeft: `${Math.max(0, node.depth - 1) * 10}px`,
                       }}
                       title={node.path}
                     >
-                      <span className="rounded bg-[var(--color-figma-bg-hover)] px-1 py-px text-[8px] font-medium text-[var(--color-figma-text-tertiary)]">
-                        {node.depth === 1 ? "Direct" : `+${node.depth - 1}`}
-                      </span>
+                      {node.depth > 1 && (
+                        <span className="rounded bg-[var(--color-figma-bg-hover)] px-1 py-px text-[8px] font-medium text-[var(--color-figma-text-tertiary)]">
+                          +{node.depth - 1}
+                        </span>
+                      )}
                       <span className="min-w-0 flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate">
                         {formatDisplayPath(
                           node.path,
@@ -593,9 +595,9 @@ export function TokenDetailPreview({
 
         {/* Large visual preview for color tokens */}
         {type === "color" && typeof resolvedValue === "string" && (
-          <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
             <div
-              className="w-full h-16 rounded border border-[var(--color-figma-border)]"
+              className="w-full h-10 rounded border border-[var(--color-figma-border)]"
               style={{ backgroundColor: resolvedValue }}
             />
           </div>
@@ -616,7 +618,7 @@ export function TokenDetailPreview({
               | string
               | undefined;
             return (
-              <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+              <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
                 <div
                   className="p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden"
                   style={{
@@ -635,7 +637,7 @@ export function TokenDetailPreview({
                       : undefined,
                   }}
                 >
-                  The quick brown fox
+                  Aa Bb 123
                 </div>
               </div>
             );
@@ -651,7 +653,7 @@ export function TokenDetailPreview({
       </div>
 
       {/* Footer actions */}
-      <div className="px-3 py-2 border-t border-[var(--color-figma-border)] shrink-0 flex gap-1.5">
+      <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] shrink-0 flex gap-1.5">
         <button
           onClick={onEdit}
           className="flex-1 px-2 py-1.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
@@ -664,7 +666,7 @@ export function TokenDetailPreview({
           }}
           className="px-2 py-1.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
-          Copy path
+          Path
         </button>
         <button
           onClick={() => {
@@ -672,7 +674,7 @@ export function TokenDetailPreview({
           }}
           className="px-2 py-1.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
-          Copy value
+          Value
         </button>
       </div>
     </div>

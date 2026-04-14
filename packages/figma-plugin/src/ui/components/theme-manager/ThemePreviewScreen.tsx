@@ -158,10 +158,10 @@ export function ThemePreviewScreen({
         onClick={() => onNavigateToToken?.(token.path, token.set)}
         title={`${token.path}\nRaw: ${formatValue(token.rawValue)}\nFrom: ${token.set} (${token.layer})`}
       >
-        <td className="max-w-[140px] truncate px-3 py-1 font-mono text-[var(--color-figma-text)]">
+        <td className="max-w-[140px] truncate px-2.5 py-0.5 font-mono text-[var(--color-figma-text)]">
           {token.path}
         </td>
-        <td className="px-2 py-1">
+        <td className="px-2.5 py-0.5">
           <span className="flex items-center gap-1.5">
             <ValuePreview type={token.type} value={token.resolvedValue} size={14} />
             <span className="truncate font-mono text-[var(--color-figma-text-secondary)]">
@@ -170,7 +170,7 @@ export function ThemePreviewScreen({
           </span>
         </td>
         <td
-          className="max-w-[90px] truncate px-2 py-1 text-right text-[var(--color-figma-text-tertiary)]"
+          className="max-w-[90px] truncate px-2.5 py-0.5 text-right text-[var(--color-figma-text-tertiary)]"
           title={token.layer}
         >
           {token.set}
@@ -182,11 +182,12 @@ export function ThemePreviewScreen({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <div className="flex items-center justify-between gap-3 px-3 py-2">
+        <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
           <div className="flex min-w-0 items-center gap-2">
             <button
               onClick={onBack}
-              className="inline-flex shrink-0 items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+              aria-label="Back"
+              className="inline-flex shrink-0 items-center rounded border border-[var(--color-figma-border)] p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
             >
               <svg
                 width="9"
@@ -201,7 +202,6 @@ export function ThemePreviewScreen({
               >
                 <path d="M15 18l-6-6 6-6" />
               </svg>
-              Back
             </button>
             <div className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
               {activeSelectionLabel || "No variant selected"}
@@ -226,7 +226,7 @@ export function ThemePreviewScreen({
         <input
           ref={previewSearchRef}
           type="text"
-          placeholder="Search resolved tokens..."
+          placeholder="Search..."
           value={previewSearch}
           onChange={(event) => setPreviewSearch(event.target.value)}
           onKeyDown={(event) => {
@@ -236,7 +236,7 @@ export function ThemePreviewScreen({
               previewSearchRef.current?.blur();
             }
           }}
-          className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
         />
       </div>
 
@@ -245,15 +245,15 @@ export function ThemePreviewScreen({
           <div className="px-3 py-6 text-center text-[10px] italic text-[var(--color-figma-text-tertiary)]">
             {previewSearch
               ? `No matches for "${previewSearch}"`
-              : "No token sources connected"}
+              : "No sources"}
           </div>
         ) : groups ? (
           <table className="w-full text-[10px]">
             <thead>
               <tr className="bg-[var(--color-figma-bg-secondary)] text-left text-[var(--color-figma-text-tertiary)]">
-                <th className="px-3 py-1 font-medium">Token</th>
-                <th className="px-2 py-1 font-medium">Value</th>
-                <th className="px-2 py-1 text-right font-medium">Source</th>
+                <th className="px-2.5 py-0.5 font-medium">Token</th>
+                <th className="px-2.5 py-0.5 font-medium">Value</th>
+                <th className="px-2.5 py-0.5 text-right font-medium">Source</th>
               </tr>
             </thead>
             <tbody>
@@ -304,9 +304,9 @@ export function ThemePreviewScreen({
           <table className="w-full text-[10px]">
             <thead>
               <tr className="bg-[var(--color-figma-bg-secondary)] text-left text-[var(--color-figma-text-tertiary)]">
-                <th className="px-3 py-1 font-medium">Token</th>
-                <th className="px-2 py-1 font-medium">Value</th>
-                <th className="px-2 py-1 text-right font-medium">Source</th>
+                <th className="px-2.5 py-0.5 font-medium">Token</th>
+                <th className="px-2.5 py-0.5 font-medium">Value</th>
+                <th className="px-2.5 py-0.5 text-right font-medium">Source</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-figma-border)]">
@@ -319,7 +319,7 @@ export function ThemePreviewScreen({
 
         {previewTokens.length >= 200 && (
           <div className="border-t border-[var(--color-figma-border)] px-3 py-1 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-            First 200 shown. Search to filter.
+            200 shown. Search to narrow.
           </div>
         )}
       </div>

@@ -124,7 +124,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "tokens" | "themes" | "apply" | "sync" | "audit";
+export type WorkspaceId = "define" | "apply" | "sync";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -159,13 +159,6 @@ export interface WorkspaceTab extends WorkspaceRoute {
   sections?: WorkspaceSection[];
   /** Additional routes that should keep this workspace selected. */
   matchRoutes?: WorkspaceRoute[];
-}
-
-export interface WorkspaceWorkflowGuide {
-  id: WorkspaceId;
-  label: string;
-  stepNumber: number | null;
-  role: string;
 }
 
 export interface SecondarySurface {
@@ -214,51 +207,6 @@ export interface ResolvedWorkspaceSummary {
   currentDepthLabel: string;
 }
 
-export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
-  {
-    id: "tokens",
-    label: "Tokens",
-    stepNumber: 1,
-    role: "Build and organize tokens and recipes.",
-  },
-  {
-    id: "themes",
-    label: "Themes",
-    stepNumber: 2,
-    role: "Define theme families and connect token sets.",
-  },
-  {
-    id: "apply",
-    label: "Apply",
-    stepNumber: 3,
-    role: "Apply tokens and inspect the canvas.",
-  },
-  {
-    id: "sync",
-    label: "Sync",
-    stepNumber: 4,
-    role: "Publish to Figma and export.",
-  },
-];
-
-export const AUDIT_WORKSPACE_GUIDE: WorkspaceWorkflowGuide = {
-  id: "audit",
-  label: "Audit",
-  stepNumber: null,
-    role: "Review issues, history, and dependencies.",
-};
-
-const WORKSPACE_WORKFLOW_GUIDES: Record<WorkspaceId, WorkspaceWorkflowGuide> = {
-  tokens: PRIMARY_WORKSPACE_SEQUENCE[0],
-  themes: PRIMARY_WORKSPACE_SEQUENCE[1],
-  apply: PRIMARY_WORKSPACE_SEQUENCE[2],
-  sync: PRIMARY_WORKSPACE_SEQUENCE[3],
-  audit: AUDIT_WORKSPACE_GUIDE,
-};
-
-export const PRIMARY_WORKSPACE_SEQUENCE_LABEL = PRIMARY_WORKSPACE_SEQUENCE.map(
-  (workspace) => workspace.label,
-).join(" -> ");
 
 export type ImportResultSourceType =
   | "variables"
@@ -446,40 +394,35 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
 
 export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
-    id: "tokens",
-    label: "Tokens",
-    summaryTitle: "Token library",
+    id: "define",
+    label: "Define",
+    summaryTitle: "Define",
     topTab: "define",
     subTab: "tokens",
-    transition: workspaceTransition("Browse and manage tokens."),
+    transition: workspaceTransition("Build and organize tokens."),
     sections: [
       {
         id: "tokens",
-        label: "Library",
-        summaryTitle: "Token library",
+        label: "Tokens",
+        summaryTitle: "Tokens",
         topTab: "define",
         subTab: "tokens",
         transition: workspaceTransition("Browse and edit tokens."),
       },
       {
-        id: "recipes",
-        label: "Recipes",
-        summaryTitle: "Recipes",
+        id: "themes",
+        label: "Themes",
+        summaryTitle: "Themes",
         topTab: "define",
-        subTab: "recipes",
-        transition: workspaceTransition("Create and adjust recipes."),
-
+        subTab: "themes",
+        transition: workspaceTransition("Set up theme families."),
       },
     ],
-    matchRoutes: [route("define", "tokens"), route("define", "recipes")],
-  },
-  {
-    id: "themes",
-    label: "Themes",
-    summaryTitle: "Theme setup",
-    topTab: "define",
-    subTab: "themes",
-    transition: workspaceTransition("Set up theme families and coverage."),
+    matchRoutes: [
+      route("define", "tokens"),
+      route("define", "themes"),
+      route("define", "recipes"),
+    ],
   },
   {
     id: "apply",
@@ -514,12 +457,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryTitle: "Sync",
     topTab: "sync",
     subTab: "publish",
-    transition: workspaceTransition("Sync to Figma and export."),
+    transition: workspaceTransition("Sync, export, and review."),
     sections: [
       {
         id: "publish",
-        label: "Figma Sync",
-        summaryTitle: "Figma Sync",
+        label: "Publish",
+        summaryTitle: "Publish",
         topTab: "sync",
         subTab: "publish",
         transition: workspaceTransition("Review and sync to Figma."),
@@ -532,45 +475,28 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         subTab: "export",
         transition: workspaceTransition("Export platform files."),
       },
-    ],
-    matchRoutes: [route("sync", "publish"), route("sync", "export")],
-  },
-  {
-    id: "audit",
-    label: "Audit",
-    summaryTitle: "Audit",
-    topTab: "sync",
-    subTab: "health",
-    transition: workspaceTransition("Review quality and history."),
-    sections: [
-      {
-        id: "health",
-        label: "Issues",
-        summaryTitle: "Issues",
-        topTab: "sync",
-        subTab: "health",
-        transition: workspaceTransition("Review issues and blockers."),
-      },
       {
         id: "history",
         label: "History",
-        summaryTitle: "Change history",
+        summaryTitle: "History",
         topTab: "sync",
         subTab: "history",
         transition: workspaceTransition("Review changes and snapshots."),
       },
       {
-        id: "dependencies",
-        label: "Dependencies",
-        summaryTitle: "Dependencies",
-        topTab: "apply",
-        subTab: "dependencies",
-        transition: contextualSubScreenTransition("Trace token relationships."),
+        id: "health",
+        label: "Health",
+        summaryTitle: "Health",
+        topTab: "sync",
+        subTab: "health",
+        transition: workspaceTransition("Review issues and blockers."),
       },
     ],
     matchRoutes: [
-      route("sync", "health"),
+      route("sync", "publish"),
+      route("sync", "export"),
       route("sync", "history"),
+      route("sync", "health"),
       route("apply", "dependencies"),
     ],
   },
@@ -931,8 +857,3 @@ export function resolveSecondarySurface(
   return SECONDARY_SURFACES.find((surface) => surface.id === id) ?? null;
 }
 
-export function getWorkspaceWorkflowGuide(
-  workspaceId: WorkspaceId,
-): WorkspaceWorkflowGuide {
-  return WORKSPACE_WORKFLOW_GUIDES[workspaceId];
-}

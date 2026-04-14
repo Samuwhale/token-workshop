@@ -33,14 +33,14 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   description: string;
 }> = {
   full: {
-    container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-2 py-2 text-center',
-    content: 'w-full max-w-[260px] space-y-2',
+    container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-2 py-1.5 text-center',
+    content: 'w-full max-w-[260px] space-y-1.5',
     title: 'text-[11px] font-medium',
     description: 'text-[10px] leading-snug',
   },
   section: {
-    container: 'flex w-full flex-col items-center justify-center px-2 py-1.5 text-center',
-    content: 'w-full max-w-[240px] space-y-1',
+    container: 'flex w-full flex-col items-center justify-center px-2 py-1 text-center',
+    content: 'w-full max-w-[240px] space-y-0.5',
     title: 'text-[10px] font-medium',
     description: 'text-[10px] leading-snug',
   },
@@ -120,7 +120,7 @@ function FeedbackActionButton({
       disabled={action.disabled}
       title={action.title}
       className={joinClasses(
-        'rounded-md px-3 py-1 text-[10px] font-medium transition-colors',
+        'rounded-md px-2.5 py-0.5 text-[10px] font-medium transition-colors',
         actionButtonClass(tone),
       )}
     >
@@ -147,13 +147,13 @@ export function FeedbackPlaceholder({
   return (
     <div className={joinClasses(sizeStyles.container, className)}>
       <div className={sizeStyles.content}>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1.5">
           {iconNode !== null ? (
             <div className={iconColor}>
               {iconNode}
             </div>
           ) : null}
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <h3 className={joinClasses(sizeStyles.title, 'text-[var(--color-figma-text)]')}>{title}</h3>
             {description ? (
               <div className={joinClasses(sizeStyles.description, 'text-[var(--color-figma-text-secondary)]')}>

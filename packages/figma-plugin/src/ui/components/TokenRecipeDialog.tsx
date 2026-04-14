@@ -125,12 +125,12 @@ export function TokenRecipeDialog({
 
   const saveLabel = (() => {
     if (!dialog.showConfirmation) {
-      return dialog.isEditing ? "Review Changes" : "Review Recipe";
+      return "Review";
     }
     if (dialog.saving)
       return dialog.isEditing ? "Saving\u2026" : "Creating\u2026";
     if (dialog.overwriteCheckLoading) return "Checking\u2026";
-    if (dialog.previewReviewStale) return "Review Updated Preview";
+    if (dialog.previewReviewStale) return "Review update";
     const aliasCount = dialog.semanticEnabled
       ? dialog.semanticMappings.filter((m) => m.semantic.trim()).length
       : 0;
@@ -138,8 +138,8 @@ export function TokenRecipeDialog({
       return `Save Changes (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`;
     }
     return aliasCount > 0
-      ? `Create Recipe (+${aliasCount} aliases)`
-      : "Create Recipe";
+      ? `Create (+${aliasCount} aliases)`
+      : "Create";
   })();
 
   // --- Missing field hints ---
@@ -215,10 +215,10 @@ export function TokenRecipeDialog({
       className="text-[12px] font-semibold text-[var(--color-figma-text)]"
     >
       {dialog.isEditing
-        ? "Edit Recipe"
+        ? "Edit recipe"
         : template
           ? template.label
-          : "New Recipe"}
+          : "New recipe"}
     </span>
   );
   const headerActions = (
@@ -263,7 +263,7 @@ export function TokenRecipeDialog({
           }
           className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
         >
-          {dialog.showConfirmation ? "Back to Edit" : "Cancel"}
+          {dialog.showConfirmation ? "Back" : "Cancel"}
         </button>
         <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
           <button
@@ -300,15 +300,9 @@ export function TokenRecipeDialog({
         >
           {existingRecipe?.detachedPaths &&
             existingRecipe.detachedPaths.length > 0 && (
-              <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                <p className="text-[var(--color-figma-text)]">
-                  {existingRecipe.detachedPaths.length} output
-                  {existingRecipe.detachedPaths.length === 1 ? "" : "s"}{" "}
-                  detached from this recipe.
-                </p>
-                <p className="mt-1">
-                  Detached tokens remain manual until recreated by the recipe.
-                </p>
+              <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text)]">
+                {existingRecipe.detachedPaths.length} detached output
+                {existingRecipe.detachedPaths.length === 1 ? "" : "s"}
               </div>
             )}
 

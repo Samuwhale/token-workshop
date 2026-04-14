@@ -521,7 +521,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
               <line x1="8" y1="21" x2="16" y2="21"/>
               <line x1="12" y1="17" x2="12" y2="21"/>
             </svg>
-            <p className="text-[11px] text-center">No tokens loaded.<br />Connect to a server with tokens to preview them.</p>
+            <p className="text-[11px] text-center">No tokens loaded.</p>
           </div>
         ) : (
           <div

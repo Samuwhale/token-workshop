@@ -93,7 +93,7 @@ export function ThemeAxisCard({
       }}
       className="border-b border-[var(--color-figma-border)]"
     >
-      <div className="group flex items-center gap-2 bg-[var(--color-figma-bg-secondary)] px-3 py-1.5">
+      <div className="group flex items-center gap-2 bg-[var(--color-figma-bg-secondary)] px-2.5 py-1">
         <button
           type="button"
           onClick={() => ctx.onSelectDimension(dimension.id)}
@@ -210,12 +210,12 @@ export function ThemeAxisCard({
                   <div
                     ref={axisMenu.menuRef}
                     role="menu"
-                    className="absolute right-0 top-full z-50 mt-1 w-[160px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
+                    className="absolute right-0 top-full z-50 mt-1 w-[140px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
                   >
                     <button
                       role="menuitem"
                       onClick={() => { axisMenu.close(); ctx.startRenameDim(dimension.id, dimension.name); }}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                      className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Rename
                     </button>
@@ -223,7 +223,7 @@ export function ThemeAxisCard({
                       role="menuitem"
                       onClick={() => { axisMenu.close(); ctx.handleMoveDimension(dimension.id, "up"); }}
                       disabled={dimensionIndex === 0}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
+                      className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
                       Move up
                     </button>
@@ -231,7 +231,7 @@ export function ThemeAxisCard({
                       role="menuitem"
                       onClick={() => { axisMenu.close(); ctx.handleMoveDimension(dimension.id, "down"); }}
                       disabled={dimensionIndex === totalDimensions - 1}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
+                      className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
                       Move down
                     </button>
@@ -239,7 +239,7 @@ export function ThemeAxisCard({
                       role="menuitem"
                       onClick={() => { axisMenu.close(); ctx.handleDuplicateDimension(dimension.id); }}
                       disabled={ctx.isDuplicatingDim}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
+                      className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-35 disabled:pointer-events-none"
                     >
                       Duplicate
                     </button>
@@ -247,14 +247,14 @@ export function ThemeAxisCard({
                     <button
                       role="menuitem"
                       onClick={() => { axisMenu.close(); ctx.onOpenCompare(dimension.id); }}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                      className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Compare
                     </button>
                     <button
                       role="menuitem"
                       onClick={() => { axisMenu.close(); ctx.onOpenResolver(); }}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                      className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
                       Resolver
                     </button>
@@ -262,7 +262,7 @@ export function ThemeAxisCard({
                     <button
                       role="menuitem"
                       onClick={() => { axisMenu.close(); ctx.openDeleteConfirm(dimension.id); }}
-                      className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+                      className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
                     >
                       Delete
                     </button>
@@ -331,8 +331,8 @@ export function ThemeAxisCard({
               }}
               placeholder={
                 dimension.options.length === 0
-                  ? "First variant (e.g. Light, Dark)"
-                  : "Variant name"
+                  ? "e.g. Light, Dark"
+                  : "Name"
               }
               className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
                 addOptionError
@@ -373,7 +373,7 @@ export function ThemeAxisCard({
           {dimension.options.length > 0 && (
             <div className="mt-1 flex items-center gap-1">
               <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                Copy setup from:
+                Copy from:
               </span>
               <select
                 value={copyFromNewOption}
@@ -385,7 +385,7 @@ export function ThemeAxisCard({
                 }
                 className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[9px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               >
-                <option value="">None (start empty)</option>
+                <option value="">Empty</option>
                 {dimension.options.map((item: ThemeOption) => (
                   <option key={item.name} value={item.name}>
                     {item.name}
