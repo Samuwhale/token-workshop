@@ -118,10 +118,10 @@ const THEME_ISSUE_KIND_WEIGHT: Record<ThemeIssueKind, number> = {
 };
 
 const THEME_ISSUE_KIND_LABEL: Record<ThemeIssueKind, string> = {
-  "stale-set": "deleted token sources",
-  "empty-override": "empty override sets",
-  "missing-override": "missing override coverage",
-  "coverage-gap": "coverage gaps",
+  "stale-set": "broken set links",
+  "empty-override": "empty overrides",
+  "missing-override": "missing override values",
+  "coverage-gap": "missing token values",
 };
 
 const THEME_ISSUE_GROUP_COPY: Record<
@@ -129,20 +129,20 @@ const THEME_ISSUE_GROUP_COPY: Record<
   { title: string; description: string }
 > = {
   "stale-set": {
-    title: "Deleted token sources",
-    description: "Options reference deleted sets.",
+    title: "Broken set links",
+    description: "Mode values still point at token sets that no longer exist.",
   },
   "empty-override": {
-    title: "Empty override sets",
-    description: "Assigned override sets are empty.",
+    title: "Empty overrides",
+    description: "Override sets are linked, but they do not contain any tokens yet.",
   },
   "missing-override": {
-    title: "Missing override coverage",
-    description: "Base tokens missing from override layer.",
+    title: "Missing override values",
+    description: "Defaults are present, but the override set is still missing matching token values.",
   },
   "coverage-gap": {
-    title: "Coverage gaps",
-    description: "Unresolved values in the active stack.",
+    title: "Missing token values",
+    description: "Some tokens still cannot resolve in the selected mode value.",
   },
 };
 
@@ -189,9 +189,9 @@ export function summarizeThemeIssueHealth(
 
   const totalCount = issues.reduce((sum, issue) => sum + issue.count, 0);
   const description =
-    `${totalCount} issue${totalCount === 1 ? "" : "s"} across ${formatThemeIssueKindList(
+    `${totalCount} issue${totalCount === 1 ? "" : "s"}: ${formatThemeIssueKindList(
       issues.map((issue) => issue.kind),
-    )}. Review them before previewing.`;
+    )}`;
 
   return {
     totalCount,
@@ -273,11 +273,10 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: summary.staleSetCount,
-      title: "Deleted token sources",
-      summary: `${summary.staleSetCount} deleted source${summary.staleSetCount === 1 ? "" : "s"}.`,
-      recommendedNextAction:
-        "Remove or replace deleted sources.",
-      actionLabel: "View set",
+      title: "Broken set links",
+      summary: `${summary.staleSetCount} linked set${summary.staleSetCount === 1 ? "" : "s"} no longer exist`,
+      recommendedNextAction: "Replace the missing set or remove the link.",
+      actionLabel: "Reconnect",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: summary.staleSetNames,
     });
@@ -291,11 +290,10 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: summary.emptyOverrideCount,
-      title: "Empty override sets",
-      summary: `${summary.emptyOverrideCount} empty override set${summary.emptyOverrideCount === 1 ? "" : "s"}.`,
-      recommendedNextAction:
-        "Add tokens or reassign to base.",
-      actionLabel: "View set",
+      title: "Empty overrides",
+      summary: `${summary.emptyOverrideCount} override set${summary.emptyOverrideCount === 1 ? "" : "s"} has no tokens yet`,
+      recommendedNextAction: "Add tokens to the override set or switch it back to default.",
+      actionLabel: "Review",
       preferredSetName: pickPreferredSetName(
         orderedSets,
         availableSets,
@@ -316,11 +314,10 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: missingOverrideCount,
-      title: "Missing override coverage",
-      summary: `${missingOverrideCount} base token${missingOverrideCount === 1 ? "" : "s"} missing from override layer.`,
-      recommendedNextAction:
-        "Review missing tokens.",
-      actionLabel: "View tokens",
+      title: "Missing override values",
+      summary: `${missingOverrideCount} default token${missingOverrideCount === 1 ? "" : "s"} still needs an override value`,
+      recommendedNextAction: "Open the linked override set and add the missing token values.",
+      actionLabel: "Open set",
       preferredSetName: pickPreferredSetName(
         orderedSets,
         availableSets,
@@ -338,11 +335,10 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: uncoveredCount,
-      title: "Unresolved coverage gaps",
-      summary: `${uncoveredCount} unresolved value${uncoveredCount === 1 ? "" : "s"} in active stack.`,
-      recommendedNextAction:
-        "Fill or create missing tokens.",
-      actionLabel: "View tokens",
+      title: "Missing token values",
+      summary: `${uncoveredCount} token${uncoveredCount === 1 ? "" : "s"} still cannot resolve`,
+      recommendedNextAction: "Open the destination set and fill or create the missing tokens.",
+      actionLabel: "Open set",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: [],
     });
@@ -418,12 +414,12 @@ export function summarizeThemeWorkflow(
           ? "unmapped"
           : (topIssue?.kind ?? "coverage-gap"),
         recommendedNextAction: summary.isUnmapped
-          ? "Assign a set so this option can contribute tokens."
+          ? "Choose which token sets stay default and which ones override in this value."
           : (topIssue?.recommendedNextAction ??
-            "Resolve outstanding issues."),
+            "Resolve the remaining setup issues."),
         actionLabel: summary.isUnmapped
-          ? "Assign sets"
-          : (topIssue?.actionLabel ?? "View set"),
+          ? "Map sets"
+          : (topIssue?.actionLabel ?? "Fix"),
         preferredSetName: summary.isUnmapped
           ? pickPreferredSetName(availableSets, availableSets)
           : (topIssue?.preferredSetName ??

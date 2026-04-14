@@ -28,10 +28,13 @@ export interface ThemeResolverAuthoringContext {
   resolverDescription: string | null;
   resolverCount: number;
   autoSelected: boolean;
+  selectionOriginLabel: string;
   matchedAxisCount: number;
   issueCount: number;
   issueAxisCount: number;
   unmatchedModifierCount: number;
+  setupSummary: string;
+  recommendedActionLabel: string;
   axes: ThemeResolverAxisContext[];
   unmatchedModifiers: ThemeResolverModifierSummary[];
 }
@@ -201,7 +204,7 @@ export function buildThemeResolverAuthoringContext({
 
     if (!exactModifierName) {
       const issueMessages = [
-        `No output config mode matches "${dimension.name}".`,
+        `No output switch matches "${dimension.name}".`,
       ];
       return {
         dimensionId: dimension.id,
@@ -237,17 +240,17 @@ export function buildThemeResolverAuthoringContext({
 
     if (selectedOptionName && !matchedContextName) {
       issueMessages.push(
-        `"${selectedOptionName}" is not available as an output config option.`,
+        `"${selectedOptionName}" is not available in this output.`,
       );
     }
     if (missingContexts.length > 0) {
       issueMessages.push(
-        `Missing options: ${missingContexts.join(", ")}.`,
+        `Missing values: ${missingContexts.join(", ")}.`,
       );
     }
     if (extraContexts.length > 0) {
       issueMessages.push(
-        `Config-only options: ${extraContexts.join(", ")}.`,
+        `Output-only values: ${extraContexts.join(", ")}.`,
       );
     }
 
@@ -289,16 +292,28 @@ export function buildThemeResolverAuthoringContext({
   const unmatchedModifierCount = unmatchedModifiers.length;
   const issueCount =
     issueAxisCount + unmatchedModifierCount;
+  const selectionOriginLabel = autoSelected
+    ? "Suggested from your theme setup"
+    : "Selected output";
+  const setupSummary =
+    issueCount === 0
+      ? "Every mode is connected to an output switch."
+      : `${issueCount} mapping issue${issueCount === 1 ? "" : "s"} still need review.`;
+  const recommendedActionLabel =
+    issueCount === 0 ? "Review output" : "Fix mappings";
 
   return {
     resolverName: resolver.name,
     resolverDescription: resolver.description?.trim() || null,
     resolverCount: resolvers.length,
     autoSelected,
+    selectionOriginLabel,
     matchedAxisCount: axes.filter((axis) => axis.status === "matched").length,
     issueCount,
     issueAxisCount,
     unmatchedModifierCount,
+    setupSummary,
+    recommendedActionLabel,
     axes,
     unmatchedModifiers,
   };

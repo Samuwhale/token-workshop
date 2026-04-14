@@ -1,5 +1,6 @@
 /**
- * Step 3 (top half) — Destination: output path, name, set, and multi-brand controls.
+ * Destination fields: output path, name, set, and multi-brand controls.
+ * Rendered inline within StepSource or standalone.
  */
 import type { InputTable, InputTableRow } from '../../hooks/useRecipes';
 import { AUTHORING } from '../../shared/editorClasses';
@@ -79,6 +80,8 @@ export interface StepWhereProps {
   onToggleMultiBrand: () => void;
   inputTable: InputTable | undefined;
   onInputTableChange: (t: InputTable) => void;
+  /** When true, renders fields only without the outer section/card wrapper */
+  inline?: boolean;
 }
 
 export function StepWhere({
@@ -95,10 +98,11 @@ export function StepWhere({
   onToggleMultiBrand,
   inputTable,
   onInputTableChange,
+  inline = false,
 }: StepWhereProps) {
-  return (
-    <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
-      <div className={`${AUTHORING.recipeSectionCard} ${AUTHORING.recipeFieldGrid}`}>
+  const fields = (
+    <>
+      <div className={`${inline ? '' : AUTHORING.recipeSectionCard} ${AUTHORING.recipeFieldGrid}`}>
         <div className={AUTHORING.recipeFieldStack}>
           <label htmlFor="step-where-target-group" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Output path</label>
           <input
@@ -107,7 +111,7 @@ export function StepWhere({
             value={targetGroup}
             onChange={e => onTargetGroupChange(e.target.value)}
             placeholder="colors.primary"
-            autoFocus
+            autoFocus={!inline}
             className={`${AUTHORING.recipeControlMono} ${
               !targetGroup.trim() ? 'border-[var(--color-figma-error)]/50' : 'border-[var(--color-figma-border)]'
             }`}
@@ -133,7 +137,7 @@ export function StepWhere({
         </div>
       </div>
 
-      <div className={AUTHORING.recipeSectionCard}>
+      <div className={inline ? '' : AUTHORING.recipeSectionCard}>
         <div className={AUTHORING.recipeFieldGrid}>
           {!isMultiBrand && (
             <div className={AUTHORING.recipeFieldStack}>
@@ -184,6 +188,14 @@ export function StepWhere({
           <InputTableEditor table={inputTable} onChange={onInputTableChange} />
         )}
       </div>
+    </>
+  );
+
+  if (inline) return <div className="flex flex-col gap-3">{fields}</div>;
+
+  return (
+    <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
+      {fields}
     </section>
   );
 }

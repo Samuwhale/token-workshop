@@ -73,7 +73,7 @@ export function DepthBar({ depth }: { depth: number }) {
     <span
       aria-hidden="true"
       className="absolute top-0 bottom-0 pointer-events-none"
-      style={{ left: 4, width: 2, background: color, borderRadius: 1 }}
+      style={{ left: 0, width: 2, background: color, borderRadius: 1 }}
     />
   );
 }

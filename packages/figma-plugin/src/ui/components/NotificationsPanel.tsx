@@ -14,13 +14,13 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "define" | "apply" | "sync";
+      topTab: "tokens" | "recipes" | "themes" | "inspect" | "sync";
       subTab:
         | "tokens"
         | "themes"
         | "recipes"
         | "inspect"
-        | "dependencies"
+        | "canvas-analysis"
         | "publish"
         | "export"
         | "history"
@@ -129,7 +129,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   if (lower.includes("recipe")) {
     return {
       label: "Open recipes",
-      target: { kind: "workspace", topTab: "define", subTab: "recipes" },
+      target: { kind: "workspace", topTab: "recipes", subTab: "recipes" },
     };
   }
   if (
@@ -139,7 +139,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open modes",
-      target: { kind: "workspace", topTab: "define", subTab: "themes" },
+      target: { kind: "workspace", topTab: "themes", subTab: "themes" },
     };
   }
   if (
@@ -185,18 +185,18 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open apply",
-      target: { kind: "workspace", topTab: "apply", subTab: "inspect" },
+      target: { kind: "workspace", topTab: "inspect", subTab: "inspect" },
     };
   }
   if (lower.includes("dependency") || lower.includes("alias")) {
     return {
       label: "Open dependencies",
-      target: { kind: "workspace", topTab: "apply", subTab: "dependencies" },
+      target: { kind: "workspace", topTab: "sync", subTab: "health" },
     };
   }
   return {
     label: "Open tokens",
-    target: { kind: "workspace", topTab: "define", subTab: "tokens" },
+    target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },
   };
 }
 
@@ -340,7 +340,7 @@ export function NotificationsPanel({
         reason:
           "Inspect the token referenced by this notification, then return to Notifications.",
       });
-      navigateTo("define", "tokens", { preserveHandoff: true });
+      navigateTo("tokens", "tokens", { preserveHandoff: true });
       if (targetSet === activeSet) {
         setHighlightedToken(action.target.tokenPath);
       } else {

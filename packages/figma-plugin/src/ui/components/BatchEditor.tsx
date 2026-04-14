@@ -5,7 +5,7 @@ import type { Token, TokenValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
 import { apiFetch } from '../shared/apiFetch';
-import { FIGMA_SCOPES } from './MetadataEditor';
+import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { isAlias } from '../../shared/resolveAlias';
 import { LONG_TEXT_CLASSES } from '../shared/longTextStyles';
@@ -284,12 +284,12 @@ export function BatchEditor({
     const types = [...new Set(selectedEntries.map(x => x.entry.$type).filter(Boolean))];
     if (types.length === 0) return [];
     // Start with the scopes of the first type, intersect with the rest
-    const first = FIGMA_SCOPES[types[0]];
+    const first = FIGMA_SCOPE_OPTIONS[types[0]];
     if (!first) return [];
     if (types.length === 1) return first;
     // Intersect: only keep scopes whose value exists in all types
     return first.filter(scope =>
-      types.every(t => FIGMA_SCOPES[t]?.some(s => s.value === scope.value))
+      types.every(t => FIGMA_SCOPE_OPTIONS[t]?.some(s => s.value === scope.value))
     );
   }, [selectedEntries]);
 

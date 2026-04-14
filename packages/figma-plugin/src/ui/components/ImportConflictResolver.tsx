@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useImportReviewContext, useImportSourceContext } from './ImportPanelContext';
 import { renderConflictValue } from './importPanelHelpers';
 
@@ -22,7 +22,8 @@ export function ImportConflictResolver() {
     executeImport,
   } = useImportReviewContext();
 
-  // Stable-ref pattern: handler is replaced each render so it always captures fresh closures
+  const [showFilters, setShowFilters] = useState(false);
+
   const handlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
 
   useEffect(() => {
@@ -31,7 +32,6 @@ export function ImportConflictResolver() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Clear handler when no conflicts so shortcuts are inactive
   handlerRef.current = null;
 
   if (!conflictPaths || conflictPaths.length === 0) return null;
@@ -43,22 +43,6 @@ export function ImportConflictResolver() {
   const totalToImport = newCount + overwriteCount + mergeCount;
   const hasActiveFilter = conflictSearch !== '' || conflictStatusFilter !== 'all' || conflictTypeFilter !== 'all';
   const searchLower = conflictSearch.toLowerCase();
-  const isUniformReview =
-    overwriteCount === conflictPaths.length ||
-    mergeCount === conflictPaths.length ||
-    keepExistingCount === conflictPaths.length;
-  const recommendedActionKey =
-    overwriteCount === conflictPaths.length
-      ? 'overwrite'
-      : mergeCount === conflictPaths.length
-        ? 'merge'
-        : keepExistingCount === conflictPaths.length
-          ? 'skip'
-          : null;
-  const recommendedAction = recommendedActionKey ? reviewActionCopy[recommendedActionKey] : null;
-  const reviewSummary = recommendedAction
-    ? { detail: `${recommendedAction.consequence}${newCount > 0 ? ` +${newCount} new.` : ''}` }
-    : { detail: `${overwriteCount} overwrite, ${mergeCount} merge, ${keepExistingCount} keep.${newCount > 0 ? ` +${newCount} new.` : ''}` };
 
   const getFilteredPaths = () => conflictPaths.filter(path => {
     if (searchLower && !path.toLowerCase().includes(searchLower)) return false;
@@ -80,7 +64,6 @@ export function ImportConflictResolver() {
     setConflictDecisions(next);
   };
 
-  // Register keyboard handler with current-render closures
   handlerRef.current = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       if (!importing) clearConflictState();
@@ -99,7 +82,6 @@ export function ImportConflictResolver() {
     if (t?.$type) conflictTypes.add(t.$type);
   }
   const sortedConflictTypes = [...conflictTypes].sort();
-
   const filteredConflictPaths = getFilteredPaths();
 
   return (
@@ -107,58 +89,62 @@ export function ImportConflictResolver() {
       {/* Summary + bulk actions */}
       <div className="flex items-center justify-between gap-2">
         <div className="text-[10px] text-[var(--color-figma-text)]">
-          <span className="font-medium">{conflictPaths.length} conflict{conflictPaths.length !== 1 ? 's' : ''}</span>
+          <span className="font-medium">{conflictPaths.length}</span> conflict{conflictPaths.length !== 1 ? 's' : ''}
           {newCount > 0 && <span className="text-[var(--color-figma-text-secondary)]"> + {newCount} new</span>}
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => applyToVisible('accept')}
-            title={`${reviewActionCopy.overwrite.label} ${hasActiveFilter ? 'visible' : 'all'} (A)`}
-            aria-keyshortcuts="a"
-            className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10 transition-colors"
-          >
-            {reviewActionCopy.overwrite.label}{hasActiveFilter ? ' visible' : ' all'}
-          </button>
-          <button
-            onClick={() => applyToVisible('merge')}
-            title={`${reviewActionCopy.merge.label} ${hasActiveFilter ? 'visible' : 'all'} (M)`}
-            aria-keyshortcuts="m"
-            className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-          >
-            {reviewActionCopy.merge.label}{hasActiveFilter ? ' visible' : ' all'}
-          </button>
-          <button
-            onClick={() => applyToVisible('reject')}
-            title={`${reviewActionCopy.skip.label} ${hasActiveFilter ? 'visible' : 'all'} (R)`}
-            aria-keyshortcuts="r"
-            className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30 transition-colors"
-          >
-            {reviewActionCopy.skip.label}{hasActiveFilter ? ' visible' : ' all'}
-          </button>
+        <div className="flex items-center gap-0.5">
+          {(['accept', 'merge', 'reject'] as const).map(d => (
+            <button
+              key={d}
+              onClick={() => applyToVisible(d)}
+              title={`${d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}${hasActiveFilter ? ' visible' : ' all'}`}
+              className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${
+                d === 'accept'
+                  ? 'text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10'
+                  : d === 'merge'
+                    ? 'text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10'
+                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30'
+              }`}
+            >
+              {d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}
+            </button>
+          ))}
         </div>
       </div>
 
+      {/* Compact status line */}
       <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-        {reviewSummary.detail}
+        {overwriteCount} overwrite, {mergeCount} merge, {keepExistingCount} keep{newCount > 0 ? ` + ${newCount} new` : ''}
       </div>
 
-      {/* Search + filters */}
-      <div className="flex flex-col gap-1">
-        <div className="relative">
-          <svg className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input
-            type="text"
-            value={conflictSearch}
-            onChange={e => setConflictSearch(e.target.value)}
-            placeholder="Search conflicts…"
-            className="w-full pl-6 pr-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
-          />
-        </div>
+      {/* Search + filter toggle — show search inline, filters on demand */}
+      <div className="flex items-center gap-1">
+        <input
+          type="text"
+          value={conflictSearch}
+          onChange={e => setConflictSearch(e.target.value)}
+          placeholder="Search..."
+          className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+        />
+        {(sortedConflictTypes.length > 1 || conflictPaths.length > 5) && (
+          <button
+            onClick={() => setShowFilters(v => !v)}
+            className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${
+              showFilters || hasActiveFilter
+                ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30'
+            }`}
+          >
+            Filter
+          </button>
+        )}
+      </div>
+      {showFilters && (
         <div className="flex items-center gap-1">
           <select
             value={conflictStatusFilter}
             onChange={e => setConflictStatusFilter(e.target.value as 'all' | 'accept' | 'merge' | 'reject')}
-            className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+            className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
           >
             <option value="all">All status</option>
             <option value="accept">{reviewActionCopy.overwrite.label}</option>
@@ -169,19 +155,19 @@ export function ImportConflictResolver() {
             <select
               value={conflictTypeFilter}
               onChange={e => setConflictTypeFilter(e.target.value)}
-              className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
             >
               <option value="all">All types</option>
               {sortedConflictTypes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Per-token conflict list */}
+      {/* Conflict list */}
       {filteredConflictPaths.length === 0 ? (
-        <div className="px-2 py-3 text-center text-[10px] text-[var(--color-figma-text-tertiary)] rounded border border-[var(--color-figma-border)]">
-          No conflicts match{conflictSearch ? ` "${conflictSearch}"` : ''}{conflictStatusFilter !== 'all' ? ` (${conflictStatusFilter})` : ''}{conflictTypeFilter !== 'all' ? ` [${conflictTypeFilter}]` : ''}
+        <div className="px-2 py-2 text-center text-[10px] text-[var(--color-figma-text-tertiary)] rounded border border-[var(--color-figma-border)]">
+          No conflicts match filters
         </div>
       ) : (
         <div className="max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
@@ -190,9 +176,8 @@ export function ImportConflictResolver() {
             const incoming = tokens.find(t => t.path === path);
             const existing = conflictExistingValues?.get(path);
             return (
-              <div key={path} className="px-2 py-1.5 bg-[var(--color-figma-bg)]">
-                {/* Path + toggle */}
-                <div className="flex items-center justify-between gap-1 mb-1">
+              <div key={path} className="px-2 py-1 bg-[var(--color-figma-bg)]">
+                <div className="flex items-center justify-between gap-1 mb-0.5">
                   <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={path}>
                     {path}
                   </span>
@@ -210,14 +195,7 @@ export function ImportConflictResolver() {
                           setConflictDecisions(next);
                         }}
                         aria-pressed={decision === d}
-                        title={
-                          d === 'accept'
-                            ? `${reviewActionCopy.overwrite.label}: ${reviewActionCopy.overwrite.consequence}`
-                            : d === 'merge'
-                              ? `${reviewActionCopy.merge.label}: ${reviewActionCopy.merge.consequence}`
-                              : `${reviewActionCopy.skip.label}: ${reviewActionCopy.skip.consequence}`
-                        }
-                        className={`px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
+                        className={`px-1 py-0.5 text-[9px] font-medium transition-colors ${
                           i > 0 ? 'border-l border-[var(--color-figma-border)]' : ''
                         } ${
                           decision === d
@@ -226,46 +204,31 @@ export function ImportConflictResolver() {
                               : d === 'merge'
                                 ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
                                 : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
-                            : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/20'
+                            : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
                         }`}
                       >
-                        {d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}
+                        {d === 'accept' ? 'O' : d === 'merge' ? 'M' : 'K'}
                       </button>
                     ))}
                   </div>
                 </div>
-                {/* Value diff — two-column side-by-side */}
-                <div className="grid grid-cols-2 gap-x-2 mt-0.5 text-[10px] font-mono rounded border border-[var(--color-figma-border)] overflow-hidden">
-                  <div className="flex flex-col gap-0.5 px-1.5 py-1 bg-[var(--color-figma-error)]/5 border-r border-[var(--color-figma-border)] min-w-0">
-                    <span className="text-[9px] font-sans font-medium text-[var(--color-figma-error)] opacity-70 leading-none mb-0.5">Current</span>
-                    <span className="flex items-center gap-1 text-[var(--color-figma-text-secondary)] truncate min-w-0" title={String(existing?.$value ?? '—')}>
+                {/* Value diff */}
+                <div className="grid grid-cols-2 gap-x-1 text-[10px] font-mono rounded overflow-hidden">
+                  <div className="flex items-center gap-1 min-w-0 px-1 py-0.5 bg-[var(--color-figma-error)]/5">
+                    <span className="text-[var(--color-figma-text-secondary)] truncate flex items-center gap-1">
                       {renderConflictValue(existing?.$type ?? 'unknown', existing?.$value)}
                     </span>
                   </div>
-                  <div className={`flex flex-col gap-0.5 px-1.5 py-1 min-w-0 ${
-                    decision === 'reject'
-                      ? 'opacity-50'
-                      : 'bg-[var(--color-figma-success,#16a34a)]/5'
+                  <div className={`flex items-center gap-1 min-w-0 px-1 py-0.5 ${
+                    decision === 'reject' ? 'opacity-40' : 'bg-[var(--color-figma-success,#16a34a)]/5'
                   }`}>
-                    <span className={`text-[9px] font-sans font-medium leading-none mb-0.5 ${
-                      decision === 'reject'
-                        ? 'text-[var(--color-figma-text-tertiary)]'
-                        : 'text-[var(--color-figma-success,#16a34a)] opacity-70'
-                    }`}>Incoming</span>
-                    <span className={`flex items-center gap-1 truncate min-w-0 ${
-                      decision === 'reject'
-                        ? 'text-[var(--color-figma-text-secondary)] line-through'
-                        : 'text-[var(--color-figma-text)]'
-                    }`} title={String(incoming?.$value ?? '—')}>
+                    <span className={`truncate flex items-center gap-1 ${
+                      decision === 'reject' ? 'text-[var(--color-figma-text-secondary)] line-through' : 'text-[var(--color-figma-text)]'
+                    }`}>
                       {renderConflictValue(incoming?.$type ?? 'unknown', incoming?.$value)}
                     </span>
                   </div>
                 </div>
-                {decision === 'merge' && (
-                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5 ml-0.5">
-                    Value updates · metadata preserved
-                  </div>
-                )}
               </div>
             );
           })}
@@ -288,16 +251,14 @@ export function ImportConflictResolver() {
       >
         {importing
           ? importProgress
-            ? `Importing ${importProgress.done}/${importProgress.total}…`
-            : 'Importing…'
+            ? `Importing ${importProgress.done}/${importProgress.total}...`
+            : 'Importing...'
           : totalToImport === 0
             ? 'No tokens to import'
-            : isUniformReview && recommendedAction
-              ? `${recommendedAction.buttonLabel} and import ${totalToImport} token${totalToImport !== 1 ? 's' : ''}`
-              : `Apply review and import ${totalToImport} token${totalToImport !== 1 ? 's' : ''}`}
+            : `Import ${totalToImport} token${totalToImport !== 1 ? 's' : ''}`}
       </button>
       {importing && importProgress && importProgress.total > 0 && (
-        <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
+        <div className="w-full h-1 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
           <div
             className="h-full rounded-full bg-[var(--color-figma-accent)] transition-all duration-300"
             style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }}
@@ -307,8 +268,6 @@ export function ImportConflictResolver() {
       <button
         onClick={() => clearConflictState()}
         disabled={importing}
-        title="Back (Esc)"
-        aria-keyshortcuts="Escape"
         className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
       >
         Back

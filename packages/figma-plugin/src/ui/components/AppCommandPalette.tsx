@@ -95,7 +95,7 @@ export function AppCommandPalette({
       recentTokens={recentPaletteTokens}
       onGoToToken={(path) => {
         const targetSet = pathToSet[path];
-        navigateTo("define", "tokens");
+        navigateTo("tokens");
         setEditingToken(null);
         if (targetSet && targetSet !== activeSet) {
           setActiveSet(targetSet);
@@ -105,7 +105,7 @@ export function AppCommandPalette({
         setHighlightedToken(path);
       }}
       onGoToGroup={(groupPath) => {
-        navigateTo("define", "tokens");
+        navigateTo("tokens");
         setEditingToken(null);
         setHighlightedToken(groupPath);
       }}

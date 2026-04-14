@@ -29,8 +29,8 @@ export type Density = "compact" | "comfortable";
 
 /** Row height (px) per density level */
 export const DENSITY_ROW_HEIGHT: Record<Density, number> = {
-  compact: 24,
-  comfortable: 30,
+  compact: 28,
+  comfortable: 34,
 };
 
 /** Swatch / preview size (px) per density level */
@@ -41,7 +41,7 @@ export const DENSITY_SWATCH_SIZE: Record<Density, number> = {
 
 /** Tailwind py class per density level */
 export const DENSITY_PY_CLASS: Record<Density, string> = {
-  compact: "py-px",
+  compact: "py-0.5",
   comfortable: "py-1",
 };
 
@@ -50,7 +50,7 @@ export const DENSITY_PY_CLASS: Record<Density, string> = {
 // ---------------------------------------------------------------------------
 
 /** Single source of truth for indentation per nesting level (px) */
-export const INDENT_PER_LEVEL = 12;
+export const INDENT_PER_LEVEL = 8;
 
 /** Maximum depth shown as distinct indent levels when condensed view is on */
 export const CONDENSED_MAX_DEPTH = 3;
@@ -380,6 +380,8 @@ export interface TokenTreeGroupActionsContextType {
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
   onEditRecipe?: (recipeId: string) => void;
+  /** Navigate to the Recipes tab with the given recipe focused */
+  onNavigateToRecipe?: (recipeId: string) => void;
   /** One-click regenerate a specific recipe (by id) — runs POST /api/recipes/:id/run */
   onRegenerateRecipe?: (recipeId: string) => Promise<void>;
   onDetachRecipeGroup?: (

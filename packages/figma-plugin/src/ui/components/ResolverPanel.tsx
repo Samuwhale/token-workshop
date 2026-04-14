@@ -1,12 +1,8 @@
 /**
- * ResolverPanel — UI for managing DTCG v2025.10 output configs.
- *
- * Shows a list of configs, lets users create/delete them, migrate
- * from modes, select options, and preview resolved tokens.
+ * ResolverPanel — UI for managing token outputs.
  *
  * `ResolverContent` is the embeddable version (no outer header) used
- * inside ThemeManager's advanced mode. `ResolverPanel` adds a standalone
- * header.
+ * inside ThemeManager. `ResolverPanel` adds a standalone header.
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -18,7 +14,7 @@ import { Spinner } from './Spinner';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { swatchBgColor } from '../shared/colorUtils';
-import { InlineBanner } from './InlineBanner';
+
 
 export interface ResolverContentProps {
   serverUrl: string;
@@ -56,6 +52,10 @@ interface EditFormState {
   modifiers: Record<string, { defaultContext: string }>;
 }
 
+function formatCountLabel(count: number, label: string) {
+  return `${count} ${label}${count === 1 ? '' : 's'}`;
+}
+
 function ResolverInner({
   serverUrl,
   connected,
@@ -76,7 +76,7 @@ function ResolverInner({
   getResolverFile,
   updateResolver,
   onSuccess,
-  showHeader: _showHeader,
+  showHeader,
 }: ResolverContentProps & { showHeader: boolean }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
@@ -97,7 +97,7 @@ function ResolverInner({
     setMigrateError(null);
     try {
       await convertFromThemes();
-      onSuccess?.('Converted modes to output config');
+      onSuccess?.('Generated output from modes');
     } catch (err) {
       setMigrateError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -130,7 +130,7 @@ function ResolverInner({
       setNewName('');
       setCreating(false);
       fetchResolvers();
-      onSuccess?.(`Created output config "${created}"`);
+      onSuccess?.(`Created output "${created}"`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : String(err));
     }
@@ -139,7 +139,7 @@ function ResolverInner({
   const handleDelete = useCallback(async (name: string) => {
     await deleteResolver(name);
     setConfirmDelete(null);
-    onSuccess?.(`Deleted output config "${name}"`);
+    onSuccess?.(`Deleted output "${name}"`);
   }, [deleteResolver, onSuccess]);
 
   const handleModifierChange = useCallback((modName: string, context: string) => {
@@ -199,7 +199,7 @@ function ResolverInner({
         modifiers: updatedModifiers,
       };
       await updateResolver(editingResolver, updatedFile);
-      onSuccess?.(`Saved output config "${editingResolver}"`);
+      onSuccess?.(`Saved output "${editingResolver}"`);
       setEditingResolver(null);
       setEditFile(null);
       setEditForm(null);
@@ -218,6 +218,19 @@ function ResolverInner({
   }, []);
 
   const resolvedCount = resolvedTokens ? Object.keys(resolvedTokens).length : 0;
+  const currentResolver = useMemo(() => {
+    if (!activeResolver) return null;
+    return resolvers.find(resolver => resolver.name === activeResolver) ?? null;
+  }, [activeResolver, resolvers]);
+  const currentResolverStatusLabel = loading
+    ? 'Resolving…'
+    : resolvedTokens
+      ? `${resolvedCount} tokens resolved`
+      : 'Preview not loaded yet';
+  const editingResolverMeta = useMemo(() => {
+    if (!editingResolver) return null;
+    return resolvers.find(resolver => resolver.name === editingResolver) ?? null;
+  }, [editingResolver, resolvers]);
 
   const { allTokensFlat } = useTokenFlatMapContext();
 
@@ -228,7 +241,7 @@ function ResolverInner({
       const rank = (t: string) => t === 'color' ? 0 : t === 'unknown' ? 2 : 1;
       return rank(a.$type) - rank(b.$type);
     });
-    return sorted.slice(0, 8).map(([path, entry]) => {
+    return sorted.slice(0, 16).map(([path, entry]) => {
       const rawEntry = allTokensFlat[path];
       const rawValue = rawEntry?.$value;
       const rawStr = rawValue !== undefined ? formatTokenValueForDisplay(rawEntry.$type, rawValue) : null;
@@ -239,192 +252,380 @@ function ResolverInner({
   }, [resolvedTokens, allTokensFlat]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)]">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-            Output configs
-          </span>
-          <button
-            onClick={() => setCreating(true)}
-            className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
-          >
-            + New
-          </button>
+    <div className="flex h-full flex-col overflow-hidden">
+      {showHeader ? (
+        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                Outputs
+              </div>
+              <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                Create an output manually or generate one from modes.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                onClick={handleMigrate}
+                disabled={migrating || !connected}
+                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {migrating ? 'Generating…' : 'Generate from modes'}
+              </button>
+              <button
+                onClick={() => setCreating(true)}
+                className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90"
+              >
+                New output
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      {/* Create form */}
       {creating && (
-        <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="flex items-center gap-1">
+        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                Create output
+              </div>
+              <p className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
+                Give it a name, then we will start from the foundation set.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setCreating(false);
+                setCreateError(null);
+              }}
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              Close
+            </button>
+          </div>
+          <div className="mt-2 flex items-center gap-1">
             <input
               type="text"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setCreating(false); }}
-              placeholder="Config name…"
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleCreate();
+                if (e.key === 'Escape') {
+                  setCreating(false);
+                  setCreateError(null);
+                }
+              }}
+              placeholder="Output name…"
               autoFocus
-              className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+              className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
-            <button onClick={handleCreate} className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white">Create</button>
-            <button onClick={() => { setCreating(false); setCreateError(null); }} className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)]">Cancel</button>
+            <button
+              onClick={handleCreate}
+              disabled={!newName.trim()}
+              className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Create
+            </button>
           </div>
-          {createError && <div className="mt-1 text-[10px] text-red-500">{createError}</div>}
+          {createError && (
+            <div className="mt-1 text-[10px] text-[var(--color-figma-error)]">
+              {createError}
+            </div>
+          )}
         </div>
       )}
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto">
-        {resolversLoading && resolvers.length === 0 && !creating && (
-          <div className="flex flex-col h-full items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
-            <Spinner size="md" />
-            <span className="text-[11px]">Loading output configs…</span>
+      <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+              Current output
+            </div>
+            {currentResolver ? (
+              <>
+                <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-[11px] font-semibold text-[var(--color-figma-text)]">
+                    {currentResolver.name}
+                  </span>
+                  <span className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                    Selected
+                  </span>
+                </div>
+                {currentResolver.description && (
+                  <p className="mt-0.5 truncate text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
+                    {currentResolver.description}
+                  </p>
+                )}
+                <div className="mt-1 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  {formatCountLabel(Object.keys(currentResolver.modifiers).length, 'mode')}
+                  {` · ${currentResolverStatusLabel}`}
+                </div>
+                {resolverError && (
+                  <div className="mt-1 text-[9px] text-[var(--color-figma-error)]">
+                    {resolverError}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                  Pick an output below to edit defaults and preview the resolved tokens.
+                </p>
+                {resolverError && (
+                  <div className="mt-1 text-[9px] text-[var(--color-figma-error)]">
+                    {resolverError}
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        )}
-
-        {/* Empty state */}
-        {!resolversLoading && resolvers.length === 0 && Object.keys(resolverLoadErrors).length === 0 && !creating && (
-          <div className="flex flex-col items-center justify-center h-full px-3 py-3 text-center gap-3">
-            <p className="text-[11px] font-medium text-[var(--color-figma-text)]">No output configs</p>
-            <div className="flex flex-col gap-1.5 w-full max-w-[240px]">
+          {currentResolver ? (
+            <div className="flex shrink-0 items-center gap-1">
+              {getResolverFile && updateResolver && (
+                <button
+                  type="button"
+                  onClick={() => handleEditClick(currentResolver.name)}
+                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  Edit output
+                </button>
+              )}
               <button
-                onClick={() => setCreating(true)}
-                className="flex items-center justify-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                type="button"
+                onClick={() => setActiveResolver(null)}
+                className="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                Create output config
+                Clear selection
               </button>
+            </div>
+          ) : !showHeader ? (
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 onClick={handleMigrate}
                 disabled={migrating || !connected}
-                className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] disabled:opacity-40 transition-colors"
+                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {migrating ? 'Converting…' : 'or convert from existing modes'}
+                {migrating ? 'Generating…' : 'Generate from modes'}
               </button>
+              <button
+                onClick={() => setCreating(true)}
+                className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90"
+              >
+                New output
+              </button>
+            </div>
+          ) : null}
+        </div>
+        {!showHeader && currentResolver ? (
+          <div className="mt-2 flex items-center gap-1">
+            <button
+              onClick={handleMigrate}
+              disabled={migrating || !connected}
+              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {migrating ? 'Generating…' : 'Generate from modes'}
+            </button>
+            <button
+              onClick={() => setCreating(true)}
+              className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90"
+            >
+              New output
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {resolversLoading && resolvers.length === 0 && !creating && (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
+            <Spinner size="md" />
+            <span className="text-[11px]">Loading outputs…</span>
+          </div>
+        )}
+
+        {!resolversLoading && resolvers.length === 0 && Object.keys(resolverLoadErrors).length === 0 && !creating && (
+          <div className="flex h-full flex-col items-center justify-center px-4 py-6 text-center">
+            <p className="max-w-[220px] text-[11px] leading-snug text-[var(--color-figma-text-secondary)]">
+              An output defines how modes combine into final tokens.
+            </p>
+          </div>
+        )}
+
+        {Object.entries(resolverLoadErrors).length > 0 && (
+          <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+            <div className="text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+              {formatCountLabel(Object.keys(resolverLoadErrors).length, 'load error')}
+            </div>
+            <div className="mt-2 flex flex-col gap-1.5">
+              {Object.entries(resolverLoadErrors).map(([name, err]) => (
+                <div
+                  key={`err:${name}`}
+                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
+                  title={`Failed at ${err.at}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
+                        {name}
+                      </div>
+                      <div className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
+                        {err.message}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fetchResolvers}
+                      className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Load errors */}
-        {Object.entries(resolverLoadErrors).map(([name, err]) => (
-          <div
-            key={`err:${name}`}
-            className="border-b border-[var(--color-figma-border)] px-3 py-2"
-            title={`Failed at ${err.at}`}
-          >
-            <div className="flex items-start gap-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-amber-500" aria-hidden="true">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{name}</div>
-                <div className="text-[10px] text-amber-600 mt-0.5 leading-snug">{err.message}</div>
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">Failed to load — fix the file to use this output config</div>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Resolver rows */}
         {resolvers.map(resolver => {
           const isActive = activeResolver === resolver.name;
+          const isEditing = editingResolver === resolver.name;
           const modNames = Object.keys(resolver.modifiers);
+          const selectedCountLabel = formatCountLabel(modNames.length, 'mode');
+          const resolverMeta = isEditing ? editingResolverMeta ?? resolver : resolver;
 
           return (
             <div
               key={resolver.name}
               className={`border-b border-[var(--color-figma-border)] ${
-                isActive ? 'bg-[var(--color-figma-bg-secondary)]' : ''
+                isActive ? 'border-l-2 border-l-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)]' : ''
               }`}
             >
-              <div
-                className="group flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                onClick={() => setActiveResolver(isActive ? null : resolver.name)}
-              >
-                <svg
-                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-                  className={`shrink-0 text-[var(--color-figma-text-tertiary)] transition-transform ${isActive ? 'rotate-90' : ''}`}
-                >
-                  <path d="M2 1l4 3-4 3V1z" />
-                </svg>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
-                    {resolver.name}
-                  </div>
-                  {resolver.description && (
-                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
-                      {resolver.description}
+              <div className="px-3 py-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`h-2 w-2 shrink-0 rounded-full ${
+                          isActive ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'
+                        }`}
+                      />
+                      <span className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                        {resolver.name}
+                      </span>
+                      {isActive && (
+                        <span className="shrink-0 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)]">
+                          Selected
+                        </span>
+                      )}
                     </div>
-                  )}
+                    {resolver.description && (
+                      <p className="mt-0.5 truncate text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                        {resolver.description}
+                      </p>
+                    )}
+                    <div className="mt-1 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      {selectedCountLabel}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveResolver(isActive ? null : resolver.name)}
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                      isActive
+                        ? 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+                        : 'bg-[var(--color-figma-accent)] text-white hover:opacity-90'
+                    }`}
+                  >
+                    {isActive ? 'Selected' : 'Select'}
+                  </button>
                 </div>
-                <div className="flex items-center gap-1">
-                  {getResolverFile && updateResolver && (
+
+                <div className="mt-2 flex items-center gap-1.5">
+                  {getResolverFile && updateResolver && !isEditing && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleEditClick(resolver.name); }}
-                      className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-all"
-                      title="Edit output config"
-                      aria-label="Edit output config"
+                      type="button"
+                      onClick={() => handleEditClick(resolver.name)}
+                      className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                     >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
+                      Edit
                     </button>
                   )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(resolver.name); }}
-                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-0.5 rounded hover:bg-red-100 text-[var(--color-figma-text-tertiary)] hover:text-red-500 transition-all"
-                    title="Delete output config"
-                    aria-label="Delete output config"
+                    type="button"
+                    onClick={() => setConfirmDelete(resolver.name)}
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
+                    Delete
                   </button>
                 </div>
               </div>
 
-              {/* Edit form */}
-              {editingResolver === resolver.name && (
-                <div className="px-3 pb-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                  {editLoading ? (
-                    <div className="py-3 text-[10px] text-[var(--color-figma-text-tertiary)] animate-pulse">Loading…</div>
-                  ) : editForm ? (
-                    <div className="flex flex-col gap-2 pt-2">
-                      <div className="flex flex-col gap-0.5">
-                        <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Description</label>
-                        <input
-                          type="text"
-                          value={editForm.description}
-                          onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                          placeholder="Optional description…"
-                          className="px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-                        />
+              {isEditing && (
+                <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                        Editing output
                       </div>
+                      <p className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
+                        Update the description and each mode’s default value.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleEditCancel}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    >
+                      Close
+                    </button>
+                  </div>
 
-                      {Object.keys(editForm.modifiers).length > 0 && (
+                  {editLoading ? (
+                    <div className="py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      Loading output…
+                    </div>
+                  ) : editForm ? (
+                    <div className="mt-2 flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={editForm.description}
+                        onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                        placeholder="Description (optional)"
+                        className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                      />
+
+                      {Object.keys(editForm.modifiers).length > 0 ? (
                         <div className="flex flex-col gap-1.5">
+                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                            Default selections
+                          </span>
                           {Object.entries(editForm.modifiers).map(([modName, modEdit]) => {
-                            const resolverMeta = resolvers.find(r => r.name === resolver.name);
-                            const contexts = resolverMeta?.modifiers[modName]?.contexts ?? [];
+                            const contexts = resolverMeta.modifiers[modName]?.contexts ?? [];
                             if (contexts.length === 0) return null;
                             return (
                               <div key={modName} className="flex items-center gap-2">
-                                <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 truncate capitalize" title={modName}>
+                                <label
+                                  className="w-16 truncate text-[10px] capitalize text-[var(--color-figma-text-secondary)]"
+                                  title={modName}
+                                >
                                   {modName}
                                 </label>
-                                <div className="flex-1 flex gap-0.5 flex-wrap">
+                                <div className="flex flex-1 flex-wrap gap-0.5">
                                   {contexts.map(ctx => (
                                     <button
                                       key={ctx}
-                                      onClick={() => setEditForm({
-                                        ...editForm,
-                                        modifiers: { ...editForm.modifiers, [modName]: { defaultContext: ctx } },
-                                      })}
-                                      className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                                      type="button"
+                                      onClick={() =>
+                                        setEditForm({
+                                          ...editForm,
+                                          modifiers: {
+                                            ...editForm.modifiers,
+                                            [modName]: { defaultContext: ctx },
+                                          },
+                                        })
+                                      }
+                                      className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                                         modEdit.defaultContext === ctx
                                           ? 'bg-[var(--color-figma-accent)] text-white font-medium'
                                           : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -438,51 +639,82 @@ function ResolverInner({
                             );
                           })}
                         </div>
+                      ) : null}
+
+                      {editError && (
+                        <div className="text-[10px] text-[var(--color-figma-error)]">
+                          {editError}
+                        </div>
                       )}
 
-                      {editError && <div className="text-[10px] text-red-500">{editError}</div>}
-
-                      <div className="flex items-center gap-1 justify-end pt-0.5">
+                      <div className="flex items-center justify-end gap-1">
                         <button
+                          type="button"
                           onClick={handleEditCancel}
-                          className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          className="rounded px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                         >
                           Cancel
                         </button>
                         <button
+                          type="button"
                           onClick={handleEditSave}
                           disabled={editSaving}
-                          className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                          className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          {editSaving ? 'Saving…' : 'Save'}
+                          {editSaving ? 'Saving…' : 'Save changes'}
                         </button>
                       </div>
                     </div>
                   ) : editError ? (
-                    <div className="py-2 text-[10px] text-red-500">{editError}</div>
+                    <div className="py-2 text-[10px] text-[var(--color-figma-error)]">
+                      {editError}
+                    </div>
                   ) : null}
                 </div>
               )}
 
-              {/* Expanded: mode controls + preview */}
-              {isActive && editingResolver !== resolver.name && (
-                <div className="px-3 pb-2">
+              {isActive && (
+                <div className="border-t border-[var(--color-figma-border)] px-3 py-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                        Mode selections
+                      </div>
+                      <p className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
+                        Choose one value per mode to update the preview below.
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      {loading
+                        ? 'Resolving…'
+                        : resolverError
+                          ? 'Resolution error'
+                          : resolvedTokens
+                            ? `${resolvedCount} tokens resolved`
+                            : 'Pick values to preview'}
+                    </div>
+                  </div>
+
                   {modNames.length > 0 ? (
-                    <div className="flex flex-col gap-1.5 mb-2">
+                    <div className="mt-2 flex flex-col gap-1.5">
                       {modNames.map(modName => {
                         const mod = resolver.modifiers[modName];
                         const selected = resolverInput[modName] ?? mod.default ?? mod.contexts[0];
                         return (
                           <div key={modName} className="flex items-center gap-2">
-                            <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 truncate capitalize" title={mod.description || modName}>
+                            <label
+                              className="w-16 truncate text-[10px] capitalize text-[var(--color-figma-text-secondary)]"
+                              title={mod.description || modName}
+                            >
                               {modName}
                             </label>
-                            <div className="flex-1 flex gap-0.5 flex-wrap">
+                            <div className="flex flex-1 flex-wrap gap-0.5">
                               {mod.contexts.map(ctx => (
                                 <button
                                   key={ctx}
+                                  type="button"
                                   onClick={() => handleModifierChange(modName, ctx)}
-                                  className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                                  className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                                     selected === ctx
                                       ? 'bg-[var(--color-figma-accent)] text-white font-medium'
                                       : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -497,79 +729,85 @@ function ResolverInner({
                       })}
                     </div>
                   ) : (
-                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-2">
-                      No modes defined — only base sets will be merged.
+                    <div className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      This output has no modes. It resolves against the base set only.
                     </div>
                   )}
 
-                  {/* Resolution status */}
-                  <div className="rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] px-2 py-1.5">
-                    {loading ? (
-                      <InlineBanner variant="loading" icon={<Spinner size="sm" />} className="border-0 bg-transparent px-0 py-0 text-[10px]">
-                        Resolving tokens…
-                      </InlineBanner>
-                    ) : resolverError ? (
-                      <InlineBanner variant="error" className="border-0 bg-transparent px-0 py-0 text-[10px]">
-                        {resolverError}
-                      </InlineBanner>
-                    ) : resolvedTokens ? (
-                      <div className="flex items-center justify-between gap-2 text-[10px]">
-                        <span className="text-[var(--color-figma-text-secondary)]">
-                          <span className="font-medium text-[var(--color-figma-text)]">{resolvedCount}</span> tokens resolved
-                        </span>
+                  <div className="mt-2 border-t border-[var(--color-figma-border)] pt-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div>
+                        <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                          Preview
+                        </div>
+                        <p className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
+                          First {previewEntries.length} resolved tokens, with raw values crossed out when they change.
+                        </p>
                       </div>
-                    ) : (
-                      <InlineBanner variant="info" className="border-0 bg-transparent px-0 py-0 text-[10px]">
-                        Select mode options to resolve tokens
-                      </InlineBanner>
-                    )}
-                  </div>
+                      <div className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                        {resolvedTokens
+                          ? previewEntries.length < resolvedCount
+                            ? `Showing ${previewEntries.length} of ${resolvedCount}`
+                            : `${resolvedCount} total`
+                          : 'No preview yet'}
+                      </div>
+                    </div>
 
-                  {/* Resolved preview */}
-                  {previewEntries.length > 0 && !loading && (
-                    <div className="mt-2">
-                      <div className="flex flex-col divide-y divide-[var(--color-figma-border)] rounded border border-[var(--color-figma-border)] overflow-hidden">
+                    {loading ? (
+                      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                        <Spinner size="sm" />
+                        Resolving output…
+                      </div>
+                    ) : resolverError ? (
+                      <div className="mt-2 text-[10px] text-[var(--color-figma-error)]">
+                        {resolverError}
+                      </div>
+                    ) : previewEntries.length > 0 ? (
+                      <div className="mt-2 flex flex-col divide-y divide-[var(--color-figma-border)] overflow-hidden rounded border border-[var(--color-figma-border)]">
                         {previewEntries.map(({ path, entry, rawStr, resolvedStr }) => {
                           const isColor = entry.$type === 'color' && typeof entry.$value === 'string';
                           const leafName = path.includes('.') ? path.slice(path.lastIndexOf('.') + 1) : path;
                           const parentPath = path.includes('.') ? path.slice(0, path.lastIndexOf('.')) : '';
                           return (
-                            <div key={path} className="flex items-center gap-1.5 px-2 py-1 bg-[var(--color-figma-bg)] min-w-0">
+                            <div key={path} className="flex min-w-0 items-center gap-1.5 bg-[var(--color-figma-bg)] px-2 py-0.5">
                               {isColor ? (
                                 <div
-                                  className="shrink-0 w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)]"
+                                  className="h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
                                   style={{ backgroundColor: swatchBgColor(entry.$value as string) }}
                                 />
                               ) : (
-                                <div className="shrink-0 w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-center">
-                                  <span className="text-[6px] font-mono text-[var(--color-figma-text-tertiary)] leading-none">
-                                    {entry.$type === 'dimension' ? 'px' : entry.$type === 'duration' ? 'ms' : entry.$type.slice(0, 2)}
-                                  </span>
-                                </div>
+                                <div className="h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]" />
                               )}
-                              <div className="flex-1 min-w-0">
+                              <div className="min-w-0 flex-1">
                                 {parentPath && (
-                                  <span className="text-[8px] text-[var(--color-figma-text-tertiary)] truncate block leading-none mb-0.5">{parentPath}</span>
+                                  <span className="mb-0.5 block truncate text-[8px] leading-none text-[var(--color-figma-text-tertiary)]">
+                                    {parentPath}
+                                  </span>
                                 )}
-                                <span className="text-[10px] text-[var(--color-figma-text)] font-medium truncate block leading-none">{leafName}</span>
+                                <span className="block truncate text-[10px] leading-none font-medium text-[var(--color-figma-text)]">
+                                  {leafName}
+                                </span>
                               </div>
-                              <div className="shrink-0 text-right">
+                              <div className="shrink-0 max-w-[92px] text-right">
                                 {rawStr && (
-                                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)] line-through leading-none mb-0.5 max-w-[80px] truncate">{rawStr}</div>
+                                  <div className="mb-0.5 truncate text-[8px] leading-none text-[var(--color-figma-text-tertiary)] line-through">
+                                    {rawStr}
+                                  </div>
                                 )}
-                                <div className="text-[9px] text-[var(--color-figma-text-secondary)] leading-none max-w-[80px] truncate font-mono">{resolvedStr}</div>
+                                <div className="truncate font-mono text-[9px] leading-none text-[var(--color-figma-text-secondary)]">
+                                  {resolvedStr}
+                                </div>
                               </div>
                             </div>
                           );
                         })}
                       </div>
-                      {resolvedCount > previewEntries.length && (
-                        <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-1 text-right">
-                          + {resolvedCount - previewEntries.length} more tokens
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    ) : (
+                      <div className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                        Pick mode values above to populate the preview.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -577,18 +815,10 @@ function ResolverInner({
         })}
       </div>
 
-      {/* Error banner */}
-      {resolverError && !activeResolver && (
-        <InlineBanner variant="error" layout="strip" size="sm" className="border-t border-b-0">
-          {resolverError}
-        </InlineBanner>
-      )}
-
-      {/* Delete confirmation */}
       {confirmDelete && (
         <ConfirmModal
-          title="Delete output config"
-          description={`Delete "${confirmDelete}"? The .resolver.json file will be removed.`}
+          title="Delete output"
+          description={`Delete "${confirmDelete}"?`}
           confirmLabel="Delete"
           danger
           onConfirm={() => handleDelete(confirmDelete)}

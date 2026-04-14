@@ -35,6 +35,8 @@ export interface TokenNode {
   $value?: TokenValue | TokenReference;
   $description?: string;
   $extensions?: Record<string, unknown>;
+  $scopes?: string[];
+  $lifecycle?: 'draft' | 'published' | 'deprecated';
   children?: TokenNode[];
   isGroup: boolean;
 }
@@ -276,6 +278,9 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
     const path = prefix ? `${prefix}.${key}` : key;
     if (value && typeof value === 'object' && '$value' in value) {
       const token = value as import('@tokenmanager/core').DTCGToken;
+      const rawScopes = token.$extensions?.['com.figma.scopes'];
+      const tokenManager = token.$extensions?.['tokenmanager'] as Record<string, unknown> | undefined;
+      const lifecycle = tokenManager?.lifecycle;
       nodes.push({
         path,
         name: key,
@@ -283,16 +288,23 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
         $value: token.$value as import('@tokenmanager/core').TokenValue | undefined,
         $description: token.$description,
         $extensions: token.$extensions as Record<string, unknown> | undefined,
+        $scopes: Array.isArray(rawScopes) ? rawScopes.filter((scope): scope is string => typeof scope === 'string') : undefined,
+        $lifecycle: lifecycle === 'draft' || lifecycle === 'deprecated' || lifecycle === 'published' ? lifecycle : undefined,
         isGroup: false,
       });
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       const grp = value as import('@tokenmanager/core').DTCGGroup;
+      const rawScopes = grp.$extensions?.['com.figma.scopes'];
+      const tokenManager = grp.$extensions?.['tokenmanager'] as Record<string, unknown> | undefined;
+      const lifecycle = tokenManager?.lifecycle;
       nodes.push({
         path,
         name: key,
         $type: grp.$type,
         $description: grp.$description,
         $extensions: grp.$extensions,
+        $scopes: Array.isArray(rawScopes) ? rawScopes.filter((scope): scope is string => typeof scope === 'string') : undefined,
+        $lifecycle: lifecycle === 'draft' || lifecycle === 'deprecated' || lifecycle === 'published' ? lifecycle : undefined,
         isGroup: true,
         children: buildTree(grp, path),
       });

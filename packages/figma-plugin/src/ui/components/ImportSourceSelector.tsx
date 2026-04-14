@@ -1,282 +1,63 @@
-import React, { useEffect } from 'react';
-import { type FileImportValidation } from '../hooks/useImportSource';
+import React from 'react';
 import { useImportSourceContext } from './ImportPanelContext';
 import {
-  IMPORT_FAMILY_DEFINITIONS,
   IMPORT_SOURCE_DEFINITIONS,
-  formatSupportedFileFormats,
-  getFamilySupportedFileFormats,
   type ImportSource,
   type SourceFamily,
 } from './importPanelTypes';
 
-interface SelectorOption {
-  id: string;
-  title: string;
-  description: string;
-  supportText?: string;
-  iconBgClass: string;
-  iconStroke: string;
-  onClick: () => void;
-  icon: React.ReactNode;
-}
+const SOURCE_GROUPS: { label: string; family: SourceFamily; sources: ImportSource[] }[] = [
+  { label: 'Figma', family: 'figma', sources: ['variables', 'styles'] },
+  { label: 'Files', family: 'token-files', sources: ['json'] },
+  { label: 'Code', family: 'code', sources: ['css', 'tailwind'] },
+  { label: 'Migration', family: 'migration', sources: ['tokens-studio'] },
+];
 
-interface FileIntakeEntry {
-  id: string;
-  title: string;
-  formats: string[];
-}
-
-const FAMILY_ORDER: SourceFamily[] = ['figma', 'token-files', 'code', 'migration'];
-const FAMILY_FORMAT_ORDER: Record<SourceFamily, ImportSource[]> = {
-  figma: ['variables', 'styles'],
-  'token-files': ['json'],
-  code: ['css', 'tailwind'],
-  migration: ['tokens-studio'],
+const SOURCE_ICONS: Record<ImportSource, React.ReactNode> = {
+  variables: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+    </svg>
+  ),
+  styles: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b59b6" strokeWidth="2" aria-hidden="true">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  ),
+  json: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  ),
+  css: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2965f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7c0-1 .5-2 2-2s2 1 2 2v3c0 1 .5 2 2 2" />
+      <path d="M4 17c0 1 .5 2 2 2s2-1 2-2v-3c0-1 .5-2 2-2" />
+      <path d="M14 7c0-1 .5-2 2-2s2 1 2 2v3c0 1 .5 2 2 2" />
+      <path d="M14 17c0 1 .5 2 2 2s2-1 2-2v-3c0-1 .5-2 2-2" />
+    </svg>
+  ),
+  tailwind: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 6c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.3.74 1.9 1.35.98 1 2.12 2.15 4.6 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.3-.74-1.9-1.35C15.62 7.15 14.48 6 12 6z" />
+      <path d="M7 12c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.3.74 1.9 1.35.98 1 2.12 2.15 4.6 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.3-.74-1.9-1.35C11.62 13.15 10.48 12 8 12z" />
+    </svg>
+  ),
+  'tokens-studio': (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e67e22" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+    </svg>
+  ),
 };
-
-const FAMILY_META: Record<SourceFamily, Pick<SelectorOption, 'iconBgClass' | 'iconStroke' | 'icon'>> = {
-  figma: {
-    iconBgClass: 'bg-[var(--color-figma-accent)]/10',
-    iconStroke: 'var(--color-figma-accent)',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" aria-hidden="true">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-        <line x1="3" y1="9" x2="21" y2="9" />
-        <line x1="9" y1="3" x2="9" y2="21" />
-      </svg>
-    ),
-  },
-  'token-files': {
-    iconBgClass: 'bg-[#27ae60]/10',
-    iconStroke: '#27ae60',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="12" y1="18" x2="12" y2="12" />
-        <line x1="9" y1="15" x2="15" y2="15" />
-      </svg>
-    ),
-  },
-  code: {
-    iconBgClass: 'bg-[#2965f1]/10',
-    iconStroke: '#2965f1',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
-      </svg>
-    ),
-  },
-  migration: {
-    iconBgClass: 'bg-[#e67e22]/10',
-    iconStroke: '#e67e22',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-        <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
-        <circle cx="12" cy="12" r="3" fill="#e67e22" stroke="none" />
-      </svg>
-    ),
-  },
-};
-
-const SOURCE_META: Record<ImportSource, Pick<SelectorOption, 'iconBgClass' | 'iconStroke' | 'icon'>> = {
-  variables: FAMILY_META.figma,
-  styles: {
-    iconBgClass: 'bg-[#9b59b6]/10',
-    iconStroke: '#9b59b6',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" aria-hidden="true">
-        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-        <path d="M2 17l10 5 10-5" />
-        <path d="M2 12l10 5 10-5" />
-      </svg>
-    ),
-  },
-  json: FAMILY_META['token-files'],
-  css: {
-    iconBgClass: 'bg-[#2965f1]/10',
-    iconStroke: '#2965f1',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M4 7c0-1 .5-2 2-2s2 1 2 2v3c0 1 .5 2 2 2" />
-        <path d="M4 17c0 1 .5 2 2 2s2-1 2-2v-3c0-1 .5-2 2-2" />
-        <path d="M14 7c0-1 .5-2 2-2s2 1 2 2v3c0 1 .5 2 2 2" />
-        <path d="M14 17c0 1 .5 2 2 2s2-1 2-2v-3c0-1 .5-2 2-2" />
-      </svg>
-    ),
-  },
-  tailwind: {
-    iconBgClass: 'bg-[#06b6d4]/10',
-    iconStroke: '#06b6d4',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M12 6c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.3.74 1.9 1.35.98 1 2.12 2.15 4.6 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.3-.74-1.9-1.35C15.62 7.15 14.48 6 12 6z" />
-        <path d="M7 12c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.3.74 1.9 1.35.98 1 2.12 2.15 4.6 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.3-.74-1.9-1.35C11.62 13.15 10.48 12 8 12z" />
-      </svg>
-    ),
-  },
-  'tokens-studio': FAMILY_META.migration,
-};
-
-
-function ValidationStatusBadge({ status }: { status: 'ready' | 'partial' | 'error' | 'unsupported' }) {
-  const className = status === 'partial'
-    ? 'bg-[var(--color-figma-warning,#e8a100)]/15 text-[var(--color-figma-warning,#e8a100)]'
-    : status === 'ready'
-      ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]'
-      : 'bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]';
-  const label = status === 'unsupported'
-    ? 'Unsupported'
-    : status === 'error'
-      ? 'Blocked'
-      : status === 'partial'
-        ? 'Partial'
-        : 'Ready';
-  return <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${className}`}>{label}</span>;
-}
-
-
-function FileValidationCard({
-  validation,
-}: {
-  validation: FileImportValidation;
-}) {
-  return (
-    <div className="border-t border-[var(--color-figma-border)] px-2 py-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-          {validation.summary}
-        </div>
-        <ValidationStatusBadge status={validation.status} />
-      </div>
-      <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-        {validation.detail}
-      </div>
-      <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-        Next: {validation.nextAction}
-      </div>
-      {validation.supportedFormats.length > 0 && (
-        <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-          Supports: {formatSupportedFileFormats(validation.supportedFormats)}
-        </div>
-      )}
-      {validation.issues.length > 0 && (
-        <div className="mt-1 flex flex-col gap-0.5">
-          {validation.issues.slice(0, 3).map((issue) => (
-            <div
-              key={`${issue.severity}-${issue.message}`}
-              className={`text-[10px] ${
-                issue.severity === 'warning'
-                  ? 'text-[var(--color-figma-warning,#e8a100)]'
-                  : 'text-[var(--color-figma-error)]'
-              }`}
-            >
-              {issue.message}
-            </div>
-          ))}
-          {validation.issues.length > 3 && (
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              +{validation.issues.length - 3} more
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SelectorCard({
-  title,
-  description,
-  supportText,
-  iconBgClass,
-  iconStroke,
-  icon,
-  onClick,
-}: SelectorOption) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-2.5 rounded border border-[var(--color-figma-border)] px-2.5 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-    >
-      <div className={`flex shrink-0 items-center justify-center ${iconBgClass}`}>
-        {React.isValidElement(icon)
-          ? React.cloneElement(icon as React.ReactElement<React.SVGProps<SVGSVGElement>>, {
-            stroke: iconStroke,
-          })
-          : icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{title}</div>
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{description}</div>
-        {supportText && (
-          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            {supportText}
-          </div>
-        )}
-      </div>
-      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
-        <path d="M2 1l4 3-4 3V1z" />
-      </svg>
-    </button>
-  );
-}
-
-function FileIntakeBox({
-  title,
-  description,
-  entries,
-  isDragging,
-}: {
-  title: string;
-  description: string;
-  entries: FileIntakeEntry[];
-  isDragging: boolean;
-}) {
-  return (
-    <div
-      className={`flex flex-col gap-2 rounded border border-dashed px-3 py-3 transition-colors ${
-        isDragging
-          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10'
-          : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]'
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${isDragging ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`} aria-hidden="true">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="12" y1="18" x2="12" y2="12" />
-          <line x1="9" y1="15" x2="15" y2="15" />
-        </svg>
-        <div className="min-w-0">
-          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{title}</div>
-          {description && <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{description}</div>}
-        </div>
-      </div>
-
-      <div className="flex flex-col">
-        {entries.map((entry, i) => (
-          <div
-            key={entry.id}
-            className={`px-2 py-1 ${i > 0 ? 'border-t border-[var(--color-figma-border)]' : ''}`}
-          >
-            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">{entry.title}</div>
-            <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
-              {formatSupportedFileFormats(entry.formats)}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 
 export function ImportSourceSelector() {
   const {
-    sourceFamily,
     isDragging,
     handleReadVariables,
     handleReadStyles,
@@ -293,35 +74,7 @@ export function ImportSourceSelector() {
     tailwindFileInputRef,
     tokensStudioFileInputRef,
     fileImportValidation,
-    handleBack,
-    selectSourceFamily,
   } = useImportSourceContext();
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleBack();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [handleBack]);
-
-  const activeFamily = sourceFamily;
-
-  const familyOptions: SelectorOption[] = FAMILY_ORDER.map((family) => {
-    const definition = IMPORT_FAMILY_DEFINITIONS[family];
-    const supportedFileFormats = getFamilySupportedFileFormats(family);
-    return {
-      id: `family-${family}`,
-      title: definition.title,
-      description: definition.description,
-      supportText:
-        supportedFileFormats.length > 0
-          ? `Supported files: ${formatSupportedFileFormats(supportedFileFormats)}`
-          : undefined,
-      onClick: () => selectSourceFamily(family),
-      ...FAMILY_META[family],
-    };
-  });
 
   const formatHandlers: Record<ImportSource, () => void> = {
     variables: handleReadVariables,
@@ -332,115 +85,72 @@ export function ImportSourceSelector() {
     'tokens-studio': handleReadTokensStudio,
   };
 
-  const formatOptions = activeFamily
-    ? FAMILY_FORMAT_ORDER[activeFamily].map((source) => {
-      const definition = IMPORT_SOURCE_DEFINITIONS[source];
-      return {
-        id: source,
-        title: definition.label,
-        description: definition.description,
-        supportText: definition.fileSupport ? `Supported file: ${definition.fileSupport.label}` : undefined,
-        onClick: formatHandlers[source],
-        ...SOURCE_META[source],
-      };
-    })
-    : [];
-
-  const familyFileEntries: FileIntakeEntry[] = FAMILY_ORDER
-    .map((family) => ({
-      id: family,
-      title: IMPORT_FAMILY_DEFINITIONS[family].title,
-      formats: getFamilySupportedFileFormats(family),
-    }))
-    .filter((entry) => entry.formats.length > 0);
-
-  const activeFamilyFileFormats = getFamilySupportedFileFormats(activeFamily);
-  const activeFamilyFileEntries: FileIntakeEntry[] = activeFamily && activeFamilyFileFormats.length > 0
-    ? [{
-      id: activeFamily,
-      title: IMPORT_FAMILY_DEFINITIONS[activeFamily].title,
-      formats: activeFamilyFileFormats,
-    }]
-    : [];
-  const validationFamily = fileImportValidation?.source ? IMPORT_SOURCE_DEFINITIONS[fileImportValidation.source].family : null;
-  const showValidationCard = !!fileImportValidation && (!activeFamily || validationFamily === activeFamily || fileImportValidation.source === null);
+  const validationIsError = fileImportValidation && (fileImportValidation.status === 'error' || fileImportValidation.status === 'unsupported');
 
   return (
-    <div className="flex flex-col gap-3">
-      {!activeFamily ? (
-        <>
-          <FileIntakeBox
-            title={isDragging ? 'Release to import' : 'Drop a file or pick a source'}
-            description=""
-            entries={familyFileEntries}
-            isDragging={isDragging}
-          />
-          {showValidationCard && fileImportValidation && <FileValidationCard validation={fileImportValidation} />}
-          <div className="flex flex-col gap-2">
-            {familyOptions.map((option) => (
-              <SelectorCard key={option.id} {...option} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <button
-            onClick={handleBack}
-            className="inline-flex items-center gap-1 self-start text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
-          >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="rotate-180 text-current">
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
-            Back
-          </button>
-          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-            {IMPORT_FAMILY_DEFINITIONS[activeFamily].title}
-          </div>
-          {activeFamilyFileEntries.length > 0 && (
-            <FileIntakeBox
-              title={isDragging ? 'Release to import' : 'Drop a file or pick a format'}
-              description=""
-              entries={activeFamilyFileEntries}
-              isDragging={isDragging}
-            />
+    <div className="flex flex-col gap-2">
+      {/* Drop zone */}
+      <div
+        className={`flex items-center justify-center rounded border border-dashed py-3 text-[10px] transition-colors ${
+          isDragging
+            ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]'
+            : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+        }`}
+      >
+        {isDragging ? 'Release to import' : 'Drop a token file here'}
+      </div>
+
+      {/* File validation feedback */}
+      {fileImportValidation && (
+        <div className={`rounded px-2.5 py-1.5 text-[10px] ${
+          validationIsError
+            ? 'bg-[var(--color-figma-error)]/8 text-[var(--color-figma-error)]'
+            : fileImportValidation.status === 'partial'
+              ? 'bg-[var(--color-figma-warning,#e8a100)]/8 text-[var(--color-figma-warning,#e8a100)]'
+              : 'bg-[var(--color-figma-success)]/8 text-[var(--color-figma-success)]'
+        }`}>
+          {fileImportValidation.summary}
+          {fileImportValidation.detail && (
+            <span className="text-[var(--color-figma-text-secondary)]"> {fileImportValidation.detail}</span>
           )}
-          {showValidationCard && fileImportValidation && <FileValidationCard validation={fileImportValidation} />}
-          <div className="flex flex-col gap-2">
-            {formatOptions.map((option) => (
-              <SelectorCard key={option.id} {...option} />
-            ))}
-          </div>
-        </>
+        </div>
       )}
 
-      <input
-        ref={fileInputRef as React.LegacyRef<HTMLInputElement>}
-        type="file"
-        accept={IMPORT_SOURCE_DEFINITIONS.json.fileSupport?.accept}
-        className="sr-only"
-        onChange={handleJsonFileChange}
-      />
-      <input
-        ref={tokensStudioFileInputRef as React.LegacyRef<HTMLInputElement>}
-        type="file"
-        accept={IMPORT_SOURCE_DEFINITIONS['tokens-studio'].fileSupport?.accept}
-        className="sr-only"
-        onChange={handleTokensStudioFileChange}
-      />
-      <input
-        ref={cssFileInputRef as React.LegacyRef<HTMLInputElement>}
-        type="file"
-        accept={IMPORT_SOURCE_DEFINITIONS.css.fileSupport?.accept}
-        className="sr-only"
-        onChange={handleCSSFileChange}
-      />
-      <input
-        ref={tailwindFileInputRef as React.LegacyRef<HTMLInputElement>}
-        type="file"
-        accept={IMPORT_SOURCE_DEFINITIONS.tailwind.fileSupport?.accept}
-        className="sr-only"
-        onChange={handleTailwindFileChange}
-      />
+      {/* Source list */}
+      {SOURCE_GROUPS.map(group => (
+        <div key={group.family}>
+          <div className="text-[9px] font-medium uppercase tracking-wider text-[var(--color-figma-text-tertiary)] mb-1">
+            {group.label}
+          </div>
+          <div className="flex flex-col rounded border border-[var(--color-figma-border)] overflow-hidden divide-y divide-[var(--color-figma-border)]">
+            {group.sources.map(source => {
+              const def = IMPORT_SOURCE_DEFINITIONS[source];
+              return (
+                <button
+                  key={source}
+                  onClick={formatHandlers[source]}
+                  className="flex items-center gap-2 px-2.5 py-1.5 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span className="shrink-0">{SOURCE_ICONS[source]}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{def.shortLabel}</span>
+                    <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">{def.description}</span>
+                  </span>
+                  <svg width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+                    <path d="M1 1l4 4-4 4" />
+                  </svg>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* Hidden file inputs */}
+      <input ref={fileInputRef as React.LegacyRef<HTMLInputElement>} type="file" accept={IMPORT_SOURCE_DEFINITIONS.json.fileSupport?.accept} className="sr-only" onChange={handleJsonFileChange} />
+      <input ref={tokensStudioFileInputRef as React.LegacyRef<HTMLInputElement>} type="file" accept={IMPORT_SOURCE_DEFINITIONS['tokens-studio'].fileSupport?.accept} className="sr-only" onChange={handleTokensStudioFileChange} />
+      <input ref={cssFileInputRef as React.LegacyRef<HTMLInputElement>} type="file" accept={IMPORT_SOURCE_DEFINITIONS.css.fileSupport?.accept} className="sr-only" onChange={handleCSSFileChange} />
+      <input ref={tailwindFileInputRef as React.LegacyRef<HTMLInputElement>} type="file" accept={IMPORT_SOURCE_DEFINITIONS.tailwind.fileSupport?.accept} className="sr-only" onChange={handleTailwindFileChange} />
     </div>
   );
 }

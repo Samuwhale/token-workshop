@@ -20,6 +20,7 @@ import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
 import { MetadataEditor } from "./MetadataEditor";
 import { ModeValuesEditor } from "./token-editor/ModeValuesEditor";
+import { readTokenPresentationMetadata } from "../shared/tokenMetadata";
 import { PathAutocomplete } from "./PathAutocomplete";
 import { useNearbyTokenMatch } from "../hooks/useNearbyTokenMatch";
 import { Collapsible } from "./Collapsible";
@@ -222,6 +223,15 @@ export function TokenEditor({
     tokenPath,
     isCreateMode,
   });
+  const tokenEntry = allTokensFlat[tokenPath];
+  const tokenPresentation = useMemo(
+    () => readTokenPresentationMetadata(tokenEntry),
+    [tokenEntry],
+  );
+  const tokenAliasPath = useMemo(() => {
+    const raw = tokenEntry?.$value;
+    return typeof raw === "string" && isAlias(raw) ? extractAliasPath(raw) : null;
+  }, [tokenEntry]);
 
   const typeParsing = useTokenTypeParsing({
     tokenType,
@@ -1476,6 +1486,11 @@ export function TokenEditor({
             serverUrl={serverUrl}
             tokenType={tokenType}
             value={value}
+            scopes={tokenPresentation.scopes}
+            lifecycle={tokenPresentation.lifecycle}
+            provenance={tokenPresentation.provenance}
+            aliasPath={tokenAliasPath}
+            extendsPath={tokenPresentation.extendsPath}
             isDirty={isDirty}
             aliasMode={aliasMode}
             referenceTrace={referenceTrace}

@@ -30,6 +30,18 @@ export function TokenEditorDerivedGroups({
     value,
   );
   const quickLabel = quickType ? getQuickRecipeActionLabel(quickType) : null;
+  const recipeTypeLabel = (type: TokenRecipe["type"]) => {
+    switch (type) {
+      case "colorRamp":
+        return "Color ramp";
+      case "typeScale":
+        return "Type scale";
+      case "spacingScale":
+        return "Spacing scale";
+      default:
+        return "Opacity scale";
+    }
+  };
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
@@ -66,8 +78,8 @@ export function TokenEditorDerivedGroups({
             <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
           </svg>
           {existingRecipesForToken.length > 0
-            ? `Derived groups (${existingRecipesForToken.length})`
-            : (quickLabel ?? "Derived groups")}
+            ? `Recipes (${existingRecipesForToken.length})`
+            : (quickLabel ?? "Create recipe")}
         </span>
         {existingRecipesForToken.length === 0 ? (
           <span className="text-[10px] text-[var(--color-figma-accent)]">
@@ -94,29 +106,18 @@ export function TokenEditorDerivedGroups({
           {existingRecipesForToken.map((gen) => (
             <div
               key={gen.id}
-              className="flex items-center justify-between gap-2"
+              className="flex items-center justify-between gap-3"
             >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span
-                  className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                    gen.type === "colorRamp"
-                      ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                      : gen.type === "typeScale"
-                        ? "bg-purple-500/15 text-purple-600"
-                        : gen.type === "spacingScale"
-                          ? "bg-green-500/15 text-green-600"
-                          : "bg-orange-500/15 text-orange-600"
-                  }`}
-                >
-                  {gen.type === "colorRamp"
-                    ? "Ramp"
-                    : gen.type === "typeScale"
-                      ? "Scale"
-                      : gen.type === "spacingScale"
-                        ? "Spacing"
-                        : "Opacity"}
-                </span>
-                <span className={LONG_TEXT_CLASSES.monoPrimary}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">
+                    {gen.name}
+                  </span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
+                    {recipeTypeLabel(gen.type)}
+                  </span>
+                </div>
+                <span className={`${LONG_TEXT_CLASSES.monoSecondary} block`}>
                   {gen.targetGroup}
                 </span>
               </div>
@@ -173,7 +174,7 @@ export function TokenEditorDerivedGroups({
             }}
             className="mt-0.5 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors text-left"
           >
-            + Add another group
+            + Add another recipe
           </button>
         </div>
       )}

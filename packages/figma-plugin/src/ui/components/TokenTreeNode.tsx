@@ -68,6 +68,13 @@ import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 import { matchesShortcut } from "../shared/shortcutRegistry";
 import { ConfirmModal } from "./ConfirmModal";
 import {
+  compactTokenPath,
+  getLifecycleLabel,
+  getTokenProvenanceLabel,
+  readTokenPresentationMetadata,
+  summarizeTokenScopes,
+} from "../shared/tokenMetadata";
+import {
   BADGE_TEXT_CLASS,
   clampMenuPosition,
   computePaddingLeft,
@@ -76,25 +83,18 @@ import {
   EMPTY_LINT_VIOLATIONS,
   RecipeGlyph,
   RecipeSummaryRow,
-  getBrowseMetaForRecipe,
-  getBrowseMetaForReference,
   getIncomingRefs,
   getManagedRecipeLeafCount,
   getQuickRecipeActionLabel,
   getQuickRecipeTypeForToken,
   getTokenRowStatus,
-  INTERACTIVE_BADGE_HIT_AREA_CLASS,
   MENU_DANGER_ITEM_CLASS,
   MENU_ITEM_CLASS,
   MENU_SEPARATOR_CLASS,
   MENU_SHORTCUT_CLASS,
   MENU_SURFACE_CLASS,
-  TokenRowBrowseMetaBadge,
 } from "./token-tree/tokenTreeNodeShared";
-import type {
-  MenuPosition,
-  TokenRowBrowseMeta,
-} from "./token-tree/tokenTreeNodeShared";
+import type { MenuPosition } from "./token-tree/tokenTreeNodeShared";
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
 // ---------------------------------------------------------------------------
@@ -365,7 +365,7 @@ function MultiModeCell({
               style={{ top: aliasPopoverPos.y, left: aliasPopoverPos.x }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1.5 uppercase tracking-wide">
+              <div className="mb-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
                 Redirect alias ·{" "}
                 <span className="font-mono normal-case text-[var(--color-figma-text)]">
                   {optionName}
@@ -427,6 +427,62 @@ function MultiModeCell({
   );
 }
 
+type RowMetadataSegment = {
+  label: string;
+  title?: string;
+  tone?: "default" | "accent" | "warning" | "danger";
+  onClick?: () => void;
+};
+
+function getRowMetadataToneClass(
+  tone: RowMetadataSegment["tone"] = "default",
+): string {
+  switch (tone) {
+    case "accent":
+      return "text-[var(--color-figma-accent)]";
+    case "warning":
+      return "text-amber-600";
+    case "danger":
+      return "text-[var(--color-figma-error)]";
+    default:
+      return "text-[var(--color-figma-text-secondary)]";
+  }
+}
+
+function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
+  return segments.map((segment, index) => (
+    <span
+      key={`${segment.label}-${index}`}
+      className="inline-flex min-w-0 items-center gap-1"
+    >
+      {index > 0 && (
+        <span
+          aria-hidden="true"
+          className="text-[var(--color-figma-text-tertiary)]/60"
+        >
+          ·
+        </span>
+      )}
+      <span
+        className={`truncate ${getRowMetadataToneClass(segment.tone)} ${
+          segment.onClick ? "cursor-pointer hover:underline" : ""
+        }`}
+        title={segment.title ?? segment.label}
+        onClick={
+          segment.onClick
+            ? (event) => {
+                event.stopPropagation();
+                segment.onClick?.();
+              }
+            : undefined
+        }
+      >
+        {segment.label}
+      </span>
+    </span>
+  ));
+}
+
 // ---------------------------------------------------------------------------
 // TokenGroupNode — renders a group row (expand/collapse header)
 // ---------------------------------------------------------------------------
@@ -476,6 +532,7 @@ const TokenGroupNode = memo(
       onDragOverGroup,
       onDropOnGroup,
       onEditRecipe,
+      onNavigateToRecipe,
       onRegenerateRecipe,
       onDetachRecipeGroup,
       onNavigateToToken,
@@ -493,6 +550,7 @@ const TokenGroupNode = memo(
 
     // Group-specific state
     const [groupMenuPos, setGroupMenuPos] = useState<MenuPosition | null>(null);
+    const [groupMenuAdvanced, setGroupMenuAdvanced] = useState(false);
     const [renamingGroup, setRenamingGroup] = useState(false);
     const [renameGroupVal, setRenameGroupVal] = useState("");
     const [renameGroupError, setRenameGroupError] = useState("");
@@ -515,6 +573,7 @@ const TokenGroupNode = memo(
 
     const closeGroupMenus = useCallback(() => {
       setGroupMenuPos(null);
+      setGroupMenuAdvanced(false);
     }, []);
 
     useEffect(() => {
@@ -563,18 +622,48 @@ const TokenGroupNode = memo(
       return getManagedRecipeLeafCount(node, targetRecipe);
     }, [node, targetRecipe]);
     const themeCoverageSummary = themeCoverage?.get(node.path) ?? null;
-    const groupSummary =
-      leafCount === 0
-        ? {
-            label: "Empty",
-            title: "This group has no tokens yet",
-            className: "text-[var(--color-figma-text-tertiary)] opacity-60",
-          }
-        : {
-            label: `${leafCount}`,
-            title: `${leafCount} token${leafCount === 1 ? "" : "s"} in this group`,
-            className: "text-[var(--color-figma-text-tertiary)]",
-          };
+    const groupPresentation = readTokenPresentationMetadata(node);
+    const groupScopeSummary =
+      node.$type && groupPresentation.scopes.length > 0
+        ? summarizeTokenScopes(node.$type, groupPresentation.scopes)
+        : null;
+    const groupMetadataSegments: RowMetadataSegment[] = [];
+    groupMetadataSegments.push({
+      label:
+        leafCount === 0
+          ? "Empty"
+          : `${leafCount} token${leafCount === 1 ? "" : "s"}`,
+      title:
+        leafCount === 0
+          ? "This group has no tokens yet"
+          : `${leafCount} token${leafCount === 1 ? "" : "s"} in this group`,
+    });
+    if (targetRecipe) {
+      groupMetadataSegments.push({
+        label: `Managed by ${targetRecipe.name}`,
+        title: `Managed by ${targetRecipe.name}`,
+        tone: targetRecipe.isStale ? "warning" : "default",
+      });
+    }
+    if (node.$type) {
+      groupMetadataSegments.push({
+        label: `Inherits ${node.$type}`,
+        title: `$type: ${node.$type} (inherited by all children)`,
+      });
+    }
+    if (groupScopeSummary) {
+      groupMetadataSegments.push({
+        label: `Figma: ${groupScopeSummary}`,
+        title: `Figma variable scopes: ${groupPresentation.scopes.join(", ")}`,
+      });
+    }
+    const groupLifecycle = getLifecycleLabel(groupPresentation.lifecycle);
+    if (groupLifecycle) {
+      groupMetadataSegments.push({
+        label: groupLifecycle,
+        tone: groupPresentation.lifecycle === "draft" ? "warning" : "default",
+      });
+    }
 
     // Build a stable map of child path → filtered lint violations so we don't create
     // a new array on every render when passing violations down to child nodes.
@@ -705,6 +794,11 @@ const TokenGroupNode = memo(
               e.stopPropagation();
               onCreateSibling?.(node.path, inferGroupTokenType(node.children));
             }
+            if (e.key === "s" && !renamingGroup && !selectMode && onSetGroupScopes) {
+              e.preventDefault();
+              e.stopPropagation();
+              onSetGroupScopes(node.path);
+            }
             if (e.key === "m" && !renamingGroup && !selectMode) {
               e.preventDefault();
               e.stopPropagation();
@@ -782,32 +876,22 @@ const TokenGroupNode = memo(
               )}
             </div>
           ) : (
-            <span
-              className={
-                isCategoryHeader
-                  ? "text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)] flex-1"
-                  : "text-[11px] font-medium text-[var(--color-figma-text)] flex-1"
-              }
-            >
-              {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
-            </span>
-          )}
-          {!renamingGroup && targetRecipe && (
-            <span
-              className={`ml-1 inline-flex shrink-0 items-center justify-center ${targetRecipe.isStale ? "rounded-full px-1.5 py-0.5 bg-amber-500/15 text-amber-600 ring-1 ring-inset ring-amber-500/40" : "text-[var(--color-figma-text-tertiary)]"}`}
-              title={`Managed by ${targetRecipe.name}${targetRecipe.isStale ? " — source changed" : ""}`}
-              aria-label={`Managed by ${targetRecipe.name}`}
-            >
-              <RecipeGlyph size={7} className="shrink-0" />
-            </span>
-          )}
-          {!renamingGroup && (
-            <span
-              className={`ml-1 shrink-0 text-[10px] ${groupSummary.className}`}
-              title={groupSummary.title}
-            >
-              {groupSummary.label}
-            </span>
+            isCategoryHeader ? (
+              <span className="flex-1 text-[11px] font-medium text-[var(--color-figma-text-secondary)]">
+                {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
+              </span>
+            ) : (
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                  {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
+                </span>
+                {groupMetadataSegments.length > 0 && (
+                  <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-[9px]">
+                    {renderRowMetadataSegments(groupMetadataSegments)}
+                  </div>
+                )}
+              </div>
+            )
           )}
           {!renamingGroup &&
             isGroupActive &&
@@ -820,42 +904,27 @@ const TokenGroupNode = memo(
                 {themeCoverageSummary.themed}/{themeCoverageSummary.total}
               </span>
             )}
-          {!renamingGroup &&
-            isGroupActive &&
-            (() => {
-              if (!targetRecipe) return null;
-              const canEdit = Boolean(onEditRecipe);
-              const Tag = canEdit ? "button" : "span";
-              return (
-                <Tag
-                  {...(canEdit
-                    ? {
-                        type: "button" as const,
-                        onClick: (e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          onEditRecipe?.(targetRecipe.id);
-                        },
-                      }
-                    : {})}
-                  title={
-                    canEdit
-                      ? `${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"} — edit ${targetRecipe.name}`
-                      : `${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"}`
-                  }
-                  className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} font-medium shrink-0 bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-tertiary)]${canEdit ? ` ${INTERACTIVE_BADGE_HIT_AREA_CLASS} cursor-pointer hover:bg-[var(--color-figma-accent)]/20 hover:text-[var(--color-figma-accent)]` : ""}`}
-                >
-                  <RecipeGlyph size={6} className="shrink-0" />
-                  {managedRecipeLeafCount}
-                </Tag>
-              );
-            })()}
-          {!renamingGroup && isGroupActive && node.$type && (
-            <span
-              className="text-[10px] shrink-0 text-[var(--color-figma-text-secondary)] italic ml-0.5 opacity-60"
-              title={`$type: ${node.$type} (inherited by all children)`}
+        {!renamingGroup && isGroupActive && targetRecipe && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (targetRecipe.id) onNavigateToRecipe?.(targetRecipe.id);
+              }}
+              disabled={!targetRecipe.id || !onNavigateToRecipe}
+              className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${
+                targetRecipe.isStale
+                  ? "bg-amber-500/10 text-amber-600"
+                  : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+              } disabled:cursor-default disabled:opacity-100`}
+              title={`${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"}`}
             >
-              {node.$type}
-            </span>
+              <RecipeGlyph size={6} className="shrink-0" />
+              <span>Recipe</span>
+              <span className="text-[var(--color-figma-text-tertiary)]">
+                {managedRecipeLeafCount}
+              </span>
+            </button>
           )}
           {!selectMode && !renamingGroup && (
             <div
@@ -892,6 +961,20 @@ const TokenGroupNode = memo(
                   <span>Scope</span>
                 </button>
               )}
+              {onSetGroupScopes && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSetGroupScopes(node.path);
+                  }}
+                  title="Edit Figma scopes for this group"
+                  aria-label="Edit Figma scopes for this group"
+                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" /><path d="M9 12h6" /></svg>
+                  <span>Scopes</span>
+                </button>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); onCreateSibling?.(node.path, inferGroupTokenType(node.children)); }}
                 title="Add token to group"
@@ -918,7 +1001,7 @@ const TokenGroupNode = memo(
           )}
         </div>
 
-        {/* Group context menu — flat single-level with icons */}
+        {/* Group context menu — tiered with "More..." expander */}
         {groupMenuPos && (
           <div
             ref={groupMenuRef}
@@ -928,141 +1011,191 @@ const TokenGroupNode = memo(
             style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Section: Core */}
-            {onZoomIntoGroup && (
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                data-accel="z"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { closeGroupMenus(); onZoomIntoGroup(node.path); }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
-                <span className="flex-1">Scope to group</span>
-                <span className={MENU_SHORTCUT_CLASS}>Z</span>
-              </button>
-            )}
-            {onCreateSibling && (
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                data-accel="c"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { closeGroupMenus(); onCreateSibling(node.path, inferGroupTokenType(node.children)); }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                <span className="flex-1">Add token</span>
-                <span className={MENU_SHORTCUT_CLASS}>C</span>
-              </button>
-            )}
-            {onCreateGroup && (
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                data-accel="n"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { closeGroupMenus(); onCreateGroup(node.path); }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg>
-                <span className="flex-1">New subgroup</span>
-                <span className={MENU_SHORTCUT_CLASS}>N</span>
-              </button>
-            )}
-            <button
-              role="menuitem"
-              tabIndex={-1}
-              data-accel="r"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { closeGroupMenus(); setRenameGroupVal(node.name); setRenamingGroup(true); }}
-              className={MENU_ITEM_CLASS}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
-              <span className="flex-1">Rename</span>
-              <span className={MENU_SHORTCUT_CLASS}>R</span>
-            </button>
-            <button
-              role="menuitem"
-              tabIndex={-1}
-              data-accel="d"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { closeGroupMenus(); onDuplicateGroup?.(node.path); }}
-              className={MENU_ITEM_CLASS}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-              <span className="flex-1">Duplicate</span>
-              <span className={MENU_SHORTCUT_CLASS}>D</span>
-            </button>
-            <div role="separator" className={MENU_SEPARATOR_CLASS} />
-            {/* Section: Organization */}
-            <button
-              role="menuitem"
-              tabIndex={-1}
-              data-accel="e"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { closeGroupMenus(); setGroupMetaType(node.$type ?? ""); setGroupMetaDescription(node.$description ?? ""); setEditingGroupMeta(true); }}
-              className={MENU_ITEM_CLASS}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-              <span className="flex-1">Edit type &amp; description</span>
-              <span className={MENU_SHORTCUT_CLASS}>E</span>
-            </button>
-            <button
-              role="menuitem"
-              tabIndex={-1}
-              data-accel="m"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { closeGroupMenus(); onRequestMoveGroup?.(node.path); }}
-              className={MENU_ITEM_CLASS}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 14l3-3 3 3" /></svg>
-              <span className="flex-1">Move to set</span>
-              <span className={MENU_SHORTCUT_CLASS}>M</span>
-            </button>
-            <button
-              role="menuitem"
-              tabIndex={-1}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { closeGroupMenus(); onRequestCopyGroup?.(node.path); }}
-              className={MENU_ITEM_CLASS}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
-              <span className="flex-1">Copy to set</span>
-            </button>
-            {onGenerateScaleFromGroup && (
+            {!groupMenuAdvanced ? (
               <>
-                <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                {/* Section: Primary */}
+                {onZoomIntoGroup && (
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    data-accel="z"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { closeGroupMenus(); onZoomIntoGroup(node.path); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
+                    <span className="flex-1">Scope to group</span>
+                    <span className={MENU_SHORTCUT_CLASS}>Z</span>
+                  </button>
+                )}
+                {onCreateSibling && (
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    data-accel="c"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { closeGroupMenus(); onCreateSibling(node.path, inferGroupTokenType(node.children)); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    <span className="flex-1">Add token</span>
+                    <span className={MENU_SHORTCUT_CLASS}>C</span>
+                  </button>
+                )}
+                {onCreateGroup && (
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    data-accel="n"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { closeGroupMenus(); onCreateGroup(node.path); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg>
+                    <span className="flex-1">New subgroup</span>
+                    <span className={MENU_SHORTCUT_CLASS}>N</span>
+                  </button>
+                )}
+                {onSetGroupScopes && (
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    data-accel="s"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { closeGroupMenus(); onSetGroupScopes(node.path); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" /><path d="M9 12h6" /></svg>
+                    <span className="flex-1">Edit Figma scopes</span>
+                    <span className={MENU_SHORTCUT_CLASS}>S</span>
+                  </button>
+                )}
                 <button
                   role="menuitem"
                   tabIndex={-1}
-                  data-accel="g"
+                  data-accel="r"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    closeGroupMenus();
-                    const prefix = `${node.path}.`;
-                    const types: Record<string, number> = {};
-                    for (const [path, entry] of Object.entries(allTokensFlat)) {
-                      if (path === node.path || path.startsWith(prefix)) {
-                        const t = entry.$type;
-                        if (t) types[t] = (types[t] ?? 0) + 1;
-                      }
-                    }
-                    const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-                    onGenerateScaleFromGroup(node.path, dominant);
-                  }}
+                  onClick={() => { closeGroupMenus(); setRenameGroupVal(node.name); setRenamingGroup(true); }}
                   className={MENU_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
-                  <span className="flex-1">Create recipe</span>
-                  <span className={MENU_SHORTCUT_CLASS}>G</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
+                  <span className="flex-1">Rename</span>
+                  <span className={MENU_SHORTCUT_CLASS}>R</span>
+                </button>
+                <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                {/* Section: Danger */}
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="x"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { closeGroupMenus(); onDeleteGroup(node.path, node.name, leafCount); }}
+                  className={MENU_DANGER_ITEM_CLASS}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                  <span className="flex-1">Delete</span>
+                  <span className={MENU_SHORTCUT_CLASS}>X</span>
+                </button>
+                <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                {/* More... expander */}
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setGroupMenuAdvanced(true)}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
+                  <span className="flex-1">More...</span>
                 </button>
               </>
-            )}
-            {(onSyncGroup || onSyncGroupStyles) && (
+            ) : (
               <>
+                {/* Advanced section — Back button */}
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setGroupMenuAdvanced(false)}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                  <span className="flex-1">Back</span>
+                </button>
                 <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                {/* Section: Advanced */}
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="d"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { closeGroupMenus(); onDuplicateGroup?.(node.path); }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                  <span className="flex-1">Duplicate group</span>
+                  <span className={MENU_SHORTCUT_CLASS}>D</span>
+                </button>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="e"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { closeGroupMenus(); setGroupMetaType(node.$type ?? ""); setGroupMetaDescription(node.$description ?? ""); setEditingGroupMeta(true); }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  <span className="flex-1">Edit type &amp; description</span>
+                  <span className={MENU_SHORTCUT_CLASS}>E</span>
+                </button>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-accel="m"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { closeGroupMenus(); onRequestMoveGroup?.(node.path); }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 14l3-3 3 3" /></svg>
+                  <span className="flex-1">Move to set</span>
+                  <span className={MENU_SHORTCUT_CLASS}>M</span>
+                </button>
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { closeGroupMenus(); onRequestCopyGroup?.(node.path); }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
+                  <span className="flex-1">Copy to set</span>
+                </button>
+                {onGenerateScaleFromGroup && (
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    data-accel="g"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      closeGroupMenus();
+                      const prefix = `${node.path}.`;
+                      const types: Record<string, number> = {};
+                      for (const [path, entry] of Object.entries(allTokensFlat)) {
+                        if (path === node.path || path.startsWith(prefix)) {
+                          const t = entry.$type;
+                          if (t) types[t] = (types[t] ?? 0) + 1;
+                        }
+                      }
+                      const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+                      onGenerateScaleFromGroup(node.path, dominant);
+                    }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
+                    <span className="flex-1">Create recipe from group</span>
+                    <span className={MENU_SHORTCUT_CLASS}>G</span>
+                  </button>
+                )}
                 {onSyncGroup && (
                   <button
                     role="menuitem"
@@ -1093,20 +1226,6 @@ const TokenGroupNode = memo(
                 )}
               </>
             )}
-            <div role="separator" className={MENU_SEPARATOR_CLASS} />
-            {/* Section: Danger */}
-            <button
-              role="menuitem"
-              tabIndex={-1}
-              data-accel="x"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { closeGroupMenus(); onDeleteGroup(node.path, node.name, leafCount); }}
-              className={MENU_DANGER_ITEM_CLASS}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-              <span className="flex-1">Delete</span>
-              <span className={MENU_SHORTCUT_CLASS}>X</span>
-            </button>
           </div>
         )}
 
@@ -1118,7 +1237,7 @@ const TokenGroupNode = memo(
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
               Group metadata
             </div>
             <div className="flex items-center gap-1.5">
@@ -1373,6 +1492,7 @@ const TokenLeafNode = memo(
     const [contextMenuPos, setContextMenuPos] = useState<MenuPosition | null>(
       null,
     );
+    const [tokenMenuAdvanced, setTokenMenuAdvanced] = useState(false);
     const [refsPopover, setRefsPopover] = useState<{
       pos: { x: number; y: number };
       refs: string[];
@@ -1473,6 +1593,7 @@ const TokenLeafNode = memo(
 
     const closeTokenMenus = useCallback(() => {
       setContextMenuPos(null);
+      setTokenMenuAdvanced(false);
     }, []);
 
     const openQuickRecipe = useCallback(() => {
@@ -1612,7 +1733,6 @@ const TokenLeafNode = memo(
     const themeLensClass = isThemeLensVariant
       ? "border-l-2 border-l-[var(--color-figma-accent)]"
       : "";
-    const showExpandedMeta = !renamingToken && isRowActive;
     const duplicateCount = showDuplicatesFilter
       ? (duplicateCounts.get(stableStringify(node.$value)) ?? 0)
       : 0;
@@ -1820,78 +1940,85 @@ const TokenLeafNode = memo(
       setTimeout(() => setCopiedWhat(null), 1500);
     }, [displayValue]);
 
-    const handleAliasClick = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!isAlias(node.$value) || isBrokenAlias) return;
-        const aliasPath = (node.$value as string).slice(1, -1);
-        onNavigateToAlias?.(aliasPath, node.path);
-      },
-      [node.$value, isBrokenAlias, onNavigateToAlias, node.path],
+    const presentationEntry = allTokensFlat[node.path] ?? node;
+    const presentationMetadata = readTokenPresentationMetadata(
+      presentationEntry,
     );
-    const aliasRowMeta: TokenRowBrowseMeta | null = aliasTargetPath
-      ? {
-          ...getBrowseMetaForReference(
-            aliasTargetPath,
-            showExpandedMeta,
-            !isBrokenAlias,
-            handleAliasClick,
-          ),
-          title: isBrokenAlias
-            ? `Broken reference — ${resolveResult?.error ?? "Unknown error"}`
-            : `${aliasTargetPath}\nClick to navigate`,
-          toneClass: isBrokenAlias
-            ? "text-[var(--color-figma-error)]"
-            : "text-[var(--color-figma-text-tertiary)]",
-        }
+    const scopeSummary = node.$type
+      ? summarizeTokenScopes(node.$type, presentationMetadata.scopes)
       : null;
-    const recipeRowMeta: TokenRowBrowseMeta | null = producingRecipe
-      ? {
-          ...(producingRecipe.sourceToken
-            ? getBrowseMetaForRecipe(
-                producingRecipe.sourceToken,
-                showExpandedMeta,
-              )
-            : {
-                kind: "recipe" as const,
-                compactLabel: producingRecipe.name,
-                expandedLabel: `Managed by ${producingRecipe.name}`,
-                title: `Managed by ${producingRecipe.name}`,
-                toneClass: "text-[var(--color-figma-text-tertiary)]",
-              }),
-          compactLabel: producingRecipe.name,
-          expandedLabel: `Managed by ${producingRecipe.name}`,
-          title: [
-            `Managed by ${producingRecipe.name}`,
-            producingRecipe.sourceToken
-              ? `Source: ${producingRecipe.sourceToken}`
-              : null,
-            producingRecipe.isStale
-              ? "Source changed — re-run to update"
-              : null,
-          ]
-            .filter(Boolean)
-            .join("\n"),
-          toneClass: producingRecipe.isStale
-            ? "text-amber-600"
-            : "text-[var(--color-figma-text-tertiary)]",
-          interactive: Boolean(onOpenRecipeEditor),
-          onClick: onOpenRecipeEditor
-            ? (e: React.MouseEvent<HTMLButtonElement>) => {
-                e.stopPropagation();
-                onOpenRecipeEditor({
-                  mode: "edit",
-                  id: producingRecipe.id,
-                });
-              }
+    const provenanceLabel = getTokenProvenanceLabel(
+      presentationMetadata.provenance,
+    );
+    const lifecycleLabel = getLifecycleLabel(presentationMetadata.lifecycle);
+    const leafMetadataSegments: RowMetadataSegment[] = [];
+    if (producingRecipe) {
+      leafMetadataSegments.push({
+        label: `Generated by ${producingRecipe.name}`,
+        title: [
+          `Managed by ${producingRecipe.name}`,
+          producingRecipe.sourceToken
+            ? `Source: ${producingRecipe.sourceToken}`
+            : null,
+          producingRecipe.isStale ? "Source changed" : null,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        tone: producingRecipe.isStale ? "warning" : "default",
+        onClick: onOpenRecipeEditor
+          ? () =>
+              onOpenRecipeEditor({
+                mode: "edit",
+                id: producingRecipe.id,
+              })
+          : undefined,
+      });
+    } else if (aliasTargetPath) {
+      leafMetadataSegments.push({
+        label: `Alias of ${compactTokenPath(aliasTargetPath)}`,
+        title: isBrokenAlias
+          ? `Broken reference — ${resolveResult?.error ?? "Unknown error"}`
+          : `${aliasTargetPath}\nClick to navigate`,
+        tone: isBrokenAlias ? "danger" : "accent",
+        onClick:
+          !isBrokenAlias && onNavigateToAlias
+            ? () => onNavigateToAlias(aliasTargetPath, node.path)
             : undefined,
-        }
-      : null;
-    const primaryBrowseMeta = aliasRowMeta ?? recipeRowMeta;
-    const secondaryBrowseMeta =
-      showExpandedMeta && aliasRowMeta && recipeRowMeta
-        ? recipeRowMeta
-        : null;
+      });
+    } else if (presentationMetadata.extendsPath) {
+      leafMetadataSegments.push({
+        label: `Overrides ${compactTokenPath(presentationMetadata.extendsPath)}`,
+        title: presentationMetadata.extendsPath,
+        onClick: onNavigateToAlias
+          ? () => onNavigateToAlias(presentationMetadata.extendsPath!, node.path)
+          : undefined,
+      });
+    }
+    if (scopeSummary) {
+      leafMetadataSegments.push({
+        label: `Figma: ${scopeSummary}`,
+        title: `Figma variable scopes: ${presentationMetadata.scopes.join(", ")}`,
+      });
+    }
+    if (provenanceLabel) {
+      leafMetadataSegments.push({
+        label: provenanceLabel,
+        title: provenanceLabel,
+      });
+    }
+    if (modeVariantPaths?.has(node.path) && !multiModeValues) {
+      leafMetadataSegments.push({
+        label: "Mode overrides",
+        tone: "accent",
+      });
+    }
+    if (lifecycleLabel) {
+      leafMetadataSegments.push({
+        label: lifecycleLabel,
+        tone:
+          presentationMetadata.lifecycle === "draft" ? "warning" : "default",
+      });
+    }
 
     const applyWithProperty = useCallback(
       (property: BindableProperty) => {
@@ -2454,31 +2581,9 @@ const TokenLeafNode = memo(
                   )}
                 </div>
               ) : (
-                <>
-                  {ancestorPathLabel && (
-                    <span
-                      className="inline-flex max-w-[160px] shrink-0 items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]"
-                      title={`In ${ancestorPathLabel}`}
-                    >
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        className="shrink-0 opacity-70"
-                      >
-                        <path d="M3 7h6l2 2h10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                      </svg>
-                      <span className="truncate">{ancestorPathLabel}</span>
-                    </span>
-                  )}
+                <div className="flex min-w-0 flex-1 flex-col">
                   <span
-                    className="min-w-0 shrink truncate text-[11px] text-[var(--color-figma-text)]"
+                    className="min-w-0 truncate text-[11px] text-[var(--color-figma-text)]"
                     title={formatDisplayPath(node.path, node.name)}
                   >
                     {highlightMatch(
@@ -2488,31 +2593,21 @@ const TokenLeafNode = memo(
                       searchHighlight?.nameTerms ?? [],
                     )}
                   </span>
-                </>
-              )}
-              {node.$type && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onFilterByType?.(node.$type!);
-                  }}
-                  title={`Filter by type: ${node.$type}`}
-                  className={`${BADGE_TEXT_CLASS} font-medium ${INTERACTIVE_BADGE_HIT_AREA_CLASS} text-[var(--color-figma-text-tertiary)] cursor-pointer transition-opacity hover:text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100`}
-                >
-                  {node.$type}
-                </button>
-              )}
-              {isRowActive && primaryBrowseMeta && (
-                <TokenRowBrowseMetaBadge
-                  meta={primaryBrowseMeta}
-                  expanded={showExpandedMeta}
-                />
-              )}
-              {isRowActive && secondaryBrowseMeta && (
-                <TokenRowBrowseMetaBadge
-                  meta={secondaryBrowseMeta}
-                  expanded
-                />
+                  {(ancestorPathLabel || leafMetadataSegments.length > 0) && (
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-[9px]">
+                      {ancestorPathLabel && (
+                        <span
+                          className="truncate text-[var(--color-figma-text-tertiary)]"
+                          title={`In ${ancestorPathLabel}`}
+                        >
+                          In {ancestorPathLabel}
+                        </span>
+                      )}
+                      {leafMetadataSegments.length > 0 &&
+                        renderRowMetadataSegments(leafMetadataSegments)}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -2718,15 +2813,39 @@ const TokenLeafNode = memo(
             ) : isAlias(node.$value) &&
               !isBrokenAlias &&
               !showResolvedValues ? (
-              <span
-                className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (aliasTargetPath) {
+                    onNavigateToAlias?.(aliasTargetPath, node.path);
+                  }
+                }}
+                className="inline-flex min-w-0 shrink-0 items-center gap-1 text-[11px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
                 title={`${(node.$value as string).slice(1, -1)} → ${formatValue(node.$type, displayValue)}`}
               >
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  className="shrink-0"
+                >
+                  <path d="M7 17 17 7" />
+                  <path d="M8 7h9v9" />
+                </svg>
+                <span className="truncate max-w-[84px]">
                 {highlightMatch(
                   formatValue(node.$type, displayValue),
                   searchHighlight?.valueTerms ?? [],
                 )}
-              </span>
+                </span>
+              </button>
             ) : canInlineEdit && node.$type !== "color" ? (
               <span
                 className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-text hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
@@ -2774,23 +2893,6 @@ const TokenLeafNode = memo(
                 )}
               </span>
             ))}
-          {/* Mode variant indicator — shown when columns are hidden but token varies across modes */}
-          {modeVariantPaths?.has(node.path) && !multiModeValues && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(node.path, node.name);
-              }}
-              className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
-              title="Has theme overrides — click to edit"
-            >
-              <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor" aria-hidden="true">
-                <path d="M3 0L5.6 3L3 6L0.4 3Z" />
-              </svg>
-              modes
-            </button>
-          )}
           {tokenStatus &&
             (tokenStatus.kind === "lint" ? (
               <button
@@ -2860,91 +2962,32 @@ const TokenLeafNode = memo(
                 )}
               </span>
             ))}
+          {/* Passive favorite indicator — always visible when starred */}
+          {isFavorite && (
+            <span
+              className="shrink-0 text-amber-400 ml-0.5"
+              title="Favorited"
+              aria-label="Favorited"
+            >
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </span>
+          )}
           {!selectMode && (
             <div
               className={`flex items-center gap-0.5 shrink-0 ml-1 ${isRowActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"} transition-opacity`}
             >
-              {onToggleStar && (isFavorite || isRowActive) && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleStar(node.path);
-                  }}
-                  title={isFavorite ? "Remove favorite" : "Add to favorites"}
-                  aria-label={
-                    isFavorite ? "Remove favorite" : "Add to favorites"
-                  }
-                  className={`p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] ${isFavorite ? "text-amber-400" : "text-[var(--color-figma-text-secondary)]"}`}
-                >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill={isFavorite ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                </button>
-              )}
-              {canApplyFromRow && !quickBound && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleApplyToSelection(e);
-                  }}
-                  title={
-                    quickBound
-                      ? `Bound to ${quickBound}`
-                      : (() => {
-                          if (!quickBindTargets) return "Apply to selection";
-                          if (quickBindTargets.length === 0)
-                            return "No compatible properties on selection";
-                          if (quickBindTargets.length === 1)
-                            return `Quick bind to ${PROPERTY_LABELS[quickBindTargets[0]]}`;
-                          return `Apply to ${quickBindTargets.map((t) => PROPERTY_LABELS[t]).join(", ")}`;
-                        })()
-                  }
-                  aria-label={
-                    quickBound ? `Bound to ${quickBound}` : "Apply to selection"
-                  }
-                  className={`p-1.5 rounded ${quickBound ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"}`}
-                >
-                  {quickBound ? (
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M20 6L9 17l-5-5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      aria-hidden="true"
-                    >
-                      <path d="M12 5l7 7-7 7M5 12h14" />
-                    </svg>
-                  )}
-                </button>
-              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -2985,7 +3028,7 @@ const TokenLeafNode = memo(
             />
           )}
 
-          {/* Right-click context menu — flat single-level with icons */}
+          {/* Right-click context menu — tiered with "More..." expander */}
           {contextMenuPos && (
             <div
               ref={tokenMenuRef}
@@ -2995,218 +3038,270 @@ const TokenLeafNode = memo(
               style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Section: Edit */}
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { closeTokenMenus(); onEdit(node.path, node.name); }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                <span className="flex-1">Edit</span>
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                data-accel="r"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { closeTokenMenus(); setRenameTokenVal(node.name); setRenamingToken(true); }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
-                <span className="flex-1">Rename</span>
-                <span className={MENU_SHORTCUT_CLASS}>F2</span>
-              </button>
-              {onDuplicateToken && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  data-accel="d"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { closeTokenMenus(); onDuplicateToken(node.path); }}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                  <span className="flex-1">Duplicate</span>
-                  <span className={MENU_SHORTCUT_CLASS}>D</span>
-                </button>
-              )}
-              <div role="separator" className={MENU_SEPARATOR_CLASS} />
-              {/* Section: Clipboard & Apply */}
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                data-accel="c"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { handleCopyPath(); closeTokenMenus(); }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                <span className="flex-1">Copy path</span>
-                <span className={MENU_SHORTCUT_CLASS}>C</span>
-              </button>
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { handleCopyValue(); closeTokenMenus(); }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M20 6L9 17l-5-5" /></svg>
-                <span className="flex-1">Copy value</span>
-              </button>
-              {!selectMode &&
-                node.$type &&
-                (TOKEN_PROPERTY_MAP[node.$type]?.length > 0 ||
-                  node.$type === "composition") &&
-                selectedNodes.length > 0 && (
+              {!tokenMenuAdvanced ? (
+                <>
+                  {/* Section 1: Primary */}
                   <button
                     role="menuitem"
                     tabIndex={-1}
-                    data-accel="v"
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={handleContextMenuApply}
+                    onClick={() => { closeTokenMenus(); onEdit(node.path, node.name); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-                    <span className="flex-1">Apply to selection</span>
-                    {quickBindTargets?.length === 1 && (
-                      <span className={MENU_SHORTCUT_CLASS}>{PROPERTY_LABELS[quickBindTargets[0]]}</span>
-                    )}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    <span className="flex-1">Edit</span>
                   </button>
-                )}
-              <div role="separator" className={MENU_SEPARATOR_CLASS} />
-              {/* Section: Organization */}
-              {onRequestMoveToken && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  data-accel="m"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { closeTokenMenus(); onRequestMoveToken(node.path); }}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 14l3-3 3 3" /></svg>
-                  <span className="flex-1">Move to set</span>
-                  <span className={MENU_SHORTCUT_CLASS}>M</span>
-                </button>
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    data-accel="r"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { closeTokenMenus(); setRenameTokenVal(node.name); setRenamingToken(true); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
+                    <span className="flex-1">Rename</span>
+                    <span className={MENU_SHORTCUT_CLASS}>F2</span>
+                  </button>
+                  {onDuplicateToken && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      data-accel="d"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); onDuplicateToken(node.path); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                      <span className="flex-1">Duplicate</span>
+                      <span className={MENU_SHORTCUT_CLASS}>D</span>
+                    </button>
+                  )}
+                  <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                  {/* Section 2: Clipboard & Apply */}
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    data-accel="c"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { handleCopyPath(); closeTokenMenus(); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                    <span className="flex-1">Copy path</span>
+                    <span className={MENU_SHORTCUT_CLASS}>C</span>
+                  </button>
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { handleCopyValue(); closeTokenMenus(); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M20 6L9 17l-5-5" /></svg>
+                    <span className="flex-1">Copy value</span>
+                  </button>
+                  {!selectMode &&
+                    node.$type &&
+                    (TOKEN_PROPERTY_MAP[node.$type]?.length > 0 ||
+                      node.$type === "composition") &&
+                    selectedNodes.length > 0 && (
+                      <button
+                        role="menuitem"
+                        tabIndex={-1}
+                        data-accel="v"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={handleContextMenuApply}
+                        className={MENU_ITEM_CLASS}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                        <span className="flex-1">Apply to selection</span>
+                        {quickBindTargets?.length === 1 && (
+                          <span className={MENU_SHORTCUT_CLASS}>{PROPERTY_LABELS[quickBindTargets[0]]}</span>
+                        )}
+                      </button>
+                    )}
+                  <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                  {/* Section: Danger */}
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    data-accel="delete"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { closeTokenMenus(); onDelete(node.path); }}
+                    className={MENU_DANGER_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                    <span className="flex-1">Delete</span>
+                    <span className={MENU_SHORTCUT_CLASS}>⌫</span>
+                  </button>
+                  <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                  {/* More... expander */}
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setTokenMenuAdvanced(true)}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
+                    <span className="flex-1">More...</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Advanced section — Back button */}
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setTokenMenuAdvanced(false)}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                    <span className="flex-1">Back</span>
+                  </button>
+                  <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                  {/* Section 3: Advanced */}
+                  {onRequestMoveToken && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      data-accel="m"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); onRequestMoveToken(node.path); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 14l3-3 3 3" /></svg>
+                      <span className="flex-1">Move to set</span>
+                      <span className={MENU_SHORTCUT_CLASS}>M</span>
+                    </button>
+                  )}
+                  {onRequestCopyToken && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); onRequestCopyToken(node.path); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
+                      <span className="flex-1">Copy to set</span>
+                    </button>
+                  )}
+                  {!isAlias(node.$value) && onExtractToAlias && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      data-accel="e"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); onExtractToAlias(node.path, node.$type, node.$value); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                      <span className="flex-1">Extract to alias</span>
+                      <span className={MENU_SHORTCUT_CLASS}>E</span>
+                    </button>
+                  )}
+                  {!isAlias(node.$value) && quickRecipeType && onOpenRecipeEditor && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      data-accel="g"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={openQuickRecipe}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
+                      <span className="flex-1">{getQuickRecipeActionLabel(quickRecipeType)}</span>
+                      <span className={MENU_SHORTCUT_CLASS}>G</span>
+                    </button>
+                  )}
+                  {producingRecipe && onDetachFromRecipe && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); setShowDetachTokenConfirm(true); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M5.16 11.75l-1.72 1.71a5 5 0 0 0 7.07 7.07l1.72-1.71" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                      <span className="flex-1">Detach from recipe</span>
+                    </button>
+                  )}
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      const refs = getIncomingRefs(node.path, allTokensFlat);
+                      const rect = nodeRef.current?.getBoundingClientRect();
+                      closeTokenMenus();
+                      setRefsPopover({
+                        refs,
+                        pos: rect
+                          ? {
+                              x: Math.min(rect.right + 4, window.innerWidth - 244),
+                              y: Math.min(rect.top, window.innerHeight - 240),
+                            }
+                          : { x: 100, y: 100 },
+                      });
+                    }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+                    <span className="flex-1">Find references</span>
+                  </button>
+                  {onCompareAcrossThemes && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); onCompareAcrossThemes(node.path); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+                      <span className="flex-1">Compare across themes</span>
+                    </button>
+                  )}
+                  {onViewTokenHistory && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); onViewTokenHistory(node.path); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                      <span className="flex-1">View history</span>
+                    </button>
+                  )}
+                  {node.$type && onFilterByType && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); onFilterByType(node.$type!); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+                      <span className="flex-1">Filter by type: {node.$type}</span>
+                    </button>
+                  )}
+                  {onToggleStar && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); onToggleStar(node.path); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${isFavorite ? "text-amber-400" : "opacity-60"}`}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                      <span className="flex-1">{isFavorite ? "Remove favorite" : "Add to favorites"}</span>
+                    </button>
+                  )}
+                </>
               )}
-              {onRequestCopyToken && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { closeTokenMenus(); onRequestCopyToken(node.path); }}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
-                  <span className="flex-1">Copy to set</span>
-                </button>
-              )}
-              {!isAlias(node.$value) && onExtractToAlias && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  data-accel="e"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { closeTokenMenus(); onExtractToAlias(node.path, node.$type, node.$value); }}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
-                  <span className="flex-1">Extract to alias</span>
-                  <span className={MENU_SHORTCUT_CLASS}>E</span>
-                </button>
-              )}
-              {!isAlias(node.$value) && quickRecipeType && onOpenRecipeEditor && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  data-accel="g"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={openQuickRecipe}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
-                  <span className="flex-1">{getQuickRecipeActionLabel(quickRecipeType)}</span>
-                  <span className={MENU_SHORTCUT_CLASS}>G</span>
-                </button>
-              )}
-              {producingRecipe && onDetachFromRecipe && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { closeTokenMenus(); setShowDetachTokenConfirm(true); }}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M5.16 11.75l-1.72 1.71a5 5 0 0 0 7.07 7.07l1.72-1.71" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
-                  <span className="flex-1">Detach from recipe</span>
-                </button>
-              )}
-              <div role="separator" className={MENU_SEPARATOR_CLASS} />
-              {/* Section: Inspect */}
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  const refs = getIncomingRefs(node.path, allTokensFlat);
-                  const rect = nodeRef.current?.getBoundingClientRect();
-                  closeTokenMenus();
-                  setRefsPopover({
-                    refs,
-                    pos: rect
-                      ? {
-                          x: Math.min(rect.right + 4, window.innerWidth - 244),
-                          y: Math.min(rect.top, window.innerHeight - 240),
-                        }
-                      : { x: 100, y: 100 },
-                  });
-                }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
-                <span className="flex-1">Find references</span>
-              </button>
-              {onCompareAcrossThemes && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { closeTokenMenus(); onCompareAcrossThemes(node.path); }}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-                  <span className="flex-1">Compare across themes</span>
-                </button>
-              )}
-              {onViewTokenHistory && (
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { closeTokenMenus(); onViewTokenHistory(node.path); }}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                  <span className="flex-1">View history</span>
-                </button>
-              )}
-              <div role="separator" className={MENU_SEPARATOR_CLASS} />
-              {/* Section: Danger */}
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                data-accel="delete"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { closeTokenMenus(); onDelete(node.path); }}
-                className={MENU_DANGER_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                <span className="flex-1">Delete</span>
-                <span className={MENU_SHORTCUT_CLASS}>⌫</span>
-              </button>
             </div>
           )}
 
@@ -3217,7 +3312,7 @@ const TokenLeafNode = memo(
               style={{ top: aliasPickerPos.y, left: aliasPickerPos.x }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1.5 uppercase tracking-wide">
+              <div className="mb-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
                 Link{" "}
                 <span className="font-mono normal-case text-[var(--color-figma-text)]">
                   {node.name}

@@ -30,7 +30,7 @@ import type {
   VariableSyncToken,
   VarSnapshot,
 } from '../../shared/types';
-import { FIGMA_SCOPES } from './MetadataEditor';
+import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
 import {
   buildVariablePublishFigmaMap,
   buildPublishPullPayload,
@@ -816,7 +816,7 @@ export function PublishPanel({
             'Review the draft tokens that blocked preflight, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('define', 'tokens', { preserveHandoff: true });
+        navigateTo('tokens', 'tokens', { preserveHandoff: true });
         return;
       }
 
@@ -844,7 +844,7 @@ export function PublishPanel({
             'Add descriptions in Tokens, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('define', 'tokens', { preserveHandoff: true });
+        navigateTo('tokens', 'tokens', { preserveHandoff: true });
         return;
       }
 
@@ -1092,7 +1092,7 @@ export function PublishPanel({
                       revertDescription="Restore Figma variables to their pre-sync state"
                       scopeOverrides={scopeOverrides}
                       onScopesChange={(path, scopes) => setScopeOverrides(prev => ({ ...prev, [path]: scopes }))}
-                      getScopeOptions={(type) => FIGMA_SCOPES[type ?? ''] ?? []}
+                      getScopeOptions={(type) => FIGMA_SCOPE_OPTIONS[type ?? ''] ?? []}
                       reviewOnly={isResolverPublishCompareActive}
                       reviewOnlyMessage="Resolver-mode variable differences are review-only here. Apply them from Advanced publish routing so the saved resolver mapping stays authoritative."
                     />

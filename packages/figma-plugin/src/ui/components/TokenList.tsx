@@ -184,7 +184,7 @@ export function TokenList({
     onViewTokenHistory,
     onEditRecipe,
     onOpenRecipeEditor,
-    onNavigateToRecipe: _onNavigateToRecipe,
+    onNavigateToRecipe,
     onNavigateToNewRecipe,
     onShowReferences: _onShowReferences,
     onDisplayedLeafNodesChange,
@@ -1091,20 +1091,20 @@ export function TokenList({
   const activeFilterSummary = useMemo(() => {
     const items: string[] = [];
     if (sortOrder !== "default")
-      items.push(sortOrder === "alpha-asc" ? "A to Z" : "By type");
+      items.push(sortOrder === "alpha-asc" ? "Sorted A to Z" : "Sorted by type");
     if (refFilter !== "all")
-      items.push(refFilter === "aliases" ? "References only" : "Direct only");
-    if (showDuplicates) items.push("Duplicates");
+      items.push(refFilter === "aliases" ? "Alias tokens only" : "Direct values only");
+    if (showDuplicates) items.push("Duplicate values");
     if (showIssuesOnly)
       items.push(
         lintViolations.length > 0
-          ? `Issues (${lintViolations.length})`
-          : "Issues",
+          ? `Issues only (${lintViolations.length})`
+          : "Issues only",
       );
-    if (showRecentlyTouched) items.push("Recent");
-    if (typeFilter !== "") items.push(typeFilter);
-    if (inspectMode) items.push("Selection only");
-    if (crossSetSearch) items.push("All sets");
+    if (showRecentlyTouched) items.push("Recently touched");
+    if (typeFilter !== "") items.push(`Type: ${typeFilter}`);
+    if (inspectMode) items.push("Bound to selection");
+    if (crossSetSearch) items.push("Search all sets");
     return items;
   }, [
     crossSetSearch,
@@ -1123,13 +1123,13 @@ export function TokenList({
     if (multiModeEnabled) {
       items.push(
         multiModeDimensionName
-          ? `Modes · ${multiModeDimensionName}`
-          : "Modes",
+          ? `Mode columns: ${multiModeDimensionName}`
+          : "Mode columns",
       );
     }
-    if (condensedView) items.push("Condensed");
-    if (showPreviewSplit) items.push(TOKENS_LIBRARY_SPLIT_PREVIEW_LABEL);
-    if (showFlatSearchResults) items.push("Flat results");
+    if (condensedView) items.push("Condensed rows");
+    if (showPreviewSplit) items.push("Preview split");
+    if (showFlatSearchResults) items.push("Flat search results");
     return items;
   }, [
     condensedView,
@@ -1145,7 +1145,7 @@ export function TokenList({
       key: string;
       label: string;
       tone: "filter" | "view";
-      removeToken?: string;
+      onRemove?: () => void;
     }> = [];
 
     for (const chip of structuredFilterChips) {
@@ -1153,20 +1153,180 @@ export function TokenList({
         key: `query:${chip.token}`,
         label: chip.label,
         tone: "filter",
-        removeToken: chip.token,
+        onRemove: () => removeQueryToken(chip.token),
       });
     }
 
-    for (const label of activeFilterSummary) {
+    if (sortOrder !== "default") {
       chips.push({
-        key: `filter:${label}`,
-        label,
+        key: `sort:${sortOrder}`,
+        label: sortOrder === "alpha-asc" ? "Sorted A to Z" : "Sorted by type",
         tone: "filter",
+        onRemove: () => setSortOrder("default"),
+      });
+    }
+    if (refFilter !== "all") {
+      chips.push({
+        key: `refs:${refFilter}`,
+        label: refFilter === "aliases" ? "Alias tokens only" : "Direct values only",
+        tone: "filter",
+        onRemove: () => setRefFilter("all"),
+      });
+    }
+    if (showDuplicates) {
+      chips.push({
+        key: "duplicates",
+        label: "Duplicate values",
+        tone: "filter",
+        onRemove: () => setShowDuplicates(false),
+      });
+    }
+    if (showIssuesOnly && onToggleIssuesOnly) {
+      chips.push({
+        key: "issues-only",
+        label:
+          lintViolations.length > 0
+            ? `Issues only (${lintViolations.length})`
+            : "Issues only",
+        tone: "filter",
+        onRemove: onToggleIssuesOnly,
+      });
+    }
+    if (showRecentlyTouched) {
+      chips.push({
+        key: "recent",
+        label: "Recently touched",
+        tone: "filter",
+        onRemove: () => setShowRecentlyTouched(false),
+      });
+    }
+    if (typeFilter !== "") {
+      chips.push({
+        key: `type:${typeFilter}`,
+        label: `Type: ${typeFilter}`,
+        tone: "filter",
+        onRemove: () => setTypeFilter(""),
+      });
+    }
+    if (inspectMode) {
+      chips.push({
+        key: "inspect",
+        label: "Bound to selection",
+        tone: "filter",
+        onRemove: () => setInspectMode(false),
+      });
+    }
+    if (crossSetSearch) {
+      chips.push({
+        key: "cross-set",
+        label: "Search all sets",
+        tone: "filter",
+        onRemove: () => setCrossSetSearch(false),
+      });
+    }
+    if (multiModeEnabled) {
+      chips.push({
+        key: "view:modes",
+        label:
+          multiModeDimensionName
+            ? `Mode columns: ${multiModeDimensionName}`
+            : "Mode columns",
+        tone: "view",
+        onRemove: toggleMultiMode,
+      });
+    }
+    if (condensedView) {
+      chips.push({
+        key: "view:condensed",
+        label: "Condensed rows",
+        tone: "view",
+        onRemove: () => setCondensedView(false),
+      });
+    }
+    if (showPreviewSplit && onTogglePreviewSplit) {
+      chips.push({
+        key: "view:split",
+        label: "Preview split",
+        tone: "view",
+        onRemove: onTogglePreviewSplit,
+      });
+    }
+    if (showFlatSearchResults) {
+      chips.push({
+        key: "view:flat-results",
+        label: "Flat search results",
+        tone: "view",
+        onRemove: () => setSearchResultPresentation("grouped"),
       });
     }
 
     return chips;
-  }, [activeFilterSummary, structuredFilterChips]);
+  }, [
+    condensedView,
+    crossSetSearch,
+    inspectMode,
+    lintViolations.length,
+    multiModeDimensionName,
+    multiModeEnabled,
+    onToggleIssuesOnly,
+    onTogglePreviewSplit,
+    refFilter,
+    removeQueryToken,
+    setCondensedView,
+    setCrossSetSearch,
+    setInspectMode,
+    setRefFilter,
+    setSearchResultPresentation,
+    setShowDuplicates,
+    setShowRecentlyTouched,
+    setSortOrder,
+    setTypeFilter,
+    showDuplicates,
+    showFlatSearchResults,
+    showIssuesOnly,
+    showPreviewSplit,
+    showRecentlyTouched,
+    sortOrder,
+    structuredFilterChips,
+    toggleMultiMode,
+    typeFilter,
+  ]);
+
+  const contextSummary = useMemo(() => {
+    const contextParts = [`Set ${setName}`];
+    if (zoomRootPath) {
+      contextParts.push(`Scoped to ${zoomRootPath}`);
+    } else if (showFlatSearchResults) {
+      contextParts.push("Showing matching tokens");
+    }
+    if (searchQuery.trim()) {
+      contextParts.push(`Query “${searchQuery.trim()}”`);
+    }
+    if (crossSetSearch) {
+      contextParts.push("Searching across sets");
+    }
+    if (viewMode === "json") {
+      contextParts.push("JSON view");
+    } else {
+      const count =
+        crossSetResults !== null
+          ? crossSetResults.length
+          : displayedLeafNodes.length;
+      contextParts.push(
+        `${count} token${count === 1 ? "" : "s"} visible`,
+      );
+    }
+    return contextParts.join(" · ");
+  }, [
+    crossSetResults,
+    crossSetSearch,
+    displayedLeafNodes.length,
+    searchQuery,
+    setName,
+    showFlatSearchResults,
+    viewMode,
+    zoomRootPath,
+  ]);
 
   const currentBulkEditScope = useMemo<BulkEditScope>(() => {
     const trimmedQuery = searchQuery.trim();
@@ -3045,6 +3205,7 @@ export function TokenList({
       onDragOverGroup: handleDragOverGroup,
       onDropOnGroup: handleDropOnGroup,
       onEditRecipe,
+      onNavigateToRecipe,
       onRegenerateRecipe: handleRegenerateRecipe,
       onDetachRecipeGroup: handleDetachRecipeGroup,
       onNavigateToToken: onNavigateToAlias
@@ -3070,6 +3231,7 @@ export function TokenList({
       handleDragOverGroup,
       handleDropOnGroup,
       onEditRecipe,
+      onNavigateToRecipe,
       handleRegenerateRecipe,
       handleDetachRecipeGroup,
       onNavigateToAlias,
@@ -3571,9 +3733,8 @@ export function TokenList({
             qualifierHintsRef={qualifierHintsRef}
             structuredFilterChips={structuredFilterChips}
             toolbarStateChips={toolbarStateChips}
-            activeFilterSummary={activeFilterSummary}
+            contextSummary={contextSummary}
             hasStructuredFilters={hasStructuredFilters}
-            removeQueryToken={removeQueryToken}
             clearFilters={clearFilters}
             connected={connected}
             hasTokens={tokens.length > 0}
@@ -3586,6 +3747,14 @@ export function TokenList({
             hasDimensions={dimensions.length > 0}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
+            onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
+            onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
+            onFindReplace={handleOpenFindReplaceReview}
+            onFoundationTemplates={onOpenStartHere ? () => onOpenStartHere("template-library") : undefined}
+            onApplyVariables={handleApplyVariables}
+            onApplyStyles={handleApplyStyles}
+            applyingOrLoading={applying || varDiffLoading}
+            tokensExist={tokens.length > 0}
             overflowMenuProps={tokens.length > 0 ? {
               sortOrder,
               onSortOrderChange: setSortOrder,
@@ -3664,11 +3833,26 @@ export function TokenList({
             </button>
           }
         >
-          {staleRecipesForSet.length === 1
-            ? "1 recipe"
-            : `${staleRecipesForSet.length} recipes`}{" "}
-          in <strong>{setName}</strong>{" "}
-          {staleRecipesForSet.length === 1 ? "is" : "are"} out of date
+          <span>
+            {staleRecipesForSet.length === 1 ? "1 recipe is" : `${staleRecipesForSet.length} recipes are`}{" "}
+            out of date:{" "}
+            {staleRecipesForSet.map((recipe, i) => (
+              <span key={recipe.id}>
+                {i > 0 && ", "}
+                {onNavigateToRecipe ? (
+                  <button
+                    type="button"
+                    onClick={() => onNavigateToRecipe(recipe.id)}
+                    className="underline decoration-amber-500/40 hover:decoration-amber-600 hover:text-amber-800 transition-colors"
+                  >
+                    {recipe.name}
+                  </button>
+                ) : (
+                  recipe.name
+                )}
+              </span>
+            ))}
+          </span>
         </NoticeBanner>
       )}
       {/* Token stats bar — compact single row with type breakdown */}
@@ -3951,9 +4135,6 @@ export function TokenList({
               {zoomBreadcrumb ? (
                 <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px]">
                   <div className="flex items-center gap-1">
-                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                      Scope
-                    </span>
                     <button
                       onClick={handleZoomUpOneLevel}
                       disabled={!zoomParentPath}
@@ -4030,14 +4211,14 @@ export function TokenList({
                   </div>
                   {zoomSiblingBranches.length > 0 && (
                     <div className="mt-1 flex items-center gap-1 overflow-x-auto">
-                      <span className="shrink-0 text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                        Branches
+                      <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                        Other branches
                       </span>
                       {zoomSiblingBranches.map((branch) => (
                         <button
                           key={branch.path}
                           onClick={() => handleZoomToAncestor(branch.path)}
-                          className="shrink-0 rounded-full border border-[var(--color-figma-border)] px-2 py-0.5 text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)]"
+                          className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
                           title={`Scope to ${branch.path}`}
                         >
                           {branch.name}

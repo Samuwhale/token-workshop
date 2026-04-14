@@ -22,6 +22,7 @@ import type {
 } from '../../hooks/useRecipes';
 import type { TokenMapEntry } from '../../../shared/types';
 import type { OverwrittenEntry } from '../../hooks/useRecipePreview';
+import { StepWhere, type StepWhereProps } from './StepWhere';
 
 import { ColorRampConfigEditor, ColorSwatchPreview } from '../recipes/ColorRampRecipe';
 import { TypeScaleConfigEditor, TypeScalePreview } from '../recipes/TypeScaleRecipe';
@@ -118,6 +119,10 @@ export interface StepSourceProps {
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
   onClearAllOverrides: () => void;
+  /** Destination fields rendered inline as a collapsible section */
+  destination?: Omit<StepWhereProps, 'onToggleMultiBrand' | 'inputTable' | 'onInputTableChange'>;
+  /** Number of detached output paths (shown as a warning) */
+  detachedCount?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,8 +163,11 @@ export function StepSource({
   onOverrideChange,
   onOverrideClear,
   onClearAllOverrides,
+  destination,
+  detachedCount = 0,
 }: StepSourceProps) {
   const [templateDismissed, setTemplateDismissed] = useState(false);
+  const [outputExpanded, setOutputExpanded] = useState(false);
 
   const overwritePaths = useMemo(
     () => new Set(overwrittenEntries.map(e => e.path)),
@@ -373,6 +381,48 @@ export function StepSource({
           </button>
         )}
       </div>
+
+      {/* Collapsible output / destination section */}
+      {destination && (
+        <div className={AUTHORING.recipeSectionCard}>
+          {detachedCount > 0 && (
+            <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 mb-2 text-[10px] text-[var(--color-figma-text)]">
+              {detachedCount} detached output{detachedCount === 1 ? '' : 's'}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setOutputExpanded(v => !v)}
+            className="w-full flex items-center justify-between gap-2 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <svg
+                width="8" height="8" viewBox="0 0 10 10" fill="currentColor"
+                className={`shrink-0 text-[var(--color-figma-text-secondary)] transition-transform ${outputExpanded ? 'rotate-90' : ''}`}
+              >
+                <path d="M3 1.5l4 3.5-4 3.5V1.5z" />
+              </svg>
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Output</span>
+            </div>
+            {!outputExpanded && (
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)] truncate max-w-[60%] text-right font-mono">
+                {destination.targetGroup || 'Set output path'}
+              </span>
+            )}
+          </button>
+          {outputExpanded && (
+            <div className="mt-3">
+              <StepWhere
+                {...destination}
+                onToggleMultiBrand={_onToggleMultiBrand}
+                inputTable={_inputTable}
+                onInputTableChange={_onInputTableChange}
+                inline
+              />
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -178,16 +178,16 @@ function getPostImportDestination(
     };
   }
 
-  return { topTab: "define", subTab: "tokens" };
+  return { topTab: "tokens", subTab: "tokens" };
 }
 
 function getFallbackPostImportRecommendation(
   result: ImportCompletionResult,
   destination: WorkspaceRouteTarget,
 ): ImportNextStepRecommendation | null {
-  if (destination.topTab !== "define" || destination.subTab !== "tokens") {
+  if (destination.topTab !== "tokens" || destination.subTab !== "tokens") {
     return createFallbackWorkspaceRecommendation(
-      "define",
+      "tokens",
       "tokens",
       "Review imported tokens.",
     );
@@ -198,7 +198,7 @@ function getFallbackPostImportRecommendation(
     (result.sourceCollectionCount ?? 0) > 1
   ) {
     return createFallbackWorkspaceRecommendation(
-      "define",
+      "themes",
       "themes",
       "Multiple collections — set up theme structure.",
     );
@@ -400,6 +400,12 @@ export function App() {
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
     setStartHereState({ open: false, initialBranch: "root" });
   }, []);
+  useEffect(() => {
+    if (!initialFirstRun || !startHereState.open) return;
+    if (Object.keys(allTokensFlat).length === 0) return;
+    lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
+    setStartHereState({ open: false, initialBranch: "root" });
+  }, [allTokensFlat, initialFirstRun, startHereState.open]);
   useEffect(() => {
     if (!postImportBanner?.visible || LAST_IMPORT_RESULT_DISMISS_MS <= 0) {
       return;
@@ -887,7 +893,7 @@ export function App() {
       setTokensComparePath(path);
       setTokensCompareThemeKey((key) => key + 1);
       setShowTokensCompare(true);
-      navigateTo("define", "tokens");
+      navigateTo("tokens", "tokens");
     },
     [
       navigateTo,
@@ -988,7 +994,7 @@ export function App() {
   );
   const handleNavigateToRecipe = useCallback(
     (recipeId: string) => {
-      navigateTo("define", "recipes");
+      navigateTo("recipes", "recipes");
       setFocusRecipeId(recipeId);
     },
     [navigateTo, setFocusRecipeId],
@@ -1028,7 +1034,7 @@ export function App() {
     windowWidth >= CONTEXTUAL_PANEL_MIN_WIDTH &&
     !!(editingToken || editingRecipeData || previewingToken) &&
     activeSecondarySurface === null &&
-    activeTopTab === "define" &&
+    activeTopTab === "tokens" &&
     activeSubTab === "tokens" &&
     (tokens.length > 0 || createFromEmpty);
   const contextualEditorTransition = useMemo(
@@ -1409,7 +1415,7 @@ export function App() {
 
   useEffect(() => {
     if (
-      activeTopTab === "define" &&
+      activeTopTab === "tokens" &&
       activeSubTab === "tokens" &&
       tokens.length > 0
     ) {
@@ -1507,24 +1513,24 @@ export function App() {
     if (matchesShortcut(e, "CREATE_FROM_SELECTION")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("apply", "inspect");
+      navigateTo("inspect", "inspect");
       setTriggerCreateToken((n) => n + 1);
     }
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === "n") {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("define", "tokens");
+      navigateTo("tokens", "tokens");
       setEditingToken({ path: "", set: activeSet, isCreate: true });
     }
     if (matchesShortcut(e, "GO_TO_DEFINE")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("define", "tokens");
+      navigateTo("tokens", "tokens");
     }
     if (matchesShortcut(e, "GO_TO_APPLY")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("apply", "inspect");
+      navigateTo("inspect", "inspect");
     }
     if (matchesShortcut(e, "GO_TO_SYNC")) {
       e.preventDefault();
@@ -1542,7 +1548,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_RESOLVER")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("define", "themes");
+      navigateTo("themes", "themes");
       setTimeout(() => {
         themeManagerHandleRef.current?.switchToResolverMode();
       }, 50);
@@ -1584,7 +1590,7 @@ export function App() {
     lintIssueIndexRef.current =
       (lintIssueIndexRef.current + 1) % lintViolations.length;
     const violation = lintViolations[lintIssueIndexRef.current];
-    navigateTo("define", "tokens");
+    navigateTo("tokens", "tokens");
     setEditingToken(null);
     setHighlightedToken(violation.path);
     const n = lintIssueIndexRef.current + 1;
@@ -1706,7 +1712,7 @@ export function App() {
           },
         );
         await refreshTokens();
-        navigateTo("define", "tokens");
+        navigateTo("tokens", "tokens");
         if (targetSet !== activeSet) {
           setActiveSet(targetSet);
           setPendingHighlight(newPath);
@@ -1736,7 +1742,7 @@ export function App() {
   const handlePaletteRename = useCallback(
     (path: string) => {
       const targetSet = pathToSet[path];
-      navigateTo("define", "tokens");
+      navigateTo("tokens", "tokens");
       setEditingToken(null);
       if (targetSet && targetSet !== activeSet) {
         setActiveSet(targetSet);
@@ -1761,7 +1767,7 @@ export function App() {
   const handlePaletteMove = useCallback(
     (path: string) => {
       const targetSet = pathToSet[path];
-      navigateTo("define", "tokens");
+      navigateTo("tokens", "tokens");
       setEditingToken(null);
       if (targetSet && targetSet !== activeSet) {
         setActiveSet(targetSet);
@@ -1807,7 +1813,7 @@ export function App() {
       },
       handleClearAllComplete: () => {
         closeSecondarySurface();
-        navigateTo("define", "tokens");
+        navigateTo("tokens", "tokens");
         refreshTokens();
         openStartHere("guided-setup");
       },
@@ -1921,7 +1927,7 @@ export function App() {
       onOpenRecipes: (set: string) => {
         guardEditorAction(() => {
           setActiveSet(set);
-          navigateTo("define", "recipes");
+          navigateTo("recipes", "recipes");
           closeSecondarySurface();
         });
       },
@@ -1998,7 +2004,7 @@ export function App() {
           label: "Add option",
           onClick: () => {
             guardEditorAction(() => {
-              navigateTo("define", "themes");
+              navigateTo("themes", "themes");
               closeSecondarySurface();
               themeManagerHandleRef.current?.focusStage("options");
             });
@@ -2015,7 +2021,7 @@ export function App() {
               : "Fix sets"),
           onClick: () => {
             guardEditorAction(() => {
-              navigateTo("define", "themes");
+              navigateTo("themes", "themes");
               closeSecondarySurface();
               themeManagerHandleRef.current?.focusStage("set-roles");
             });
@@ -2028,7 +2034,7 @@ export function App() {
           label: "Preview tokens",
           onClick: () => {
             guardEditorAction(() => {
-              navigateTo("define", "themes");
+              navigateTo("themes", "themes");
               closeSecondarySurface();
               themeManagerHandleRef.current?.focusStage("preview");
             });
@@ -2040,7 +2046,7 @@ export function App() {
         label: "Create mode",
         onClick: () => {
           guardEditorAction(() => {
-            navigateTo("define", "themes");
+            navigateTo("themes", "themes");
             closeSecondarySurface();
             themeManagerHandleRef.current?.openCreateAxis();
           });
@@ -2050,7 +2056,7 @@ export function App() {
 
     if (
       activeSecondarySurface === null &&
-      activeWorkspace.id === "apply" &&
+      activeWorkspace.id === "inspect" &&
       activeWorkspaceSection?.id === "inspect"
     ) {
       return null;
@@ -2161,7 +2167,7 @@ export function App() {
   const shellPrimaryAction =
     activeSecondarySurface === null ? workspacePrimaryAction : null;
   const isTokenWorkspacePrimarySurface =
-    activeTopTab === "define" &&
+    activeTopTab === "tokens" &&
     activeSubTab === "tokens" &&
     activeSecondarySurface === null;
 
@@ -2280,49 +2286,6 @@ export function App() {
             })}
           </div>
 
-          {shellSections && shellSections.length > 1 && (
-            <>
-              <div className="mx-0.5 h-3.5 w-px shrink-0 bg-[var(--color-figma-border)]" aria-hidden="true" />
-              <div
-                className="flex shrink-0 items-center gap-0.5"
-                role="tablist"
-                aria-label={`${shellCurrentTitle ?? "Workspace"} sections`}
-              >
-                {shellSections.map((section) => {
-                  const isActive = section.id === shellActiveSectionId;
-                  return (
-                    <button
-                      key={`${section.topTab}:${section.subTab}`}
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() =>
-                        guardEditorAction(() => {
-                          clearHandoff();
-                          navigateTo(section.topTab, section.subTab);
-                          if (section.subTab === "canvas-analysis") triggerHeatmapScan();
-                        })
-                      }
-                      title={section.transition?.usage ?? section.summaryTitle ?? section.label}
-                      className={shellControlClass({
-                        active: isActive,
-                        size: "xs",
-                        shape: "rounded",
-                      })}
-                    >
-                      {section.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {shellCurrentTitle && !shellSections?.length && (
-            <span className="ml-1 shrink-0 text-[10px] font-semibold text-[var(--color-figma-text)]">
-              {shellCurrentTitle}
-            </span>
-          )}
-
           <div className="flex shrink-0 items-center gap-1 ml-auto">
             {shellPrimaryAction && (
               <button
@@ -2348,6 +2311,22 @@ export function App() {
                 {surface.label}
               </button>
             ))}
+            {showNotificationButton && notificationSurface && (
+              <button
+                onClick={() => toggleSecondarySurface(notificationSurface.id)}
+                className={`relative h-5 w-5 inline-flex items-center justify-center rounded transition-colors ${activeSecondarySurface === notificationSurface.id ? "text-[var(--color-figma-text)] bg-[var(--color-figma-accent)]/12" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                aria-label={`Notifications (${notificationCount})`}
+                aria-pressed={activeSecondarySurface === notificationSurface.id}
+              >
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M8 2.5a3 3 0 0 0-3 3v1.1c0 .8-.23 1.58-.67 2.23L3.2 10.5h9.6l-1.13-1.67A4 4 0 0 1 11 6.6V5.5a3 3 0 0 0-3-3Z" />
+                  <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
+                </svg>
+                <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[12px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-0.5 text-[7px] font-semibold leading-3 text-white">
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -2681,7 +2660,7 @@ export function App() {
                           </span>
                         )}
                         <button
-                          onClick={() => navigateTo("define", "themes")}
+                          onClick={() => navigateTo("themes", "themes")}
                           className="ml-auto px-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)]"
                           title="Manage themes"
                           aria-label="Manage themes"
@@ -2919,7 +2898,7 @@ export function App() {
           onSelect={(set) => {
             guardEditorAction(() => {
               setActiveSet(set);
-              navigateTo("define", "tokens");
+              navigateTo("tokens", "tokens");
             });
           }}
           onClose={() => setShowSetSwitcher(false)}
@@ -3079,7 +3058,7 @@ export function App() {
             title={utilitiesStatusLabel}
             aria-hidden="true"
           />
-          {activeTopTab === "define" && activeSubTab === "tokens" && activeSecondarySurface === null && sets.length > 1 ? (
+          {activeTopTab === "tokens" && activeSubTab === "tokens" && activeSecondarySurface === null && sets.length > 1 ? (
             <button
               onClick={() => setShowSetSwitcher(true)}
               className="min-w-0 truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
@@ -3090,7 +3069,7 @@ export function App() {
                 <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-          ) : activeTopTab === "define" && activeSubTab === "tokens" && activeSecondarySurface === null ? (
+          ) : activeTopTab === "tokens" && activeSubTab === "tokens" && activeSecondarySurface === null ? (
             <span className="truncate text-[var(--color-figma-text-tertiary)]">{activeSet}</span>
           ) : null}
         </div>
@@ -3102,30 +3081,6 @@ export function App() {
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
           </button>
           <div className="mx-0.5 h-3 w-px bg-[var(--color-figma-border)]" aria-hidden="true" />
-          {showNotificationButton && notificationSurface && (
-            <button
-              onClick={() => toggleSecondarySurface(notificationSurface.id)}
-              className="relative h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              aria-label={`Notifications (${notificationCount})`}
-              aria-pressed={activeSecondarySurface === notificationSurface.id}
-            >
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M8 2.5a3 3 0 0 0-3 3v1.1c0 .8-.23 1.58-.67 2.23L3.2 10.5h9.6l-1.13-1.67A4 4 0 0 1 11 6.6V5.5a3 3 0 0 0-3-3Z" />
-                <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
-              </svg>
-              <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[12px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-0.5 text-[7px] font-semibold leading-3 text-white">
-                {notificationCount > 99 ? "99+" : notificationCount}
-              </span>
-            </button>
-          )}
-          <button
-            onClick={() => { guardEditorAction(() => { navigateTo("sync", "history"); closeSecondarySurface(); }); }}
-            className={`h-5 w-5 inline-flex items-center justify-center rounded transition-colors ${activeSubTab === "history" ? "text-[var(--color-figma-text)] bg-[var(--color-figma-accent)]/12" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
-            aria-label="History"
-            title="Change history"
-          >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6" /><path d="M8 4.5V8l2.5 1.5" /></svg>
-          </button>
           <div className="relative shrink-0" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}

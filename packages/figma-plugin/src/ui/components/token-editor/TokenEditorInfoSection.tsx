@@ -8,6 +8,7 @@ import type { TokenRecipe } from "../../hooks/useRecipes";
 import { TokenUsages } from "../TokenUsages";
 import { TokenHistorySection } from "../TokenHistorySection";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
+import { TokenStateSummary } from "./TokenStateSummary";
 
 export interface TokenEditorInfoSectionProps {
   tokenPath: string;
@@ -15,6 +16,11 @@ export interface TokenEditorInfoSectionProps {
   serverUrl: string;
   tokenType: string;
   value: any;
+  scopes: string[];
+  lifecycle: "draft" | "published" | "deprecated";
+  provenance: string | null;
+  aliasPath: string | null;
+  extendsPath: string | null;
   isDirty: boolean;
   aliasMode: boolean;
   // Dependency data
@@ -46,6 +52,11 @@ export function TokenEditorInfoSection({
   serverUrl,
   tokenType,
   value,
+  scopes,
+  lifecycle,
+  provenance,
+  aliasPath,
+  extendsPath,
   isDirty,
   aliasMode,
   referenceTrace,
@@ -69,6 +80,23 @@ export function TokenEditorInfoSection({
 }: TokenEditorInfoSectionProps) {
   return (
     <div className="mt-1 border-t border-[var(--color-figma-border)] pt-2">
+      <TokenStateSummary
+        tokenType={tokenType}
+        scopes={scopes}
+        lifecycle={lifecycle}
+        provenance={provenance}
+        aliasPath={aliasPath}
+        extendsPath={extendsPath}
+        sourceRecipes={existingRecipesForToken}
+        generatedRecipe={activeProducingRecipe}
+        onNavigateToPath={
+          onNavigateToToken
+            ? (path) => onNavigateToToken(path, tokenPath)
+            : undefined
+        }
+        onNavigateToRecipe={onNavigateToRecipe}
+      />
+
       <div className="flex gap-0.5">
         {[
           { key: 'dependencies' as const, label: 'Dependencies', count: referenceTrace.length + dependentTrace.length },
@@ -93,25 +121,6 @@ export function TokenEditorInfoSection({
       {infoTab === 'dependencies' && (
         <div className="flex flex-col gap-1.5 mt-2">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1 flex-wrap">
-              {referenceTrace.length > 0 && (
-                <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
-                  Refs {referenceTrace.length}
-                </span>
-              )}
-              {(dependentTrace.length > 0 || dependentsLoading) && (
-                <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
-                  {dependentsLoading
-                    ? "Dependents…"
-                    : `Dependents ${dependentTrace.length}`}
-                </span>
-              )}
-              {dependencySnapshot?.hasCycles && (
-                <span className="rounded-full bg-[var(--color-figma-error)]/10 px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-error)]">
-                  Cycle detected
-                </span>
-              )}
-            </div>
             {onShowReferences && (
               <button
                 type="button"
@@ -148,7 +157,7 @@ export function TokenEditorInfoSection({
           {referenceTrace.length > 0 && (
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">
-                Uses &rarr;
+                References
               </span>
               {referenceTrace.slice(0, 8).map((node) => {
                 const resolvedColor =
@@ -258,7 +267,7 @@ export function TokenEditorInfoSection({
                     >
                       <path d="M2 1l4 3-4 3V1z" />
                     </svg>
-                    &larr; Used by ({dependentTrace.length})
+                    Dependents ({dependentTrace.length})
                   </>
                 )}
               </button>

@@ -2,9 +2,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { SortOrder } from "./tokenListTypes";
 import type { Density } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
+import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 
-export interface TokenListOverflowMenuProps {
-  // View
+export interface ViewMenuProps {
   sortOrder: SortOrder;
   onSortOrderChange: (order: SortOrder) => void;
   onExpandAll: () => void;
@@ -26,8 +26,9 @@ export interface TokenListOverflowMenuProps {
   onSearchResultPresentationChange: (
     presentation: "grouped" | "flat",
   ) => void;
+}
 
-  // Filter
+export interface FilterMenuProps {
   showIssuesOnly: boolean;
   onToggleIssuesOnly?: () => void;
   lintCount: number;
@@ -46,23 +47,25 @@ export interface TokenListOverflowMenuProps {
   filterPresets: FilterPreset[];
   onApplyFilterPreset: (preset: FilterPreset) => void;
   onDeleteFilterPreset: (id: string) => void;
+  activeCount: number;
+}
 
-  // Tools
+export interface ToolsSyncMenuProps {
   onSelectTokens: () => void;
   onBulkEdit: () => void;
   onFindReplace: () => void;
   onFoundationTemplates?: () => void;
-
-  // Sync
   onApplyVariables: () => void;
   onApplyStyles: () => void;
   applyingOrLoading: boolean;
   tokensExist: boolean;
-
   connected: boolean;
-  activeCount: number;
-
 }
+
+export interface TokenListOverflowMenuProps
+  extends ViewMenuProps,
+    FilterMenuProps,
+    ToolsSyncMenuProps {}
 
 const MENU_SECTION_BORDER =
   "border-t border-[var(--color-figma-border)] mt-0.5 pt-0.5";
@@ -141,11 +144,11 @@ function MenuLabel({ children }: { children: string }) {
   );
 }
 
-export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
+function useDropdownMenu() {
   const [open, setOpen] = useState(false);
-  const [groupsExpanded, setGroupsExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -160,10 +163,21 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
       }
     }
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+        buttonRef.current?.focus();
+        return;
+      }
+      if (menuRef.current) {
+        handleMenuArrowKeys(e, menuRef.current);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     document.addEventListener("keydown", handleKey);
+    window.requestAnimationFrame(() => {
+      if (menuRef.current) getMenuItems(menuRef.current)[0]?.focus();
+    });
     return () => {
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKey);
@@ -178,6 +192,14 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
     [close],
   );
 
+  return { open, setOpen, containerRef, buttonRef, menuRef, runAndClose };
+}
+
+export function ViewMenu(props: ViewMenuProps) {
+  const { open, setOpen, containerRef, buttonRef, menuRef, runAndClose } =
+    useDropdownMenu();
+  const [groupsExpanded, setGroupsExpanded] = useState(true);
+
   return (
     <div className="relative shrink-0" ref={containerRef}>
       <button
@@ -186,39 +208,39 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label="View options"
         className={`inline-flex items-center justify-center rounded p-1 transition-colors ${
-          open || props.activeCount > 0
+          open
             ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
             : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
         }`}
-        title="More options"
+        title="View options"
       >
         <svg
           width="12"
           height="12"
           viewBox="0 0 24 24"
-          fill="currentColor"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           aria-hidden="true"
         >
-          <circle cx="12" cy="5" r="2" />
-          <circle cx="12" cy="12" r="2" />
-          <circle cx="12" cy="19" r="2" />
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
-        {props.activeCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[8px] font-bold leading-none text-white">
-            {props.activeCount}
-          </span>
-        )}
       </button>
 
       {open && (
         <div
+          ref={menuRef}
           className="absolute right-0 top-full z-50 mt-1 w-[200px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">
-            {/* ── View ── */}
-            <MenuLabel>View</MenuLabel>
             <MenuItem
               label={
                 props.sortOrder === "default"
@@ -313,11 +335,60 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
                 }
               />
             )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-            {/* ── Filter ── */}
-            <div className={MENU_SECTION_BORDER}>
-              <MenuLabel>Filter</MenuLabel>
-            </div>
+export function FilterMenu(props: FilterMenuProps) {
+  const { open, setOpen, containerRef, buttonRef, menuRef, runAndClose } =
+    useDropdownMenu();
+
+  return (
+    <div className="relative shrink-0" ref={containerRef}>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Filter options"
+        className={`inline-flex items-center justify-center rounded p-1 transition-colors ${
+          open || props.activeCount > 0
+            ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+        }`}
+        title="Filter options"
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+        </svg>
+        {props.activeCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[8px] font-bold leading-none text-white">
+            {props.activeCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          className="absolute right-0 top-full z-50 mt-1 w-[200px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
+          role="menu"
+        >
+          <div className="max-h-[420px] overflow-y-auto">
             {props.lintCount > 0 && (
               <MenuItem
                 label="Issues"
@@ -379,7 +450,6 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               onClick={() => runAndClose(props.onToggleDuplicates)}
             />
 
-            {/* Filter presets */}
             {props.filterPresets.length > 0 && (
               <>
                 <div className={MENU_SECTION_BORDER}>
@@ -396,46 +466,19 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
                 ))}
               </>
             )}
-
-            {/* ── Tools ── */}
-            <div className={MENU_SECTION_BORDER}>
-              <MenuLabel>Tools</MenuLabel>
-            </div>
-            <MenuItem
-              label="Select"
-              shortcut="M"
-              onClick={() => runAndClose(props.onSelectTokens)}
-            />
-            <MenuItem
-              label="Bulk edit..."
-              onClick={() => runAndClose(props.onBulkEdit)}
-            />
-            <MenuItem
-              label="Find & replace"
-              disabled={!props.connected}
-              onClick={() => runAndClose(props.onFindReplace)}
-            />
-            {props.onFoundationTemplates && (
-              <MenuItem
-                label="Templates..."
-                onClick={() =>
-                  runAndClose(() => props.onFoundationTemplates!())
-                }
-              />
-            )}
-            <MenuItem
-              label="Push variables"
-              disabled={props.applyingOrLoading || !props.tokensExist}
-              onClick={() => runAndClose(props.onApplyVariables)}
-            />
-            <MenuItem
-              label="Push styles"
-              disabled={props.applyingOrLoading || !props.tokensExist}
-              onClick={() => runAndClose(props.onApplyStyles)}
-            />
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+/** @deprecated Use ViewMenu and FilterMenu directly */
+export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
+  return (
+    <>
+      <ViewMenu {...props} />
+      <FilterMenu {...props} />
+    </>
   );
 }

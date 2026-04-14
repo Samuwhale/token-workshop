@@ -5,7 +5,6 @@ import { AUTHORING } from "../shared/editorClasses";
 import type { TokenRecipe, RecipeTemplate } from "../hooks/useRecipes";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import type { SemanticStarter } from "./graph-templates";
-import type { GraphTemplate } from "./graph-templates";
 import {
   useRecipeDialog,
   type RecipeDialogInitialDraft,
@@ -13,7 +12,7 @@ import {
 import type { RecipeSaveSuccessInfo } from "../hooks/useRecipeSave";
 import { StepIntent } from "./recipe-steps/StepIntent";
 import { StepSource } from "./recipe-steps/StepSource";
-import { StepWhere } from "./recipe-steps/StepWhere";
+import type { StepWhereProps } from "./recipe-steps/StepWhere";
 import { StepSave } from "./recipe-steps/StepSave";
 import { Spinner } from "./Spinner";
 import type { ToastAction } from "../shared/toastBus";
@@ -66,7 +65,7 @@ export interface TokenRecipeDialogProps {
 // Step progress dots
 // ---------------------------------------------------------------------------
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
 
 function StepDots({ active, total }: { active: Step; total: number }) {
   return (
@@ -118,9 +117,6 @@ export function TokenRecipeDialog({
   presentation = "modal",
   editorSessionHost,
 }: TokenRecipeDialogProps) {
-  const [appliedTemplate, setAppliedTemplate] = useState<GraphTemplate | undefined>(undefined);
-  const activeTemplate = appliedTemplate ?? template;
-
   const dialog = useRecipeDialog({
     serverUrl,
     sourceTokenPath,
@@ -138,10 +134,27 @@ export function TokenRecipeDialog({
     pushUndo: onPushUndo,
   });
   const requestClose = editorSessionHost?.requestClose ?? onClose;
+  const activeSourceValue =
+    (dialog.editableSourcePath && allTokensFlat?.[dialog.editableSourcePath]?.$value) ??
+    (dialog.editableSourcePath === sourceTokenPath ? sourceTokenValue : undefined);
 
   // --- Stepper state ---
   const skipTypeStep = Boolean(existingRecipe || initialDraft?.selectedType || template);
   const [activeStep, setActiveStep] = useState<Step>(skipTypeStep ? 2 : 1);
+
+  // Destination props passed into StepSource's inline output section
+  const destinationProps: Omit<StepWhereProps, 'onToggleMultiBrand' | 'inputTable' | 'onInputTableChange'> = {
+    name: dialog.name,
+    targetSet: dialog.targetSet,
+    targetGroup: dialog.targetGroup,
+    allSets,
+    isMultiBrand: dialog.isMultiBrand,
+    targetSetTemplate: dialog.targetSetTemplate,
+    onNameChange: dialog.handleNameChange,
+    onTargetSetChange: dialog.setTargetSet,
+    onTargetGroupChange: dialog.setTargetGroup,
+    onTargetSetTemplateChange: dialog.setTargetSetTemplate,
+  };
 
   // --- Save logic ---
   const canSave =
@@ -166,15 +179,10 @@ export function TokenRecipeDialog({
           return dialog.isEditing ? "Saving\u2026" : "Creating\u2026";
         if (dialog.overwriteCheckLoading) return "Checking\u2026";
         if (dialog.previewReviewStale) return "Review update";
-        const aliasCount = dialog.semanticEnabled
-          ? dialog.semanticMappings.filter((m) => m.semantic.trim()).length
-          : 0;
         if (dialog.isEditing) {
           return `Save (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`;
         }
-        return aliasCount > 0
-          ? `Create (+${aliasCount} aliases)`
-          : "Create";
+        return "Create";
       })();
 
       return (
@@ -234,34 +242,7 @@ export function TokenRecipeDialog({
       );
     }
 
-    // Step 2: Configure
-    if (activeStep === 2) {
-      return (
-        <div className={AUTHORING_SURFACE_CLASSES.footer}>
-          <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
-            <button
-              type="button"
-              onClick={() => skipTypeStep ? requestClose() : setActiveStep(1)}
-              className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
-            >
-              {skipTypeStep ? "Cancel" : "Back"}
-            </button>
-            <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
-              <button
-                type="button"
-                onClick={() => setActiveStep(3)}
-                disabled={dialog.typeNeedsValue && !dialog.hasValue && !dialog.isMultiBrand}
-                className={AUTHORING.footerBtnPrimary}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Step 3: Destination & Review
+    // Step 2: Configure + Destination (merged)
     const missingFields: string[] = [];
     if (!dialog.targetGroup.trim()) missingFields.push("output path");
     if (!dialog.name.trim()) missingFields.push("name");
@@ -278,16 +259,16 @@ export function TokenRecipeDialog({
         <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
           <button
             type="button"
-            onClick={() => setActiveStep(2)}
+            onClick={() => skipTypeStep ? requestClose() : setActiveStep(1)}
             className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
           >
-            Back
+            {skipTypeStep ? "Cancel" : "Back"}
           </button>
           <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
             <button
               type="button"
               onClick={handleSave}
-              disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
+              disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading || (dialog.typeNeedsValue && !dialog.hasValue && !dialog.isMultiBrand)}
               className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
             >
               {dialog.saving && <Spinner size="sm" className="text-white" />}
@@ -350,8 +331,8 @@ export function TokenRecipeDialog({
     ? "bg-[var(--color-figma-bg)] w-full h-full flex flex-col overflow-hidden"
     : "bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(40rem,95vw)] flex flex-col max-h-[90vh]";
 
-  const stepCount = skipTypeStep ? 2 : 3;
-  const displayStep = skipTypeStep ? (activeStep - 1) as Step : activeStep;
+  const stepCount = skipTypeStep ? 1 : 2;
+  const displayStep = skipTypeStep ? 1 as Step : activeStep;
 
   const title = (
     <div className="flex items-center gap-2.5">
@@ -411,7 +392,6 @@ export function TokenRecipeDialog({
         >
           {dialog.showConfirmation ? (
             <StepSave
-              selectedType={dialog.selectedType}
               name={dialog.name}
               targetGroup={dialog.targetGroup}
               targetSet={dialog.targetSet}
@@ -419,14 +399,6 @@ export function TokenRecipeDialog({
               isMultiBrand={dialog.isMultiBrand}
               inputTable={dialog.inputTable}
               targetSetTemplate={dialog.targetSetTemplate}
-              semanticEnabled={dialog.semanticEnabled}
-              semanticPrefix={dialog.semanticPrefix}
-              semanticMappings={dialog.semanticMappings}
-              templateStarter={activeTemplate?.semanticStarter}
-              onSemanticEnabledChange={dialog.setSemanticEnabled}
-              onSemanticPrefixChange={dialog.setSemanticPrefix}
-              onSemanticMappingsChange={dialog.setSemanticMappings}
-              onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
               previewTokens={dialog.previewTokens}
               previewAnalysis={dialog.previewAnalysis}
               existingOverwritePathSet={dialog.existingOverwritePathSet}
@@ -451,8 +423,7 @@ export function TokenRecipeDialog({
                   onTypeChange={(type) => {
                     dialog.handleTypeChange(type);
                   }}
-                  onTemplateApply={(tmpl, draft) => {
-                    setAppliedTemplate(tmpl);
+                  onTemplateApply={(_tmpl, draft) => {
                     if (draft.selectedType) dialog.handleTypeChange(draft.selectedType);
                     if (draft.configs) {
                       const type = draft.selectedType ?? dialog.selectedType;
@@ -478,8 +449,8 @@ export function TokenRecipeDialog({
                   currentConfig={dialog.currentConfig}
                   typeNeedsValue={dialog.typeNeedsValue}
                   hasValue={dialog.hasValue}
-                  sourceTokenPath={sourceTokenPath}
-                  sourceTokenValue={sourceTokenValue}
+                  sourceTokenPath={dialog.editableSourcePath || undefined}
+                  sourceTokenValue={activeSourceValue}
                   inlineValue={dialog.inlineValue}
                   isMultiBrand={dialog.isMultiBrand}
                   inputTable={dialog.inputTable}
@@ -506,34 +477,9 @@ export function TokenRecipeDialog({
                   onOverrideChange={dialog.handleOverrideChange}
                   onOverrideClear={dialog.handleOverrideClear}
                   onClearAllOverrides={dialog.clearAllOverrides}
+                  destination={destinationProps}
+                  detachedCount={existingRecipe?.detachedPaths?.length ?? 0}
                 />
-              )}
-
-              {activeStep === 3 && (
-                <>
-                  {existingRecipe?.detachedPaths &&
-                    existingRecipe.detachedPaths.length > 0 && (
-                      <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text)]">
-                        {existingRecipe.detachedPaths.length} detached output
-                        {existingRecipe.detachedPaths.length === 1 ? "" : "s"}
-                      </div>
-                    )}
-                  <StepWhere
-                    name={dialog.name}
-                    targetSet={dialog.targetSet}
-                    targetGroup={dialog.targetGroup}
-                    allSets={allSets}
-                    isMultiBrand={dialog.isMultiBrand}
-                    targetSetTemplate={dialog.targetSetTemplate}
-                    onNameChange={dialog.handleNameChange}
-                    onTargetSetChange={dialog.setTargetSet}
-                    onTargetGroupChange={dialog.setTargetGroup}
-                    onTargetSetTemplateChange={dialog.setTargetSetTemplate}
-                    onToggleMultiBrand={dialog.handleToggleMultiBrand}
-                    inputTable={dialog.inputTable}
-                    onInputTableChange={dialog.setInputTable}
-                  />
-                </>
               )}
             </>
           )}

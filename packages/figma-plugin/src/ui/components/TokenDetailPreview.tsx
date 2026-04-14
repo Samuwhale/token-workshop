@@ -15,6 +15,8 @@ import { formatDisplayPath, formatValue } from "./tokenListUtils";
 import { TokenHistorySection } from "./TokenHistorySection";
 import { stableStringify } from "../shared/utils";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
+import { readTokenPresentationMetadata } from "../shared/tokenMetadata";
+import { TokenStateSummary } from "./token-editor/TokenStateSummary";
 
 interface TokenDetailPreviewProps {
   tokenPath: string;
@@ -36,66 +38,6 @@ interface TokenDetailPreviewProps {
   onClose: () => void;
   onNavigateToAlias?: (path: string) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
-}
-
-function RecipeReferenceChip({
-  recipe,
-  onNavigateToRecipe,
-}: {
-  recipe: TokenRecipe;
-  onNavigateToRecipe?: (recipeId: string) => void;
-}) {
-  const className =
-    "inline-flex items-center gap-1 rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)]";
-
-  if (!onNavigateToRecipe) {
-    return (
-      <span className={className} title={recipe.name}>
-        <svg
-          className="shrink-0"
-          width="7"
-          height="7"
-          viewBox="0 0 10 10"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        >
-          <circle cx="5" cy="2" r="1.5" />
-          <circle cx="2" cy="8" r="1.5" />
-          <circle cx="8" cy="8" r="1.5" />
-          <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
-        </svg>
-        <span className="truncate">{recipe.name}</span>
-      </span>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => onNavigateToRecipe(recipe.id)}
-      className={`${className} text-[var(--color-figma-accent)] hover:underline`}
-      title={recipe.name}
-    >
-      <svg
-        className="shrink-0"
-        width="7"
-        height="7"
-        viewBox="0 0 10 10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      >
-        <circle cx="5" cy="2" r="1.5" />
-        <circle cx="2" cy="8" r="1.5" />
-        <circle cx="8" cy="8" r="1.5" />
-        <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
-      </svg>
-      <span className="truncate">{recipe.name}</span>
-    </button>
-  );
 }
 
 export function TokenDetailPreview({
@@ -162,10 +104,8 @@ export function TokenDetailPreview({
     return String(rawValue);
   }, [rawValue]);
 
-  const tokenSet = pathToSet?.[tokenPath] ?? setName;
   const entryMeta = entry as TokenMapEntry & {
     $description?: string;
-    $extensions?: { tokenmanager?: Record<string, unknown> };
   };
   const dependencySnapshot = useMemo(
     () =>
@@ -173,20 +113,9 @@ export function TokenDetailPreview({
     [tokenPath, allTokensFlat, pathToSet],
   );
   const dependentNodes = dependencySnapshot?.dependentNodes ?? [];
-  const tokenManagerExt = entryMeta.$extensions?.tokenmanager;
   const directAliasPath =
     typeof rawValue === "string" && isAlias(rawValue)
       ? rawValue.slice(1, -1)
-      : null;
-  const lifecycle =
-    typeof tokenManagerExt?.lifecycle === "string"
-      ? tokenManagerExt.lifecycle
-      : null;
-  const provenance =
-    typeof tokenManagerExt?.source === "string" ? tokenManagerExt.source : null;
-  const extendsPath =
-    typeof tokenManagerExt?.extends === "string"
-      ? tokenManagerExt.extends
       : null;
   const sourceRecipes = useMemo(() => {
     if (recipesBySource) return recipesBySource.get(tokenPath) ?? [];
@@ -194,9 +123,11 @@ export function TokenDetailPreview({
       (recipe) => recipe.sourceToken === tokenPath,
     );
   }, [recipesBySource, recipes, tokenPath]);
-  const derivedRecipe =
-    derivedTokenPaths?.get(createRecipeOwnershipKey(tokenSet, tokenPath));
+  const derivedRecipe = derivedTokenPaths?.get(
+    createRecipeOwnershipKey(pathToSet?.[tokenPath] ?? setName, tokenPath),
+  );
   const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
+  const presentation = readTokenPresentationMetadata(entry);
   const syncChanged = useMemo(() => {
     if (!syncSnapshot || !(tokenPath in syncSnapshot)) return false;
     return syncSnapshot[tokenPath] !== stableStringify(rawValue);
@@ -209,18 +140,6 @@ export function TokenDetailPreview({
     if (lintViolations.length > 0) return "info";
     return null;
   }, [lintViolations]);
-  const provenanceLabel = provenance
-    ? ((
-        {
-          "figma-variables": "Figma variables",
-          "figma-styles": "Figma styles",
-          json: "JSON import",
-          css: "CSS import",
-          tailwind: "Tailwind import",
-        } as Record<string, string>
-      )[provenance] ?? provenance)
-    : null;
-
   if (!entry) {
     return (
       <div className="flex flex-col h-full">
@@ -377,75 +296,23 @@ export function TokenDetailPreview({
           </div>
         )}
 
-        {(entryMeta.$description ||
-          directAliasPath ||
-          lifecycle ||
-          provenanceLabel ||
-          extendsPath ||
-          sourceRecipes.length > 0 ||
-          derivedRecipe ||
-          usageCount > 0) && (
-          <div className="px-3 pt-2 pb-1.5">
-            <div className="flex flex-col gap-2">
-              {entryMeta.$description && (
-                <div className="text-[10px] text-[var(--color-figma-text)] whitespace-pre-wrap break-words">
-                  {entryMeta.$description}
-                </div>
-              )}
-              {directAliasPath && (
-                <div>
-                  <button
-                    onClick={() => onNavigateToAlias?.(directAliasPath)}
-                    className="text-[10px] font-mono text-left text-[var(--color-figma-accent)] hover:underline break-all"
-                    title={directAliasPath}
-                  >
-                    {formatDisplayPath(
-                      directAliasPath,
-                      directAliasPath.split(".").pop() ?? directAliasPath,
-                    )}
-                  </button>
-                </div>
-              )}
-              {sourceRecipes.length > 0 && (
-                <div>
-                  <div className="flex flex-wrap gap-1">
-                    {sourceRecipes.map((recipe) => (
-                      <RecipeReferenceChip
-                        key={recipe.id}
-                        recipe={recipe}
-                        onNavigateToRecipe={onNavigateToRecipe}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {derivedRecipe && (
-                <div>
-                  <RecipeReferenceChip
-                    recipe={derivedRecipe}
-                    onNavigateToRecipe={onNavigateToRecipe}
-                  />
-                </div>
-              )}
-              <div className="flex flex-wrap gap-1">
-                {lifecycle && (
-                  <span className="px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
-                    {lifecycle}
-                  </span>
-                )}
-                {provenanceLabel && (
-                  <span className="px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]">
-                    {provenanceLabel}
-                  </span>
-                )}
-                {extendsPath && (
-                  <span className="px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] break-all">
-                    Extends: {extendsPath}
-                  </span>
-                )}
-                {usageCount > 0 && (
-                  <button
-                    onClick={() => {
+        <div className="px-3 pt-2 pb-1.5">
+          <div className="flex flex-col gap-2">
+            <TokenStateSummary
+              tokenType={type}
+              scopes={presentation.scopes}
+              lifecycle={presentation.lifecycle}
+              provenance={presentation.provenance}
+              aliasPath={directAliasPath}
+              extendsPath={presentation.extendsPath}
+              sourceRecipes={sourceRecipes}
+              generatedRecipe={derivedRecipe ?? null}
+              usageCount={usageCount}
+              onNavigateToPath={onNavigateToAlias}
+              onNavigateToRecipe={onNavigateToRecipe}
+              onHighlightUsage={
+                usageCount > 0
+                  ? () => {
                       parent.postMessage(
                         {
                           pluginMessage: {
@@ -455,17 +322,17 @@ export function TokenDetailPreview({
                         },
                         "*",
                       );
-                    }}
-                    className="px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15"
-                    title={`Highlight ${usageCount} bound layer${usageCount === 1 ? "" : "s"} on the canvas`}
-                  >
-                    Usage: {usageCount}
-                  </button>
-                )}
+                    }
+                  : undefined
+              }
+            />
+            {entryMeta.$description && (
+              <div className="text-[10px] text-[var(--color-figma-text)] whitespace-pre-wrap break-words">
+                {entryMeta.$description}
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Value section */}
         <div className="px-3 pt-1.5 pb-1">

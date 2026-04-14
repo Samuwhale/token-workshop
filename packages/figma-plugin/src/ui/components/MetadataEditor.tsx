@@ -1,37 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-
-export const FIGMA_SCOPES: Record<string, { label: string; value: string; description: string }[]> = {
-  color: [
-    { label: 'Fill Color', value: 'FILL_COLOR', description: 'Background and shape fill colors' },
-    { label: 'Stroke Color', value: 'STROKE_COLOR', description: 'Border and outline colors' },
-    { label: 'Text Fill', value: 'TEXT_FILL', description: 'Text layer colors' },
-    { label: 'Effect Color', value: 'EFFECT_COLOR', description: 'Shadow and blur effect colors' },
-  ],
-  number: [
-    { label: 'Width & Height', value: 'WIDTH_HEIGHT', description: 'Frame and element dimensions' },
-    { label: 'Gap / Spacing', value: 'GAP', description: 'Auto-layout gap and padding' },
-    { label: 'Corner Radius', value: 'CORNER_RADIUS', description: 'Rounded corner radius' },
-    { label: 'Opacity', value: 'OPACITY', description: 'Layer opacity (0–1)' },
-    { label: 'Font Size', value: 'FONT_SIZE', description: 'Text font size' },
-    { label: 'Line Height', value: 'LINE_HEIGHT', description: 'Text line height' },
-    { label: 'Letter Spacing', value: 'LETTER_SPACING', description: 'Text letter spacing' },
-    { label: 'Stroke Width', value: 'STROKE_FLOAT', description: 'Border and outline thickness' },
-  ],
-  dimension: [
-    { label: 'Width & Height', value: 'WIDTH_HEIGHT', description: 'Frame and element dimensions' },
-    { label: 'Gap / Spacing', value: 'GAP', description: 'Auto-layout gap and padding' },
-    { label: 'Corner Radius', value: 'CORNER_RADIUS', description: 'Rounded corner radius' },
-    { label: 'Stroke Width', value: 'STROKE_FLOAT', description: 'Border and outline thickness' },
-  ],
-  string: [
-    { label: 'Font Family', value: 'FONT_FAMILY', description: 'Typeface family name' },
-    { label: 'Font Style', value: 'FONT_STYLE', description: 'Weight and style (e.g. Bold Italic)' },
-    { label: 'Text Content', value: 'TEXT_CONTENT', description: 'Text layer content strings' },
-  ],
-  boolean: [
-    { label: 'Visibility (Show/Hide)', value: 'SHOW_HIDE', description: 'Toggle layer visibility' },
-  ],
-};
+import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
 
 /* ── Structured key-value extensions editor ── */
 
@@ -406,7 +374,7 @@ export function MetadataEditor({
   return (
     <>
       {/* Figma Variable Scopes */}
-    {FIGMA_SCOPES[tokenType] && (
+    {FIGMA_SCOPE_OPTIONS[tokenType] && (
       <div className="border-t border-[var(--color-figma-border)]">
         <button
           type="button"
@@ -424,7 +392,7 @@ export function MetadataEditor({
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
               Controls where this variable appears in Figma's variable picker. Empty = All scopes.
             </p>
-            {FIGMA_SCOPES[tokenType].map(scope => (
+            {(FIGMA_SCOPE_OPTIONS[tokenType] ?? []).map(scope => (
               <label key={scope.value} className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="checkbox"

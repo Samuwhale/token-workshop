@@ -8,11 +8,13 @@ import { STORAGE_KEYS } from "./storage";
 import type { RecipeDialogInitialDraft } from "../hooks/useRecipeDialog";
 import type { RecipeTemplate } from "../hooks/useRecipes";
 
-export type TopTab = "define" | "apply" | "sync";
-type DefineSubTab = "tokens" | "themes" | "recipes";
-type ApplySubTab = "inspect" | "canvas-analysis" | "dependencies";
+export type TopTab = "tokens" | "recipes" | "themes" | "inspect" | "sync";
+type TokensSubTab = "tokens";
+type RecipesSubTab = "recipes";
+type ThemesSubTab = "themes";
+type InspectSubTab = "inspect" | "canvas-analysis";
 type SyncSubTab = "publish" | "export" | "history" | "health";
-export type SubTab = DefineSubTab | ApplySubTab | SyncSubTab;
+export type SubTab = TokensSubTab | RecipesSubTab | ThemesSubTab | InspectSubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
   | "sets"
@@ -79,44 +81,53 @@ export const TOP_TABS: {
   subTabs: { id: SubTab; label: string }[];
 }[] = [
   {
-    id: "define",
-    label: "Define",
-    subTabs: [
-      { id: "tokens", label: "Tokens" },
-      { id: "themes", label: "Themes" },
-      { id: "recipes", label: "Recipes" },
-    ],
+    id: "tokens",
+    label: "Tokens",
+    subTabs: [{ id: "tokens", label: "Tokens" }],
   },
   {
-    id: "apply",
-    label: "Apply",
+    id: "recipes",
+    label: "Recipes",
+    subTabs: [{ id: "recipes", label: "Recipes" }],
+  },
+  {
+    id: "themes",
+    label: "Themes",
+    subTabs: [{ id: "themes", label: "Themes" }],
+  },
+  {
+    id: "inspect",
+    label: "Inspect",
     subTabs: [
-      { id: "inspect", label: "Inspect" },
-      { id: "canvas-analysis", label: "Canvas Analysis" },
-      { id: "dependencies", label: "Dependencies" },
+      { id: "inspect", label: "Selection" },
+      { id: "canvas-analysis", label: "Canvas" },
     ],
   },
   {
     id: "sync",
     label: "Sync",
     subTabs: [
-      { id: "publish", label: "Figma Sync" },
+      { id: "publish", label: "Publish" },
       { id: "export", label: "Export" },
       { id: "history", label: "History" },
-      { id: "health", label: "Audit" },
+      { id: "health", label: "Health" },
     ],
   },
 ];
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
-  define: "tokens",
-  apply: "inspect",
+  tokens: "tokens",
+  recipes: "recipes",
+  themes: "themes",
+  inspect: "inspect",
   sync: "publish",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
-  define: STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE,
-  apply: STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY,
+  tokens: STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
+  recipes: STORAGE_KEYS.ACTIVE_SUB_TAB_RECIPES,
+  themes: STORAGE_KEYS.ACTIVE_SUB_TAB_THEMES,
+  inspect: STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
 };
 
@@ -124,7 +135,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "define" | "apply" | "sync";
+export type WorkspaceId = "tokens" | "recipes" | "themes" | "inspect" | "sync";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -394,62 +405,37 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
 
 export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
-    id: "define",
-    label: "Define",
-    summaryTitle: "Define",
-    topTab: "define",
+    id: "tokens",
+    label: "Tokens",
+    summaryTitle: "Tokens",
+    topTab: "tokens",
     subTab: "tokens",
-    transition: workspaceTransition("Build and organize tokens."),
-    sections: [
-      {
-        id: "tokens",
-        label: "Tokens",
-        summaryTitle: "Tokens",
-        topTab: "define",
-        subTab: "tokens",
-        transition: workspaceTransition("Browse and edit tokens."),
-      },
-      {
-        id: "themes",
-        label: "Themes",
-        summaryTitle: "Themes",
-        topTab: "define",
-        subTab: "themes",
-        transition: workspaceTransition("Set up theme modes."),
-      },
-    ],
-    matchRoutes: [
-      route("define", "tokens"),
-      route("define", "themes"),
-      route("define", "recipes"),
-    ],
+    transition: workspaceTransition("Browse and edit tokens."),
   },
   {
-    id: "apply",
-    label: "Apply",
-    summaryTitle: "Apply",
-    topTab: "apply",
+    id: "recipes",
+    label: "Recipes",
+    summaryTitle: "Recipes",
+    topTab: "recipes",
+    subTab: "recipes",
+    transition: workspaceTransition("Generate token scales and palettes."),
+  },
+  {
+    id: "themes",
+    label: "Themes",
+    summaryTitle: "Themes",
+    topTab: "themes",
+    subTab: "themes",
+    transition: workspaceTransition("Set up theme modes."),
+  },
+  {
+    id: "inspect",
+    label: "Inspect",
+    summaryTitle: "Inspect",
+    topTab: "inspect",
     subTab: "inspect",
-    transition: workspaceTransition("Apply tokens and review the canvas."),
-    sections: [
-      {
-        id: "inspect",
-        label: "Selection",
-        summaryTitle: "Selection",
-        topTab: "apply",
-        subTab: "inspect",
-        transition: workspaceTransition("Apply tokens to selection."),
-      },
-      {
-        id: "canvas-analysis",
-        label: "Canvas",
-        summaryTitle: "Canvas",
-        topTab: "apply",
-        subTab: "canvas-analysis",
-        transition: workspaceTransition("Analyze token usage on canvas."),
-      },
-    ],
-    matchRoutes: [route("apply", "inspect"), route("apply", "canvas-analysis")],
+    transition: workspaceTransition("Apply tokens to your canvas."),
+    matchRoutes: [route("inspect", "inspect"), route("inspect", "canvas-analysis")],
   },
   {
     id: "sync",
@@ -458,46 +444,11 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "sync",
     subTab: "publish",
     transition: workspaceTransition("Sync, export, and review."),
-    sections: [
-      {
-        id: "publish",
-        label: "Publish",
-        summaryTitle: "Publish",
-        topTab: "sync",
-        subTab: "publish",
-        transition: workspaceTransition("Review and sync to Figma."),
-      },
-      {
-        id: "export",
-        label: "Export",
-        summaryTitle: "Export",
-        topTab: "sync",
-        subTab: "export",
-        transition: workspaceTransition("Export platform files."),
-      },
-      {
-        id: "history",
-        label: "History",
-        summaryTitle: "History",
-        topTab: "sync",
-        subTab: "history",
-        transition: workspaceTransition("Review changes and snapshots."),
-      },
-      {
-        id: "health",
-        label: "Health",
-        summaryTitle: "Health",
-        topTab: "sync",
-        subTab: "health",
-        transition: workspaceTransition("Review issues and blockers."),
-      },
-    ],
     matchRoutes: [
       route("sync", "publish"),
       route("sync", "export"),
       route("sync", "history"),
       route("sync", "health"),
-      route("apply", "dependencies"),
     ],
   },
 ];
@@ -690,7 +641,7 @@ export function getImportResultNextStepRecommendations(
   if (importedMultipleVariableCollections(summary)) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "define",
+        "themes",
         "themes",
         "Multiple collections imported — set up theme structure.",
       ),
@@ -710,7 +661,7 @@ export function getImportResultNextStepRecommendations(
   if (summary.sourceFamily === "code" || summary.sourceFamily === "migration") {
     addRecommendation(
       createWorkspaceRecommendation(
-        "define",
+        "tokens",
         "tokens",
         "Review naming and grouping in the library.",
       ),
@@ -720,7 +671,7 @@ export function getImportResultNextStepRecommendations(
   if (recommendations.length === 0) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "define",
+        "tokens",
         "tokens",
         "Review imported tokens.",
       ),

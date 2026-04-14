@@ -75,6 +75,41 @@ export function defaultConfigForType(type: RecipeType): RecipeConfig {
   }
 }
 
+export function defaultInlineValueForType(type: RecipeType): unknown {
+  switch (type) {
+    case 'colorRamp':
+    case 'accessibleColorPair':
+    case 'darkModeInversion':
+      return '#ffffff';
+    case 'typeScale':
+    case 'spacingScale':
+    case 'borderRadiusScale':
+      return { value: 16, unit: 'px' };
+    default:
+      return undefined;
+  }
+}
+
+export function isInlineValueCompatibleWithType(type: RecipeType, value: unknown): boolean {
+  switch (type) {
+    case 'colorRamp':
+    case 'accessibleColorPair':
+    case 'darkModeInversion':
+      return typeof value === 'string' && value.trim().length > 0;
+    case 'typeScale':
+    case 'spacingScale':
+    case 'borderRadiusScale':
+      return (
+        typeof value === 'object' &&
+        value !== null &&
+        'value' in (value as Record<string, unknown>) &&
+        Number.isFinite(Number((value as { value: unknown }).value))
+      );
+    default:
+      return true;
+  }
+}
+
 // Types that require a source token
 /** Types that need a value (from source token OR inline input) */
 export const VALUE_REQUIRED_TYPES: RecipeType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'accessibleColorPair', 'darkModeInversion'];
@@ -128,4 +163,3 @@ export const TYPE_DESCRIPTIONS: Record<RecipeType, string> = {
   darkModeInversion: 'Create a dark mode version of a color with perceptual accuracy',
   contrastCheck: 'Check WCAG contrast ratios for a set of color pairs',
 };
-

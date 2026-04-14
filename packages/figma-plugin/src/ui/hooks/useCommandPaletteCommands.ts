@@ -79,7 +79,7 @@ export function useCommandPaletteCommands(): {
     void tokenListViewRev;
 
     const goToTokens = () => {
-      navigateTo("define", "tokens");
+      navigateTo("tokens");
       setEditingToken(null);
     };
 
@@ -107,7 +107,7 @@ export function useCommandPaletteCommands(): {
         category: "Tokens",
         shortcut: adaptShortcut("⌘N"),
         handler: () => {
-          navigateTo("define", "tokens");
+          navigateTo("tokens");
           setEditingToken({ path: "", set: activeSet, isCreate: true });
         },
       },
@@ -126,7 +126,7 @@ export function useCommandPaletteCommands(): {
           "Rename, reorder, merge, split, annotate, and bulk-edit token sets",
         category: "Sets",
         handler: () => {
-          navigateTo("define", "tokens");
+          navigateTo("tokens");
           openSecondarySurface("sets");
         },
       },
@@ -176,7 +176,7 @@ export function useCommandPaletteCommands(): {
         description: "Filter the library down to recently edited tokens",
         category: "Tokens",
         handler: () => {
-          navigateTo("define", "tokens");
+          navigateTo("tokens");
           setEditingToken(null);
           setTimeout(() => {
             tokens.tokenListCompareRef.current?.showRecentlyTouched();
@@ -255,7 +255,7 @@ export function useCommandPaletteCommands(): {
         description: template.description,
         category: "Recipes" as const,
         handler: () => {
-          navigateTo("define", "recipes");
+          navigateTo("recipes");
           tokens.setPendingGraphTemplate(template.id);
         },
       })),
@@ -265,7 +265,7 @@ export function useCommandPaletteCommands(): {
         description: "Open side-by-side token comparison inside the library",
         category: "Tokens",
         handler: () => {
-          navigateTo("define", "tokens");
+          navigateTo("tokens");
           tokens.tokenListCompareRef.current?.openCompareMode();
         },
       },
@@ -289,7 +289,7 @@ export function useCommandPaletteCommands(): {
               description: `Fill ${themes.themeGapCount} missing token value${themes.themeGapCount !== 1 ? "s" : ""} from source sets`,
               category: "Modes" as const,
               handler: () => {
-                navigateTo("define", "themes");
+                navigateTo("themes");
                 setTimeout(() => {
                   themes.themeManagerHandleRef.current?.autoFillAllGaps();
                 }, 150);
@@ -306,7 +306,7 @@ export function useCommandPaletteCommands(): {
               category: "Audit" as const,
               handler: () => {
                 tokens.setShowIssuesOnly((visible) => !visible);
-                navigateTo("define", "tokens");
+                navigateTo("tokens");
               },
             },
             {
@@ -337,7 +337,7 @@ export function useCommandPaletteCommands(): {
 
   const setCommands = useMemo<Command[]>(() => {
     const goToTokens = () => {
-      navigateTo("define", "tokens");
+      navigateTo("tokens");
       setEditingToken(null);
     };
 
@@ -366,7 +366,7 @@ export function useCommandPaletteCommands(): {
                 themes.themeManagerHandleRef.current?.navigateToCompare(
                   "theme-options",
                 );
-                navigateTo("define", "themes");
+                navigateTo("themes");
               },
             },
           ]
@@ -386,7 +386,7 @@ export function useCommandPaletteCommands(): {
               `${dimension.id}:${dimension.options[0].name}`,
               `${dimension.id}:${dimension.options[1].name}`,
             );
-            navigateTo("define", "themes");
+            navigateTo("themes");
           },
         })),
     ];
@@ -430,7 +430,7 @@ export function useCommandPaletteCommands(): {
               category: "Tokens" as const,
               handler: () => {
                 const entry = allTokensFlat[highlightedToken];
-                navigateTo("define", "tokens");
+                navigateTo("tokens");
                 setHighlightedToken(highlightedToken);
                 tokens.tokenListCompareRef.current?.triggerExtractToAlias(
                   highlightedToken,
@@ -476,7 +476,7 @@ export function useCommandPaletteCommands(): {
               category: "Audit" as const,
               handler: () => {
                 tokens.setFlowPanelInitialPath(highlightedToken);
-                navigateTo("apply", "dependencies");
+                navigateTo("sync", "health");
               },
             },
           ]
@@ -506,7 +506,7 @@ export function useCommandPaletteCommands(): {
                 themes.themeManagerHandleRef.current?.navigateToCompare(
                   "cross-theme",
                 );
-                navigateTo("define", "themes");
+                navigateTo("themes");
               },
             },
           ]

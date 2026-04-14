@@ -1,27 +1,21 @@
 /**
- * Confirmation screen — condensed impact review with semantic aliases.
- * Shown after clicking "Review" in Step 3.
+ * Confirmation screen — condensed impact review.
+ * Shown after clicking "Review" on the configure step.
  */
-import { useMemo, useState } from 'react';
 import type {
-  RecipeType,
   GeneratedTokenResult,
   InputTable,
 } from '../../hooks/useRecipes';
 import type { RecipePreviewAnalysis } from '../../hooks/useRecipePreview';
-import type { SemanticStarter } from '../graph-templates';
-import type { SemanticDraftMapping } from '../semanticPlanning';
 import { Spinner } from '../Spinner';
 import { AUTHORING } from '../../shared/editorClasses';
 import { RiskDetailSections } from './RiskDetailSections';
-import { StepSemanticPlanning } from './StepSemanticPlanning';
 
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
 export interface StepSaveProps {
-  selectedType: RecipeType;
   name: string;
   targetGroup: string;
   targetSet: string;
@@ -29,14 +23,6 @@ export interface StepSaveProps {
   isMultiBrand: boolean;
   inputTable: InputTable | undefined;
   targetSetTemplate: string;
-  semanticEnabled: boolean;
-  semanticPrefix: string;
-  semanticMappings: SemanticDraftMapping[];
-  templateStarter?: SemanticStarter;
-  onSemanticEnabledChange: (value: boolean) => void;
-  onSemanticPrefixChange: (value: string) => void;
-  onSemanticMappingsChange: (value: SemanticDraftMapping[]) => void;
-  onSemanticPatternSelect: (value: string | null) => void;
   previewTokens: GeneratedTokenResult[];
   previewAnalysis: RecipePreviewAnalysis | null;
   existingOverwritePathSet: Set<string>;
@@ -85,23 +71,14 @@ function ImpactSummaryLine({ previewAnalysis }: { previewAnalysis: RecipePreview
 // ---------------------------------------------------------------------------
 
 export function StepSave({
-  selectedType,
   name: _name,
-  targetGroup,
+  targetGroup: _targetGroup,
   targetSet,
-  isEditing,
+  isEditing: _isEditing,
   isMultiBrand,
   inputTable,
   targetSetTemplate,
-  semanticEnabled,
-  semanticPrefix,
-  semanticMappings,
-  templateStarter,
-  onSemanticEnabledChange,
-  onSemanticPrefixChange,
-  onSemanticMappingsChange,
-  onSemanticPatternSelect,
-  previewTokens,
+  previewTokens: _previewTokens,
   previewAnalysis,
   existingOverwritePathSet: _existingOverwritePathSet,
   overwritePendingPaths,
@@ -110,19 +87,6 @@ export function StepSave({
   saveError,
   previewReviewStale,
 }: StepSaveProps) {
-  const validSemanticMappings = useMemo(
-    () => semanticMappings.filter((mapping) => mapping.semantic.trim() && mapping.step),
-    [semanticMappings],
-  );
-
-  const [semanticExpanded, setSemanticExpanded] = useState(
-    () => Boolean(templateStarter?.mappings?.length) || semanticEnabled,
-  );
-
-  const semanticSummary = semanticEnabled && validSemanticMappings.length > 0
-    ? `${validSemanticMappings.length} alias${validSemanticMappings.length === 1 ? '' : 'es'}`
-    : 'None';
-
   return (
     <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
       {previewReviewStale && (
@@ -173,48 +137,6 @@ export function StepSave({
           <span className="font-mono text-[var(--color-figma-text)]">
             {(targetSetTemplate || 'brands/{brand}').replace('{brand}', '*')}
           </span>
-        </div>
-      )}
-
-      {/* Semantic aliases (collapsible) */}
-      {!isEditing && previewTokens.length > 0 && (
-        <div className={AUTHORING.recipeSectionCard}>
-          <button
-            type="button"
-            onClick={() => setSemanticExpanded(v => !v)}
-            className="w-full flex items-center justify-between gap-2 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <svg
-                width="8" height="8" viewBox="0 0 10 10" fill="currentColor"
-                className={`shrink-0 text-[var(--color-figma-text-secondary)] transition-transform ${semanticExpanded ? 'rotate-90' : ''}`}
-              >
-                <path d="M3 1.5l4 3.5-4 3.5V1.5z" />
-              </svg>
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Semantic aliases</span>
-            </div>
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-              {semanticSummary}
-            </span>
-          </button>
-          {semanticExpanded && (
-            <div className="mt-3">
-              <StepSemanticPlanning
-                selectedType={selectedType}
-                targetGroup={targetGroup}
-                previewTokens={previewTokens}
-                templateStarter={templateStarter}
-                semanticEnabled={semanticEnabled}
-                semanticPrefix={semanticPrefix}
-                semanticMappings={semanticMappings}
-                onSemanticEnabledChange={onSemanticEnabledChange}
-                onSemanticPrefixChange={onSemanticPrefixChange}
-                onSemanticMappingsChange={onSemanticMappingsChange}
-                onSemanticPatternSelect={onSemanticPatternSelect}
-                inline
-              />
-            </div>
-          )}
         </div>
       )}
 

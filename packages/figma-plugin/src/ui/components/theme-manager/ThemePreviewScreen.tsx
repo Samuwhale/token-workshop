@@ -119,12 +119,9 @@ export function ThemePreviewScreen({
     for (const token of previewTokens) {
       const dotIdx = token.path.indexOf(".");
       const prefix = dotIdx > 0 ? token.path.slice(0, dotIdx) : "(root)";
-      let arr = map.get(prefix);
-      if (!arr) {
-        arr = [];
-        map.set(prefix, arr);
-      }
-      arr.push(token);
+      const group = map.get(prefix);
+      if (group) group.push(token);
+      else map.set(prefix, [token]);
     }
     return map;
   }, [groupByPrefix, previewTokens]);
@@ -144,7 +141,7 @@ export function ThemePreviewScreen({
       return optionName ? `${dimension.name}: ${optionName}` : null;
     })
     .filter(Boolean)
-    .join(" + ");
+    .join(" · ");
 
   function formatValue(value: unknown): string {
     if (typeof value === "object" && value !== null) return JSON.stringify(value);
@@ -158,10 +155,10 @@ export function ThemePreviewScreen({
         onClick={() => onNavigateToToken?.(token.path, token.set)}
         title={`${token.path}\nRaw: ${formatValue(token.rawValue)}\nFrom: ${token.set} (${token.layer})`}
       >
-        <td className="max-w-[140px] truncate px-2.5 py-0.5 font-mono text-[var(--color-figma-text)]">
+        <td className="max-w-[140px] truncate px-2.5 py-0.75 font-mono text-[var(--color-figma-text)]">
           {token.path}
         </td>
-        <td className="px-2.5 py-0.5">
+        <td className="px-2.5 py-0.75">
           <span className="flex items-center gap-1.5">
             <ValuePreview type={token.type} value={token.resolvedValue} size={14} />
             <span className="truncate font-mono text-[var(--color-figma-text-secondary)]">
@@ -170,7 +167,7 @@ export function ThemePreviewScreen({
           </span>
         </td>
         <td
-          className="max-w-[90px] truncate px-2.5 py-0.5 text-right text-[var(--color-figma-text-tertiary)]"
+          className="max-w-[90px] truncate px-2.5 py-0.75 text-right text-[var(--color-figma-text-tertiary)]"
           title={token.layer}
         >
           {token.set}
@@ -181,12 +178,13 @@ export function ThemePreviewScreen({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+      <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2">
+        <div className="flex items-start justify-between gap-3">
           <button
+            type="button"
             onClick={onBack}
-            aria-label="Back"
-            className="inline-flex shrink-0 items-center rounded border border-[var(--color-figma-border)] p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+            aria-label="Back to modes"
+            className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
           >
             <svg
               width="9"
@@ -201,43 +199,94 @@ export function ThemePreviewScreen({
             >
               <path d="M15 18l-6-6 6-6" />
             </svg>
+            Modes
           </button>
-          <input
-            ref={previewSearchRef}
-            type="text"
-            placeholder={activeSelectionLabel || "Search..."}
-            value={previewSearch}
-            onChange={(event) => setPreviewSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                if (previewSearch) setPreviewSearch("");
-                previewSearchRef.current?.blur();
-              }
-            }}
-            className="flex-1 min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
-          />
-          <button
-            type="button"
-            onClick={() => setGroupByPrefix((v) => !v)}
-            className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
-              groupByPrefix
-                ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-            }`}
-            title="Group tokens by prefix"
-          >
-            Group
-          </button>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                Resolved tokens
+              </h2>
+              {activeSelectionLabel && (
+                <span className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
+                  {activeSelectionLabel}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+              Inspect the token output for the current mode selection.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <svg
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]"
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              ref={previewSearchRef}
+              type="text"
+              placeholder="Search paths, values, or source sets"
+              value={previewSearch}
+              onChange={(event) => setPreviewSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  if (previewSearch) setPreviewSearch("");
+                  previewSearchRef.current?.blur();
+                }
+              }}
+              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 pl-6 text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
+            />
+          </div>
+          <div className="shrink-0 flex items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+            <button
+              type="button"
+              onClick={() => setGroupByPrefix(false)}
+              className={`rounded-l px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
+                !groupByPrefix
+                  ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                  : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+              }`}
+            >
+              Flat
+            </button>
+            <button
+              type="button"
+              onClick={() => setGroupByPrefix(true)}
+              className={`rounded-r px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
+                groupByPrefix
+                  ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                  : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+              }`}
+            >
+              By path
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
+          {previewTokens.length} token{previewTokens.length === 1 ? "" : "s"} shown
+          {previewSearch ? ` · filtered by "${previewSearch}"` : ""}
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {previewTokens.length === 0 ? (
-          <div className="px-3 py-6 text-center text-[10px] italic text-[var(--color-figma-text-tertiary)]">
-            {previewSearch
-              ? `No matches for "${previewSearch}"`
-              : "No sources"}
+          <div className="px-3 py-6 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {previewSearch ? `No matches for "${previewSearch}"` : "No resolved tokens"}
           </div>
         ) : groups ? (
           <table className="w-full text-[10px]">
@@ -310,8 +359,8 @@ export function ThemePreviewScreen({
         )}
 
         {previewTokens.length >= 200 && (
-          <div className="border-t border-[var(--color-figma-border)] px-3 py-1 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-            200 shown. Search to narrow.
+          <div className="border-t border-[var(--color-figma-border)] px-3 py-1 text-center text-[9px] text-[var(--color-figma-text-tertiary)]">
+            Showing first 200. Search to narrow the result set.
           </div>
         )}
       </div>

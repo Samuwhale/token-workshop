@@ -22,12 +22,14 @@ import {
 } from "../shared/noticeSystem";
 import {
   sortThemeIssuesByPriority,
+  summarizeThemeWorkflow,
   type ThemeAuthoringStage,
   type ThemeAuthoringMode,
   type ThemeIssueSummary,
   type ThemeManagerView,
   type ThemeWorkspaceShellState,
 } from "../shared/themeWorkflow";
+import { WorkflowStageIndicators } from "../shared/WorkflowStageIndicators";
 import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
 import { ThemeResolverScreen } from "./theme-manager/ThemeResolverScreen";
 import {
@@ -466,6 +468,153 @@ const ThemeManagerWorkspace = React.forwardRef<
       getOptionNameForContext(compareFocusDimension, compareContext.optionName),
     [compareContext.optionName, compareFocusDimension, getOptionNameForContext],
   );
+  const themeWorkflowSummary = useMemo(
+    () =>
+      summarizeThemeWorkflow(dimensions, {
+        availableSets: sets,
+        setTokenCounts,
+        coverage,
+        missingOverrides,
+      }),
+    [coverage, dimensions, missingOverrides, setTokenCounts, sets],
+  );
+  const themeHeaderStatus = useMemo(() => {
+    if (activeView === "compare") return "Compare values";
+    if (activeView === "resolver") return "Configure output";
+    if (authoringMode === "preview") return "Preview resolved tokens";
+    return "Theme setup";
+  }, [activeView, authoringMode]);
+  const themeHeaderSummary = useMemo(() => {
+    if (dimensions.length === 0) {
+      return "Create the modes your team switches between, then map each value to the right token sets.";
+    }
+
+    if (themeWorkflowSummary.currentStage === "options") {
+      return `${themeWorkflowSummary.axisCount} mode${themeWorkflowSummary.axisCount === 1 ? "" : "s"} created. Add values like Light and Dark so designers can switch between real theme states.`;
+    }
+
+    if (themeWorkflowSummary.currentStage === "set-roles") {
+      const issueCount =
+        themeWorkflowSummary.unmappedOptionCount +
+        themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount +
+        themeWorkflowSummary.optionsWithCoverageIssuesCount;
+      return issueCount > 0
+        ? `${issueCount} mode value${issueCount === 1 ? "" : "s"} still need set mapping or token cleanup before the theme is ready.`
+        : "Assign default and override sets for each mode value.";
+    }
+
+    return "Theme setup is ready to review. Preview resolved tokens, compare values, or configure an output file.";
+  }, [dimensions.length, themeWorkflowSummary]);
+  const workflowStages = useMemo(() => {
+    const stageIsCurrent = (stage: ThemeAuthoringStage) =>
+      activeView === "authoring" &&
+      (stage === "preview"
+        ? authoringMode === "preview"
+        : authoringMode === "roles" &&
+          themeWorkflowSummary.currentStage === stage);
+
+    const modesTone =
+      dimensions.length === 0
+        ? "current"
+        : stageIsCurrent("axes")
+          ? "current"
+          : "complete";
+    const optionsTone =
+      dimensions.length === 0
+        ? "blocked"
+        : themeWorkflowSummary.optionCount === 0 ||
+            themeWorkflowSummary.axesMissingOptionsCount > 0
+          ? stageIsCurrent("options")
+            ? "current"
+            : "pending"
+          : "complete";
+    const mappingsNeedAttention =
+      themeWorkflowSummary.unmappedOptionCount > 0 ||
+      themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0;
+    const mappingsTone =
+      dimensions.length === 0 || themeWorkflowSummary.optionCount === 0
+        ? "blocked"
+        : mappingsNeedAttention
+          ? stageIsCurrent("set-roles")
+            ? "current"
+            : "pending"
+          : themeWorkflowSummary.optionsWithCoverageIssuesCount > 0
+            ? "pending"
+            : "complete";
+    const previewTone =
+      !themeWorkflowSummary.previewReady
+        ? "blocked"
+        : stageIsCurrent("preview")
+          ? "current"
+          : themeWorkflowSummary.currentStage === "preview"
+            ? "complete"
+            : "pending";
+
+    return [
+      {
+        id: "axes" as const,
+        step: 1,
+        label: "Modes",
+        detail: `${themeWorkflowSummary.axisCount} defined`,
+        tone: modesTone,
+      },
+      {
+        id: "options" as const,
+        step: 2,
+        label: "Values",
+        detail:
+          themeWorkflowSummary.optionCount === 0
+            ? "Add values"
+            : `${themeWorkflowSummary.optionCount} total`,
+        tone: optionsTone,
+        disabled: dimensions.length === 0,
+      },
+      {
+        id: "set-roles" as const,
+        step: 3,
+        label: "Set mapping",
+        detail:
+          mappingsNeedAttention ||
+          themeWorkflowSummary.optionsWithCoverageIssuesCount > 0
+            ? "Needs review"
+            : "Ready",
+        tone: mappingsTone,
+        disabled: themeWorkflowSummary.optionCount === 0,
+      },
+      {
+        id: "preview" as const,
+        step: 4,
+        label: "Preview",
+        detail: themeWorkflowSummary.previewReady
+          ? "Review final tokens"
+          : "Finish setup first",
+        tone: previewTone,
+        disabled: !themeWorkflowSummary.previewReady,
+      },
+    ];
+  }, [
+    activeView,
+    authoringMode,
+    dimensions.length,
+    themeWorkflowSummary,
+  ]);
+  const workflowActions = useMemo(
+    () => [
+      {
+        label: "Compare",
+        onClick: () => openCompareView(),
+        disabled: !canCompareThemes,
+        active: activeView === "compare",
+      },
+      {
+        label: "Output",
+        onClick: openResolverView,
+        disabled: !resolverState,
+        active: activeView === "resolver",
+      },
+    ],
+    [activeView, canCompareThemes, openCompareView, openResolverView, resolverState],
+  );
 
   if (!connected) {
     return (
@@ -507,6 +656,36 @@ const ThemeManagerWorkspace = React.forwardRef<
             </NoticeInlineAlert>
           </div>
         )}
+
+        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          <div className="px-3 py-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+                  {themeHeaderStatus}
+                </div>
+                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                  {themeHeaderSummary}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                  {themeWorkflowSummary.axisCount} mode
+                  {themeWorkflowSummary.axisCount === 1 ? "" : "s"}
+                </div>
+                <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  {themeWorkflowSummary.optionCount} value
+                  {themeWorkflowSummary.optionCount === 1 ? "" : "s"}
+                </div>
+              </div>
+            </div>
+          </div>
+          <WorkflowStageIndicators
+            stages={workflowStages}
+            onSelectStage={focusAuthoringStage}
+            actions={workflowActions}
+          />
+        </div>
 
         <>
           {activeView === "compare" ? (
@@ -630,6 +809,7 @@ const ThemeManagerWorkspace = React.forwardRef<
               onOpenCompare={openCompareView}
               onOpenResolver={openResolverView}
               onNavigateToTokenSet={onNavigateToTokenSet}
+              resolverAuthoringContext={resolverAuthoringContext}
             />
           )}
         </>

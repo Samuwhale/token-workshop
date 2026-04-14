@@ -12,6 +12,8 @@ import {
   suggestTargetGroup,
   autoName,
   defaultConfigForType,
+  defaultInlineValueForType,
+  isInlineValueCompatibleWithType,
   ALL_TYPES,
   VALUE_REQUIRED_TYPES,
 } from "../components/recipes/recipeUtils";
@@ -345,10 +347,11 @@ export function useRecipeDialog({
     (sourceTokenPath
       ? suggestTargetGroup(sourceTokenPath, sourceTokenName)
       : "");
+  const initialSourcePath = existingRecipe?.sourceToken ?? sourceTokenPath ?? "";
   const initialInlineValue =
     existingRecipe?.inlineValue ??
     resolvedInitialDraft?.inlineValue ??
-    undefined;
+    (initialSourcePath ? undefined : defaultInlineValueForType(initialType));
   const initialConfigs: Partial<Record<RecipeType, RecipeConfig>> = {};
   for (const type of ALL_TYPES) {
     if (existingRecipe?.type === type) {
@@ -672,6 +675,13 @@ export function useRecipeDialog({
     pushConfigSnapshot();
     setSelectedType(type);
     if (nameWasAutoRef.current) setName(autoName(effectiveSourcePath, type));
+    if (editableSourcePath.trim()) return;
+    setInlineValueRaw((currentValue) => {
+      if (isInlineValueCompatibleWithType(type, currentValue)) {
+        return currentValue;
+      }
+      return cloneOptionalDraftValue(defaultInlineValueForType(type));
+    });
   };
 
   const setEditableSourcePath = useCallback(

@@ -1,8 +1,3 @@
-import type {
-  WorkflowStageIndicatorItem,
-  WorkflowStageTone,
-} from '../shared/WorkflowStageIndicators';
-
 // Shared types and pure utility functions for ImportPanel sub-components.
 
 export interface ImportToken {
@@ -30,9 +25,6 @@ export interface CollectionData {
 export type ImportSource = 'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio';
 export type SourceFamily = 'figma' | 'token-files' | 'code' | 'migration';
 export type ImportWorkflowStage = 'family' | 'format' | 'destination' | 'preview';
-export type ImportWorkflowTone = WorkflowStageTone;
-export type ImportWorkflowVisibleStage = Exclude<ImportWorkflowStage, 'preview'>;
-export type ImportWorkflowItem = WorkflowStageIndicatorItem<ImportWorkflowVisibleStage>;
 
 export interface ImportFamilyDefinition {
   family: SourceFamily;

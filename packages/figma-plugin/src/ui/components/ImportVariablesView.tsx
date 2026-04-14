@@ -2,51 +2,37 @@ import {
   useImportDestinationContext,
   useImportSourceContext,
 } from './ImportPanelContext';
-import { defaultSetName, getSourceDefinition, modeKey } from './importPanelTypes';
+import { defaultSetName, modeKey } from './importPanelTypes';
 import { SET_NAME_RE } from '../shared/utils';
 
 export function ImportVariablesView() {
-  const { collectionData, source, handleBack } = useImportSourceContext();
+  const { collectionData, handleBack } = useImportSourceContext();
   const {
     modeEnabled,
     modeSetNames,
     collectionModeDestinationStatus,
-    sets,
     setModeEnabled,
     setModeSetNames,
   } = useImportDestinationContext();
 
-  const sourceDefinition = getSourceDefinition(source);
-  const sourceLabel = sourceDefinition?.label ?? 'Imported collections';
-  const destinationDescription = sourceDefinition?.destinationDescription ?? 'Each enabled mode will be imported as a separate token set.';
-
   return (
     <>
-      {/* Header row */}
-      <div className="flex items-center gap-2 pb-1 border-b border-[var(--color-figma-border)]">
+      <div className="pb-1 border-b border-[var(--color-figma-border)]">
         <button
           onClick={handleBack}
-          className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+          className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 2L3 5l3 3" />
           </svg>
           Back
         </button>
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
-          {sourceLabel}
-        </span>
-      </div>
-
-      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-        {destinationDescription}
       </div>
 
       {collectionData.map(col => (
         <div key={col.name} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          {/* Collection header */}
-          <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center gap-2">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 truncate">
+          <div className="px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center gap-2">
+            <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1 truncate">
               {col.name}
             </span>
             <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -54,7 +40,6 @@ export function ImportVariablesView() {
             </span>
           </div>
 
-          {/* Mode rows */}
           <div className="divide-y divide-[var(--color-figma-border)]">
             {col.modes.map(mode => {
               const key = modeKey(col.name, mode.modeId);
@@ -81,44 +66,45 @@ export function ImportVariablesView() {
                   ? `${duplicatePathError}. Change the name or disable an overlapping mode.`
                   : null;
               const isSharedDestination = enabled && !setNameError && (destinationStatus?.sharedDestinationCount ?? 1) > 1;
+
               return (
-                <div key={mode.modeId} className={`flex items-center gap-2 px-3 py-2 transition-colors ${enabled ? 'bg-[var(--color-figma-accent)]/5' : 'bg-transparent opacity-50'}`}>
+                <div key={mode.modeId} className={`flex items-start gap-2 px-2 py-1.5 ${enabled ? '' : 'opacity-50'}`}>
                   <input
                     type="checkbox"
                     checked={enabled}
                     onChange={e => setModeEnabled(prev => ({ ...prev, [key]: e.target.checked }))}
-                    className="accent-[var(--color-figma-accent)] shrink-0"
+                    className="accent-[var(--color-figma-accent)] shrink-0 mt-0.5"
                   />
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-medium ${enabled ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] line-through'}`}>{mode.modeName}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[11px] font-medium shrink-0 ${enabled ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] line-through'}`}>
+                        {mode.modeName}
+                      </span>
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        {mode.tokens.length}
+                      </span>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                        <span className="shrink-0">→</span>
-                        <input
-                          type="text"
-                          value={setName}
-                          disabled={!enabled}
-                          onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
-                          className={`flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] focus-visible:outline-none disabled:opacity-50 font-mono ${inputError ? 'border-[var(--color-figma-error,#e53935)] focus-visible:border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
-                          placeholder="set-name"
-                          aria-label="Set name for mode"
-                          aria-invalid={inputError ? true : undefined}
-                          aria-describedby={inputError ? `err-${key}` : undefined}
-                        />
-                      </div>
-                      {inputErrorDetail && (
-                        <p id={`err-${key}`} role="alert" className="text-[10px] text-[var(--color-figma-error,#e53935)] leading-tight pl-3">
-                          {inputErrorDetail}
-                        </p>
-                      )}
-                      {!inputError && isSharedDestination && (
-                        <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight pl-3">
-                          All enabled modes will combine into this set.
-                        </p>
-                      )}
-                    </div>
+                    <input
+                      type="text"
+                      value={setName}
+                      disabled={!enabled}
+                      onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
+                      className={`w-full px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:outline-none disabled:opacity-50 ${inputError ? 'border-[var(--color-figma-error,#e53935)] focus-visible:border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                      placeholder="set-name"
+                      aria-label="Set name for mode"
+                      aria-invalid={inputError ? true : undefined}
+                      aria-describedby={inputError ? `err-${key}` : undefined}
+                    />
+                    {inputErrorDetail && (
+                      <p id={`err-${key}`} role="alert" className="text-[10px] text-[var(--color-figma-error,#e53935)] leading-tight">
+                        {inputErrorDetail}
+                      </p>
+                    )}
+                    {!inputError && isSharedDestination && (
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">
+                        All enabled modes will combine into this set.
+                      </p>
+                    )}
                   </div>
                 </div>
               );

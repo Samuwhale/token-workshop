@@ -153,6 +153,7 @@ export function PanelRouter(): ReactNode {
     activeSubTab,
     activeSecondarySurface,
     navigateTo,
+    setSubTab,
     beginHandoff,
     closeSecondarySurface,
   } = useNavigationContext();
@@ -355,7 +356,7 @@ export function PanelRouter(): ReactNode {
       if (targetSet !== activeSet) {
         setActiveSet(targetSet);
       }
-      navigateTo("define", "tokens");
+      navigateTo("tokens", "tokens");
     },
     [
       activeSet,
@@ -492,11 +493,11 @@ export function PanelRouter(): ReactNode {
     },
     onGenerateScaleFromGroup: (groupPath: string, tokenType: string | null) => {
       controller.setPendingGraphFromGroup({ groupPath, tokenType });
-      navigateTo("define", "recipes");
+      navigateTo("recipes", "recipes");
     },
     onNavigateToNewRecipe: () => {
       controller.setPendingOpenPicker(true);
-      navigateTo("define", "recipes");
+      navigateTo("recipes", "recipes");
     },
     onRefreshRecipes: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
@@ -520,7 +521,7 @@ export function PanelRouter(): ReactNode {
     onNavigateToRecipe: controller.handleNavigateToRecipe,
     onShowReferences: (path: string) => {
       controller.setFlowPanelInitialPath(path);
-      navigateTo("apply", "dependencies");
+      navigateTo("sync", "health");
     },
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => {
       controller.displayedLeafNodesRef.current = nodes;
@@ -588,12 +589,12 @@ export function PanelRouter(): ReactNode {
         derivedTokenPaths,
         onShowReferences: (path: string) => {
           controller.setFlowPanelInitialPath(path);
-          navigateTo("apply", "dependencies");
+          navigateTo("sync", "health");
         },
         onNavigateToToken: handleNavigateToAlias,
         onNavigateToRecipe: controller.handleNavigateToRecipe,
         onOpenRecipeEditor: openRecipeEditor,
-        onNavigateToThemes: () => navigateTo("define", "themes"),
+        onNavigateToThemes: () => navigateTo("themes", "themes"),
       }
     : null;
 
@@ -1000,14 +1001,10 @@ export function PanelRouter(): ReactNode {
     import: () => (
       <ErrorBoundary panelName="Import" onReset={closeSecondarySurface}>
         <div className="flex h-full flex-col overflow-hidden">
-          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
+          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
             <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">
               Import tokens
             </h2>
-            <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Bring in Figma variables, token files, code exports, or migration
-              inputs without leaving the current shell.
-            </p>
           </div>
           <ImportPanel
             serverUrl={serverUrl}
@@ -1027,7 +1024,7 @@ export function PanelRouter(): ReactNode {
                 return;
               }
 
-              navigateTo("define", "tokens", {
+              navigateTo("tokens", "tokens", {
                 preserveSecondarySurface: true,
               });
             }}
@@ -1071,15 +1068,18 @@ export function PanelRouter(): ReactNode {
   type PanelRenderer = () => ReactNode;
 
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
-    define: {
+    tokens: {
       tokens: renderDefineTokens,
+    },
+    recipes: {
       recipes: renderDefineRecipes,
+    },
+    themes: {
       themes: renderDefineThemes,
     },
-    apply: {
+    inspect: {
       inspect: renderApplyInspect,
       "canvas-analysis": renderApplyCanvasAnalysis,
-      dependencies: renderApplyDependencies,
     },
     sync: {
       publish: renderSyncPublish,
@@ -1089,8 +1089,54 @@ export function PanelRouter(): ReactNode {
     },
   };
 
+  // For multi-view tabs (inspect, sync), render an internal segment control
+  const multiViewTabs: Partial<Record<TopTab, { id: SubTab; label: string }[]>> = {
+    inspect: [
+      { id: "inspect", label: "Selection" },
+      { id: "canvas-analysis", label: "Canvas" },
+    ],
+    sync: [
+      { id: "publish", label: "Publish" },
+      { id: "export", label: "Export" },
+      { id: "history", label: "History" },
+      { id: "health", label: "Health" },
+    ],
+  };
+
+  const segments = multiViewTabs[activeTopTab];
   const renderer = PANEL_MAP[activeTopTab]?.[activeSubTab];
-  return renderer ? renderer() : null;
+  const panelContent = renderer ? renderer() : null;
+
+  if (segments && segments.length > 1) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex shrink-0 items-center gap-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
+          {segments.map((seg) => {
+            const isActive = seg.id === activeSubTab;
+            return (
+              <button
+                key={seg.id}
+                onClick={() => {
+                  setSubTab(seg.id);
+                  if (seg.id === "canvas-analysis") triggerHeatmapScan();
+                }}
+                className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                  isActive
+                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                }`}
+              >
+                {seg.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex-1 overflow-y-auto">{panelContent}</div>
+      </div>
+    );
+  }
+
+  return panelContent;
 
   // ---------------------------------------------------------------------------
   // Panel render functions — each closes over context + props
@@ -1200,14 +1246,14 @@ export function PanelRouter(): ReactNode {
             <div className="flex-1 min-h-0 overflow-hidden">
               <ErrorBoundary
                 panelName="Preview"
-                onReset={() => navigateTo("define", "tokens")}
+                onReset={() => navigateTo("tokens", "tokens")}
               >
                 <PreviewPanel
                   allTokensFlat={themedAllTokensFlat}
                   dimensions={dimensions}
                   activeThemes={activeThemes}
                   onActiveThemesChange={setActiveThemes}
-                  onGoToTokens={() => navigateTo("define", "tokens")}
+                  onGoToTokens={() => navigateTo("tokens", "tokens")}
                   onNavigateToToken={(path) => {
                     const name = path.split(".").pop();
                     const set = pathToSet[path] ?? activeSet;
@@ -1247,7 +1293,7 @@ export function PanelRouter(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Recipes"
-        onReset={() => navigateTo("define", "tokens")}
+        onReset={() => navigateTo("tokens", "tokens")}
       >
         <GraphPanel
           serverUrl={serverUrl}
@@ -1286,7 +1332,7 @@ export function PanelRouter(): ReactNode {
         <div className="flex-1 overflow-hidden">
           <ErrorBoundary
             panelName="Themes"
-            onReset={() => navigateTo("define", "tokens")}
+            onReset={() => navigateTo("tokens", "tokens")}
           >
             <ThemeManager
               serverUrl={serverUrl}
@@ -1297,14 +1343,14 @@ export function PanelRouter(): ReactNode {
                 beginHandoff({
                   reason: "View or edit this token, then return to Themes",
                 });
-                navigateTo("define", "tokens", { preserveHandoff: true });
+                navigateTo("tokens", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(set, path);
               }}
               onCreateToken={(tokenPath, set) => {
                 beginHandoff({
                   reason: "Create this token, then return to Themes",
                 });
-                navigateTo("define", "tokens", { preserveHandoff: true });
+                navigateTo("tokens", "tokens", { preserveHandoff: true });
                 setEditingToken({ path: tokenPath, set, isCreate: true });
               }}
               onPushUndo={controller.pushUndo}
@@ -1321,13 +1367,13 @@ export function PanelRouter(): ReactNode {
                 beginHandoff({
                   reason: "Browse tokens, then return to Themes",
                 });
-                navigateTo("define", "tokens", { preserveHandoff: true });
+                navigateTo("tokens", "tokens", { preserveHandoff: true });
               }}
               onNavigateToTokenSet={(setName) => {
                 beginHandoff({
                   reason: "View this token set, then return to Themes",
                 });
-                navigateTo("define", "tokens", { preserveHandoff: true });
+                navigateTo("tokens", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(setName, "");
               }}
               themeManagerHandle={controller.themeManagerHandleRef}
@@ -1338,7 +1384,7 @@ export function PanelRouter(): ReactNode {
                 beginHandoff({
                   reason: "Create a recipe, then return to Themes",
                 });
-                navigateTo("define", "recipes", {
+                navigateTo("recipes", "recipes", {
                   preserveHandoff: true,
                 });
               }}
@@ -1374,7 +1420,7 @@ export function PanelRouter(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Inspector"
-        onReset={() => navigateTo("define", "tokens")}
+        onReset={() => navigateTo("tokens", "tokens")}
       >
         <SelectionInspector
           selectedNodes={selectedNodes}
@@ -1391,11 +1437,11 @@ export function PanelRouter(): ReactNode {
           onTokenCreated={refreshTokens}
           onNavigateToToken={(path) => {
             setHighlightedToken(path);
-            navigateTo("define", "tokens");
+            navigateTo("tokens", "tokens");
           }}
           onPushUndo={controller.pushUndo}
           onToast={controller.setSuccessToast}
-          onGoToTokens={() => navigateTo("define", "tokens")}
+          onGoToTokens={() => navigateTo("tokens", "tokens")}
           triggerCreateToken={controller.triggerCreateToken}
         />
       </ErrorBoundary>
@@ -1406,7 +1452,7 @@ export function PanelRouter(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Canvas Analysis"
-        onReset={() => navigateTo("apply", "inspect")}
+        onReset={() => navigateTo("inspect", "inspect")}
       >
         <CanvasAnalysisPanel
           availableTokens={allTokensFlat}
@@ -1465,7 +1511,7 @@ export function PanelRouter(): ReactNode {
               reason:
                 "Inspect the token behind this dependency chain, then return to Audit.",
             });
-            navigateTo("define", "tokens", { preserveHandoff: true });
+            navigateTo("tokens", "tokens", { preserveHandoff: true });
             setEditingToken(null);
             if (targetSet && targetSet !== activeSet) {
               setActiveSet(targetSet);
@@ -1480,7 +1526,7 @@ export function PanelRouter(): ReactNode {
               reason:
                 "Edit the token behind this dependency chain, then return to Audit.",
             });
-            navigateTo("define", "tokens", { preserveHandoff: true });
+            navigateTo("tokens", "tokens", { preserveHandoff: true });
             setEditingToken({ path, set: targetSet ?? activeSet });
             if (targetSet && targetSet !== activeSet) {
               setActiveSet(targetSet);
@@ -1579,7 +1625,7 @@ export function PanelRouter(): ReactNode {
                 "Inspect the source token behind this audit finding, then return to Audit.",
             });
             setActiveSet(set);
-            navigateTo("define", "tokens", { preserveHandoff: true });
+            navigateTo("tokens", "tokens", { preserveHandoff: true });
             setPendingHighlight(path);
           }}
           onTriggerHeatmap={triggerHeatmapScan}

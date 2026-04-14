@@ -1,13 +1,9 @@
-import { useState } from "react";
 import {
   IMPORT_REVIEW_ACTION_COPY,
   useImportResultContext,
-  useImportSourceContext,
 } from "./ImportPanelContext";
 
 export function ImportSuccessView() {
-  const [showSkippedDetails, setShowSkippedDetails] = useState(false);
-  const { fileImportValidation } = useImportSourceContext();
   const {
     successMessage,
     failedImportPaths,
@@ -27,287 +23,118 @@ export function ImportSuccessView() {
     openImportNextStep,
     clearSuccessState,
   } = useImportResultContext();
-  const hasParseWarnings =
-    !!fileImportValidation &&
-    (fileImportValidation.status === "partial" ||
-      fileImportValidation.skippedCount > 0 ||
-      fileImportValidation.issues.length > 0);
-  const showRetryGuidance = hasParseWarnings && failedImportPaths.length > 0;
+
   const hasFailedWrites = failedImportPaths.length > 0;
   const statusColor = hasFailedWrites
     ? "var(--color-figma-warning,#e8a100)"
     : "var(--color-figma-success)";
-  const failureStrategyLabel = IMPORT_REVIEW_ACTION_COPY[failedImportStrategy].label;
 
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-3">
+    <div className="flex flex-col items-center gap-2 py-3">
+      {/* Status icon */}
       <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
         <circle cx="10" cy="10" r="9" stroke={statusColor} strokeWidth="1.5" />
         {hasFailedWrites ? (
           <>
-            <path
-              d="M10 5.5v5"
-              stroke={statusColor}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
+            <path d="M10 5.5v5" stroke={statusColor} strokeWidth="1.5" strokeLinecap="round" />
             <circle cx="10" cy="13.5" r="0.8" fill={statusColor} />
           </>
         ) : (
-          <path
-            d="M6 10l3 3 5-5"
-            stroke={statusColor}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M6 10l3 3 5-5" stroke={statusColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         )}
       </svg>
-      <div
-        role="status"
-        aria-live="polite"
-        className="text-[11px] font-medium text-center"
-        style={{ color: statusColor }}
-      >
+
+      {/* Status message */}
+      <div role="status" aria-live="polite" className="text-[11px] font-medium text-center" style={{ color: statusColor }}>
         {successMessage}
       </div>
+
+      {/* Review summary */}
       {lastImportReviewSummary && (
         <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">
           {lastImportReviewSummary.destinationLabel}
-          {' — '}
-          {lastImportReviewSummary.newCount > 0 && `${lastImportReviewSummary.newCount} imported`}
-          {lastImportReviewSummary.overwriteCount > 0 &&
-            `${lastImportReviewSummary.newCount > 0 ? ', ' : ''}${lastImportReviewSummary.overwriteCount} updated`}
-          {lastImportReviewSummary.mergeCount > 0 &&
-            `${(lastImportReviewSummary.newCount > 0 || lastImportReviewSummary.overwriteCount > 0) ? ', ' : ''}${lastImportReviewSummary.mergeCount} merged`}
-          {lastImportReviewSummary.keepExistingCount > 0 &&
-            `${(lastImportReviewSummary.newCount > 0 || lastImportReviewSummary.overwriteCount > 0 || lastImportReviewSummary.mergeCount > 0) ? ', ' : ''}${lastImportReviewSummary.keepExistingCount} kept`}
+          {" — "}
+          {[
+            lastImportReviewSummary.newCount > 0 && `${lastImportReviewSummary.newCount} imported`,
+            lastImportReviewSummary.overwriteCount > 0 && `${lastImportReviewSummary.overwriteCount} updated`,
+            lastImportReviewSummary.mergeCount > 0 && `${lastImportReviewSummary.mergeCount} merged`,
+            lastImportReviewSummary.keepExistingCount > 0 && `${lastImportReviewSummary.keepExistingCount} kept`,
+          ].filter(Boolean).join(", ")}
         </div>
       )}
+
+      {/* Next step recommendations */}
       {importNextStepRecommendations.length > 0 && (
-        <div className="w-full mt-1 flex flex-col gap-1.5">
-          {importNextStepRecommendations
-            .slice(0, 2)
-            .map((recommendation, index) => (
-              <button
-                key={`${recommendation.label}-${index}`}
-                onClick={() => openImportNextStep(recommendation)}
-                className={`rounded border px-2 py-1.5 text-left transition-colors ${
-                  index === 0
-                    ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8 hover:bg-[var(--color-figma-accent)]/12"
-                    : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-secondary)]"
-                }`}
-              >
-                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                  {index === 0
-                    ? `Continue in ${recommendation.label}`
-                    : recommendation.label}
-                </div>
-              </button>
-            ))}
-        </div>
-      )}
-      {fileImportValidation && (
-        <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-              {fileImportValidation.summary}
-            </div>
-            <span
-              className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
-                fileImportValidation.status === "partial"
-                  ? "bg-[var(--color-figma-warning,#e8a100)]/15 text-[var(--color-figma-warning,#e8a100)]"
-                  : "bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]"
+        <div className="w-full mt-1 flex flex-col gap-1">
+          {importNextStepRecommendations.slice(0, 2).map((rec, i) => (
+            <button
+              key={`${rec.label}-${i}`}
+              onClick={() => openImportNextStep(rec)}
+              className={`rounded border px-2 py-1.5 text-left text-[10px] font-medium text-[var(--color-figma-text)] transition-colors ${
+                i === 0
+                  ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8 hover:bg-[var(--color-figma-accent)]/12"
+                  : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)]"
               }`}
             >
-              {fileImportValidation.status === "partial"
-                ? "Partial parse"
-                : "Parsed"}
-            </span>
-          </div>
-          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            {fileImportValidation.detail}
-          </div>
-          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Next: {fileImportValidation.nextAction}
-          </div>
-          {fileImportValidation.issues.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {fileImportValidation.issues.map((issue) => (
-                <div
-                  key={`${issue.severity}-${issue.message}`}
-                  className={`text-[10px] ${
-                    issue.severity === "warning"
-                      ? "text-[var(--color-figma-warning,#e8a100)]"
-                      : "text-[var(--color-figma-error)]"
-                  }`}
-                >
-                  {issue.message}
-                </div>
-              ))}
-            </div>
-          )}
-          {fileImportValidation.skippedCount > 0 && (
-            <div className="mt-2 rounded border border-[var(--color-figma-border)] overflow-hidden">
-              <button
-                onClick={() => setShowSkippedDetails((prev) => !prev)}
-                className="w-full flex items-center justify-between px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg)] transition-colors"
-                aria-expanded={showSkippedDetails}
-              >
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  <span className="text-[var(--color-figma-warning,#e8a100)] font-medium">
-                    {fileImportValidation.skippedCount}
-                  </span>{" "}
-                  skipped
-                </span>
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 8 8"
-                  fill="currentColor"
-                  className={`text-[var(--color-figma-text-secondary)] transition-transform ${showSkippedDetails ? "rotate-90" : ""}`}
-                  aria-hidden="true"
-                >
-                  <path d="M2 1l4 3-4 3V1z" />
-                </svg>
-              </button>
-              {showSkippedDetails && (
-                <div className="max-h-36 overflow-y-auto divide-y divide-[var(--color-figma-border)] border-t border-[var(--color-figma-border)]">
-                  {fileImportValidation.skippedEntries.map((entry, index) => (
-                    <div
-                      key={`${entry.path}-${index}`}
-                      className="px-2 py-1.5 flex flex-col gap-0.5"
-                    >
-                      <span className="font-mono text-[var(--color-figma-text)] text-[9px]">
-                        {entry.path}
-                      </span>
-                      <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                        {entry.reason}
-                        {entry.originalExpression && (
-                          <>
-                            {" "}
-                            —{" "}
-                            <code className="font-mono text-[var(--color-figma-text)]">
-                              {entry.originalExpression.length > 48
-                                ? entry.originalExpression.slice(0, 48) + "…"
-                                : entry.originalExpression}
-                            </code>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {showRetryGuidance && (
-            <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-              Retry re-sends parsed tokens only. Skipped entries stay excluded until the source file is fixed.
-            </div>
-          )}
+              {i === 0 ? `Continue in ${rec.label}` : rec.label}
+            </button>
+          ))}
         </div>
       )}
+
+      {/* Failed writes */}
       {hasFailedWrites && (
-        <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] text-[var(--color-figma-success)] font-medium">
-                  ✓ {succeededImportCount} succeeded
-                </span>
-                <span className="text-[10px] text-[var(--color-figma-error)] font-medium">
-                  ✗ {failedImportPaths.length} failed
-                </span>
-              </div>
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Strategy: {failureStrategyLabel}. Retry failed writes below.
-              </div>
+        <div className="w-full mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2 text-[10px]">
+              <span className="text-[var(--color-figma-success)] font-medium">{succeededImportCount} ok</span>
+              <span className="text-[var(--color-figma-error)] font-medium">{failedImportPaths.length} failed</span>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleCopyFailedPaths}
-                title="Copy failed paths"
-                className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-              >
-                {copyFeedback ? "✓ Copied" : "Copy paths"}
+              <button onClick={handleCopyFailedPaths} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
+                {copyFeedback ? "Copied" : "Copy"}
               </button>
               {failedImportBatches.length > 0 && (
-                <button
-                  onClick={handleRetryFailed}
-                  disabled={retrying}
-                  className="text-[10px] text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
-                >
-                  {retrying ? "Retrying…" : "Retry failed"}
+                <button onClick={handleRetryFailed} disabled={retrying} className="text-[10px] text-[var(--color-figma-accent)] hover:underline disabled:opacity-50">
+                  {retrying ? "Retrying..." : "Retry"}
                 </button>
               )}
             </div>
           </div>
-          <div className="space-y-2">
-            {failedImportGroups.length > 0 ? (
-              failedImportGroups.map((group) => (
-                <div
-                  key={group.setName}
-                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                      {group.setName}
-                    </span>
-                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                      {group.paths.length} failed path
-                      {group.paths.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <ul className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
-                    {group.paths.slice(0, 3).map((path) => (
-                      <li
-                        key={`${group.setName}:${path}`}
-                        className="font-mono truncate"
-                        title={path}
-                      >
-                        {path}
-                      </li>
-                    ))}
-                    {group.paths.length > 3 && (
-                      <li className="italic">
-                        …and {group.paths.length - 3} more in this set
-                      </li>
-                    )}
-                  </ul>
+          {failedImportGroups.length > 0 ? (
+            failedImportGroups.map(group => (
+              <div key={group.setName} className="mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.setName}</span>
+                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{group.paths.length}</span>
                 </div>
-              ))
-            ) : (
-              <ul className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
-                {failedImportPaths.slice(0, 5).map((path) => (
-                  <li key={path} className="font-mono truncate" title={path}>
-                    {path}
-                  </li>
-                ))}
-                {failedImportPaths.length > 5 && (
-                  <li className="italic">
-                    …and {failedImportPaths.length - 5} more
-                  </li>
-                )}
-              </ul>
-            )}
-          </div>
+                <ul className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
+                  {group.paths.slice(0, 3).map(path => (
+                    <li key={`${group.setName}:${path}`} className="font-mono truncate" title={path}>{path}</li>
+                  ))}
+                  {group.paths.length > 3 && <li className="italic">...{group.paths.length - 3} more</li>}
+                </ul>
+              </div>
+            ))
+          ) : (
+            <ul className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
+              {failedImportPaths.slice(0, 5).map(path => (
+                <li key={path} className="font-mono truncate" title={path}>{path}</li>
+              ))}
+              {failedImportPaths.length > 5 && <li className="italic">...{failedImportPaths.length - 5} more</li>}
+            </ul>
+          )}
         </div>
       )}
+
+      {/* Actions */}
       <div className="flex items-center gap-3 mt-1">
         {lastImport && (
-          <button
-            onClick={handleUndoImport}
-            disabled={undoing}
-            className="text-[10px] text-[var(--color-figma-error)] hover:underline disabled:opacity-50"
-          >
-            {undoing ? "Undoing…" : "Undo import"}
+          <button onClick={handleUndoImport} disabled={undoing} className="text-[10px] text-[var(--color-figma-error)] hover:underline disabled:opacity-50">
+            {undoing ? "Undoing..." : "Undo"}
           </button>
         )}
-        <button
-          onClick={clearSuccessState}
-          className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-        >
+        <button onClick={clearSuccessState} className="text-[10px] text-[var(--color-figma-accent)] hover:underline">
           Import more
         </button>
       </div>

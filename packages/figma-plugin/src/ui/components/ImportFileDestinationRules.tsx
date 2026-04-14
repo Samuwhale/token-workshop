@@ -3,11 +3,10 @@ import {
   useImportReviewContext,
   useImportSourceContext,
 } from './ImportPanelContext';
-import { getSourceDefinition } from './importPanelTypes';
 import { SET_NAME_RE } from '../shared/utils';
 
 export function ImportFileDestinationRules() {
-  const { source, tokens, continueToPreview } = useImportSourceContext();
+  const { tokens, continueToPreview, handleBack } = useImportSourceContext();
   const {
     targetSet,
     sets,
@@ -26,22 +25,17 @@ export function ImportFileDestinationRules() {
   } = useImportDestinationContext();
   const { clearConflictState } = useImportReviewContext();
 
-  const sourceDefinition = getSourceDefinition(source);
-  const destinationLabel = sourceDefinition?.destinationDescription
-    ?? (source === 'styles'
-      ? 'Send the selected styles into one existing set or create a new one before reviewing conflicts.'
-      : 'Choose the token set that should receive this import before reviewing the parsed tokens.');
-
   return (
-    <div className="flex flex-col gap-2 rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-3">
-      <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-          Destination rules
-        </div>
-        <div className="mt-0.5 text-[11px] text-[var(--color-figma-text-secondary)]">
-          {destinationLabel}
-        </div>
-      </div>
+    <div className="flex flex-col gap-2">
+      <button
+        onClick={handleBack}
+        className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors self-start"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 2L3 5l3 3" />
+        </svg>
+        Back
+      </button>
 
       {newSetInputVisible ? (
         <div className="flex flex-col gap-1.5">
@@ -68,18 +62,18 @@ export function ImportFileDestinationRules() {
               }}
               placeholder="New set name…"
               aria-invalid={newSetError ? true : undefined}
-              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none ${newSetError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
+              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none ${newSetError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
             />
             <button
               onClick={commitNewSet}
               disabled={!newSetDraft.trim() || !!newSetError}
-              className="rounded bg-[var(--color-figma-accent)] px-2 py-1.5 text-[10px] font-medium text-white hover:opacity-90 disabled:opacity-40"
+              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white hover:opacity-90 disabled:opacity-40"
             >
               Create
             </button>
             <button
               onClick={cancelNewSet}
-              className="rounded border border-[var(--color-figma-border)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               Cancel
             </button>
@@ -91,7 +85,7 @@ export function ImportFileDestinationRules() {
           )}
           {!newSetError && newSetDraft.trim() && sets.includes(newSetDraft.trim()) && (
             <p className="text-[10px] text-[var(--color-figma-warning,#e8a100)]">
-              Set already exists. The incoming tokens will merge into it.
+              Set already exists — tokens will merge into it.
             </p>
           )}
         </div>
@@ -111,7 +105,7 @@ export function ImportFileDestinationRules() {
                   setTargetSetAndPersist(e.target.value);
                 }
               }}
-              className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+              className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
             >
               {sets.map((setName) => (
                 <option key={setName} value={setName}>
@@ -126,43 +120,24 @@ export function ImportFileDestinationRules() {
               <option value="__new__">+ New set…</option>
             </select>
           </div>
-          {setsError ? (
+          {setsError && (
             <p className="text-[10px] text-[var(--color-figma-error,#e53935)]">
               Could not load sets.{' '}
               <button type="button" onClick={fetchSets} className="underline hover:opacity-80">
                 Retry
               </button>
             </p>
-          ) : (
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-              Pick an existing set or{' '}
-              <button
-                type="button"
-                onClick={() => setNewSetInputVisible(true)}
-                className="underline hover:text-[var(--color-figma-text-secondary)]"
-              >
-                create a new set
-              </button>
-              {' '}for this import.
-            </p>
           )}
         </div>
       )}
 
-      <div className="flex flex-col gap-1">
-        <button
-          onClick={continueToPreview}
-          disabled={!canContinueToPreview}
-          className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-2 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-        >
-          Continue to preview {tokens.length > 0 ? `(${tokens.length} token${tokens.length === 1 ? '' : 's'})` : ''}
-        </button>
-        {!canContinueToPreview && (
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Finish choosing a valid destination before reviewing the parsed import.
-          </p>
-        )}
-      </div>
+      <button
+        onClick={continueToPreview}
+        disabled={!canContinueToPreview}
+        className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:opacity-90 disabled:opacity-40"
+      >
+        Continue to preview {tokens.length > 0 ? `(${tokens.length} token${tokens.length === 1 ? '' : 's'})` : ''}
+      </button>
     </div>
   );
 }
